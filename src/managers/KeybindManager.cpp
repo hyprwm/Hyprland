@@ -310,7 +310,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true, e->time_msec);
+        found = handleKeybinds(MODS, KEY, true);
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);
@@ -326,7 +326,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
                 if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false, e->time_msec);
+                    found              = handleKeybinds(MODS, *it, false);
                     foundInPressedKeys = true;
                 }
                 it = m_dPressedKeys.erase(it);
@@ -337,7 +337,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false, e->time_msec);
+            found = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
@@ -361,14 +361,14 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true);
         else
-            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true);
     } else if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_HORIZONTAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true);
         else
-            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true);
     }
 
     if (found)
@@ -398,7 +398,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     if (e->state == WLR_BUTTON_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true, 0);
+        found = handleKeybinds(MODS, KEY, true);
 
         if (found)
             shadowKeybinds();
@@ -407,7 +407,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
                 if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false, e->time_msec);
+                    found              = handleKeybinds(MODS, *it, false);
                     foundInPressedKeys = true;
                 }
                 it = m_dPressedKeys.erase(it);
@@ -418,7 +418,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false, e->time_msec);
+            found = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
@@ -436,15 +436,15 @@ void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true);
 }
 
 int repeatKeyHandler(void* data) {
@@ -463,7 +463,7 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, uint32_t time) {
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     bool found = false;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)

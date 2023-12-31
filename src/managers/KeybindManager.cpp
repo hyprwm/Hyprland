@@ -96,7 +96,7 @@ void CKeybindManager::addKeybind(SKeybind kb) {
 void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
     for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
         if (isNumber(key) && std::stoi(key) > 9) {
-            const auto KEYNUM = std::stoi(key);
+            const uint32_t KEYNUM = std::stoi(key);
 
             if (it->modmask == mod && it->keycode == KEYNUM) {
                 it = m_lKeybinds.erase(it);
@@ -483,7 +483,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
         if (!key.keyName.empty()) {
             if (key.keyName != k.key)
                 continue;
-        } else if (k.keycode != -1) {
+        } else if (k.keycode != 0) {
             if (key.keycode != k.keycode)
                 continue;
         } else {
@@ -562,7 +562,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
     return found;
 }
 
-void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const int& doesntHaveCode) {
+void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint32_t doesntHaveCode) {
     // shadow disables keybinds after one has been triggered
 
     for (auto& k : m_lKeybinds) {

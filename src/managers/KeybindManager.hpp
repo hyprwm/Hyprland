@@ -12,7 +12,7 @@ class CPluginSystem;
 
 struct SKeybind {
     std::string key          = "";
-    int         keycode      = -1;
+    uint32_t    keycode      = 0;
     uint32_t    modmask      = 0;
     std::string handler      = "";
     std::string arg          = "";
@@ -39,7 +39,7 @@ enum eFocusWindowMode {
 struct SPressedKeyWithMods {
     std::string  keyName            = "";
     xkb_keysym_t keysym             = 0;
-    int          keycode            = 0;
+    uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
 };
 
@@ -59,7 +59,7 @@ class CKeybindManager {
     void                                                              removeKeybind(uint32_t, const std::string&);
     uint32_t                                                          stringToModMask(std::string);
     void                                                              clearKeybinds();
-    void                                                              shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const int& doesntHaveCode = 0);
+    void                                                              shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 

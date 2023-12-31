@@ -37,6 +37,7 @@ enum eFocusWindowMode {
 };
 
 struct SPressedKeyWithMods {
+    std::string  keyName            = "";
     xkb_keysym_t keysym             = 0;
     int          keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
@@ -86,7 +87,7 @@ class CKeybindManager {
 
     CTimer                          m_tScrollTimer;
 
-    bool                            handleKeybinds(const uint32_t, const std::string&, const SPressedKeyWithMods&, bool, uint32_t);
+    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, uint32_t);
 
     bool                            handleInternalKeybinds(xkb_keysym_t);
     bool                            handleVT(xkb_keysym_t);

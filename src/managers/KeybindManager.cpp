@@ -291,7 +291,13 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
     m_uLastCode      = KEYCODE;
     m_uLastMouseCode = 0;
 
-    bool mouseBindWasActive = ensureMouseBindState();
+    bool       mouseBindWasActive = ensureMouseBindState();
+
+    const auto KEY = SPressedKeyWithMods{
+        .keysym             = keysym,
+        .keycode            = KEYCODE,
+        .modmaskAtPressTime = MODS,
+    };
 
     bool found = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -302,14 +308,9 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             m_pActiveKeybind            = nullptr;
         }
 
-        const auto KEY = SPressedKeyWithMods{
-            .keysym             = keysym,
-            .keycode            = KEYCODE,
-            .modmaskAtPressTime = MODS,
-        };
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, "", KEY, true, e->time_msec);
+        found = handleKeybinds(MODS, KEY, true, e->time_msec);
 
         if (found)
             shadowKeybinds(keysym, KEYCODE);
@@ -325,7 +326,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
                 if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, "", *it, false, e->time_msec);
+                    found              = handleKeybinds(MODS, *it, false, e->time_msec);
                     foundInPressedKeys = true;
                 }
                 it = m_dPressedKeys.erase(it);
@@ -335,12 +336,8 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         }
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
-            const auto FALLBACK_KEY = SPressedKeyWithMods{
-                .keysym             = keysym,
-                .keycode            = KEYCODE,
-                .modmaskAtPressTime = MODS,
-            };
-            found = handleKeybinds(MODS, "", FALLBACK_KEY, false, e->time_msec);
+            // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
+            found = handleKeybinds(MODS, KEY, false, e->time_msec);
         }
 
         shadowKeybinds();
@@ -364,14 +361,14 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     bool found = false;
     if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, "mouse_down", SPressedKeyWithMods{}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true, 0);
         else
-            found = handleKeybinds(MODS, "mouse_up", SPressedKeyWithMods{}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true, 0);
     } else if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_HORIZONTAL) {
         if (e->delta < 0)
-            found = handleKeybinds(MODS, "mouse_left", SPressedKeyWithMods{}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true, 0);
         else
-            found = handleKeybinds(MODS, "mouse_right", SPressedKeyWithMods{}, true, 0);
+            found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true, 0);
     }
 
     if (found)
@@ -389,15 +386,40 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     m_uLastCode      = 0;
     m_uTimeLastMs    = e->time_msec;
 
-    bool mouseBindWasActive = ensureMouseBindState();
+    bool       mouseBindWasActive = ensureMouseBindState();
+
+    const auto KEY_NAME = "mouse:" + std::to_string(e->button);
+
+    const auto KEY = SPressedKeyWithMods{
+        .keyName            = KEY_NAME,
+        .modmaskAtPressTime = MODS,
+    };
 
     if (e->state == WLR_BUTTON_PRESSED) {
-        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), SPressedKeyWithMods{}, true, 0);
+        m_dPressedKeys.push_back(KEY);
+
+        found = handleKeybinds(MODS, KEY, true, 0);
 
         if (found)
             shadowKeybinds();
     } else {
-        found = handleKeybinds(MODS, "mouse:" + std::to_string(e->button), SPressedKeyWithMods{}, false, 0);
+        bool foundInPressedKeys = false;
+        for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
+            if (it->keyName == KEY_NAME) {
+                if (!foundInPressedKeys) {
+                    found              = handleKeybinds(MODS, *it, false, e->time_msec);
+                    foundInPressedKeys = true;
+                }
+                it = m_dPressedKeys.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        if (!foundInPressedKeys) {
+            Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
+            // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
+            found = handleKeybinds(MODS, KEY, false, e->time_msec);
+        }
 
         shadowKeybinds();
     }
@@ -414,15 +436,15 @@ void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:" + switchName, SPressedKeyWithMods{}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true, 0);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:on:" + switchName, SPressedKeyWithMods{}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true, 0);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, "switch:off:" + switchName, SPressedKeyWithMods{}, true, 0);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, 0);
 }
 
 int repeatKeyHandler(void* data) {
@@ -441,7 +463,7 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& key, const SPressedKeyWithMods& keyNumeric, bool pressed, uint32_t time) {
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, uint32_t time) {
     bool found = false;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)
@@ -458,11 +480,11 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& 
             ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (!key.empty()) {
-            if (key != k.key)
+        if (!key.keyName.empty()) {
+            if (key.keyName != k.key)
                 continue;
         } else if (k.keycode != -1) {
-            if (keyNumeric.keycode != k.keycode)
+            if (key.keycode != k.keycode)
                 continue;
         } else {
             // oMg such performance hit!!11!
@@ -470,7 +492,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& 
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-            if (keyNumeric.keysym != KBKEY && keyNumeric.keysym != KBKEYUPPER)
+            if (key.keysym != KBKEY && key.keysym != KBKEYUPPER)
                 continue;
         }
 
@@ -484,7 +506,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& 
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.
-            if (keyNumeric.modmaskAtPressTime != modmask)
+            if (key.modmaskAtPressTime != modmask)
                 continue;
             else if (!k.release && !SPECIALDISPATCHER) {
                 if (k.nonConsuming)
@@ -507,7 +529,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const std::string& 
             Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler);
         } else {
             // call the dispatcher
-            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key, keyNumeric.keysym);
+            Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.keyName, key.keysym);
 
             m_iPassPressed = (int)pressed;
 

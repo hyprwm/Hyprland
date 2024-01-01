@@ -138,6 +138,20 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     return modMask;
 }
 
+uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
+    switch (keycode - 8) {
+        case KEY_LEFTSHIFT: return WLR_MODIFIER_SHIFT;
+        case KEY_RIGHTSHIFT: return WLR_MODIFIER_SHIFT;
+        case KEY_LEFTCTRL: return WLR_MODIFIER_CTRL;
+        case KEY_RIGHTCTRL: return WLR_MODIFIER_CTRL;
+        case KEY_LEFTALT: return WLR_MODIFIER_ALT;
+        case KEY_RIGHTALT: return WLR_MODIFIER_ALT;
+        case KEY_CAPSLOCK: return WLR_MODIFIER_CAPS;
+        case KEY_NUMLOCK: return WLR_MODIFIER_MOD2;
+        default: return 0;
+    }
+}
+
 void CKeybindManager::updateXKBTranslationState() {
     if (m_pXKBTranslationState) {
         xkb_keymap_unref(xkb_state_get_keymap(m_pXKBTranslationState));
@@ -506,9 +520,16 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.
-            if (key.modmaskAtPressTime != modmask)
-                continue;
-            else if (!k.release && !SPECIALDISPATCHER) {
+            if (key.modmaskAtPressTime != modmask) {
+                // Handle properly `bindr` where a key is itself a bind mod for example:
+                // "bindr = SUPER, SUPER_L, exec, $launcher".
+                // This needs to be handled separately for the above case, because `key.modmaskAtPressTime` is set
+                // from currently pressed keys as programs see them, but it doesn't yet include the currently
+                // pressed mod key, which is still being handled internally.
+                if (keycodeToModifier(key.keycode) == key.modmaskAtPressTime)
+                    continue;
+
+            } else if (!k.release && !SPECIALDISPATCHER) {
                 if (k.nonConsuming)
                     continue;
 

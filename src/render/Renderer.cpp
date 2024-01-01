@@ -118,6 +118,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     const auto NEARESTNEIGHBORSET = g_pHyprOpenGL->m_RenderData.useNearestNeighbor;
     if (std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
         windowBox.size() != Vector2D{surface->current.buffer_width, surface->current.buffer_height} /* misaligned */ &&
+        DELTALESSTHAN(windowBox.width, surface->current.buffer_width, 3) && DELTALESSTHAN(windowBox.height, surface->current.buffer_height, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */)
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 

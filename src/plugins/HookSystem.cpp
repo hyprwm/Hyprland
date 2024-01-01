@@ -190,9 +190,9 @@ bool CFunctionHook::hook() {
         (uint64_t)((uint8_t*)m_pSource + sizeof(ABSOLUTE_JMP_ADDRESS));
 
     // make jump to hk
-    const auto     PAGESIZE  = sysconf(_SC_PAGE_SIZE);
-    const uint8_t* PROTSTART = (uint8_t*)m_pSource - ((uint64_t)m_pSource % PAGESIZE);
-    const size_t   PROTLEN   = std::ceil((float)(ORIGSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE) * PAGESIZE;
+    const auto     PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
+    const uint8_t* PROTSTART    = (uint8_t*)m_pSource - ((uint64_t)m_pSource % PAGESIZE_VAR);
+    const size_t   PROTLEN      = std::ceil((float)(ORIGSIZE + ((uint64_t)m_pSource - (uint64_t)PROTSTART)) / (float)PAGESIZE_VAR) * PAGESIZE_VAR;
     mprotect((uint8_t*)PROTSTART, PROTLEN, PROT_READ | PROT_WRITE | PROT_EXEC);
     memcpy((uint8_t*)m_pSource, ABSOLUTE_JMP_ADDRESS, sizeof(ABSOLUTE_JMP_ADDRESS));
 

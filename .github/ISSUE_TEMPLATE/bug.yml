@@ -1,39 +1,63 @@
 name: Bug Report
-description: Something is not working right
+description: "Something is not working right"
 labels: ["bug"]
 body:
-  - type: markdown
+   - type: checkboxes
+    id: no-duplicate-issues
     attributes:
-      value: |
-        Before opening a new issue, take a moment to search through the current open ones.
-
-        ---
+      label: "Before opening a new issue, take a moment to search through the current open ones."
+      description: "Search in the issues sections by clicking [HERE](https://github.com/hyprwm/hyprland/issues?q=)"
+      options:
+        - label: "I have checked and did not find a similar issue"
+          required: true
 
   - type: textarea
     id: ver
     attributes:
-      label: Hyprland Version
+      label: "Hyprland Version"
       description: "Paste here the output of `hyprctl version`. For hyprland after 0.34.0, paste `hyprctl systeminfo` instead."
-      value: "<details>
-        <summary>System/Version info</summary>
+      render: shell
+      placeholder: |
+        $ hyprctl systeminfo
+        Hyprland, built from branch main at commit 03ebbe18ed8517ee22591eac82cd54322f42cb7d dirty (props: bump ver to 0.34.0).
+        Date: Mon Jan 1 13:03:15 2024
+        Tag: v0.33.1-121-g03ebbe18
+
+        flags: (if any)
 
 
-        ```sh
-        
-        <Paste the output of the command here>
+        System Information:
+        System name: Linux
+        Node name: Apollo
+        Release: 6.6.8-zen1-1-zen
+        Version: #1 ZEN SMP PREEMPT_DYNAMIC Thu, 21 Dec 2023 19:00:41 +0000
 
-        ```
+
+        GPU information:
+        06:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Cezanne [Radeon Vega Series / Radeon Vega Mobile Series] [1002:1638] (rev c6) (prog-if 00 [VGA controller])
 
 
-        </details>"
+        os-release: NAME="Arch Linux"
+        PRETTY_NAME="Arch Linux"
+        ID=arch
+        BUILD_ID=rolling
+        ANSI_COLOR="38;2;23;147;209"
+        HOME_URL="https://archlinux.org/"
+        DOCUMENTATION_URL="https://wiki.archlinux.org/"
+        SUPPORT_URL="https://bbs.archlinux.org/"
+        BUG_REPORT_URL="https://bugs.archlinux.org/"
+        PRIVACY_POLICY_URL="https://terms.archlinux.org/docs/privacy-policy/"
+        LOGO=archlinux-logo
+
+plugins:
     validations:
       required: true
 
   - type: dropdown
     id: type
     attributes:
-      label: Bug or Regression?
-      description: Is this a bug or a regression?
+      label: "Bug or Regression?"
+      description: "Is this a bug or a regression?"
       options:
         - Bug
         - Regression
@@ -43,25 +67,30 @@ body:
   - type: textarea
     id: desc
     attributes:
-      label: Description
+      label: "Description"
       description: "What went wrong?"
+      placeholder: "..."
     validations:
       required: true
 
   - type: textarea
     id: repro
     attributes:
-      label: How to reproduce
-      description: "How can someone else reproduce the issue?"
+      label: "How to reproduce"
+      description: "How do you reproduce this issue? Please walk us through it, step by step."
+      placeholder: |
+        1. Open a terminal window
+        2. Move it in a very specific way
+        3. Observe
     validations:
       required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: Crash reports, logs, images, videos
+      label: "Crash reports, logs, images, videos"
       description: |
         Anything that can help. Please always ATTACH and not paste them.
-        Logs can be found in /tmp/hypr
-        Crash reports are stored in ~/.hyprland or $XDG_CACHE_HOME/hyprland
+        Logs can be found in `/tmp/hypr`
+        Crash reports are stored in `$XDG_CACHE_HOME/hyprland` or `~/.hyprland`
 

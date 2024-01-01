@@ -597,7 +597,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
         for (auto& pk : m_dPressedKeys) {
-            if ((pk.keysym == KBKEY || pk.keysym == KBKEYUPPER)) {
+            if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
                 shadow = true;
 
                 if (pk.keysym == doesntHave && doesntHave != 0) {
@@ -606,7 +606,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
                 }
             }
 
-            if (pk.keycode == k.keycode) {
+            if (pk.keycode != 0 && pk.keycode == k.keycode) {
                 shadow = true;
 
                 if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {

@@ -161,7 +161,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
         wlr_surface_send_frame_done(surface, RDATA->when);
-        wlr_presentation_surface_textured_on_output(g_pCompositor->m_sWLRPresentation, surface, RDATA->pMonitor->output);
+        wlr_presentation_surface_textured_on_output(surface, RDATA->pMonitor->output);
     }
 
     g_pHyprOpenGL->blend(true);
@@ -905,7 +905,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     wlr_surface_send_frame_done(PSURFACE, &now);
-    wlr_presentation_surface_scanned_out_on_output(g_pCompositor->m_sWLRPresentation, PSURFACE, pMonitor->output);
+    wlr_presentation_surface_scanned_out_on_output(PSURFACE, pMonitor->output);
 
     if (wlr_output_commit(pMonitor->output)) {
         if (!m_pLastScanout) {

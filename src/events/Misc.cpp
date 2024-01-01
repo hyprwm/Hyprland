@@ -256,9 +256,9 @@ void Events::listener_newTearingHint(wl_listener* listener, void* data) {
             const auto PWINDOW = g_pCompositor->getWindowFromSurface(TEARINGHINT->pWlrHint->surface);
 
             if (PWINDOW) {
-                PWINDOW->m_bTearingHint = TEARINGHINT->pWlrHint->hint;
+                PWINDOW->m_bTearingHint = (bool)TEARINGHINT->pWlrHint->current;
 
-                Debug::log(LOG, "Hint {} (window {}) set tearing hint to {}", (uintptr_t)TEARINGHINT->pWlrHint, PWINDOW, (uint32_t)TEARINGHINT->pWlrHint->hint);
+                Debug::log(LOG, "Hint {} (window {}) set tearing hint to {}", (uintptr_t)TEARINGHINT->pWlrHint, PWINDOW, (uint32_t)TEARINGHINT->pWlrHint->current);
             }
         },
         NEWCTRL, "TearingController");

@@ -687,11 +687,13 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
     if (!passEvent)
         return;
 
-    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-    const auto PWINDOW     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
+    if (!m_bLastFocusOnLS) {
+        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+        const auto PWINDOW     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS);
 
-    if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
-        return;
+        if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
+            return;
+    }
 
     wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
 }

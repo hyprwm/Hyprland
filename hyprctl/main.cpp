@@ -51,6 +51,7 @@ commands:
     setprop
     splash
     switchxkblayout
+    systeminfo
     version
     workspacerules
     workspaces
@@ -387,6 +388,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/version"))
         request(fullRequest);
     else if (fullRequest.contains("/kill"))
+        request(fullRequest);
+    else if (fullRequest.contains("/systeminfo"))
         request(fullRequest);
     else if (fullRequest.contains("/splash"))
         request(fullRequest);

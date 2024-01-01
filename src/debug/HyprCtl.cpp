@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <errno.h>
@@ -793,6 +794,39 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return ""; // make the compiler happy
 }
 
+std::string systemInfoRequest() {
+    std::string result = versionRequest(HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL);
+
+    result += "\n\nSystem Information:\n";
+
+    struct utsname unameInfo;
+
+    uname(&unameInfo);
+
+    result += "System name: " + std::string{unameInfo.sysname} + "\n";
+    result += "Node name: " + std::string{unameInfo.nodename} + "\n";
+    result += "Release: " + std::string{unameInfo.release} + "\n";
+    result += "Version: " + std::string{unameInfo.version} + "\n";
+
+    result += "\n\n";
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#else
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+#endif
+    result += "GPU information: \n" + GPUINFO + "\n\n";
+
+    result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
+
+    result += "plugins:\n";
+    for (auto& pl : g_pPluginSystem->getAllPlugins()) {
+        result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+    }
+
+    return result;
+}
+
 std::string dispatchRequest(std::string in) {
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
@@ -1415,6 +1449,8 @@ std::string getReply(std::string request) {
         return bindsRequest(format);
     else if (request == "globalshortcuts")
         return globalShortcutsRequest(format);
+    else if (request == "systeminfo")
+        return systemInfoRequest();
     else if (request == "animations")
         return animationsRequest(format);
     else if (request == "rollinglog")

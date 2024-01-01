@@ -35,9 +35,9 @@ index 29b103a..0b6e5a4 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -15,7 +15,7 @@ project(
- # necessary for bugfix releases. Increasing soversion is required because
- # wlroots never guarantees ABI stability -- only API stability is guaranteed
- # between minor releases.
+ version_major = version.split('.')[0]
+ version_minor = version.split('.')[1]
+ assert(version_major == '0')
 -soversion = version_minor.to_int() - 5
 +soversion = 13032
  

@@ -140,6 +140,8 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
     switch (keycode - 8) {
+        case KEY_LEFTMETA: return WLR_MODIFIER_LOGO;
+        case KEY_RIGHTMETA: return WLR_MODIFIER_LOGO;
         case KEY_LEFTSHIFT: return WLR_MODIFIER_SHIFT;
         case KEY_RIGHTSHIFT: return WLR_MODIFIER_SHIFT;
         case KEY_LEFTCTRL: return WLR_MODIFIER_CTRL;

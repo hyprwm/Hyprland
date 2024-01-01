@@ -7,7 +7,7 @@ name: Mark stale issues and pull requests
 
 on:
   schedule:
-  - cron: '26 0 * * *'
+  - cron: '7 */4 * * *'
   workflow_dispatch:
 
 jobs:
@@ -24,3 +24,4 @@ jobs:
         repo-token: ${{ secrets.STALEBOT_PAT }}
         stale-issue-label: 'stale'
         stale-pr-label: 'stale'
+        operations-per-run: 40

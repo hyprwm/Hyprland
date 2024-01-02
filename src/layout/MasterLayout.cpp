@@ -1331,6 +1331,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
 
+        if (!PNODE)
+            return 0;
+
         const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
 
@@ -1352,6 +1355,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (command == "rollprev") {
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
+
+        if (!PNODE)
+            return 0;
 
         const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);

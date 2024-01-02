@@ -1062,10 +1062,12 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
-    if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE); PATCOORDS && PATCOORDS != PWINDOW)
-        g_pCompositor->focusWindow(PATCOORDS);
-    else
-        g_pInputManager->refocus();
+    if (PWINDOW == g_pCompositor->m_pLastWindow) {
+        if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE, PWINDOW); PATCOORDS)
+            g_pCompositor->focusWindow(PATCOORDS);
+        else
+            g_pInputManager->refocus();
+    }
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {

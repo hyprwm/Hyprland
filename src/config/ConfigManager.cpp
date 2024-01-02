@@ -223,6 +223,7 @@ void CConfigManager::setDefaultVars() {
 
     configValues["input:follow_mouse"].intValue                     = 1;
     configValues["input:mouse_refocus"].intValue                    = 1;
+    configValues["input:off_window_axis_events"].intValue           = 1;
     configValues["input:sensitivity"].floatValue                    = 0.f;
     configValues["input:accel_profile"].strValue                    = STRVAL_EMPTY;
     configValues["input:kb_file"].strValue                          = STRVAL_EMPTY;

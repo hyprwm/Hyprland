@@ -16,6 +16,7 @@ class ICustomConfigValueData {
 
 class CGradientValueData : public ICustomConfigValueData {
   public:
+    CGradientValueData(){};
     CGradientValueData(CColor col) {
         m_vColors.push_back(col);
     };

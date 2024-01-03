@@ -317,6 +317,9 @@ void refreshGroupBarGradients() {
 }
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
+    if (m_pWindow == m_pWindow->m_sGroupData.pNextWindow)
+        return false;
+
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 

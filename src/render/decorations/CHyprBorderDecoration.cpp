@@ -104,5 +104,5 @@ std::string CHyprBorderDecoration::getDisplayName() {
 }
 
 bool CHyprBorderDecoration::doesntWantBorders() {
-    return !m_pWindow->m_sSpecialRenderData.border || m_pWindow->m_bX11DoesntWantBorders;
+    return !m_pWindow->m_sSpecialRenderData.border || m_pWindow->m_bX11DoesntWantBorders || m_pWindow->getRealBorderSize() == 0;
 }

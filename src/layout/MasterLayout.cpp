@@ -883,6 +883,9 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
     pWindow->m_bIsFullscreen           = on;
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
 
+    pWindow->updateDynamicRules();
+    pWindow->updateWindowDecos();
+
     g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", std::to_string((int)on)});
     EMIT_HOOK_EVENT("fullscreen", pWindow);
 
@@ -1328,6 +1331,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
 
+        if (!PNODE)
+            return 0;
+
         const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
 
@@ -1349,6 +1355,9 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (command == "rollprev") {
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
+
+        if (!PNODE)
+            return 0;
 
         const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);

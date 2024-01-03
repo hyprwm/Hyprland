@@ -3,8 +3,6 @@
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
 #include "render/decorations/CHyprBorderDecoration.hpp"
-#include <vector>
-#include <cmath>
 
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -609,41 +607,31 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.animationStyle = STYLE;
     } else if (r.szRule.starts_with("bordercolor")) {
         try {
-            std::string colorPart   = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-            std::string colorString = "";
-            bool        active      = true;
             // Each vector will only get used if it has at least one color
             CGradientValueData activeBorderGradient   = {};
             CGradientValueData inactiveBorderGradient = {};
-            for (auto& c : colorPart) {
-                if (c == ' ' && active && colorString.contains("deg")) {
-                    activeBorderGradient.m_fAngle = std::stoi(colorString.substr(0, colorString.size() - 3)) * (PI / 180.0);
-                    active                        = false;
-                    colorString                   = "";
-                } else if (c == ' ' && colorString.contains("deg")) {
-                    inactiveBorderGradient.m_fAngle = std::stoi(colorString.substr(0, colorString.size() - 3)) * (PI / 180.0);
-                    colorString                     = "";
-                } else if (c == ' ' && active) {
-                    activeBorderGradient.m_vColors.push_back(configStringToInt(colorString));
-                    colorString = "";
-                } else if (c == ' ') {
-                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(colorString));
-                    colorString = "";
-                } else {
-                    colorString += c;
-                }
+            bool               active                 = true;
+            CVarList           colorsAndAngles        = CVarList(removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
+
+            // Basic form has only two colors, everything else can be parsed as a gradient
+            if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+                m_sSpecialRenderData.activeBorderColor   = CGradientValueData(CColor(configStringToInt(colorsAndAngles[0])));
+                m_sSpecialRenderData.inactiveBorderColor = CGradientValueData(CColor(configStringToInt(colorsAndAngles[1])));
+                return;
             }
 
-            // Supports older form expecting colors instead of gradients
-            // The angle, or an explicit "0deg", splits active and inactive gradients if gradients are used
-            if (active && colorString.contains("deg")) {
-                activeBorderGradient.m_fAngle = std::stoi(colorString.substr(0, colorString.size() - 3)) * (PI / 180.0);
-            } else if (colorString.contains("deg")) {
-                inactiveBorderGradient.m_fAngle = std::stoi(colorString.substr(0, colorString.size() - 3)) * (PI / 180.0);
-            } else if (!colorPart.empty() && (activeBorderGradient.m_vColors.size() == 1 || !active)) {
-                inactiveBorderGradient.m_vColors.push_back(configStringToInt(colorString));
-            } else if (!colorPart.empty()) {
-                activeBorderGradient.m_vColors.push_back(configStringToInt(colorString));
+            for (auto& token : colorsAndAngles) {
+                // The first angle, or an explicit "0deg", splits the two gradients
+                if (active && token.contains("deg")) {
+                    activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                    active                        = false;
+                } else if (token.contains("deg")) {
+                    inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                } else if (active) {
+                    activeBorderGradient.m_vColors.push_back(configStringToInt(token));
+                } else {
+                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
+                }
             }
 
             // Includes sanity checks for the number of colors in each gradient
@@ -653,11 +641,9 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
             } else if (inactiveBorderGradient.m_vColors.empty()) {
                 m_sSpecialRenderData.activeBorderColor = activeBorderGradient;
-            } else if (!inactiveBorderGradient.m_vColors.empty()) {
+            } else {
                 m_sSpecialRenderData.activeBorderColor   = activeBorderGradient;
                 m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
-            } else {
-                Debug::log(WARN, "Bordercolor rule \"{}\" stumbled across a bug, please report it", r.szRule);
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "dimaround") {

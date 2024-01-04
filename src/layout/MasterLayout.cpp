@@ -1331,7 +1331,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
 
-        if (!PWINDOW || !PNODE)
+        if (!PNODE)
             return 0;
 
         const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
@@ -1359,7 +1359,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);
 
-        if (!PWINDOW || !PNODE)
+        if (!PNODE)
             return 0;
 
         const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);

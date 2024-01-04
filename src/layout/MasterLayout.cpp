@@ -1334,7 +1334,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PNODE)
             return 0;
 
-        const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        if (!OLDMASTER)
+            return 0;
+
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
 
         for (auto& nd : m_lMasterNodesData) {
@@ -1359,7 +1362,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PNODE)
             return 0;
 
-        const auto OLDMASTER   = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNodeOnWorkspace(PNODE->workspaceID);
+        if (!OLDMASTER)
+            return 0;
+
         const auto OLDMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *OLDMASTER);
 
         for (auto& nd : m_lMasterNodesData | std::views::reverse) {

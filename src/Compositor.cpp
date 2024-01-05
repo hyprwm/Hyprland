@@ -941,11 +941,13 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     }
 
     const auto PLASTWINDOW = m_pLastWindow;
-    const auto PLASTWORKSPACE = getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
     m_pLastWindow          = pWindow;
+    if (PLASTWINDOW) {
+    	const auto PLASTWORKSPACE = getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
 
-     if (isWorkspaceSpecial(PLASTWORKSPACE->m_iID) && !isWorkspaceSpecial(PWORKSPACE->m_iID)) {
-        PMONITOR->setSpecialWorkspace(nullptr);
+    	if (isWorkspaceSpecial(PLASTWORKSPACE->m_iID) && !isWorkspaceSpecial(PWORKSPACE->m_iID)) {
+	    PMONITOR->setSpecialWorkspace(nullptr);
+    	}
     }
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window

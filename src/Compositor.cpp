@@ -1019,10 +1019,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == pWindowOwner->m_pWLSurface.wlr()))
         return; // Don't focus when already focused on this.
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        wlr_seat_keyboard_clear_focus(m_sSeat.seat);
-        m_pLastFocus = nullptr;
-    }
+    if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
+        return;
 
     // Unfocus last surface if should
     if (m_pLastFocus && !pWindowOwner)

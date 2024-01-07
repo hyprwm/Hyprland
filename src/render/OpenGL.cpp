@@ -637,7 +637,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
     TRACY_GPU_ZONE("RenderRectWithDamage");
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
@@ -723,7 +723,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     static auto* const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
@@ -886,7 +886,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, CBox* pBox) {
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
@@ -940,7 +940,7 @@ void CHyprOpenGLImpl::renderTextureMatte(const CTexture& tex, CBox* pBox, CFrame
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
@@ -1475,14 +1475,14 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
         return;
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
     if (borderSize < 1)
         return;
 
-    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale);
+    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale);
 
     // adjust box
     box->x -= scaledBorderSize;
@@ -1779,7 +1779,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     TRACY_GPU_ZONE("RenderShadow");
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
@@ -2210,4 +2210,26 @@ const SGLPixelFormat* CHyprOpenGLImpl::getPixelFormatFromDRM(uint32_t drmFormat)
     }
 
     return nullptr;
+}
+
+void SRenderModifData::applyToBox(CBox& box) {
+    for (auto& [type, val] : modifs) {
+        try {
+            switch (type) {
+                case RMOD_TYPE_SCALE: box.scale(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_SCALECENTER: box.scaleFromCenter(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_TRANSLATE: box.translate(std::any_cast<Vector2D>(val)); break;
+                case RMOD_TYPE_ROTATE: box.rot += std::any_cast<float>(val); break;
+                case RMOD_TYPE_ROTATECENTER: {
+                    const auto   THETA = std::any_cast<float>(val);
+                    const double COS   = std::cos(THETA);
+                    const double SIN   = std::sin(THETA);
+                    box.rot += THETA;
+                    const auto OLDPOS = box.pos();
+                    box.x             = OLDPOS.x * COS - OLDPOS.y * SIN;
+                    box.y             = OLDPOS.y * COS + OLDPOS.x * SIN;
+                }
+            }
+        } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToBox!"); }
+    }
 }

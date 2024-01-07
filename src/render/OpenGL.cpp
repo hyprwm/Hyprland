@@ -232,7 +232,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
     const auto PRBO         = g_pHyprRenderer->getCurrentRBO();
     const bool FBPROPERSIZE = fb && fb->m_vSize == pMonitor->vecPixelSize;
 
-    if (!FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) || passRequiresIntrospection(pMonitor)) {
+    if (m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) ||
+        passRequiresIntrospection(pMonitor)) {
         // we have to offload
         // bind the offload Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();
@@ -307,9 +308,10 @@ void CHyprOpenGLImpl::end() {
     }
 
     // reset our data
-    m_RenderData.pMonitor          = nullptr;
-    m_RenderData.mouseZoomFactor   = 1.f;
-    m_RenderData.mouseZoomUseMouse = true;
+    m_RenderData.pMonitor           = nullptr;
+    m_RenderData.mouseZoomFactor    = 1.f;
+    m_RenderData.mouseZoomUseMouse  = true;
+    m_RenderData.forceIntrospection = false;
 }
 
 void CHyprOpenGLImpl::initShaders() {

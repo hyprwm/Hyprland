@@ -195,12 +195,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         }
 
         if (!std::filesystem::exists("/tmp/hyprpm/new/" + p.output)) {
-            std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n";
+            progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Plugin " + p.name + " failed to build.\n");
 
             if (m_bVerbose)
                 std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
 
-            return false;
+            p.failed = true;
+
+            continue;
         }
 
         progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " built " + p.name + " into " + p.output);
@@ -220,7 +222,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
     repo.url  = url;
     repo.hash = repohash;
     for (auto& p : pManifest->m_vPlugins) {
-        repo.plugins.push_back(SPlugin{p.name, "/tmp/hyprpm/new/" + p.output, false});
+        repo.plugins.push_back(SPlugin{p.name, "/tmp/hyprpm/new/" + p.output, false, p.failed});
     }
     DataState::addNewPluginRepo(repo);
 
@@ -696,8 +698,13 @@ void CPluginManager::listAllPlugins() {
         std::cout << std::string{Colors::RESET} + " → Repository " + r.name + ":\n";
 
         for (auto& p : r.plugins) {
-            std::cout << std::string{Colors::RESET} + "  │ Plugin " + p.name + "\n  └─ enabled: " << (p.enabled ? Colors::GREEN : Colors::RED) << (p.enabled ? "true" : "false")
-                      << Colors::RESET << "\n";
+
+            std::cout << std::string{Colors::RESET} + "  │ Plugin " + p.name;
+
+            if (!p.failed)
+                std::cout << "\n  └─ enabled: " << (p.enabled ? Colors::GREEN : Colors::RED) << (p.enabled ? "true" : "false") << Colors::RESET << "\n";
+            else
+                std::cout << "\n  └─ enabled: " << Colors::RED << "Plugin failed to build" << Colors::RESET << "\n";
         }
     }
 }

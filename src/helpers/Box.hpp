@@ -73,6 +73,8 @@ class CBox {
         double height;
     };
 
+    double rot = 0; /* rad, ccw */
+
     //
     bool operator==(const CBox& rhs) const {
         return x == rhs.x && y == rhs.y && w == rhs.w && h == rhs.h;

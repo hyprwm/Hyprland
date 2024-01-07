@@ -108,6 +108,7 @@ struct SCurrentRenderData {
     float               mouseZoomFactor    = 1.f;
     bool                mouseZoomUseMouse  = true; // true by default
     bool                useNearestNeighbor = false;
+    bool                forceIntrospection = false; // cleaned in ::end()
 
     Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);

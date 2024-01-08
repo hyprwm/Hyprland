@@ -243,7 +243,7 @@ CTitleTex::~CTitleTex() {
     tex.destroyTexture();
 }
 
-void renderGradientTo(CTexture& tex, const CColor& grad) {
+void renderGradientTo(CTexture& tex, CGradientValueData* grad) {
 
     if (!g_pCompositor->m_pLastMonitor)
         return;
@@ -261,8 +261,12 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
 
     cairo_pattern_t* pattern;
     pattern = cairo_pattern_create_linear(0, 0, 0, bufferSize.y);
-    cairo_pattern_add_color_stop_rgba(pattern, 1, grad.r, grad.g, grad.b, grad.a);
-    cairo_pattern_add_color_stop_rgba(pattern, 0, grad.r, grad.g, grad.b, 0);
+
+    for (unsigned long i = 0; i < grad->m_vColors.size(); i++) {
+        cairo_pattern_add_color_stop_rgba(pattern, 1 - (double)(i + 1) / (grad->m_vColors.size() + 1), grad->m_vColors[i].r, grad->m_vColors[i].g, grad->m_vColors[i].b,
+                                          grad->m_vColors[i].a);
+    }
+
     cairo_rectangle(CAIRO, 0, 0, bufferSize.x, bufferSize.y);
     cairo_set_source(CAIRO, pattern);
     cairo_fill(CAIRO);
@@ -290,13 +294,13 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
 }
 
 void refreshGroupBarGradients() {
-    static auto* const PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
-    static auto* const PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+    static auto* const  PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const  PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
-    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
-    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
-    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
-    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
+    CGradientValueData* PGROUPCOLACTIVE         = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data.get();
+    CGradientValueData* PGROUPCOLINACTIVE       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data.get();
+    CGradientValueData* PGROUPCOLACTIVELOCKED   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data.get();
+    CGradientValueData* PGROUPCOLINACTIVELOCKED = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data.get();
 
     g_pHyprRenderer->makeEGLCurrent();
 
@@ -310,10 +314,10 @@ void refreshGroupBarGradients() {
     if (!*PENABLED || !*PGRADIENTS)
         return;
 
-    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PGROUPCOLACTIVE->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PGROUPCOLINACTIVE->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientLockedActive, ((CGradientValueData*)PGROUPCOLACTIVELOCKED->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientLockedInactive, ((CGradientValueData*)PGROUPCOLINACTIVELOCKED->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientActive, PGROUPCOLACTIVE);
+    renderGradientTo(m_tGradientInactive, PGROUPCOLINACTIVE);
+    renderGradientTo(m_tGradientLockedActive, PGROUPCOLACTIVELOCKED);
+    renderGradientTo(m_tGradientLockedInactive, PGROUPCOLINACTIVELOCKED);
 }
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {

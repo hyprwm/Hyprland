@@ -2256,8 +2256,8 @@ void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWo
 
         const auto     RADII     = w->getCornerRadii() * PMONITOR->scale;
         const int      MINRADIUS = std::min(std::min(RADII.topLeft, RADII.topRight), std::min(RADII.bottomLeft, RADII.bottomRight));
-        const Vector2D POS       = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
-        const Vector2D SIZE      = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
+        const Vector2D POS  = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
+        const Vector2D SIZE = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
@@ -2283,8 +2283,8 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
 
         const auto     RADII     = w->getCornerRadii() * PMONITOR->scale;
         const int      MINRADIUS = std::min(std::min(RADII.topLeft, RADII.topRight), std::min(RADII.bottomLeft, RADII.bottomRight));
-        const Vector2D POS       = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
-        const Vector2D SIZE      = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
+        const Vector2D POS  = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
+        const Vector2D SIZE = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 

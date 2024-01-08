@@ -66,7 +66,7 @@ void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& of
     }
 
     int        borderSize = m_pWindow->getRealBorderSize();
-    const auto RADII   = m_pWindow->getCornerRadii() * pMonitor->scale;
+    const auto RADII      = m_pWindow->getCornerRadii() * pMonitor->scale;
 
     g_pHyprOpenGL->renderBorder(&windowBox, grad, RADII, borderSize, a1);
 

@@ -994,7 +994,7 @@ bool CWindow::opaque() {
 CCornerRadiiData CWindow::getCornerRadii() {
     static auto* const PRADII = (CCornerRadiiData*)g_pConfigManager->getConfigValuePtr("decoration:rounding")->data.get();
 
-    CCornerRadiiData   radii  = m_sAdditionalConfigData.cornerRadii.toUnderlying() == -1 ? *PRADII : m_sAdditionalConfigData.cornerRadii.toUnderlying();
+    CCornerRadiiData   radii = m_sAdditionalConfigData.cornerRadii.toUnderlying() == -1 ? *PRADII : m_sAdditionalConfigData.cornerRadii.toUnderlying();
 
     return m_sSpecialRenderData.rounding ? radii : 0;
 }

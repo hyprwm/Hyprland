@@ -447,9 +447,9 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shSHADOW.posAttrib   = glGetAttribLocation(prog, "pos");
     m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib   = glGetAttribLocation(prog, "texcoord");
     m_RenderData.pCurrentMonData->m_shSHADOW.topLeft     = glGetUniformLocation(prog, "topLeft");
-    m_RenderData.pCurrentMonData->m_shSHADOW.topRight     = glGetUniformLocation(prog, "topRight");
+    m_RenderData.pCurrentMonData->m_shSHADOW.topRight    = glGetUniformLocation(prog, "topRight");
     m_RenderData.pCurrentMonData->m_shSHADOW.bottomRight = glGetUniformLocation(prog, "bottomRight");
-    m_RenderData.pCurrentMonData->m_shSHADOW.bottomLeft = glGetUniformLocation(prog, "bottomLeft");
+    m_RenderData.pCurrentMonData->m_shSHADOW.bottomLeft  = glGetUniformLocation(prog, "bottomLeft");
     m_RenderData.pCurrentMonData->m_shSHADOW.fullSize    = glGetUniformLocation(prog, "fullSize");
     m_RenderData.pCurrentMonData->m_shSHADOW.cornerRadii = glGetUniformLocation(prog, "cornerRadii");
     m_RenderData.pCurrentMonData->m_shSHADOW.range       = glGetUniformLocation(prog, "range");
@@ -714,8 +714,8 @@ void CHyprOpenGLImpl::renderTexture(const CTexture& tex, CBox* pBox, float alpha
     scissor((CBox*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox* pBox, float alpha, CRegion* damage, CCornerRadiiData radii, bool discardActive, bool noAA, bool allowCustomUV,
-                                                      bool allowDim) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox* pBox, float alpha, CRegion* damage, CCornerRadiiData radii, bool discardActive, bool noAA,
+                                                      bool allowCustomUV, bool allowDim) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex.m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -1535,7 +1535,8 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, CC
     glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.cornerRadii, radii.topLeft, radii.topRight, radii.bottomRight, radii.bottomLeft);
 
     CCornerRadiiData actualOuterRadii = outerRadii == -1 ? radii : outerRadii;
-    glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.cornerRadiiOuter, actualOuterRadii.topLeft, actualOuterRadii.topRight, actualOuterRadii.bottomRight, actualOuterRadii.bottomLeft);
+    glUniform4f(m_RenderData.pCurrentMonData->m_shBORDER1.cornerRadiiOuter, actualOuterRadii.topLeft, actualOuterRadii.topRight, actualOuterRadii.bottomRight,
+                actualOuterRadii.bottomLeft);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, scaledBorderSize);
 
     glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);

@@ -547,7 +547,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
             }
             case CVD_TYPE_CORNER_RADII: {
                 CCornerRadiiData* data = static_cast<CCornerRadiiData*>(CONFIGENTRY->data.get());
-                
+
                 try {
                     *data = configStringToRadii(VALUE);
                 } catch (std::exception& e) {

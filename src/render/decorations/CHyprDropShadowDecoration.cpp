@@ -79,8 +79,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto RADIIBASE       = m_pWindow->getCornerRadii();
-    const auto RADII           = RADIIBASE.topLeft > 0|| RADIIBASE.topRight > 0 || RADIIBASE.bottomRight > 0 || RADIIBASE.bottomLeft > 0 ? RADIIBASE + m_pWindow->getRealBorderSize() : 0;
+    const auto RADIIBASE = m_pWindow->getCornerRadii();
+    const auto RADII = RADIIBASE.topLeft > 0 || RADIIBASE.topRight > 0 || RADIIBASE.bottomRight > 0 || RADIIBASE.bottomLeft > 0 ? RADIIBASE + m_pWindow->getRealBorderSize() : 0;
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
 

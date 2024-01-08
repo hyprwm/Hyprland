@@ -716,16 +716,16 @@ int64_t configStringToInt(const std::string& VALUE) {
 }
 
 CCornerRadiiData configStringToRadii(const std::string& VALUE) {
-    CVarList vars(VALUE);
+    CVarList         vars(VALUE);
 
     CCornerRadiiData radii;
     if (vars.size() == 1) {
         radii.reset(std::stoi(vars[0]));
     } else if (vars.size() == 4) {
-        radii.topLeft = std::stoi(vars[0]);
-        radii.topRight = std::stoi(vars[1]);
+        radii.topLeft     = std::stoi(vars[0]);
+        radii.topRight    = std::stoi(vars[1]);
         radii.bottomRight = std::stoi(vars[2]);
-        radii.bottomLeft = std::stoi(vars[3]);
+        radii.bottomLeft  = std::stoi(vars[3]);
     } else {
         throw std::invalid_argument("not enough or too many values (1 or 4 separated by comma)");
     }

@@ -33,6 +33,8 @@ CConfigManager::CConfigManager() {
     configValues["group:groupbar:col.locked_active"].data   = std::make_shared<CGradientValueData>(0x66ff5500);
     configValues["group:groupbar:col.locked_inactive"].data = std::make_shared<CGradientValueData>(0x66775500);
 
+    configValues["decoration:rounding"].data = std::make_shared<CCornerRadiiData>(0);
+
     Debug::log(LOG, "NOTE: further logs to stdout / logfile are disabled by default. Use debug:disable_logs and debug:enable_stdout_logs to override this.");
 
     setDefaultVars();
@@ -161,7 +163,7 @@ void CConfigManager::setDefaultVars() {
     configValues["debug:watchdog_timeout"].intValue     = 5;
     configValues["debug:disable_scale_checks"].intValue = 0;
 
-    configValues["decoration:rounding"].intValue                  = 0;
+    ((CCornerRadiiData*)configValues["decoration:rounding"].data.get())->reset(0xffffffff);
     configValues["decoration:blur:enabled"].intValue              = 1;
     configValues["decoration:blur:size"].intValue                 = 8;
     configValues["decoration:blur:passes"].intValue               = 1;
@@ -539,6 +541,18 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
                     parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. No colors provided.";
 
                     data->m_vColors.push_back(0); // transparent
+                }
+
+                break;
+            }
+            case CVD_TYPE_CORNER_RADII: {
+                CCornerRadiiData* data = static_cast<CCornerRadiiData*>(CONFIGENTRY->data.get());
+                
+                try {
+                    *data = configStringToRadii(VALUE);
+                } catch (std::exception& e) {
+                    Debug::log(WARN, "Error reading value of {}", COMMAND);
+                    parseError = "Error setting value <" + VALUE + "> for field <" + COMMAND + ">. " + e.what();
                 }
 
                 break;

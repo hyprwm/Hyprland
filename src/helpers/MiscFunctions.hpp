@@ -5,6 +5,7 @@
 #include <wayland-server.h>
 #include <wlr/util/box.h>
 #include "Vector2D.hpp"
+#include "../config/ConfigDataValues.hpp"
 #include <vector>
 #include <format>
 
@@ -27,6 +28,7 @@ void                             logSystemInfo();
 std::string                      execAndGet(const char*);
 int64_t                          getPPIDof(int64_t pid);
 int64_t                          configStringToInt(const std::string&);
+CCornerRadiiData                 configStringToRadii(const std::string&);
 std::optional<float>             getPlusMinusKeywordResult(std::string in, float relative);
 void                             matrixProjection(float mat[9], int w, int h, wl_output_transform tr);
 double                           normalizeAngleRad(double ang);

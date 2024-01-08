@@ -118,14 +118,14 @@ class CHyprOpenGLImpl {
     void                  begin(CMonitor*, CRegion*, CFramebuffer* fb = nullptr /* if provided, it's not a real frame */);
     void                  end();
 
-    void                  renderRect(CBox*, const CColor&, int round = 0);
-    void                  renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
-    void                  renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
-    void                  renderTexture(wlr_texture*, CBox*, float a, int round = 0, bool allowCustomUV = false);
-    void                  renderTexture(const CTexture&, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
-    void                  renderTextureWithBlur(const CTexture&, CBox*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
-    void                  renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
-    void                  renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
+    void                  renderRect(CBox*, const CColor&, CCornerRadiiData radii = 0);
+    void                  renderRectWithBlur(CBox*, const CColor&, CCornerRadiiData radii = 0, float blurA = 1.f, bool xray = false);
+    void                  renderRectWithDamage(CBox*, const CColor&, CRegion* damage, CCornerRadiiData radii = 0);
+    void                  renderTexture(wlr_texture*, CBox*, float a, CCornerRadiiData radii = 0, bool allowCustomUV = false);
+    void                  renderTexture(const CTexture&, CBox*, float a, CCornerRadiiData radii = 0, bool discardActive = false, bool allowCustomUV = false);
+    void                  renderTextureWithBlur(const CTexture&, CBox*, float a, wlr_surface* pSurface, CCornerRadiiData radii = 0, bool blockBlurOptimization = false, float blurA = 1.f);
+    void                  renderRoundedShadow(CBox*, CCornerRadiiData radii, int range, const CColor& color, float a = 1.0);
+    void                  renderBorder(CBox*, const CGradientValueData&, CCornerRadiiData radii, int borderSize, float a = 1.0, CCornerRadiiData outerRadii = -1 /* use round */);
     void                  renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte);
 
     void                  setMonitorTransformEnabled(bool enabled);
@@ -216,7 +216,7 @@ class CHyprOpenGLImpl {
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
-    void          renderTextureInternalWithDamage(const CTexture&, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
+    void          renderTextureInternalWithDamage(const CTexture&, CBox* pBox, float a, CRegion* damage, CCornerRadiiData radii = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
     void          renderTexturePrimitive(const CTexture& tex, CBox* pBox);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double);

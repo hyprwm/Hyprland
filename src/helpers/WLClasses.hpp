@@ -86,7 +86,7 @@ struct SRenderData {
     bool decorate = false;
 
     // for custom round values
-    int rounding = -1; // -1 means not set
+    CCornerRadiiData cornerRadii = -1; // -1 means not set
 
     // for blurring
     bool blur                  = false;

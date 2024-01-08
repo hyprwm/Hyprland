@@ -21,11 +21,13 @@ class CShader {
     GLfloat discardAlphaValue = -1;
 
     GLint   topLeft               = -1;
+    GLint   topRight              = -1;
     GLint   bottomRight           = -1;
+    GLint   bottomLeft            = -1;
     GLint   fullSize              = -1;
     GLint   fullSizeUntransformed = -1;
-    GLint   radius                = -1;
-    GLint   radiusOuter           = -1;
+    GLint   cornerRadii           = -1;
+    GLint   cornerRadiiOuter      = -1;
 
     GLint   thick = -1;
 

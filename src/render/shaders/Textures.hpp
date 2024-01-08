@@ -8,6 +8,19 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
     // branchless baby!
     highp vec2 pixCoord = vec2(gl_FragCoord);
     pixCoord -= topLeft + fullSize * 0.5;
+
+    bvec2 positive = lessThan(vec2(0.0), pixCoord);
+
+    vec4 pick = vec4(
+        !positive.x && !positive.y,
+        positive.x && !positive.y,
+        positive.x && positive.y,
+        !positive.x && positive.y);
+
+    vec4 result = pick * cornerRadii;
+
+    float radius = result.x + result.y + result.z + result.w;
+
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
     pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
@@ -20,8 +33,6 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 	        discard;
 
 	    if (dist > radius - 1.0) {
-	        float dist = length(pixCoord);
-
             float normalized = 1.0 - smoothstep(0.0, 1.0, dist - radius + 0.5);
 
 	        )#" +
@@ -55,13 +66,13 @@ varying vec4 v_color;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;
-uniform float radius;
+uniform vec4 cornerRadii;
 
 void main() {
 
     vec4 pixColor = v_color;
 
-    if (radius > 0.0) {
+    if (cornerRadii != vec4(0, 0, 0, 0)) {
 	)#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
     }
@@ -88,7 +99,7 @@ uniform float alpha;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;
-uniform float radius;
+uniform vec4 cornerRadii;
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -113,7 +124,7 @@ void main() {
 	    pixColor[2] = pixColor[2] * tint[2];
     }
 
-    if (radius > 0.0) {
+    if (cornerRadii != vec4(0, 0, 0, 0)) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
     }
@@ -148,7 +159,7 @@ uniform float alpha;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;
-uniform float radius;
+uniform vec4 cornerRadii;
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -170,7 +181,7 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
-    if (radius > 0.0) {
+    if (cornerRadii != vec4(0, 0, 0, 0)) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
     }
@@ -184,7 +195,7 @@ precision            mediump float;
 varying mediump vec2 v_texcoord; // is in 0-1
 uniform sampler2D    tex;
 
-uniform float        radius;
+uniform vec4         cornerRadii;
 uniform vec2         halfpixel;
 uniform int          passes;
 uniform float        vibrancy;
@@ -292,6 +303,7 @@ void main() {
     vec2 uv = v_texcoord * 2.0;
 
     vec4 sum = texture2D(tex, uv) * 4.0;
+    float radius = cornerRadii.x;
     sum += texture2D(tex, uv - halfpixel.xy * radius);
     sum += texture2D(tex, uv + halfpixel.xy * radius);
     sum += texture2D(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
@@ -328,12 +340,13 @@ precision mediump float;
 varying mediump vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
-uniform float radius;
+uniform vec4 cornerRadii;
 uniform vec2 halfpixel;
 
 void main() {
     vec2 uv = v_texcoord / 2.0;
 
+    float radius = cornerRadii.x;
     vec4 sum = texture2D(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
 
     sum += texture2D(tex, uv + vec2(-halfpixel.x, halfpixel.y) * radius) * 2.0;
@@ -419,7 +432,7 @@ uniform float alpha;
 
 uniform vec2 topLeft;
 uniform vec2 fullSize;
-uniform float radius;
+uniform vec4 cornerRadii;
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -441,7 +454,7 @@ void main() {
 	pixColor[2] = pixColor[2] * tint[2];
     }
 
-    if (radius > 0.0) {
+    if (cornerRadii != vec4(0, 0, 0, 0)) {
     )#" +
     ROUNDED_SHADER_FUNC("pixColor") + R"#(
     }

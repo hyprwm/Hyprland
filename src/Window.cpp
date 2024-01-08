@@ -563,7 +563,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.nearestNeighbor = true;
     } else if (r.szRule.starts_with("rounding")) {
         try {
-            m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            m_sAdditionalConfigData.cornerRadii = configStringToRadii(r.szRule);
         } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("bordersize")) {
         try {
@@ -656,7 +656,7 @@ void CWindow::updateDynamicRules() {
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims    = false;
     m_sAdditionalConfigData.animationStyle  = std::string("");
-    m_sAdditionalConfigData.rounding        = -1;
+    m_sAdditionalConfigData.cornerRadii     = -1;
     m_sAdditionalConfigData.dimAround       = false;
     m_sAdditionalConfigData.forceRGBX       = false;
     m_sAdditionalConfigData.borderSize      = -1;
@@ -678,27 +678,29 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    const int ROUNDING = rounding();
-    if (getRealBorderSize() >= ROUNDING)
+    const CCornerRadiiData ROUNDING = getCornerRadii();
+    const int              BORDER   = getRealBorderSize();
+
+    if (BORDER >= ROUNDING.topLeft && BORDER >= ROUNDING.topRight && BORDER >= ROUNDING.bottomLeft && BORDER >= ROUNDING.bottomRight)
         return false;
 
-    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    double x0 = m_vRealPosition.vec().x + ROUNDING;
-    double y0 = m_vRealPosition.vec().y + ROUNDING;
-    double x1 = m_vRealPosition.vec().x + m_vRealSize.vec().x - ROUNDING;
-    double y1 = m_vRealPosition.vec().y + m_vRealSize.vec().y - ROUNDING;
+    // topLeft, topRight, bottomLeft, bottomRight, ... are the center point of rounding at each corner
+    Vector2D topLeft     = {m_vRealPosition.vec().x + ROUNDING.topLeft, m_vRealPosition.vec().y + ROUNDING.topLeft};
+    Vector2D topRight    = {m_vRealPosition.vec().x + m_vRealSize.vec().x + ROUNDING.topRight, m_vRealPosition.vec().y + ROUNDING.topRight};
+    Vector2D bottomLeft  = {m_vRealPosition.vec().x + ROUNDING.bottomLeft, m_vRealPosition.vec().y + m_vRealSize.vec().y + ROUNDING.bottomLeft};
+    Vector2D bottomRight = {m_vRealPosition.vec().x + m_vRealSize.vec().x + ROUNDING.bottomRight, m_vRealPosition.vec().y + m_vRealSize.vec().y + ROUNDING.bottomRight};
 
-    if (x < x0 && y < y0) {
-        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
+    if (x < topLeft.x && y < topLeft.y) {
+        return topLeft.distance(Vector2D{x, y}) > (double)ROUNDING.topLeft;
     }
-    if (x > x1 && y < y0) {
-        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
+    if (x > topRight.x && y < topRight.y) {
+        return topRight.distance(Vector2D{x, y}) > (double)ROUNDING.topRight;
     }
-    if (x < x0 && y > y1) {
-        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
+    if (x < bottomLeft.x && y > bottomLeft.y) {
+        return bottomLeft.distance(Vector2D{x, y}) > (double)ROUNDING.bottomLeft;
     }
-    if (x > x1 && y > y1) {
-        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
+    if (x > bottomRight.x && y > bottomRight.y) {
+        return bottomRight.distance(Vector2D{x, y}) > (double)ROUNDING.bottomRight;
     }
 
     return false;
@@ -989,12 +991,12 @@ bool CWindow::opaque() {
     return false;
 }
 
-float CWindow::rounding() {
-    static auto* const PROUNDING = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
+CCornerRadiiData CWindow::getCornerRadii() {
+    static auto* const PRADII = (CCornerRadiiData*)g_pConfigManager->getConfigValuePtr("decoration:rounding")->data.get();
 
-    float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
+    CCornerRadiiData   radii  = m_sAdditionalConfigData.cornerRadii.toUnderlying() == -1 ? *PRADII : m_sAdditionalConfigData.cornerRadii.toUnderlying();
 
-    return m_sSpecialRenderData.rounding ? rounding : 0;
+    return m_sSpecialRenderData.rounding ? radii : 0;
 }
 
 void CWindow::updateSpecialRenderData() {

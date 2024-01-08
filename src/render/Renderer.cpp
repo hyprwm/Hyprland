@@ -122,15 +122,15 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */)
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-    float rounding = RDATA->rounding;
+    CCornerRadiiData radii = RDATA->cornerRadii;
 
-    rounding -= 1; // to fix a border issue
+    radii -= 1; // to fix a border issue
 
     if (RDATA->dontRound)
-        rounding = 0;
+        radii = 0;
 
     const bool WINDOWOPAQUE    = RDATA->pWindow && RDATA->pWindow->m_pWLSurface.wlr() == surface ? RDATA->pWindow->opaque() : false;
-    const bool CANDISABLEBLEND = RDATA->alpha * RDATA->fadeAlpha >= 1.f && rounding == 0 && (WINDOWOPAQUE || surface->opaque);
+    const bool CANDISABLEBLEND = RDATA->alpha * RDATA->fadeAlpha >= 1.f && radii == 0 && (WINDOWOPAQUE || surface->opaque);
 
     if (CANDISABLEBLEND)
         g_pHyprOpenGL->blend(false);
@@ -139,12 +139,12 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     if (RDATA->surface && surface == RDATA->surface) {
         if (wlr_xwayland_surface_try_from_wlr_surface(surface) && !wlr_xwayland_surface_try_from_wlr_surface(surface)->has_alpha && RDATA->fadeAlpha * RDATA->alpha == 1.f) {
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, radii, true);
         } else {
             if (RDATA->blur)
-                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
+                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, radii, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
             else
-                g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+                g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, radii, true);
         }
     } else {
         if (RDATA->blur && RDATA->popup && *PBLURPOPUPS) {
@@ -154,10 +154,10 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURPOPUPSIGNOREALPHA;
             }
 
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, radii, true);
             g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
         } else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, radii, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
@@ -424,14 +424,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     if (ignoreAllGeometry)
         decorate = false;
 
-    renderdata.surface   = pWindow->m_pWLSurface.wlr();
-    renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
-    renderdata.fadeAlpha = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl());
-    renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.fl();
-    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
-    renderdata.rounding  = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.blur      = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
-    renderdata.pWindow   = pWindow;
+    renderdata.surface     = pWindow->m_pWLSurface.wlr();
+    renderdata.dontRound   = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
+    renderdata.fadeAlpha   = pWindow->m_fAlpha.fl() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.fl());
+    renderdata.alpha       = pWindow->m_fActiveInactiveAlpha.fl();
+    renderdata.decorate    = decorate && !pWindow->m_bX11DoesntWantBorders && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
+    renderdata.cornerRadii = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->getCornerRadii() * pMonitor->scale;
+    renderdata.blur        = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
+    renderdata.pWindow     = pWindow;
 
     if (ignoreAllGeometry) {
         renderdata.alpha     = 1.f;
@@ -524,7 +524,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
             CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
-            g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
+            g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.cornerRadii - 1, renderdata.fadeAlpha,
                                               g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow));
             renderdata.blur = false;
         }
@@ -2250,9 +2250,10 @@ void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWo
         if (!w->opaque())
             continue;
 
-        const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
-        const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+        const auto     RADII     = w->getCornerRadii() * PMONITOR->scale;
+        const int      MINRADIUS = std::min(std::min(RADII.topLeft, RADII.topRight), std::min(RADII.bottomLeft, RADII.bottomRight));
+        const Vector2D POS       = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
+        const Vector2D SIZE      = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
@@ -2276,9 +2277,10 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
         if (!w->opaque())
             continue;
 
-        const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.vec() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
-        const Vector2D SIZE     = w->m_vRealSize.vec() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+        const auto     RADII     = w->getCornerRadii() * PMONITOR->scale;
+        const int      MINRADIUS = std::min(std::min(RADII.topLeft, RADII.topRight), std::min(RADII.bottomLeft, RADII.bottomRight));
+        const Vector2D POS       = w->m_vRealPosition.vec() + Vector2D{MINRADIUS, MINRADIUS} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.vec());
+        const Vector2D SIZE      = w->m_vRealSize.vec() - Vector2D{MINRADIUS * 2, MINRADIUS * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 

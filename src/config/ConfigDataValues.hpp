@@ -4,7 +4,8 @@
 
 enum eConfigValueDataTypes {
     CVD_TYPE_INVALID  = -1,
-    CVD_TYPE_GRADIENT = 0
+    CVD_TYPE_GRADIENT = 0,
+    CVD_TYPE_CORNER_RADII = 1
 };
 
 class ICustomConfigValueData {
@@ -48,4 +49,75 @@ class CGradientValueData : public ICustomConfigValueData {
 
         return true;
     }
+};
+
+// This class is probably going to be refactored once hyprlang is used
+class CCornerRadiiData : public ICustomConfigValueData {
+  public:
+    CCornerRadiiData()
+      : CCornerRadiiData(0) {
+      }
+
+    CCornerRadiiData(int radius)
+      : CCornerRadiiData(radius, radius, radius, radius) {
+    }
+
+    CCornerRadiiData(int topL, int topR, int bottomR, int bottomL)
+      : topLeft(topL), topRight(topR), bottomRight(bottomR), bottomLeft(bottomL) {
+    }
+
+    virtual ~CCornerRadiiData(){}
+
+    virtual eConfigValueDataTypes getDataType() {
+        return CVD_TYPE_CORNER_RADII;
+    }
+
+    void reset(int radius) {
+        topLeft = topRight = bottomRight = bottomLeft = radius;
+    }
+
+    CCornerRadiiData operator+(int a) const {
+        return CCornerRadiiData(topLeft + a, topRight + a, bottomRight + a, bottomLeft + a);
+    }
+
+    CCornerRadiiData operator-(int a) const {
+        return CCornerRadiiData(topLeft - a, topRight - a, bottomRight - a, bottomLeft - a);
+    }
+
+    CCornerRadiiData operator*(int a) const {
+        return CCornerRadiiData(topLeft * a, topRight * a, bottomRight * a, bottomLeft * a);
+    }
+
+    CCornerRadiiData operator/(int a) const {
+        return CCornerRadiiData(topLeft / a, topRight / a, bottomRight / a, bottomLeft / a);
+    }
+
+    bool operator==(int a) const {
+        return topLeft == a && topRight == a && bottomRight == a && bottomLeft == a;
+    }
+
+    bool operator!=(int a) const {
+        return topLeft != a && topRight != a && bottomRight != a && bottomLeft != a;
+    }
+
+    CCornerRadiiData& operator+=(int a) {
+        topLeft += a;
+        topRight += a;
+        bottomRight += a;
+        bottomLeft += a;
+        return *this;
+    }
+
+    CCornerRadiiData& operator-=(int a) {
+        topLeft -= a;
+        topRight -= a;
+        bottomRight -= a;
+        bottomLeft -= a;
+        return *this;
+    }
+
+    int topLeft;
+    int topRight;
+    int bottomRight;
+    int bottomLeft;
 };

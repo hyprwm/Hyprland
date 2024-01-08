@@ -1106,7 +1106,7 @@ std::string dispatchSetProp(std::string request) {
         if (PROP == "animationstyle") {
             PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
         } else if (PROP == "rounding") {
-            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sAdditionalConfigData.cornerRadii.forceSetIgnoreLocked(configStringToRadii(VAL), lock);
         } else if (PROP == "forcenoblur") {
             PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forceopaque") {

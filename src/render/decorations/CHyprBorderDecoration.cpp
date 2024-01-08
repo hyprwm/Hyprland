@@ -66,13 +66,13 @@ void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& of
     }
 
     int        borderSize = m_pWindow->getRealBorderSize();
-    const auto ROUNDING   = m_pWindow->rounding() * pMonitor->scale;
+    const auto RADII   = m_pWindow->getCornerRadii() * pMonitor->scale;
 
-    g_pHyprOpenGL->renderBorder(&windowBox, grad, ROUNDING, borderSize, a1);
+    g_pHyprOpenGL->renderBorder(&windowBox, grad, RADII, borderSize, a1);
 
     if (ANIMATED) {
         float a2 = a * (1.f - m_pWindow->m_fBorderFadeAnimationProgress.fl());
-        g_pHyprOpenGL->renderBorder(&windowBox, m_pWindow->m_cRealBorderColorPrevious, ROUNDING, borderSize, a2);
+        g_pHyprOpenGL->renderBorder(&windowBox, m_pWindow->m_cRealBorderColorPrevious, RADII, borderSize, a2);
     }
 }
 

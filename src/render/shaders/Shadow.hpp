@@ -8,14 +8,16 @@ varying vec4 v_color;
 varying vec2 v_texcoord;
 
 uniform vec2 topLeft;
+uniform vec2 topRight;
 uniform vec2 bottomRight;
+uniform vec2 bottomLeft;
 uniform vec2 fullSize;
-uniform float radius;
+uniform vec4 cornerRadii;
 uniform float range;
 uniform float shadowPower;
 
-float pixAlphaRoundedDistance(float distanceToCorner) {
-     if (distanceToCorner > radius) {
+float pixAlphaRoundedDistance(float distanceToCorner, float radius) {
+    if (distanceToCorner > radius) {
         return 0.0;
     }
 
@@ -36,27 +38,18 @@ void main() {
 	vec2 pixCoord = fullSize * v_texcoord;
 
     // ok, now we check the distance to a border.
-
-    if (pixCoord[0] < topLeft[0]) {
-        if (pixCoord[1] < topLeft[1]) {
-            // top left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, topLeft));
-            done = true;
-        } else if (pixCoord[1] > bottomRight[1]) {
-            // bottom left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, vec2(topLeft[0], bottomRight[1])));
-            done = true;
-        }
-    } else if (pixCoord[0] > bottomRight[0]) {
-        if (pixCoord[1] < topLeft[1]) {
-            // top right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, vec2(bottomRight[0], topLeft[1])));
-            done = true;
-        } else if (pixCoord[1] > bottomRight[1]) {
-            // bottom right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, bottomRight));
-            done = true;
-        }
+    if (pixCoord[0] < topLeft[0] && pixCoord[1] < topLeft[1]) {
+        pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, topLeft), cornerRadii.x);
+        done = true;
+    } else if (pixCoord[0] > topRight[0] && pixCoord[1] < topRight[1]) {
+        pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, topRight), cornerRadii.y);
+        done = true;
+    } else if (pixCoord[0] > bottomRight[0] && pixCoord[1] > bottomRight[1]) {
+        pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, bottomRight), cornerRadii.z);
+        done = true;
+    } else if (pixCoord[0] < bottomLeft[0] && pixCoord[1] > bottomLeft[1]) {
+        pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, bottomLeft), cornerRadii.w);
+        done = true;
     }
 
     if (!done) {

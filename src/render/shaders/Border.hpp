@@ -11,8 +11,8 @@ varying vec2 v_texcoord;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
-uniform float radius;
-uniform float radiusOuter;
+uniform vec4 cornerRadii;
+uniform vec4 cornerRadiiOuter;
 uniform float thick;
 
 uniform vec4 gradient[10];
@@ -62,8 +62,24 @@ void main() {
     bool done = false;
 
     pixCoord -= topLeft + fullSize * 0.5;
+
+    bvec2 positive = lessThan(vec2(0.0), pixCoord);
+
+    vec4 pick = vec4(
+        !positive.x && !positive.y,
+        positive.x && !positive.y,
+        positive.x && positive.y,
+        !positive.x && positive.y);
+
+    vec4 result = pick * cornerRadii;
+    vec4 resultOuter = pick * cornerRadiiOuter;
+
+    float radius = result.x + result.y + result.z + result.w;
+    float radiusOuter = resultOuter.x + resultOuter.y + resultOuter.z + resultOuter.w;
+
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoordOuter = pixCoord;
+
     pixCoord -= fullSize * 0.5 - radius;
     pixCoordOuter -= fullSize * 0.5 - radiusOuter;
 

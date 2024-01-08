@@ -3,8 +3,8 @@
 #include <vector>
 
 enum eConfigValueDataTypes {
-    CVD_TYPE_INVALID  = -1,
-    CVD_TYPE_GRADIENT = 0,
+    CVD_TYPE_INVALID      = -1,
+    CVD_TYPE_GRADIENT     = 0,
     CVD_TYPE_CORNER_RADII = 1
 };
 
@@ -54,19 +54,13 @@ class CGradientValueData : public ICustomConfigValueData {
 // This class is probably going to be refactored once hyprlang is used
 class CCornerRadiiData : public ICustomConfigValueData {
   public:
-    CCornerRadiiData()
-      : CCornerRadiiData(0) {
-      }
+    CCornerRadiiData() : CCornerRadiiData(0) {}
 
-    CCornerRadiiData(int radius)
-      : CCornerRadiiData(radius, radius, radius, radius) {
-    }
+    CCornerRadiiData(int radius) : CCornerRadiiData(radius, radius, radius, radius) {}
 
-    CCornerRadiiData(int topL, int topR, int bottomR, int bottomL)
-      : topLeft(topL), topRight(topR), bottomRight(bottomR), bottomLeft(bottomL) {
-    }
+    CCornerRadiiData(int topL, int topR, int bottomR, int bottomL) : topLeft(topL), topRight(topR), bottomRight(bottomR), bottomLeft(bottomL) {}
 
-    virtual ~CCornerRadiiData(){}
+    virtual ~CCornerRadiiData() {}
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_CORNER_RADII;

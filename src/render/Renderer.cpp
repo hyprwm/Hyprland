@@ -453,7 +453,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // clip box for animated offsets
     const Vector2D PREOFFSETPOS = {renderdata.x, renderdata.y};
-    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned) {
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned && !pWindow->m_bIsFullscreen) {
         Vector2D offset;
 
         if (PWORKSPACE->m_vRenderOffset.vec().x != 0) {

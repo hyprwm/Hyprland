@@ -653,13 +653,17 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
-    static auto* const     PDIMSPECIAL      = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
-    static auto* const     PBLURSPECIAL     = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
-    static auto* const     PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
-    static auto* const     PRENDERTEX       = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
-    static auto* const     PBACKGROUNDCOLOR = &g_pConfigManager->getConfigValuePtr("misc:background_color")->intValue;
+    static auto* const PDIMSPECIAL      = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
+    static auto* const PBLURSPECIAL     = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
+    static auto* const PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    static auto* const PRENDERTEX       = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
+    static auto* const PBACKGROUNDCOLOR = &g_pConfigManager->getConfigValuePtr("misc:background_color")->intValue;
 
-    const SRenderModifData RENDERMODIFDATA = {translate, scale};
+    SRenderModifData   RENDERMODIFDATA;
+    if (translate != Vector2D{0, 0})
+        RENDERMODIFDATA.modifs.push_back({SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate});
+    if (scale != 1.f)
+        RENDERMODIFDATA.modifs.push_back({SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale});
 
     if (!pMonitor)
         return;

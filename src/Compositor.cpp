@@ -928,12 +928,13 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (pWindow->m_bPinned)
         pWindow->m_iWorkspaceID = m_pLastMonitor->activeWorkspace;
 
+    const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
+
     if (!isWorkspaceVisible(pWindow->m_iWorkspaceID)) {
+        const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);
         // This is to fix incorrect feedback on the focus history.
-        const auto PWORKSPACE            = getWorkspaceByID(pWindow->m_iWorkspaceID);
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
         PWORKSPACE->rememberPrevWorkspace(getWorkspaceByID(m_pLastMonitor->activeWorkspace));
-        const auto PMONITOR = getMonitorFromID(PWORKSPACE->m_iMonitorID);
         PMONITOR->changeWorkspace(PWORKSPACE, false, true);
         // changeworkspace already calls focusWindow
         return;
@@ -941,6 +942,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;
+
+    if (PMONITOR->specialWorkspaceID && PMONITOR->specialWorkspaceID != pWindow->m_iWorkspaceID)
+        PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
     if (windowValidMapped(PLASTWINDOW)) {
@@ -1015,10 +1019,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == pWindowOwner->m_pWLSurface.wlr()))
         return; // Don't focus when already focused on this.
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        wlr_seat_keyboard_clear_focus(m_sSeat.seat);
-        m_pLastFocus = nullptr;
-    }
+    if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
+        return;
 
     // Unfocus last surface if should
     if (m_pLastFocus && !pWindowOwner)

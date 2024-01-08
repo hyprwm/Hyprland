@@ -232,7 +232,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
     const auto PRBO         = g_pHyprRenderer->getCurrentRBO();
     const bool FBPROPERSIZE = fb && fb->m_vSize == pMonitor->vecPixelSize;
 
-    if (!FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) || passRequiresIntrospection(pMonitor)) {
+    if (m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) ||
+        passRequiresIntrospection(pMonitor)) {
         // we have to offload
         // bind the offload Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();
@@ -307,9 +308,10 @@ void CHyprOpenGLImpl::end() {
     }
 
     // reset our data
-    m_RenderData.pMonitor          = nullptr;
-    m_RenderData.mouseZoomFactor   = 1.f;
-    m_RenderData.mouseZoomUseMouse = true;
+    m_RenderData.pMonitor           = nullptr;
+    m_RenderData.mouseZoomFactor    = 1.f;
+    m_RenderData.mouseZoomUseMouse  = true;
+    m_RenderData.forceIntrospection = false;
 }
 
 void CHyprOpenGLImpl::initShaders() {
@@ -639,12 +641,12 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
     TRACY_GPU_ZONE("RenderRectWithDamage");
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
+    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), newBox.rot,
                            m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
@@ -725,14 +727,14 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     static auto* const PDIMINACTIVE = &g_pConfigManager->getConfigValuePtr("decoration:dim_inactive")->intValue;
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, newBox.rot, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -888,12 +890,12 @@ void CHyprOpenGLImpl::renderTexturePrimitive(const CTexture& tex, CBox* pBox) {
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, newBox.rot, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -942,12 +944,12 @@ void CHyprOpenGLImpl::renderTextureMatte(const CTexture& tex, CBox* pBox, CFrame
         return;
 
     CBox newBox = *pBox;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
     const auto TRANSFORM = wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform);
     float      matrix[9];
-    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, 0, m_RenderData.pMonitor->projMatrix.data());
+    wlr_matrix_project_box(matrix, newBox.pWlr(), TRANSFORM, newBox.rot, m_RenderData.pMonitor->projMatrix.data());
 
     float glMatrix[9];
     wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
@@ -1477,14 +1479,14 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, CC
         return;
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
     if (borderSize < 1)
         return;
 
-    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale * m_RenderData.renderModif.scale);
+    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale);
 
     // adjust box
     box->x -= scaledBorderSize;
@@ -1495,7 +1497,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, CC
     radii += radii == 0 ? 0 : scaledBorderSize;
 
     float matrix[9];
-    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
+    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), newBox.rot,
                            m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
@@ -1783,7 +1785,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, CCornerRadiiData radii, int
     TRACY_GPU_ZONE("RenderShadow");
 
     CBox newBox = *box;
-    newBox.scale(m_RenderData.renderModif.scale).translate(m_RenderData.renderModif.translate);
+    m_RenderData.renderModif.applyToBox(newBox);
 
     box = &newBox;
 
@@ -1794,7 +1796,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, CCornerRadiiData radii, int
     const auto         col = color;
 
     float              matrix[9];
-    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), 0,
+    wlr_matrix_project_box(matrix, box->pWlr(), wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform), newBox.rot,
                            m_RenderData.pMonitor->projMatrix.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
@@ -2218,4 +2220,26 @@ const SGLPixelFormat* CHyprOpenGLImpl::getPixelFormatFromDRM(uint32_t drmFormat)
     }
 
     return nullptr;
+}
+
+void SRenderModifData::applyToBox(CBox& box) {
+    for (auto& [type, val] : modifs) {
+        try {
+            switch (type) {
+                case RMOD_TYPE_SCALE: box.scale(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_SCALECENTER: box.scaleFromCenter(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_TRANSLATE: box.translate(std::any_cast<Vector2D>(val)); break;
+                case RMOD_TYPE_ROTATE: box.rot += std::any_cast<float>(val); break;
+                case RMOD_TYPE_ROTATECENTER: {
+                    const auto   THETA = std::any_cast<float>(val);
+                    const double COS   = std::cos(THETA);
+                    const double SIN   = std::sin(THETA);
+                    box.rot += THETA;
+                    const auto OLDPOS = box.pos();
+                    box.x             = OLDPOS.x * COS - OLDPOS.y * SIN;
+                    box.y             = OLDPOS.y * COS + OLDPOS.x * SIN;
+                }
+            }
+        } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToBox!"); }
+    }
 }

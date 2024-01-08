@@ -36,8 +36,17 @@ enum eDiscardMode {
 };
 
 struct SRenderModifData {
-    Vector2D translate = {};
-    float    scale     = 1.f;
+    enum eRenderModifType {
+        RMOD_TYPE_SCALE,        /* scale by a float */
+        RMOD_TYPE_SCALECENTER,  /* scale by a float from the center */
+        RMOD_TYPE_TRANSLATE,    /* translate by a Vector2D */
+        RMOD_TYPE_ROTATE,       /* rotate by a float in rad from top left */
+        RMOD_TYPE_ROTATECENTER, /* rotate by a float in rad from center */
+    };
+
+    std::vector<std::pair<eRenderModifType, std::any>> modifs;
+
+    void                                               applyToBox(CBox& box);
 };
 
 struct SGLPixelFormat {
@@ -99,6 +108,7 @@ struct SCurrentRenderData {
     float               mouseZoomFactor    = 1.f;
     bool                mouseZoomUseMouse  = true; // true by default
     bool                useNearestNeighbor = false;
+    bool                forceIntrospection = false; // cleaned in ::end()
 
     Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);

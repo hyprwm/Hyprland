@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     }
 
     if (!ignoreSudo && Init::isSudo()) {
-        std::cerr << "[ ERROR ] Hyprland was launched with superuser priveleges, but the privileges check is not omitted.\n";
+        std::cerr << "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n";
         std::cerr << "          Hint: Use the --i-am-really-stupid flag to omit that check.\n";
 
         return 1;

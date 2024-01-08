@@ -6,7 +6,8 @@
 struct SPlugin {
     std::string name;
     std::string filename;
-    bool        enabled;
+    bool        enabled = false;
+    bool        failed  = false;
 };
 
 struct SPluginRepository {

@@ -803,7 +803,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
         PWINDOW->m_pPendingSizeAck.reset();
     }
 
-    PWINDOW->updateSurfaceOutputs();
+    PWINDOW->updateSurfaceScaleTransformDetails();
 
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);

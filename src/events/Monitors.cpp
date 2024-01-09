@@ -109,7 +109,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_iMonitorID == PNEWMONITOR->ID) {
                 w->m_iLastSurfaceMonitorID = -1;
-                w->updateSurfaceOutputs();
+                w->updateSurfaceScaleTransformDetails();
             }
         }
     }

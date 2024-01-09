@@ -621,7 +621,7 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iWorkspaceID == pWorkspace->m_iID) {
             w->m_iMonitorID = ID;
-            w->updateSurfaceOutputs();
+            w->updateSurfaceScaleTransformDetails();
 
             const auto MIDDLE = w->middle();
             if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && w->m_iX11Type != 2) {

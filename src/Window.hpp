@@ -356,7 +356,7 @@ class CWindow {
     void                     createToplevelHandle();
     void                     destroyToplevelHandle();
     void                     updateToplevel();
-    void                     updateSurfaceOutputs();
+    void                     updateSurfaceScaleTransformDetails();
     void                     moveToWorkspace(int);
     CWindow*                 X11TransientFor();
     void                     onUnmap();

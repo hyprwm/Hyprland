@@ -178,6 +178,9 @@ void Events::listener_mapSubsurface(void* owner, void* data) {
     Debug::log(LOG, "Subsurface {:x} mapped", (uintptr_t)subsurface->pSubsurface);
 
     subsurface->pChild = createSubsurfaceNode(subsurface->pParent, subsurface, subsurface->pSubsurface->surface, subsurface->pWindowOwner);
+
+    if (subsurface->pWindowOwner)
+        subsurface->pWindowOwner->updateSurfaceScaleTransformDetails();
 }
 
 void Events::listener_unmapSubsurface(void* owner, void* data) {

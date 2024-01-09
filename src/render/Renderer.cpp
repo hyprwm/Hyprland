@@ -290,10 +290,13 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
                 continue;
         }
 
-        if (w->m_iWorkspaceID != pMonitor->activeWorkspace || !w->m_bIsFullscreen)
+        if (!w->m_bIsFullscreen)
             continue;
 
         renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
+
+        if (w->m_iWorkspaceID != pWorkspace->m_iID)
+            continue;
 
         pWorkspaceWindow = w.get();
     }

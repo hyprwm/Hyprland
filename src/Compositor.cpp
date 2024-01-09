@@ -654,6 +654,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreW
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
     static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    static auto* const PSPECIALFALLTHRU  = &g_pConfigManager->getConfigValuePtr("input:special_fallthrough")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     // pinned windows on top of floating regardless
@@ -735,8 +736,15 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreW
     };
 
     // special workspace
-    if (PMONITOR->specialWorkspaceID)
+    if (PMONITOR->specialWorkspaceID && !*PSPECIALFALLTHRU)
         return windowForWorkspace(true);
+
+    if (PMONITOR->specialWorkspaceID) {
+        const auto PWINDOW = windowForWorkspace(true);
+
+        if (PWINDOW)
+            return PWINDOW;
+    }
 
     return windowForWorkspace(false);
 }
@@ -876,7 +884,8 @@ CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
-    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PFOLLOWMOUSE        = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PSPECIALFALLTHROUGH = &g_pConfigManager->getConfigValuePtr("input:special_fallthrough")->intValue;
 
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
@@ -943,7 +952,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;
 
-    if (PMONITOR->specialWorkspaceID && PMONITOR->specialWorkspaceID != pWindow->m_iWorkspaceID)
+    /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
+       window focuses are "via keybinds" and which ones aren't. */
+    if (PMONITOR->specialWorkspaceID && PMONITOR->specialWorkspaceID != pWindow->m_iWorkspaceID && !*PSPECIALFALLTHROUGH)
         PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window

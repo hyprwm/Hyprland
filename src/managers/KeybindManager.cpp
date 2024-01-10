@@ -1678,9 +1678,8 @@ void CKeybindManager::focusWindow(std::string regexp) {
     const bool WASFULLSCREEN = g_pCompositor->m_pLastWindow ? g_pCompositor->m_pLastWindow->m_bIsFullscreen : false;
     const auto FSMODE        = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode;
 
-    if (WASFULLSCREEN) {
+    if (WASFULLSCREEN)
         g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
-    }
 
     g_pCompositor->focusWindow(PWINDOW);
 

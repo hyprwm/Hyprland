@@ -41,6 +41,7 @@ struct SPressedKeyWithMods {
     xkb_keysym_t keysym             = 0;
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
+    bool         sent               = false;
 };
 
 class CKeybindManager {

@@ -313,9 +313,10 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         .keysym             = keysym,
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
+        .sent               = true,
     };
 
-    bool found = false;
+    bool suppressEvent = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         // clean repeat
         if (m_pActiveKeybindEventSource) {
@@ -326,10 +327,12 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true);
+        suppressEvent = handleKeybinds(MODS, KEY, true);
 
-        if (found)
+        if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
+
+        m_dPressedKeys.back().sent = !suppressEvent;
     } else { // key release
         // clean repeat
         if (m_pActiveKeybindEventSource) {
@@ -341,11 +344,11 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false);
-                    foundInPressedKeys = true;
-                }
-                it = m_dPressedKeys.erase(it);
+                suppressEvent      = handleKeybinds(MODS, *it, false);
+                foundInPressedKeys = true;
+                suppressEvent      = !it->sent;
+                it                 = m_dPressedKeys.erase(it);
+                break;
             } else {
                 ++it;
             }
@@ -353,13 +356,13 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false);
+            suppressEvent = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
     }
 
-    return !found && !mouseBindWasActive;
+    return !suppressEvent && !mouseBindWasActive;
 }
 
 bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
@@ -396,7 +399,7 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
 bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    bool       found = false;
+    bool       suppressEvent = false;
 
     m_uLastMouseCode = e->button;
     m_uLastCode      = 0;
@@ -414,19 +417,21 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     if (e->state == WLR_BUTTON_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true);
+        suppressEvent = handleKeybinds(MODS, KEY, true);
 
-        if (found)
+        if (suppressEvent)
             shadowKeybinds();
+
+        m_dPressedKeys.back().sent = !suppressEvent;
     } else {
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
-                if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false);
-                    foundInPressedKeys = true;
-                }
-                it = m_dPressedKeys.erase(it);
+                suppressEvent      = handleKeybinds(MODS, *it, false);
+                foundInPressedKeys = true;
+                suppressEvent      = !it->sent;
+                it                 = m_dPressedKeys.erase(it);
+                break;
             } else {
                 ++it;
             }
@@ -434,13 +439,13 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false);
+            suppressEvent = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
     }
 
-    return !found && !mouseBindWasActive;
+    return !suppressEvent && !mouseBindWasActive;
 }
 
 void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
@@ -1670,11 +1675,12 @@ void CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    const auto WASFULLSCREEN = g_pCompositor->m_pLastWindow->m_bIsFullscreen;
+    const bool WASFULLSCREEN = g_pCompositor->m_pLastWindow ? g_pCompositor->m_pLastWindow->m_bIsFullscreen : false;
     const auto FSMODE        = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode;
 
-    if (WASFULLSCREEN)
-        g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FSMODE);
+    if (WASFULLSCREEN) {
+        g_pCompositor->setWindowFullscreen(g_pCompositor->m_pLastWindow, false, FULLSCREEN_FULL);
+    }
 
     g_pCompositor->focusWindow(PWINDOW);
 

@@ -1681,6 +1681,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
     if (WASFULLSCREEN)
         g_pCompositor->setWindowFullscreen(PWINDOW, true, FSMODE);
+
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 

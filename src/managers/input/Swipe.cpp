@@ -265,7 +265,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         PWORKSPACE->m_bForceRendering = true;
         PWORKSPACE->m_fAlpha.setValueAndWarp(1.f);
 
-        if (workspaceIDLeft != workspaceIDRight) {
+        if (workspaceIDLeft != workspaceIDRight && workspaceIDRight != m_sActiveSwipe.pWorkspaceBegin->m_iID) {
             const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
             if (PWORKSPACER) {
@@ -305,7 +305,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         PWORKSPACE->m_bForceRendering = true;
         PWORKSPACE->m_fAlpha.setValueAndWarp(1.f);
 
-        if (workspaceIDLeft != workspaceIDRight) {
+        if (workspaceIDLeft != workspaceIDRight && workspaceIDLeft != m_sActiveSwipe.pWorkspaceBegin->m_iID) {
             const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
             if (PWORKSPACEL) {

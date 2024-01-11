@@ -1997,6 +1997,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         Vector2D logicalZero = pMonitor->vecPixelSize / scaleZero;
         if (logicalZero == logicalZero.round()) {
             pMonitor->scale = scaleZero;
+            wlr_output_set_scale(pMonitor->output, pMonitor->scale);
         } else {
             for (size_t i = 1; i < 90; ++i) {
                 double   scaleUp   = (searchScale + i) / 120.0;
@@ -2034,10 +2035,14 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 } else
                     pMonitor->scale = searchScale;
             }
+
+            // for wlroots, that likes flooring, we have to do this.
+            double logicalX = std::round(pMonitor->vecPixelSize.x / pMonitor->scale);
+            logicalX += 0.1;
+
+            wlr_output_set_scale(pMonitor->output, pMonitor->vecPixelSize.x / logicalX);
         }
     }
-
-    wlr_output_set_scale(pMonitor->output, pMonitor->scale);
 
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{

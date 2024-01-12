@@ -214,6 +214,8 @@ void CConfigManager::setDefaultVars() {
     configValues["master:always_center_master"].intValue   = 0;
     configValues["master:new_on_top"].intValue             = 0;
     configValues["master:no_gaps_when_only"].intValue      = 0;
+    configValues["master:no_rounding_when_only"].intValue  = 1;
+    configValues["master:no_shadow_when_only"].intValue    = 1;
     configValues["master:orientation"].strValue            = "left";
     configValues["master:inherit_fullscreen"].intValue     = 1;
     configValues["master:allow_small_split"].intValue      = 0;

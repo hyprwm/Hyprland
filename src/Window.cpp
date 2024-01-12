@@ -625,23 +625,22 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 if (active && token.contains("deg")) {
                     activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                     active                        = false;
-                } else if (token.contains("deg")) {
+                } else if (token.contains("deg"))
                     inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
-                } else if (active) {
+                else if (active)
                     activeBorderGradient.m_vColors.push_back(configStringToInt(token));
-                } else {
+                else
                     inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
-                }
             }
 
             // Includes sanity checks for the number of colors in each gradient
-            if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10) {
+            if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
                 Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r.szRule);
-            } else if (activeBorderGradient.m_vColors.empty()) {
+            else if (activeBorderGradient.m_vColors.empty())
                 Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
-            } else if (inactiveBorderGradient.m_vColors.empty()) {
+            else if (inactiveBorderGradient.m_vColors.empty())
                 m_sSpecialRenderData.activeBorderColor = activeBorderGradient;
-            } else {
+            else {
                 m_sSpecialRenderData.activeBorderColor   = activeBorderGradient;
                 m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
             }

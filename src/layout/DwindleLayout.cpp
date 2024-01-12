@@ -120,7 +120,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     PWINDOW->updateSpecialRenderData();
 
-    static auto* const PGAPSIN         = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
+    static auto* const PGAPSIN             = &g_pConfigManager->getConfigValuePtr("general:gaps_in")->intValue;
     static auto* const PGAPSOUT            = &g_pConfigManager->getConfigValuePtr("general:gaps_out")->intValue;
     static auto* const PNOGAPSWHENONLY     = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue;
     static auto* const PNOROUNDINGWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_rounding_when_only")->intValue;

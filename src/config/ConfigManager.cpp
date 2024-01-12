@@ -201,6 +201,8 @@ void CConfigManager::setDefaultVars() {
     configValues["dwindle:special_scale_factor"].floatValue       = 1.f;
     configValues["dwindle:split_width_multiplier"].floatValue     = 1.0f;
     configValues["dwindle:no_gaps_when_only"].intValue            = 0;
+    configValues["dwindle:no_rounding_when_only"].intValue        = 1;
+    configValues["dwindle:no_shadow_when_only"].intValue          = 1;
     configValues["dwindle:use_active_for_splits"].intValue        = 1;
     configValues["dwindle:default_split_ratio"].floatValue        = 1.f;
     configValues["dwindle:smart_split"].intValue                  = 0;

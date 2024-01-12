@@ -359,7 +359,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     bool allowKeyboardRefocus = true;
 
-    if (!refocus && g_pCompositor->m_pLastFocus) {
+    if (g_pCompositor->m_pLastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
 
         if (PLS && PLS->layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
@@ -421,7 +421,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (((FOLLOWMOUSE != 3 && allowKeyboardRefocus) && (*PMOUSEREFOCUS || m_pLastMouseFocus != pFoundWindow)) || refocus) {
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_pLastMouseFocus != pFoundWindow)) || refocus)) {
                 m_pLastMouseFocus = pFoundWindow;
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
             }

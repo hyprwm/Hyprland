@@ -1102,14 +1102,6 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 
         auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
 
-        if (ls->layerSurface->current.keyboard_interactive && ls->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-            if (!SURFACEAT)
-                SURFACEAT = ls->layerSurface->surface;
-
-            *ppLayerSurfaceFound = ls.get();
-            return SURFACEAT;
-        }
-
         if (SURFACEAT) {
             if (!pixman_region32_not_empty(&SURFACEAT->input_region))
                 continue;

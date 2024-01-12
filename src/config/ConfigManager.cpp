@@ -550,7 +550,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         }
     }
 
-    if (COMMAND == "decoration:screen_shader") {
+    if (COMMAND == "decoration:screen_shader" && VALUE != STRVAL_EMPTY) {
         const auto PATH = absolutePath(VALUE, configCurrentPath);
 
         configPaths.push_back(PATH);

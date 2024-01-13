@@ -120,7 +120,7 @@ class CMonitor {
     void     setMirror(const std::string&);
     bool     isMirror();
     float    getDefaultScale();
-    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false);
+    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
     void     changeWorkspace(const int& id, bool internal = false);
     void     setSpecialWorkspace(CWorkspace* const pWorkspace);
     void     setSpecialWorkspace(const int& id);

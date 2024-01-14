@@ -26,9 +26,8 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindow
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
-    static auto* const         PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
-    static auto* const         PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
-    static auto* const         PENABLED       = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const         PHEIGHT  = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
+    static auto* const         PENABLED = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
@@ -37,7 +36,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     info.reserved = true;
 
     if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
-        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2}, {0, 0}};
+        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + *PHEIGHT + 2}, {0, 0}};
     else
         info.desiredExtents = {{0, 0}, {0, 0}};
 
@@ -90,6 +89,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     static auto* const PENABLED       = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
     static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
     static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PHEIGHT        = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
     static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
     if (!*PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
@@ -99,7 +99,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
     m_fBarWidth = (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
-    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2;
+    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + *PHEIGHT + 2;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h)
         g_pDecorationPositioner->repositionDeco(this);
 
@@ -128,12 +128,18 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
-        // render title if necessary
-        if (*PRENDERTITLES) {
-            CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x, ASSIGNEDBOX.y - pMonitor->vecPosition.y + offset.y + BAR_PADDING_OUTER_VERT, m_fBarWidth,
-                         ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT * 2};
-            rect.scale(pMonitor->scale);
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x, ASSIGNEDBOX.y - pMonitor->vecPosition.y + offset.y + BAR_PADDING_OUTER_VERT, m_fBarWidth,
+                ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT * 2};
+        rect.scale(pMonitor->scale);
 
+        if (*PGRADIENTS) {
+            const auto& GRADIENTTEX = (m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+            if (GRADIENTTEX.m_iTexID != 0)
+                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
+        }
+
+        if (*PRENDERTITLES) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
 
             if (!pTitleTex)
@@ -141,12 +147,6 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                                 .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i],
                                                                           Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
                                 .get();
-
-            const auto& GRADIENTTEX = (m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
-
-            if (*PGRADIENTS && GRADIENTTEX.m_iTexID != 0)
-                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
 
             rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;

@@ -776,12 +776,12 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
         return;
     }
 
+    pWindow->updateDynamicRules();
+    pWindow->updateWindowDecos();
+
     // otherwise, accept it.
     pWindow->m_bIsFullscreen           = on;
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
-
-    pWindow->updateDynamicRules();
-    pWindow->updateWindowDecos();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", std::to_string((int)on)});
     EMIT_HOOK_EVENT("fullscreen", pWindow);

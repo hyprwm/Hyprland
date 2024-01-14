@@ -614,14 +614,42 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.animationStyle = STYLE;
     } else if (r.szRule.starts_with("bordercolor")) {
         try {
-            std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            // Each vector will only get used if it has at least one color
+            CGradientValueData activeBorderGradient   = {};
+            CGradientValueData inactiveBorderGradient = {};
+            bool               active                 = true;
+            CVarList           colorsAndAngles        = CVarList(removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
 
-            if (colorPart.contains(' ')) {
-                // we have a space, 2 values
-                m_sSpecialRenderData.activeBorderColor   = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
-                m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
-            } else {
-                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
+            // Basic form has only two colors, everything else can be parsed as a gradient
+            if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+                m_sSpecialRenderData.activeBorderColor   = CGradientValueData(CColor(configStringToInt(colorsAndAngles[0])));
+                m_sSpecialRenderData.inactiveBorderColor = CGradientValueData(CColor(configStringToInt(colorsAndAngles[1])));
+                return;
+            }
+
+            for (auto& token : colorsAndAngles) {
+                // The first angle, or an explicit "0deg", splits the two gradients
+                if (active && token.contains("deg")) {
+                    activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                    active                        = false;
+                } else if (token.contains("deg"))
+                    inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                else if (active)
+                    activeBorderGradient.m_vColors.push_back(configStringToInt(token));
+                else
+                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
+            }
+
+            // Includes sanity checks for the number of colors in each gradient
+            if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
+                Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r.szRule);
+            else if (activeBorderGradient.m_vColors.empty())
+                Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
+            else if (inactiveBorderGradient.m_vColors.empty())
+                m_sSpecialRenderData.activeBorderColor = activeBorderGradient;
+            else {
+                m_sSpecialRenderData.activeBorderColor   = activeBorderGradient;
+                m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "dimaround") {
@@ -651,8 +679,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 }
 
 void CWindow::updateDynamicRules() {
-    m_sSpecialRenderData.activeBorderColor   = -1;
-    m_sSpecialRenderData.inactiveBorderColor = -1;
+    m_sSpecialRenderData.activeBorderColor   = CGradientValueData();
+    m_sSpecialRenderData.inactiveBorderColor = CGradientValueData();
     m_sSpecialRenderData.alpha               = 1.f;
     m_sSpecialRenderData.alphaInactive       = -1.f;
     m_sAdditionalConfigData.forceNoBlur      = false;

@@ -1524,28 +1524,22 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
     auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
 
     if (!PWORKSPACE) {
-        // no such workspace, make one
-        std::string workspaceName;
-        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, PCURRMONITOR->ID, workspaceName);
+        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, PCURRMONITOR->ID);
         // we can skip the moving, since it's already on the current monitor
         changeworkspace(PWORKSPACE->getConfigName());
         return;
     }
 
-    // is the workspace on another monitor?
     if (PWORKSPACE->m_iMonitorID != PCURRMONITOR->ID) {
         const auto POLDMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
         if (!POLDMONITOR) { // wat
             Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
             return;
         }
-        // is the workspace *active* on that monitor?
         if (POLDMONITOR->activeWorkspace == WORKSPACEID) {
-            // if so, we can just swap the two workspaces
             g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
             return;
         } else {
-            // otherwise, move that workspace to the current monitor
             g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PCURRMONITOR, true);
         }
     }

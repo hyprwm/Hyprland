@@ -2202,9 +2202,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
         pWorkspace->startAnim(true, true, true);
 
-        if (!noWarpCursor) {
+        if (!noWarpCursor)
             wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
-        }
 
         g_pInputManager->sendMotionEventsToFocused();
     }

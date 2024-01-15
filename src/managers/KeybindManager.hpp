@@ -134,6 +134,7 @@ class CKeybindManager {
     static void     exitHyprland(std::string);
     static void     moveCurrentWorkspaceToMonitor(std::string);
     static void     moveWorkspaceToMonitor(std::string);
+    static void     focusWorkspaceOnCurrentMonitor(std::string);
     static void     toggleSpecialWorkspace(std::string);
     static void     forceRendererReload(std::string);
     static void     resizeActive(std::string);

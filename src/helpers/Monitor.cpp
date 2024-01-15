@@ -502,7 +502,7 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
-void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove) {
+void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove, bool noFocus) {
     if (!pWorkspace)
         return;
 
@@ -533,7 +533,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
             }
         }
 
-        if (!g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
+        if (!noFocus && !g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
             static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
             CWindow*           pWindow      = pWorkspace->getLastFocusedWindow();
 

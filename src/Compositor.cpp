@@ -2114,7 +2114,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     return nullptr;
 }
 
-void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor) {
+void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor, bool noWarpCursor) {
 
     // We trust the workspace and monitor to be correct.
 
@@ -2200,7 +2200,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
         pWorkspace->startAnim(true, true, true);
 
-        wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+        if (!noWarpCursor)
+            wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
 
         g_pInputManager->sendMotionEventsToFocused();
     }

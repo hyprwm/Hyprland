@@ -1102,14 +1102,6 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
 
         auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
 
-        if (ls->layerSurface->current.keyboard_interactive && ls->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-            if (!SURFACEAT)
-                SURFACEAT = ls->layerSurface->surface;
-
-            *ppLayerSurfaceFound = ls.get();
-            return SURFACEAT;
-        }
-
         if (SURFACEAT) {
             if (!pixman_region32_not_empty(&SURFACEAT->input_region))
                 continue;
@@ -1892,15 +1884,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         if (pWindow == m_pLastWindow) {
             const auto* const ACTIVECOLOR =
                 !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
-            setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying() >= 0 ?
-                               CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying())) :
-                               *ACTIVECOLOR);
+            setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying().m_vColors.empty() ? *ACTIVECOLOR :
+                                                                                                              pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying());
         } else {
             const auto* const INACTIVECOLOR =
                 !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
-            setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
-                               CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
-                               *INACTIVECOLOR);
+            setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying().m_vColors.empty() ? *INACTIVECOLOR :
+                                                                                                                pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying());
         }
     }
 
@@ -2124,7 +2114,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     return nullptr;
 }
 
-void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor) {
+void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor, bool noWarpCursor) {
 
     // We trust the workspace and monitor to be correct.
 
@@ -2210,7 +2200,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
         pWorkspace->startAnim(true, true, true);
 
-        wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+        if (!noWarpCursor)
+            wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
 
         g_pInputManager->sendMotionEventsToFocused();
     }
@@ -2797,10 +2788,27 @@ void CCompositor::leaveUnsafeState() {
 void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(pSurface, scale);
     wlr_surface_set_preferred_buffer_scale(pSurface, static_cast<int32_t>(std::ceil(scale)));
+
+    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    if (!PSURFACE) {
+        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredScaleForSurface", (uintptr_t)pSurface);
+        return;
+    }
+
+    PSURFACE->m_fLastScale = scale;
+    PSURFACE->m_iLastScale = static_cast<int32_t>(std::ceil(scale));
 }
 
 void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
     wlr_surface_set_preferred_buffer_transform(pSurface, transform);
+
+    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    if (!PSURFACE) {
+        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredTransformForSurface", (uintptr_t)pSurface);
+        return;
+    }
+
+    PSURFACE->m_eLastTransform = transform;
 }
 
 void CCompositor::updateSuspendedStates() {

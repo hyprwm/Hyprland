@@ -138,6 +138,7 @@ void CConfigManager::setDefaultVars() {
     configValues["group:groupbar:font_family"].strValue   = "Sans";
     configValues["group:groupbar:font_size"].intValue     = 8;
     configValues["group:groupbar:gradients"].intValue     = 1;
+    configValues["group:groupbar:height"].intValue        = 14;
     configValues["group:groupbar:priority"].intValue      = 3;
     configValues["group:groupbar:render_titles"].intValue = 1;
     configValues["group:groupbar:scrolling"].intValue     = 1;
@@ -550,7 +551,7 @@ void CConfigManager::configSetValueSafe(const std::string& COMMAND, const std::s
         }
     }
 
-    if (COMMAND == "decoration:screen_shader") {
+    if (COMMAND == "decoration:screen_shader" && VALUE != STRVAL_EMPTY) {
         const auto PATH = absolutePath(VALUE, configCurrentPath);
 
         configPaths.push_back(PATH);

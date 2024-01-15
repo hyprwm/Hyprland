@@ -28,8 +28,14 @@ class CWLSurface {
     bool m_bFillIgnoreSmall = false;
 
     // if present, means this is a base surface of a window. Cleaned on unassign()
-    CWindow*    m_pOwner = nullptr;
+    CWindow* m_pOwner = nullptr;
 
+    // track surface data and avoid dupes
+    float               m_fLastScale     = 0;
+    int                 m_iLastScale     = 0;
+    wl_output_transform m_eLastTransform = (wl_output_transform)-1;
+
+    //
     CWLSurface& operator=(wlr_surface* pSurface) {
         destroy();
         m_pWLRSurface = pSurface;

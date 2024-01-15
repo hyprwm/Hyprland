@@ -26,8 +26,10 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindow
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
-    static auto* const         PHEIGHT  = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
-    static auto* const         PENABLED = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const         PHEIGHT       = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
+    static auto* const         PENABLED      = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const         PRENDERTITLES = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const         PGRADIENTS    = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
@@ -36,7 +38,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     info.reserved = true;
 
     if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
-        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + *PHEIGHT + 2}, {0, 0}};
+        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
     else
         info.desiredExtents = {{0, 0}, {0, 0}};
 

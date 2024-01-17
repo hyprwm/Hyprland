@@ -359,7 +359,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     bool allowKeyboardRefocus = true;
 
-    if (g_pCompositor->m_pLastFocus) {
+    if (!refocus && g_pCompositor->m_pLastFocus) {
         const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
 
         if (PLS && PLS->layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)

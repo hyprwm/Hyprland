@@ -38,6 +38,7 @@ class CPluginSystem {
     std::vector<CPlugin*>    getAllPlugins();
 
     bool                     m_bAllowConfigVars = false;
+    std::string              m_szLastError      = "";
 
   private:
     std::vector<std::unique_ptr<CPlugin>> m_vLoadedPlugins;

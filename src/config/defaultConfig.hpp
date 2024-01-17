@@ -28,8 +28,14 @@ monitor=,preferred,auto,auto
 # Source a file (multi-file configs)
 # source = ~/.config/hypr/myColors.conf
 
+# Set programs that you use
+$terminal = kitty
+$fileManager = dolphin
+$menu = wofi --show drun
+
 # Some default env vars.
 env = XCURSOR_SIZE,24
+env = QT_QPA_PLATFORMTHEME,qt5ct # change to qt6ct if you have that
 
 # For all categories, see https://wiki.hyprland.org/Configuring/Variables/
 input {
@@ -58,6 +64,9 @@ general {
     col.inactive_border = rgba(595959aa)
 
     layout = dwindle
+
+    # Please see https://wiki.hyprland.org/Configuring/Tearing/ before you turn this on
+    allow_tearing = false
 }
 
 decoration {
@@ -108,6 +117,11 @@ gestures {
     workspace_swipe = off
 }
 
+misc {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    force_default_wallpaper = -1 # Set to 0 to disable the anime mascot wallpapers
+}
+
 # Example per-device config
 # See https://wiki.hyprland.org/Configuring/Keywords/#executing for more
 device:epic-mouse-v1 {
@@ -119,18 +133,19 @@ device:epic-mouse-v1 {
 # Example windowrule v2
 # windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
 # See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
+windowrulev2 = nomaximizerequest, class:.* # You'll probably like this.
 
 
 # See https://wiki.hyprland.org/Configuring/Keywords/ for more
 $mainMod = SUPER
 
 # Example binds, see https://wiki.hyprland.org/Configuring/Binds/ for more
-bind = $mainMod, Q, exec, kitty
+bind = $mainMod, Q, exec, $terminal
 bind = $mainMod, C, killactive, 
 bind = $mainMod, M, exit, 
-bind = $mainMod, E, exec, dolphin
+bind = $mainMod, E, exec, $fileManager
 bind = $mainMod, V, togglefloating, 
-bind = $mainMod, R, exec, wofi --show drun
+bind = $mainMod, R, exec, $menu
 bind = $mainMod, P, pseudo, # dwindle
 bind = $mainMod, J, togglesplit, # dwindle
 
@@ -163,6 +178,10 @@ bind = $mainMod SHIFT, 7, movetoworkspace, 7
 bind = $mainMod SHIFT, 8, movetoworkspace, 8
 bind = $mainMod SHIFT, 9, movetoworkspace, 9
 bind = $mainMod SHIFT, 0, movetoworkspace, 10
+
+# Example special workspace (scratchpad)
+bind = $mainMod, S, togglespecialworkspace, magic
+bind = $mainMod SHIFT, S, movetoworkspace, special:magic
 
 # Scroll through existing workspaces with mainMod + scroll
 bind = $mainMod, mouse_down, workspace, e+1

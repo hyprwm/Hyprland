@@ -2,6 +2,7 @@
 #include "Compositor.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
+#include "render/decorations/CHyprBorderDecoration.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -13,7 +14,8 @@ CWindow::CWindow() {
     m_cRealShadowColor.create(AVARTYPE_COLOR, g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), (void*)this, AVARDAMAGE_SHADOW);
     m_fDimPercent.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
 
-    m_dWindowDecorations.emplace_back(std::make_unique<CHyprDropShadowDecoration>(this)); // put the shadow so it's the first deco (has to be rendered first)
+    addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(this));
+    addWindowDeco(std::make_unique<CHyprBorderDecoration>(this));
 }
 
 CWindow::~CWindow() {
@@ -21,6 +23,12 @@ CWindow::~CWindow() {
         g_pCompositor->m_pLastFocus  = nullptr;
         g_pCompositor->m_pLastWindow = nullptr;
     }
+
+    if (!g_pHyprOpenGL)
+        return;
+
+    g_pHyprRenderer->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first == this; });
 }
 
 SWindowDecorationExtents CWindow::getFullWindowExtents() {
@@ -37,30 +45,27 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    for (auto& wd : m_dWindowDecorations) {
+    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this);
 
-        const auto EXTENTS = wd->getWindowDecorationExtents();
+    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
+        maxExtents.topLeft.x = EXTENTS.topLeft.x;
 
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
+        maxExtents.topLeft.y = EXTENTS.topLeft.y;
 
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
+    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
+        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
 
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-    }
+    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
+        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
     if (m_pWLSurface.exists() && !m_bIsX11) {
-        wlr_box surfaceExtents = {0, 0, 0, 0};
+        CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         wlr_xdg_surface_for_each_popup_surface(
             m_uSurface.xdg,
             [](wlr_surface* surf, int sx, int sy, void* data) {
-                wlr_box* pSurfaceExtents = (wlr_box*)data;
+                CBox* pSurfaceExtents = (CBox*)data;
                 if (sx < pSurfaceExtents->x)
                     pSurfaceExtents->x = sx;
                 if (sy < pSurfaceExtents->y)
@@ -88,21 +93,21 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     return maxExtents;
 }
 
-wlr_box CWindow::getFullWindowBoundingBox() {
+CBox CWindow::getFullWindowBoundingBox() {
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    auto    maxExtents = getFullWindowExtents();
+    auto maxExtents = getFullWindowExtents();
 
-    wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
-                        m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
+                     m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
 }
 
-wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
+CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
@@ -113,7 +118,7 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         POS  = PMONITOR->vecPosition;
         SIZE = PMONITOR->vecSize;
 
-        return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+        return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
     }
 
     if (DELTALESSTHAN(POS.y - PMONITOR->vecPosition.y, PMONITOR->vecReservedTopLeft.y, 1)) {
@@ -131,10 +136,10 @@ wlr_box CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         SIZE.y += PMONITOR->vecReservedBottomRight.y;
     }
 
-    return wlr_box{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
+    return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
-wlr_box CWindow::getWindowInputBox() {
+CBox CWindow::getWindowInputBox() {
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
@@ -144,58 +149,45 @@ wlr_box CWindow::getWindowInputBox() {
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    for (auto& wd : m_dWindowDecorations) {
+    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, true);
 
-        if (!wd->allowsInput())
-            continue;
+    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
+        maxExtents.topLeft.x = EXTENTS.topLeft.x;
 
-        const auto EXTENTS = wd->getWindowDecorationExtents();
+    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
+        maxExtents.topLeft.y = EXTENTS.topLeft.y;
 
-        if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-            maxExtents.topLeft.x = EXTENTS.topLeft.x;
+    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
+        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
 
-        if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-            maxExtents.topLeft.y = EXTENTS.topLeft.y;
-
-        if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-        if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-    }
+    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
+        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
     // Add extents to the real base BB and return
-    wlr_box finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
-                        m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
+                     m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
 }
 
+CBox CWindow::getWindowMainSurfaceBox() {
+    return {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
+}
+
 SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
-    SWindowDecorationExtents extents;
-
-    for (auto& wd : m_dWindowDecorations) {
-        const auto RESERVED = wd->getWindowDecorationReservedArea();
-
-        if (RESERVED.bottomRight == Vector2D{} && RESERVED.topLeft == Vector2D{})
-            continue;
-
-        extents.topLeft     = extents.topLeft + RESERVED.topLeft;
-        extents.bottomRight = extents.bottomRight + RESERVED.bottomRight;
-    }
-
-    return extents;
+    return g_pDecorationPositioner->getWindowDecorationReserved(this);
 }
 
 void CWindow::updateWindowDecos() {
-    for (auto& wd : m_dWindowDecorations)
-        wd->updateWindow(this);
-
     bool recalc = false;
+
+    if (!m_bIsMapped || isHidden())
+        return;
 
     for (auto& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
+                g_pDecorationPositioner->uncacheDecoration(it->get());
                 it     = m_dWindowDecorations.erase(it);
                 recalc = true;
                 if (it == m_dWindowDecorations.end())
@@ -204,10 +196,54 @@ void CWindow::updateWindowDecos() {
         }
     }
 
+    g_pDecorationPositioner->onWindowUpdate(this);
+
     if (recalc)
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
 
     m_vDecosToRemove.clear();
+
+    for (auto& wd : m_dWindowDecorations) {
+        wd->updateWindow(this);
+    }
+}
+
+void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
+    m_dWindowDecorations.emplace_back(std::move(deco));
+    g_pDecorationPositioner->forceRecalcFor(this);
+    updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+}
+
+void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
+    m_vDecosToRemove.push_back(deco);
+    g_pDecorationPositioner->forceRecalcFor(this);
+    updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+}
+
+void CWindow::uncacheWindowDecos() {
+    for (auto& wd : m_dWindowDecorations) {
+        g_pDecorationPositioner->uncacheDecoration(wd.get());
+    }
+}
+
+bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoords, std::any data) {
+    if (type != INPUT_TYPE_DRAG_END && hasPopupAt(mouseCoords))
+        return false;
+
+    for (auto& wd : m_dWindowDecorations) {
+        if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
+            continue;
+
+        if (!g_pDecorationPositioner->getWindowDecorationBox(wd.get()).containsPoint(mouseCoords))
+            continue;
+
+        if (wd->onInputOnDeco(type, mouseCoords, data))
+            return true;
+    }
+
+    return false;
 }
 
 pid_t CWindow::getPID() {
@@ -219,6 +255,9 @@ pid_t CWindow::getPID() {
 
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
+        if (!m_bIsMapped)
+            return -1;
+
         PID = m_uSurface.xwayland->pid;
     }
 
@@ -279,7 +318,7 @@ void CWindow::destroyToplevelHandle() {
 }
 
 void CWindow::updateToplevel() {
-    updateSurfaceOutputs();
+    updateSurfaceScaleTransformDetails();
 
     if (!m_phForeignToplevel)
         return;
@@ -306,8 +345,8 @@ void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
     wlr_surface_send_leave(pSurface, OUTPUT);
 }
 
-void CWindow::updateSurfaceOutputs() {
-    if (m_iLastSurfaceMonitorID == m_iMonitorID || !m_bIsMapped || m_bHidden || !m_bMappedX11)
+void CWindow::updateSurfaceScaleTransformDetails() {
+    if (!m_bIsMapped || m_bHidden)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
@@ -316,16 +355,24 @@ void CWindow::updateSurfaceOutputs() {
 
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-    if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
-        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
+    if (PNEWMONITOR != PLASTMONITOR) {
+        if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
+            wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
-    wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+    }
 
     wlr_surface_for_each_surface(
         m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+
+            const auto PSURFACE = CWLSurface::surfaceFromWlr(surf);
+            if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
+                return;
+
+            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR->scale);
+            g_pCompositor->setPreferredTransformForSurface(surf, PMONITOR->transform);
         },
         this);
 }
@@ -333,6 +380,10 @@ void CWindow::updateSurfaceOutputs() {
 void CWindow::moveToWorkspace(int workspaceID) {
     if (m_iWorkspaceID == workspaceID)
         return;
+
+    static auto* const PCLOSEONLASTSPECIAL = &g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty")->intValue;
+
+    const int          OLDWORKSPACE = m_iWorkspaceID;
 
     m_iWorkspaceID = workspaceID;
 
@@ -352,6 +403,15 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(this, m_vRealSize.vec());
+
+    if (g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE) == 0 && *PCLOSEONLASTSPECIAL) {
+        const auto PWS = g_pCompositor->getWorkspaceByID(OLDWORKSPACE);
+
+        if (PWS) {
+            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWS->m_iMonitorID); PMONITOR)
+                PMONITOR->setSpecialWorkspace(nullptr);
+        }
+    }
 }
 
 CWindow* CWindow::X11TransientFor() {
@@ -414,11 +474,19 @@ void CWindow::onUnmap() {
         if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    if (PMONITOR && PMONITOR->solitaryClient == this)
+        PMONITOR->solitaryClient = nullptr;
+
+    g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
 }
 
 void CWindow::onMap() {
 
     m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
+    m_pWLSurface.m_pOwner = this;
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();
@@ -448,6 +516,8 @@ void CWindow::onMap() {
 
     hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->surface->events.unmap : &m_uSurface.xdg->surface->events.unmap, &Events::listener_unmapWindow, this,
                                           "CWindow");
+
+    m_vReportedSize = m_vPendingReportedSize;
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {
@@ -472,6 +542,8 @@ void CWindow::setHidden(bool hidden) {
     if (hidden && g_pCompositor->m_pLastWindow == this) {
         g_pCompositor->m_pLastWindow = nullptr;
     }
+
+    setSuspended(hidden);
 }
 
 bool CWindow::isHidden() {
@@ -492,15 +564,19 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
-    } else if (r.szRule.find("rounding") == 0) {
+    } else if (r.szRule == "immediate") {
+        m_sAdditionalConfigData.forceTearing = true;
+    } else if (r.szRule == "nearestneighbor") {
+        m_sAdditionalConfigData.nearestNeighbor = true;
+    } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
         } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.find("bordersize") == 0) {
+    } else if (r.szRule.starts_with("bordersize")) {
         try {
             m_sAdditionalConfigData.borderSize = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
         } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.find("opacity") == 0) {
+    } else if (r.szRule.starts_with("opacity")) {
         try {
             CVarList vars(r.szRule, 0, ' ');
 
@@ -533,37 +609,78 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "noanim") {
         m_sAdditionalConfigData.forceNoAnims = true;
-    } else if (r.szRule.find("animation") == 0) {
+    } else if (r.szRule.starts_with("animation")) {
         auto STYLE                             = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
         m_sAdditionalConfigData.animationStyle = STYLE;
-    } else if (r.szRule.find("bordercolor") == 0) {
+    } else if (r.szRule.starts_with("bordercolor")) {
         try {
-            std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            // Each vector will only get used if it has at least one color
+            CGradientValueData activeBorderGradient   = {};
+            CGradientValueData inactiveBorderGradient = {};
+            bool               active                 = true;
+            CVarList           colorsAndAngles        = CVarList(removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
 
-            if (colorPart.contains(' ')) {
-                // we have a space, 2 values
-                m_sSpecialRenderData.activeBorderColor   = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
-                m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
-            } else {
-                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
+            // Basic form has only two colors, everything else can be parsed as a gradient
+            if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+                m_sSpecialRenderData.activeBorderColor   = CGradientValueData(CColor(configStringToInt(colorsAndAngles[0])));
+                m_sSpecialRenderData.inactiveBorderColor = CGradientValueData(CColor(configStringToInt(colorsAndAngles[1])));
+                return;
+            }
+
+            for (auto& token : colorsAndAngles) {
+                // The first angle, or an explicit "0deg", splits the two gradients
+                if (active && token.contains("deg")) {
+                    activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                    active                        = false;
+                } else if (token.contains("deg"))
+                    inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                else if (active)
+                    activeBorderGradient.m_vColors.push_back(configStringToInt(token));
+                else
+                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
+            }
+
+            // Includes sanity checks for the number of colors in each gradient
+            if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
+                Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r.szRule);
+            else if (activeBorderGradient.m_vColors.empty())
+                Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
+            else if (inactiveBorderGradient.m_vColors.empty())
+                m_sSpecialRenderData.activeBorderColor = activeBorderGradient;
+            else {
+                m_sSpecialRenderData.activeBorderColor   = activeBorderGradient;
+                m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "dimaround") {
         m_sAdditionalConfigData.dimAround = true;
     } else if (r.szRule == "keepaspectratio") {
         m_sAdditionalConfigData.keepAspectRatio = true;
-    } else if (r.szRule.find("xray") == 0) {
+    } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {
             m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
         } catch (...) {}
+    } else if (r.szRule.starts_with("idleinhibit")) {
+        auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
+
+        if (IDLERULE == "none")
+            m_eIdleInhibitMode = IDLEINHIBIT_NONE;
+        else if (IDLERULE == "always")
+            m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
+        else if (IDLERULE == "focus")
+            m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
+        else if (IDLERULE == "fullscreen")
+            m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
+        else
+            Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     }
 }
 
 void CWindow::updateDynamicRules() {
-    m_sSpecialRenderData.activeBorderColor   = -1;
-    m_sSpecialRenderData.inactiveBorderColor = -1;
+    m_sSpecialRenderData.activeBorderColor   = CGradientValueData();
+    m_sSpecialRenderData.inactiveBorderColor = CGradientValueData();
     m_sSpecialRenderData.alpha               = 1.f;
     m_sSpecialRenderData.alphaInactive       = -1.f;
     m_sAdditionalConfigData.forceNoBlur      = false;
@@ -580,6 +697,9 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.borderSize      = -1;
     m_sAdditionalConfigData.keepAspectRatio = false;
     m_sAdditionalConfigData.xray            = -1;
+    m_sAdditionalConfigData.forceTearing    = false;
+    m_sAdditionalConfigData.nearestNeighbor = false;
+    m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
     for (auto& r : WINDOWRULES) {
@@ -622,9 +742,9 @@ bool CWindow::isInCurvedCorner(double x, double y) {
 void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
     const auto DATA = (SExtensionFindingData*)data;
 
-    wlr_box    box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
+    CBox       box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
 
-    if (wlr_box_contains_point(&box, DATA->vec.x, DATA->vec.y))
+    if (box.containsPoint(DATA->vec))
         *DATA->found = surface;
 }
 
@@ -654,14 +774,14 @@ void CWindow::createGroup() {
         Debug::log(LOG, "createGroup: window:{:x},title:{} is denied as a group, ignored", (uintptr_t)this, this->m_szTitle);
         return;
     }
+
     if (!m_sGroupData.pNextWindow) {
         m_sGroupData.pNextWindow = this;
         m_sGroupData.head        = true;
         m_sGroupData.locked      = false;
         m_sGroupData.deny        = false;
 
-        m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(this));
-        updateWindowDecos();
+        addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(this));
 
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -735,6 +855,15 @@ int CWindow::getGroupSize() {
     return size;
 }
 
+bool CWindow::canBeGroupedInto(CWindow* pWindow) {
+    return !g_pKeybindManager->m_bGroupsLocked                                          // global group lock disengaged
+        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                               // window ignore local group locks, or
+            || (!pWindow->getGroupHead()->m_sGroupData.locked                           //      target unlocked
+                && !(m_sGroupData.pNextWindow && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
+        && !m_sGroupData.deny                                                           // source is not denied entry
+        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                              // group rule doesn't prevent adding window
+}
+
 CWindow* CWindow::getGroupWindowByIndex(int index) {
     const int SIZE = getGroupSize();
     index          = ((index % SIZE) + SIZE) % SIZE;
@@ -791,6 +920,8 @@ void CWindow::setGroupCurrent(CWindow* pWindow) {
         g_pCompositor->setWindowFullscreen(pWindow, true, WORKSPACE->m_efFullscreenMode);
 
     g_pHyprRenderer->damageWindow(pWindow);
+
+    pWindow->updateWindowDecos();
 }
 
 void CWindow::insertWindowToGroup(CWindow* pWindow) {
@@ -798,7 +929,7 @@ void CWindow::insertWindowToGroup(CWindow* pWindow) {
     const auto ENDAT   = m_sGroupData.pNextWindow;
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pWindow->m_dWindowDecorations.emplace_back(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+        pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
 
     if (!pWindow->m_sGroupData.pNextWindow) {
         BEGINAT->m_sGroupData.pNextWindow = pWindow;
@@ -874,6 +1005,9 @@ bool CWindow::opaque() {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
+    if (m_pWLSurface.small() && !m_pWLSurface.m_bFillIgnoreSmall)
+        return false;
+
     if (PWORKSPACE->m_fAlpha.fl() != 1.f)
         return false;
 
@@ -895,7 +1029,7 @@ float CWindow::rounding() {
 
     float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
-    return rounding;
+    return m_sSpecialRenderData.rounding ? rounding : 0;
 }
 
 void CWindow::updateSpecialRenderData() {
@@ -924,4 +1058,24 @@ int CWindow::getRealBorderSize() {
         return m_sSpecialRenderData.borderSize.toUnderlying();
 
     return g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
+}
+
+bool CWindow::canBeTorn() {
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
+}
+
+bool CWindow::shouldSendFullscreenState() {
+    const auto MODE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID)->m_efFullscreenMode;
+    return m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL));
+}
+
+void CWindow::setSuspended(bool suspend) {
+    if (suspend == m_bSuspended)
+        return;
+
+    if (m_bIsX11)
+        return;
+
+    wlr_xdg_toplevel_set_suspended(m_uSurface.xdg->toplevel, suspend);
+    m_bSuspended = suspend;
 }

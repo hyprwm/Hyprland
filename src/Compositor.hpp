@@ -27,9 +27,9 @@
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "plugins/PluginSystem.hpp"
+#include "helpers/Watchdog.hpp"
 
-enum eManagersInitStage
-{
+enum eManagersInitStage {
     STAGE_PRIORITY = 0,
     STAGE_LATE
 };
@@ -53,7 +53,6 @@ class CCompositor {
     wlr_drm_lease_v1_manager*                  m_sWRLDRMLeaseMgr;
     wlr_xdg_activation_v1*                     m_sWLRXDGActivation;
     wlr_output_layout*                         m_sWLROutputLayout;
-    wlr_idle*                                  m_sWLRIdle;
     wlr_idle_notifier_v1*                      m_sWLRIdleNotifier;
     wlr_layer_shell_v1*                        m_sWLRLayerShell;
     wlr_xdg_shell*                             m_sWLRXDGShell;
@@ -62,7 +61,6 @@ class CCompositor {
     wlr_virtual_keyboard_manager_v1*           m_sWLRVKeyboardMgr;
     wlr_output_manager_v1*                     m_sWLROutputMgr;
     wlr_presentation*                          m_sWLRPresentation;
-    wlr_input_inhibit_manager*                 m_sWLRInhibitMgr;
     wlr_keyboard_shortcuts_inhibit_manager_v1* m_sWLRKbShInhibitMgr;
     wlr_egl*                                   m_sWLREGL;
     int                                        m_iDRMFD;
@@ -85,6 +83,7 @@ class CCompositor {
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
     wlr_cursor_shape_manager_v1*               m_sWLRCursorShapeMgr;
+    wlr_tearing_control_manager_v1*            m_sWLRTearingControlMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";
@@ -120,7 +119,8 @@ class CCompositor {
     bool                                      m_bSessionActive  = true;
     bool                                      m_bDPMSStateON    = true;
     bool                                      m_bUnsafeState    = false;   // unsafe state is when there is no monitors.
-    wlr_output*                               m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
+    bool                                      m_bNextIsUnsafe   = false;   // because wlroots
+    CMonitor*                                 m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                      m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //
@@ -135,10 +135,10 @@ class CCompositor {
     void           focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool           windowExists(CWindow*);
     bool           windowValidMapped(CWindow*);
-    CWindow*       vectorToWindow(const Vector2D&);
-    CWindow*       vectorToWindowIdeal(const Vector2D&); // used only for finding a window to focus on, basically a "findFocusableWindow"
+    CWindow*       vectorToWindowIdeal(const Vector2D&, CWindow* pIgnoreWindow = nullptr); // used only for finding a window to focus on, basically a "findFocusableWindow"
     CWindow*       vectorToWindowTiled(const Vector2D&);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
+    SIMEPopup*     vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CWindow*       windowFromCursor();
@@ -165,16 +165,18 @@ class CCompositor {
     void           changeWindowZOrder(CWindow*, bool);
     void           cleanupFadingOut(const int& monid);
     CWindow*       getWindowInDirection(CWindow*, char);
-    CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false);
-    CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false);
+    CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
+    CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
     int            getNextAvailableNamedWorkspace();
     bool           isPointOnAnyMonitor(const Vector2D&);
+    bool           isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);
     CWindow*       getConstraintWindow(SMouse*);
     CMonitor*      getMonitorInDirection(const char&);
     void           updateAllWindowsAnimatedDecorationValues();
+    void           updateWorkspaceWindows(const int64_t& id);
     void           updateWindowAnimatedDecorationValues(CWindow*);
     int            getNextAvailableMonitorID(std::string const& name);
-    void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
+    void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*, bool noWarpCursor = false);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int64_t&);
@@ -191,7 +193,6 @@ class CCompositor {
     void           closeWindow(CWindow*);
     Vector2D       parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void           forceReportSizesToWindowsOnWorkspace(const int&);
-    bool           cursorOnReservedArea();
     CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
     void           renameWorkspace(const int&, const std::string& name = "");
     void           setActiveMonitor(CMonitor*);
@@ -205,6 +206,9 @@ class CCompositor {
     void           arrangeMonitors();
     void           enterUnsafeState();
     void           leaveUnsafeState();
+    void           setPreferredScaleForSurface(wlr_surface* pSurface, double scale);
+    void           setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform);
+    void           updateSuspendedStates();
 
     std::string    explicitConfigPath;
 
@@ -212,6 +216,7 @@ class CCompositor {
     void     initAllSignals();
     void     setRandomSplash();
     void     initManagers(eManagersInitStage stage);
+    void     prepareFallbackOutput();
 
     uint64_t m_iHyprlandPID = 0;
 };

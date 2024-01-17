@@ -9,7 +9,7 @@
 #include <format>
 
 class CHyprDwindleLayout;
-enum eFullscreenMode : uint8_t;
+enum eFullscreenMode : int8_t;
 
 struct SDwindleNodeData {
     SDwindleNodeData*                pParent = nullptr;
@@ -21,8 +21,7 @@ struct SDwindleNodeData {
 
     bool                             splitTop = false; // for preserve_split
 
-    Vector2D                         position;
-    Vector2D                         size;
+    CBox                             box = {0};
 
     int                              workspaceID = -1;
 
@@ -30,10 +29,12 @@ struct SDwindleNodeData {
 
     bool                             valid = true;
 
+    bool                             ignoreFullscreenChecks = false;
+
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) const {
-        return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && position == rhs.position && size == rhs.size && pParent == rhs.pParent &&
-            children[0] == rhs.children[0] && children[1] == rhs.children[1];
+        return pWindow == rhs.pWindow && workspaceID == rhs.workspaceID && box == rhs.box && pParent == rhs.pParent && children[0] == rhs.children[0] &&
+            children[1] == rhs.children[1];
     }
 
     void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
@@ -94,7 +95,7 @@ struct std::formatter<SDwindleNodeData*, CharT> : std::formatter<CharT> {
         auto out = ctx.out();
         if (!node)
             return std::format_to(out, "[Node nullptr]");
-        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", (uintptr_t)node, node->workspaceID, node->position, node->size);
+        std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", (uintptr_t)node, node->workspaceID, node->box.pos(), node->box.size());
         if (!node->isNode && node->pWindow)
             std::format_to(out, ", window: {:x}", node->pWindow);
         return std::format_to(out, "]");

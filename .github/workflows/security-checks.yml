@@ -24,13 +24,13 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: ${{github.workspace}}/flawfinder_results.sarif
-  
+
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
     container:
       image: archlinux
-    
+
     permissions:
       actions: read
       contents: read
@@ -42,34 +42,25 @@ jobs:
         language: [ 'cpp' ]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - name: Checkout repository actions
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: .github/actions
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
-    - name: Init Hyprland build
-      run: |
-        sed -i 's/SigLevel    = Required DatabaseOptional/SigLevel    = Optional TrustAll/' /etc/pacman.conf
-        pacman --noconfirm --noprogressbar -Syyu
-        pacman --noconfirm --noprogressbar -Sy glslang libepoxy libfontenc libxcvt libxfont2 libxkbfile vulkan-headers vulkan-validation-layers xcb-util-errors xcb-util-renderutil xcb-util-wm xorg-fonts-encodings xorg-server-common xorg-setxkbmap xorg-xkbcomp xorg-xwayland git cmake go clang lld libc++ pkgconf meson ninja wayland wayland-protocols libinput libxkbcommon pixman glm libdrm libglvnd cairo pango systemd scdoc base-devel seatd python libliftoff
-        useradd -m githubuser
-        echo -e "root ALL=(ALL:ALL) ALL\ngithubuser ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers
-        su githubuser -c "cd ~ && git clone https://aur.archlinux.org/libdisplay-info.git && cd ./libdisplay-info && makepkg -si --skippgpcheck --noconfirm --noprogressbar"
-        git config --global --add safe.directory /__w/Hyprland/Hyprland
-    
-    - name: Checkout Hyprland
-      uses: actions/checkout@v3
+    - name: Setup base
+      uses: ./.github/actions/setup_base
       with:
-        submodules: recursive
+        INSTALL_XORG_PKGS: true
 
     - name: Build Hyprland
       run: |
-        git submodule sync --recursive && git submodule update --init --force --recursive
         make all
-    
+
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:

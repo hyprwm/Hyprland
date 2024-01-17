@@ -27,7 +27,7 @@
 // pthread first because it uses class in a C++ way and XWayland includes that...
 #include <pthread.h>
 
-#define class _class
+#define class     _class
 #define namespace _namespace
 #define static
 #define delete delete_
@@ -47,7 +47,6 @@ extern "C" {
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
-#include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
@@ -71,7 +70,6 @@ extern "C" {
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_damage_ring.h>
-#include <wlr/types/wlr_input_inhibitor.h>
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
@@ -105,6 +103,11 @@ extern "C" {
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
+#include <wlr/types/wlr_tearing_control_v1.h>
+#include <wlr/util/box.h>
+#include <wlr/util/transform.h>
+#include <wlr/render/swapchain.h>
+#include <wlr/render/egl.h>
 
 #include <libdrm/drm_fourcc.h>
 
@@ -145,3 +148,5 @@ extern "C" {
 #endif
 
 #include "helpers/Vector2D.hpp"
+#include "helpers/Box.hpp"
+#include "SharedDefs.hpp"

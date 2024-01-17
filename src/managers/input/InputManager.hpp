@@ -7,14 +7,12 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
-enum eClickBehaviorMode
-{
+enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode
-{
+enum eMouseBindMode {
     MBIND_INVALID            = -1,
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
@@ -22,8 +20,7 @@ enum eMouseBindMode
     MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection
-{
+enum eBorderIconDirection {
     BORDERICON_NONE,
     BORDERICON_UP,
     BORDERICON_DOWN,
@@ -64,6 +61,8 @@ class CKeybindManager;
 
 class CInputManager {
   public:
+    ~CInputManager();
+
     void               onMouseMoved(wlr_pointer_motion_event*);
     void               onMouseWarp(wlr_pointer_motion_absolute_event*);
     void               onMouseButton(wlr_pointer_button_event*);
@@ -118,6 +117,7 @@ class CInputManager {
     // for dragging floating windows
     CWindow*       currentlyDraggedWindow = nullptr;
     eMouseBindMode dragMode               = MBIND_INVALID;
+    bool           m_bWasDraggingWindow   = false;
 
     // for refocus to be forced
     CWindow*               m_pForcedFocus = nullptr;
@@ -229,15 +229,22 @@ class CInputManager {
     void setBorderCursorIcon(eBorderIconDirection);
     void setCursorIconOnBorder(CWindow* w);
 
+    // temporary. Obeys setUntilUnset.
+    void setCursorImageOverride(const std::string& name);
+
     // cursor surface
-    // struct cursorSI {
-    //     wlr_surface* pSurface = nullptr;
-    //     Vector2D     vHotspot;
-    //     bool         bUsed = false;
-    // } cursorSurfaceInfo;
-    // DYNLISTENER(CursorSurfaceDestroy);
+    struct cursorSI {
+        bool        hidden = false; // null surface = hidden
+        CWLSurface  wlSurface;
+        Vector2D    vHotspot;
+        std::string name; // if not empty, means set by name.
+        bool        inUse = false;
+    } m_sCursorSurfaceInfo;
+
+    void restoreCursorIconToApp(); // no-op if restored
 
     friend class CKeybindManager;
+    friend class CWLSurface;
 };
 
 inline std::unique_ptr<CInputManager> g_pInputManager;

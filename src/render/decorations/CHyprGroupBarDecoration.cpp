@@ -6,53 +6,58 @@
 // shared things to conserve VRAM
 static CTexture m_tGradientActive;
 static CTexture m_tGradientInactive;
+static CTexture m_tGradientLockedActive;
+static CTexture m_tGradientLockedInactive;
+
+constexpr int   BAR_INDICATOR_HEIGHT   = 3;
+constexpr int   BAR_PADDING_OUTER_VERT = 2;
+constexpr int   BAR_TEXT_PAD           = 2;
+constexpr int   BAR_HORIZONTAL_PADDING = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
-    m_pWindow = pWindow;
+    static auto* const PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+    m_pWindow                     = pWindow;
+
+    if (m_tGradientActive.m_iTexID == 0 && *PENABLED && *PGRADIENTS)
+        refreshGroupBarGradients();
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
-SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationExtents() {
-    return m_seExtents;
+SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
+    static auto* const         PHEIGHT       = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
+    static auto* const         PENABLED      = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const         PRENDERTITLES = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const         PGRADIENTS    = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+
+    SDecorationPositioningInfo info;
+    info.policy   = DECORATION_POSITION_STICKY;
+    info.edges    = DECORATION_EDGE_TOP;
+    info.priority = g_pConfigManager->getConfigValuePtr("group:groupbar:priority")->intValue;
+    info.reserved = true;
+
+    if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
+        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
+    else
+        info.desiredExtents = {{0, 0}, {0, 0}};
+
+    return info;
+}
+
+void CHyprGroupBarDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
+    m_bAssignedBox = reply.assignedGeometry;
 }
 
 eDecorationType CHyprGroupBarDecoration::getDecorationType() {
     return DECORATION_GROUPBAR;
 }
 
-constexpr int BAR_INDICATOR_HEIGHT   = 3;
-constexpr int BAR_PADDING_OUTER_VERT = 2;
-constexpr int BAR_TEXT_PAD           = 2;
-
 //
 
 void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
-    damageEntire();
-
-    const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-
-    const auto         WORKSPACEOFFSET = PWORKSPACE && !pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
-
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-
-    if (pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET != m_vLastWindowPos || pWindow->m_vRealSize.vec() != m_vLastWindowSize) {
-        // we draw 3px above the window's border with 3px
-
-        const int BORDERSIZE = pWindow->getRealBorderSize();
-
-        m_seExtents.topLeft     = Vector2D(0, BORDERSIZE + BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0) + 2);
-        m_seExtents.bottomRight = Vector2D();
-
-        m_vLastWindowPos  = pWindow->m_vRealPosition.vec() + WORKSPACEOFFSET;
-        m_vLastWindowSize = pWindow->m_vRealSize.vec();
-
-        invalidateTextures();
-    }
-
     if (!m_pWindow->m_sGroupData.pNextWindow) {
-        m_pWindow->m_vDecosToRemove.push_back(this);
+        m_pWindow->removeWindowDeco(this);
         return;
     }
 
@@ -69,49 +74,52 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
     damageEntire();
 
     if (m_dwGroupMembers.size() == 0) {
-        m_pWindow->m_vDecosToRemove.push_back(this);
+        m_pWindow->removeWindowDeco(this);
         return;
     }
 }
 
 void CHyprGroupBarDecoration::damageEntire() {
-    wlr_box dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                  m_seExtents.topLeft.y};
-    g_pHyprRenderer->damageBox(&dm);
+    auto box = assignedBoxGlobal();
+    g_pHyprRenderer->damageBox(&box);
 }
 
 void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     // get how many bars we will draw
     int                barsToDraw = m_dwGroupMembers.size();
 
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-    static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_gradients")->intValue;
+    static auto* const PENABLED       = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles")->intValue;
+    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PHEIGHT        = &g_pConfigManager->getConfigValuePtr("group:groupbar:height")->intValue;
+    static auto* const PGRADIENTS     = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
 
-    const int          BORDERSIZE = m_pWindow->getRealBorderSize();
-
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    if (!*PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
-    const int PAD = 2; //2px
+    const auto ASSIGNEDBOX = assignedBoxGlobal();
 
-    const int BARW = (m_vLastWindowSize.x - PAD * (barsToDraw - 1)) / barsToDraw;
+    m_fBarWidth = (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
-    int       xoff = 0;
+    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2;
+    if (DESIREDHEIGHT != ASSIGNEDBOX.h)
+        g_pDecorationPositioner->repositionDeco(this);
+
+    int xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
-        wlr_box rect = {m_vLastWindowPos.x + xoff - pMonitor->vecPosition.x + offset.x,
-                        m_vLastWindowPos.y - BAR_PADDING_OUTER_VERT - BORDERSIZE - BAR_INDICATOR_HEIGHT - pMonitor->vecPosition.y + offset.y, BARW, BAR_INDICATOR_HEIGHT};
+        CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x,
+                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + offset.y, m_fBarWidth, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
 
-        scaleBox(&rect, pMonitor->scale);
+        rect.scale(pMonitor->scale);
 
-        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
-        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
-        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
+        static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data;
+        static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data;
+        static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data;
+        static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data;
 
         const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
         const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
@@ -122,43 +130,37 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
-        // render title if necessary
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x, ASSIGNEDBOX.y - pMonitor->vecPosition.y + offset.y + BAR_PADDING_OUTER_VERT, m_fBarWidth,
+                ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT * 2};
+        rect.scale(pMonitor->scale);
+
+        if (*PGRADIENTS) {
+            const auto& GRADIENTTEX = (m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+            if (GRADIENTTEX.m_iTexID != 0)
+                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
+        }
+
         if (*PRENDERTITLES) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
 
             if (!pTitleTex)
-                pTitleTex =
-                    m_sTitleTexs.titleTexs
-                        .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i], Vector2D{BARW * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
-                        .get();
+                pTitleTex = m_sTitleTexs.titleTexs
+                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i],
+                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
+                                .get();
 
-            rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * 0.8 * pMonitor->scale;
-
-            rect.y -= rect.height;
-            rect.width = BARW * pMonitor->scale;
-
-            refreshGradients();
-
-            if (*PGRADIENTS)
-                g_pHyprOpenGL->renderTexture((m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? m_tGradientActive : m_tGradientInactive), &rect, 1.0);
-
-            rect.y -= (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * 0.2 * pMonitor->scale;
+            rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
         }
 
-        xoff += PAD + BARW;
+        xoff += BAR_HORIZONTAL_PADDING + m_fBarWidth;
     }
 
     if (*PRENDERTITLES)
         invalidateTextures();
-}
-
-SWindowDecorationExtents CHyprGroupBarDecoration::getWindowDecorationReservedArea() {
-    static auto* const PRENDERTITLES  = &g_pConfigManager->getConfigValuePtr("misc:render_titles_in_groupbar")->intValue;
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-    return SWindowDecorationExtents{{0, BAR_INDICATOR_HEIGHT + BAR_PADDING_OUTER_VERT * 2 + (*PRENDERTITLES ? *PTITLEFONTSIZE : 0)}, {}};
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
@@ -180,8 +182,9 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
 
-    static auto* const PTITLEFONTSIZE = &g_pConfigManager->getConfigValuePtr("misc:groupbar_titles_font_size")->intValue;
-    static auto* const PTEXTCOLOR     = &g_pConfigManager->getConfigValuePtr("misc:groupbar_text_color")->intValue;
+    static auto* const PTITLEFONTFAMILY = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_family")->strValue;
+    static auto* const PTITLEFONTSIZE   = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
+    static auto* const PTEXTCOLOR       = &g_pConfigManager->getConfigValuePtr("group:groupbar:text_color")->intValue;
 
     const CColor       COLOR = CColor(*PTEXTCOLOR);
 
@@ -195,7 +198,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string("Sans");
+    PangoFontDescription* fontDesc = pango_font_description_from_string(PTITLEFONTFAMILY->c_str());
     pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
@@ -242,7 +245,10 @@ CTitleTex::~CTitleTex() {
     tex.destroyTexture();
 }
 
-void renderGradientTo(CTexture& tex, const CColor& grad) {
+void renderGradientTo(CTexture& tex, CGradientValueData* grad) {
+
+    if (!g_pCompositor->m_pLastMonitor)
+        return;
 
     const Vector2D& bufferSize = g_pCompositor->m_pLastMonitor->vecPixelSize;
 
@@ -257,8 +263,12 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
 
     cairo_pattern_t* pattern;
     pattern = cairo_pattern_create_linear(0, 0, 0, bufferSize.y);
-    cairo_pattern_add_color_stop_rgba(pattern, 1, grad.r, grad.g, grad.b, grad.a);
-    cairo_pattern_add_color_stop_rgba(pattern, 0, grad.r, grad.g, grad.b, 0);
+
+    for (unsigned long i = 0; i < grad->m_vColors.size(); i++) {
+        cairo_pattern_add_color_stop_rgba(pattern, 1 - (double)(i + 1) / (grad->m_vColors.size() + 1), grad->m_vColors[i].r, grad->m_vColors[i].g, grad->m_vColors[i].b,
+                                          grad->m_vColors[i].a);
+    }
+
     cairo_rectangle(CAIRO, 0, 0, bufferSize.x, bufferSize.y);
     cairo_set_source(CAIRO, pattern);
     cairo_fill(CAIRO);
@@ -285,23 +295,207 @@ void renderGradientTo(CTexture& tex, const CColor& grad) {
     cairo_surface_destroy(CAIROSURFACE);
 }
 
-void CHyprGroupBarDecoration::refreshGradients() {
-    if (m_tGradientActive.m_iTexID > 0)
+void refreshGroupBarGradients() {
+    static auto* const  PGRADIENTS = &g_pConfigManager->getConfigValuePtr("group:groupbar:enabled")->intValue;
+    static auto* const  PENABLED   = &g_pConfigManager->getConfigValuePtr("group:groupbar:gradients")->intValue;
+
+    CGradientValueData* PGROUPCOLACTIVE         = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.active")->data.get();
+    CGradientValueData* PGROUPCOLINACTIVE       = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive")->data.get();
+    CGradientValueData* PGROUPCOLACTIVELOCKED   = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active")->data.get();
+    CGradientValueData* PGROUPCOLINACTIVELOCKED = (CGradientValueData*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive")->data.get();
+
+    g_pHyprRenderer->makeEGLCurrent();
+
+    if (m_tGradientActive.m_iTexID != 0) {
+        m_tGradientActive.destroyTexture();
+        m_tGradientInactive.destroyTexture();
+        m_tGradientLockedActive.destroyTexture();
+        m_tGradientLockedInactive.destroyTexture();
+    }
+
+    if (!*PENABLED || !*PGRADIENTS)
         return;
 
-    static auto* const PGROUPCOLACTIVE         = &g_pConfigManager->getConfigValuePtr("general:col.group_border_active")->data;
-    static auto* const PGROUPCOLINACTIVE       = &g_pConfigManager->getConfigValuePtr("general:col.group_border")->data;
-    static auto* const PGROUPCOLACTIVELOCKED   = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked_active")->data;
-    static auto* const PGROUPCOLINACTIVELOCKED = &g_pConfigManager->getConfigValuePtr("general:col.group_border_locked")->data;
-
-    const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
-    const auto* const  PCOLACTIVE   = GROUPLOCKED ? PGROUPCOLACTIVELOCKED : PGROUPCOLACTIVE;
-    const auto* const  PCOLINACTIVE = GROUPLOCKED ? PGROUPCOLINACTIVELOCKED : PGROUPCOLINACTIVE;
-
-    renderGradientTo(m_tGradientActive, ((CGradientValueData*)PCOLACTIVE->get())->m_vColors[0]);
-    renderGradientTo(m_tGradientInactive, ((CGradientValueData*)PCOLINACTIVE->get())->m_vColors[0]);
+    renderGradientTo(m_tGradientActive, PGROUPCOLACTIVE);
+    renderGradientTo(m_tGradientInactive, PGROUPCOLINACTIVE);
+    renderGradientTo(m_tGradientLockedActive, PGROUPCOLACTIVELOCKED);
+    renderGradientTo(m_tGradientLockedInactive, PGROUPCOLINACTIVELOCKED);
 }
 
-bool CHyprGroupBarDecoration::allowsInput() {
+bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
+    if (m_pWindow == m_pWindow->m_sGroupData.pNextWindow)
+        return false;
+
+    const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth)
+        return false;
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    // hack
+    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    if (!pWindow->m_bIsFloating) {
+        const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
+        g_pKeybindManager->m_bGroupsLocked = true;
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+    }
+
+    g_pInputManager->currentlyDraggedWindow = pWindow;
+
+    if (!g_pCompositor->isWindowActive(pWindow))
+        g_pCompositor->focusWindow(pWindow);
+
     return true;
+}
+
+bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, CWindow* pDraggedWindow) {
+    if (!pDraggedWindow->canBeGroupedInto(m_pWindow))
+        return false;
+
+    const float BARRELATIVEX = pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
+    const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    CWindow*    pWindowInsertAfter = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+    CWindow*    pWindowInsertEnd   = pWindowInsertAfter->m_sGroupData.pNextWindow;
+    CWindow*    pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow ? pDraggedWindow->getGroupHead() : pDraggedWindow;
+
+    if (pDraggedWindow->m_sGroupData.pNextWindow) {
+
+        // stores group data
+        std::vector<CWindow*> members;
+        CWindow*              curr      = pDraggedHead;
+        const bool            WASLOCKED = pDraggedHead->m_sGroupData.locked;
+        do {
+            members.push_back(curr);
+            curr = curr->m_sGroupData.pNextWindow;
+        } while (curr != members[0]);
+
+        // removes all windows
+        for (CWindow* w : members) {
+            w->m_sGroupData.pNextWindow = nullptr;
+            w->m_sGroupData.head        = false;
+            w->m_sGroupData.locked      = false;
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+        }
+
+        // restores the group
+        for (auto it = members.begin(); it != members.end(); ++it) {
+            if (std::next(it) != members.end())
+                (*it)->m_sGroupData.pNextWindow = *std::next(it);
+            else
+                (*it)->m_sGroupData.pNextWindow = members[0];
+        }
+        members[0]->m_sGroupData.head   = true;
+        members[0]->m_sGroupData.locked = WASLOCKED;
+    } else {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+    }
+
+    pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
+
+    if (WINDOWINDEX == -1)
+        std::swap(pDraggedHead->m_sGroupData.head, pWindowInsertEnd->m_sGroupData.head);
+
+    m_pWindow->setGroupCurrent(pDraggedWindow);
+    pDraggedWindow->applyGroupRules();
+    pDraggedWindow->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
+
+    if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
+        pDraggedWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pDraggedWindow));
+
+    return true;
+}
+
+bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
+    if (m_pWindow->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_FULL)
+        return true;
+
+    const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
+    const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+
+    // close window on middle click
+    if (e->button == 274) {
+        static Vector2D pressedCursorPos;
+
+        if (e->state == WLR_BUTTON_PRESSED)
+            pressedCursorPos = pos;
+        else if (e->state == WLR_BUTTON_RELEASED && pressedCursorPos == pos)
+            g_pXWaylandManager->sendCloseWindow(m_pWindow->getGroupWindowByIndex(WINDOWINDEX));
+
+        return true;
+    }
+
+    if (e->state != WLR_BUTTON_PRESSED)
+        return true;
+
+    // click on padding
+    if (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth) {
+        if (!g_pCompositor->isWindowActive(m_pWindow))
+            g_pCompositor->focusWindow(m_pWindow);
+        return true;
+    }
+
+    CWindow* pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
+
+    if (pWindow != m_pWindow)
+        pWindow->setGroupCurrent(pWindow);
+
+    if (pWindow->m_bIsFloating)
+        g_pCompositor->changeWindowZOrder(pWindow, 1);
+
+    return true;
+}
+
+bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_axis_event* e) {
+    static auto* const PGROUPBARSCROLLING = &g_pConfigManager->getConfigValuePtr("group:groupbar:scrolling")->intValue;
+
+    if (!*PGROUPBARSCROLLING || !m_pWindow->m_sGroupData.pNextWindow) {
+        return false;
+    }
+
+    if (e->delta > 0)
+        m_pWindow->setGroupCurrent(m_pWindow->m_sGroupData.pNextWindow);
+    else
+        m_pWindow->setGroupCurrent(m_pWindow->getGroupPrevious());
+
+    return true;
+}
+
+bool CHyprGroupBarDecoration::onInputOnDeco(const eInputType type, const Vector2D& mouseCoords, std::any data) {
+    switch (type) {
+        case INPUT_TYPE_AXIS: return onScrollOnDeco(mouseCoords, std::any_cast<wlr_pointer_axis_event*>(data));
+        case INPUT_TYPE_BUTTON: return onMouseButtonOnDeco(mouseCoords, std::any_cast<wlr_pointer_button_event*>(data));
+        case INPUT_TYPE_DRAG_START: return onBeginWindowDragOnDeco(mouseCoords);
+        case INPUT_TYPE_DRAG_END: return onEndWindowDragOnDeco(mouseCoords, std::any_cast<CWindow*>(data));
+        default: return false;
+    }
+}
+
+eDecorationLayer CHyprGroupBarDecoration::getDecorationLayer() {
+    return DECORATION_LAYER_OVER;
+}
+
+uint64_t CHyprGroupBarDecoration::getDecorationFlags() {
+    return DECORATION_ALLOWS_MOUSE_INPUT;
+}
+
+std::string CHyprGroupBarDecoration::getDisplayName() {
+    return "GroupBar";
+}
+
+CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
+    CBox box = m_bAssignedBox;
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+
+    if (!PWORKSPACE)
+        return box;
+
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    return box.translate(WORKSPACEOFFSET);
 }

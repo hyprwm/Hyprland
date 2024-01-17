@@ -9,12 +9,23 @@ body:
 
         ---
 
-  - type: input
+  - type: textarea
     id: ver
     attributes:
       label: Hyprland Version
-      description: "Paste here the output of `hyprctl version`."
-      placeholder: Hyprland, built from branch main at commit...
+      description: "Paste here the output of `hyprctl version`. For hyprland after 0.34.0, paste `hyprctl systeminfo` instead."
+      value: "<details>
+        <summary>System/Version info</summary>
+
+
+        ```sh
+        
+        <Paste the output of the command here>
+
+        ```
+
+
+        </details>"
     validations:
       required: true
 

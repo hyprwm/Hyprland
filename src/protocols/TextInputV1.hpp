@@ -39,9 +39,9 @@ struct STextInputV1 {
         uint32_t purpose   = 0;
     } pendingContentType;
 
-    wlr_box cursorRectangle = {0, 0, 0, 0};
+    CBox cursorRectangle = {0, 0, 0, 0};
 
-    bool    operator==(const STextInputV1& other) {
+    bool operator==(const STextInputV1& other) {
         return other.client == client && other.resourceCaller == resourceCaller && other.resourceImpl == resourceImpl;
     }
 };

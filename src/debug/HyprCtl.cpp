@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <errno.h>
@@ -28,13 +29,22 @@ static std::string getWorkspaceNameFromSpecialID(const int workspaceID) {
     return workspace->m_szName;
 }
 
-std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+std::string monitorsRequest(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    CVarList vars(request, 0, ' ');
+    auto     allMonitors = false;
+
+    if (vars.size() > 2)
+        return "too many args";
+
+    if (vars.size() == 2 && vars[1] == "all")
+        allMonitors = true;
+
     std::string result = "";
     if (format == HyprCtl::FORMAT_JSON) {
         result += "[";
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (!m->output)
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            if (!m->output || m->ID == -1ull)
                 continue;
 
             result += std::format(
@@ -63,35 +73,37 @@ std::string monitorsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "transform": {},
     "focused": {},
     "dpmsStatus": {},
-    "vrr": {}
+    "vrr": {},
+    "activelyTearing": {}
 }},)#",
-                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""),
-                (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate,
-                (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspace, escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName),
-                m->specialWorkspaceID, escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szDescription), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
+                (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
+                m->activeWorkspace, (m->activeWorkspace == -1 ? "" : escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName)), m->specialWorkspaceID,
+                escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"));
+                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
+                m->tearingState.activelyTearing ? "true" : "false");
         }
 
         trimTrailingComma(result);
 
         result += "]";
     } else {
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (!m->output)
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            if (!m->output || m->ID == -1ull)
                 continue;
 
             result +=
                 std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
                             "workspace: {} ({})\n\treserved: {} "
                             "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\n",
-                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
-                            (m->output->description ? m->output->description : ""), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
-                            (m->output->serial ? m->output->serial : ""), m->activeWorkspace, g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName, m->specialWorkspaceID,
+                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
+                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szDescription,
+                            (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspace,
+                            (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED));
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
         }
     }
 
@@ -103,33 +115,34 @@ static std::string getGroupedData(CWindow* w, HyprCtl::eHyprCtlOutputFormat form
     if (!w->m_sGroupData.pNextWindow)
         return isJson ? "" : "0";
 
-    std::vector<CWindow*> groupMembers;
-
-    CWindow*              curr = w;
-    do {
-        groupMembers.push_back(curr);
-        curr = curr->m_sGroupData.pNextWindow;
-    } while (curr != w);
-
-    const auto         comma = isJson ? ", " : ",";
     std::ostringstream result;
 
-    bool               first = true;
-    for (auto& gw : groupMembers) {
-        if (first)
-            first = false;
-        else
-            result << comma;
+    CWindow*           head = w->getGroupHead();
+    CWindow*           curr = head;
+    while (true) {
         if (isJson)
-            result << std::format("\"0x{:x}\"", (uintptr_t)gw);
+            result << std::format("\"0x{:x}\"", (uintptr_t)curr);
         else
-            result << std::format("{:x}", (uintptr_t)gw);
+            result << std::format("{:x}", (uintptr_t)curr);
+        curr = curr->m_sGroupData.pNextWindow;
+        // We've wrapped around to the start, break out without trailing comma
+        if (curr == head)
+            break;
+        result << (isJson ? ", " : ",");
     }
 
     return result.str();
 }
 
 static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat format) {
+    auto getFocusHistoryID = [](CWindow* wnd) -> int {
+        for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
+            if (g_pCompositor->m_vWindowFocusHistory[i] == wnd)
+                return i;
+        }
+        return -1;
+    };
+
     if (format == HyprCtl::FORMAT_JSON) {
         return std::format(
             R"#({{
@@ -155,7 +168,8 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
     "fullscreenMode": {},
     "fakeFullscreen": {},
     "grouped": [{}],
-    "swallowing": "0x{:x}"
+    "swallowing": "0x{:x}",
+    "focusHistoryID": {}
 }},)#",
             (uintptr_t)w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
             (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
@@ -166,13 +180,13 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             escapeJSONStrings(g_pXWaylandManager->getTitle(w)), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
             ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? (int)g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), (uintptr_t)w->m_pSwallowed);
+            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\n",
+            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
             (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
             (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
@@ -181,7 +195,7 @@ static std::string getWindowData(CWindow* w, HyprCtl::eHyprCtlOutputFormat forma
             (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w), g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle,
             w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
             (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed);
+            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     }
 }
 
@@ -213,23 +227,70 @@ static std::string getWorkspaceData(CWorkspace* w, HyprCtl::eHyprCtlOutputFormat
     "id": {},
     "name": "{}",
     "monitor": "{}",
+    "monitorID": {},
     "windows": {},
     "hasfullscreen": {},
     "lastwindow": "0x{:x}",
     "lastwindowtitle": "{}"
 }})#",
-                           w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                           w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), g_pCompositor->getWindowsOnWorkspace(w->m_iID),
                            ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"), (uintptr_t)PLASTW, PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "");
     } else {
-        return std::format("workspace ID {} ({}) on monitor {}:\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID, w->m_szName,
-                           PMONITOR ? PMONITOR->szName : "?", g_pCompositor->getWindowsOnWorkspace(w->m_iID), (int)w->m_bHasFullscreenWindow, (uintptr_t)PLASTW,
-                           PLASTW ? PLASTW->m_szTitle : "");
+        return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID,
+                           w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", g_pCompositor->getWindowsOnWorkspace(w->m_iID),
+                           (int)w->m_bHasFullscreenWindow, (uintptr_t)PLASTW, PLASTW ? PLASTW->m_szTitle : "");
     }
 }
 
+static std::string getWorkspaceRuleData(const SWorkspaceRule& r, HyprCtl::eHyprCtlOutputFormat format) {
+    const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
+    if (format == HyprCtl::FORMAT_JSON) {
+        const std::string monitor    = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
+        const std::string default_   = (bool)(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
+        const std::string persistent = (bool)(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
+        const std::string gapsIn     = (bool)(r.gapsIn) ? std::format(",\n    \"gapsIn\": {}", r.gapsIn.value()) : "";
+        const std::string gapsOut    = (bool)(r.gapsOut) ? std::format(",\n    \"gapsOut\": {}", r.gapsOut.value()) : "";
+        const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
+        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
+        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
+        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
+
+        std::string       result = std::format(R"#({{
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}
+}})#",
+                                               escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow);
+
+        return result;
+    } else {
+        const std::string monitor    = std::format("\tmonitor: {}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
+        const std::string default_   = std::format("\tdefault: {}\n", (bool)(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
+        const std::string persistent = std::format("\tpersistent: {}\n", (bool)(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
+        const std::string gapsIn     = std::format("\tgapsIn: {}\n", (bool)(r.gapsIn) ? std::to_string(r.gapsIn.value()) : "<unset>");
+        const std::string gapsOut    = std::format("\tgapsOut: {}\n", (bool)(r.gapsOut) ? std::to_string(r.gapsOut.value()) : "<unset>");
+        const std::string borderSize = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string decorate   = std::format("\tdecorate: {}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
+
+        std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                               borderSize, border, rounding, decorate, shadow);
+
+        return result;
+    }
+}
 std::string activeWorkspaceRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    if (!g_pCompositor->m_pLastMonitor)
+        return "unsafe state";
+
     std::string result = "";
     auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (!w)
+        return "internal error";
+
     return getWorkspaceData(w, format);
 }
 
@@ -248,6 +309,26 @@ std::string workspacesRequest(HyprCtl::eHyprCtlOutputFormat format) {
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
             result += getWorkspaceData(w.get(), format);
+        }
+    }
+
+    return result;
+}
+
+std::string workspaceRulesRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+            result += getWorkspaceRuleData(r, format);
+            result += ",";
+        }
+
+        trimTrailingComma(result);
+        result += "]";
+    } else {
+        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+            result += getWorkspaceRuleData(r, format);
         }
     }
 
@@ -339,6 +420,28 @@ std::string layersRequest(HyprCtl::eHyprCtlOutputFormat format) {
         }
     }
 
+    return result;
+}
+
+std::string layoutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
+            result += std::format(
+                R"#(
+    "{}",)#",
+                m);
+        }
+        trimTrailingComma(result);
+
+        result += "\n]\n";
+    } else {
+        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
+            result += std::format("{}\n", m);
+        }
+    }
     return result;
 }
 
@@ -554,6 +657,20 @@ std::string animationsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     return ret;
 }
 
+std::string rollinglogRequest(HyprCtl::eHyprCtlOutputFormat format) {
+    std::string result = "";
+
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[\n\"log\":\"";
+        result += escapeJSONStrings(Debug::rollingLog);
+        result += "\"]";
+    } else {
+        result = Debug::rollingLog;
+    }
+
+    return result;
+}
+
 std::string globalShortcutsRequest(HyprCtl::eHyprCtlOutputFormat format) {
     std::string ret       = "";
     const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
@@ -632,15 +749,12 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
 
     if (format == HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL) {
         std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
-            ").\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
+            ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
 #endif
-#ifndef NDEBUG
-        result += "debug\n";
-#endif
-#ifdef HYPRLAND_DEBUG
+#ifndef ISDEBUG
         result += "debug\n";
 #endif
 #ifdef NO_XWAYLAND
@@ -655,17 +769,15 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     "commit": "{}",
     "dirty": {},
     "commit_message": "{}",
+    "commit_date": "{}",
     "tag": "{}",
     "flags": [)#",
-            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_TAG);
+            GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
 #endif
-#ifndef NDEBUG
-        result += "\"debug\",";
-#endif
-#ifdef HYPRLAND_DEBUG
+#ifndef ISDEBUG
         result += "\"debug\",";
 #endif
 #ifdef NO_XWAYLAND
@@ -680,6 +792,39 @@ std::string versionRequest(HyprCtl::eHyprCtlOutputFormat format) {
     }
 
     return ""; // make the compiler happy
+}
+
+std::string systemInfoRequest() {
+    std::string result = versionRequest(HyprCtl::eHyprCtlOutputFormat::FORMAT_NORMAL);
+
+    result += "\n\nSystem Information:\n";
+
+    struct utsname unameInfo;
+
+    uname(&unameInfo);
+
+    result += "System name: " + std::string{unameInfo.sysname} + "\n";
+    result += "Node name: " + std::string{unameInfo.nodename} + "\n";
+    result += "Release: " + std::string{unameInfo.release} + "\n";
+    result += "Version: " + std::string{unameInfo.version} + "\n";
+
+    result += "\n\n";
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#else
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+#endif
+    result += "GPU information: \n" + GPUINFO + "\n\n";
+
+    result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
+
+    result += "plugins:\n";
+    for (auto& pl : g_pPluginSystem->getAllPlugins()) {
+        result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+    }
+
+    return result;
 }
 
 std::string dispatchRequest(std::string in) {
@@ -952,7 +1097,7 @@ std::string dispatchSetProp(std::string request) {
     bool       lock = false;
 
     if (vars.size() > 4) {
-        if (vars[4].find("lock") == 0) {
+        if (vars[4].starts_with("lock")) {
             lock = true;
         }
     }
@@ -993,15 +1138,19 @@ std::string dispatchSetProp(std::string request) {
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
         } else if (PROP == "activebordercolor") {
-            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
         } else if (PROP == "inactivebordercolor") {
-            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
         } else if (PROP == "forcergbx") {
             PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "bordersize") {
             PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "keepaspectratio") {
             PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "immediate") {
+            PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "nearestneighbor") {
+            PWINDOW->m_sAdditionalConfigData.nearestNeighbor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }
@@ -1057,6 +1206,32 @@ std::string dispatchGetOption(std::string request, HyprCtl::eHyprCtlOutputFormat
 )#",
             curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue, (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
     }
+}
+
+std::string decorationRequest(std::string request, HyprCtl::eHyprCtlOutputFormat format) {
+    CVarList   vars(request, 0, ' ');
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+
+    if (!PWINDOW)
+        return "none";
+
+    std::string result = "";
+    if (format == HyprCtl::FORMAT_JSON) {
+        result += "[";
+        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+            result += "{\n\"decorationName\": \"" + wd->getDisplayName() + "\",\n\"priority\": " + std::to_string(wd->getPositioningInfo().priority) + "\n},";
+        }
+
+        trimTrailingComma(result);
+        result += "]";
+    } else {
+        result = +"Decoration\tPriority\n";
+        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+            result += wd->getDisplayName() + "\t" + std::to_string(wd->getPositioningInfo().priority) + "\n";
+        }
+    }
+
+    return result;
 }
 
 void createOutputIter(wlr_backend* backend, void* data) {
@@ -1155,7 +1330,7 @@ std::string dispatchPlugin(std::string request) {
         const auto PLUGIN = g_pPluginSystem->loadPlugin(PATH);
 
         if (!PLUGIN)
-            return "error in loading plugin";
+            return "error in loading plugin, last error: " + g_pPluginSystem->m_szLastError;
     } else if (OPERATION == "unload") {
         if (vars.size() < 3)
             return "not enough args";
@@ -1227,10 +1402,17 @@ std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
     // process flags for non-batch requests
-    if (!request.contains("[[BATCH]]") && request.contains("/")) {
+    if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
         long unsigned int sepIndex = 0;
         for (const auto& c : request) {
             if (c == '/') { // stop at separator
+                break;
+            }
+
+            // after whitespace assume the first word as a keyword,
+            // so its value can have slashes (e.g., a path)
+            if (c == ' ') {
+                sepIndex = request.size();
                 break;
             }
 
@@ -1244,10 +1426,12 @@ std::string getReply(std::string request) {
             request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
     }
 
-    if (request == "monitors")
-        return monitorsRequest(format);
+    if (request.starts_with("monitors"))
+        return monitorsRequest(request, format);
     else if (request == "workspaces")
         return workspacesRequest(format);
+    else if (request == "workspacerules")
+        return workspaceRulesRequest(format);
     else if (request == "activeworkspace")
         return activeWorkspaceRequest(format);
     else if (request == "clients")
@@ -1260,7 +1444,7 @@ std::string getReply(std::string request) {
         return layersRequest(format);
     else if (request == "version")
         return versionRequest(format);
-    else if (request.find("reload") == 0)
+    else if (request.starts_with("reload"))
         return reloadRequest(request);
     else if (request == "devices")
         return devicesRequest(format);
@@ -1272,29 +1456,37 @@ std::string getReply(std::string request) {
         return bindsRequest(format);
     else if (request == "globalshortcuts")
         return globalShortcutsRequest(format);
+    else if (request == "systeminfo")
+        return systemInfoRequest();
     else if (request == "animations")
         return animationsRequest(format);
-    else if (request.find("plugin") == 0)
+    else if (request == "rollinglog")
+        return rollinglogRequest(format);
+    else if (request == "layouts")
+        return layoutsRequest(format);
+    else if (request.starts_with("plugin"))
         return dispatchPlugin(request);
-    else if (request.find("notify") == 0)
+    else if (request.starts_with("notify"))
         return dispatchNotify(request);
-    else if (request.find("setprop") == 0)
+    else if (request.starts_with("setprop"))
         return dispatchSetProp(request);
-    else if (request.find("seterror") == 0)
+    else if (request.starts_with("seterror"))
         return dispatchSeterror(request);
-    else if (request.find("switchxkblayout") == 0)
+    else if (request.starts_with("switchxkblayout"))
         return switchXKBLayoutRequest(request);
-    else if (request.find("output") == 0)
+    else if (request.starts_with("output"))
         return dispatchOutput(request);
-    else if (request.find("dispatch") == 0)
+    else if (request.starts_with("dispatch"))
         return dispatchRequest(request);
-    else if (request.find("keyword") == 0)
+    else if (request.starts_with("keyword"))
         return dispatchKeyword(request);
-    else if (request.find("setcursor") == 0)
+    else if (request.starts_with("setcursor"))
         return dispatchSetCursor(request);
-    else if (request.find("getoption") == 0)
+    else if (request.starts_with("getoption"))
         return dispatchGetOption(request, format);
-    else if (request.find("[[BATCH]]") == 0)
+    else if (request.starts_with("decorations"))
+        return decorationRequest(request, format);
+    else if (request.starts_with("[[BATCH]]"))
         return dispatchBatch(request);
 
     return "unknown request";
@@ -1308,14 +1500,14 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
-    sockaddr_in clientAddress;
-    socklen_t   clientSize = sizeof(clientAddress);
+    sockaddr_in            clientAddress;
+    socklen_t              clientSize = sizeof(clientAddress);
 
-    const auto  ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
+    const auto             ACCEPTEDCONNECTION = accept4(HyprCtl::iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC);
 
-    char        readBuffer[1024];
+    std::array<char, 1024> readBuffer;
 
-    fd_set      fdset;
+    fd_set                 fdset;
     FD_ZERO(&fdset);
     FD_SET(ACCEPTEDCONNECTION, &fdset);
     timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
@@ -1326,10 +1518,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         return 0;
     }
 
-    auto messageSize                                     = read(ACCEPTEDCONNECTION, readBuffer, 1024);
-    readBuffer[messageSize == 1024 ? 1023 : messageSize] = '\0';
-
-    std::string request(readBuffer);
+    std::string request;
+    while (true) {
+        readBuffer.fill(0);
+        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
+        if (messageSize < 1)
+            break;
+        std::string recvd = readBuffer.data();
+        request += recvd;
+        if (messageSize < 1023)
+            break;
+    }
 
     std::string reply = "";
 

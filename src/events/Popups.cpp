@@ -64,9 +64,9 @@ void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
 
-    wlr_box    box = {.x = PMONITOR->vecPosition.x - pHyprPopup->lx, .y = PMONITOR->vecPosition.y - pHyprPopup->ly, .width = PMONITOR->vecSize.x, .height = PMONITOR->vecSize.y};
+    CBox       box = {PMONITOR->vecPosition.x - pHyprPopup->lx, PMONITOR->vecPosition.y - pHyprPopup->ly, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    wlr_xdg_popup_unconstrain_from_box(popup, &box);
+    wlr_xdg_popup_unconstrain_from_box(popup, box.pWlr());
 
     pHyprPopup->monitor = PMONITOR;
 
@@ -159,13 +159,16 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    wlr_box extents;
-    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+    CBox extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, extents.pWlr());
+    extents.applyFromWlr();
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
 
-    if (PPOPUP->monitor)
-        g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+    if (PPOPUP->monitor) {
+        g_pCompositor->setPreferredScaleForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->scale);
+        g_pCompositor->setPreferredTransformForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->transform);
+    }
 
     Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
 }
@@ -178,11 +181,18 @@ void Events::listener_repositionPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    wlr_box extents;
-    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+    CBox extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, extents.pWlr());
+    extents.applyFromWlr();
 
     PPOPUP->lastPos             = {lx - extents.x, ly - extents.y};
     PPOPUP->repositionRequested = true;
+
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+
+    CBox       box = {PMONITOR->vecPosition.x - lx + PPOPUP->popup->current.geometry.x, PMONITOR->vecPosition.y - ly + PPOPUP->popup->current.geometry.y, PMONITOR->vecSize.x,
+                      PMONITOR->vecSize.y};
+    wlr_xdg_popup_unconstrain_from_box(PPOPUP->popup, box.pWlr());
 }
 
 void Events::listener_unmapPopupXDG(void* owner, void* data) {
@@ -199,8 +209,9 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    wlr_box extents;
-    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+    CBox extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, extents.pWlr());
+    extents.applyFromWlr();
 
     g_pHyprRenderer->damageBox(lx - extents.x, ly - extents.y, extents.width + 2, extents.height + 2);
 
@@ -225,8 +236,9 @@ void Events::listener_commitPopupXDG(void* owner, void* data) {
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
 
-    wlr_box extents;
-    wlr_surface_get_extends(PPOPUP->popup->base->surface, &extents);
+    CBox extents;
+    wlr_surface_get_extends(PPOPUP->popup->base->surface, extents.pWlr());
+    extents.applyFromWlr();
 
     if (PPOPUP->repositionRequested)
         g_pHyprRenderer->damageBox(PPOPUP->lastPos.x, PPOPUP->lastPos.y, extents.width + 2, extents.height + 2);

@@ -12,7 +12,7 @@
       host = "gitlab.freedesktop.org";
       owner = "wlroots";
       repo = "wlroots";
-      rev = "98a745d926d8048bc30aef11b421df207a01c279";
+      rev = "f81c3d93cd6f61b20ae784297679283438def8df";
       flake = false;
     };
 
@@ -62,13 +62,16 @@
       inherit
         (pkgsFor.${system})
         # hyprland-packages
+        
         hyprland
         hyprland-unwrapped
         hyprland-debug
-        hyprland-nvidia
+        hyprland-legacy-renderer
         # hyprland-extras
+        
         xdg-desktop-portal-hyprland
         # dependencies
+        
         hyprland-protocols
         wlroots-hyprland
         udis86
@@ -76,17 +79,18 @@
     });
 
     devShells = eachSystem (system: {
-      default = pkgsFor.${system}.mkShell.override {
-        stdenv = pkgsFor.${system}.gcc13Stdenv;
-      } {
-        name = "hyprland-shell";
-        nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
-        buildInputs = [self.packages.${system}.wlroots-hyprland];
-        inputsFrom = [
-          self.packages.${system}.wlroots-hyprland
-          self.packages.${system}.hyprland
-        ];
-      };
+      default =
+        pkgsFor.${system}.mkShell.override {
+          stdenv = pkgsFor.${system}.gcc13Stdenv;
+        } {
+          name = "hyprland-shell";
+          nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
+          buildInputs = [self.packages.${system}.wlroots-hyprland];
+          inputsFrom = [
+            self.packages.${system}.wlroots-hyprland
+            self.packages.${system}.hyprland
+          ];
+        };
     });
 
     formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);

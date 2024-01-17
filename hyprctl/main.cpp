@@ -26,31 +26,35 @@
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 
 commands:
-    monitors
-    workspaces
-    activeworkspace
-    clients
     activewindow
-    layers
-    devices
+    activeworkspace
     binds
+    clients
+    cursorpos
+    decorations
+    devices
     dispatch
-    keyword
-    version
-    kill
-    splash
+    getoption
+    globalshortcuts
     hyprpaper
+    instances
+    keyword
+    kill
+    layers
+    layouts
+    monitors
+    notify
+    plugin
     reload
     setcursor
-    getoption
-    cursorpos
-    switchxkblayout
     seterror
     setprop
-    plugin
-    notify
-    globalshortcuts
-    instances
+    splash
+    switchxkblayout
+    systeminfo
+    version
+    workspacerules
+    workspaces
 
 flags:
     -j -> output in JSON
@@ -273,7 +277,6 @@ bool isNumber(const std::string& str, bool allowfloat) {
 }
 
 int main(int argc, char** argv) {
-    int  bflag = 0, sflag = 0, index, c;
     bool parseArgs = true;
 
     if (argc < 2) {
@@ -287,7 +290,7 @@ int main(int argc, char** argv) {
     bool        json             = false;
     std::string overrideInstance = "";
 
-    for (auto i = 0; i < ARGS.size(); ++i) {
+    for (std::size_t i = 0; i < ARGS.size(); ++i) {
         if (ARGS[i] == "--") {
             // Stop parsing arguments after --
             parseArgs = false;
@@ -329,6 +332,12 @@ int main(int argc, char** argv) {
 
     fullRequest = fullArgs + "/" + fullRequest;
 
+    // instances is HIS-independent
+    if (fullRequest.contains("/instances")) {
+        instancesRequest(json);
+        return 0;
+    }
+
     if (overrideInstance.contains("_"))
         instanceSignature = overrideInstance;
     else if (!overrideInstance.empty()) {
@@ -341,7 +350,7 @@ int main(int argc, char** argv) {
 
         const auto INSTANCES = instances();
 
-        if (INSTANCENO < 0 || INSTANCENO >= INSTANCES.size()) {
+        if (INSTANCENO < 0 || static_cast<std::size_t>(INSTANCENO) >= INSTANCES.size()) {
             std::cout << "no such instance\n";
             return 1;
         }
@@ -370,6 +379,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/activeworkspace"))
         request(fullRequest);
+    else if (fullRequest.contains("/workspacerules"))
+        request(fullRequest);
     else if (fullRequest.contains("/activewindow"))
         request(fullRequest);
     else if (fullRequest.contains("/layers"))
@@ -377,6 +388,8 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/version"))
         request(fullRequest);
     else if (fullRequest.contains("/kill"))
+        request(fullRequest);
+    else if (fullRequest.contains("/systeminfo"))
         request(fullRequest);
     else if (fullRequest.contains("/splash"))
         request(fullRequest);
@@ -394,8 +407,8 @@ int main(int argc, char** argv) {
         request(fullRequest);
     else if (fullRequest.contains("/globalshortcuts"))
         request(fullRequest);
-    else if (fullRequest.contains("/instances"))
-        instancesRequest(json);
+    else if (fullRequest.contains("/rollinglog"))
+        request(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))
@@ -414,8 +427,12 @@ int main(int argc, char** argv) {
         request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
         request(fullRequest, 2);
+    else if (fullRequest.contains("/decorations"))
+        request(fullRequest, 1);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
+    else if (fullRequest.contains("/layouts"))
+        request(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

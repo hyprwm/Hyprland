@@ -21,6 +21,10 @@ CRegion::CRegion(wlr_box* box) {
     pixman_region32_init_rect(&m_rRegion, box->x, box->y, box->width, box->height);
 }
 
+CRegion::CRegion(const CBox& box) {
+    pixman_region32_init_rect(&m_rRegion, box.x, box.y, box.w, box.h);
+}
+
 CRegion::CRegion(pixman_box32_t* box) {
     pixman_region32_init_rect(&m_rRegion, box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1);
 }
@@ -59,6 +63,11 @@ CRegion& CRegion::add(double x, double y, double w, double h) {
     return *this;
 }
 
+CRegion& CRegion::add(const CBox& other) {
+    pixman_region32_union_rect(&m_rRegion, &m_rRegion, other.x, other.y, other.w, other.h);
+    return *this;
+}
+
 CRegion& CRegion::subtract(const CRegion& other) {
     pixman_region32_subtract(&m_rRegion, &m_rRegion, const_cast<CRegion*>(&other)->pixman());
     return *this;
@@ -79,9 +88,23 @@ CRegion& CRegion::invert(pixman_box32_t* box) {
     return *this;
 }
 
+CRegion& CRegion::invert(const CBox& box) {
+    pixman_box32 pixmanBox = {box.x, box.y, box.w + box.x, box.h + box.y};
+    return this->invert(&pixmanBox);
+}
+
 CRegion& CRegion::translate(const Vector2D& vec) {
     pixman_region32_translate(&m_rRegion, vec.x, vec.y);
     return *this;
+}
+
+CRegion& CRegion::transform(const wl_output_transform t, double w, double h) {
+    wlr_region_transform(&m_rRegion, &m_rRegion, t, w, h);
+    return *this;
+}
+
+CRegion CRegion::copy() const {
+    return CRegion(*this);
 }
 
 CRegion& CRegion::scale(float scale) {
@@ -100,7 +123,7 @@ std::vector<pixman_box32_t> CRegion::getRects() const {
     return result;
 }
 
-wlr_box CRegion::getExtents() {
+CBox CRegion::getExtents() {
     pixman_box32_t* box = pixman_region32_extents(&m_rRegion);
     return {box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1};
 }

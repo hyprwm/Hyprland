@@ -28,17 +28,26 @@ in {
     self.overlays.wlroots-hyprland
     self.overlays.udis86
     # Hyprland packages themselves
-    (final: prev: {
+    (final: prev: let
+      date = mkDate (self.lastModifiedDate or "19700101");
+    in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc13Stdenv;
-        version = "${props.version}+date=${mkDate (self.lastModifiedDate or "19700101")}_${self.shortRev or "dirty"}";
+        version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         wlroots = final.wlroots-hyprland;
         commit = self.rev or "";
         inherit (final) udis86 hyprland-protocols;
+        inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
-      hyprland-nvidia = final.hyprland.override {enableNvidiaPatches = true;};
+      hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
+      hyprland-nvidia =
+        builtins.trace ''
+          hyprland-nvidia was removed. Please use the hyprland package.
+          Nvidia patches are no longer needed.
+        ''
+        final.hyprland;
       hyprland-hidpi =
         builtins.trace ''
           hyprland-hidpi was removed. Please use the hyprland package.
@@ -65,30 +74,6 @@ in {
     wlroots-hyprland = final.callPackage ./wlroots.nix {
       version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
       src = inputs.wlroots;
-
-      libdisplay-info = prev.libdisplay-info.overrideAttrs (old: {
-        version = "0.1.1+date=2023-03-02";
-        src = final.fetchFromGitLab {
-          domain = "gitlab.freedesktop.org";
-          owner = "emersion";
-          repo = old.pname;
-          rev = "147d6611a64a6ab04611b923e30efacaca6fc678";
-          sha256 = "sha256-/q79o13Zvu7x02SBGu0W5yQznQ+p7ltZ9L6cMW5t/o4=";
-        };
-      });
-
-      libliftoff = prev.libliftoff.overrideAttrs (old: {
-        version = "0.5.0-dev";
-        src = final.fetchFromGitLab {
-          domain = "gitlab.freedesktop.org";
-          owner = "emersion";
-          repo = old.pname;
-          rev = "d98ae243280074b0ba44bff92215ae8d785658c0";
-          sha256 = "sha256-DjwlS8rXE7srs7A8+tHqXyUsFGtucYSeq6X0T/pVOc8=";
-        };
-
-        NIX_CFLAGS_COMPILE = toString ["-Wno-error=sign-conversion"];
-      });
     };
   };
 }

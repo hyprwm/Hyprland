@@ -46,12 +46,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto* const PSWALLOW        = &g_pConfigManager->getConfigValuePtr("misc:enable_swallow")->intValue;
     static auto* const PSWALLOWREGEX   = &g_pConfigManager->getConfigValuePtr("misc:swallow_regex")->strValue;
     static auto* const PSWALLOWEXREGEX = &g_pConfigManager->getConfigValuePtr("misc:swallow_exception_regex")->strValue;
+    static auto* const PNEWTAKESOVERFS = &g_pConfigManager->getConfigValuePtr("misc:new_window_takes_over_fullscreen")->intValue;
 
     auto               PMONITOR = g_pCompositor->m_pLastMonitor;
     const auto         PWORKSPACE =
         PMONITOR->specialWorkspaceID ? g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
-    PWINDOW->m_bMappedX11     = true;
     PWINDOW->m_iWorkspaceID   = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
     PWINDOW->m_bIsMapped      = true;
     PWINDOW->m_bReadyToDelete = false;
@@ -95,7 +95,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (PWORKSPACE->m_bDefaultPseudo) {
         PWINDOW->m_bIsPseudotiled = true;
-        wlr_box desiredGeometry   = {0};
+        CBox desiredGeometry      = {0};
         g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
         PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
@@ -116,7 +116,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
 
     for (auto& r : WINDOWRULES) {
-        if (r.szRule.find("monitor") == 0) {
+        if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find(' ')));
 
@@ -150,7 +150,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
             } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r.szRule, r.szValue, e.what()); }
-        } else if (r.szRule.find("workspace") == 0) {
+        } else if (r.szRule.starts_with("workspace")) {
             // check if it isnt unset
             const auto WORKSPACERQ = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
@@ -166,19 +166,19 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 requestedWorkspace = "";
 
             Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r.szValue);
-        } else if (r.szRule.find("float") == 0) {
+        } else if (r.szRule.starts_with("float")) {
             PWINDOW->m_bIsFloating = true;
-        } else if (r.szRule.find("tile") == 0) {
+        } else if (r.szRule.starts_with("tile")) {
             PWINDOW->m_bIsFloating = false;
-        } else if (r.szRule.find("pseudo") == 0) {
+        } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
-        } else if (r.szRule.find("nofocus") == 0) {
+        } else if (r.szRule.starts_with("nofocus")) {
             PWINDOW->m_bNoFocus = true;
-        } else if (r.szRule.find("noinitialfocus") == 0) {
+        } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
-        } else if (r.szRule.find("nofullscreenrequest") == 0) {
+        } else if (r.szRule.starts_with("nofullscreenrequest")) {
             PWINDOW->m_bNoFullscreenRequest = true;
-        } else if (r.szRule.find("nomaximizerequest") == 0) {
+        } else if (r.szRule.starts_with("nomaximizerequest")) {
             PWINDOW->m_bNoMaximizeRequest = true;
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen     = true;
@@ -198,7 +198,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             overridingNoMaximize = true;
         } else if (r.szRule == "stayfocused") {
             PWINDOW->m_bStayFocused = true;
-        } else if (r.szRule.find("group") == 0) {
+        } else if (r.szRule.starts_with("group")) {
             if (PWINDOW->m_eGroupRules & GROUP_OVERRIDE)
                 continue;
 
@@ -245,29 +245,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 }
                 vPrev = v;
             }
-        } else if (r.szRule.find("idleinhibit") == 0) {
-            auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-
-            if (IDLERULE == "none") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_NONE;
-            } else if (IDLERULE == "always") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_ALWAYS;
-            } else if (IDLERULE == "focus") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FOCUS;
-            } else if (IDLERULE == "fullscreen") {
-                PWINDOW->m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
-            } else {
-                Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
-            }
         }
         PWINDOW->applyDynamicRule(r);
-    }
-
-    CWindow* pFullscreenWindow = nullptr;
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFloating) {
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
-        pFullscreenWindow      = PFULLWINDOW;
-        g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, PWORKSPACE->m_efFullscreenMode);
     }
 
     PWINDOW->updateSpecialRenderData();
@@ -279,13 +258,13 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 
     if (!WORKSPACEARGS[0].empty()) {
-        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].find("silent") == 0)
+        if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].starts_with("silent"))
             workspaceSilent = true;
 
         std::string requestedWorkspaceName;
         const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0), requestedWorkspaceName);
 
-        if (REQUESTEDWORKSPACEID != INT_MAX) {
+        if (REQUESTEDWORKSPACEID != WORKSPACE_INVALID) {
             auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
 
             if (!pWorkspace)
@@ -315,7 +294,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // size and move rules
         for (auto& r : WINDOWRULES) {
-            if (r.szRule.find("size") == 0) {
+            if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -337,7 +316,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("minsize") == 0) {
+            } else if (r.szRule.starts_with("minsize")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -351,7 +330,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule minsize failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("maxsize") == 0) {
+            } else if (r.szRule.starts_with("maxsize")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
@@ -365,16 +344,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule maxsize failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("move") == 0) {
+            } else if (r.szRule.starts_with("move")) {
                 try {
                     auto       value = r.szRule.substr(r.szRule.find(' ') + 1);
 
-                    const bool ONSCREEN = value.find("onscreen") == 0;
+                    const bool ONSCREEN = value.starts_with("onscreen");
 
                     if (ONSCREEN)
                         value = value.substr(value.find_first_of(' ') + 1);
 
-                    const bool CURSOR = value.find("cursor") == 0;
+                    const bool CURSOR = value.starts_with("cursor");
 
                     if (CURSOR)
                         value = value.substr(value.find_first_of(' ') + 1);
@@ -385,7 +364,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     int        posX = 0;
                     int        posY = 0;
 
-                    if (POSXSTR.find("100%-") == 0) {
+                    if (POSXSTR.starts_with("100%-")) {
                         const auto POSXRAW = POSXSTR.substr(5);
                         posX =
                             PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
@@ -404,7 +383,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         }
                     }
 
-                    if (POSYSTR.find("100%-") == 0) {
+                    if (POSYSTR.starts_with("100%-")) {
                         const auto POSYRAW = POSYSTR.substr(5);
                         posY =
                             PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
@@ -439,7 +418,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.find("center") == 0) {
+            } else if (r.szRule.starts_with("center")) {
                 auto       RESERVEDOFFSET = Vector2D();
                 const auto ARGS           = CVarList(r.szRule, 2, ' ');
                 if (ARGS[1] == "1")
@@ -474,6 +453,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
         PWINDOW->m_bNoInitialFocus = true;
+    if (PWORKSPACE->m_bHasFullscreenWindow && !requestsFullscreen && !PWINDOW->m_bIsFloating) {
+        if (*PNEWTAKESOVERFS == 0)
+            PWINDOW->m_bNoInitialFocus = true;
+        else if (*PNEWTAKESOVERFS == 2)
+            g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false, FULLSCREEN_INVALID);
+        else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED)
+            requestsMaximize = true;
+        else
+            requestsFullscreen = true;
+    }
 
     if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus &&
         (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) && !workspaceSilent &&
@@ -489,7 +478,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     Debug::log(LOG, "Window got assigned a surfaceTreeNode {:x}", (uintptr_t)PWINDOW->m_pSurfaceTree);
 
     if (!PWINDOW->m_bIsX11) {
-        PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xdg->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_maximize, &Events::listener_requestMaximize, PWINDOW,
@@ -500,6 +488,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW,
                                                             "XDG Window Late");
+        PWINDOW->hyprListener_ackConfigure.initCallback(&PWINDOW->m_uSurface.xdg->events.ack_configure, &Events::listener_ackConfigure, PWINDOW, "XDG Window Late");
     } else {
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW,
                                                             "XWayland Window Late");
@@ -514,14 +503,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->hyprListener_setGeometryX11U.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_geometry, &Events::listener_unmanagedSetGeometry, PWINDOW,
                                                                "XWayland Window Late");
     }
-
-    // do the animation thing
-    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
-    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
-    PWINDOW->m_fAlpha = 1.f;
-
-    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
-    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
 
     if ((requestsFullscreen && (!PWINDOW->m_bNoFullscreenRequest || overridingNoFullscreen)) || (requestsMaximize && (!PWINDOW->m_bNoMaximizeRequest || overridingNoMaximize)) ||
         requestsFakeFullscreen) {
@@ -541,10 +522,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_vRealSize.warp();
             g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
         }
-    }
-
-    if (pFullscreenWindow && workspaceSilent) {
-        g_pCompositor->setWindowFullscreen(pFullscreenWindow, true, PWORKSPACE->m_efFullscreenMode);
     }
 
     // recheck idle inhibitors
@@ -640,10 +617,34 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, g_pXWaylandManager->getAppIDClass(PWINDOW), PWINDOW->m_szTitle)});
     EMIT_HOOK_EVENT("openWindow", PWINDOW);
 
+    // apply data from default decos. Borders, shadows.
+    g_pDecorationPositioner->forceRecalcFor(PWINDOW);
+    PWINDOW->updateWindowDecos();
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+
+    // do animations
+    g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
+    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
+    PWINDOW->m_fAlpha = 1.f;
+
+    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
+    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
+
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
+    // avoid this window being visible
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFullscreen && !PWINDOW->m_bIsFloating)
+        PWINDOW->m_fAlpha.setValueAndWarp(0.f);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
+    g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
+
+    g_pInputManager->sendMotionEventsToFocused();
+
+    // fix some xwayland apps that don't behave nicely
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
+
+    g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -657,6 +658,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         return;
     }
 
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    if (PMONITOR) {
+        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
+        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize.vec();
+        PWINDOW->m_eOriginalClosedExtents = PWINDOW->getFullWindowExtents();
+    }
+
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
@@ -664,7 +672,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");
-        PWINDOW->hyprListener_commitWindow.removeCallback();
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
         PWINDOW->hyprListener_newPopupXDG.removeCallback();
         PWINDOW->hyprListener_requestMaximize.removeCallback();
@@ -672,6 +679,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMove.removeCallback();
         PWINDOW->hyprListener_requestResize.removeCallback();
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
+        PWINDOW->hyprListener_ackConfigure.removeCallback();
     } else {
         Debug::log(LOG, "Unregistered late callbacks XWL");
         PWINDOW->hyprListener_fullscreenWindow.removeCallback();
@@ -684,13 +692,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     if (PWINDOW->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    if (PMONITOR) {
-        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition.vec() - PMONITOR->vecPosition;
-        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize.vec();
-        PWINDOW->m_eOriginalClosedExtents = PWINDOW->getFullWindowExtents();
-    }
 
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
@@ -712,8 +713,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    PWINDOW->m_bMappedX11 = false;
-
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
@@ -731,13 +730,16 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow) {
-            if (!PWINDOWCANDIDATE)
-                g_pInputManager->simulateMouseMovement();
-            else
-                g_pCompositor->focusWindow(PWINDOWCANDIDATE);
-        } else {
-            g_pInputManager->simulateMouseMovement();
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
+            g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+
+        g_pInputManager->sendMotionEventsToFocused();
+
+        // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
+        if (PWINDOW == g_pCompositor->m_pLastWindow || !g_pCompositor->m_pLastWindow) {
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
+            EMIT_HOOK_EVENT("activeWindow", (CWindow*)nullptr);
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
@@ -774,13 +776,32 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->onUnmap();
 }
 
+void Events::listener_ackConfigure(void* owner, void* data) {
+    CWindow*   PWINDOW = (CWindow*)owner;
+    const auto E       = (wlr_xdg_surface_configure*)data;
+
+    // find last matching serial
+    const auto SERIAL = std::find_if(PWINDOW->m_vPendingSizeAcks.rbegin(), PWINDOW->m_vPendingSizeAcks.rend(), [&](const auto& e) { return e.first == E->serial; });
+
+    if (SERIAL == PWINDOW->m_vPendingSizeAcks.rend())
+        return;
+
+    PWINDOW->m_pPendingSizeAck = *SERIAL;
+    std::erase_if(PWINDOW->m_vPendingSizeAcks, [&](const auto& el) { return el.first == SERIAL->first; });
+}
+
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bMappedX11 || PWINDOW->isHidden() || (PWINDOW->m_bIsX11 && !PWINDOW->m_bMappedX11))
+    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
         return;
 
-    PWINDOW->updateSurfaceOutputs();
+    if (PWINDOW->m_bIsX11)
+        PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
+    else if (PWINDOW->m_pPendingSizeAck.has_value()) {
+        PWINDOW->m_vReportedSize = PWINDOW->m_pPendingSizeAck->second;
+        PWINDOW->m_pPendingSizeAck.reset();
+    }
 
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
@@ -788,22 +809,29 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
-    const auto ISRIGID = PWINDOW->m_uSurface.xdg->toplevel->current.max_height == PWINDOW->m_uSurface.xdg->toplevel->current.min_height &&
-        PWINDOW->m_uSurface.xdg->toplevel->current.max_width == PWINDOW->m_uSurface.xdg->toplevel->current.min_width;
+    const auto MINSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.min_width, PWINDOW->m_uSurface.xdg->toplevel->current.min_height};
+    const auto MAXSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
 
-    if (!ISRIGID)
+    if (MAXSIZE < Vector2D{1, 1})
         return;
 
-    const Vector2D REQUESTEDSIZE = {PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
+    const auto REALSIZE = PWINDOW->m_vRealSize.goalv();
+    Vector2D   newSize  = REALSIZE;
 
-    if (REQUESTEDSIZE == PWINDOW->m_vReportedSize || REQUESTEDSIZE.x < 5 || REQUESTEDSIZE.y < 5)
-        return;
+    if (MAXSIZE.x < newSize.x)
+        newSize.x = MAXSIZE.x;
+    if (MAXSIZE.y < newSize.y)
+        newSize.y = MAXSIZE.y;
+    if (MINSIZE.x > newSize.x)
+        newSize.x = MINSIZE.x;
+    if (MINSIZE.y > newSize.y)
+        newSize.y = MINSIZE.y;
 
-    const Vector2D DELTA = PWINDOW->m_vReportedSize - REQUESTEDSIZE;
+    const Vector2D DELTA = REALSIZE - newSize;
 
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0;
-    PWINDOW->m_vRealSize     = REQUESTEDSIZE;
-    g_pXWaylandManager->setWindowSize(PWINDOW, REQUESTEDSIZE, true);
+    PWINDOW->m_vRealSize     = newSize;
+    g_pXWaylandManager->setWindowSize(PWINDOW, newSize, true);
     g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
@@ -820,6 +848,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         g_pCompositor->m_pLastFocus  = nullptr;
     }
 
+    PWINDOW->hyprListener_commitWindow.removeCallback();
     PWINDOW->hyprListener_mapWindow.removeCallback();
     PWINDOW->hyprListener_unmapWindow.removeCallback();
     PWINDOW->hyprListener_destroyWindow.removeCallback();
@@ -839,8 +868,8 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->m_bReadyToDelete = true;
 
     if (!PWINDOW->m_bFadingOut) {
-        g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
         Debug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
+        g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
 }
 
@@ -995,8 +1024,10 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 
-    if (!PWINDOW->m_uSurface.xwayland->surface || !PWINDOW->m_uSurface.xwayland->surface->mapped || !PWINDOW->m_bMappedX11) {
+    if (!PWINDOW->m_uSurface.xwayland->surface || !PWINDOW->m_uSurface.xwayland->surface->mapped || !PWINDOW->m_bIsMapped) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+        PWINDOW->m_vPendingReportedSize = {E->width, E->height};
+        PWINDOW->m_vReportedSize        = {E->width, E->height};
         return;
     }
 
@@ -1021,14 +1052,25 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
     if (*PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
+            const Vector2D DELTA = PWINDOW->m_vRealSize.goalv() - PWINDOW->m_vRealSize.goalv() / PMONITOR->scale;
             PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+            PWINDOW->m_vRealPosition.setValueAndWarp(PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0);
+        }
     }
 
     PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();
     PWINDOW->m_vSize     = PWINDOW->m_vRealSize.vec();
 
     wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
+
+    PWINDOW->m_vPendingReportedSize = {E->width, E->height};
+    PWINDOW->m_vReportedSize        = {E->width, E->height};
+
+    PWINDOW->updateWindowDecos();
+
+    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->m_iWorkspaceID))
+        return; // further things are only for visible windows
 
     PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.vec() + PWINDOW->m_vRealSize.vec() / 2.f)->activeWorkspace;
 
@@ -1040,14 +1082,12 @@ void Events::listener_configureX11(void* owner, void* data) {
         g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(PWINDOW);
-
-    PWINDOW->updateWindowDecos();
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
-    if (!PWINDOW->m_bMappedX11)
+    if (!PWINDOW->m_bIsMapped)
         return;
 
     const auto POS = PWINDOW->m_vRealPosition.goalv();
@@ -1080,8 +1120,11 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
             PWINDOW->m_vRealSize.setValueAndWarp(Vector2D(PWINDOW->m_uSurface.xwayland->width, PWINDOW->m_uSurface.xwayland->height));
 
         if (*PXWLFORCESCALEZERO) {
-            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
+                const Vector2D DELTA = PWINDOW->m_vRealSize.goalv() - PWINDOW->m_vRealSize.goalv() / PMONITOR->scale;
                 PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+                PWINDOW->m_vRealPosition.setValueAndWarp(PWINDOW->m_vRealPosition.goalv() + DELTA / 2.0);
+            }
         }
 
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goalv();
@@ -1092,6 +1135,10 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
+
+        PWINDOW->m_vReportedPosition    = PWINDOW->m_vRealPosition.goalv();
+        PWINDOW->m_vReportedSize        = PWINDOW->m_vRealSize.goalv();
+        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vReportedSize;
     }
 }
 
@@ -1107,12 +1154,14 @@ void Events::listener_associateX11(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
     PWINDOW->hyprListener_mapWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.map, &Events::listener_mapWindow, PWINDOW, "XWayland Window");
+    PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.commit, &Events::listener_commitWindow, PWINDOW, "XWayland Window");
 }
 
 void Events::listener_dissociateX11(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
     PWINDOW->hyprListener_mapWindow.removeCallback();
+    PWINDOW->hyprListener_commitWindow.removeCallback();
 }
 
 void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
@@ -1137,20 +1186,19 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
 }
 
-void Events::listener_newXDGSurface(wl_listener* listener, void* data) {
+void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     // A window got opened
-    const auto XDGSURFACE = (wlr_xdg_surface*)data;
+    const auto XDGTOPLEVEL = (wlr_xdg_toplevel*)data;
+    const auto XDGSURFACE  = XDGTOPLEVEL->base;
 
-    if (XDGSURFACE->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL)
-        return;
-
-    Debug::log(LOG, "New XDG Surface created. (class: {})", XDGSURFACE->toplevel->app_id ? XDGSURFACE->toplevel->app_id : "null");
+    Debug::log(LOG, "New XDG Toplevel created. (class: {})", XDGSURFACE->toplevel->app_id ? XDGSURFACE->toplevel->app_id : "null");
 
     const auto PNEWWINDOW      = g_pCompositor->m_vWindows.emplace_back(std::make_unique<CWindow>()).get();
     PNEWWINDOW->m_uSurface.xdg = XDGSURFACE;
 
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->surface->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
+    PNEWWINDOW->hyprListener_commitWindow.initCallback(&XDGSURFACE->surface->events.commit, &Events::listener_commitWindow, PNEWWINDOW, "XDG Window");
 }
 
 void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
@@ -1173,7 +1221,7 @@ void Events::listener_requestMaximize(void* owner, void* data) {
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
     } else {
-        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+        if (!PWINDOW->m_bIsMapped || PWINDOW->m_iX11Type != 1)
             return;
 
         g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen, FULLSCREEN_MAXIMIZED);
@@ -1186,7 +1234,7 @@ void Events::listener_requestMinimize(void* owner, void* data) {
     Debug::log(LOG, "Minimize request for {}", PWINDOW);
 
     if (PWINDOW->m_bIsX11) {
-        if (!PWINDOW->m_bMappedX11 || PWINDOW->m_iX11Type != 1)
+        if (!PWINDOW->m_bIsMapped || PWINDOW->m_iX11Type != 1)
             return;
 
         const auto E = (wlr_xwayland_minimize_event*)data;

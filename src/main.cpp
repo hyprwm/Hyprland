@@ -52,16 +52,21 @@ int main(int argc, char** argv) {
 
                 return 1;
             }
-            std::string next_arg = std::next(it)->c_str();
+            configPath = std::next(it)->c_str();
 
-            if (!std::filesystem::exists(next_arg)) {
-                std::cerr << "[ ERROR ] Config path '" << next_arg << "' doesn't exist!\n";
+            try {
+                configPath = std::filesystem::canonical(configPath);
+
+                if (!std::filesystem::is_regular_file(configPath)) {
+                    throw std::exception();
+                }
+            } catch (...) {
+                std::cerr << "[ ERROR ] Config file '" << configPath << "' doesn't exist!\n";
                 help();
 
                 return 1;
             }
 
-            configPath = next_arg;
             Debug::log(LOG, "User-specified config location: '{}'", configPath);
 
             it++;
@@ -80,7 +85,7 @@ int main(int argc, char** argv) {
     }
 
     if (!ignoreSudo && Init::isSudo()) {
-        std::cerr << "[ ERROR ] Hyprland was launched with superuser priveleges, but the privileges check is not omitted.\n";
+        std::cerr << "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n";
         std::cerr << "          Hint: Use the --i-am-really-stupid flag to omit that check.\n";
 
         return 1;
@@ -97,12 +102,15 @@ int main(int argc, char** argv) {
 
     g_pCompositor->initServer();
 
-    Init::gainRealTime();
+    if (!envEnabled("HYPRLAND_NO_RT"))
+        Init::gainRealTime();
 
     Debug::log(LOG, "Hyprland init finished.");
 
     // If all's good to go, start.
     g_pCompositor->startCompositor();
+
+    g_pCompositor->m_bIsShuttingDown = true;
 
     // If we are here it means we got yote.
     Debug::log(LOG, "Hyprland reached the end.");

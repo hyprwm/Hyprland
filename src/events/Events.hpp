@@ -42,7 +42,7 @@ namespace Events {
     DYNLISTENFUNC(repositionPopupXDG);
 
     // Surface XDG (window)
-    LISTENER(newXDGSurface);
+    LISTENER(newXDGToplevel);
     LISTENER(activateXDG);
 
     // Window events
@@ -62,6 +62,7 @@ namespace Events {
     DYNLISTENFUNC(setOverrideRedirect);
     DYNLISTENFUNC(associateX11);
     DYNLISTENFUNC(dissociateX11);
+    DYNLISTENFUNC(ackConfigure);
 
     // Window subsurfaces
     // LISTENER(newSubsurfaceWindow);
@@ -120,10 +121,6 @@ namespace Events {
     DYNLISTENFUNC(destroyDragIcon);
     DYNLISTENFUNC(commitDragIcon);
 
-    // Inhibit
-    LISTENER(InhibitActivate);
-    LISTENER(InhibitDeactivate);
-
     // Deco XDG
     LISTENER(NewXDGDeco);
 
@@ -174,4 +171,7 @@ namespace Events {
 
     // Cursor shape
     LISTENER(setCursorShape);
+
+    // Tearing hints
+    LISTENER(newTearingHint);
 };

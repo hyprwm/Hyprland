@@ -10,7 +10,10 @@ CPluginSystem::CPluginSystem() {
 
 CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
+    m_szLastError = "";
+
     if (getPluginByPath(path)) {
+        m_szLastError = "Cannot load a plugin twice!";
         Debug::log(ERR, " [PluginSystem] Cannot load a plugin twice!");
         return nullptr;
     }
@@ -22,7 +25,9 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     HANDLE MODULE = dlopen(path.c_str(), RTLD_LAZY);
 
     if (!MODULE) {
-        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded: {}", path, dlerror());
+        std::string strerr = dlerror();
+        m_szLastError      = std::format("Plugin {} could not be loaded: {}", path, strerr);
+        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded: {}", path, strerr);
         m_vLoadedPlugins.pop_back();
         return nullptr;
     }
@@ -33,6 +38,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     PPLUGIN_INIT_FUNC        initFunc   = (PPLUGIN_INIT_FUNC)dlsym(MODULE, PLUGIN_INIT_FUNC_STR);
 
     if (!apiVerFunc || !initFunc) {
+        m_szLastError = std::format("Plugin {} could not be loaded: {}", path, "missing apiver/init func");
         Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path);
         dlclose(MODULE);
         m_vLoadedPlugins.pop_back();
@@ -42,6 +48,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     const std::string PLUGINAPIVER = apiVerFunc();
 
     if (PLUGINAPIVER != HYPRLAND_API_VERSION) {
+        m_szLastError = std::format("Plugin {} could not be loaded: {}", path, "API version mismatch");
         Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (API version mismatch)", path);
         dlclose(MODULE);
         m_vLoadedPlugins.pop_back();
@@ -56,10 +63,11 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
             PLUGINDATA         = initFunc(MODULE);
         } else {
             // this module crashed.
-            throw std::exception();
+            throw std::runtime_error("received a fatal signal");
         }
     } catch (std::exception& e) {
         m_bAllowConfigVars = false;
+        m_szLastError      = std::format("Plugin {} could not be loaded: plugin crashed/threw in main: {}", path, e.what());
         Debug::log(ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path, (uintptr_t)MODULE);
         unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
         return nullptr;

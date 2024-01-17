@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <vector>
 #include <string>
 #include "../macros.hpp"
@@ -20,6 +21,15 @@ class CVarList {
 
     std::string join(const std::string& joiner, size_t from = 0, size_t to = 0) const;
 
+    void        map(std::function<void(std::string&)> func) {
+        for (auto& s : m_vArgs)
+            func(s);
+    }
+
+    void append(const std::string arg) {
+        m_vArgs.emplace_back(arg);
+    }
+
     std::string operator[](const size_t& idx) const {
         if (idx >= m_vArgs.size())
             return "";
@@ -38,6 +48,15 @@ class CVarList {
     }
     std::vector<std::string>::const_iterator end() const {
         return m_vArgs.end();
+    }
+
+    bool contains(const std::string& el) {
+        for (auto& a : m_vArgs) {
+            if (a == el)
+                return true;
+        }
+
+        return false;
     }
 
   private:

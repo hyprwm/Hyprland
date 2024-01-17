@@ -119,7 +119,7 @@ CScreencopyClient::~CScreencopyClient() {
 CScreencopyClient::CScreencopyClient() {
     lastMeasure.reset();
     lastFrame.reset();
-    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, std::any data) { onTick(); });
+    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, SCallbackInfo& info, std::any data) { onTick(); });
 }
 
 void CScreencopyClient::onTick() {
@@ -183,7 +183,7 @@ void CScreencopyProtocolManager::removeFrame(SScreencopyFrame* frame, bool force
     m_lFrames.remove(*frame);
 }
 
-void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, wlr_box box) {
+void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, CBox box) {
     const auto PCLIENT = clientFromResource(resource);
 
     const auto PFRAME     = &m_lFrames.emplace_back();
@@ -210,7 +210,8 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->client = PCLIENT;
     PCLIENT->ref++;
 
-    PFRAME->shmFormat = wlr_output_preferred_read_format(PFRAME->pMonitor->output);
+    g_pHyprRenderer->makeEGLCurrent();
+    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
@@ -239,10 +240,9 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     }
     int ow, oh;
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
-    wlr_box_transform(&PFRAME->box, &PFRAME->box, PFRAME->pMonitor->transform, ow, oh);
-    scaleBox(&PFRAME->box, PFRAME->pMonitor->scale);
+    PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale).round();
 
-    PFRAME->shmStride = (PSHMINFO->bpp / 8) * PFRAME->box.width;
+    PFRAME->shmStride = pixel_format_info_min_stride(PSHMINFO, PFRAME->box.w);
 
     zwlr_screencopy_frame_v1_send_buffer(PFRAME->resource, convert_drm_format_to_wl_shm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
 
@@ -263,20 +263,23 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         return;
     }
 
-    const auto PBUFFER = wlr_buffer_from_resource(buffer);
+    const auto PBUFFER = wlr_buffer_try_from_resource(buffer);
     if (!PBUFFER) {
+        Debug::log(ERR, "[sc] invalid buffer in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         removeFrame(PFRAME);
         return;
     }
 
     if (PBUFFER->width != PFRAME->box.width || PBUFFER->height != PFRAME->box.height) {
+        Debug::log(ERR, "[sc] invalid dimensions in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         removeFrame(PFRAME);
         return;
     }
 
     if (PFRAME->buffer) {
+        Debug::log(ERR, "[sc] buffer used in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
         removeFrame(PFRAME);
         return;
@@ -290,6 +293,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         PFRAME->bufferCap = WLR_BUFFER_CAP_DMABUF;
 
         if (dmabufAttrs.format != PFRAME->dmabufFormat) {
+            Debug::log(ERR, "[sc] invalid buffer dma format in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
@@ -298,15 +302,18 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         wlr_buffer_end_data_ptr_access(PBUFFER);
 
         if (wlrBufferAccessFormat != PFRAME->shmFormat) {
+            Debug::log(ERR, "[sc] invalid buffer shm format in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
         } else if ((int)wlrBufferAccessStride != PFRAME->shmStride) {
+            Debug::log(ERR, "[sc] invalid buffer shm stride in {:x}", (uintptr_t)PFRAME);
             wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             removeFrame(PFRAME);
             return;
         }
     } else {
+        Debug::log(ERR, "[sc] invalid buffer type in {:x}", (uintptr_t)PFRAME);
         wl_resource_post_error(PFRAME->resource, ZWLR_SCREENCOPY_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer type");
         removeFrame(PFRAME);
         return;
@@ -325,7 +332,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 }
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
-    m_pLastMonitorBackBuffer = e->buffer;
+    m_pLastMonitorBackBuffer = e->state->buffer;
     shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }
@@ -382,11 +389,13 @@ void CScreencopyProtocolManager::shareFrame(SScreencopyFrame* frame) {
     uint32_t flags = 0;
     if (frame->bufferCap == WLR_BUFFER_CAP_DMABUF) {
         if (!copyFrameDmabuf(frame)) {
+            Debug::log(ERR, "[sc] dmabuf copy failed in {:x}", (uintptr_t)frame);
             zwlr_screencopy_frame_v1_send_failed(frame->resource);
             return;
         }
     } else {
         if (!copyFrameShm(frame, &now)) {
+            Debug::log(ERR, "[sc] shm copy failed in {:x}", (uintptr_t)frame);
             zwlr_screencopy_frame_v1_send_failed(frame->resource);
             return;
         }
@@ -416,23 +425,76 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
+    wlr_texture* sourceTex = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer);
+    if (!sourceTex)
+        return false;
+
     void*    data;
     uint32_t format;
     size_t   stride;
-    if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
+    if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride)) {
+        wlr_texture_destroy(sourceTex);
         return false;
+    }
 
-    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer)) {
-        Debug::log(ERR, "[sc] shm: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+
+    g_pHyprRenderer->makeEGLCurrent();
+
+    CFramebuffer fb;
+    fb.alloc(frame->box.w, frame->box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : frame->pMonitor->drmFormat);
+
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb)) {
+        wlr_texture_destroy(sourceTex);
         wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
 
-    bool success = wlr_renderer_read_pixels(g_pCompositor->m_sWLRRenderer, format, stride, frame->box.width, frame->box.height, frame->box.x, frame->box.y, 0, 0, data);
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
-    wlr_buffer_end_data_ptr_access(frame->buffer);
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecTransformedSize.x, frame->pMonitor->vecTransformedSize.y}.translate({-frame->box.x, -frame->box.y});
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(true);
 
-    return success;
+#ifndef GLES2
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.m_iFb);
+#endif
+
+    const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
+    if (!PFORMAT) {
+        g_pHyprRenderer->endRender();
+        wlr_texture_destroy(sourceTex);
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
+    }
+
+    g_pHyprRenderer->endRender();
+
+    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->m_RenderData.pMonitor = frame->pMonitor;
+    fb.bind();
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    const wlr_pixel_format_info* drmFmtWlr  = drm_get_pixel_format_info(format);
+    uint32_t                     packStride = pixel_format_info_min_stride(drmFmtWlr, frame->box.w);
+
+    if (packStride == stride) {
+        glReadPixels(0, 0, frame->box.w, frame->box.h, PFORMAT->glFormat, PFORMAT->glType, data);
+    } else {
+        for (size_t i = 0; i < frame->box.h; ++i) {
+            uint32_t y = i;
+            glReadPixels(0, y, frame->box.w, 1, PFORMAT->glFormat, PFORMAT->glType, ((unsigned char*)data) + i * stride);
+        }
+    }
+
+    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+
+    wlr_buffer_end_data_ptr_access(frame->buffer);
+    wlr_texture_destroy(sourceTex);
+
+    return true;
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
@@ -440,25 +502,19 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     if (!sourceTex)
         return false;
 
-    float glMatrix[9];
-    wlr_matrix_identity(glMatrix);
-    wlr_matrix_translate(glMatrix, -frame->box.x, -frame->box.y);
-    wlr_matrix_scale(glMatrix, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+    CRegion fakeDamage = {0, 0, frame->box.width, frame->box.height};
 
-    if (!wlr_renderer_begin_with_buffer(g_pCompositor->m_sWLRRenderer, frame->buffer)) {
-        Debug::log(ERR, "[sc] dmabuf: Client requested a copy to a buffer that failed to pass wlr_renderer_begin_with_buffer");
-        wlr_texture_destroy(sourceTex);
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer))
         return false;
-    }
 
-    float color[] = {0, 0, 0, 0};
-    wlr_renderer_clear(g_pCompositor->m_sWLRRenderer, color);
-    // TODO: use hl render methods to use damage
-    wlr_render_texture_with_matrix(g_pCompositor->m_sWLRRenderer, sourceTex, glMatrix, 1.0f);
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}.translate({-frame->box.x, -frame->box.y});
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(true);
+
+    g_pHyprRenderer->endRender();
 
     wlr_texture_destroy(sourceTex);
-
-    wlr_renderer_end(g_pCompositor->m_sWLRRenderer);
 
     return true;
 }

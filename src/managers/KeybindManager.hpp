@@ -12,7 +12,7 @@ class CPluginSystem;
 
 struct SKeybind {
     std::string key          = "";
-    int         keycode      = -1;
+    uint32_t    keycode      = 0;
     uint32_t    modmask      = 0;
     std::string handler      = "";
     std::string arg          = "";
@@ -23,6 +23,7 @@ struct SKeybind {
     bool        mouse        = false;
     bool        nonConsuming = false;
     bool        transparent  = false;
+    bool        ignoreMods   = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -33,6 +34,14 @@ enum eFocusWindowMode {
     MODE_TITLE_REGEX,
     MODE_ADDRESS,
     MODE_PID
+};
+
+struct SPressedKeyWithMods {
+    std::string  keyName            = "";
+    xkb_keysym_t keysym             = 0;
+    uint32_t     keycode            = 0;
+    uint32_t     modmaskAtPressTime = 0;
+    bool         sent               = false;
 };
 
 class CKeybindManager {
@@ -50,8 +59,9 @@ class CKeybindManager {
     void                                                              addKeybind(SKeybind);
     void                                                              removeKeybind(uint32_t, const std::string&);
     uint32_t                                                          stringToModMask(std::string);
+    uint32_t                                                          keycodeToModifier(xkb_keycode_t);
     void                                                              clearKeybinds();
-    void                                                              shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const int& doesntHaveCode = 0);
+    void                                                              shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
 
     std::unordered_map<std::string, std::function<void(std::string)>> m_mDispatchers;
 
@@ -62,39 +72,38 @@ class CKeybindManager {
     std::list<SKeybind>                                               m_lKeybinds;
 
   private:
-    std::deque<xkb_keysym_t>  m_dPressedKeysyms;
-    std::deque<int>           m_dPressedKeycodes;
+    std::deque<SPressedKeyWithMods> m_dPressedKeys;
 
-    inline static std::string m_szCurrentSelectedSubmap = "";
+    inline static std::string       m_szCurrentSelectedSubmap = "";
 
-    SKeybind*                 m_pActiveKeybind = nullptr;
+    SKeybind*                       m_pActiveKeybind = nullptr;
 
-    uint32_t                  m_uTimeLastMs    = 0;
-    uint32_t                  m_uLastCode      = 0;
-    uint32_t                  m_uLastMouseCode = 0;
+    uint32_t                        m_uTimeLastMs    = 0;
+    uint32_t                        m_uLastCode      = 0;
+    uint32_t                        m_uLastMouseCode = 0;
 
-    bool                      m_bIsMouseBindActive = false;
-    std::vector<SKeybind*>    m_vPressedSpecialBinds;
+    bool                            m_bIsMouseBindActive = false;
+    std::vector<SKeybind*>          m_vPressedSpecialBinds;
 
-    int                       m_iPassPressed = -1; // used for pass
+    int                             m_iPassPressed = -1; // used for pass
 
-    CTimer                    m_tScrollTimer;
+    CTimer                          m_tScrollTimer;
 
-    bool                      handleKeybinds(const uint32_t&, const std::string&, const xkb_keysym_t&, const int&, bool, uint32_t);
+    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
 
-    bool                      handleInternalKeybinds(xkb_keysym_t);
-    bool                      handleVT(xkb_keysym_t);
+    bool                            handleInternalKeybinds(xkb_keysym_t);
+    bool                            handleVT(xkb_keysym_t);
 
-    xkb_state*                m_pXKBTranslationState = nullptr;
+    xkb_state*                      m_pXKBTranslationState = nullptr;
 
-    void                      updateXKBTranslationState();
-    bool                      ensureMouseBindState();
+    void                            updateXKBTranslationState();
+    bool                            ensureMouseBindState();
 
-    static bool               tryMoveFocusToMonitor(CMonitor* monitor);
-    static void               moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
-    static void               moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
-    static void               switchToWindow(CWindow* PWINDOWTOCHANGETO);
-    static CWindow*           groupActiveInDirection(std::string args);
+    static bool                     tryMoveFocusToMonitor(CMonitor* monitor);
+    static void                     moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
+    static void                     moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
+    static void                     switchToWindow(CWindow* PWINDOWTOCHANGETO);
+    static CWindow*                 groupActiveInDirection(std::string args);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);
@@ -127,6 +136,7 @@ class CKeybindManager {
     static void     exitHyprland(std::string);
     static void     moveCurrentWorkspaceToMonitor(std::string);
     static void     moveWorkspaceToMonitor(std::string);
+    static void     focusWorkspaceOnCurrentMonitor(std::string);
     static void     toggleSpecialWorkspace(std::string);
     static void     forceRendererReload(std::string);
     static void     resizeActive(std::string);

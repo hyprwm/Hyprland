@@ -1,7 +1,6 @@
 #include "CrashReporter.hpp"
 #include <random>
 #include <sys/utsname.h>
-#include <execinfo.h>
 #include <fstream>
 #include <signal.h>
 
@@ -64,8 +63,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
     struct utsname unameInfo;
     uname(&unameInfo);
 
-    finalCrashReport +=
-        std::format("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", unameInfo.sysname, unameInfo.nodename, unameInfo.release, unameInfo.version);
+    finalCrashReport += std::format("\tSystem name: {}\n\tNode name: {}\n\tRelease: {}\n\tVersion: {}\n\n", std::string{unameInfo.sysname}, std::string{unameInfo.nodename},
+                                    std::string{unameInfo.release}, std::string{unameInfo.version});
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
@@ -120,7 +119,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "\n\nLog tail:\n";
 
-    finalCrashReport += execAndGet(("cat \"" + Debug::logFile + "\" | tail -n 50").c_str());
+    finalCrashReport += Debug::rollingLog;
 
     const auto HOME       = getenv("HOME");
     const auto CACHE_HOME = getenv("XDG_CACHE_HOME");
@@ -130,25 +129,19 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     std::ofstream ofs;
     std::string   path;
-    if (!CACHE_HOME) {
-        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland")) {
+    if (!CACHE_HOME || std::string(CACHE_HOME).empty()) {
+        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland"))
             std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
-            std::filesystem::permissions(std::string(HOME) + "/.hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
-        }
 
         path = std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
         ofs.open(path, std::ios::trunc);
 
-    } else if (CACHE_HOME) {
-        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland")) {
+    } else {
+        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland"))
             std::filesystem::create_directory(std::string(CACHE_HOME) + "/hyprland");
-            std::filesystem::permissions(std::string(CACHE_HOME) + "/hyprland", std::filesystem::perms::all, std::filesystem::perm_options::replace);
-        }
 
         path = std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
         ofs.open(path, std::ios::trunc);
-    } else {
-        return;
     }
 
     ofs << finalCrashReport;

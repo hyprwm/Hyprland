@@ -20,6 +20,7 @@ class CEventManager {
     void        startThread();
 
     std::thread m_tThread;
+
   private:
     void                                         flushEvents();
 

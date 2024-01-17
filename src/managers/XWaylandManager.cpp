@@ -45,10 +45,11 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
             wlr_xdg_toplevel_set_activated(PSURF->toplevel, activate);
 
     } else if (wlr_xwayland_surface_try_from_wlr_surface(pSurface)) {
-        wlr_xwayland_surface_activate(wlr_xwayland_surface_try_from_wlr_surface(pSurface), activate);
+        const auto XSURF = wlr_xwayland_surface_try_from_wlr_surface(pSurface);
+        wlr_xwayland_surface_activate(XSURF, activate);
 
-        if (activate)
-            wlr_xwayland_surface_restack(wlr_xwayland_surface_try_from_wlr_surface(pSurface), nullptr, XCB_STACK_MODE_ABOVE);
+        if (activate && !XSURF->override_redirect)
+            wlr_xwayland_surface_restack(XSURF, nullptr, XCB_STACK_MODE_ABOVE);
     }
 }
 
@@ -58,7 +59,8 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
 
         if (activate) {
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
-            wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, nullptr, XCB_STACK_MODE_ABOVE);
+            if (!pWindow->m_uSurface.xwayland->override_redirect)
+                wlr_xwayland_surface_restack(pWindow->m_uSurface.xwayland, nullptr, XCB_STACK_MODE_ABOVE);
         }
 
         wlr_xwayland_surface_activate(pWindow->m_uSurface.xwayland, activate);
@@ -74,7 +76,7 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
         g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_pLastFocusedWindow = pWindow;
 }
 
-void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox) {
+void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
     if (pWindow->m_bIsX11) {
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
 
@@ -89,8 +91,10 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, wlr_box* pbox)
             pbox->width  = pWindow->m_uSurface.xwayland->width;
             pbox->height = pWindow->m_uSurface.xwayland->height;
         }
-    } else
-        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, pbox);
+    } else {
+        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, pbox->pWlr());
+        pbox->applyFromWlr();
+    }
 }
 
 std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
@@ -115,7 +119,7 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 }
 
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
-    if (!pWindow->m_bMappedX11 || !pWindow->m_bIsMapped)
+    if (!pWindow->m_bIsMapped)
         return "";
 
     try {
@@ -146,44 +150,43 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
     static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    if (!PMONITOR)
-        return;
 
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = pWindow->m_vRealPosition.vec();
 
-    if (pWindow->m_bIsX11) {
+    if (pWindow->m_bIsX11 && PMONITOR) {
         windowPos = windowPos - PMONITOR->vecPosition; // normalize to monitor
         if (*PXWLFORCESCALEZERO)
             windowPos = windowPos * PMONITOR->scale;           // scale if applicable
         windowPos = windowPos + PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
     }
 
-    if (!force && ((pWindow->m_vReportedSize == size && windowPos == pWindow->m_vReportedPosition) || (pWindow->m_vReportedSize == size && !pWindow->m_bIsX11)))
+    if (!force && ((pWindow->m_vPendingReportedSize == size && windowPos == pWindow->m_vReportedPosition) || (pWindow->m_vPendingReportedSize == size && !pWindow->m_bIsX11)))
         return;
 
-    pWindow->m_vReportedPosition = windowPos;
-    pWindow->m_vReportedSize     = size;
+    pWindow->m_vReportedPosition    = windowPos;
+    pWindow->m_vPendingReportedSize = size;
 
     pWindow->m_fX11SurfaceScaledBy = 1.f;
 
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR) {
-            size                           = size * PMONITOR->scale;
-            pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
-        }
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11 && PMONITOR) {
+        size                           = size * PMONITOR->scale;
+        pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
     }
 
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, windowPos.x, windowPos.y, size.x, size.y);
     else
-        wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y);
+        pWindow->m_vPendingSizeAcks.push_back(std::make_pair<>(wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y), size.floor()));
 }
 
 void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {
-    if (!pWindow->m_bIsX11)
-        wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    if (pWindow->m_bIsX11)
+        return;
+
+    wlr_xdg_toplevel_set_tiled(pWindow->m_uSurface.xdg->toplevel, edgez);
+    wlr_xdg_toplevel_set_maximized(pWindow->m_uSurface.xdg->toplevel, true);
 }
 
 wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& surface) {

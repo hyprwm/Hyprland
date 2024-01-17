@@ -28,6 +28,10 @@ Vector2D Vector2D::floor() const {
     return Vector2D(std::floor(x), std::floor(y));
 }
 
+Vector2D Vector2D::round() const {
+    return Vector2D(std::round(x), std::round(y));
+}
+
 Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) const {
     return Vector2D(std::clamp(this->x, min.x, max.x < min.x ? INFINITY : max.x), std::clamp(this->y, min.y, max.y < min.y ? INFINITY : max.y));
 }
@@ -44,4 +48,8 @@ bool Vector2D::inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D
     const auto c = 1 - a - b;
 
     return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+}
+
+double Vector2D::size() const {
+    return std::sqrt(x * x + y * y);
 }

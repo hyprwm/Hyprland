@@ -4,7 +4,7 @@ index e669800..687786b 100644
 +++ b/include/meson.build
 @@ -1,4 +1,5 @@
 -subdir('wlr')
-+run_command('ln', '-s', join_paths(meson.project_source_root(), 'include', 'wlr'), join_paths(meson.project_source_root(), 'include', 'wlroots'), check: true)
++run_command('ln', '-sf', join_paths(meson.project_source_root(), 'include', 'wlr'), join_paths(meson.project_source_root(), 'include', 'wlroots'), check: true)
 +subdir('wlroots')
  
  exclude_files = ['meson.build', 'config.h.in', 'version.h.in']
@@ -35,11 +35,11 @@ index 29b103a..0b6e5a4 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -15,7 +15,7 @@ project(
- # necessary for bugfix releases. Increasing soversion is required because
- # wlroots never guarantees ABI stability -- only API stability is guaranteed
- # between minor releases.
--soversion = 12
-+soversion = 12032
+ version_major = version.split('.')[0]
+ version_minor = version.split('.')[1]
+ assert(version_major == '0')
+-soversion = version_minor.to_int() - 5
++soversion = 13032
  
  little_endian = target_machine.endian() == 'little'
  big_endian = target_machine.endian() == 'big'

@@ -14,28 +14,15 @@
 #define ISDEBUG false
 #endif
 
-// git stuff
-#ifndef GIT_COMMIT_HASH
-#define GIT_COMMIT_HASH "?"
-#endif
-#ifndef GIT_BRANCH
-#define GIT_BRANCH "?"
-#endif
-#ifndef GIT_COMMIT_MESSAGE
-#define GIT_COMMIT_MESSAGE "?"
-#endif
-#ifndef GIT_DIRTY
-#define GIT_DIRTY "?"
-#endif
-#ifndef GIT_TAG
-#define GIT_TAG "?"
-#endif
+#include "version.h"
 
 #define SPECIAL_WORKSPACE_START (-99)
 
 #define PI 3.14159265358979
 
 #define STRVAL_EMPTY "[[EMPTY]]"
+
+#define WORKSPACE_INVALID -1L
 
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \

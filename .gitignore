@@ -29,3 +29,5 @@ gmon.out
 *.tar.gz
 
 PKGBUILD
+
+src/version.h

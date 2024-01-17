@@ -12,8 +12,8 @@ uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
 uniform float radius;
+uniform float radiusOuter;
 uniform float thick;
-uniform int primitiveMultisample;
 
 uniform vec4 gradient[10];
 uniform int gradientLength;
@@ -52,6 +52,7 @@ vec4 getColorForCoord(vec2 normalizedCoord) {
 void main() {
 
     highp vec2 pixCoord = vec2(gl_FragCoord);
+    highp vec2 pixCoordOuter = pixCoord;
     highp vec2 originalPixCoord = v_texcoord;
     originalPixCoord *= fullSizeUntransformed;
     float additionalAlpha = 1.0;
@@ -62,36 +63,33 @@ void main() {
 
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+    pixCoordOuter = pixCoord;
     pixCoord -= fullSize * 0.5 - radius;
+    pixCoordOuter -= fullSize * 0.5 - radiusOuter;
+
+    // center the pixes dont make it top-left
+    pixCoord += vec2(1.0, 1.0) / fullSize;
+    pixCoordOuter += vec2(1.0, 1.0) / fullSize;
 
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
-
 	    float dist = length(pixCoord);
+	    float distOuter = length(pixCoordOuter);
+        float h = (thick / 2.0);
 
-	    if (dist > radius + 1.0 || dist < radius - thick - 1.0)
-	        discard;
-
-	    if (primitiveMultisample == 1 && (dist > radius - 1.0 || dist < radius - thick + 1.0)) {
-	        float distances = 0.0;
-            float len = length(pixCoord + vec2(0.25, 0.25));
-	        distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.75, 0.25));
-            distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.25, 0.75));
-            distances += float(len < radius && len > radius - thick);
-            len = length(pixCoord + vec2(0.75, 0.75));
-            distances += float(len < radius && len > radius - thick);
-
-	        if (distances == 0.0)
-		        discard;
-
-	        distances /= 4.0;
-
-	        additionalAlpha *= distances;
-        } else if (dist > radius || dist < radius - thick)
-            discard;
-
-        done = true;
+	    if (dist < radius - h) {
+            // lower
+            float normalized = smoothstep(0.0, 1.0, dist - radius + thick + 0.5);
+            additionalAlpha *= normalized;
+            done = true;
+        } else if (min(pixCoordOuter.x, pixCoordOuter.y) > 0.0) {
+            // higher
+            float normalized = 1.0 - smoothstep(0.0, 1.0, distOuter - radiusOuter + 0.5);
+            additionalAlpha *= normalized;
+            done = true;
+        } else if (distOuter < radiusOuter - h) {
+            additionalAlpha = 1.0;
+            done = true;
+        }
     }
 
     // now check for other shit

@@ -30,6 +30,8 @@ enum eGroupRules {
     GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
+class IWindowTransformer;
+
 template <typename T>
 class CWindowOverridableVar {
   public:
@@ -104,13 +106,13 @@ class CWindowOverridableVar {
 };
 
 struct SWindowSpecialRenderData {
-    CWindowOverridableVar<bool>    alphaOverride         = false;
-    CWindowOverridableVar<float>   alpha                 = 1.f;
-    CWindowOverridableVar<bool>    alphaInactiveOverride = false;
-    CWindowOverridableVar<float>   alphaInactive         = -1.f; // -1 means unset
+    CWindowOverridableVar<bool>               alphaOverride         = false;
+    CWindowOverridableVar<float>              alpha                 = 1.f;
+    CWindowOverridableVar<bool>               alphaInactiveOverride = false;
+    CWindowOverridableVar<float>              alphaInactive         = -1.f; // -1 means unset
 
-    CWindowOverridableVar<int64_t> activeBorderColor   = -1; // -1 means unset
-    CWindowOverridableVar<int64_t> inactiveBorderColor = -1; // -1 means unset
+    CWindowOverridableVar<CGradientValueData> activeBorderColor   = CGradientValueData(); // empty color vector means unset
+    CWindowOverridableVar<CGradientValueData> inactiveBorderColor = CGradientValueData(); // empty color vector means unset
 
     // set by the layout
     CWindowOverridableVar<int> borderSize = -1; // -1 means unset
@@ -138,6 +140,8 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> keepAspectRatio       = false;
     CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<bool> forceTearing          = false;
+    CWindowOverridableVar<bool> nearestNeighbor       = false;
 };
 
 struct SWindowRule {
@@ -147,11 +151,15 @@ struct SWindowRule {
     bool        v2 = false;
     std::string szTitle;
     std::string szClass;
-    int         bX11        = -1; // -1 means "ANY"
-    int         bFloating   = -1;
-    int         bFullscreen = -1;
-    int         bPinned     = -1;
-    std::string szWorkspace = ""; // empty means any
+    std::string szInitialTitle;
+    std::string szInitialClass;
+    int         bX11         = -1; // -1 means "ANY"
+    int         bFloating    = -1;
+    int         bFullscreen  = -1;
+    int         bPinned      = -1;
+    int         bFocus       = -1;
+    int         iOnWorkspace = -1;
+    std::string szWorkspace  = ""; // empty means any
 };
 
 class CWindow {
@@ -179,6 +187,7 @@ class CWindow {
     DYNLISTENER(setOverrideRedirect);
     DYNLISTENER(associateX11);
     DYNLISTENER(dissociateX11);
+    DYNLISTENER(ackConfigure);
     // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface            m_pWLSurface;
@@ -198,8 +207,11 @@ class CWindow {
     CAnimatedVariable m_vRealSize;
 
     // for not spamming the protocols
-    Vector2D m_vReportedPosition;
-    Vector2D m_vReportedSize;
+    Vector2D                                     m_vReportedPosition;
+    Vector2D                                     m_vReportedSize;
+    Vector2D                                     m_vPendingReportedSize;
+    std::optional<std::pair<uint32_t, Vector2D>> m_pPendingSizeAck;
+    std::vector<std::pair<uint32_t, Vector2D>>   m_vPendingSizeAcks;
 
     // for restoring floating statuses
     Vector2D m_vLastFloatingSize;
@@ -229,7 +241,6 @@ class CWindow {
 
     // XWayland stuff
     bool     m_bIsX11                = false;
-    bool     m_bMappedX11            = false;
     CWindow* m_pX11Parent            = nullptr;
     uint64_t m_iX11Type              = 0;
     bool     m_bIsModal              = false;
@@ -286,6 +297,9 @@ class CWindow {
     SWindowSpecialRenderData    m_sSpecialRenderData;
     SWindowAdditionalConfigData m_sAdditionalConfigData;
 
+    // Transformers
+    std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
+
     // for alpha
     CAnimatedVariable m_fActiveInactiveAlpha;
 
@@ -317,6 +331,8 @@ class CWindow {
     } m_sGroupData;
     uint16_t m_eGroupRules = GROUP_NONE;
 
+    bool     m_bTearingHint = false;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
@@ -324,18 +340,23 @@ class CWindow {
     }
 
     // methods
-    wlr_box                  getFullWindowBoundingBox();
+    CBox                     getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
-    wlr_box                  getWindowInputBox();
-    wlr_box                  getWindowIdealBoundingBoxIgnoreReserved();
+    CBox                     getWindowInputBox();
+    CBox                     getWindowMainSurfaceBox();
+    CBox                     getWindowIdealBoundingBoxIgnoreReserved();
+    void                     addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
     void                     updateWindowDecos();
+    void                     removeWindowDeco(IHyprWindowDecoration* deco);
+    void                     uncacheWindowDecos();
+    bool                     checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);
     void                     removeDecorationByType(eDecorationType);
     void                     createToplevelHandle();
     void                     destroyToplevelHandle();
     void                     updateToplevel();
-    void                     updateSurfaceOutputs();
+    void                     updateSurfaceScaleTransformDetails();
     void                     moveToWorkspace(int);
     CWindow*                 X11TransientFor();
     void                     onUnmap();
@@ -348,6 +369,9 @@ class CWindow {
     Vector2D                 middle();
     bool                     opaque();
     float                    rounding();
+    bool                     canBeTorn();
+    bool                     shouldSendFullscreenState();
+    void                     setSuspended(bool suspend);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -365,6 +389,7 @@ class CWindow {
     CWindow*                 getGroupPrevious();
     CWindow*                 getGroupWindowByIndex(int);
     int                      getGroupSize();
+    bool                     canBeGroupedInto(CWindow* pWindow);
     void                     setGroupCurrent(CWindow* pWindow);
     void                     insertWindowToGroup(CWindow* pWindow);
     void                     updateGroupOutputs();
@@ -372,7 +397,8 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden = false;
+    bool m_bHidden    = false;
+    bool m_bSuspended = false;
 };
 
 /**

@@ -22,10 +22,13 @@ class Vector2D {
     Vector2D operator-(const Vector2D& a) const {
         return Vector2D(this->x - a.x, this->y - a.y);
     }
-    Vector2D operator*(const float& a) const {
+    Vector2D operator-() const {
+        return Vector2D(-this->x, -this->y);
+    }
+    Vector2D operator*(const double& a) const {
         return Vector2D(this->x * a, this->y * a);
     }
-    Vector2D operator/(const float& a) const {
+    Vector2D operator/(const double& a) const {
         return Vector2D(this->x / a, this->y / a);
     }
 
@@ -52,12 +55,43 @@ class Vector2D {
     bool operator<(const Vector2D& a) const {
         return this->x < a.x && this->y < a.y;
     }
+    Vector2D& operator+=(const Vector2D& a) {
+        this->x += a.x;
+        this->y += a.y;
+        return *this;
+    }
+    Vector2D& operator-=(const Vector2D& a) {
+        this->x -= a.x;
+        this->y -= a.y;
+        return *this;
+    }
+    Vector2D& operator*=(const Vector2D& a) {
+        this->x *= a.x;
+        this->y *= a.y;
+        return *this;
+    }
+    Vector2D& operator/=(const Vector2D& a) {
+        this->x /= a.x;
+        this->y /= a.y;
+        return *this;
+    }
+    Vector2D& operator*=(const double& a) {
+        this->x *= a;
+        this->y *= a;
+        return *this;
+    }
+    Vector2D& operator/=(const double& a) {
+        this->x /= a;
+        this->y /= a;
+        return *this;
+    }
 
     double   distance(const Vector2D& other) const;
-
+    double   size() const;
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
 
     Vector2D floor() const;
+    Vector2D round() const;
 
     bool     inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D& p3) const;
 };

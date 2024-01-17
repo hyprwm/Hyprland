@@ -95,8 +95,8 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
         PMONITOR->scheduledRecalc = true;
 
         // and damage
-        wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
-                             layersurface->geometry.height};
+        CBox geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                          layersurface->geometry.height};
         g_pHyprRenderer->damageBox(&geomFixed);
     }
 
@@ -142,7 +142,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
-    const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive &&
+    const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint);
 
@@ -157,8 +157,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
-                         layersurface->geometry.height};
+    CBox geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                      layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
     const auto WORKSPACE  = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
@@ -171,7 +171,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
     EMIT_HOOK_EVENT("openLayer", layersurface);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(layersurface->layerSurface->surface, PMONITOR->transform);
 }
 
 void Events::listener_unmapLayerSurface(void* owner, void* data) {
@@ -246,13 +247,15 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
         }
     }
 
-    wlr_box geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
-                         layersurface->geometry.height};
+    CBox geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
+                      layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     geomFixed = {layersurface->geometry.x + (int)PMONITOR->vecPosition.x, layersurface->geometry.y + (int)PMONITOR->vecPosition.y,
                  (int)layersurface->layerSurface->surface->current.width, (int)layersurface->layerSurface->surface->current.height};
     g_pHyprRenderer->damageBox(&geomFixed);
+
+    g_pInputManager->sendMotionEventsToFocused();
 }
 
 void Events::listener_commitLayerSurface(void* owner, void* data) {
@@ -269,7 +272,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if (layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
 
-    wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
+    CBox geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     // fix if it changed its mon
@@ -342,5 +345,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredScaleForSurface(layersurface->layerSurface->surface, PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(layersurface->layerSurface->surface, PMONITOR->transform);
 }

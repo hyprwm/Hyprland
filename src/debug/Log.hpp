@@ -1,13 +1,14 @@
 #pragma once
 #include <string>
-#include <wlr/util/log.h>
 #include <format>
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include "../includes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 
-#define LOGMESSAGESIZE 1024
+#define LOGMESSAGESIZE   1024
+#define ROLLING_LOG_SIZE 4096
 
 enum LogLevel {
     NONE = -1,
@@ -25,14 +26,17 @@ namespace Debug {
     inline int64_t*    disableTime   = nullptr;
     inline bool        disableStdout = false;
     inline bool        trace         = false;
+    inline bool        shuttingDown  = false;
+
+    inline std::string rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
 
     void               init(const std::string& IS);
     template <typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-        if (disableLogs && *disableLogs)
+        if (level == TRACE && !trace)
             return;
 
-        if (level == TRACE && !trace)
+        if (shuttingDown)
             return;
 
         std::string logMsg = "";
@@ -46,10 +50,6 @@ namespace Debug {
             case TRACE: logMsg += "[TRACE] "; break;
             default: break;
         }
-
-        // log to a file
-        std::ofstream ofs;
-        ofs.open(logFile, std::ios::out | std::ios::app);
 
         // print date and time to the ofs
         if (disableTime && !*disableTime) {
@@ -69,9 +69,18 @@ namespace Debug {
         // 3. this is actually what std::format in stdlib does
         logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
-        ofs << logMsg << "\n";
+        rollingLog += logMsg + "\n";
+        if (rollingLog.size() > ROLLING_LOG_SIZE)
+            rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
 
-        ofs.close();
+        if (!disableLogs || !*disableLogs) {
+            // log to a file
+            std::ofstream ofs;
+            ofs.open(logFile, std::ios::out | std::ios::app);
+            ofs << logMsg << "\n";
+
+            ofs.close();
+        }
 
         // log it to the stdout too.
         if (!disableStdout)

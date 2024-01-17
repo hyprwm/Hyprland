@@ -10,6 +10,7 @@
   git,
   hyprland-protocols,
   jq,
+  libGL,
   libdrm,
   libinput,
   libxcb,
@@ -18,6 +19,7 @@
   pango,
   pciutils,
   systemd,
+  tomlplusplus,
   udis86,
   wayland,
   wayland-protocols,
@@ -26,21 +28,23 @@
   xcbutilwm,
   xwayland,
   debug ? false,
-  enableNvidiaPatches ? false,
   enableXWayland ? true,
   legacyRenderer ? false,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
   version ? "git",
   commit,
+  date,
   # deprecated flags
+  enableNvidiaPatches ? false,
   nvidiaPatches ? false,
   hidpiXWayland ? false,
 }:
-assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been renamed `enableNvidiaPatches`";
+assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
+assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
 assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
   stdenv.mkDerivation {
-    pname = "hyprland${lib.optionalString enableNvidiaPatches "-nvidia"}${lib.optionalString debug "-debug"}";
+    pname = "hyprland${lib.optionalString debug "-debug"}";
     inherit version;
 
     src = lib.cleanSourceWith {
@@ -68,19 +72,21 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     buildInputs =
       [
-        git
         cairo
+        git
         hyprland-protocols
         libdrm
+        libGL
         libinput
         libxkbcommon
         mesa
         pango
+        pciutils
+        tomlplusplus
         udis86
         wayland
         wayland-protocols
-        pciutils
-        (wlroots.override {inherit enableNvidiaPatches;})
+        wlroots
       ]
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
       ++ lib.optionals withSystemd [systemd];
@@ -90,8 +96,9 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       then "debug"
       else "release";
 
+    mesonAutoFeatures = "disabled";
+
     mesonFlags = builtins.concatLists [
-      ["-Dauto_features=disabled"]
       (lib.optional enableXWayland "-Dxwayland=enabled")
       (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
       (lib.optional withSystemd "-Dsystemd=enabled")
@@ -105,9 +112,16 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     postPatch = ''
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp
-      substituteInPlace meson.build \
-        --replace "@GIT_COMMIT_HASH@" '${commit}' \
-        --replace "@GIT_DIRTY@" '${
+
+      # Generate version.h
+      cp src/version.h.in src/version.h
+      substituteInPlace src/version.h \
+        --replace "@HASH@" '${commit}' \
+        --replace "@BRANCH@" "" \
+        --replace "@MESSAGE@" "" \
+        --replace "@DATE@" "${date}" \
+        --replace "@TAG@" "" \
+        --replace "@DIRTY@" '${
         if commit == ""
         then "dirty"
         else ""
@@ -118,7 +132,11 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
-          --suffix PATH : ${lib.makeBinPath [binutils pciutils]}
+          --suffix PATH : ${lib.makeBinPath [
+          stdenv.cc
+          binutils
+          pciutils
+        ]}
       ''}
     '';
 

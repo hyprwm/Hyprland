@@ -7,7 +7,7 @@
 #include <deque>
 #include <any>
 
-enum eFullscreenMode : uint8_t;
+enum eFullscreenMode : int8_t;
 
 //orientation determines which side of the screen the master area resides
 enum eOrientation : uint8_t {
@@ -31,7 +31,10 @@ struct SMasterNodeData {
 
     int      workspaceID = -1;
 
-    bool     operator==(const SMasterNodeData& rhs) const {
+    bool     ignoreFullscreenChecks = false;
+
+    //
+    bool operator==(const SMasterNodeData& rhs) const {
         return pWindow == rhs.pWindow;
     }
 };
@@ -40,7 +43,8 @@ struct SMasterWorkspaceData {
     int          workspaceID = -1;
     eOrientation orientation = ORIENTATION_LEFT;
 
-    bool         operator==(const SMasterWorkspaceData& rhs) const {
+    //
+    bool operator==(const SMasterWorkspaceData& rhs) const {
         return workspaceID == rhs.workspaceID;
     }
 };

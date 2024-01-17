@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+
+class CWindow;
+
 class CWLSurface {
   public:
     CWLSurface() = default;
@@ -17,13 +20,28 @@ class CWLSurface {
 
     wlr_surface* wlr() const;
     bool         exists() const;
+    bool         small() const;           // means surface is smaller than the requested size
+    Vector2D     correctSmallVec() const; // returns a corrective vector for small() surfaces
+    Vector2D     getViewporterCorrectedSize() const;
 
-    CWLSurface&  operator=(wlr_surface* pSurface) {
-         destroy();
-         m_pWLRSurface = pSurface;
-         init();
+    // allow stretching. Useful for plugins.
+    bool m_bFillIgnoreSmall = false;
 
-         return *this;
+    // if present, means this is a base surface of a window. Cleaned on unassign()
+    CWindow* m_pOwner = nullptr;
+
+    // track surface data and avoid dupes
+    float               m_fLastScale     = 0;
+    int                 m_iLastScale     = 0;
+    wl_output_transform m_eLastTransform = (wl_output_transform)-1;
+
+    //
+    CWLSurface& operator=(wlr_surface* pSurface) {
+        destroy();
+        m_pWLRSurface = pSurface;
+        init();
+
+        return *this;
     }
 
     bool operator==(const CWLSurface& other) const {
@@ -36,6 +54,10 @@ class CWLSurface {
 
     explicit operator bool() const {
         return exists();
+    }
+
+    static CWLSurface* surfaceFromWlr(wlr_surface* pSurface) {
+        return (CWLSurface*)pSurface->data;
     }
 
   private:

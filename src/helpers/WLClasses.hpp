@@ -16,6 +16,7 @@ struct SLayerRule {
 
 struct SLayerSurface {
     SLayerSurface();
+    ~SLayerSurface();
 
     void                  applyRules();
 
@@ -33,7 +34,7 @@ struct SLayerSurface {
     DYNLISTENER(commitLayerSurface);
     DYNLISTENER(newPopup);
 
-    wlr_box                   geometry = {0, 0, 0, 0};
+    CBox                      geometry = {0, 0, 0, 0};
     Vector2D                  position;
     zwlr_layer_shell_v1_layer layer;
 
@@ -65,12 +66,12 @@ class CMonitor;
 struct SRenderData {
     CMonitor* pMonitor;
     timespec* when;
-    int       x, y;
+    double    x, y;
 
     // for iters
     void*        data    = nullptr;
     wlr_surface* surface = nullptr;
-    int          w, h;
+    double       w, h;
 
     // for rounding
     bool dontRound = true;
@@ -96,6 +97,8 @@ struct SRenderData {
 
     // for calculating UV
     CWindow* pWindow = nullptr;
+
+    bool     popup = false;
 };
 
 struct SExtensionFindingData {
@@ -168,18 +171,20 @@ struct SConstraint {
 
     bool                       active = false;
 
-    bool                       hintSet      = false;
-    Vector2D                   positionHint = {-1, -1}; // the position hint, but will be set to the current cursor pos if not set.
+    bool                       hintSet             = false;
+    Vector2D                   positionHint        = {-1, -1}; // the position hint, but will use cursorPosOnActivate if unset
+    Vector2D                   cursorPosOnActivate = {-1, -1};
 
     DYNLISTENER(setConstraintRegion);
     DYNLISTENER(destroyConstraint);
 
-    CRegion getLogicCoordsRegion();
+    CRegion  getLogicCoordsRegion();
     Vector2D getLogicConstraintPos();
     Vector2D getLogicConstraintSize();
 
-    bool    operator==(const SConstraint& b) const {
-           return constraint == b.constraint;
+    //
+    bool operator==(const SConstraint& b) const {
+        return constraint == b.constraint;
     }
 };
 
@@ -249,6 +254,8 @@ struct STablet {
     wlr_tablet*           wlrTablet   = nullptr;
     wlr_tablet_v2_tablet* wlrTabletV2 = nullptr;
     wlr_input_device*     wlrDevice   = nullptr;
+
+    bool                  relativeInput = false;
 
     std::string           name = "";
 
@@ -390,5 +397,16 @@ struct SSwitchDevice {
 
     bool operator==(const SSwitchDevice& other) const {
         return pWlrDevice == other.pWlrDevice;
+    }
+};
+
+struct STearingController {
+    wlr_tearing_control_v1* pWlrHint = nullptr;
+
+    DYNLISTENER(set);
+    DYNLISTENER(destroy);
+
+    bool operator==(const STearingController& other) {
+        return pWlrHint == other.pWlrHint;
     }
 };

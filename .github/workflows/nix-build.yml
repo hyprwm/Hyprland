@@ -10,7 +10,6 @@ jobs:
       matrix:
         package:
           - hyprland
-          - hyprland-nvidia
           - xdg-desktop-portal-hyprland
 
     runs-on: ubuntu-latest
@@ -27,4 +26,4 @@ jobs:
           name: hyprland
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - run: nix build -L ${{ matrix.command }}
+      - run: nix build .#${{ matrix.package }} -L

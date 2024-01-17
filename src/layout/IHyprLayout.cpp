@@ -1,12 +1,13 @@
 #include "IHyprLayout.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
     } else {
-        wlr_box desiredGeometry = {0};
+        CBox desiredGeometry = {};
         g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
 
         if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
@@ -35,15 +36,15 @@ void IHyprLayout::onWindowRemoved(CWindow* pWindow) {
             const auto WINDOWISVISIBLE = pWindow->getGroupCurrent() == pWindow;
 
             if (WINDOWISVISIBLE)
-                PWINDOWPREV->setGroupCurrent(PWINDOWPREV);
+                PWINDOWPREV->setGroupCurrent(pWindow->m_sGroupData.head ? pWindow->m_sGroupData.pNextWindow : PWINDOWPREV);
 
             PWINDOWPREV->m_sGroupData.pNextWindow = pWindow->m_sGroupData.pNextWindow;
 
             pWindow->m_sGroupData.pNextWindow = nullptr;
 
             if (pWindow->m_sGroupData.head) {
-                std::swap(PWINDOWPREV->m_sGroupData.head, pWindow->m_sGroupData.head);
-                std::swap(PWINDOWPREV->m_sGroupData.locked, pWindow->m_sGroupData.locked);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.locked, pWindow->m_sGroupData.locked);
             }
 
             if (pWindow == m_pLastTiledWindow)
@@ -75,7 +76,7 @@ void IHyprLayout::onWindowRemovedFloating(CWindow* pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 
-    wlr_box desiredGeometry = {0};
+    CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
@@ -162,6 +163,9 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
+    } else {
+        pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goalv();
+        pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
 }
 
@@ -254,17 +258,38 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->unsetCursorImage();
 
     g_pInputManager->currentlyDraggedWindow = nullptr;
+    g_pInputManager->m_bWasDraggingWindow   = true;
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;
         g_pInputManager->refocus();
         changeWindowFloatingMode(DRAGGINGWINDOW);
         DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
+    } else if (g_pInputManager->dragMode == MBIND_MOVE) {
+        g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
+        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+        CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS, DRAGGINGWINDOW);
+
+        if (pWindow && pWindow->m_bIsFloating) {
+            if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
+                return;
+
+            if (pWindow->m_sGroupData.pNextWindow && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
+                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
+                (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
+                pWindow->setGroupCurrent(DRAGGINGWINDOW);
+                DRAGGINGWINDOW->updateWindowDecos();
+
+                if (!DRAGGINGWINDOW->getDecorationByType(DECORATION_GROUPBAR))
+                    DRAGGINGWINDOW->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
+            }
+        }
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
-
     g_pCompositor->focusWindow(DRAGGINGWINDOW);
+
+    g_pInputManager->m_bWasDraggingWindow = false;
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -301,11 +326,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->dragMode == MBIND_MOVE) {
 
-        if (*PANIMATEMOUSE) {
-            DRAGGINGWINDOW->m_vRealPosition = m_vBeginDragPositionXY + DELTA;
-        } else {
-            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(m_vBeginDragPositionXY + DELTA);
-        }
+        CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goalv()};
+        wb.round();
+
+        if (*PANIMATEMOUSE)
+            DRAGGINGWINDOW->m_vRealPosition = wb.pos();
+        else
+            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
@@ -357,12 +384,15 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
                 newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
 
+            CBox wb = {newPos, newSize};
+            wb.round();
+
             if (*PANIMATE) {
-                DRAGGINGWINDOW->m_vRealSize     = newSize;
-                DRAGGINGWINDOW->m_vRealPosition = newPos;
+                DRAGGINGWINDOW->m_vRealSize     = wb.size();
+                DRAGGINGWINDOW->m_vRealPosition = wb.pos();
             } else {
-                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(newSize);
-                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(newPos);
+                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(wb.size());
+                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
             }
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goalv());
@@ -416,7 +446,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         const auto PSAVEDSIZE = pWindow->m_vRealSize.goalv();
 
         // if the window is pseudo, update its size
-        pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
+        if (!pWindow->m_bDraggingTiled)
+            pWindow->m_vPseudoSize = pWindow->m_vRealSize.goalv();
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 
@@ -438,16 +469,18 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
+        CBox wb = {pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
+        wb.round();
+
         if (DELTALESSTHAN(pWindow->m_vRealSize.vec().x, pWindow->m_vLastFloatingSize.x, 10) && DELTALESSTHAN(pWindow->m_vRealSize.vec().y, pWindow->m_vLastFloatingSize.y, 10)) {
-            pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f + Vector2D{10, 10};
-            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize - Vector2D{20, 20};
+            wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 
-        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f;
-        pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+        pWindow->m_vRealPosition = wb.pos();
+        pWindow->m_vRealSize     = wb.size();
 
-        pWindow->m_vSize     = pWindow->m_vRealSize.goalv();
-        pWindow->m_vPosition = pWindow->m_vRealPosition.goalv();
+        pWindow->m_vSize     = wb.pos();
+        pWindow->m_vPosition = wb.size();
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
@@ -526,13 +559,19 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
+    auto pWindowCandidate = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
 
-    if (!PWINDOWCANDIDATE || pWindow == PWINDOWCANDIDATE || !PWINDOWCANDIDATE->m_bIsMapped || PWINDOWCANDIDATE->isHidden() || PWINDOWCANDIDATE->m_bX11ShouldntFocus ||
-        PWINDOWCANDIDATE->m_iX11Type == 2 || PWINDOWCANDIDATE->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+    if (!pWindowCandidate)
+        pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (!pWindowCandidate)
+        pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->m_iWorkspaceID);
+
+    if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
+        pWindowCandidate->m_iX11Type == 2 || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         return nullptr;
 
-    return PWINDOWCANDIDATE;
+    return pWindowCandidate;
 }
 
 bool IHyprLayout::isWindowReachable(CWindow* pWindow) {

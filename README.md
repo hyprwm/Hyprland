@@ -41,6 +41,8 @@ easy IPC, much more QoL stuff than other wlr-based compositors and more...
 - Much more QoL stuff than other wlr-based compositors
 - Custom bezier curves for the best animations
 - Powerful plugin support
+- Built-in plugin manager
+- Tearing support for better gaming performance
 - Easily expandable and readable codebase
 - Fast and active development
 - Not scared to provide bleeding-edge features
@@ -127,8 +129,8 @@ easy IPC, much more QoL stuff than other wlr-based compositors and more...
 <!----------------------------------{ Images }--------------------------------->
 
 [Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
-[Preview A]: https://cdn.discordapp.com/attachments/1091569872535814185/1107675866101723277/screenshot-summer.png
-[Preview B]: https://i.ibb.co/SX7GbYR/winter-rice.png
+[Preview A]: https://i.ibb.co/C1yTb0r/falf.png
+[Preview B]: https://cdn.discordapp.com/attachments/1091569872535814185/1107675866101723277/screenshot-summer.png
 [Preview C]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png
 
 

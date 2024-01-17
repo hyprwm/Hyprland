@@ -26,7 +26,7 @@ void CHookSystemManager::unhook(HOOK_CALLBACK_FN* fn) {
     }
 }
 
-void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, std::any data) {
+void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCallbackInfo& info, std::any data) {
     if (callbacks->empty())
         return;
 
@@ -38,7 +38,7 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, std:
 
         if (!cb.handle) {
             // we don't guard hl hooks
-            (*cb.fn)(cb.fn, data);
+            (*cb.fn)(cb.fn, info, data);
             continue;
         }
 
@@ -49,7 +49,7 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, std:
 
         try {
             if (!setjmp(m_jbHookFaultJumpBuf))
-                (*cb.fn)(cb.fn, data);
+                (*cb.fn)(cb.fn, info, data);
             else {
                 // this module crashed.
                 throw std::exception();

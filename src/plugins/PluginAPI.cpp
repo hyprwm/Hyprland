@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+APICALL const char* __hyprland_api_get_hash() {
+    return GIT_COMMIT_HASH;
+}
+
 APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
@@ -107,7 +111,7 @@ APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook)
     return g_pFunctionHookSystem->removeHook(hook);
 }
 
-APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, IHyprWindowDecoration* pDecoration) {
+APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
@@ -116,11 +120,10 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, I
     if (!g_pCompositor->windowValidMapped(pWindow))
         return false;
 
-    PLUGIN->registeredDecorations.push_back(pDecoration);
+    PLUGIN->registeredDecorations.push_back(pDecoration.get());
 
-    pWindow->m_dWindowDecorations.emplace_back(pDecoration);
+    pWindow->addWindowDeco(std::move(pDecoration));
 
-    pWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 
     return true;
@@ -135,7 +138,7 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
     for (auto& w : g_pCompositor->m_vWindows) {
         for (auto& d : w->m_dWindowDecorations) {
             if (d.get() == pDecoration) {
-                std::erase(w->m_dWindowDecorations, d);
+                w->removeWindowDeco(pDecoration);
                 return true;
             }
         }
@@ -153,10 +156,23 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     if (!PLUGIN)
         return false;
 
-    if (name.find("plugin:") != 0)
+    if (!name.starts_with("plugin:"))
         return false;
 
     g_pConfigManager->addPluginConfigVar(handle, name, value);
+    return true;
+}
+
+APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!g_pPluginSystem->m_bAllowConfigVars)
+        return false;
+
+    if (!PLUGIN)
+        return false;
+
+    g_pConfigManager->addPluginKeyword(handle, name, fn);
     return true;
 }
 
@@ -277,7 +293,7 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     const auto FPATH = std::filesystem::canonical(exe);
 #elif defined(__OpenBSD__)
     // Neither KERN_PROC_PATHNAME nor /proc are supported
-    const auto FPATH = std::filesystem::canonical("/usr/local/bin/Hyprland");
+    const auto        FPATH            = std::filesystem::canonical("/usr/local/bin/Hyprland");
 #else
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
@@ -301,7 +317,11 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
             count++;
         }
 
-        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos + 1) - pos);
+        // Skip the newline char itself
+        if (pos != 0)
+            pos++;
+
+        return SYMBOLSDEMANGLED.substr(pos, SYMBOLSDEMANGLED.find('\n', pos) - pos);
     };
 
     if (SYMBOLS.empty()) {
@@ -333,4 +353,13 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     }
 
     return matches;
+}
+
+APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return {};
+
+    return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE};
 }

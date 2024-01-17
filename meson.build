@@ -20,24 +20,18 @@ else
   error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
 endif
 
-GIT_BRANCH = run_command('git', 'rev-parse', '--abbrev-ref', 'HEAD', check: false).stdout().strip()
-GIT_COMMIT_HASH = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()
-GIT_COMMIT_MESSAGE = run_command('sh', '-c', 'git show | head -n 5 | tail -n 1', check: false).stdout().strip()
-GIT_DIRTY = run_command('sh', '-c', 'git diff-index --quiet HEAD -- || echo "dirty"', check: false).stdout().strip()
-
 add_project_arguments(
   [
     '-Wno-unused-parameter',
     '-Wno-unused-value',
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
-
-    f'-DGIT_BRANCH="@GIT_BRANCH@"',
-    f'-DGIT_COMMIT_HASH="@GIT_COMMIT_HASH@"',
-    f'-DGIT_COMMIT_MESSAGE="@GIT_COMMIT_MESSAGE@"',
-    f'-DGIT_DIRTY="@GIT_DIRTY@"',
   ],
   language: 'cpp')
+
+if cpp_compiler.check_header('execinfo.h')
+  add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
+endif
 
 wlroots = subproject('wlroots', default_options: ['examples=false', 'renderers=gles2'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')
@@ -75,6 +69,8 @@ if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif
 
+version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
+
 globber = run_command('find', 'src', '-name', '*.h*', check: true)
 headers = globber.stdout().strip().split('\n')
 foreach file : headers
@@ -84,6 +80,7 @@ endforeach
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
+subdir('hyprpm/src')
 subdir('assets')
 subdir('example')
 subdir('docs')

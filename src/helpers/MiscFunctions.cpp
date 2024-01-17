@@ -2,11 +2,14 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include <optional>
 #include <set>
 #include <sys/utsname.h>
 #include <iomanip>
 #include <sstream>
+#ifdef HAS_EXECINFO
 #include <execinfo.h>
+#endif
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -182,13 +185,6 @@ std::string escapeJSONStrings(const std::string& str) {
     return oss.str();
 }
 
-void scaleBox(wlr_box* box, float scale) {
-    box->width  = std::round(box->width * scale);
-    box->height = std::round(box->height * scale);
-    box->x      = std::round(box->x * scale);
-    box->y      = std::round(box->y * scale);
-}
-
 std::string removeBeginEndSpacesTabs(std::string str) {
     if (str.empty())
         return str;
@@ -208,12 +204,12 @@ std::string removeBeginEndSpacesTabs(std::string str) {
     return str;
 }
 
-float getPlusMinusKeywordResult(std::string source, float relative) {
+std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
     } catch (...) {
         Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
-        return INT_MAX;
+        return {};
     }
 }
 
@@ -246,9 +242,13 @@ bool isDirection(const std::string& arg) {
     return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
 }
 
+bool isDirection(const char& arg) {
+    return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
-    int result = INT_MAX;
-    if (in.find("special") == 0) {
+    int result = WORKSPACE_INVALID;
+    if (in.starts_with("special")) {
         outName = "special";
 
         if (in.length() > 8) {
@@ -262,7 +262,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
 
         return SPECIAL_WORKSPACE_START;
-    } else if (in.find("name:") == 0) {
+    } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {
@@ -271,26 +271,26 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             result = WORKSPACE->m_iID;
         }
         outName = WORKSPACENAME;
-    } else if (in.find("empty") == 0) {
+    } else if (in.starts_with("empty")) {
         int id = 0;
         while (++id < INT_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
             if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
                 return id;
         }
-    } else if (in.find("prev") == 0) {
+    } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
-            return INT_MAX;
+            return WORKSPACE_INVALID;
 
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
         if (!PWORKSPACE)
-            return INT_MAX;
+            return WORKSPACE_INVALID;
 
         const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.iID);
 
         if (!PLASTWORKSPACE)
-            return INT_MAX;
+            return WORKSPACE_INVALID;
 
         outName = PLASTWORKSPACE->m_szName;
         return PLASTWORKSPACE->m_iID;
@@ -298,10 +298,15 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
-                result = INT_MAX;
-                return result;
+                return WORKSPACE_INVALID;
             }
-            result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
+
+            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(1), 0);
+
+            if (!PLUSMINUSRESULT.has_value())
+                return WORKSPACE_INVALID;
+
+            result = (int)PLUSMINUSRESULT.value();
 
             int           remains = (int)result;
 
@@ -389,12 +394,12 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 int beginID = finalWSID;
                 int curID   = finalWSID;
                 while (--curID > 0 && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
                 }
-                if (finalWSID <= 0 || invalidWSes.find(finalWSID) != invalidWSes.end()) {
+                if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
                     if (namedWSes.size()) {
                         // Go to the named workspaces
                         // Need remainingWSes more
@@ -414,7 +419,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             if (walkDir == '+') {
                 int curID = finalWSID;
                 while (++curID < INT32_MAX && remainingWSes > 0) {
-                    if (invalidWSes.find(curID) == invalidWSes.end()) {
+                    if (!invalidWSes.contains(curID)) {
                         remainingWSes--;
                     }
                     finalWSID = curID;
@@ -433,12 +438,16 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
-                result = INT_MAX;
-                return result;
+                return WORKSPACE_INVALID;
             }
 
             // monitor relative
-            result = (int)getPlusMinusKeywordResult(in.substr(1), 0);
+            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(1), 0);
+
+            if (!PLUSMINUSRESULT.has_value())
+                return WORKSPACE_INVALID;
+
+            result = (int)PLUSMINUSRESULT.value();
 
             // result now has +/- what we should move on mon
             int              remains = (int)result;
@@ -479,11 +488,15 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
         } else {
             if (in[0] == '+' || in[0] == '-') {
-                if (g_pCompositor->m_pLastMonitor)
-                    result = std::max((int)getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace), 1);
-                else {
+                if (g_pCompositor->m_pLastMonitor) {
+                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace);
+                    if (!PLUSMINUSRESULT.has_value())
+                        return WORKSPACE_INVALID;
+
+                    result = std::max((int)PLUSMINUSRESULT.value(), 1);
+                } else {
                     Debug::log(ERR, "Relative workspace on no mon!");
-                    result = INT_MAX;
+                    return WORKSPACE_INVALID;
                 }
             } else if (isNumber(in))
                 result = std::max(std::stoi(in), 1);
@@ -499,6 +512,43 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     }
 
     return result;
+}
+
+std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
+
+    std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
+
+    if (!cmd.empty()) {
+        std::string       rules;
+        const std::string workspaceRule = "workspace " + inWorkspaceName;
+
+        if (cmd[0] == '[') {
+            const int closingBracketIdx = cmd.find_last_of(']');
+            auto      tmpRules          = cmd.substr(1, closingBracketIdx - 1);
+            cmd                         = cmd.substr(closingBracketIdx + 1);
+
+            auto rulesList = CVarList(tmpRules, 0, ';');
+
+            bool hadWorkspaceRule = false;
+            rulesList.map([&](std::string& rule) {
+                if (rule.find("workspace") == 0) {
+                    rule             = workspaceRule;
+                    hadWorkspaceRule = true;
+                }
+            });
+
+            if (!hadWorkspaceRule)
+                rulesList.append(workspaceRule);
+
+            rules = "[" + rulesList.join(";") + "]";
+        } else {
+            rules = "[" + workspaceRule + "]";
+        }
+
+        return std::optional<std::string>(rules + " " + cmd);
+    }
+
+    return std::nullopt;
 }
 
 float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2) {
@@ -527,10 +577,10 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: {}", unameInfo.sysname);
-    Debug::log(LOG, "Node name: {}", unameInfo.nodename);
-    Debug::log(LOG, "Release: {}", unameInfo.release);
-    Debug::log(LOG, "Version: {}", unameInfo.version);
+    Debug::log(LOG, "System name: {}", std::string{unameInfo.sysname});
+    Debug::log(LOG, "Node name: {}", std::string{unameInfo.nodename});
+    Debug::log(LOG, "Release: {}", std::string{unameInfo.release});
+    Debug::log(LOG, "Version: {}", std::string{unameInfo.version});
 
     Debug::log(NONE, "\n");
 
@@ -626,11 +676,11 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 int64_t configStringToInt(const std::string& VALUE) {
-    if (VALUE.find("0x") == 0) {
+    if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
         const auto VALUEWITHOUTHEX = VALUE.substr(2);
         return stol(VALUEWITHOUTHEX, nullptr, 16);
-    } else if (VALUE.find("rgba(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
@@ -642,7 +692,7 @@ int64_t configStringToInt(const std::string& VALUE) {
 
         // now we need to RGBA -> ARGB. The config holds ARGB only.
         return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
-    } else if (VALUE.find("rgb(") == 0 && VALUE.find(')') == VALUE.length() - 1) {
+    } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
         if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
@@ -653,11 +703,15 @@ int64_t configStringToInt(const std::string& VALUE) {
         const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
 
         return RGB + 0xFF000000; // 0xFF for opaque
-    } else if (VALUE.find("true") == 0 || VALUE.find("on") == 0 || VALUE.find("yes") == 0) {
+    } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
         return 1;
-    } else if (VALUE.find("false") == 0 || VALUE.find("off") == 0 || VALUE.find("no") == 0) {
+    } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
         return 0;
     }
+
+    if (VALUE.empty() || !isNumber(VALUE))
+        return 0;
+
     return std::stoll(VALUE);
 }
 
@@ -689,9 +743,10 @@ std::string replaceInString(std::string subject, const std::string& search, cons
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
-    void*                            bt[1024];
-    size_t                           btSize;
-    char**                           btSymbols;
+#ifdef HAS_EXECINFO
+    void*  bt[1024];
+    size_t btSize;
+    char** btSymbols;
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
@@ -699,6 +754,9 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
     for (size_t i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
     }
+#else
+    callstack.emplace_back(SCallstackFrameInfo{nullptr, "configuration does not support execinfo.h"});
+#endif
 
     return callstack;
 }
@@ -706,4 +764,38 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 void throwError(const std::string& err) {
     Debug::log(CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
+}
+
+uint32_t drmFormatToGL(uint32_t drm) {
+    switch (drm) {
+        case DRM_FORMAT_XRGB8888:
+        case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
+        case DRM_FORMAT_XRGB2101010:
+        case DRM_FORMAT_XBGR2101010:
+#ifdef GLES2
+            return GL_RGB10_A2_EXT;
+#else
+            return GL_RGB10_A2;
+#endif
+        default: return GL_RGBA;
+    }
+    UNREACHABLE();
+    return GL_RGBA;
+}
+
+uint32_t glFormatToType(uint32_t gl) {
+    return gl != GL_RGBA ?
+#ifdef GLES2
+        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
+#else
+        GL_UNSIGNED_INT_2_10_10_10_REV :
+#endif
+        GL_UNSIGNED_BYTE;
+}
+
+bool envEnabled(const std::string& env) {
+    const auto ENV = getenv(env.c_str());
+    if (!ENV)
+        return false;
+    return std::string(ENV) == "1";
 }

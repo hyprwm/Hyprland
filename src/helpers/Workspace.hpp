@@ -4,9 +4,9 @@
 #include <string>
 #include "../defines.hpp"
 
-enum eFullscreenMode : uint8_t
-{
-    FULLSCREEN_FULL = 0,
+enum eFullscreenMode : int8_t {
+    FULLSCREEN_INVALID = -1,
+    FULLSCREEN_FULL    = 0,
     FULLSCREEN_MAXIMIZED
 };
 
@@ -49,11 +49,11 @@ class CWorkspace {
     bool m_bDefaultFloating = false;
     bool m_bDefaultPseudo   = false;
 
-    // don't destroy in sanity check
-    bool m_bIndestructible = false;
-
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
+
+    // Whether the user configured command for on-created-empty has been executed, if any
+    bool        m_bOnCreatedEmptyExecuted = false;
 
     void        startAnim(bool in, bool left, bool instant = false);
     void        setActive(bool on);

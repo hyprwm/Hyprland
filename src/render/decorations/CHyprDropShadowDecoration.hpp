@@ -7,21 +7,33 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     CHyprDropShadowDecoration(CWindow*);
     virtual ~CHyprDropShadowDecoration();
 
-    virtual SWindowDecorationExtents getWindowDecorationExtents();
+    virtual SDecorationPositioningInfo getPositioningInfo();
 
-    virtual void                     draw(CMonitor*, float a, const Vector2D& offset);
+    virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual eDecorationType          getDecorationType();
+    virtual void                       draw(CMonitor*, float a, const Vector2D& offset);
 
-    virtual void                     updateWindow(CWindow*);
+    virtual eDecorationType            getDecorationType();
 
-    virtual void                     damageEntire();
+    virtual void                       updateWindow(CWindow*);
+
+    virtual void                       damageEntire();
+
+    virtual eDecorationLayer           getDecorationLayer();
+
+    virtual uint64_t                   getDecorationFlags();
+
+    virtual std::string                getDisplayName();
 
   private:
     SWindowDecorationExtents m_seExtents;
+    SWindowDecorationExtents m_seReportedExtents;
 
     CWindow*                 m_pWindow = nullptr;
 
     Vector2D                 m_vLastWindowPos;
     Vector2D                 m_vLastWindowSize;
+
+    CBox                     m_bLastWindowBox          = {0};
+    CBox                     m_bLastWindowBoxWithDecos = {0};
 };

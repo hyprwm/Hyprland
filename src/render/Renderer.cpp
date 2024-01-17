@@ -1575,8 +1575,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         y += CORRECTION.y;
     }
 
-    CRegion damageBox;
-    wlr_surface_get_effective_damage(pSurface, damageBox.pixman());
+    CRegion damageBox{&pSurface->buffer_damage};
     if (scale != 1.0)
         wlr_region_scale(damageBox.pixman(), damageBox.pixman(), scale);
 

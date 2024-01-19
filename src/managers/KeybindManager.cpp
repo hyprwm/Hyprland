@@ -1455,7 +1455,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->cleanup();
+    g_pInputManager->m_bExitTriggered = true;
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {

@@ -214,6 +214,7 @@ class CCompositor {
 
   private:
     void     initAllSignals();
+    void     removeAllSignals();
     void     setRandomSplash();
     void     initManagers(eManagersInitStage stage);
     void     prepareFallbackOutput();

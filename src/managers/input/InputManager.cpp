@@ -1185,6 +1185,9 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
         updateKeyboardsLeds(pKeyboard->keyboard);
     }
+
+    if (m_bExitTriggered)
+        g_pCompositor->cleanup();
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {

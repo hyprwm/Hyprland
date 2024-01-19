@@ -243,6 +243,8 @@ class CInputManager {
 
     void restoreCursorIconToApp(); // no-op if restored
 
+    bool m_bExitTriggered = false; // for exit dispatcher
+
     friend class CKeybindManager;
     friend class CWLSurface;
 };

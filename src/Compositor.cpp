@@ -948,6 +948,11 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
+    if (!g_pInputManager->m_dExclusiveLSes.empty()) {
+        Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
+        return;
+    }
+
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !windowValidMapped(pWindow)) {

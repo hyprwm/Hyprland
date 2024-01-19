@@ -142,6 +142,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     wlr_surface_send_enter(layersurface->layerSurface->surface, layersurface->layerSurface->output);
 
+    if (layersurface->layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+        g_pInputManager->m_dExclusiveLSes.push_back(layersurface);
+
     const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint);
@@ -182,6 +185,11 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", std::string(layersurface->layerSurface->_namespace ? layersurface->layerSurface->_namespace : "")});
     EMIT_HOOK_EVENT("closeLayer", layersurface);
+
+    std::erase(g_pInputManager->m_dExclusiveLSes, layersurface);
+
+    if (!g_pInputManager->m_dExclusiveLSes.empty())
+        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->layerSurface->surface);
 
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");

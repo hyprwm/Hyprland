@@ -349,7 +349,6 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
-                break;
             } else {
                 ++it;
             }
@@ -432,7 +431,6 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
-                break;
             } else {
                 ++it;
             }

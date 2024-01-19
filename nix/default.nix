@@ -96,12 +96,15 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       then "debug"
       else "release";
 
+    dontStrip = debug;
+
     mesonAutoFeatures = "disabled";
 
     mesonFlags = builtins.concatLists [
       (lib.optional enableXWayland "-Dxwayland=enabled")
       (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
       (lib.optional withSystemd "-Dsystemd=enabled")
+      (lib.optional debug "-Ddebug=${if debug then "true" else "false"}")
     ];
 
     patches = [

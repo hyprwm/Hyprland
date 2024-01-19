@@ -159,6 +159,13 @@ void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const
     Debug::log(LOG, "Registered signal for owner {:x}: {:x} -> {:x} (owner: {})", (uintptr_t)pOwner, (uintptr_t)pSignal, (uintptr_t)pListener, ownerString);
 }
 
+void removeWLSignal(wl_listener* pListener) {
+    wl_list_remove(&pListener->link);
+    wl_list_init(&pListener->link);
+
+    Debug::log(LOG, "Removed listener {:x}", (uintptr_t)pListener);
+}
+
 void handleNoop(struct wl_listener* listener, void* data) {
     // Do nothing
 }

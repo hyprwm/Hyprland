@@ -690,7 +690,10 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMinimize.removeCallback();
     }
 
-    if (PWINDOW->m_bIsFullscreen)
+    const auto WORKSPACE      = PWINDOW->m_iWorkspaceID;
+    const bool FULLSCREEN     = PWINDOW->m_bIsFullscreen;
+    const auto FULLSCREENMODE = g_pCompositor->getWorkspaceByID(WORKSPACE)->m_efFullscreenMode;
+    if (FULLSCREEN)
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     // Allow the renderer to catch the last frame.
@@ -713,11 +716,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    // remove the fullscreen window status from workspace if we closed it
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    // restore fullscreen if we closed a fullscreen window
+    CWindow* FWINDOW = g_pCompositor->getFirstWindowOnWorkspace(WORKSPACE);
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->m_bIsFullscreen)
-        PWORKSPACE->m_bHasFullscreenWindow = false;
+    if (FWINDOW && FULLSCREEN) {
+        Debug::log(LOG, "Set fullscreen in the first window of workspace {}", WORKSPACE);
+        g_pCompositor->setWindowFullscreen(FWINDOW, true, FULLSCREENMODE);
+    }
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 

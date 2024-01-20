@@ -2203,7 +2203,12 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
         } else
             moveWindowOutOfGroup(PWINDOW, args);
     } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) // no target window
+    {
         moveWindowOutOfGroup(PWINDOW, args);
+    } else if (!PWINDOWINDIR && !ISWINDOWGROUP) { // no target in dir and not in group
+        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        g_pCompositor->warpCursorTo(PWINDOW->middle());
+    }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
 }

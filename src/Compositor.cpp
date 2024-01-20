@@ -2684,8 +2684,9 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
     if (pWindow->m_bPinned && pWorkspace->m_bIsSpecialWorkspace)
         return;
 
+    const int  OLDWORKSPACE   = pWindow->m_iWorkspaceID;
     const bool FULLSCREEN     = pWindow->m_bIsFullscreen;
-    const auto FULLSCREENMODE = getWorkspaceByID(pWindow->m_iWorkspaceID)->m_efFullscreenMode;
+    const auto FULLSCREENMODE = getWorkspaceByID(OLDWORKSPACE)->m_efFullscreenMode;
 
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
@@ -2726,6 +2727,14 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
 
     g_pCompositor->updateWorkspaceWindows(pWorkspace->m_iID);
     g_pCompositor->updateWorkspaceWindows(pWindow->m_iWorkspaceID);
+
+    // restore fullscreen in the previous workspace if we move a fullscreen window in another workspace
+    CWindow* FWINDOW = g_pCompositor->getFirstWindowOnWorkspace(OLDWORKSPACE);
+
+    if (FWINDOW && FULLSCREEN) {
+        Debug::log(LOG, "Set fullscreen in the first window of workspace {}", OLDWORKSPACE);
+        g_pCompositor->setWindowFullscreen(FWINDOW, true, FULLSCREENMODE);
+    }
 }
 
 CWindow* CCompositor::getForceFocus() {

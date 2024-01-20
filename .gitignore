@@ -31,3 +31,5 @@ gmon.out
 PKGBUILD
 
 src/version.h
+
+.direnv

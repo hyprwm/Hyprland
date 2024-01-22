@@ -118,7 +118,7 @@ void CCompositor::initServer() {
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
-        Debug::log(CRIT, "m_sWLRBackend was NULL!");
+        Debug::log(CRIT, "m_sWLRBackend was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_backend_autocreate() failed!");
     }
 
@@ -131,7 +131,7 @@ void CCompositor::initServer() {
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
-        Debug::log(CRIT, "m_sWLRRenderer was NULL!");
+        Debug::log(CRIT, "m_sWLRRenderer was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 

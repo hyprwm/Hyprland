@@ -386,28 +386,35 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             overrideDirection = DIRECTION_DEFAULT;
     } else if (*PSMARTSPLIT == 1) {
-        const auto tl = NEWPARENT->box.pos();
-        const auto tr = NEWPARENT->box.pos() + Vector2D(NEWPARENT->box.w, 0);
-        const auto bl = NEWPARENT->box.pos() + Vector2D(0, NEWPARENT->box.h);
-        const auto br = NEWPARENT->box.pos() + NEWPARENT->box.size();
-        const auto cc = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
+        const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
+        const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
+        const auto DELTA              = MOUSECOORDS - PARENT_CENTER;
+        const auto DELTA_SLOPE        = DELTA.y / DELTA.x;
 
-        if (TARGETCOORDS.inTriangle(tl, tr, cc)) {
-            NEWPARENT->splitTop    = true;
-            NEWPARENT->children[0] = PNODE;
-            NEWPARENT->children[1] = OPENINGON;
-        } else if (TARGETCOORDS.inTriangle(tr, cc, br)) {
-            NEWPARENT->splitTop    = false;
-            NEWPARENT->children[0] = OPENINGON;
-            NEWPARENT->children[1] = PNODE;
-        } else if (TARGETCOORDS.inTriangle(br, bl, cc)) {
-            NEWPARENT->splitTop    = true;
-            NEWPARENT->children[0] = OPENINGON;
-            NEWPARENT->children[1] = PNODE;
+        if (abs(DELTA_SLOPE) < PARENT_PROPORTIONS) {
+            if (DELTA.x > 0) {
+                // right
+                NEWPARENT->splitTop    = false;
+                NEWPARENT->children[0] = OPENINGON;
+                NEWPARENT->children[1] = PNODE;
+            } else {
+                // left
+                NEWPARENT->splitTop    = false;
+                NEWPARENT->children[0] = PNODE;
+                NEWPARENT->children[1] = OPENINGON;
+            }
         } else {
-            NEWPARENT->splitTop    = false;
-            NEWPARENT->children[0] = PNODE;
-            NEWPARENT->children[1] = OPENINGON;
+            if (DELTA.y > 0) {
+                // bottom
+                NEWPARENT->splitTop    = true;
+                NEWPARENT->children[0] = OPENINGON;
+                NEWPARENT->children[1] = PNODE;
+            } else {
+                // top
+                NEWPARENT->splitTop    = true;
+                NEWPARENT->children[0] = PNODE;
+                NEWPARENT->children[1] = OPENINGON;
+            }
         }
     } else if (*PFORCESPLIT == 0 || !pWindow->m_bFirstMap) {
         if ((SIDEBYSIDE &&

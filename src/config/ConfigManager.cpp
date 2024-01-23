@@ -321,7 +321,7 @@ void CConfigManager::setDeviceDefaultVars(const std::string& dev) {
     cfgValues["scroll_points"].strValue           = STRVAL_EMPTY;
     cfgValues["transform"].intValue               = 0;
     cfgValues["output"].strValue                  = STRVAL_EMPTY;
-    cfgValues["enabled"].intValue                 = 1;          // only for mice / touchpads
+    cfgValues["enabled"].intValue                 = 1;          // only for mice, touchpads, and touchdevices
     cfgValues["region_position"].vecValue         = Vector2D(); // only for tablets
     cfgValues["region_size"].vecValue             = Vector2D(); // only for tablets
     cfgValues["relative_input"].intValue          = 0;          // only for tablets

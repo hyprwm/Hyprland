@@ -1460,12 +1460,16 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
-
     auto setConfig = [&](STouchDevice* const PTOUCHDEV) -> void {
         if (wlr_input_device_is_libinput(PTOUCHDEV->pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(PTOUCHDEV->pWlrDevice);
 
-            const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
+            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "enabled", "input:touchdevice:enabled");
+            const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+            if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
+                libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
+
+            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 

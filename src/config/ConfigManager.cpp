@@ -255,6 +255,7 @@ void CConfigManager::setDefaultVars() {
     configValues["input:touchpad:scroll_factor"].floatValue         = 1.f;
     configValues["input:touchdevice:transform"].intValue            = 0;
     configValues["input:touchdevice:output"].strValue               = STRVAL_EMPTY;
+    configValues["input:touchdevice:enabled"].intValue              = 1;
     configValues["input:tablet:transform"].intValue                 = 0;
     configValues["input:tablet:output"].strValue                    = STRVAL_EMPTY;
     configValues["input:tablet:region_position"].vecValue           = Vector2D();

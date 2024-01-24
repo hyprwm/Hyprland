@@ -65,11 +65,14 @@ SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const int& id) {
 }
 
 SDwindleNodeData* CHyprDwindleLayout::getClosestNodeOnWorkspace(const int& id, const Vector2D& point) {
-    SDwindleNodeData* res = nullptr;
+    SDwindleNodeData* res         = nullptr;
+    double            distClosest = -1;
     for (auto& n : m_lDwindleNodesData) {
         if (n.workspaceID == id && n.pWindow && g_pCompositor->windowValidMapped(n.pWindow)) {
-            if (!res || n.box.distance(point) < res->box.distance(point)) {
-                res = &n;
+            auto distAnother = vecToRectDistanceSquared(point, n.box.pos(), n.box.pos() + n.box.size());
+            if (!res || distAnother < distClosest) {
+                res         = &n;
+                distClosest = distAnother;
             }
         }
     }

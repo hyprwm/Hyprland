@@ -86,16 +86,12 @@ class Vector2D {
         return *this;
     }
 
-    double   dot(const Vector2D& other) const;
     double   distance(const Vector2D& other) const;
-    double   distanceFromSegment(const Vector2D& p1, const Vector2D& p2) const;
     double   size() const;
     Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
 
     Vector2D floor() const;
     Vector2D round() const;
-
-    bool     inTriangle(const Vector2D& p1, const Vector2D& p2, const Vector2D& p3) const;
 };
 
 /**

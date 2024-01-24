@@ -367,73 +367,75 @@ void CCompositor::removeAllSignals() {
 
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
-        return;
+        exit(0);
 
-    removeLockFile();
+    else {
+        removeLockFile();
 
-    m_bIsShuttingDown   = true;
-    Debug::shuttingDown = true;
+        m_bIsShuttingDown   = true;
+        Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (sd_booted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-        sd_notify(0, "STOPPING=1");
+        if (sd_booted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+            sd_notify(0, "STOPPING=1");
 #endif
 
-    // unload all remaining plugins while the compositor is
-    // still in a normal working state.
-    g_pPluginSystem->unloadAllPlugins();
+        // unload all remaining plugins while the compositor is
+        // still in a normal working state.
+        g_pPluginSystem->unloadAllPlugins();
 
-    m_pLastFocus  = nullptr;
-    m_pLastWindow = nullptr;
+        m_pLastFocus  = nullptr;
+        m_pLastWindow = nullptr;
 
-    // end threads
-    g_pEventManager->m_tThread = std::thread();
+        // end threads
+        g_pEventManager->m_tThread = std::thread();
 
-    m_vWorkspaces.clear();
-    m_vWindows.clear();
+        m_vWorkspaces.clear();
+        m_vWindows.clear();
 
-    for (auto& m : m_vMonitors) {
-        g_pHyprOpenGL->destroyMonitorResources(m.get());
+        for (auto& m : m_vMonitors) {
+            g_pHyprOpenGL->destroyMonitorResources(m.get());
 
-        wlr_output_enable(m->output, false);
-        wlr_output_commit(m->output);
+            wlr_output_enable(m->output, false);
+            wlr_output_commit(m->output);
+        }
+
+        m_vMonitors.clear();
+
+        if (g_pXWaylandManager->m_sWLRXWayland) {
+            wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
+            g_pXWaylandManager->m_sWLRXWayland = nullptr;
+        }
+
+        removeAllSignals();
+
+        wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
+
+        g_pDecorationPositioner.reset();
+        g_pPluginSystem.reset();
+        g_pHyprNotificationOverlay.reset();
+        g_pDebugOverlay.reset();
+        g_pEventManager.reset();
+        g_pSessionLockManager.reset();
+        g_pProtocolManager.reset();
+        g_pHyprRenderer.reset();
+        g_pHyprOpenGL.reset();
+        g_pInputManager.reset();
+        g_pThreadManager.reset();
+        g_pConfigManager.reset();
+        g_pLayoutManager.reset();
+        g_pHyprError.reset();
+        g_pConfigManager.reset();
+        g_pAnimationManager.reset();
+        g_pKeybindManager.reset();
+        g_pHookSystem.reset();
+        g_pWatchdog.reset();
+        g_pXWaylandManager.reset();
+
+        wl_display_terminate(m_sWLDisplay);
+
+        m_sWLDisplay = nullptr;
     }
-
-    m_vMonitors.clear();
-
-    if (g_pXWaylandManager->m_sWLRXWayland) {
-        wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
-        g_pXWaylandManager->m_sWLRXWayland = nullptr;
-    }
-
-    removeAllSignals();
-
-    wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
-
-    g_pDecorationPositioner.reset();
-    g_pPluginSystem.reset();
-    g_pHyprNotificationOverlay.reset();
-    g_pDebugOverlay.reset();
-    g_pEventManager.reset();
-    g_pSessionLockManager.reset();
-    g_pProtocolManager.reset();
-    g_pHyprRenderer.reset();
-    g_pHyprOpenGL.reset();
-    g_pInputManager.reset();
-    g_pThreadManager.reset();
-    g_pConfigManager.reset();
-    g_pLayoutManager.reset();
-    g_pHyprError.reset();
-    g_pConfigManager.reset();
-    g_pAnimationManager.reset();
-    g_pKeybindManager.reset();
-    g_pHookSystem.reset();
-    g_pWatchdog.reset();
-    g_pXWaylandManager.reset();
-
-    wl_display_terminate(m_sWLDisplay);
-
-    m_sWLDisplay = nullptr;
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

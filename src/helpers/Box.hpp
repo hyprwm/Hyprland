@@ -60,6 +60,8 @@ class CBox {
     Vector2D                 pos() const;
     Vector2D                 size() const;
 
+    double                   distance(const Vector2D& point) const;
+
     bool                     containsPoint(const Vector2D& vec) const;
     bool                     empty() const;
 

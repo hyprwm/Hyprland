@@ -124,6 +124,14 @@ Vector2D CBox::size() const {
     return {w, h};
 }
 
+double CBox::distance(const Vector2D& point) const {
+    Vector2D p1 = pos();
+    Vector2D p2 = pos() + Vector2D(w, 0);
+    Vector2D p3 = pos() + size();
+    Vector2D p4 = pos() + Vector2D(0, h);
+    return std::min({point.distanceFromSegment(p1, p2), point.distanceFromSegment(p2, p3), point.distanceFromSegment(p3, p4), point.distanceFromSegment(p4, p1)});
+}
+
 SWindowDecorationExtents CBox::extentsFrom(const CBox& small) {
     return {{small.x - x, small.y - y}, {w - small.w - (small.x - x), h - small.h - (small.y - y)}};
 }

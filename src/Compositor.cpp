@@ -435,6 +435,8 @@ void CCompositor::cleanup() {
         wl_display_terminate(m_sWLDisplay);
 
         m_sWLDisplay = nullptr;
+
+        exit(0);
     }
 }
 

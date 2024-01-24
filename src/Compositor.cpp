@@ -81,26 +81,6 @@ CCompositor::CCompositor() {
 
 CCompositor::~CCompositor() {
     cleanup();
-    g_pDecorationPositioner.reset();
-    g_pPluginSystem.reset();
-    g_pHyprNotificationOverlay.reset();
-    g_pDebugOverlay.reset();
-    g_pEventManager.reset();
-    g_pSessionLockManager.reset();
-    g_pProtocolManager.reset();
-    g_pXWaylandManager.reset();
-    g_pHyprRenderer.reset();
-    g_pHyprOpenGL.reset();
-    g_pInputManager.reset();
-    g_pThreadManager.reset();
-    g_pConfigManager.reset();
-    g_pLayoutManager.reset();
-    g_pHyprError.reset();
-    g_pConfigManager.reset();
-    g_pAnimationManager.reset();
-    g_pKeybindManager.reset();
-    g_pHookSystem.reset();
-    g_pWatchdog.reset();
 }
 
 void CCompositor::setRandomSplash() {
@@ -138,7 +118,7 @@ void CCompositor::initServer() {
     m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
-        Debug::log(CRIT, "m_sWLRBackend was NULL!");
+        Debug::log(CRIT, "m_sWLRBackend was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_backend_autocreate() failed!");
     }
 
@@ -151,7 +131,7 @@ void CCompositor::initServer() {
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
-        Debug::log(CRIT, "m_sWLRRenderer was NULL!");
+        Debug::log(CRIT, "m_sWLRRenderer was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
@@ -332,6 +312,59 @@ void CCompositor::initAllSignals() {
         addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }
 
+void CCompositor::removeAllSignals() {
+    removeWLSignal(&Events::listen_newOutput);
+    removeWLSignal(&Events::listen_newXDGToplevel);
+    removeWLSignal(&Events::listen_mouseMove);
+    removeWLSignal(&Events::listen_mouseMoveAbsolute);
+    removeWLSignal(&Events::listen_mouseButton);
+    removeWLSignal(&Events::listen_mouseAxis);
+    removeWLSignal(&Events::listen_mouseFrame);
+    removeWLSignal(&Events::listen_swipeBegin);
+    removeWLSignal(&Events::listen_swipeUpdate);
+    removeWLSignal(&Events::listen_swipeEnd);
+    removeWLSignal(&Events::listen_pinchBegin);
+    removeWLSignal(&Events::listen_pinchUpdate);
+    removeWLSignal(&Events::listen_pinchEnd);
+    removeWLSignal(&Events::listen_touchBegin);
+    removeWLSignal(&Events::listen_touchEnd);
+    removeWLSignal(&Events::listen_touchUpdate);
+    removeWLSignal(&Events::listen_touchFrame);
+    removeWLSignal(&Events::listen_holdBegin);
+    removeWLSignal(&Events::listen_holdEnd);
+    removeWLSignal(&Events::listen_newInput);
+    removeWLSignal(&Events::listen_requestMouse);
+    removeWLSignal(&Events::listen_requestSetSel);
+    removeWLSignal(&Events::listen_requestDrag);
+    removeWLSignal(&Events::listen_startDrag);
+    removeWLSignal(&Events::listen_requestSetSel);
+    removeWLSignal(&Events::listen_requestSetPrimarySel);
+    removeWLSignal(&Events::listen_newLayerSurface);
+    removeWLSignal(&Events::listen_change);
+    removeWLSignal(&Events::listen_outputMgrApply);
+    removeWLSignal(&Events::listen_outputMgrTest);
+    removeWLSignal(&Events::listen_newConstraint);
+    removeWLSignal(&Events::listen_NewXDGDeco);
+    removeWLSignal(&Events::listen_newVirtPtr);
+    removeWLSignal(&Events::listen_newVirtualKeyboard);
+    removeWLSignal(&Events::listen_RendererDestroy);
+    removeWLSignal(&Events::listen_newIdleInhibitor);
+    removeWLSignal(&Events::listen_powerMgrSetMode);
+    removeWLSignal(&Events::listen_newIME);
+    removeWLSignal(&Events::listen_newTextInput);
+    removeWLSignal(&Events::listen_activateXDG);
+    removeWLSignal(&Events::listen_newSessionLock);
+    removeWLSignal(&Events::listen_setGamma);
+    removeWLSignal(&Events::listen_setCursorShape);
+    removeWLSignal(&Events::listen_newTearingHint);
+
+    if (m_sWRLDRMLeaseMgr)
+        removeWLSignal(&Events::listen_leaseRequest);
+
+    if (m_sWLRSession)
+        removeWLSignal(&Events::listen_sessionActive);
+}
+
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
@@ -373,7 +406,30 @@ void CCompositor::cleanup() {
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
+    removeAllSignals();
+
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
+
+    g_pDecorationPositioner.reset();
+    g_pPluginSystem.reset();
+    g_pHyprNotificationOverlay.reset();
+    g_pDebugOverlay.reset();
+    g_pEventManager.reset();
+    g_pSessionLockManager.reset();
+    g_pProtocolManager.reset();
+    g_pHyprRenderer.reset();
+    g_pHyprOpenGL.reset();
+    g_pInputManager.reset();
+    g_pThreadManager.reset();
+    g_pConfigManager.reset();
+    g_pLayoutManager.reset();
+    g_pHyprError.reset();
+    g_pConfigManager.reset();
+    g_pAnimationManager.reset();
+    g_pKeybindManager.reset();
+    g_pHookSystem.reset();
+    g_pWatchdog.reset();
+    g_pXWaylandManager.reset();
 
     wl_display_terminate(m_sWLDisplay);
 
@@ -889,6 +945,11 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
+        return;
+    }
+
+    if (!g_pInputManager->m_dExclusiveLSes.empty()) {
+        Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
         return;
     }
 

@@ -314,8 +314,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
-             1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate &&
-         (*PANIMATEMOUSE || *PANIMATE)))
+         1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();

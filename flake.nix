@@ -86,6 +86,7 @@
           name = "hyprland-shell";
           nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
           buildInputs = [self.packages.${system}.wlroots-hyprland];
+          hardeningDisable = [ "fortify" ];
           inputsFrom = [
             self.packages.${system}.wlroots-hyprland
             self.packages.${system}.hyprland

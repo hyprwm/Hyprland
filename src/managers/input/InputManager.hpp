@@ -142,25 +142,28 @@ class CInputManager {
     // Switches
     std::list<SSwitchDevice> m_lSwitches;
 
-    void                     newTabletTool(wlr_input_device*);
-    void                     newTabletPad(wlr_input_device*);
-    void                     focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
-    void                     newIdleInhibitor(wlr_idle_inhibitor_v1*);
-    void                     recheckIdleInhibitorStatus();
+    // Exclusive layer surfaces
+    std::deque<SLayerSurface*> m_dExclusiveLSes;
 
-    void                     onSwipeBegin(wlr_pointer_swipe_begin_event*);
-    void                     onSwipeEnd(wlr_pointer_swipe_end_event*);
-    void                     onSwipeUpdate(wlr_pointer_swipe_update_event*);
+    void                       newTabletTool(wlr_input_device*);
+    void                       newTabletPad(wlr_input_device*);
+    void                       focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+    void                       newIdleInhibitor(wlr_idle_inhibitor_v1*);
+    void                       recheckIdleInhibitorStatus();
 
-    SSwipeGesture            m_sActiveSwipe;
+    void                       onSwipeBegin(wlr_pointer_swipe_begin_event*);
+    void                       onSwipeEnd(wlr_pointer_swipe_end_event*);
+    void                       onSwipeUpdate(wlr_pointer_swipe_update_event*);
 
-    SKeyboard*               m_pActiveKeyboard = nullptr;
+    SSwipeGesture              m_sActiveSwipe;
 
-    CTimer                   m_tmrLastCursorMovement;
+    SKeyboard*                 m_pActiveKeyboard = nullptr;
 
-    CInputMethodRelay        m_sIMERelay;
+    CTimer                     m_tmrLastCursorMovement;
 
-    void                     updateKeyboardsLeds(wlr_input_device* pKeyboard);
+    CInputMethodRelay          m_sIMERelay;
+
+    void                       updateKeyboardsLeds(wlr_input_device* pKeyboard);
 
     // for shared mods
     uint32_t accumulateModsFromAllKBs();
@@ -242,6 +245,8 @@ class CInputManager {
     } m_sCursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
+
+    bool m_bExitTriggered = false; // for exit dispatcher
 
     friend class CKeybindManager;
     friend class CWLSurface;

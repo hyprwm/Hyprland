@@ -189,6 +189,23 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
+#ifndef GLES2
+
+    const GLenum RESETSTATUS = glGetGraphicsResetStatus();
+    if (RESETSTATUS != GL_NO_ERROR) {
+        std::string errStr = "";
+        switch (RESETSTATUS) {
+            case GL_GUILTY_CONTEXT_RESET: errStr = "GL_GUILTY_CONTEXT_RESET"; break;
+            case GL_INNOCENT_CONTEXT_RESET: errStr = "GL_INNOCENT_CONTEXT_RESET"; break;
+            case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
+            default: errStr = "UNKNOWN??"; break;
+        }
+        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
+        return;
+    }
+
+#endif
+
     TRACY_GPU_ZONE("RenderBegin");
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
@@ -312,6 +329,12 @@ void CHyprOpenGLImpl::end() {
     m_RenderData.mouseZoomFactor    = 1.f;
     m_RenderData.mouseZoomUseMouse  = true;
     m_RenderData.forceIntrospection = false;
+
+    // check for gl errors
+    const GLenum ERR = glGetError();
+
+    if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
+        RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
 void CHyprOpenGLImpl::initShaders() {

@@ -879,6 +879,14 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
         return;
     }
 
+    // save position and size if floating
+    if (pWindow->m_bIsFloating && on) {
+        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goalv();
+        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goalv();
+        pWindow->m_vPosition             = pWindow->m_vRealPosition.goalv();
+        pWindow->m_vSize                 = pWindow->m_vRealSize.goalv();
+    }
+
     // otherwise, accept it.
     pWindow->m_bIsFullscreen           = on;
     PWORKSPACE->m_bHasFullscreenWindow = !PWORKSPACE->m_bHasFullscreenWindow;
@@ -905,14 +913,6 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
         // if it now got fullscreen, make it fullscreen
 
         PWORKSPACE->m_efFullscreenMode = fullscreenMode;
-
-        // save position and size if floating
-        if (pWindow->m_bIsFloating) {
-            pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goalv();
-            pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goalv();
-            pWindow->m_vPosition             = pWindow->m_vRealPosition.goalv();
-            pWindow->m_vSize                 = pWindow->m_vRealSize.goalv();
-        }
 
         // apply new pos and size being monitors' box
         if (fullscreenMode == FULLSCREEN_FULL) {

@@ -115,7 +115,7 @@ void CCompositor::initServer() {
     else
         wlr_log_init(WLR_ERROR, Debug::wlrLog);
 
-    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
+    m_sWLRBackend = wlr_backend_autocreate(m_sWLEventLoop, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
         Debug::log(CRIT, "m_sWLRBackend was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
@@ -239,7 +239,7 @@ void CCompositor::initServer() {
 
     m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
 
-    m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
+    m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
 
@@ -395,8 +395,8 @@ void CCompositor::cleanup() {
     for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());
 
-        wlr_output_enable(m->output, false);
-        wlr_output_commit(m->output);
+        wlr_output_state_set_enabled(&m->outputState, false);
+        wlr_output_commit_state(m->output, &m->outputState);
     }
 
     m_vMonitors.clear();
@@ -2670,11 +2670,7 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && !envEnabled("WLR_DRM_NO_ATOMIC")) {
-        g_pHyprNotificationOverlay->addNotification("You have enabled tearing, but immediate presentations are not available on your configuration. Try adding "
-                                                    "env = WLR_DRM_NO_ATOMIC,1 to your config.",
-                                                    CColor(0), 15000, ICON_WARNING);
-    }
+    ; // intentional
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {

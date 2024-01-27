@@ -82,7 +82,6 @@ class CHyprRenderer {
     CMonitor* m_pMostHzMonitor         = nullptr;
     bool      m_bDirectScanoutBlocked  = false;
     bool      m_bSoftwareCursorsLocked = false;
-    bool      m_bTearingEnvSatisfied   = false;
 
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);

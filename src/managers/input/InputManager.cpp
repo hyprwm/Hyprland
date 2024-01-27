@@ -695,7 +695,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
             return;
     }
 
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source,
+                                 WLR_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

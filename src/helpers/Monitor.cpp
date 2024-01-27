@@ -10,10 +10,12 @@ int ratHandler(void* data) {
 
 CMonitor::CMonitor() {
     wlr_damage_ring_init(&damage);
+    wlr_output_state_init(&outputState);
 }
 
 CMonitor::~CMonitor() {
     wlr_damage_ring_finish(&damage);
+    wlr_output_state_finish(&outputState);
 
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -43,8 +45,8 @@ void CMonitor::onConnect(bool noRule) {
     tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
 
     if (m_bEnabled) {
-        wlr_output_enable(output, 1);
-        wlr_output_commit(output);
+        wlr_output_state_set_enabled(&outputState, true);
+        wlr_output_commit_state(output, &outputState);
         return;
     }
 
@@ -63,8 +65,8 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
-        wlr_output_set_scale(output, 1);
-        wlr_output_set_transform(output, WL_OUTPUT_TRANSFORM_NORMAL);
+        wlr_output_state_set_scale(&outputState, 1);
+        wlr_output_state_set_transform(&outputState, WL_OUTPUT_TRANSFORM_NORMAL);
 
         auto PREFSTATE = wlr_output_preferred_mode(output);
 
@@ -72,9 +74,9 @@ void CMonitor::onConnect(bool noRule) {
             wlr_output_mode* mode;
 
             wl_list_for_each(mode, &output->modes, link) {
-                wlr_output_set_mode(output, PREFSTATE);
+                wlr_output_state_set_mode(&outputState, mode);
 
-                if (!wlr_output_test(output))
+                if (!wlr_output_test_state(output, &outputState))
                     continue;
 
                 PREFSTATE = mode;
@@ -83,13 +85,13 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         if (PREFSTATE)
-            wlr_output_set_mode(output, PREFSTATE);
+            wlr_output_state_set_mode(&outputState, PREFSTATE);
         else
             Debug::log(WARN, "No mode found for disabled output {}", output->name);
 
-        wlr_output_enable(output, 0);
+        wlr_output_state_set_enabled(&outputState, 0);
 
-        if (!wlr_output_commit(output))
+        if (!wlr_output_commit_state(output, &outputState))
             Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
         m_bEnabled = false;
@@ -130,13 +132,14 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
-    wlr_output_enable(output, 1);
+    wlr_output_state_set_enabled(&outputState, 1);
 
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    wlr_output_commit(output);
+    if (!wlr_output_commit_state(output, &outputState))
+        Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 
     wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
 
@@ -283,9 +286,10 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!destroy)
         wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
-    wlr_output_enable(output, false);
+    wlr_output_state_set_enabled(&outputState, false);
 
-    wlr_output_commit(output);
+    if (!wlr_output_commit_state(output, &outputState))
+        Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor == this)
         g_pCompositor->setActiveMonitor(BACKUPMON);

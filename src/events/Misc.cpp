@@ -175,11 +175,17 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
 void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
     Debug::log(LOG, "PowerMgr set mode!");
 
-    const auto EVENT = (wlr_output_power_v1_set_mode_event*)data;
+    const auto EVENT    = (wlr_output_power_v1_set_mode_event*)data;
+    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(EVENT->output);
 
-    wlr_output_enable(EVENT->output, EVENT->mode == 1);
+    if (!PMONITOR) {
+        Debug::log(ERR, "Invalid powerMgrSetMode output");
+        return;
+    }
 
-    if (!wlr_output_commit(EVENT->output))
+    wlr_output_state_set_enabled(&PMONITOR->outputState, EVENT->mode == 1);
+
+    if (!wlr_output_commit_state(EVENT->output, &PMONITOR->outputState))
         Debug::log(ERR, "Couldn't set power mode");
 }
 

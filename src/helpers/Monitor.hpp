@@ -63,6 +63,7 @@ class CMonitor {
     bool                 gammaChanged    = false;
     float                xwaylandScale   = 1.f;
     std::array<float, 9> projMatrix      = {0};
+    wlr_output_state     outputState     = {0}; // TODO: write a wrapper for this garbage
 
     bool                 dpmsStatus       = true;
     bool                 vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

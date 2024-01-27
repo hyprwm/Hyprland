@@ -682,3 +682,9 @@ void CMonitor::updateMatrix() {
         wlr_matrix_translate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
     }
 }
+
+void CMonitor::clearState() {
+    wlr_output_state_finish(&outputState);
+    outputState = {0};
+    wlr_output_state_init(&outputState);
+}

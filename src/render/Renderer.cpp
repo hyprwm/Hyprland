@@ -1244,8 +1244,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
 
+        pMonitor->clearState();
+
         return;
     }
+
+    pMonitor->clearState();
 
     if (shouldTear)
         pMonitor->tearingState.busy = true;
@@ -2079,6 +2083,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     if (!wlr_output_commit_state(pMonitor->output, &pMonitor->outputState)) {
         Debug::log(ERR, "Couldn't commit output named {}", pMonitor->output->name);
     }
+
+    pMonitor->clearState();
 
     int x, y;
     wlr_output_transformed_resolution(pMonitor->output, &x, &y);

@@ -128,6 +128,7 @@ class CMonitor {
     void     moveTo(const Vector2D& pos);
     Vector2D middle();
     void     updateMatrix();
+    void     clearState();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

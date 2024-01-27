@@ -2321,6 +2321,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
                 if (!wlr_output_commit_state(m->output, &m->outputState))
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
+
+                pMonitor->clearState();
             }
             m->vrrActive = false;
             return;
@@ -2335,6 +2337,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
                 if (!wlr_output_commit_state(m->output, &m->outputState))
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
+
+                pMonitor->clearState();
             }
             m->vrrActive = true;
             return;
@@ -2360,11 +2364,15 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                 if (!wlr_output_commit_state(m->output, &m->outputState))
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
+                pMonitor->clearState();
+
             } else if (!WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
                 wlr_output_state_set_adaptive_sync_enabled(&m->outputState, 0);
 
                 if (!wlr_output_commit_state(m->output, &m->outputState))
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
+
+                pMonitor->clearState();
             }
         }
     };

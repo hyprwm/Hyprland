@@ -2042,10 +2042,8 @@ void CHyprOpenGLImpl::clearWithTex() {
         TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
     }
 
-    CBox box = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
-
     if (TEXIT != m_mMonitorBGTextures.end())
-        renderTexture(TEXIT->second, &box, 1);
+        renderTexture(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox, 1);
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {

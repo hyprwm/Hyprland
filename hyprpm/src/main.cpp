@@ -23,6 +23,7 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --notify       | -n    → Send a hyprland notification for important events (e.g. load fail)
 ┣ --help         | -h    → Show this menu
 ┣ --verbose      | -v    → Enable too much logging
+┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
 ┗
 )#";
 
@@ -38,7 +39,7 @@ int               main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false;
+    bool                     notify = false, verbose = false, force = false;
 
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
@@ -49,6 +50,9 @@ int               main(int argc, char** argv, char** envp) {
                 notify = true;
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
+            } else if (ARGS[i] == "--force" || ARGS[i] == "-f") {
+                force = true;
+                std::cout << Colors::RED << "!" << Colors::RESET << " Using --force, I hope you know what you are doing.\n";
             } else {
                 std::cerr << "Unrecognized option " << ARGS[i];
                 return 1;
@@ -82,9 +86,9 @@ int               main(int argc, char** argv, char** envp) {
         return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
     } else if (command[0] == "update") {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
-        bool headers      = g_pPluginManager->updateHeaders();
+        bool headers      = g_pPluginManager->updateHeaders(force);
         if (headers) {
-            bool ret1 = g_pPluginManager->updatePlugins(!headersValid);
+            bool ret1 = g_pPluginManager->updatePlugins(!headersValid || force);
 
             if (!ret1)
                 return 1;

@@ -684,7 +684,11 @@ void CMonitor::updateMatrix() {
 }
 
 void CMonitor::clearState() {
-    wlr_output_state_finish(&outputState);
+    if (outputState.buffer)
+        wlr_output_state_finish(&outputState);
+    else // free(gamma_lut) should be unnecessary as it shouldn't be non-null for buffer-less commits?
+        pixman_region32_fini(&outputState.damage);
+
     outputState = {0};
     wlr_output_state_init(&outputState);
 }

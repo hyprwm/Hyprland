@@ -105,19 +105,22 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     if (windowBox.width <= 1 || windowBox.height <= 1)
         return; // invisible
 
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface);
-
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();
 
-    // check for fractional scale surfaces misaligning the buffer size
-    // in those cases it's better to just force nearest neighbor
-    // as long as the window is not animated. During those it'd look weird
-    const auto NEARESTNEIGHBORSET = g_pHyprOpenGL->m_RenderData.useNearestNeighbor;
-    if (std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
+    const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
         windowBox.size() != Vector2D{surface->current.buffer_width, surface->current.buffer_height} /* misaligned */ &&
         DELTALESSTHAN(windowBox.width, surface->current.buffer_width, 3) && DELTALESSTHAN(windowBox.height, surface->current.buffer_height, 3) /* off by one-or-two */ &&
-        (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */)
+        (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
+
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), MISALIGNEDFSV1);
+
+    // check for fractional scale surfaces misaligning the buffer size
+    // in those cases it's better to just force nearest neighbor
+    // as long as the window is not animated. During those it'd look weird.
+    // UV will fixup it as well
+    const auto NEARESTNEIGHBORSET = g_pHyprOpenGL->m_RenderData.useNearestNeighbor;
+    if (MISALIGNEDFSV1)
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
     float rounding = RDATA->rounding;
@@ -806,7 +809,7 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now) {
     }
 }
 
-void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurface, bool main) {
+void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
@@ -826,6 +829,15 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
                 uvTL = Vector2D();
                 uvBR = Vector2D(1, 1);
             }
+        }
+
+        if (projSize != Vector2D{} && fixMisalignedFSV1) {
+            // instead of nearest_neighbor (we will repeat / skip)
+            // just cut off / expand surface
+            const Vector2D PIXELASUV    = Vector2D{1, 1} / Vector2D{pSurface->buffer->texture->width, pSurface->buffer->texture->height};
+            const Vector2D MISALIGNMENT = Vector2D{pSurface->buffer->texture->width, pSurface->buffer->texture->height} - projSize;
+            if (MISALIGNMENT != Vector2D{})
+                uvBR -= MISALIGNMENT * PIXELASUV;
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

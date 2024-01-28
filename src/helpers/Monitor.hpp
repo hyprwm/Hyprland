@@ -25,6 +25,25 @@ struct SMonitorRule {
     std::optional<int>  vrr;
 };
 
+class CMonitor;
+
+// Class for wrapping the wlr state
+class CMonitorState {
+  public:
+    CMonitorState(CMonitor* owner);
+    ~CMonitorState();
+
+    wlr_output_state* wlr();
+    void              clear();
+    // commit() will also clear()
+    bool commit();
+    bool test();
+
+  private:
+    wlr_output_state m_state = {0};
+    CMonitor*        m_pOwner;
+};
+
 class CMonitor {
   public:
     CMonitor();
@@ -51,6 +70,8 @@ class CMonitor {
 
     drmModeModeInfo customDrmMode = {};
 
+    CMonitorState   state;
+
     // WLR stuff
     wlr_damage_ring      damage;
     wlr_output*          output          = nullptr;
@@ -63,7 +84,6 @@ class CMonitor {
     bool                 gammaChanged    = false;
     float                xwaylandScale   = 1.f;
     std::array<float, 9> projMatrix      = {0};
-    wlr_output_state     outputState     = {0}; // TODO: write a wrapper for this garbage
 
     bool                 dpmsStatus       = true;
     bool                 vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
@@ -128,7 +148,6 @@ class CMonitor {
     void     moveTo(const Vector2D& pos);
     Vector2D middle();
     void     updateMatrix();
-    void     clearState();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

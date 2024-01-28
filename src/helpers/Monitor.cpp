@@ -8,14 +8,12 @@ int ratHandler(void* data) {
     return 1;
 }
 
-CMonitor::CMonitor() {
+CMonitor::CMonitor() : state(this) {
     wlr_damage_ring_init(&damage);
-    wlr_output_state_init(&outputState);
 }
 
 CMonitor::~CMonitor() {
     wlr_damage_ring_finish(&damage);
-    wlr_output_state_finish(&outputState);
 
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -45,8 +43,8 @@ void CMonitor::onConnect(bool noRule) {
     tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
 
     if (m_bEnabled) {
-        wlr_output_state_set_enabled(&outputState, true);
-        wlr_output_commit_state(output, &outputState);
+        wlr_output_state_set_enabled(state.wlr(), true);
+        state.commit();
         return;
     }
 
@@ -65,8 +63,8 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
-        wlr_output_state_set_scale(&outputState, 1);
-        wlr_output_state_set_transform(&outputState, WL_OUTPUT_TRANSFORM_NORMAL);
+        wlr_output_state_set_scale(state.wlr(), 1);
+        wlr_output_state_set_transform(state.wlr(), WL_OUTPUT_TRANSFORM_NORMAL);
 
         auto PREFSTATE = wlr_output_preferred_mode(output);
 
@@ -74,9 +72,9 @@ void CMonitor::onConnect(bool noRule) {
             wlr_output_mode* mode;
 
             wl_list_for_each(mode, &output->modes, link) {
-                wlr_output_state_set_mode(&outputState, mode);
+                wlr_output_state_set_mode(state.wlr(), mode);
 
-                if (!wlr_output_test_state(output, &outputState))
+                if (!wlr_output_test_state(output, state.wlr()))
                     continue;
 
                 PREFSTATE = mode;
@@ -85,13 +83,13 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         if (PREFSTATE)
-            wlr_output_state_set_mode(&outputState, PREFSTATE);
+            wlr_output_state_set_mode(state.wlr(), PREFSTATE);
         else
             Debug::log(WARN, "No mode found for disabled output {}", output->name);
 
-        wlr_output_state_set_enabled(&outputState, 0);
+        wlr_output_state_set_enabled(state.wlr(), 0);
 
-        if (!wlr_output_commit_state(output, &outputState))
+        if (!state.commit())
             Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
         m_bEnabled = false;
@@ -132,13 +130,13 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
-    wlr_output_state_set_enabled(&outputState, 1);
+    wlr_output_state_set_enabled(state.wlr(), 1);
 
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    if (!wlr_output_commit_state(output, &outputState))
+    if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 
     wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
@@ -286,9 +284,9 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!destroy)
         wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
-    wlr_output_state_set_enabled(&outputState, false);
+    wlr_output_state_set_enabled(state.wlr(), false);
 
-    if (!wlr_output_commit_state(output, &outputState))
+    if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor == this)
@@ -683,12 +681,31 @@ void CMonitor::updateMatrix() {
     }
 }
 
-void CMonitor::clearState() {
-    if (outputState.buffer)
-        wlr_output_state_finish(&outputState);
-    else // free(gamma_lut) should be unnecessary as it shouldn't be non-null for buffer-less commits?
-        pixman_region32_fini(&outputState.damage);
+CMonitorState::CMonitorState(CMonitor* owner) {
+    m_pOwner = owner;
+    wlr_output_state_init(&m_state);
+}
 
-    outputState = {0};
-    wlr_output_state_init(&outputState);
+CMonitorState::~CMonitorState() {
+    wlr_output_state_finish(&m_state);
+}
+
+wlr_output_state* CMonitorState::wlr() {
+    return &m_state;
+}
+
+void CMonitorState::clear() {
+    wlr_output_state_finish(&m_state);
+    m_state = {0};
+    wlr_output_state_init(&m_state);
+}
+
+bool CMonitorState::commit() {
+    bool ret = wlr_output_commit_state(m_pOwner->output, &m_state);
+    clear();
+    return ret;
+}
+
+bool CMonitorState::test() {
+    return wlr_output_test_state(m_pOwner->output, &m_state);
 }

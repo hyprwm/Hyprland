@@ -1137,8 +1137,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
         PWINDOW->m_vReportedPosition    = PWINDOW->m_vRealPosition.goalv();
-        PWINDOW->m_vReportedSize        = PWINDOW->m_vRealSize.goalv();
-        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vReportedSize;
+        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vRealSize.goalv();
     }
 }
 

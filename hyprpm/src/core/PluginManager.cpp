@@ -310,7 +310,9 @@ eHeadersErrors CPluginManager::headersValid() {
     hash             = hash.substr(hash.find_first_of('"') + 1);
     hash             = hash.substr(0, hash.find_first_of('"'));
 
-    if (hash != HLVER.hash)
+    auto GLOBALSTATE = DataState::getGlobalState();
+
+    if (hash != HLVER.hash || hash != GLOBALSTATE.headersHashCompiled)
         return HEADERS_MISMATCHED;
 
     return HEADERS_OK;

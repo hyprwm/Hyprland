@@ -316,7 +316,7 @@ eHeadersErrors CPluginManager::headersValid() {
     return HEADERS_OK;
 }
 
-bool CPluginManager::updateHeaders() {
+bool CPluginManager::updateHeaders(bool force) {
 
     const auto HLVER = getHyprlandVersion();
 
@@ -325,7 +325,7 @@ bool CPluginManager::updateHeaders() {
         std::filesystem::permissions("/tmp/hyprpm", std::filesystem::perms::all, std::filesystem::perm_options::replace);
     }
 
-    if (headersValid() == HEADERS_OK) {
+    if (!force && headersValid() == HEADERS_OK) {
         std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Your headers are already up-to-date.\n";
         auto GLOBALSTATE                = DataState::getGlobalState();
         GLOBALSTATE.headersHashCompiled = HLVER.hash;

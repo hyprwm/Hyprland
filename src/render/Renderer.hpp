@@ -57,7 +57,7 @@ class CHyprRenderer {
     void                            ensureCursorRenderingMode();
     bool                            shouldRenderCursor();
     void                            setCursorHidden(bool hide);
-    void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false);
+    void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now);
     void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);

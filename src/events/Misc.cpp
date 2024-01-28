@@ -183,9 +183,9 @@ void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
         return;
     }
 
-    wlr_output_state_set_enabled(&PMONITOR->outputState, EVENT->mode == 1);
+    wlr_output_state_set_enabled(PMONITOR->state.wlr(), EVENT->mode == 1);
 
-    if (!wlr_output_commit_state(EVENT->output, &PMONITOR->outputState))
+    if (!PMONITOR->state.commit())
         Debug::log(ERR, "Couldn't set power mode");
 }
 

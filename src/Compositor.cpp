@@ -395,8 +395,8 @@ void CCompositor::cleanup() {
     for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());
 
-        wlr_output_state_set_enabled(&m->outputState, false);
-        wlr_output_commit_state(m->output, &m->outputState);
+        wlr_output_state_set_enabled(m->state.wlr(), false);
+        m->state.commit();
     }
 
     m_vMonitors.clear();

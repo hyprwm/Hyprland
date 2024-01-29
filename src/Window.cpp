@@ -1061,7 +1061,7 @@ int CWindow::getRealBorderSize() {
 }
 
 bool CWindow::canBeTorn() {
-    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint);
 }
 
 bool CWindow::shouldSendFullscreenState() {

@@ -316,7 +316,7 @@ eHeadersErrors CPluginManager::headersValid() {
     return HEADERS_OK;
 }
 
-bool CPluginManager::updateHeaders() {
+bool CPluginManager::updateHeaders(bool force) {
 
     const auto HLVER = getHyprlandVersion();
 
@@ -325,11 +325,8 @@ bool CPluginManager::updateHeaders() {
         std::filesystem::permissions("/tmp/hyprpm", std::filesystem::perms::all, std::filesystem::perm_options::replace);
     }
 
-    if (headersValid() == HEADERS_OK) {
-        std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Your headers are already up-to-date.\n";
-        auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = HLVER.hash;
-        DataState::updateGlobalState(GLOBALSTATE);
+    if (!force && headersValid() == HEADERS_OK) {
+        std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Headers up to date.\n";
         return true;
     }
 
@@ -372,8 +369,13 @@ bool CPluginManager::updateHeaders() {
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " configuring Hyprland");
 
     ret = execAndGet("cd /tmp/hyprpm/hyprland && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja");
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
+
     // le hack. Wlroots has to generate its build/include
     ret = execAndGet("cd /tmp/hyprpm/hyprland/subprojects/wlroots && meson setup -Drenderers=gles2 -Dexamples=false build");
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "meson returned: " + ret);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " configured Hyprland");
     progress.m_iSteps           = 4;

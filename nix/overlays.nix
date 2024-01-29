@@ -28,12 +28,10 @@ in {
     (final: prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
     in {
-      hyprland = final.callPackage ./default.nix {
-        stdenv = final.gcc13Stdenv;
+      hyprland = prev.callPackage ./default.nix {
+        stdenv = prev.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
-        wlroots = prev.wlroots-hyprland;
         commit = self.rev or "";
-        inherit (final) udis86 hyprland-protocols;
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};

@@ -2202,8 +2202,7 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowOutOfGroup(PWINDOW, args);
-    } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) // no target window
-    {
+    } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) { // no target window
         moveWindowOutOfGroup(PWINDOW, args);
     } else if (!PWINDOWINDIR && !ISWINDOWGROUP) { // no target in dir and not in group
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);

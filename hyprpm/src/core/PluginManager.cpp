@@ -310,9 +310,7 @@ eHeadersErrors CPluginManager::headersValid() {
     hash             = hash.substr(hash.find_first_of('"') + 1);
     hash             = hash.substr(0, hash.find_first_of('"'));
 
-    auto GLOBALSTATE = DataState::getGlobalState();
-
-    if (hash != HLVER.hash || hash != GLOBALSTATE.headersHashCompiled)
+    if (hash != HLVER.hash)
         return HEADERS_MISMATCHED;
 
     return HEADERS_OK;
@@ -328,10 +326,7 @@ bool CPluginManager::updateHeaders(bool force) {
     }
 
     if (!force && headersValid() == HEADERS_OK) {
-        std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Your headers are already up-to-date.\n";
-        auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = HLVER.hash;
-        DataState::updateGlobalState(GLOBALSTATE);
+        std::cout << "\n" << std::string{Colors::GREEN} + "✔" + Colors::RESET + " Headers up to date.\n";
         return true;
     }
 

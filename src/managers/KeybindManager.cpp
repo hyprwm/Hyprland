@@ -1852,11 +1852,11 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
-        wlr_output_enable(m->output, enable);
+        wlr_output_state_set_enabled(m->state.wlr(), enable);
 
         m->dpmsStatus = enable;
 
-        if (!wlr_output_commit(m->output)) {
+        if (!m->state.commit()) {
             Debug::log(ERR, "Couldn't commit output {}", m->szName);
         }
 

@@ -25,6 +25,25 @@ struct SMonitorRule {
     std::optional<int>  vrr;
 };
 
+class CMonitor;
+
+// Class for wrapping the wlr state
+class CMonitorState {
+  public:
+    CMonitorState(CMonitor* owner);
+    ~CMonitorState();
+
+    wlr_output_state* wlr();
+    void              clear();
+    // commit() will also clear()
+    bool commit();
+    bool test();
+
+  private:
+    wlr_output_state m_state = {0};
+    CMonitor*        m_pOwner;
+};
+
 class CMonitor {
   public:
     CMonitor();
@@ -50,6 +69,8 @@ class CMonitor {
     Vector2D        vecReservedBottomRight = Vector2D(0, 0);
 
     drmModeModeInfo customDrmMode = {};
+
+    CMonitorState   state;
 
     // WLR stuff
     wlr_damage_ring      damage;

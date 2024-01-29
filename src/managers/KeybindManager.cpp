@@ -1550,7 +1550,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
 
     std::string        workspaceName = "";
-    int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
+    int                workspaceID   = getWorkspaceIDFromString(args.starts_with("special:") ? args : "special:" + args, workspaceName);
 
     if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");

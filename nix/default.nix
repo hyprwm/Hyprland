@@ -24,7 +24,7 @@
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots,
+  wlroots-hyprland,
   xcbutilwm,
   xwayland,
   debug ? false,
@@ -86,7 +86,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         udis86
         wayland
         wayland-protocols
-        wlroots
+        wlroots-hyprland
       ]
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
       ++ lib.optionals withSystemd [systemd];
@@ -129,7 +129,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     '';
 
     postInstall = ''
-      ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
+      ln -s ${wlroots-hyprland}/include/wlr $dev/include/hyprland/wlroots
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
           --suffix PATH : ${lib.makeBinPath [

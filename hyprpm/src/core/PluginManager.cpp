@@ -401,10 +401,6 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.m_szCurrentMessage = "Done!";
         progress.print();
 
-        auto GLOBALSTATE                = DataState::getGlobalState();
-        GLOBALSTATE.headersHashCompiled = HLVER.hash;
-        DataState::updateGlobalState(GLOBALSTATE);
-
         std::cout << "\n";
     } else {
         progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID));
@@ -438,7 +434,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     const auto   HLVER = getHyprlandVersion();
 
     CProgressBar progress;
-    progress.m_iMaxSteps        = REPOS.size() * 2 + 1;
+    progress.m_iMaxSteps        = REPOS.size() * 2 + 2;
     progress.m_iSteps           = 0;
     progress.m_szCurrentMessage = "Updating repositories";
     progress.print();
@@ -569,6 +565,14 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
         progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " updated " + repo.name);
     }
+
+    progress.m_iSteps++;
+    progress.m_szCurrentMessage = "Updating global state...";
+    progress.print();
+
+    auto GLOBALSTATE                = DataState::getGlobalState();
+    GLOBALSTATE.headersHashCompiled = HLVER.hash;
+    DataState::updateGlobalState(GLOBALSTATE);
 
     progress.m_iSteps++;
     progress.m_szCurrentMessage = "Done!";

@@ -1,6 +1,7 @@
 #include "progress/CProgressBar.hpp"
 #include "helpers/Colors.hpp"
 #include "core/PluginManager.hpp"
+#include "core/DataState.hpp"
 
 #include <iostream>
 #include <vector>
@@ -88,7 +89,11 @@ int               main(int argc, char** argv, char** envp) {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
         bool headers      = g_pPluginManager->updateHeaders(force);
         if (headers) {
-            bool ret1 = g_pPluginManager->updatePlugins(!headersValid || force);
+            const auto HLVER            = g_pPluginManager->getHyprlandVersion();
+            auto       GLOBALSTATE      = DataState::getGlobalState();
+            const auto COMPILEDOUTDATED = HLVER.hash != GLOBALSTATE.headersHashCompiled;
+
+            bool       ret1 = g_pPluginManager->updatePlugins(!headersValid || force || COMPILEDOUTDATED);
 
             if (!ret1)
                 return 1;

@@ -8,7 +8,7 @@ CRT_REV=$(rg rev flake.nix | awk '{ print substr($3, 2, 40) }')
 if [ "$SUB_REV" != "$CRT_REV" ]; then
   echo "Updating wlroots..."
   # update wlroots to submodule revision
-  sed -Ei "s/\w{40}/$SUB_REV/g" flake.nix subprojects/wlroots.wrap
+  sed -Ei "s/\w{40}/$SUB_REV/g" flake.nix
   nix flake lock
 
   echo "wlroots: $CRT_REV -> $SUB_REV"

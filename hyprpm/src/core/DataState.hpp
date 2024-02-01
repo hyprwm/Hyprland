@@ -10,6 +10,7 @@ struct SGlobalState {
 
 namespace DataState {
     std::string                    getDataStatePath();
+    std::string                    getHeadersPath();
     void                           ensureStateStoreExists();
     void                           addNewPluginRepo(const SPluginRepository& repo);
     void                           removePluginRepo(const std::string& urlOrName);

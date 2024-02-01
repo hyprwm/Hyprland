@@ -10,6 +10,7 @@
 #include <thread>
 #include <fstream>
 #include <algorithm>
+#include <format>
 
 #include <toml++/toml.hpp>
 
@@ -77,6 +78,8 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
 }
 
 bool CPluginManager::addNewPluginRepo(const std::string& url) {
+
+    const auto HLVER = getHyprlandVersion();
 
     if (DataState::pluginRepoExists(url)) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the plugin repository. Repository already installed.\n";
@@ -170,6 +173,22 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         message += " version " + pl.version;
         progress.printMessageAbove(message);
     }
+
+    if (!pManifest->m_sRepository.commitPins.empty()) {
+        // check commit pins
+
+        progress.printMessageAbove(std::string{Colors::RESET} + " → Manifest has " + std::to_string(pManifest->m_sRepository.commitPins.size()) + " pins, checking");
+
+        for (auto& [hl, plugin] : pManifest->m_sRepository.commitPins) {
+            if (hl != HLVER.hash)
+                continue;
+
+            progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " commit pin " + plugin + " matched hl, resetting");
+
+            execAndGet("cd /tmp/hyprpm/new/ && git reset --hard --recurse-submodules " + plugin);
+        }
+    }
+
     progress.m_szCurrentMessage = "Verifying headers";
     progress.print();
 
@@ -191,7 +210,8 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
         for (auto& bs : p.buildSteps) {
-            out += execAndGet("cd /tmp/hyprpm/new && " + bs) + "\n";
+            std::string cmd = std::format("cd /tmp/hyprpm/new && PKG_CONFIG_PATH=\"{}\" {}", DataState::getHeadersPath(), bs);
+            out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 
         if (!std::filesystem::exists("/tmp/hyprpm/new/" + p.output)) {
@@ -265,8 +285,12 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 eHeadersErrors CPluginManager::headersValid() {
     const auto HLVER = getHyprlandVersion();
 
+    if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
+        return HEADERS_MISSING;
+
     // find headers commit
-    auto headers = execAndGet("pkg-config --cflags --keep-system-cflags hyprland");
+    std::string cmd     = std::format("PKG_CONFIG_PATH={}/share/pkgconfig pkg-config --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    auto        headers = execAndGet(cmd.c_str());
 
     if (!headers.contains("-I/"))
         return HEADERS_MISSING;
@@ -298,10 +322,6 @@ eHeadersErrors CPluginManager::headersValid() {
     if (!ifs.good())
         return HEADERS_CORRUPTED;
 
-    if ((std::filesystem::exists("/usr/include/hyprland/src/version.h") && verHeader != "/usr/include/hyprland/src/version.h") ||
-        (std::filesystem::exists("/usr/local/include/hyprland/src/version.h") && verHeader != "/usr/local/include/hyprland/src/version.h"))
-        return HEADERS_DUPLICATED;
-
     std::string verHeaderContent((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
     ifs.close();
 
@@ -317,6 +337,8 @@ eHeadersErrors CPluginManager::headersValid() {
 }
 
 bool CPluginManager::updateHeaders(bool force) {
+
+    DataState::ensureStateStoreExists();
 
     const auto HLVER = getHyprlandVersion();
 
@@ -368,7 +390,12 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " configuring Hyprland");
 
-    ret = execAndGet("cd /tmp/hyprpm/hyprland && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -S . -B ./build -G Ninja");
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "setting PREFIX for cmake to " + DataState::getHeadersPath());
+
+    ret = execAndGet(
+        std::format("cd /tmp/hyprpm/hyprland && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build -G Ninja",
+                    DataState::getHeadersPath()));
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
 
@@ -382,14 +409,19 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
 
-    progress.printMessageAbove(
-        std::string{Colors::YELLOW} + "!" + Colors::RESET +
-        " in order to install the sources, you will need to input your password.\n  If nothing pops up, make sure you have polkit and an authentication daemon running.");
+    // progress.printMessageAbove(
+    //     std::string{Colors::YELLOW} + "!" + Colors::RESET +
+    //     " in order to install the sources, you will need to input your password.\n  If nothing pops up, make sure you have polkit and an authentication daemon running.");
 
-    ret = execAndGet("pkexec sh \"-c\" \"cd /tmp/hyprpm/hyprland && make installheaders\"");
+    std::string cmd = std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" /tmp/hyprpm/hyprland/Makefile && cd /tmp/hyprpm/hyprland && make installheaders",
+                                  DataState::getHeadersPath());
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "installation will run: " + cmd);
+
+    ret = execAndGet(cmd);
 
     if (m_bVerbose)
-        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "pkexec returned: " << ret << "\n";
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "installer returned: " << ret << "\n";
 
     // remove build files
     std::filesystem::remove_all("/tmp/hyprpm/hyprland");
@@ -528,7 +560,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
             for (auto& bs : p.buildSteps) {
-                out += execAndGet("cd /tmp/hyprpm/update && " + bs) + "\n";
+                std::string cmd = std::format("cd /tmp/hyprpm/update && PKG_CONFIG_PATH=\"{}\" {}", DataState::getHeadersPath(), bs);
+                out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
 
             if (!std::filesystem::exists("/tmp/hyprpm/update/" + p.output)) {

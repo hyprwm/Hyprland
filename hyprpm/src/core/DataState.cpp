@@ -20,11 +20,18 @@ std::string DataState::getDataStatePath() {
     return std::string{HOME} + "/.local/share/hyprpm";
 }
 
+std::string DataState::getHeadersPath() {
+    return getDataStatePath() + "/headersRoot";
+}
+
 void DataState::ensureStateStoreExists() {
     const auto PATH = getDataStatePath();
 
     if (!std::filesystem::exists(PATH))
         std::filesystem::create_directories(PATH);
+
+    if (!std::filesystem::exists(getHeadersPath()))
+        std::filesystem::create_directories(getHeadersPath());
 }
 
 void DataState::addNewPluginRepo(const SPluginRepository& repo) {
@@ -64,7 +71,10 @@ bool DataState::pluginRepoExists(const std::string& urlOrName) {
     const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
-        if (!entry.is_directory())
+        if (!entry.is_directory() || entry.path().stem() == "headersRoot")
+            continue;
+
+        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
             continue;
 
         auto       STATE = toml::parse_file(entry.path().string() + "/state.toml");
@@ -85,7 +95,10 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
     const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
-        if (!entry.is_directory())
+        if (!entry.is_directory() || entry.path().stem() == "headersRoot")
+            continue;
+
+        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
             continue;
 
         auto       STATE = toml::parse_file(entry.path().string() + "/state.toml");
@@ -154,7 +167,10 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
     std::vector<SPluginRepository> repos;
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
-        if (!entry.is_directory())
+        if (!entry.is_directory() || entry.path().stem() == "headersRoot")
+            continue;
+
+        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
             continue;
 
         auto              STATE = toml::parse_file(entry.path().string() + "/state.toml");

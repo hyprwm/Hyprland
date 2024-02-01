@@ -518,6 +518,14 @@ void CWindow::onMap() {
                                           "CWindow");
 
     m_vReportedSize = m_vPendingReportedSize;
+
+    for (const auto& ctrl : g_pHyprRenderer->m_vTearingControllers) {
+        if (ctrl->pWlrHint->surface != m_pWLSurface.wlr())
+            continue;
+
+        m_bTearingHint = ctrl->pWlrHint->current;
+        break;
+    }
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

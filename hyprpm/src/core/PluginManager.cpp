@@ -285,7 +285,7 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 eHeadersErrors CPluginManager::headersValid() {
     const auto HLVER = getHyprlandVersion();
 
-    if (!std::filesystem::exists("/home/vaxry/.local/share/hyprpm/headersRoot/share/pkgconfig/hyprland.pc"))
+    if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
         return HEADERS_MISSING;
 
     // find headers commit

@@ -51,6 +51,7 @@ class CBox {
     CBox&                    transform(const wl_output_transform t, double w, double h);
     CBox&                    addExtents(const SWindowDecorationExtents& e);
     CBox&                    expand(const double& value);
+    CBox&                    noNegativeSize();
 
     CBox                     copy() const;
 

@@ -22,13 +22,13 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
         if (SPLITSIDE) {
             // split left/right
             const float FIRSTSIZE = box.w / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h};
-            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h};
+            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
+            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
         } else {
             // split top/bottom
             const float FIRSTSIZE = box.h / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE};
-            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE};
+            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
+            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
         }
 
         children[0]->recalcSizePosRecursive(force);

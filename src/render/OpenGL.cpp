@@ -212,13 +212,16 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
 
     matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
 
+    if (m_mMonitorRenderResources.contains(pMonitor) && m_mMonitorRenderResources.at(pMonitor).offloadFB.m_vSize != pMonitor->vecPixelSize)
+        destroyMonitorResources(pMonitor);
+
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
 
     if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
         initShaders();
 
     // ensure a framebuffer for the monitor exists
-    if (!m_mMonitorRenderResources.contains(pMonitor) || m_RenderData.pCurrentMonData->offloadFB.m_vSize != pMonitor->vecPixelSize) {
+    if (m_RenderData.pCurrentMonData->offloadFB.m_vSize != pMonitor->vecPixelSize) {
         m_RenderData.pCurrentMonData->stencilTex.allocate();
 
         m_RenderData.pCurrentMonData->offloadFB.m_pStencilTex    = &m_RenderData.pCurrentMonData->stencilTex;
@@ -230,8 +233,6 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
         m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
         m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
         m_RenderData.pCurrentMonData->offMainFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
-
-        createBGTextureForMonitor(pMonitor);
     }
 
     if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
@@ -2000,7 +2001,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     const auto     CAIROSURFACE = cairo_image_surface_create(CAIROFORMAT, scaledSize.x, scaledSize.y);
     const auto     CAIRO        = cairo_create(CAIROSURFACE);
 
-    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_BEST);
+    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_GOOD);
     cairo_scale(CAIRO, scale, scale);
     cairo_rectangle(CAIRO, 0, 0, 100, 100);
     cairo_set_source_surface(CAIRO, CAIROISURFACE, 0, 0);

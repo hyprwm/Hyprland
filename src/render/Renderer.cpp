@@ -1767,6 +1767,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         return true;
     }
 
+    const auto WAS10B = pMonitor->enabled10bit;
+    const auto OLDRES = pMonitor->vecPixelSize;
+
     // Needed in case we are switching from a custom modeline to a standard mode
     pMonitor->customDrmMode = {};
     bool autoScale          = false;
@@ -2107,8 +2110,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     pMonitor->updateMatrix();
 
-    // update renderer (here because it will call rollback, so we cannot do this before committing)
-    g_pHyprOpenGL->destroyMonitorResources(pMonitor);
+    if (WAS10B != pMonitor->enabled10bit || OLDRES != pMonitor->vecPixelSize)
+        g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
     // updato wlroots
     g_pCompositor->arrangeMonitors();

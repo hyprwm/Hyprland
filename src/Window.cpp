@@ -139,6 +139,27 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
+CBox CWindow::getWindowBoxUnified(uint8_t properties) {
+
+    if (m_sAdditionalConfigData.dimAround) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+    }
+
+    SWindowDecorationExtents EXTENTS;
+    if (properties & WINDOW_ONLY)
+        EXTENTS = {{0, 0}, {0, 0}};
+    else if (properties & RESERVED_EXTENTS)
+        EXTENTS = g_pDecorationPositioner->getWindowDecorationReserved(this);
+    else if (properties & FULL_EXTENTS)
+        EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, true);
+
+    CBox box = {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
+    box.addExtents(EXTENTS);
+
+    return box;
+}
+
 CBox CWindow::getWindowInputBox() {
     const int BORDERSIZE = getRealBorderSize();
 

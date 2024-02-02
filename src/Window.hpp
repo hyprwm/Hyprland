@@ -30,6 +30,14 @@ enum eGroupRules {
     GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
+enum eGetWindowProperties {
+    WINDOW_ONLY      = 0, // 0, 1, 2 are mutually exclusive
+    RESERVED_EXTENTS = 1,
+    FULL_EXTENTS     = 2,
+    FLOATING_ONLY    = 1 << 2,
+    ALLOW_FLOATING   = 1 << 3
+};
+
 class IWindowTransformer;
 
 template <typename T>
@@ -342,6 +350,7 @@ class CWindow {
     // methods
     CBox                     getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
+    CBox                     getWindowBoxUnified(uint8_t props);
     CBox                     getWindowInputBox();
     CBox                     getWindowMainSurfaceBox();
     CBox                     getWindowIdealBoundingBoxIgnoreReserved();

@@ -25,6 +25,25 @@ struct SMonitorRule {
     std::optional<int>  vrr;
 };
 
+class CMonitor;
+
+// Class for wrapping the wlr state
+class CMonitorState {
+  public:
+    CMonitorState(CMonitor* owner);
+    ~CMonitorState();
+
+    wlr_output_state* wlr();
+    void              clear();
+    // commit() will also clear()
+    bool commit();
+    bool test();
+
+  private:
+    wlr_output_state m_state = {0};
+    CMonitor*        m_pOwner;
+};
+
 class CMonitor {
   public:
     CMonitor();
@@ -50,6 +69,8 @@ class CMonitor {
     Vector2D        vecReservedBottomRight = Vector2D(0, 0);
 
     drmModeModeInfo customDrmMode = {};
+
+    CMonitorState   state;
 
     // WLR stuff
     wlr_damage_ring      damage;
@@ -120,7 +141,7 @@ class CMonitor {
     void     setMirror(const std::string&);
     bool     isMirror();
     float    getDefaultScale();
-    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false);
+    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
     void     changeWorkspace(const int& id, bool internal = false);
     void     setSpecialWorkspace(CWorkspace* const pWorkspace);
     void     setSpecialWorkspace(const int& id);

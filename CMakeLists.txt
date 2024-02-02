@@ -58,7 +58,7 @@ ExternalProject_Add(
     PREFIX ${CMAKE_SOURCE_DIR}/subprojects/wlroots
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots
     PATCH_COMMAND sed -E -i -e "s/(soversion = .*$)/soversion = 13032/g" meson.build
-    CONFIGURE_COMMAND meson setup build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dexamples=false -Drenderers=gles2 $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none> && meson setup build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dexamples=false -Drenderers=gles2 $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none> --reconfigure
+    CONFIGURE_COMMAND meson setup --reconfigure build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dxwayland=$<IF:$<BOOL:${NO_XWAYLAND}>,disabled,enabled> -Dexamples=false -Drenderers=gles2 $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none>
     BUILD_COMMAND ninja -C build
     BUILD_ALWAYS true
     BUILD_IN_SOURCE true

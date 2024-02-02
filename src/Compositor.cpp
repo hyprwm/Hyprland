@@ -81,26 +81,6 @@ CCompositor::CCompositor() {
 
 CCompositor::~CCompositor() {
     cleanup();
-    g_pDecorationPositioner.reset();
-    g_pPluginSystem.reset();
-    g_pHyprNotificationOverlay.reset();
-    g_pDebugOverlay.reset();
-    g_pEventManager.reset();
-    g_pSessionLockManager.reset();
-    g_pProtocolManager.reset();
-    g_pXWaylandManager.reset();
-    g_pHyprRenderer.reset();
-    g_pHyprOpenGL.reset();
-    g_pInputManager.reset();
-    g_pThreadManager.reset();
-    g_pConfigManager.reset();
-    g_pLayoutManager.reset();
-    g_pHyprError.reset();
-    g_pConfigManager.reset();
-    g_pAnimationManager.reset();
-    g_pKeybindManager.reset();
-    g_pHookSystem.reset();
-    g_pWatchdog.reset();
 }
 
 void CCompositor::setRandomSplash() {
@@ -135,10 +115,10 @@ void CCompositor::initServer() {
     else
         wlr_log_init(WLR_ERROR, Debug::wlrLog);
 
-    m_sWLRBackend = wlr_backend_autocreate(m_sWLDisplay, &m_sWLRSession);
+    m_sWLRBackend = wlr_backend_autocreate(m_sWLEventLoop, &m_sWLRSession);
 
     if (!m_sWLRBackend) {
-        Debug::log(CRIT, "m_sWLRBackend was NULL!");
+        Debug::log(CRIT, "m_sWLRBackend was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_backend_autocreate() failed!");
     }
 
@@ -151,7 +131,7 @@ void CCompositor::initServer() {
     m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
 
     if (!m_sWLRRenderer) {
-        Debug::log(CRIT, "m_sWLRRenderer was NULL!");
+        Debug::log(CRIT, "m_sWLRRenderer was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
     }
 
@@ -259,7 +239,7 @@ void CCompositor::initServer() {
 
     m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
 
-    m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLDisplay);
+    m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
 
@@ -332,6 +312,59 @@ void CCompositor::initAllSignals() {
         addWLSignal(&m_sWLRSession->events.active, &Events::listen_sessionActive, m_sWLRSession, "Session");
 }
 
+void CCompositor::removeAllSignals() {
+    removeWLSignal(&Events::listen_newOutput);
+    removeWLSignal(&Events::listen_newXDGToplevel);
+    removeWLSignal(&Events::listen_mouseMove);
+    removeWLSignal(&Events::listen_mouseMoveAbsolute);
+    removeWLSignal(&Events::listen_mouseButton);
+    removeWLSignal(&Events::listen_mouseAxis);
+    removeWLSignal(&Events::listen_mouseFrame);
+    removeWLSignal(&Events::listen_swipeBegin);
+    removeWLSignal(&Events::listen_swipeUpdate);
+    removeWLSignal(&Events::listen_swipeEnd);
+    removeWLSignal(&Events::listen_pinchBegin);
+    removeWLSignal(&Events::listen_pinchUpdate);
+    removeWLSignal(&Events::listen_pinchEnd);
+    removeWLSignal(&Events::listen_touchBegin);
+    removeWLSignal(&Events::listen_touchEnd);
+    removeWLSignal(&Events::listen_touchUpdate);
+    removeWLSignal(&Events::listen_touchFrame);
+    removeWLSignal(&Events::listen_holdBegin);
+    removeWLSignal(&Events::listen_holdEnd);
+    removeWLSignal(&Events::listen_newInput);
+    removeWLSignal(&Events::listen_requestMouse);
+    removeWLSignal(&Events::listen_requestSetSel);
+    removeWLSignal(&Events::listen_requestDrag);
+    removeWLSignal(&Events::listen_startDrag);
+    removeWLSignal(&Events::listen_requestSetSel);
+    removeWLSignal(&Events::listen_requestSetPrimarySel);
+    removeWLSignal(&Events::listen_newLayerSurface);
+    removeWLSignal(&Events::listen_change);
+    removeWLSignal(&Events::listen_outputMgrApply);
+    removeWLSignal(&Events::listen_outputMgrTest);
+    removeWLSignal(&Events::listen_newConstraint);
+    removeWLSignal(&Events::listen_NewXDGDeco);
+    removeWLSignal(&Events::listen_newVirtPtr);
+    removeWLSignal(&Events::listen_newVirtualKeyboard);
+    removeWLSignal(&Events::listen_RendererDestroy);
+    removeWLSignal(&Events::listen_newIdleInhibitor);
+    removeWLSignal(&Events::listen_powerMgrSetMode);
+    removeWLSignal(&Events::listen_newIME);
+    removeWLSignal(&Events::listen_newTextInput);
+    removeWLSignal(&Events::listen_activateXDG);
+    removeWLSignal(&Events::listen_newSessionLock);
+    removeWLSignal(&Events::listen_setGamma);
+    removeWLSignal(&Events::listen_setCursorShape);
+    removeWLSignal(&Events::listen_newTearingHint);
+
+    if (m_sWRLDRMLeaseMgr)
+        removeWLSignal(&Events::listen_leaseRequest);
+
+    if (m_sWLRSession)
+        removeWLSignal(&Events::listen_sessionActive);
+}
+
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
@@ -362,8 +395,8 @@ void CCompositor::cleanup() {
     for (auto& m : m_vMonitors) {
         g_pHyprOpenGL->destroyMonitorResources(m.get());
 
-        wlr_output_enable(m->output, false);
-        wlr_output_commit(m->output);
+        wlr_output_state_set_enabled(m->state.wlr(), false);
+        m->state.commit();
     }
 
     m_vMonitors.clear();
@@ -373,7 +406,30 @@ void CCompositor::cleanup() {
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
+    removeAllSignals();
+
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
+
+    g_pDecorationPositioner.reset();
+    g_pPluginSystem.reset();
+    g_pHyprNotificationOverlay.reset();
+    g_pDebugOverlay.reset();
+    g_pEventManager.reset();
+    g_pSessionLockManager.reset();
+    g_pProtocolManager.reset();
+    g_pHyprRenderer.reset();
+    g_pHyprOpenGL.reset();
+    g_pInputManager.reset();
+    g_pThreadManager.reset();
+    g_pConfigManager.reset();
+    g_pLayoutManager.reset();
+    g_pHyprError.reset();
+    g_pConfigManager.reset();
+    g_pAnimationManager.reset();
+    g_pKeybindManager.reset();
+    g_pHookSystem.reset();
+    g_pWatchdog.reset();
+    g_pXWaylandManager.reset();
 
     wl_display_terminate(m_sWLDisplay);
 
@@ -654,6 +710,7 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreW
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;
     static auto* const PBORDERSIZE       = &g_pConfigManager->getConfigValuePtr("general:border_size")->intValue;
     static auto* const PBORDERGRABEXTEND = &g_pConfigManager->getConfigValuePtr("general:extend_border_grab_area")->intValue;
+    static auto* const PSPECIALFALLTHRU  = &g_pConfigManager->getConfigValuePtr("input:special_fallthrough")->intValue;
     const auto         BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     // pinned windows on top of floating regardless
@@ -735,8 +792,15 @@ CWindow* CCompositor::vectorToWindowIdeal(const Vector2D& pos, CWindow* pIgnoreW
     };
 
     // special workspace
-    if (PMONITOR->specialWorkspaceID)
+    if (PMONITOR->specialWorkspaceID && !*PSPECIALFALLTHRU)
         return windowForWorkspace(true);
+
+    if (PMONITOR->specialWorkspaceID) {
+        const auto PWINDOW = windowForWorkspace(true);
+
+        if (PWINDOW)
+            return PWINDOW;
+    }
 
     return windowForWorkspace(false);
 }
@@ -876,10 +940,16 @@ CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
 
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
-    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PFOLLOWMOUSE        = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PSPECIALFALLTHROUGH = &g_pConfigManager->getConfigValuePtr("input:special_fallthrough")->intValue;
 
     if (g_pCompositor->m_sSeat.exclusiveClient) {
         Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
+        return;
+    }
+
+    if (!g_pInputManager->m_dExclusiveLSes.empty()) {
+        Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
         return;
     }
 
@@ -943,7 +1013,9 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     const auto PLASTWINDOW = m_pLastWindow;
     m_pLastWindow          = pWindow;
 
-    if (PMONITOR->specialWorkspaceID && PMONITOR->specialWorkspaceID != pWindow->m_iWorkspaceID)
+    /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
+       window focuses are "via keybinds" and which ones aren't. */
+    if (PMONITOR->specialWorkspaceID && PMONITOR->specialWorkspaceID != pWindow->m_iWorkspaceID && !pWindow->m_bPinned && !*PSPECIALFALLTHROUGH)
         PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
@@ -1090,14 +1162,6 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
             continue;
 
         auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
-
-        if (ls->layerSurface->current.keyboard_interactive && ls->layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-            if (!SURFACEAT)
-                SURFACEAT = ls->layerSurface->surface;
-
-            *ppLayerSurfaceFound = ls.get();
-            return SURFACEAT;
-        }
 
         if (SURFACEAT) {
             if (!pixman_region32_not_empty(&SURFACEAT->input_region))
@@ -1881,15 +1945,13 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
         if (pWindow == m_pLastWindow) {
             const auto* const ACTIVECOLOR =
                 !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
-            setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying() >= 0 ?
-                               CGradientValueData(CColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying())) :
-                               *ACTIVECOLOR);
+            setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying().m_vColors.empty() ? *ACTIVECOLOR :
+                                                                                                              pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying());
         } else {
             const auto* const INACTIVECOLOR =
                 !pWindow->m_sGroupData.pNextWindow ? (!pWindow->m_sGroupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
-            setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying() >= 0 ?
-                               CGradientValueData(CColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying())) :
-                               *INACTIVECOLOR);
+            setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying().m_vColors.empty() ? *INACTIVECOLOR :
+                                                                                                                pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying());
         }
     }
 
@@ -2113,7 +2175,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     return nullptr;
 }
 
-void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor) {
+void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMonitor, bool noWarpCursor) {
 
     // We trust the workspace and monitor to be correct.
 
@@ -2199,7 +2261,8 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
         pWorkspace->startAnim(true, true, true);
 
-        wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+        if (!noWarpCursor)
+            wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
 
         g_pInputManager->sendMotionEventsToFocused();
     }
@@ -2607,11 +2670,7 @@ int CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    if (g_pConfigManager->getInt("general:allow_tearing") == 1 && !envEnabled("WLR_DRM_NO_ATOMIC")) {
-        g_pHyprNotificationOverlay->addNotification("You have enabled tearing, but immediate presentations are not available on your configuration. Try adding "
-                                                    "env = WLR_DRM_NO_ATOMIC,1 to your config.",
-                                                    CColor(0), 15000, ICON_WARNING);
-    }
+    ; // intentional
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace) {
@@ -2786,10 +2845,27 @@ void CCompositor::leaveUnsafeState() {
 void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
     g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(pSurface, scale);
     wlr_surface_set_preferred_buffer_scale(pSurface, static_cast<int32_t>(std::ceil(scale)));
+
+    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    if (!PSURFACE) {
+        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredScaleForSurface", (uintptr_t)pSurface);
+        return;
+    }
+
+    PSURFACE->m_fLastScale = scale;
+    PSURFACE->m_iLastScale = static_cast<int32_t>(std::ceil(scale));
 }
 
 void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
     wlr_surface_set_preferred_buffer_transform(pSurface, transform);
+
+    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    if (!PSURFACE) {
+        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredTransformForSurface", (uintptr_t)pSurface);
+        return;
+    }
+
+    PSURFACE->m_eLastTransform = transform;
 }
 
 void CCompositor::updateSuspendedStates() {

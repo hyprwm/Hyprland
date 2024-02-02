@@ -119,7 +119,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "\n\nLog tail:\n";
 
-    finalCrashReport += Debug::rollingLog;
+    finalCrashReport += Debug::rollingLog.substr(Debug::rollingLog.find("\n") + 1);
 
     const auto HOME       = getenv("HOME");
     const auto CACHE_HOME = getenv("XDG_CACHE_HOME");

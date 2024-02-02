@@ -189,16 +189,39 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
+#ifndef GLES2
+
+    const GLenum RESETSTATUS = glGetGraphicsResetStatus();
+    if (RESETSTATUS != GL_NO_ERROR) {
+        std::string errStr = "";
+        switch (RESETSTATUS) {
+            case GL_GUILTY_CONTEXT_RESET: errStr = "GL_GUILTY_CONTEXT_RESET"; break;
+            case GL_INNOCENT_CONTEXT_RESET: errStr = "GL_INNOCENT_CONTEXT_RESET"; break;
+            case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
+            default: errStr = "UNKNOWN??"; break;
+        }
+        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
+        return;
+    }
+
+#endif
+
     TRACY_GPU_ZONE("RenderBegin");
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
     matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
 
+    if (m_mMonitorRenderResources.contains(pMonitor) && m_mMonitorRenderResources.at(pMonitor).offloadFB.m_vSize != pMonitor->vecPixelSize)
+        destroyMonitorResources(pMonitor);
+
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
 
+    if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
+        initShaders();
+
     // ensure a framebuffer for the monitor exists
-    if (!m_mMonitorRenderResources.contains(pMonitor) || m_RenderData.pCurrentMonData->offloadFB.m_vSize != pMonitor->vecPixelSize) {
+    if (m_RenderData.pCurrentMonData->offloadFB.m_vSize != pMonitor->vecPixelSize) {
         m_RenderData.pCurrentMonData->stencilTex.allocate();
 
         m_RenderData.pCurrentMonData->offloadFB.m_pStencilTex    = &m_RenderData.pCurrentMonData->stencilTex;
@@ -210,15 +233,10 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
         m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
         m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
         m_RenderData.pCurrentMonData->offMainFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
-
-        createBGTextureForMonitor(pMonitor);
     }
 
     if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
         m_RenderData.pCurrentMonData->monitorMirrorFB.release();
-
-    if (!m_RenderData.pCurrentMonData->m_bShadersInitialized)
-        initShaders();
 
     m_RenderData.damage.set(*pDamage);
 
@@ -312,6 +330,15 @@ void CHyprOpenGLImpl::end() {
     m_RenderData.mouseZoomFactor    = 1.f;
     m_RenderData.mouseZoomUseMouse  = true;
     m_RenderData.forceIntrospection = false;
+    m_RenderData.currentFB          = nullptr;
+    m_RenderData.mainFB             = nullptr;
+    m_RenderData.outFB              = nullptr;
+
+    // check for gl errors
+    const GLenum ERR = glGetError();
+
+    if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
+        RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
 void CHyprOpenGLImpl::initShaders() {
@@ -723,7 +750,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
 
     alpha = std::clamp(alpha, 0.f, 1.f);
 
-    if (m_RenderData.damage.empty())
+    if (damage->empty())
         return;
 
     CBox newBox = *pBox;
@@ -1887,10 +1914,10 @@ void CHyprOpenGLImpl::renderMirrored() {
     renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
 }
 
-void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY) {
+void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
     cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
-    const auto FONTSIZE = (int)(m_RenderData.pMonitor->vecPixelSize.y / 76);
+    const auto FONTSIZE = (int)(size.y / 76);
     cairo_set_font_size(CAIRO, FONTSIZE);
 
     cairo_set_source_rgba(CAIRO, 1.0, 1.0, 1.0, 0.32);
@@ -1898,7 +1925,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_text_extents_t textExtents;
     cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
 
-    cairo_move_to(CAIRO, (m_RenderData.pMonitor->vecPixelSize.x - textExtents.width) / 2.0, m_RenderData.pMonitor->vecPixelSize.y - textExtents.height + offsetY);
+    cairo_move_to(CAIRO, (size.x - textExtents.width) / 2.0, size.y - textExtents.height + offsetY);
 
     cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
 
@@ -1910,108 +1937,122 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     static auto* const PRENDERTEX      = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
     static auto* const PNOSPLASH       = &g_pConfigManager->getConfigValuePtr("misc:disable_splash_rendering")->intValue;
-    static auto* const PFORCEHYPRCHAN  = &g_pConfigManager->getConfigValuePtr("misc:force_hypr_chan")->intValue;
     static auto* const PFORCEWALLPAPER = &g_pConfigManager->getConfigValuePtr("misc:force_default_wallpaper")->intValue;
 
     const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+
+    static std::string texPath = "";
 
     if (*PRENDERTEX)
         return;
 
     // release the last tex if exists
-    const auto PTEX = &m_mMonitorBGTextures[pMonitor];
-    PTEX->destroyTexture();
+    const auto PFB = &m_mMonitorBGFBs[pMonitor];
+    PFB->release();
 
-    PTEX->allocate();
+    PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
     Debug::log(LOG, "Allocated texture for BGTex");
 
     // TODO: use relative paths to the installation
     // or configure the paths at build time
-    std::string texPath    = "/usr/share/hyprland/wall_";
-    std::string prefixes[] = {"", "anime_", "anime2_"};
+    if (texPath.empty()) {
+        texPath = "/usr/share/hyprland/wall";
 
-    // get the adequate tex
-    if (FORCEWALLPAPER == -1) {
-        std::random_device              dev;
-        std::mt19937                    engine(dev());
-        std::uniform_int_distribution<> distribution(0, 2);
-        std::uniform_int_distribution<> distribution_anime(1, 2);
+        // get the adequate tex
+        if (FORCEWALLPAPER == -1) {
+            std::mt19937_64                 engine(time(nullptr));
+            std::uniform_int_distribution<> distribution(0, 2);
 
-        if (PFORCEHYPRCHAN)
-            texPath += prefixes[distribution_anime(engine)];
-        else
-            texPath += prefixes[distribution(engine)];
-    } else
-        texPath += prefixes[FORCEWALLPAPER];
+            texPath += std::to_string(distribution(engine));
+        } else
+            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, (int64_t)0, (int64_t)2));
 
-    Vector2D textureSize;
-    if (pMonitor->vecTransformedSize.x > 3850) {
-        textureSize = Vector2D(7680, 4320);
-        texPath += "8K.png";
-    } else if (pMonitor->vecTransformedSize.x > 1930) {
-        textureSize = Vector2D(3840, 2160);
-        texPath += "4K.png";
-    } else {
-        textureSize = Vector2D(1920, 1080);
-        texPath += "2K.png";
+        texPath += ".png";
+
+        // check if wallpapers exist
+        if (!std::filesystem::exists(texPath)) {
+            // try local
+            texPath = texPath.substr(0, 5) + "local/" + texPath.substr(5);
+
+            if (!std::filesystem::exists(texPath))
+                return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
+        }
     }
 
-    // check if wallpapers exist
-    if (!std::filesystem::exists(texPath)) {
-        // try local
-        texPath = texPath.substr(0, 5) + "local/" + texPath.substr(5);
+    // create a new one with cairo
+    CTexture   tex;
 
-        if (!std::filesystem::exists(texPath))
-            return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
-    }
+    const auto CAIROISURFACE = cairo_image_surface_create_from_png(texPath.c_str());
+    const auto CAIROFORMAT   = cairo_image_surface_get_format(CAIROISURFACE);
 
-    PTEX->m_vSize = textureSize;
+    tex.allocate();
+    const Vector2D IMAGESIZE = {cairo_image_surface_get_width(CAIROISURFACE), cairo_image_surface_get_height(CAIROISURFACE)};
 
     // calc the target box
     const double MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
-    const double WPRATIO  = 1.77;
+    const double WPRATIO  = IMAGESIZE.x / IMAGESIZE.y;
 
     Vector2D     origin;
     double       scale;
 
     if (MONRATIO > WPRATIO) {
-        scale = m_RenderData.pMonitor->vecTransformedSize.x / PTEX->m_vSize.x;
+        scale = m_RenderData.pMonitor->vecTransformedSize.x / IMAGESIZE.x;
 
-        origin.y = (m_RenderData.pMonitor->vecTransformedSize.y - PTEX->m_vSize.y * scale) / 2.0;
+        origin.y = (m_RenderData.pMonitor->vecTransformedSize.y - IMAGESIZE.y * scale) / 2.0;
     } else {
-        scale = m_RenderData.pMonitor->vecTransformedSize.y / PTEX->m_vSize.y;
+        scale = m_RenderData.pMonitor->vecTransformedSize.y / IMAGESIZE.y;
 
-        origin.x = (m_RenderData.pMonitor->vecTransformedSize.x - PTEX->m_vSize.x * scale) / 2.0;
+        origin.x = (m_RenderData.pMonitor->vecTransformedSize.x - IMAGESIZE.x * scale) / 2.0;
     }
 
-    CBox box = {origin.x, origin.y, PTEX->m_vSize.x * scale, PTEX->m_vSize.y * scale};
+    const Vector2D scaledSize = IMAGESIZE * scale;
 
-    m_mMonitorRenderResources[pMonitor].backgroundTexBox = box;
+    const auto     CAIROSURFACE = cairo_image_surface_create(CAIROFORMAT, scaledSize.x, scaledSize.y);
+    const auto     CAIRO        = cairo_create(CAIROSURFACE);
 
-    // create a new one with cairo
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
+    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_GOOD);
+    cairo_scale(CAIRO, scale, scale);
+    cairo_rectangle(CAIRO, 0, 0, 100, 100);
+    cairo_set_source_surface(CAIRO, CAIROISURFACE, 0, 0);
+    cairo_paint(CAIRO);
 
-    // scale it to fit the current monitor
-    cairo_scale(CAIRO, textureSize.x / pMonitor->vecTransformedSize.x, textureSize.y / pMonitor->vecTransformedSize.y);
-
-    // render splash on wallpaper
     if (!*PNOSPLASH)
-        renderSplash(CAIRO, CAIROSURFACE, origin.y * WPRATIO / MONRATIO);
+        renderSplash(CAIRO, CAIROSURFACE, origin.y * WPRATIO / MONRATIO * scale, IMAGESIZE);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    CBox box    = {origin.x, origin.y, IMAGESIZE.x * scale, IMAGESIZE.y * scale};
+    tex.m_vSize = IMAGESIZE * scale;
 
     // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, PTEX->m_iTexID);
+    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
+    const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
+    const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    glBindTexture(GL_TEXTURE_2D, tex.m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 #ifndef GLES2
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    }
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureSize.x, textureSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex.m_vSize.x, tex.m_vSize.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
+    cairo_surface_destroy(CAIROISURFACE);
     cairo_destroy(CAIRO);
+
+    // render the texture to our fb
+    PFB->bind();
+    CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
+    renderTextureInternalWithDamage(tex, &box, 1.0, &fakeDamage);
+
+    // bind back
+    if (m_RenderData.currentFB)
+        m_RenderData.currentFB->bind();
 
     Debug::log(LOG, "Background created for monitor {}", pMonitor->szName);
 }
@@ -2021,15 +2062,19 @@ void CHyprOpenGLImpl::clearWithTex() {
 
     TRACY_GPU_ZONE("RenderClearWithTex");
 
-    auto TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
+    auto TEXIT = m_mMonitorBGFBs.find(m_RenderData.pMonitor);
 
-    if (TEXIT == m_mMonitorBGTextures.end()) {
+    if (TEXIT == m_mMonitorBGFBs.end()) {
         createBGTextureForMonitor(m_RenderData.pMonitor);
-        TEXIT = m_mMonitorBGTextures.find(m_RenderData.pMonitor);
+        TEXIT = m_mMonitorBGFBs.find(m_RenderData.pMonitor);
     }
 
-    if (TEXIT != m_mMonitorBGTextures.end())
-        renderTexturePrimitive(TEXIT->second, &m_mMonitorRenderResources[m_RenderData.pMonitor].backgroundTexBox);
+    if (TEXIT != m_mMonitorBGFBs.end()) {
+        CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+        m_bEndFrame = true;
+        renderTexture(TEXIT->second.m_cTex, &monbox, 1);
+        m_bEndFrame = false;
+    }
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
@@ -2047,10 +2092,10 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_mMonitorRenderResources.erase(RESIT);
     }
 
-    auto TEXIT = g_pHyprOpenGL->m_mMonitorBGTextures.find(pMonitor);
-    if (TEXIT != g_pHyprOpenGL->m_mMonitorBGTextures.end()) {
-        TEXIT->second.destroyTexture();
-        g_pHyprOpenGL->m_mMonitorBGTextures.erase(TEXIT);
+    auto TEXIT = g_pHyprOpenGL->m_mMonitorBGFBs.find(pMonitor);
+    if (TEXIT != g_pHyprOpenGL->m_mMonitorBGFBs.end()) {
+        TEXIT->second.release();
+        g_pHyprOpenGL->m_mMonitorBGFBs.erase(TEXIT);
     }
 
     Debug::log(LOG, "Monitor {} -> destroyed all render data", pMonitor->szName);

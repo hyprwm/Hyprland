@@ -74,9 +74,10 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
         std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find("\n", lastAsmNewline) - lastAsmNewline);
         if (code.contains("%rip")) {
             CVarList       tokens{code, 0, 's'};
-            size_t         plusPresent = tokens[1][0] == '+' ? 1 : 0;
-            std::string    addr        = tokens[1].substr(plusPresent, tokens[1].find("(%rip)") - plusPresent);
-            const uint64_t OFFSET      = configStringToInt(addr);
+            size_t         plusPresent  = tokens[1][0] == '+' ? 1 : 0;
+            size_t         minusPresent = tokens[1][0] == '-' ? 1 : 0;
+            std::string    addr         = tokens[1].substr((plusPresent || minusPresent), tokens[1].find("(%rip)") - (plusPresent || minusPresent));
+            const uint64_t OFFSET       = (minusPresent ? -1 : 1) * configStringToInt(addr);
             if (OFFSET == 0)
                 return {};
             const uint64_t DESTINATION = currentAddress + OFFSET + len;

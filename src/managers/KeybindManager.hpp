@@ -41,6 +41,7 @@ struct SPressedKeyWithMods {
     xkb_keysym_t keysym             = 0;
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
+    bool         sent               = false;
 };
 
 class CKeybindManager {
@@ -133,6 +134,7 @@ class CKeybindManager {
     static void     exitHyprland(std::string);
     static void     moveCurrentWorkspaceToMonitor(std::string);
     static void     moveWorkspaceToMonitor(std::string);
+    static void     focusWorkspaceOnCurrentMonitor(std::string);
     static void     toggleSpecialWorkspace(std::string);
     static void     forceRendererReload(std::string);
     static void     resizeActive(std::string);

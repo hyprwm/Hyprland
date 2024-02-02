@@ -10,19 +10,16 @@
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
-
-  mkJoinedOverlays = overlays: final: prev:
-    lib.foldl' (attrs: overlay: attrs // (overlay final prev)) {} overlays;
 in {
   # Contains what a user is most likely to care about:
   # Hyprland itself, XDPH and the Share Picker.
-  default = mkJoinedOverlays (with self.overlays; [
+  default = lib.composeManyExtensions (with self.overlays; [
     hyprland-packages
     hyprland-extras
   ]);
 
   # Packages for variations of Hyprland, dependencies included.
-  hyprland-packages = mkJoinedOverlays [
+  hyprland-packages = lib.composeManyExtensions [
     # Dependencies
     inputs.hyprland-protocols.overlays.default
     self.overlays.wlroots-hyprland
@@ -34,7 +31,7 @@ in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
-        wlroots = final.wlroots-hyprland;
+        wlroots = prev.wlroots-hyprland;
         commit = self.rev or "";
         inherit (final) udis86 hyprland-protocols;
         inherit date;
@@ -59,7 +56,7 @@ in {
 
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
-  hyprland-extras = mkJoinedOverlays [
+  hyprland-extras = lib.composeManyExtensions [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
   ];
 

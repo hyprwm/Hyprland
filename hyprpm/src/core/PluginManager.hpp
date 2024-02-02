@@ -40,7 +40,7 @@ class CPluginManager {
     bool                   removePluginRepo(const std::string& urlOrName);
 
     eHeadersErrors         headersValid();
-    bool                   updateHeaders();
+    bool                   updateHeaders(bool force = false);
     bool                   updatePlugins(bool forceUpdateAll);
 
     void                   listAllPlugins();

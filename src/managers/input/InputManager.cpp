@@ -421,7 +421,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (((FOLLOWMOUSE != 3 && allowKeyboardRefocus) && (*PMOUSEREFOCUS || m_pLastMouseFocus != pFoundWindow)) || refocus) {
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_pLastMouseFocus != pFoundWindow)) || refocus)) {
                 m_pLastMouseFocus = pFoundWindow;
                 g_pCompositor->focusWindow(pFoundWindow, foundSurface);
             }
@@ -695,7 +695,8 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
             return;
     }
 
-    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source);
+    wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source,
+                                 WLR_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -1185,6 +1186,9 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
         updateKeyboardsLeds(pKeyboard->keyboard);
     }
+
+    if (m_bExitTriggered)
+        g_pCompositor->cleanup();
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
@@ -1457,12 +1461,16 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
-
     auto setConfig = [&](STouchDevice* const PTOUCHDEV) -> void {
         if (wlr_input_device_is_libinput(PTOUCHDEV->pWlrDevice)) {
             const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(PTOUCHDEV->pWlrDevice);
 
-            const int  ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
+            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "enabled", "input:touchdevice:enabled");
+            const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+            if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
+                libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
+
+            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 

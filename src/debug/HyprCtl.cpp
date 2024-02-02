@@ -1138,9 +1138,9 @@ std::string dispatchSetProp(std::string request) {
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
         } else if (PROP == "activebordercolor") {
-            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
         } else if (PROP == "inactivebordercolor") {
-            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
         } else if (PROP == "forcergbx") {
             PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "bordersize") {
@@ -1402,10 +1402,17 @@ std::string getReply(std::string request) {
     auto format = HyprCtl::FORMAT_NORMAL;
 
     // process flags for non-batch requests
-    if (!request.contains("[[BATCH]]") && request.contains("/")) {
+    if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
         long unsigned int sepIndex = 0;
         for (const auto& c : request) {
             if (c == '/') { // stop at separator
+                break;
+            }
+
+            // after whitespace assume the first word as a keyword,
+            // so its value can have slashes (e.g., a path)
+            if (c == ' ') {
+                sepIndex = request.size();
                 break;
             }
 

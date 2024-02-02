@@ -176,7 +176,7 @@ class CCompositor {
     void           updateWorkspaceWindows(const int64_t& id);
     void           updateWindowAnimatedDecorationValues(CWindow*);
     int            getNextAvailableMonitorID(std::string const& name);
-    void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*);
+    void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*, bool noWarpCursor = false);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int64_t&);
@@ -214,6 +214,7 @@ class CCompositor {
 
   private:
     void     initAllSignals();
+    void     removeAllSignals();
     void     setRandomSplash();
     void     initManagers(eManagersInitStage stage);
     void     prepareFallbackOutput();

@@ -318,7 +318,7 @@ void CWindow::destroyToplevelHandle() {
 }
 
 void CWindow::updateToplevel() {
-    updateSurfaceOutputs();
+    updateSurfaceScaleTransformDetails();
 
     if (!m_phForeignToplevel)
         return;
@@ -345,8 +345,8 @@ void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
     wlr_surface_send_leave(pSurface, OUTPUT);
 }
 
-void CWindow::updateSurfaceOutputs() {
-    if (m_iLastSurfaceMonitorID == m_iMonitorID || !m_bIsMapped || m_bHidden)
+void CWindow::updateSurfaceScaleTransformDetails() {
+    if (!m_bIsMapped || m_bHidden)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
@@ -355,16 +355,23 @@ void CWindow::updateSurfaceOutputs() {
 
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-    if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
-        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
+    if (PNEWMONITOR != PLASTMONITOR) {
+        if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
+            wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
 
-    wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+    }
 
     wlr_surface_for_each_surface(
         m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {
             const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
-            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR ? PMONITOR->scale : 1.f);
+
+            const auto PSURFACE = CWLSurface::surfaceFromWlr(surf);
+            if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
+                return;
+
+            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR->scale);
             g_pCompositor->setPreferredTransformForSurface(surf, PMONITOR->transform);
         },
         this);
@@ -511,6 +518,14 @@ void CWindow::onMap() {
                                           "CWindow");
 
     m_vReportedSize = m_vPendingReportedSize;
+
+    for (const auto& ctrl : g_pHyprRenderer->m_vTearingControllers) {
+        if (ctrl->pWlrHint->surface != m_pWLSurface.wlr())
+            continue;
+
+        m_bTearingHint = ctrl->pWlrHint->current;
+        break;
+    }
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {
@@ -607,14 +622,42 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.animationStyle = STYLE;
     } else if (r.szRule.starts_with("bordercolor")) {
         try {
-            std::string colorPart = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+            // Each vector will only get used if it has at least one color
+            CGradientValueData activeBorderGradient   = {};
+            CGradientValueData inactiveBorderGradient = {};
+            bool               active                 = true;
+            CVarList           colorsAndAngles        = CVarList(removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
 
-            if (colorPart.contains(' ')) {
-                // we have a space, 2 values
-                m_sSpecialRenderData.activeBorderColor   = configStringToInt(colorPart.substr(0, colorPart.find_first_of(' ')));
-                m_sSpecialRenderData.inactiveBorderColor = configStringToInt(colorPart.substr(colorPart.find_first_of(' ') + 1));
-            } else {
-                m_sSpecialRenderData.activeBorderColor = configStringToInt(colorPart);
+            // Basic form has only two colors, everything else can be parsed as a gradient
+            if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+                m_sSpecialRenderData.activeBorderColor   = CGradientValueData(CColor(configStringToInt(colorsAndAngles[0])));
+                m_sSpecialRenderData.inactiveBorderColor = CGradientValueData(CColor(configStringToInt(colorsAndAngles[1])));
+                return;
+            }
+
+            for (auto& token : colorsAndAngles) {
+                // The first angle, or an explicit "0deg", splits the two gradients
+                if (active && token.contains("deg")) {
+                    activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                    active                        = false;
+                } else if (token.contains("deg"))
+                    inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                else if (active)
+                    activeBorderGradient.m_vColors.push_back(configStringToInt(token));
+                else
+                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
+            }
+
+            // Includes sanity checks for the number of colors in each gradient
+            if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
+                Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r.szRule);
+            else if (activeBorderGradient.m_vColors.empty())
+                Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
+            else if (inactiveBorderGradient.m_vColors.empty())
+                m_sSpecialRenderData.activeBorderColor = activeBorderGradient;
+            else {
+                m_sSpecialRenderData.activeBorderColor   = activeBorderGradient;
+                m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "dimaround") {
@@ -644,8 +687,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 }
 
 void CWindow::updateDynamicRules() {
-    m_sSpecialRenderData.activeBorderColor   = -1;
-    m_sSpecialRenderData.inactiveBorderColor = -1;
+    m_sSpecialRenderData.activeBorderColor   = CGradientValueData();
+    m_sSpecialRenderData.inactiveBorderColor = CGradientValueData();
     m_sSpecialRenderData.alpha               = 1.f;
     m_sSpecialRenderData.alphaInactive       = -1.f;
     m_sAdditionalConfigData.forceNoBlur      = false;
@@ -1028,7 +1071,7 @@ int CWindow::getRealBorderSize() {
 }
 
 bool CWindow::canBeTorn() {
-    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint) && g_pHyprRenderer->m_bTearingEnvSatisfied;
+    return (m_sAdditionalConfigData.forceTearing.toUnderlying() || m_bTearingHint);
 }
 
 bool CWindow::shouldSendFullscreenState() {

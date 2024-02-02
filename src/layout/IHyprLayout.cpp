@@ -314,8 +314,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
-             1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate &&
-         (*PANIMATEMOUSE || *PANIMATE)))
+         1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();
@@ -469,16 +468,18 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
+        CBox wb = {pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
+        wb.round();
+
         if (DELTALESSTHAN(pWindow->m_vRealSize.vec().x, pWindow->m_vLastFloatingSize.x, 10) && DELTALESSTHAN(pWindow->m_vRealSize.vec().y, pWindow->m_vLastFloatingSize.y, 10)) {
-            pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f + Vector2D{10, 10};
-            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize - Vector2D{20, 20};
+            wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 
-        pWindow->m_vRealPosition = pWindow->m_vRealPosition.goalv() + (pWindow->m_vRealSize.goalv() - pWindow->m_vLastFloatingSize) / 2.f;
-        pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+        pWindow->m_vRealPosition = wb.pos();
+        pWindow->m_vRealSize     = wb.size();
 
-        pWindow->m_vSize     = pWindow->m_vRealSize.goalv();
-        pWindow->m_vPosition = pWindow->m_vRealPosition.goalv();
+        pWindow->m_vSize     = wb.pos();
+        pWindow->m_vPosition = wb.size();
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 

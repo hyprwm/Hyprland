@@ -19,64 +19,65 @@
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
 
-    m_mDispatchers["exec"]                          = spawn;
-    m_mDispatchers["execr"]                         = spawnRaw;
-    m_mDispatchers["killactive"]                    = killActive;
-    m_mDispatchers["closewindow"]                   = kill;
-    m_mDispatchers["togglefloating"]                = toggleActiveFloating;
-    m_mDispatchers["workspace"]                     = changeworkspace;
-    m_mDispatchers["renameworkspace"]               = renameWorkspace;
-    m_mDispatchers["fullscreen"]                    = fullscreenActive;
-    m_mDispatchers["fakefullscreen"]                = fakeFullscreenActive;
-    m_mDispatchers["movetoworkspace"]               = moveActiveToWorkspace;
-    m_mDispatchers["movetoworkspacesilent"]         = moveActiveToWorkspaceSilent;
-    m_mDispatchers["pseudo"]                        = toggleActivePseudo;
-    m_mDispatchers["movefocus"]                     = moveFocusTo;
-    m_mDispatchers["movewindow"]                    = moveActiveTo;
-    m_mDispatchers["swapwindow"]                    = swapActive;
-    m_mDispatchers["centerwindow"]                  = centerWindow;
-    m_mDispatchers["togglegroup"]                   = toggleGroup;
-    m_mDispatchers["changegroupactive"]             = changeGroupActive;
-    m_mDispatchers["movegroupwindow"]               = moveGroupWindow;
-    m_mDispatchers["togglesplit"]                   = toggleSplit;
-    m_mDispatchers["splitratio"]                    = alterSplitRatio;
-    m_mDispatchers["focusmonitor"]                  = focusMonitor;
-    m_mDispatchers["movecursortocorner"]            = moveCursorToCorner;
-    m_mDispatchers["movecursor"]                    = moveCursor;
-    m_mDispatchers["workspaceopt"]                  = workspaceOpt;
-    m_mDispatchers["exit"]                          = exitHyprland;
-    m_mDispatchers["movecurrentworkspacetomonitor"] = moveCurrentWorkspaceToMonitor;
-    m_mDispatchers["moveworkspacetomonitor"]        = moveWorkspaceToMonitor;
-    m_mDispatchers["togglespecialworkspace"]        = toggleSpecialWorkspace;
-    m_mDispatchers["forcerendererreload"]           = forceRendererReload;
-    m_mDispatchers["resizeactive"]                  = resizeActive;
-    m_mDispatchers["moveactive"]                    = moveActive;
-    m_mDispatchers["cyclenext"]                     = circleNext;
-    m_mDispatchers["focuswindowbyclass"]            = focusWindow;
-    m_mDispatchers["focuswindow"]                   = focusWindow;
-    m_mDispatchers["submap"]                        = setSubmap;
-    m_mDispatchers["pass"]                          = pass;
-    m_mDispatchers["layoutmsg"]                     = layoutmsg;
-    m_mDispatchers["toggleopaque"]                  = toggleOpaque;
-    m_mDispatchers["dpms"]                          = dpms;
-    m_mDispatchers["movewindowpixel"]               = moveWindow;
-    m_mDispatchers["resizewindowpixel"]             = resizeWindow;
-    m_mDispatchers["swapnext"]                      = swapnext;
-    m_mDispatchers["swapactiveworkspaces"]          = swapActiveWorkspaces;
-    m_mDispatchers["pin"]                           = pinActive;
-    m_mDispatchers["mouse"]                         = mouse;
-    m_mDispatchers["bringactivetotop"]              = bringActiveToTop;
-    m_mDispatchers["alterzorder"]                   = alterZOrder;
-    m_mDispatchers["focusurgentorlast"]             = focusUrgentOrLast;
-    m_mDispatchers["focuscurrentorlast"]            = focusCurrentOrLast;
-    m_mDispatchers["lockgroups"]                    = lockGroups;
-    m_mDispatchers["lockactivegroup"]               = lockActiveGroup;
-    m_mDispatchers["moveintogroup"]                 = moveIntoGroup;
-    m_mDispatchers["moveoutofgroup"]                = moveOutOfGroup;
-    m_mDispatchers["movewindoworgroup"]             = moveWindowOrGroup;
-    m_mDispatchers["setignoregrouplock"]            = setIgnoreGroupLock;
-    m_mDispatchers["denywindowfromgroup"]           = denyWindowFromGroup;
-    m_mDispatchers["global"]                        = global;
+    m_mDispatchers["exec"]                           = spawn;
+    m_mDispatchers["execr"]                          = spawnRaw;
+    m_mDispatchers["killactive"]                     = killActive;
+    m_mDispatchers["closewindow"]                    = kill;
+    m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
+    m_mDispatchers["workspace"]                      = changeworkspace;
+    m_mDispatchers["renameworkspace"]                = renameWorkspace;
+    m_mDispatchers["fullscreen"]                     = fullscreenActive;
+    m_mDispatchers["fakefullscreen"]                 = fakeFullscreenActive;
+    m_mDispatchers["movetoworkspace"]                = moveActiveToWorkspace;
+    m_mDispatchers["movetoworkspacesilent"]          = moveActiveToWorkspaceSilent;
+    m_mDispatchers["pseudo"]                         = toggleActivePseudo;
+    m_mDispatchers["movefocus"]                      = moveFocusTo;
+    m_mDispatchers["movewindow"]                     = moveActiveTo;
+    m_mDispatchers["swapwindow"]                     = swapActive;
+    m_mDispatchers["centerwindow"]                   = centerWindow;
+    m_mDispatchers["togglegroup"]                    = toggleGroup;
+    m_mDispatchers["changegroupactive"]              = changeGroupActive;
+    m_mDispatchers["movegroupwindow"]                = moveGroupWindow;
+    m_mDispatchers["togglesplit"]                    = toggleSplit;
+    m_mDispatchers["splitratio"]                     = alterSplitRatio;
+    m_mDispatchers["focusmonitor"]                   = focusMonitor;
+    m_mDispatchers["movecursortocorner"]             = moveCursorToCorner;
+    m_mDispatchers["movecursor"]                     = moveCursor;
+    m_mDispatchers["workspaceopt"]                   = workspaceOpt;
+    m_mDispatchers["exit"]                           = exitHyprland;
+    m_mDispatchers["movecurrentworkspacetomonitor"]  = moveCurrentWorkspaceToMonitor;
+    m_mDispatchers["focusworkspaceoncurrentmonitor"] = focusWorkspaceOnCurrentMonitor;
+    m_mDispatchers["moveworkspacetomonitor"]         = moveWorkspaceToMonitor;
+    m_mDispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
+    m_mDispatchers["forcerendererreload"]            = forceRendererReload;
+    m_mDispatchers["resizeactive"]                   = resizeActive;
+    m_mDispatchers["moveactive"]                     = moveActive;
+    m_mDispatchers["cyclenext"]                      = circleNext;
+    m_mDispatchers["focuswindowbyclass"]             = focusWindow;
+    m_mDispatchers["focuswindow"]                    = focusWindow;
+    m_mDispatchers["submap"]                         = setSubmap;
+    m_mDispatchers["pass"]                           = pass;
+    m_mDispatchers["layoutmsg"]                      = layoutmsg;
+    m_mDispatchers["toggleopaque"]                   = toggleOpaque;
+    m_mDispatchers["dpms"]                           = dpms;
+    m_mDispatchers["movewindowpixel"]                = moveWindow;
+    m_mDispatchers["resizewindowpixel"]              = resizeWindow;
+    m_mDispatchers["swapnext"]                       = swapnext;
+    m_mDispatchers["swapactiveworkspaces"]           = swapActiveWorkspaces;
+    m_mDispatchers["pin"]                            = pinActive;
+    m_mDispatchers["mouse"]                          = mouse;
+    m_mDispatchers["bringactivetotop"]               = bringActiveToTop;
+    m_mDispatchers["alterzorder"]                    = alterZOrder;
+    m_mDispatchers["focusurgentorlast"]              = focusUrgentOrLast;
+    m_mDispatchers["focuscurrentorlast"]             = focusCurrentOrLast;
+    m_mDispatchers["lockgroups"]                     = lockGroups;
+    m_mDispatchers["lockactivegroup"]                = lockActiveGroup;
+    m_mDispatchers["moveintogroup"]                  = moveIntoGroup;
+    m_mDispatchers["moveoutofgroup"]                 = moveOutOfGroup;
+    m_mDispatchers["movewindoworgroup"]              = moveWindowOrGroup;
+    m_mDispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
+    m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
+    m_mDispatchers["global"]                         = global;
 
     m_tScrollTimer.reset();
 
@@ -313,9 +314,10 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         .keysym             = keysym,
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
+        .sent               = true,
     };
 
-    bool found = false;
+    bool suppressEvent = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
         // clean repeat
         if (m_pActiveKeybindEventSource) {
@@ -326,10 +328,12 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true);
+        suppressEvent = handleKeybinds(MODS, KEY, true);
 
-        if (found)
+        if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
+
+        m_dPressedKeys.back().sent = !suppressEvent;
     } else { // key release
         // clean repeat
         if (m_pActiveKeybindEventSource) {
@@ -341,11 +345,10 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false);
-                    foundInPressedKeys = true;
-                }
-                it = m_dPressedKeys.erase(it);
+                suppressEvent      = handleKeybinds(MODS, *it, false);
+                foundInPressedKeys = true;
+                suppressEvent      = !it->sent;
+                it                 = m_dPressedKeys.erase(it);
             } else {
                 ++it;
             }
@@ -353,13 +356,13 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false);
+            suppressEvent = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
     }
 
-    return !found && !mouseBindWasActive;
+    return !suppressEvent && !mouseBindWasActive;
 }
 
 bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
@@ -396,7 +399,7 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
 bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    bool       found = false;
+    bool       suppressEvent = false;
 
     m_uLastMouseCode = e->button;
     m_uLastCode      = 0;
@@ -414,19 +417,20 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     if (e->state == WLR_BUTTON_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 
-        found = handleKeybinds(MODS, KEY, true);
+        suppressEvent = handleKeybinds(MODS, KEY, true);
 
-        if (found)
+        if (suppressEvent)
             shadowKeybinds();
+
+        m_dPressedKeys.back().sent = !suppressEvent;
     } else {
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
-                if (!foundInPressedKeys) {
-                    found              = handleKeybinds(MODS, *it, false);
-                    foundInPressedKeys = true;
-                }
-                it = m_dPressedKeys.erase(it);
+                suppressEvent      = handleKeybinds(MODS, *it, false);
+                foundInPressedKeys = true;
+                suppressEvent      = !it->sent;
+                it                 = m_dPressedKeys.erase(it);
             } else {
                 ++it;
             }
@@ -434,13 +438,13 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         if (!foundInPressedKeys) {
             Debug::log(ERR, "BUG THIS: key not found in m_dPressedKeys (2)");
             // fallback with wrong `KEY.modmaskAtPressTime`, this can be buggy
-            found = handleKeybinds(MODS, KEY, false);
+            suppressEvent = handleKeybinds(MODS, KEY, false);
         }
 
         shadowKeybinds();
     }
 
-    return !found && !mouseBindWasActive;
+    return !suppressEvent && !mouseBindWasActive;
 }
 
 void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
@@ -522,7 +526,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.
-            if (key.modmaskAtPressTime != modmask) {
+            if (key.modmaskAtPressTime != modmask && !k.ignoreMods) {
                 // Handle properly `bindr` where a key is itself a bind mod for example:
                 // "bindr = SUPER, SUPER_L, exec, $launcher".
                 // This needs to be handled separately for the above case, because `key.modmaskAtPressTime` is set
@@ -1449,7 +1453,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->cleanup();
+    g_pInputManager->m_bExitTriggered = true;
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
@@ -1497,6 +1501,48 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
     }
 
     g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
+}
+
+void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
+    std::string workspaceName;
+    const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
+
+    if (WORKSPACEID == WORKSPACE_INVALID) {
+        Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
+        return;
+    }
+
+    const auto PCURRMONITOR = g_pCompositor->getMonitorFromCursor();
+
+    if (!PCURRMONITOR) {
+        Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");
+        return;
+    }
+
+    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+
+    if (!PWORKSPACE) {
+        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, PCURRMONITOR->ID);
+        // we can skip the moving, since it's already on the current monitor
+        changeworkspace(PWORKSPACE->getConfigName());
+        return;
+    }
+
+    if (PWORKSPACE->m_iMonitorID != PCURRMONITOR->ID) {
+        const auto POLDMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        if (!POLDMONITOR) { // wat
+            Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
+            return;
+        }
+        if (POLDMONITOR->activeWorkspace == WORKSPACEID) {
+            g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
+            return;
+        } else {
+            g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PCURRMONITOR, true);
+        }
+    }
+
+    changeworkspace(PWORKSPACE->getConfigName());
 }
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {
@@ -1806,11 +1852,11 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
-        wlr_output_enable(m->output, enable);
+        wlr_output_state_set_enabled(m->state.wlr(), enable);
 
         m->dpmsStatus = enable;
 
-        if (!wlr_output_commit(m->output)) {
+        if (!m->state.commit()) {
             Debug::log(ERR, "Couldn't commit output {}", m->szName);
         }
 

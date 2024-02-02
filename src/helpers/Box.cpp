@@ -105,6 +105,13 @@ CBox& CBox::expand(const double& value) {
     return *this;
 }
 
+CBox& CBox::noNegativeSize() {
+    std::clamp(w, 0.0, std::numeric_limits<double>::infinity());
+    std::clamp(h, 0.0, std::numeric_limits<double>::infinity());
+
+    return *this;
+}
+
 CBox CBox::roundInternal() {
     float newW = x + w - std::floor(x);
     float newH = y + h - std::floor(y);

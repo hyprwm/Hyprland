@@ -329,6 +329,9 @@ void CHyprOpenGLImpl::end() {
     m_RenderData.mouseZoomFactor    = 1.f;
     m_RenderData.mouseZoomUseMouse  = true;
     m_RenderData.forceIntrospection = false;
+    m_RenderData.currentFB          = nullptr;
+    m_RenderData.mainFB             = nullptr;
+    m_RenderData.outFB              = nullptr;
 
     // check for gl errors
     const GLenum ERR = glGetError();

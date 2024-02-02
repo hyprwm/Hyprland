@@ -207,7 +207,10 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
     const auto PATH = getDataStatePath();
 
     for (const auto& entry : std::filesystem::directory_iterator(PATH)) {
-        if (!entry.is_directory())
+        if (!entry.is_directory() || entry.path().stem() == "headersRoot")
+            continue;
+
+        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
             continue;
 
         auto STATE = toml::parse_file(entry.path().string() + "/state.toml");

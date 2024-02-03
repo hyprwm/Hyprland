@@ -160,37 +160,6 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     return box;
 }
 
-CBox CWindow::getWindowInputBox() {
-    const int BORDERSIZE = getRealBorderSize();
-
-    if (m_sAdditionalConfigData.dimAround) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
-    }
-
-    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
-
-    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, true);
-
-    if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
-        maxExtents.topLeft.x = EXTENTS.topLeft.x;
-
-    if (EXTENTS.topLeft.y > maxExtents.topLeft.y)
-        maxExtents.topLeft.y = EXTENTS.topLeft.y;
-
-    if (EXTENTS.bottomRight.x > maxExtents.bottomRight.x)
-        maxExtents.bottomRight.x = EXTENTS.bottomRight.x;
-
-    if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
-        maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
-
-    // Add extents to the real base BB and return
-    CBox finalBox = {m_vRealPosition.vec().x - maxExtents.topLeft.x, m_vRealPosition.vec().y - maxExtents.topLeft.y,
-                     m_vRealSize.vec().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.vec().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
-
-    return finalBox;
-}
-
 CBox CWindow::getWindowMainSurfaceBox() {
     return {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
 }

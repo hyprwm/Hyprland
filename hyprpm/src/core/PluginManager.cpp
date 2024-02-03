@@ -210,7 +210,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
         for (auto& bs : p.buildSteps) {
-            std::string cmd = std::format("cd /tmp/hyprpm/new && PKG_CONFIG_PATH=\"{}\" {}", DataState::getHeadersPath(), bs);
+            std::string cmd = std::format("cd /tmp/hyprpm/new && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", DataState::getHeadersPath(), bs);
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 
@@ -289,7 +289,7 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_MISSING;
 
     // find headers commit
-    std::string cmd     = std::format("PKG_CONFIG_PATH={}/share/pkgconfig pkg-config --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    std::string cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkg-config --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
     auto        headers = execAndGet(cmd.c_str());
 
     if (!headers.contains("-I/"))
@@ -560,7 +560,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
             for (auto& bs : p.buildSteps) {
-                std::string cmd = std::format("cd /tmp/hyprpm/update && PKG_CONFIG_PATH=\"{}\" {}", DataState::getHeadersPath(), bs);
+                std::string cmd = std::format("cd /tmp/hyprpm/update && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", DataState::getHeadersPath(), bs);
                 out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
 

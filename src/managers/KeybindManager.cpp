@@ -1939,7 +1939,7 @@ void CKeybindManager::pinActive(std::string args) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
-    PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
+    PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), FULL_EXTENTS);
 }
 
 void CKeybindManager::mouse(std::string args) {

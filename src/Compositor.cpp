@@ -685,26 +685,6 @@ bool CCompositor::windowExists(CWindow* pWindow) {
     return false;
 }
 
-CWindow* CCompositor::vectorToWindowTiled(const Vector2D& pos) {
-    const auto PMONITOR = getMonitorFromVector(pos);
-
-    if (PMONITOR->specialWorkspaceID) {
-        for (auto& w : m_vWindows) {
-            CBox box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-            if (w->m_iWorkspaceID == PMONITOR->specialWorkspaceID && box.containsPoint(pos) && !w->m_bIsFloating && !w->isHidden() && !w->m_bNoFocus)
-                return w.get();
-        }
-    }
-
-    for (auto& w : m_vWindows) {
-        CBox box = {w->m_vPosition.x, w->m_vPosition.y, w->m_vSize.x, w->m_vSize.y};
-        if (w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == PMONITOR->activeWorkspace && !w->m_bIsFloating && !w->isHidden() && !w->m_bNoFocus)
-            return w.get();
-    }
-
-    return nullptr;
-}
-
 CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, CWindow* pIgnoreWindow) {
     const auto         PMONITOR          = getMonitorFromVector(pos);
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;

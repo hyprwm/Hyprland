@@ -140,8 +140,6 @@ class CCompositor {
     SIMEPopup*     vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
-    CWindow*       windowFromCursor();
-    CWindow*       windowFloatingFromCursor();
     CMonitor*      getMonitorFromOutput(wlr_output*);
     CWindow*       getWindowForPopup(wlr_xdg_popup*);
     CWindow*       getWindowFromSurface(wlr_surface*);

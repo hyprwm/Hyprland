@@ -32,8 +32,8 @@ enum eGroupRules {
 
 enum eGetWindowProperties {
     WINDOW_ONLY      = 0, // 0, 1, 2 are mutually exclusive
-    RESERVED_EXTENTS = 1,
-    FULL_EXTENTS     = 2,
+    RESERVED_EXTENTS = 1 << 0,
+    FULL_EXTENTS     = 1 << 1,
     FLOATING_ONLY    = 1 << 2,
     ALLOW_FLOATING   = 1 << 3
 };
@@ -350,7 +350,7 @@ class CWindow {
     // methods
     CBox                     getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
-    CBox                     getWindowBoxUnified(uint8_t props);
+    CBox                     getWindowBoxUnified(uint64_t props);
     CBox                     getWindowInputBox();
     CBox                     getWindowMainSurfaceBox();
     CBox                     getWindowIdealBoundingBoxIgnoreReserved();

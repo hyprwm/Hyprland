@@ -139,7 +139,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     return CBox{(int)POS.x, (int)POS.y, (int)SIZE.x, (int)SIZE.y};
 }
 
-CBox CWindow::getWindowBoxUnified(uint8_t properties) {
+CBox CWindow::getWindowBoxUnified(uint64_t properties) {
 
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);

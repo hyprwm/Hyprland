@@ -146,15 +146,13 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
         return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents EXTENTS;
-    if (properties & WINDOW_ONLY)
-        EXTENTS = {{0, 0}, {0, 0}};
-    else if (properties & RESERVED_EXTENTS)
-        EXTENTS = g_pDecorationPositioner->getWindowDecorationReserved(this);
-    else if (properties & INPUT_EXTENTS)
-        EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, true);
-    else if (properties & FULL_EXTENTS)
-        EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(this, false);
+    SWindowDecorationExtents EXTENTS = {{0, 0}, {0, 0}};
+    if (properties & RESERVED_EXTENTS)
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(this));
+    if (properties & INPUT_EXTENTS)
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(this, true));
+    if (properties & FULL_EXTENTS)
+        EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(this, false));
 
     CBox box = {m_vRealPosition.vec().x, m_vRealPosition.vec().y, m_vRealSize.vec().x, m_vRealSize.vec().y};
     box.addExtents(EXTENTS);

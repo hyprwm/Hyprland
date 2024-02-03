@@ -52,4 +52,9 @@ struct SWindowDecorationExtents {
     bool operator==(const SWindowDecorationExtents& other) const {
         return topLeft == other.topLeft && bottomRight == other.bottomRight;
     }
+
+    void addExtents(const SWindowDecorationExtents& other) {
+        this->topLeft     = this->topLeft.getComponentMax(other.topLeft);
+        this->bottomRight = this->bottomRight.getComponentMax(other.bottomRight);
+    }
 };

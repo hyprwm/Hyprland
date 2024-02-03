@@ -31,7 +31,7 @@ enum eGroupRules {
 };
 
 enum eGetWindowProperties {
-    WINDOW_ONLY      = 0, // 0, 1, 2, 4 are mutually exclusive
+    WINDOW_ONLY      = 0,
     RESERVED_EXTENTS = 1 << 0,
     INPUT_EXTENTS    = 1 << 1,
     FULL_EXTENTS     = 1 << 2,

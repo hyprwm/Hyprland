@@ -54,7 +54,7 @@ struct SWindowDecorationExtents {
     }
 
     void addExtents(const SWindowDecorationExtents& other) {
-        this->topLeft     = this->topLeft.getComponentMax(other.topLeft);
-        this->bottomRight = this->bottomRight.getComponentMax(other.bottomRight);
+        topLeft     = topLeft.getComponentMax(other.topLeft);
+        bottomRight = bottomRight.getComponentMax(other.bottomRight);
     }
 };

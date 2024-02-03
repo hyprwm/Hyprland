@@ -1067,7 +1067,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     }
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
-        if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE, PWINDOW); PATCOORDS)
+        if (const auto PATCOORDS = g_pCompositor->vectorToWindowUnified(OLDMIDDLE, FULL_EXTENTS | ALLOW_FLOATING, PWINDOW); PATCOORDS)
             g_pCompositor->focusWindow(PATCOORDS);
         else
             g_pInputManager->refocus();
@@ -1951,7 +1951,7 @@ void CKeybindManager::mouse(std::string args) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-            CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+            CWindow*   pWindow     = g_pCompositor->vectorToWindowUnified(mouseCoords, FULL_EXTENTS | ALLOW_FLOATING);
 
             if (pWindow && !pWindow->m_bIsFullscreen)
                 pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
@@ -1974,7 +1974,7 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), FULL_EXTENTS | ALLOW_FLOATING);
 
             try {
                 switch (std::stoi(ARGS[1])) {

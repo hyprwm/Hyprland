@@ -261,7 +261,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             return;
         }
 
-        const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, INPUT_EXTENTS | ALLOW_FLOATING);
+        const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
         if (PWINDOWIDEAL &&
             ((PWINDOWIDEAL->m_bIsFloating && PWINDOWIDEAL->m_bCreatedOverFullscreen) /* floating over fullscreen */
@@ -282,19 +282,19 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
 
             if (PMONITOR->specialWorkspaceID) {
-                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, INPUT_EXTENTS | ALLOW_FLOATING);
+                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (pFoundWindow && !g_pCompositor->isWorkspaceSpecial(pFoundWindow->m_iWorkspaceID)) {
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
                 }
             } else {
-                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, INPUT_EXTENTS | ALLOW_FLOATING);
+                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
             }
         } else {
-            pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, INPUT_EXTENTS | ALLOW_FLOATING);
+            pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
         }
 
         if (pFoundWindow) {
@@ -599,7 +599,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
         return;
 
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-    auto       w           = g_pCompositor->vectorToWindowUnified(mouseCoords, ALLOW_FLOATING | RESERVED_EXTENTS);
+    const auto w           = g_pCompositor->vectorToWindowUnified(mouseCoords, ALLOW_FLOATING | RESERVED_EXTENTS | INPUT_EXTENTS);
 
     if (w && !m_bLastFocusOnLS) {
         if (g_pCompositor->m_pLastWindow != w && *PFOLLOWMOUSE != 3)
@@ -621,8 +621,6 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             }
         }
     }
-
-    w = g_pCompositor->vectorToWindowUnified(mouseCoords, INPUT_EXTENTS | ALLOW_FLOATING);
 
     switch (e->state) {
         case WLR_BUTTON_PRESSED:
@@ -659,7 +657,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
     switch (e->state) {
         case WLR_BUTTON_PRESSED: {
-            const auto PWINDOW = g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), INPUT_EXTENTS | ALLOW_FLOATING);
+            const auto PWINDOW = g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
             if (!PWINDOW) {
                 Debug::log(ERR, "Cannot kill invalid window!");
@@ -695,7 +693,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     if (!m_bLastFocusOnLS) {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, INPUT_EXTENTS | ALLOW_FLOATING);
+        const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
         if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
             return;

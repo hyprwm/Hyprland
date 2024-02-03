@@ -769,7 +769,7 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
             if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
                 continue;
 
-            CBox box = {w->m_vPosition, w->m_vSize};
+            CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_vPosition, w->m_vSize};
             if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
                 w.get() != pIgnoreWindow)
                 return w.get();

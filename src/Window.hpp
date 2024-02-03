@@ -31,12 +31,13 @@ enum eGroupRules {
 };
 
 enum eGetWindowProperties {
-    WINDOW_ONLY      = 0, // 0, 1, 2 are mutually exclusive
+    WINDOW_ONLY      = 0, // 0, 1, 2, 4 are mutually exclusive
     RESERVED_EXTENTS = 1 << 0,
     INPUT_EXTENTS    = 1 << 1,
     FULL_EXTENTS     = 1 << 2,
     FLOATING_ONLY    = 1 << 3,
-    ALLOW_FLOATING   = 1 << 4
+    ALLOW_FLOATING   = 1 << 4,
+    USE_PROP_TILED   = 1 << 5
 };
 
 class IWindowTransformer;

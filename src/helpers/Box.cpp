@@ -1,4 +1,8 @@
 #include "Box.hpp"
+
+#include <limits>
+#include <algorithm>
+
 wlr_box CBox::wlr() {
     CBox rounded = roundInternal();
     m_bWlrBox    = wlr_box{(int)rounded.x, (int)rounded.y, (int)rounded.w, (int)rounded.h};

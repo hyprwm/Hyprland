@@ -526,10 +526,10 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_sFinalScreenShader.proj   = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
-    m_sFinalScreenShader.tex    = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
-    m_sFinalScreenShader.time   = glGetUniformLocation(m_sFinalScreenShader.program, "time");
-    m_sFinalScreenShader.output = glGetUniformLocation(m_sFinalScreenShader.program, "output");
+    m_sFinalScreenShader.proj      = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
+    m_sFinalScreenShader.tex       = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
+    m_sFinalScreenShader.time      = glGetUniformLocation(m_sFinalScreenShader.program, "time");
+    m_sFinalScreenShader.wl_output = glGetUniformLocation(m_sFinalScreenShader.program, "wl_output");
     if (m_sFinalScreenShader.time != -1 && g_pConfigManager->getInt("debug:damage_tracking") != 0 && !g_pHyprRenderer->m_bCrashingInProgress) {
         // The screen shader uses the "time" uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
@@ -821,8 +821,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
         glUniform1f(shader->time, 0.f);
     }
 
-    if (usingFinalShader && shader->output != -1)
-        glUniform1i(shader->output, m_RenderData.pMonitor->ID);
+    if (usingFinalShader && shader->wl_output != -1)
+        glUniform1i(shader->wl_output, m_RenderData.pMonitor->ID);
 
     if (CRASHING) {
         glUniform1f(shader->distort, g_pHyprRenderer->m_fCrashingDistort);

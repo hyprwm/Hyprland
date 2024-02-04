@@ -42,9 +42,9 @@ class CShader {
     GLint   gradientLength = -1;
     GLint   angle          = -1;
 
-    GLint   time    = -1;
-    GLint   distort = -1;
-    GLint   output  = -1;
+    GLint   time      = -1;
+    GLint   distort   = -1;
+    GLint   wl_output = -1;
 
     // Blur prepare
     GLint contrast = -1;

@@ -62,6 +62,76 @@ flags:
     --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
 )#";
 
+const std::string DISPATCH_USAGE = R"#(usage: hyprctl [(opt)flags] dispatch [dispatcher] [(opt)args]
+
+dispatchers:
+    exec                            executes a shell command
+    execr                           executes a raw shell command (does not support rules)
+    pass                            passes the key (with mods) to a specified window. Can be used as a workaround
+                                    to global keybinds not working on Wayland.
+    killactive                      closes (not kills) the active window
+    closewindow                     closes a specified window
+    workspace                       changes the workspace
+    movetoworkspace                 moves the focused window to a workspace
+    movetoworkspacesilent           same as above, but doesnt switch to the workspace
+    togglefloating                  toggles the current window's floating state
+    fullscreen                      toggles the focused window's fullscreen state
+    fakefullscreen                  toggles the focused window's internal fullscreen state without altering the
+                                    geometry
+    dpms                            sets all monitors' DPMS status. Do not use with a keybind directly
+    pin                             pins a window (i.e. show it on all workspaces) note: floating only
+    movefocus                       moves the focus in a direction
+    movewindow                      moves the active window in a direction or to a monitor. For floating windows,
+                                    moves the window to the screen edge in that direction
+    swapwindow                      swaps the active window with another window in the given direction
+    centerwindow                    center the active window note: floating only
+    resizeactive                    resizes the active window
+    moveactive                      moves the active window
+    resizewindowpixel               resizes a selected window
+    movewindowpixel                 moves a selected window
+    cyclenext                       focuses the next window on a workspace
+    swapnext                        swaps the focused window with the next window on a workspace
+    focuswindow                     focuses the first window matching
+    focusmonitor                    focuses a monitor
+    splitratio                      changes the split ratio
+    toggleopaque                    toggles the current window to always be opaque. Will override the opaque
+                                    window rules.
+    movecursortocorner              moves the cursor to the corner of the active window
+    movecursor                      moves the cursor to a specified position
+    renameworkspace                 rename a workspace
+    exit                            exits the compositor with no questions asked
+    forcerendererreload             forces the renderer to reload all resources and outputs
+    movecurrentworkspacetomonitor   Moves the active workspace to a monitor
+    focusworkspaceoncurrentmonitor  Focuses the requested workspace on the current monitor, swapping the current
+                                    workspace to a different monitor if necessary. If you want XMonad/Qtile-style
+                                    workspace switching, replace workspace in your config with this.
+    moveworkspacetomonitor          Moves a workspace to a monitor
+    swapactiveworkspaces            Swaps the active workspaces between two monitors
+    bringactivetotop                Deprecated in favor of alterzorder. Brings the current window to the top of the
+                                    stack
+    alterzorder                     Modify the window stack order of the active or specified window. Note: this
+                                    cannot be used to move a floating window behind a tiled one
+    togglespecialworkspace          toggles a special workspace on/off
+    focusurgentorlast               Focuses the urgent window or the last window
+    togglegroup                     toggles the current active window into a group
+    changegroupactive               switches to the next window in a group
+    focuscurrentorlast              Switch focus from current to previously focused window
+    lockgroups                      Locks the groups (all groups will not accept new windows)
+    lockactivegroup                 Lock the focused group (the current group will not accept new windows or be
+                                    moved to other groups)
+    moveintogroup                   Moves the active window into a group in a specified direction. No-op if there
+                                    is no group in the specified direction
+    moveoutofgroup                  Moves the active window out of a group. No-op if not in a group
+    movewindoworgroup               Behaves as moveintogroup if there is a group in the given direction. Behaves
+                                    as moveoutofgroup if there is no group in the given direction relative to the
+                                    active group. Otherwise behaves like movewindow
+    movegroupwindow                 Swaps the active window with the next or previous in a group
+    denywindowfromgroup             Prohibit the active window from becoming or being inserted into group
+    setignoregrouplock              Temporarily enable or disable binds:ignore_group_lock
+    global                          Executes a Global Shortcut using the GlobalShortcuts portal. See here
+    submap                          Change the current mapping group. See Submaps
+)#";
+
 #define PAD
 
 std::string instanceSignature;
@@ -276,6 +346,15 @@ bool isNumber(const std::string& str, bool allowfloat) {
     return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
 }
 
+void printUsage(const std::string& seenRequest) {
+    if (seenRequest == "dispatch ") {
+        printf("%s\n", DISPATCH_USAGE.c_str());
+        return;
+    }
+
+    printf("%s\n", USAGE.c_str());
+}
+
 int main(int argc, char** argv) {
     bool parseArgs = true;
 
@@ -313,7 +392,7 @@ int main(int argc, char** argv) {
 
                 overrideInstance = ARGS[i];
             } else {
-                printf("%s\n", USAGE.c_str());
+                printUsage(fullRequest);
                 return 1;
             }
 

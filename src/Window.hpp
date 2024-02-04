@@ -30,6 +30,16 @@ enum eGroupRules {
     GROUP_OVERRIDE    = 1 << 6, // Override other rules
 };
 
+enum eGetWindowProperties {
+    WINDOW_ONLY      = 0,
+    RESERVED_EXTENTS = 1 << 0,
+    INPUT_EXTENTS    = 1 << 1,
+    FULL_EXTENTS     = 1 << 2,
+    FLOATING_ONLY    = 1 << 3,
+    ALLOW_FLOATING   = 1 << 4,
+    USE_PROP_TILED   = 1 << 5
+};
+
 class IWindowTransformer;
 
 template <typename T>
@@ -342,7 +352,7 @@ class CWindow {
     // methods
     CBox                     getFullWindowBoundingBox();
     SWindowDecorationExtents getFullWindowExtents();
-    CBox                     getWindowInputBox();
+    CBox                     getWindowBoxUnified(uint64_t props);
     CBox                     getWindowMainSurfaceBox();
     CBox                     getWindowIdealBoundingBoxIgnoreReserved();
     void                     addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);

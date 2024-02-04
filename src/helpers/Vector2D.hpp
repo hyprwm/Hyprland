@@ -92,6 +92,8 @@ class Vector2D {
 
     Vector2D floor() const;
     Vector2D round() const;
+
+    Vector2D getComponentMax(const Vector2D& other) const;
 };
 
 /**

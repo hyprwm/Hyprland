@@ -268,9 +268,9 @@ void IHyprLayout::onEndDragWindow() {
     } else if (g_pInputManager->dragMode == MBIND_MOVE) {
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(MOUSECOORDS, DRAGGINGWINDOW);
+        CWindow*   pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING | FLOATING_ONLY, DRAGGINGWINDOW);
 
-        if (pWindow && pWindow->m_bIsFloating) {
+        if (pWindow) {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
                 return;
 
@@ -543,7 +543,8 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowIdeal(pWindow->middle()); PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
+        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+            PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
         // if not, floating window
@@ -558,7 +559,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    auto pWindowCandidate = g_pCompositor->vectorToWindowIdeal(pWindow->middle());
+    auto pWindowCandidate = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
     if (!pWindowCandidate)
         pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->m_iWorkspaceID);

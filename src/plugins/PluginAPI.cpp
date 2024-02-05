@@ -363,3 +363,27 @@ APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
 
     return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE};
 }
+
+APICALL std::shared_ptr<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return nullptr;
+
+    auto PTR = g_pHyprCtl->registerCommand(cmd);
+    PLUGIN->registeredHyprctlCommands.push_back(PTR);
+    return PTR;
+}
+
+APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, std::shared_ptr<SHyprCtlCommand> cmd) {
+
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    std::erase(PLUGIN->registeredHyprctlCommands, cmd);
+    g_pHyprCtl->unregisterCommand(cmd);
+
+    return true;
+}

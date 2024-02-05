@@ -23,6 +23,7 @@ class CPlugin {
     std::vector<IHyprWindowDecoration*>                    registeredDecorations;
     std::vector<std::pair<std::string, HOOK_CALLBACK_FN*>> registeredCallbacks;
     std::vector<std::string>                               registeredDispatchers;
+    std::vector<std::shared_ptr<SHyprCtlCommand>>          registeredHyprctlCommands;
 };
 
 class CPluginSystem {

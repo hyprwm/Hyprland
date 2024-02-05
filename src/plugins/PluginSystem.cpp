@@ -113,6 +113,10 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     for (auto& d : rdi)
         HyprlandAPI::removeDispatcher(plugin->m_pHandle, d);
 
+    const auto rhc = plugin->registeredHyprctlCommands;
+    for (auto& c : rhc)
+        HyprlandAPI::unregisterHyprCtlCommand(plugin->m_pHandle, c);
+
     g_pConfigManager->removePluginConfig(plugin->m_pHandle);
 
     dlclose(plugin->m_pHandle);

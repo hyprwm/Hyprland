@@ -273,6 +273,20 @@ namespace HyprlandAPI {
         for a different hash.
     */
     APICALL SVersionInfo getHyprlandVersion(HANDLE handle);
+
+    /*
+        Registers a hyprctl command
+
+        returns: Pointer. Nullptr on fail.
+    */
+    APICALL std::shared_ptr<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+
+    /*
+        Unregisters a hyprctl command
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool unregisterHyprCtlCommand(HANDLE handle, std::shared_ptr<SHyprCtlCommand> cmd);
 };
 
 /*

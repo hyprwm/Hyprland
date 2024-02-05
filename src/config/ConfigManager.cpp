@@ -600,12 +600,15 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     mode.vtotal      = std::stoi(args[argno++]);
     mode.vrefresh    = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
 
+    // clang-format off
     static std::unordered_map<std::string, uint32_t> flagsmap = {
         {"+hsync", DRM_MODE_FLAG_PHSYNC},
         {"-hsync", DRM_MODE_FLAG_NHSYNC},
         {"+vsync", DRM_MODE_FLAG_PVSYNC},
         {"-vsync", DRM_MODE_FLAG_NVSYNC},
+        {"Interlace", DRM_MODE_FLAG_INTERLACE},
     };
+    // clang-format on
 
     for (; argno < static_cast<int>(args.size()); argno++) {
         auto key = args[argno];

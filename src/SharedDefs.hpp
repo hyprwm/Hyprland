@@ -1,6 +1,7 @@
 #pragma once
 
 #include "helpers/Vector2D.hpp"
+#include <functional>
 
 enum eIcons {
     ICON_WARNING = 0,
@@ -57,4 +58,15 @@ struct SWindowDecorationExtents {
         topLeft     = topLeft.getComponentMax(other.topLeft);
         bottomRight = bottomRight.getComponentMax(other.bottomRight);
     }
+};
+
+enum eHyprCtlOutputFormat {
+    FORMAT_NORMAL = 0,
+    FORMAT_JSON
+};
+
+struct SHyprCtlCommand {
+    std::string                                                   name  = "";
+    bool                                                          exact = true;
+    std::function<std::string(eHyprCtlOutputFormat, std::string)> fn;
 };

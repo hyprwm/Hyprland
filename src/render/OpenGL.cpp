@@ -1932,7 +1932,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
 
     const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
 
-    static std::string texPath = "";
+    static std::string texPath = g_pConfigManager->getConfigValuePtr("misc:wallpaper_path")->strValue;
 
     if (*PRENDERTEX)
         return;

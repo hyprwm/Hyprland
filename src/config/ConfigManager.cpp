@@ -100,6 +100,7 @@ void CConfigManager::setDefaultVars() {
     configValues["misc:disable_hyprland_logo"].intValue            = 0;
     configValues["misc:disable_splash_rendering"].intValue         = 0;
     configValues["misc:force_default_wallpaper"].intValue          = -1;
+    configValues["misc:wallpaper_path"].strValue                   = STRVAL_EMPTY;
     configValues["misc:vfr"].intValue                              = 1;
     configValues["misc:vrr"].intValue                              = 0;
     configValues["misc:mouse_move_enables_dpms"].intValue          = 0;

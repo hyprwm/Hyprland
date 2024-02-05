@@ -464,6 +464,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the ThreadManager!");
             g_pThreadManager = std::make_unique<CThreadManager>();
 
+            Debug::log(LOG, "Creating CHyprCtl");
+            g_pHyprCtl = std::make_unique<CHyprCtl>();
+
             Debug::log(LOG, "Creating the InputManager!");
             g_pInputManager = std::make_unique<CInputManager>();
 

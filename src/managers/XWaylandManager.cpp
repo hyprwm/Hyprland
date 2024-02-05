@@ -151,6 +151,8 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
+    size = size.clamp(Vector2D{0, 0});
+
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO
     Vector2D windowPos = pWindow->m_vRealPosition.vec();

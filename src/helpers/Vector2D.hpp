@@ -88,7 +88,7 @@ class Vector2D {
 
     double   distance(const Vector2D& other) const;
     double   size() const;
-    Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D()) const;
+    Vector2D clamp(const Vector2D& min, const Vector2D& max = Vector2D{-1, -1}) const;
 
     Vector2D floor() const;
     Vector2D round() const;

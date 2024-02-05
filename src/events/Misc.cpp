@@ -231,8 +231,6 @@ void Events::listener_setCursorShape(wl_listener* listener, void* data) {
 }
 
 void Events::listener_newTearingHint(wl_listener* listener, void* data) {
-    const auto TCTL = (wlr_tearing_control_v1*)data;
-
     Debug::log(LOG, "New tearing hint at {:x}", (uintptr_t)data);
 
     const auto NEWCTRL = g_pHyprRenderer->m_vTearingControllers.emplace_back(std::make_unique<STearingController>()).get();

@@ -1512,7 +1512,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    const auto PCURRMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor;
 
     if (!PCURRMONITOR) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");

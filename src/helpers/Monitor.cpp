@@ -541,7 +541,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)
-                    pWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+                    pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (!pWindow)
                     pWindow = g_pCompositor->getTopLeftWindowOnWorkspace(pWorkspace->m_iID);

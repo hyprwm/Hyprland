@@ -526,7 +526,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.
-            if (key.modmaskAtPressTime != modmask) {
+            if (key.modmaskAtPressTime != modmask && !k.ignoreMods) {
                 // Handle properly `bindr` where a key is itself a bind mod for example:
                 // "bindr = SUPER, SUPER_L, exec, $launcher".
                 // This needs to be handled separately for the above case, because `key.modmaskAtPressTime` is set
@@ -1067,7 +1067,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     }
 
     if (PWINDOW == g_pCompositor->m_pLastWindow) {
-        if (const auto PATCOORDS = g_pCompositor->vectorToWindowIdeal(OLDMIDDLE, PWINDOW); PATCOORDS)
+        if (const auto PATCOORDS = g_pCompositor->vectorToWindowUnified(OLDMIDDLE, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, PWINDOW); PATCOORDS)
             g_pCompositor->focusWindow(PATCOORDS);
         else
             g_pInputManager->refocus();
@@ -1512,7 +1512,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    const auto PCURRMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor;
 
     if (!PCURRMONITOR) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");
@@ -1939,7 +1939,7 @@ void CKeybindManager::pinActive(std::string args) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
-    PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowTiled(g_pInputManager->getMouseCoordsInternal());
+    PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
 }
 
 void CKeybindManager::mouse(std::string args) {
@@ -1951,7 +1951,7 @@ void CKeybindManager::mouse(std::string args) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-            CWindow*   pWindow     = g_pCompositor->vectorToWindowIdeal(mouseCoords);
+            CWindow*   pWindow     = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
             if (pWindow && !pWindow->m_bIsFullscreen)
                 pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
@@ -1974,7 +1974,8 @@ void CKeybindManager::mouse(std::string args) {
         if (PRESSED) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
-            g_pInputManager->currentlyDraggedWindow = g_pCompositor->vectorToWindowIdeal(g_pInputManager->getMouseCoordsInternal());
+            g_pInputManager->currentlyDraggedWindow =
+                g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
             try {
                 switch (std::stoi(ARGS[1])) {

@@ -639,7 +639,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
 
-    g_pInputManager->sendMotionEventsToFocused();
+    if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->constraintActive)
+        g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;

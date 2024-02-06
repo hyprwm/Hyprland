@@ -262,7 +262,7 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
 
         // tearing: if solitary, redraw it. This still might be a single surface window
         const auto PMONITOR = g_pCompositor->getMonitorFromID(pNode->pWindowOwner->m_iMonitorID);
-        if (PMONITOR->solitaryClient == pNode->pWindowOwner && pNode->pWindowOwner->canBeTorn() && PMONITOR->tearingState.canTear &&
+        if (PMONITOR && PMONITOR->solitaryClient == pNode->pWindowOwner && pNode->pWindowOwner->canBeTorn() && PMONITOR->tearingState.canTear &&
             pNode->pSurface->wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
             CRegion damageBox{&pNode->pSurface->wlr()->buffer_damage};
 

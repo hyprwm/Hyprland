@@ -22,13 +22,13 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
         if (SPLITSIDE) {
             // split left/right
             const float FIRSTSIZE = box.w / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h};
-            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h};
+            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
+            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
         } else {
             // split top/bottom
             const float FIRSTSIZE = box.h / 2.0 * splitRatio;
-            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE};
-            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE};
+            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
+            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
         }
 
         children[0]->recalcSizePosRecursive(force);
@@ -272,7 +272,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
 
     if (PMONITOR->ID == MONFROMCURSOR->ID &&
         (PNODE->workspaceID == PMONITOR->activeWorkspace || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->specialWorkspaceID)) && !*PUSEACTIVE) {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
+        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
@@ -282,7 +282,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection dire
             g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow);
         } else {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowTiled(MOUSECOORDS));
+            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
         }
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))

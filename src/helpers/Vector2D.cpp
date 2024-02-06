@@ -45,3 +45,7 @@ double Vector2D::distance(const Vector2D& other) const {
 double Vector2D::size() const {
     return std::sqrt(x * x + y * y);
 }
+
+Vector2D Vector2D::getComponentMax(const Vector2D& other) const {
+    return Vector2D(std::max(this->x, other.x), std::max(this->y, other.y));
+}

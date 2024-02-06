@@ -1,4 +1,8 @@
 #include "Box.hpp"
+
+#include <limits>
+#include <algorithm>
+
 wlr_box CBox::wlr() {
     CBox rounded = roundInternal();
     m_bWlrBox    = wlr_box{(int)rounded.x, (int)rounded.y, (int)rounded.w, (int)rounded.h};
@@ -101,6 +105,13 @@ CBox& CBox::expand(const double& value) {
     y -= value;
     w += value * 2.0;
     h += value * 2.0;
+
+    return *this;
+}
+
+CBox& CBox::noNegativeSize() {
+    std::clamp(w, 0.0, std::numeric_limits<double>::infinity());
+    std::clamp(h, 0.0, std::numeric_limits<double>::infinity());
 
     return *this;
 }

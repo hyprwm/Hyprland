@@ -71,8 +71,6 @@ struct SMonitorRenderData {
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
 
-    CBox         backgroundTexBox;
-
     // Shaders
     bool    m_bShadersInitialized = false;
     CShader m_shQUAD;
@@ -191,7 +189,7 @@ class CHyprOpenGLImpl {
     std::unordered_map<CWindow*, CFramebuffer>        m_mWindowFramebuffers;
     std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
     std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CTexture>           m_mMonitorBGTextures;
+    std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -229,7 +227,7 @@ class CHyprOpenGLImpl {
     void          renderTextureInternalWithDamage(const CTexture&, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
     void          renderTexturePrimitive(const CTexture& tex, CBox* pBox);
-    void          renderSplash(cairo_t* const, cairo_surface_t* const, double);
+    void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 
     void          preBlurForCurrentMonitor();
 

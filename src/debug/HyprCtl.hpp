@@ -3,24 +3,23 @@
 #include "../Compositor.hpp"
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
+#include <functional>
 
-namespace HyprCtl {
-    void        startHyprCtlSocket();
-    std::string makeDynamicCall(const std::string& input);
+class CHyprCtl {
+  public:
+    CHyprCtl();
 
-    // very simple thread-safe request method
-    inline bool             requestMade  = false;
-    inline bool             requestReady = false;
-    inline std::string      request      = "";
+    std::string                      makeDynamicCall(const std::string& input);
+    std::shared_ptr<SHyprCtlCommand> registerCommand(SHyprCtlCommand cmd);
+    void                             unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd);
+    std::string                      getReply(std::string);
 
-    inline std::ifstream    requestStream;
+    int                              m_iSocketFD = -1;
 
-    inline wl_event_source* hyprCtlTickSource = nullptr;
+  private:
+    void                                          startHyprCtlSocket();
 
-    inline int              iSocketFD = -1;
-
-    enum eHyprCtlOutputFormat {
-        FORMAT_NORMAL = 0,
-        FORMAT_JSON
-    };
+    std::vector<std::shared_ptr<SHyprCtlCommand>> m_vCommands;
 };
+
+inline std::unique_ptr<CHyprCtl> g_pHyprCtl;

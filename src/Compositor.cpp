@@ -688,6 +688,15 @@ bool CCompositor::windowExists(CWindow* pWindow) {
     return false;
 }
 
+bool CCompositor::monitorExists(CMonitor* pMonitor) {
+    for (auto& m : m_vRealMonitors) {
+        if (m.get() == pMonitor)
+            return true;
+    }
+
+    return false;
+}
+
 CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, CWindow* pIgnoreWindow) {
     const auto         PMONITOR          = getMonitorFromVector(pos);
     static auto* const PRESIZEONBORDER   = &g_pConfigManager->getConfigValuePtr("general:resize_on_border")->intValue;

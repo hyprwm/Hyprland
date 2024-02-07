@@ -224,6 +224,13 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
         return;
     }
 
+    if (!g_pCompositor->windowValidMapped(PFRAME->pWindow)) {
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", (uintptr_t)PFRAME->pWindow);
+        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
+        return;
+    }
+
     if (!PFRAME->pWindow->m_bIsMapped || PFRAME->pWindow->isHidden()) {
         Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", PFRAME->pWindow);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);

@@ -135,6 +135,7 @@ class CCompositor {
     void           focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
     bool           windowExists(CWindow*);
     bool           windowValidMapped(CWindow*);
+    bool           monitorExists(CMonitor*);
     CWindow*       vectorToWindowUnified(const Vector2D&, uint8_t properties, CWindow* pIgnoreWindow = nullptr);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
     SIMEPopup*     vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups);

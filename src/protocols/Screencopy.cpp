@@ -191,13 +191,6 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     PFRAME->resource      = wl_resource_create(client, &zwlr_screencopy_frame_v1_interface, wl_resource_get_version(resource), frame);
     PFRAME->pMonitor      = g_pCompositor->getMonitorFromOutput(wlr_output_from_resource(output));
 
-    if (!g_pCompositor->monitorExists(PFRAME->pMonitor)) {
-        Debug::log(ERR, "client requested sharing of a monitor that is gone");
-        zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
-        removeFrame(PFRAME);
-        return;
-    }
-
     if (!PFRAME->pMonitor) {
         Debug::log(ERR, "client requested sharing of a monitor that doesnt exist");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
@@ -267,6 +260,13 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
 
     if (!PFRAME) {
         Debug::log(ERR, "No frame in copyFrame??");
+        return;
+    }
+
+    if (!g_pCompositor->monitorExists(PFRAME->pMonitor)) {
+        Debug::log(ERR, "client requested sharing of a monitor that is gone");
+        zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
         return;
     }
 

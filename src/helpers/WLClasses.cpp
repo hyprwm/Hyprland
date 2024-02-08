@@ -10,6 +10,11 @@ SLayerSurface::SLayerSurface() {
     realPosition.registerVar();
     realSize.registerVar();
 
+    alpha.setUpdateCallback([this](void*) {
+        if (dimAround)
+            g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(monitorID));
+    });
+
     alpha.setValueAndWarp(0.f);
 }
 
@@ -26,6 +31,7 @@ void SLayerSurface::applyRules() {
     forceBlur        = false;
     ignoreAlpha      = false;
     ignoreAlphaValue = 0.f;
+    dimAround        = false;
     xray             = -1;
     animationStyle.reset();
 
@@ -47,6 +53,8 @@ void SLayerSurface::applyRules() {
                 if (!alphaValue.empty())
                     ignoreAlphaValue = std::stof(alphaValue);
             } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
+        } else if (rule.rule == "dimaround") {
+            dimAround = true;
         } else if (rule.rule.starts_with("xray")) {
             CVarList vars{rule.rule, 0, ' '};
             try {

@@ -63,6 +63,7 @@ struct SLayerSurface {
     int                        xray             = -1;
     bool                       ignoreAlpha      = false;
     float                      ignoreAlphaValue = 0.f;
+    bool                       dimAround        = false;
 
     std::optional<std::string> animationStyle;
 

@@ -181,6 +181,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     pWindowOwner                    = pWindow;
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
+    const auto         MONITORSCALE = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID)->scale;
 
     static auto* const PTITLEFONTFAMILY = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_family")->strValue;
     static auto* const PTITLEFONTSIZE   = &g_pConfigManager->getConfigValuePtr("group:groupbar:font_size")->intValue;
@@ -199,7 +200,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_from_string(PTITLEFONTFAMILY->c_str());
-    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
+    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * MONITORSCALE * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 

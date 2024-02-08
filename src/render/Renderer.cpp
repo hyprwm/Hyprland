@@ -599,6 +599,17 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 }
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {
+    static auto* const PDIMAROUND = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:dim_around");
+
+    if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot) {
+        CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
+        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, **PDIMAROUND * pLayer->alpha.fl()));
+
+        if (pLayer->alpha.isBeingAnimated()) {
+            g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pLayer->monitorID));
+        }
+    }
+
     if (pLayer->fadingOut) {
         g_pHyprOpenGL->renderSnapshot(&pLayer);
         return;

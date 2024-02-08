@@ -21,6 +21,7 @@ void SLayerSurface::applyRules() {
     forceBlur        = false;
     ignoreAlpha      = false;
     ignoreAlphaValue = 0.f;
+    dimAround        = false;
     xray             = -1;
 
     for (auto& rule : g_pConfigManager->getMatchingRules(this)) {
@@ -39,6 +40,8 @@ void SLayerSurface::applyRules() {
                 if (!alphaValue.empty())
                     ignoreAlphaValue = std::stof(alphaValue);
             } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
+        } else if (rule.rule == "dimaround") {
+            dimAround = true;
         } else if (rule.rule.starts_with("xray")) {
             CVarList vars{rule.rule, 0, ' '};
             try {

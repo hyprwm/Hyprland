@@ -525,7 +525,11 @@ std::string CConfigManager::getMainConfigPath() {
 
 void CConfigManager::reload() {
     setDefaultAnimationVars();
-    m_pConfig->parse();
+    const auto ERR = m_pConfig->parse();
+    if (ERR.error)
+        g_pHyprError->queueCreate(ERR.getError(), CColor{1.0, 0.1, 0.1, 1.0});
+    else
+        g_pHyprError->destroy();
 }
 
 void CConfigManager::setDefaultAnimationVars() {
@@ -656,6 +660,11 @@ void CConfigManager::tick() {
 
         setDefaultAnimationVars();
         const auto ERR = m_pConfig->parse();
+
+        if (ERR.error)
+            g_pHyprError->queueCreate(ERR.getError(), CColor{1.0, 0.1, 0.1, 1.0});
+        else
+            g_pHyprError->destroy();
     }
 }
 

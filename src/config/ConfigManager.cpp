@@ -1409,10 +1409,9 @@ std::optional<std::string> CConfigManager::handleRawExec(const std::string& comm
 }
 
 std::optional<std::string> CConfigManager::handleExecOnce(const std::string& command, const std::string& args) {
-    if (isFirstLaunch) {
+    if (isFirstLaunch)
         firstExecRequests.push_back(args);
-        return {};
-    }
+
     return {};
 }
 

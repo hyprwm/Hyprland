@@ -14,6 +14,7 @@
 
 #include <sstream>
 #include <string>
+#include <typeindex>
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -1184,9 +1185,26 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
     nextItem();
     nextItem();
 
-    // HYPRLANG_TODO:
+    const auto VAR = g_pConfigManager->getHyprlangConfigValuePtr(curitem);
 
-    return "";
+    if (!VAR)
+        return "no such option";
+
+    const auto VAL  = VAR->getValue();
+    const auto TYPE = std::type_index(VAL.type());
+
+    if (TYPE == typeid(Hyprlang::INT))
+        return std::format("int: {}", std::any_cast<Hyprlang::INT>(VAL));
+    else if (TYPE == typeid(Hyprlang::FLOAT))
+        return std::format("float: {:2f}", std::any_cast<Hyprlang::FLOAT>(VAL));
+    else if (TYPE == typeid(Hyprlang::VEC2))
+        return std::format("vec2: {}, {}", std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y);
+    else if (TYPE == typeid(Hyprlang::STRING))
+        return std::format("str: {}", std::any_cast<Hyprlang::STRING>(VAL));
+    else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
+        return std::format("custom type at: {:x}", (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL));
+
+    return "invalid type (internal error)";
 }
 
 std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {

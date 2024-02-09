@@ -142,24 +142,24 @@ class CConfigManager {
     void                      handlePluginLoads();
 
     // keywords
-    void        handleRawExec(const std::string&, const std::string&);
-    void        handleMonitor(const std::string&, const std::string&);
-    void        handleBind(const std::string&, const std::string&);
-    void        handleUnbind(const std::string&, const std::string&);
-    void        handleWindowRule(const std::string&, const std::string&);
-    void        handleLayerRule(const std::string&, const std::string&);
-    void        handleWindowRuleV2(const std::string&, const std::string&);
-    void        handleWorkspaceRules(const std::string&, const std::string&);
-    void        handleBezier(const std::string&, const std::string&);
-    void        handleAnimation(const std::string&, const std::string&);
-    void        handleSource(const std::string&, const std::string&);
-    void        handleSubmap(const std::string&, const std::string&);
-    void        handleBlurLS(const std::string&, const std::string&);
-    void        handleBindWS(const std::string&, const std::string&);
-    void        handleEnv(const std::string&, const std::string&);
-    void        handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string> handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string> handleMonitor(const std::string&, const std::string&);
+    std::optional<std::string> handleBind(const std::string&, const std::string&);
+    std::optional<std::string> handleUnbind(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
+    std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
+    std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
+    std::optional<std::string> handleBezier(const std::string&, const std::string&);
+    std::optional<std::string> handleAnimation(const std::string&, const std::string&);
+    std::optional<std::string> handleSource(const std::string&, const std::string&);
+    std::optional<std::string> handleSubmap(const std::string&, const std::string&);
+    std::optional<std::string> handleBlurLS(const std::string&, const std::string&);
+    std::optional<std::string> handleBindWS(const std::string&, const std::string&);
+    std::optional<std::string> handleEnv(const std::string&, const std::string&);
+    std::optional<std::string> handlePlugin(const std::string&, const std::string&);
 
-    std::string configCurrentPath;
+    std::string                configCurrentPath;
 
   private:
     std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;
@@ -168,8 +168,6 @@ class CConfigManager {
     std::unordered_map<std::string, time_t>                   configModifyTimes; // stores modify times
 
     std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
-
-    std::string                                               parseError = ""; // For storing a parse error to display later
 
     std::string                                               m_szCurrentSubmap = ""; // For storing the current keybind submap
 
@@ -194,10 +192,13 @@ class CConfigManager {
     std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
 
     // internal methods
-    void setAnimForChildren(SAnimationPropertyConfig* const);
-    void updateBlurredLS(const std::string&, const bool);
-    void setDefaultAnimationVars();
-    void reload();
+    void                       setAnimForChildren(SAnimationPropertyConfig* const);
+    void                       updateBlurredLS(const std::string&, const bool);
+    void                       setDefaultAnimationVars();
+    std::optional<std::string> resetHLConfig();
+    std::optional<std::string> verifyConfigExists();
+    void                       postConfigReload(const Hyprlang::CParseResult& result);
+    void                       reload();
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

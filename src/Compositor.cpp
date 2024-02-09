@@ -2156,7 +2156,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
         }
 
         Debug::log(LOG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
-        POLDMON->changeWorkspace(nextWorkspaceOnMonitorID);
+        POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, true);
     }
 
     // move the workspace
@@ -2197,6 +2197,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
         if (const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace); PWORKSPACE)
             getWorkspaceByID(pMonitor->activeWorkspace)->startAnim(false, false);
 
+        setActiveMonitor(pMonitor);
         pMonitor->activeWorkspace = pWorkspace->m_iID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 

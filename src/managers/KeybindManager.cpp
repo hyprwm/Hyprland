@@ -1459,14 +1459,18 @@ void CKeybindManager::exitHyprland(std::string argz) {
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
     CMonitor* PMONITOR = g_pCompositor->getMonitorFromString(args);
 
-    if (!PMONITOR)
+    if (!PMONITOR) {
+        Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
         return;
+    }
 
     // get the current workspace
     const auto PCURRENTWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
 
-    if (!PCURRENTWORKSPACE)
+    if (!PCURRENTWORKSPACE) {
+        Debug::log(ERR, "moveCurrentWorkspaceToMonitor invalid workspace!");
         return;
+    }
 
     g_pCompositor->moveWorkspaceToMonitor(PCURRENTWORKSPACE, PMONITOR);
 }

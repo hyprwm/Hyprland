@@ -259,6 +259,8 @@ struct STablet {
 
     std::string           name = "";
 
+    std::string           boundOutput = "";
+
     //
     bool operator==(const STablet& b) const {
         return wlrDevice == b.wlrDevice;

@@ -22,6 +22,11 @@
       inputs.systems.follows = "systems";
     };
 
+    hyprlang = {
+      url = "github:hyprwm/hyprlang";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -86,7 +91,7 @@
           name = "hyprland-shell";
           nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
           buildInputs = [self.packages.${system}.wlroots-hyprland];
-          hardeningDisable = [ "fortify" ];
+          hardeningDisable = ["fortify"];
           inputsFrom = [
             self.packages.${system}.wlroots-hyprland
             self.packages.${system}.hyprland

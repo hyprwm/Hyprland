@@ -112,7 +112,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(wl_client* client, wl_resource* r
 }
 
 void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
-    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+    static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
 
     if (!pOutput->resource->good() || !pOutput->monitor)
         return;
@@ -120,7 +120,7 @@ void CXDGOutputProtocol::updateOutputDetails(SXDGOutput* pOutput) {
     const auto POS = pOutput->isXWayland ? pOutput->monitor->vecXWaylandPosition : pOutput->monitor->vecPosition;
     zxdg_output_v1_send_logical_position(pOutput->resource->resource(), POS.x, POS.y);
 
-    if (*PXWLFORCESCALEZERO && pOutput->isXWayland)
+    if (**PXWLFORCESCALEZERO && pOutput->isXWayland)
         zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecTransformedSize.x, pOutput->monitor->vecTransformedSize.y);
     else
         zxdg_output_v1_send_logical_size(pOutput->resource->resource(), pOutput->monitor->vecSize.x, pOutput->monitor->vecSize.y);

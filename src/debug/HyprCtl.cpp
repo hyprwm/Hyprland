@@ -856,7 +856,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
 
     const auto  VALUE = in.substr(in.find_first_of(' ') + 1);
 
-    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE, true);
+    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
 
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
@@ -868,8 +868,10 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
         g_pInputManager->setTabletConfigs();      // update tablets
     }
 
+    static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+
     if (COMMAND.contains("general:layout"))
-        g_pLayoutManager->switchToLayout(g_pConfigManager->getString("general:layout")); // update layout
+        g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
     if (COMMAND.contains("decoration:screen_shader"))
         g_pHyprOpenGL->m_bReloadScreenShader = true;
@@ -1182,28 +1184,9 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
     nextItem();
     nextItem();
 
-    const auto PCFGOPT = g_pConfigManager->getConfigValuePtrSafe(curitem);
+    // HYPRLANG_TODO:
 
-    if (!PCFGOPT)
-        return "no such option";
-
-    if (format == eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return std::format("option {}\n\tint: {}\n\tfloat: {:.5f}\n\tstr: \"{}\"\n\tdata: {:x}\n\tset: {}", curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue,
-                           (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
-    else {
-        return std::format(
-            R"#(
-{{
-    "option": "{}",
-    "int": {},
-    "float": {:.5f},
-    "str": "{}",
-    "data": "0x{:x}",
-    "set": {}
-}}
-)#",
-            curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue, (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
-    }
+    return "";
 }
 
 std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {

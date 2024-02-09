@@ -3,12 +3,14 @@
 #include <cmath>
 #include <format>
 #include "../macros.hpp"
+#include <hyprlang.hpp>
 
 class Vector2D {
   public:
     Vector2D(double, double);
     Vector2D();
     ~Vector2D();
+    Vector2D(const Hyprlang::VEC2&);
 
     double x = 0;
     double y = 0;

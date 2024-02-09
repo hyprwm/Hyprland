@@ -94,9 +94,9 @@ eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {
 }
 
 uint64_t CHyprBorderDecoration::getDecorationFlags() {
-    static auto* const PPARTOFWINDOW = &g_pConfigManager->getConfigValuePtr("general:border_part_of_window")->intValue;
+    static auto* const PPARTOFWINDOW = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:border_part_of_window");
 
-    return *PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
+    return **PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
 }
 
 std::string CHyprBorderDecoration::getDisplayName() {

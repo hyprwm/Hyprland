@@ -21,16 +21,16 @@ enum LogLevel {
 };
 
 namespace Debug {
-    inline std::string logFile;
-    inline int64_t*    disableLogs   = nullptr;
-    inline int64_t*    disableTime   = nullptr;
-    inline bool        disableStdout = false;
-    inline bool        trace         = false;
-    inline bool        shuttingDown  = false;
+    inline std::string     logFile;
+    inline int64_t* const* disableLogs   = nullptr;
+    inline int64_t* const* disableTime   = nullptr;
+    inline bool            disableStdout = false;
+    inline bool            trace         = false;
+    inline bool            shuttingDown  = false;
 
-    inline std::string rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
+    inline std::string     rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
 
-    void               init(const std::string& IS);
+    void                   init(const std::string& IS);
     template <typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
         if (level == TRACE && !trace)

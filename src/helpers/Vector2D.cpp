@@ -12,6 +12,11 @@ Vector2D::Vector2D() {
     y = 0;
 }
 
+Vector2D::Vector2D(const Hyprlang::VEC2& ref) {
+    x = ref.x;
+    y = ref.y;
+}
+
 Vector2D::~Vector2D() {}
 
 double Vector2D::normalize() {

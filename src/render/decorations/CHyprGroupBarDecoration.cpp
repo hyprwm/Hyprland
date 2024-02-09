@@ -185,6 +185,7 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     pWindowOwner                    = pWindow;
     const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto         CAIRO        = cairo_create(CAIROSURFACE);
+    const auto         MONITORSCALE = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID)->scale;
 
     static auto* const PTITLEFONTFAMILY = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("group:groupbar:font_family");
     static auto* const PTITLEFONTSIZE   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:font_size");

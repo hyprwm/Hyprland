@@ -88,6 +88,18 @@ static Hyprlang::CParseResult handleRawExec(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleExecOnce(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleExecOnce(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 static Hyprlang::CParseResult handleMonitor(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -511,6 +523,7 @@ CConfigManager::CConfigManager() {
 
     // keywords
     m_pConfig->registerHandler(&::handleRawExec, "exec", {false});
+    m_pConfig->registerHandler(&::handleExecOnce, "exec-once", {false});
     m_pConfig->registerHandler(&::handleMonitor, "monitor", {false});
     m_pConfig->registerHandler(&::handleBind, "bind", {true});
     m_pConfig->registerHandler(&::handleUnbind, "unbind", {false});
@@ -1386,13 +1399,20 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
 }
 
 std::optional<std::string> CConfigManager::handleRawExec(const std::string& command, const std::string& args) {
-    // Exec in the background dont wait for it.
     if (isFirstLaunch) {
         firstExecRequests.push_back(args);
         return {};
     }
 
     g_pKeybindManager->spawn(args);
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleExecOnce(const std::string& command, const std::string& args) {
+    if (isFirstLaunch) {
+        firstExecRequests.push_back(args);
+        return {};
+    }
     return {};
 }
 

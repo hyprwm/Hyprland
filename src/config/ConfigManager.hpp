@@ -143,6 +143,7 @@ class CConfigManager {
 
     // keywords
     std::optional<std::string> handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
     std::optional<std::string> handleMonitor(const std::string&, const std::string&);
     std::optional<std::string> handleBind(const std::string&, const std::string&);
     std::optional<std::string> handleUnbind(const std::string&, const std::string&);

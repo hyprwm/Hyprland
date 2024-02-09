@@ -163,7 +163,7 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     return true;
 }
 
-APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn) {
+APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!g_pPluginSystem->m_bAllowConfigVars)
@@ -172,7 +172,7 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
     if (!PLUGIN)
         return false;
 
-    g_pConfigManager->addPluginKeyword(handle, name, fn);
+    g_pConfigManager->addPluginKeyword(handle, name, fn, opts);
     return true;
 }
 

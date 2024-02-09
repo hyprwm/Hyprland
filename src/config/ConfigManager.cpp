@@ -1169,11 +1169,23 @@ std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAni
     return animationConfig;
 }
 
-void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {}
+void onPluginLoadUnload(const std::string& name, bool load) {
+    //
+}
 
-void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string&, const std::string&)> fn) {
+void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
+    if (!name.starts_with("plugin:"))
+        return;
+
+    std::string field = name.substr(7);
+
+    m_pConfig->addSpecialConfigValue("plugin:", field.c_str(), value);
+    pluginVariables.push_back({handle, field});
+}
+
+void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     pluginKeywords.emplace_back(SPluginKeyword{handle, name, fn});
-    // HYPRLANG_TODO:
+    m_pConfig->registerHandler(fn, name.c_str(), opts);
 }
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
@@ -1185,6 +1197,13 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
     }
 
     std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
+    for (auto& [h, n] : pluginVariables) {
+        if (h != handle)
+            continue;
+
+        m_pConfig->removeSpecialConfigValue("plugin:", n.c_str());
+    }
+    std::erase_if(pluginVariables, [handle](const auto& other) { return other.handle == handle; });
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {

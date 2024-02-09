@@ -66,9 +66,14 @@ struct SAnimationPropertyConfig {
 };
 
 struct SPluginKeyword {
-    HANDLE                                                      handle = 0;
-    std::string                                                 name   = "";
-    std::function<void(const std::string&, const std::string&)> fn;
+    HANDLE                       handle = 0;
+    std::string                  name   = "";
+    Hyprlang::PCONFIGHANDLERFUNC fn     = nullptr;
+};
+
+struct SPluginVariable {
+    HANDLE      handle = 0;
+    std::string name   = "";
 };
 
 struct SExecRequestedRule {
@@ -93,6 +98,7 @@ class CConfigManager {
 
     void* const*                                                    getConfigValuePtr(const std::string&);
     Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string&);
+    void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getConfigDir();
     static std::string                                              getMainConfigPath();
 
@@ -112,7 +118,7 @@ class CConfigManager {
     std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
 
     void                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
-    void addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& cmd, const std::string& val)> fun);
+    void addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fun, Hyprlang::SHandlerOptions opts = {});
     void removePluginConfig(HANDLE handle);
 
     // no-op when done.
@@ -171,6 +177,7 @@ class CConfigManager {
 
     std::vector<std::string>                                  m_vDeclaredPlugins;
     std::vector<SPluginKeyword>                               pluginKeywords;
+    std::vector<SPluginVariable>                              pluginVariables;
 
     bool                                                      isFirstLaunch = true; // For exec-once
 

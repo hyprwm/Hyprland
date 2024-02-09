@@ -120,7 +120,7 @@ namespace HyprlandAPI {
 
         returns: true on success, false on fail
     */
-    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn);
+    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
 
     /*
         Get a config value.

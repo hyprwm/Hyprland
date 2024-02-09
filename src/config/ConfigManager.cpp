@@ -2149,7 +2149,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     };
 
     size_t      pos = 0;
-    std::string rule;
+    std::string rule = rules;
     while ((pos = rules.find(',')) != std::string::npos) {
         rule         = rules.substr(0, pos);
         const auto R = assignRule(rule);

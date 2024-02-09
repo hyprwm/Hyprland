@@ -670,7 +670,7 @@ void CConfigManager::tick() {
 
 Hyprlang::CConfigValue* CConfigManager::getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback) {
 
-    const auto VAL = m_pConfig->getSpecialConfigValuePtr("device", dev.c_str(), val.c_str());
+    const auto VAL = m_pConfig->getSpecialConfigValuePtr("device", val.c_str(), dev.c_str());
 
     if ((!VAL || !VAL->m_bSetByUser) && !fallback.empty()) {
         return m_pConfig->getConfigValuePtr(fallback.c_str());

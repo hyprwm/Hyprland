@@ -209,7 +209,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     const bool         VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
-    m_sActiveSwipe.delta += VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (**PSWIPEINVR ? -e->dx : e->dx);
+    m_sActiveSwipe.delta += VERTANIMS ? (**PSWIPEINVR ? -e->dy : e->dy) : (**PSWIPEINVR ? -e->dx : e->dx);
 
     m_sActiveSwipe.avgSpeed = (m_sActiveSwipe.avgSpeed * m_sActiveSwipe.speedPoints + abs(e->dx)) / (m_sActiveSwipe.speedPoints + 1);
     m_sActiveSwipe.speedPoints++;
@@ -236,7 +236,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         return;
     }
 
-    if (*PSWIPEDIRLOCK) {
+    if (**PSWIPEDIRLOCK) {
         if (m_sActiveSwipe.initialDirection != 0 && m_sActiveSwipe.initialDirection != (m_sActiveSwipe.delta < 0 ? -1 : 1))
             m_sActiveSwipe.delta = 0;
         else if (m_sActiveSwipe.initialDirection == 0 && abs(m_sActiveSwipe.delta) > **PSWIPEDIRLOCKTHRESHOLD)
@@ -287,7 +287,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
-            if (*PSWIPENEW || *PSWIPENUMBER) {
+            if (**PSWIPENEW || **PSWIPENUMBER) {
                 g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
                 if (VERTANIMS)
@@ -329,7 +329,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
 
     g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
 
-    if (*PSWIPEFOREVER) {
+    if (**PSWIPEFOREVER) {
         if (abs(m_sActiveSwipe.delta) >= **PSWIPEDIST) {
             onSwipeEnd(nullptr);
             beginWorkspaceSwipe();

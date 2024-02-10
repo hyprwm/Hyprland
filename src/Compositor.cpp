@@ -1862,7 +1862,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     static auto* const PINACTIVEALPHA          = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:inactive_opacity");
     static auto* const PACTIVEALPHA            = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:active_opacity");
     static auto* const PFULLSCREENALPHA        = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:fullscreen_opacity");
-    static auto* const PSHADOWCOL              = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:col.shadow");
+    static auto* const PSHADOWCOL              = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:col.shadow");
     static auto* const PSHADOWCOLINACTIVE      = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:col.shadow_inactive");
     static auto* const PDIMSTRENGTH            = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:dim_strength");
     static auto* const PDIMENABLED             = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:dim_inactive");

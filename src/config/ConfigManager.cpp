@@ -2148,18 +2148,12 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         return {};
     };
 
-    size_t      pos = 0;
-    std::string rule = rules;
-    while ((pos = rules.find(',')) != std::string::npos) {
-        rule         = rules.substr(0, pos);
-        const auto R = assignRule(rule);
+    CVarList rulesList{rules, 0, ',', true};
+    for (auto& r : rulesList) {
+        const auto R = assignRule(r);
         if (R.has_value())
             return R;
-        rules.erase(0, pos + 1);
     }
-    const auto R = assignRule(rule); // match remaining rule
-    if (R.has_value())
-        return R;
 
     wsRule.workspaceId   = id;
     wsRule.workspaceName = name;

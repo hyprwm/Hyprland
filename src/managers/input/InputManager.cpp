@@ -645,9 +645,11 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     }
 
     // notify app if we didnt handle it
-    if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {
+    if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus))
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
-    }
+
+    if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_pLastMonitor && PMON)
+        g_pCompositor->setActiveMonitor(PMON);
 }
 
 void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {

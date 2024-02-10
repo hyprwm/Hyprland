@@ -601,12 +601,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
     const auto w           = g_pCompositor->vectorToWindowUnified(mouseCoords, ALLOW_FLOATING | RESERVED_EXTENTS | INPUT_EXTENTS);
 
-    if (w && !m_bLastFocusOnLS) {
-        if (g_pCompositor->m_pLastWindow != w && *PFOLLOWMOUSE != 3)
-            g_pCompositor->focusWindow(w);
-        if (w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
-            return;
-    }
+    if (w && !m_bLastFocusOnLS && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
+        return;
 
     // clicking on border triggers resize
     // TODO detect click on LS properly

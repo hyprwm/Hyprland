@@ -571,8 +571,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pCompositor->updateSuspendedStates();
 }
 
-void CMonitor::changeWorkspace(const int& id, bool internal) {
-    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal);
+void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
+    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {

@@ -143,6 +143,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> forceNoBorder         = false;
     CWindowOverridableVar<bool> forceNoShadow         = false;
     CWindowOverridableVar<bool> forceNoDim            = false;
+    CWindowOverridableVar<bool> forceNoFocus          = false;
     CWindowOverridableVar<bool> windowDanceCompat     = false;
     CWindowOverridableVar<bool> noMaxSize             = false;
     CWindowOverridableVar<bool> dimAround             = false;

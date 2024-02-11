@@ -928,7 +928,12 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow->m_bNoFocus) {
+    if (pWindow->m_bNoFocus && !pWindow->m_sAdditionalConfigData.forceNoFocus) {
+        pWindow->m_bNoFocus = false;
+    } else if (!pWindow->m_bNoFocus && pWindow->m_sAdditionalConfigData.forceNoFocus) {
+        pWindow->m_bNoFocus = true;
+        return;
+    } else if (pWindow->m_bNoFocus) {
         Debug::log(LOG, "Ignoring focus to nofocus window!");
         return;
     }

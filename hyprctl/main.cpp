@@ -373,6 +373,26 @@ int main(int argc, char** argv) {
         batchRequest(fullRequest);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
+    else if (fullRequest.contains("/switchxkblayout"))
+        request(fullRequest, 2);
+    else if (fullRequest.contains("/seterror"))
+        request(fullRequest, 1);
+    else if (fullRequest.contains("/setprop"))
+        request(fullRequest, 3);
+    else if (fullRequest.contains("/plugin"))
+        request(fullRequest, 1);
+    else if (fullRequest.contains("/notify"))
+        request(fullRequest, 2);
+    else if (fullRequest.contains("/output"))
+        request(fullRequest, 2);
+    else if (fullRequest.contains("/setcursor"))
+        request(fullRequest, 1);
+    else if (fullRequest.contains("/dispatch"))
+        request(fullRequest, 1);
+    else if (fullRequest.contains("/keyword"))
+        request(fullRequest, 2);
+    else if (fullRequest.contains("/decorations"))
+        request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {

@@ -75,6 +75,9 @@ inline const std::vector<std::string> SPLASHES = {
     "Join the discord server!",
     "Thanks ThatOneCalculator!",
     "The AUR packages always work, except for the times they don't.",
-    "Funny animation compositor woo"
+    "Funny animation compositor woo",
+    // Percy Jackson references
+    "I nodded, looking at Rachel with respect. 'You hit the Lord of the Titans in the eye with a blue plastic hairbrush.'",
+    "Don't feel bad, I'm usually about to die."
     // clang-format on
 };

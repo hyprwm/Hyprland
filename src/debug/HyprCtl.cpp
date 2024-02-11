@@ -1093,7 +1093,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
 
-    auto       noFocus = PWINDOW->m_sAdditionalConfigData.forceNoFocus;
+    auto       noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
 
     bool       lock = false;
 
@@ -1124,8 +1124,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenodim") {
             PWINDOW->m_sAdditionalConfigData.forceNoDim.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenofocus") {
-            PWINDOW->m_sAdditionalConfigData.forceNoFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "nofocus") {
+            PWINDOW->m_sAdditionalConfigData.noFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "windowdancecompat") {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
@@ -1161,7 +1161,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_sAdditionalConfigData.forceNoFocus.toUnderlying() == noFocus.toUnderlying())) {
+    if (!(PWINDOW->m_sAdditionalConfigData.noFocus.toUnderlying() == noFocus.toUnderlying())) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);

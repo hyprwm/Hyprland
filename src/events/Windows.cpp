@@ -173,7 +173,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
         } else if (r.szRule.starts_with("nofocus")) {
-            PWINDOW->m_bNoFocus = true;
+            PWINDOW->m_sAdditionalConfigData.noFocus = true;
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.starts_with("nofullscreenrequest")) {
@@ -443,9 +443,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow;
 
     if (PWINDOW->m_sAdditionalConfigData.forceAllowsInput) {
-        PWINDOW->m_bNoFocus          = false;
-        PWINDOW->m_bNoInitialFocus   = false;
-        PWINDOW->m_bX11ShouldntFocus = false;
+        PWINDOW->m_sAdditionalConfigData.noFocus = false;
+        PWINDOW->m_bNoInitialFocus               = false;
+        PWINDOW->m_bX11ShouldntFocus             = false;
     }
 
     // check LS focus grab
@@ -464,7 +464,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestsFullscreen = true;
     }
 
-    if (!PWINDOW->m_bNoFocus && !PWINDOW->m_bNoInitialFocus &&
+    if (!PWINDOW->m_sAdditionalConfigData.noFocus && !PWINDOW->m_bNoInitialFocus &&
         (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) && !workspaceSilent &&
         (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW)) {
         g_pCompositor->focusWindow(PWINDOW);

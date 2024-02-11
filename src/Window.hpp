@@ -143,7 +143,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool> forceNoBorder         = false;
     CWindowOverridableVar<bool> forceNoShadow         = false;
     CWindowOverridableVar<bool> forceNoDim            = false;
-    CWindowOverridableVar<bool> forceNoFocus          = false;
+    CWindowOverridableVar<bool> noFocus               = false;
     CWindowOverridableVar<bool> windowDanceCompat     = false;
     CWindowOverridableVar<bool> noMaxSize             = false;
     CWindowOverridableVar<bool> dimAround             = false;
@@ -261,7 +261,6 @@ class CWindow {
     //
 
     // For nofocus
-    bool m_bNoFocus        = false;
     bool m_bNoInitialFocus = false;
 
     // Fullscreen and Maximize

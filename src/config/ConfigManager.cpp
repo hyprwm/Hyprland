@@ -432,6 +432,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("animations:enabled", {1L});
     m_pConfig->addConfigValue("animations:first_launch_animation", {1L});
+    m_pConfig->addConfigValue("animations:workspace_wraparound", {0L});
 
     m_pConfig->addConfigValue("input:follow_mouse", {1L});
     m_pConfig->addConfigValue("input:mouse_refocus", {1L});

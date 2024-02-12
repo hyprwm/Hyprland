@@ -22,6 +22,7 @@ bool                             isNumber(const std::string&, bool allowfloat = 
 bool                             isDirection(const std::string&);
 bool                             isDirection(const char&);
 int                              getWorkspaceIDFromString(const std::string&, std::string&);
+std::optional<bool>              isWorkspaceChangeDirectionLeft(const std::string&);
 std::optional<std::string>       cleanCmdForWorkspace(const std::string&, std::string);
 float                            vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 void                             logSystemInfo();

@@ -895,6 +895,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     static auto* const PBACKANDFORTH         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth");
     static auto* const PALLOWWORKSPACECYCLES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles");
     static auto* const PWORKSPACECENTERON    = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_center_on");
+    static auto* const PWORKSPACEWRAPAROUND  = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("animations:workspace_wraparound");
 
     const auto         PMONITOR = g_pCompositor->m_pLastMonitor;
 
@@ -955,7 +956,12 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
-    PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
+    if (**PWORKSPACEWRAPAROUND) {
+        const auto ANIMATELEFT = isWorkspaceChangeDirectionLeft(args);
+        PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true, false, ANIMATELEFT);
+    } else {
+        PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
+    }
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
         Vector2D middle = PMONITORWORKSPACEOWNER->middle();

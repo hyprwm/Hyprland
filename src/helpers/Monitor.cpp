@@ -536,7 +536,7 @@ float CMonitor::getDefaultScale() {
     return 1;
 }
 
-void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove, bool noFocus) {
+void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool noMouseMove, bool noFocus, std::optional<bool> animateLeftOverride) {
     if (!pWorkspace)
         return;
 
@@ -556,7 +556,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     activeWorkspace = pWorkspace->m_iID;
 
     if (!internal) {
-        const auto ANIMTOLEFT = pWorkspace->m_iID > POLDWORKSPACE->m_iID;
+        const auto ANIMTOLEFT = animateLeftOverride.value_or(pWorkspace->m_iID > POLDWORKSPACE->m_iID);
         POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
         pWorkspace->startAnim(true, ANIMTOLEFT);
 

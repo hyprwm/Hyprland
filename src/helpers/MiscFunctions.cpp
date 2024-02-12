@@ -521,6 +521,15 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     return result;
 }
 
+std::optional<bool> isWorkspaceChangeDirectionLeft(const std::string& args) {
+    if ((args[0] == '-' || args[0] == '+') && isNumber(args.substr(1)))
+        return args[0] == '+';
+    else if ((args[0] == 'r' || args[0] == 'm' || args[0] == 'e') && (args[1] == '-' || args[1] == '+') && isNumber(args.substr(2)))
+        return args[1] == '+';
+    else
+        return {};
+}
+
 std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
     std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);

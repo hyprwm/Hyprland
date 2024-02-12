@@ -371,44 +371,8 @@ int main(int argc, char** argv) {
 
     if (fullRequest.contains("/--batch"))
         batchRequest(fullRequest);
-    else if (fullRequest.contains("/monitors"))
-        request(fullRequest);
-    else if (fullRequest.contains("/clients"))
-        request(fullRequest);
-    else if (fullRequest.contains("/workspaces"))
-        request(fullRequest);
-    else if (fullRequest.contains("/activeworkspace"))
-        request(fullRequest);
-    else if (fullRequest.contains("/workspacerules"))
-        request(fullRequest);
-    else if (fullRequest.contains("/activewindow"))
-        request(fullRequest);
-    else if (fullRequest.contains("/layers"))
-        request(fullRequest);
-    else if (fullRequest.contains("/version"))
-        request(fullRequest);
-    else if (fullRequest.contains("/kill"))
-        request(fullRequest);
-    else if (fullRequest.contains("/systeminfo"))
-        request(fullRequest);
-    else if (fullRequest.contains("/splash"))
-        request(fullRequest);
-    else if (fullRequest.contains("/devices"))
-        request(fullRequest);
-    else if (fullRequest.contains("/reload"))
-        request(fullRequest);
-    else if (fullRequest.contains("/getoption"))
-        request(fullRequest);
-    else if (fullRequest.contains("/binds"))
-        request(fullRequest);
-    else if (fullRequest.contains("/cursorpos"))
-        request(fullRequest);
-    else if (fullRequest.contains("/animations"))
-        request(fullRequest);
-    else if (fullRequest.contains("/globalshortcuts"))
-        request(fullRequest);
-    else if (fullRequest.contains("/rollinglog"))
-        request(fullRequest);
+    else if (fullRequest.contains("/hyprpaper"))
+        requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))
@@ -429,15 +393,10 @@ int main(int argc, char** argv) {
         request(fullRequest, 2);
     else if (fullRequest.contains("/decorations"))
         request(fullRequest, 1);
-    else if (fullRequest.contains("/hyprpaper"))
-        requestHyprpaper(fullRequest);
-    else if (fullRequest.contains("/layouts"))
-        request(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {
-        printf("%s\n", USAGE.c_str());
-        return 1;
+        request(fullRequest);
     }
 
     printf("\n");

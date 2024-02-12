@@ -1356,7 +1356,7 @@ void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, 
 
     std::string field = name.substr(7);
 
-    m_pConfig->addSpecialConfigValue("plugin:", field.c_str(), value);
+    m_pConfig->addSpecialConfigValue("plugin", field.c_str(), value);
     pluginVariables.push_back({handle, field});
 }
 

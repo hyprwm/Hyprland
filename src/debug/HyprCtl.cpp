@@ -962,7 +962,7 @@ std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
 
     nextItem();
 
-    while (curitem != "") {
+    while (curitem != "" || request != "") {
         reply += g_pHyprCtl->getReply(curitem);
 
         nextItem();

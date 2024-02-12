@@ -33,7 +33,7 @@ in {
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         wlroots = final.wlroots-hyprland; # explicit override until decided on breaking change of the name
-        udis86 = final.hyprland-udis86; # explicit override until decided on breaking change of the name
+        udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
@@ -61,7 +61,7 @@ in {
   ];
 
   udis86 = final: prev: {
-    hyprland-udis86 = final.callPackage ./udis86.nix {};
+    udis86-hyprland = final.callPackage ./udis86.nix {};
   };
 
   # Patched version of wlroots for Hyprland.

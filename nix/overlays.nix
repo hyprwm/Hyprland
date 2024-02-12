@@ -31,9 +31,9 @@ in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
-        wlroots = prev.wlroots-hyprland;
         commit = self.rev or "";
-        inherit (final) udis86 hyprland-protocols;
+        wlroots = final.wlroots-hyprland; # explicit override until decided on breaking change of the name
+        udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
@@ -61,7 +61,7 @@ in {
   ];
 
   udis86 = final: prev: {
-    udis86 = final.callPackage ./udis86.nix {};
+    udis86-hyprland = final.callPackage ./udis86.nix {};
   };
 
   # Patched version of wlroots for Hyprland.

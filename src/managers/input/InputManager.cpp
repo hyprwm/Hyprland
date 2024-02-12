@@ -487,10 +487,15 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         return;
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
-        m_sCursorSurfaceInfo.wlSurface.unassign();
+
+        if (e->surface != m_sCursorSurfaceInfo.wlSurface.wlr()) {
+            m_sCursorSurfaceInfo.wlSurface.unassign();
+
+            if (e->surface)
+                m_sCursorSurfaceInfo.wlSurface.assign(e->surface);
+        }
 
         if (e->surface) {
-            m_sCursorSurfaceInfo.wlSurface.assign(e->surface);
             m_sCursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
             m_sCursorSurfaceInfo.hidden   = false;
         } else {

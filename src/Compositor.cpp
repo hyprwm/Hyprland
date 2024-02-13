@@ -710,7 +710,8 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
         for (auto& w : m_vWindows | std::views::reverse) {
             const auto BB  = w->getWindowBoxUnified(properties);
             CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_bNoFocus && w.get() != pIgnoreWindow) {
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
+                w.get() != pIgnoreWindow) {
                 if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y}))
                     return w.get();
 
@@ -732,7 +733,8 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
 
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-                if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_bNoFocus && w.get() != pIgnoreWindow) {
+                if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
+                    w.get() != pIgnoreWindow) {
                     // OR windows should add focus to parent
                     if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
                         continue;
@@ -770,8 +772,8 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
             if (special != isWorkspaceSpecial(w->m_iWorkspaceID))
                 continue;
 
-            if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
-                w.get() != pIgnoreWindow) {
+            if (!w->m_bIsX11 && !w->m_bIsFloating && w->m_bIsMapped && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus &&
+                !w->m_sAdditionalConfigData.noFocus && w.get() != pIgnoreWindow) {
                 if (w->hasPopupAt(pos))
                     return w.get();
             }
@@ -782,8 +784,8 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
                 continue;
 
             CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_vPosition, w->m_vSize};
-            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_bNoFocus &&
-                w.get() != pIgnoreWindow)
+            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->m_iWorkspaceID == WORKSPACEID && !w->isHidden() && !w->m_bX11ShouldntFocus &&
+                !w->m_sAdditionalConfigData.noFocus && w.get() != pIgnoreWindow)
                 return w.get();
         }
 
@@ -928,7 +930,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow->m_bNoFocus) {
+    if (pWindow->m_sAdditionalConfigData.noFocus) {
         Debug::log(LOG, "Ignoring focus to nofocus window!");
         return;
     }
@@ -1646,7 +1648,7 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableO
         if (floating.has_value() && w->m_bIsFloating != floating.value())
             continue;
 
-        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
+        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
             return w.get();
     }
 
@@ -1654,7 +1656,7 @@ CWindow* CCompositor::getNextWindowOnWorkspace(CWindow* pWindow, bool focusableO
         if (floating.has_value() && w->m_bIsFloating != floating.value())
             continue;
 
-        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
+        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
             return w.get();
     }
 
@@ -1675,7 +1677,7 @@ CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableO
         if (floating.has_value() && w->m_bIsFloating != floating.value())
             continue;
 
-        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
+        if (w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
             return w.get();
     }
 
@@ -1683,7 +1685,7 @@ CWindow* CCompositor::getPrevWindowOnWorkspace(CWindow* pWindow, bool focusableO
         if (floating.has_value() && w->m_bIsFloating != floating.value())
             continue;
 
-        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_bNoFocus))
+        if (w.get() != pWindow && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
             return w.get();
     }
 

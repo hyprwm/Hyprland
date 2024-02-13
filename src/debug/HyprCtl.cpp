@@ -1084,13 +1084,16 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     if (vars.size() < 4)
         return "not enough args";
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    const auto PWINDOW     = g_pCompositor->getWindowByRegex(vars[1]);
 
     if (!PWINDOW)
         return "window not found";
 
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
+
+    auto       noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
 
     bool       lock = false;
 
@@ -1121,6 +1124,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "forcenodim") {
             PWINDOW->m_sAdditionalConfigData.forceNoDim.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "nofocus") {
+            PWINDOW->m_sAdditionalConfigData.noFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "windowdancecompat") {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
@@ -1155,6 +1160,12 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     } catch (std::exception& e) { return "error in parsing prop value: " + std::string(e.what()); }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    if (!(PWINDOW->m_sAdditionalConfigData.noFocus.toUnderlying() == noFocus.toUnderlying())) {
+        g_pCompositor->focusWindow(nullptr);
+        g_pCompositor->focusWindow(PWINDOW);
+        g_pCompositor->focusWindow(PLASTWINDOW);
+    }
 
     for (auto& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);

@@ -2147,7 +2147,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force) {
     m_bCursorHasSurface = surf;
 
-    if ((surf == m_sLastCursorData.surf || m_bCursorHidden) && !force)
+    if ((surf == m_sLastCursorData.surf || m_bCursorHidden) && hotspotX == m_sLastCursorData.hotspotX && hotspotY == m_sLastCursorData.hotspotY && !force)
         return;
 
     m_sLastCursorData.name     = "";

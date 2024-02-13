@@ -51,7 +51,7 @@ input {
         natural_scroll = no
     }
 
-    sensitivity = 0 # -1.0 - 1.0, 0 means no modification.
+    sensitivity = 0 # -1.0 to 1.0, 0 means no modification.
 }
 
 general {

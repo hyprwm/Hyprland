@@ -182,6 +182,9 @@ APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const
     if (!PLUGIN)
         return nullptr;
 
+    if (name.starts_with("plugin:"))
+        return g_pConfigManager->getHyprlangConfigValuePtr(name.substr(7), "plugin");
+
     return g_pConfigManager->getHyprlangConfigValuePtr(name);
 }
 

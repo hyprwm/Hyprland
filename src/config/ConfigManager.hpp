@@ -97,7 +97,7 @@ class CConfigManager {
     bool                                                            shouldBlurLS(const std::string&);
 
     void* const*                                                    getConfigValuePtr(const std::string&);
-    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string&);
+    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
     void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getConfigDir();
     static std::string                                              getMainConfigPath();

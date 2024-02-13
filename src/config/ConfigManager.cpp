@@ -1171,8 +1171,11 @@ void* const* CConfigManager::getConfigValuePtr(const std::string& val) {
     return VAL->getDataStaticPtr();
 }
 
-Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::string& val) {
-    return m_pConfig->getConfigValuePtr(val.c_str());
+Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat) {
+    if (!specialCat.empty())
+        return m_pConfig->getSpecialConfigValuePtr(specialCat.c_str(), name.c_str(), nullptr);
+
+    return m_pConfig->getConfigValuePtr(name.c_str());
 }
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
@@ -1378,7 +1381,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
         if (h != handle)
             continue;
 
-        m_pConfig->removeSpecialConfigValue("plugin:", n.c_str());
+        m_pConfig->removeSpecialConfigValue("plugin", n.c_str());
     }
     std::erase_if(pluginVariables, [handle](const auto& other) { return other.handle == handle; });
 }

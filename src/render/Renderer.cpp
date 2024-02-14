@@ -1232,20 +1232,20 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     TRACY_GPU_COLLECT;
 
-    // calc frame damage
-    CRegion    frameDamage{};
+    if (!pMonitor->mirrors.empty()) {
+        CRegion    frameDamage{};
 
-    const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
-    wlr_region_transform(frameDamage.pixman(), pMonitor->lastFrameDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+        const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
+        wlr_region_transform(frameDamage.pixman(), pMonitor->lastFrameDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-        frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+        if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
+            frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-    if (*PDAMAGEBLINK)
-        frameDamage.add(damage);
+        if (*PDAMAGEBLINK)
+            frameDamage.add(damage);
 
-    if (!pMonitor->mirrors.empty())
         g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
+    }
 
     pMonitor->renderingActive = false;
 

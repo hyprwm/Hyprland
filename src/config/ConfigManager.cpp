@@ -1058,6 +1058,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     const auto PINNEDPOS       = VALUE.find("pinned:");
     const auto FOCUSPOS        = VALUE.find("focus:");
     const auto ONWORKSPACEPOS  = VALUE.find("onworkspace:");
+    const auto SOLOPOS         = VALUE.find("solo:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -1072,7 +1073,7 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
 
     if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && INITIALTITLEPOS == std::string::npos && INITIALCLASSPOS == std::string::npos &&
         X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos && PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos &&
-        FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos) {
+        FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos && SOLOPOS == std::string::npos) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         parseError = "Invalid rulev2 syntax: " + VALUE;
         return;
@@ -1105,6 +1106,8 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
             min = WORKSPACEPOS;
         if (FOCUSPOS > pos && FOCUSPOS < min)
             min = FOCUSPOS;
+        if (SOLOPOS > pos && SOLOPOS < min)
+            min = SOLOPOS;
 
         result = result.substr(0, min - pos);
 
@@ -1149,6 +1152,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
     if (ONWORKSPACEPOS != std::string::npos)
         rule.iOnWorkspace = configStringToInt(extract(ONWORKSPACEPOS + 12));
 
+    if (SOLOPOS != std::string::npos)
+        rule.bSolo = extract(SOLOPOS + 5) == "1" ? 1 : 0;
+
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
@@ -1185,6 +1191,9 @@ void CConfigManager::handleWindowRuleV2(const std::string& command, const std::s
                     return false;
 
                 if (rule.iOnWorkspace != -1 && rule.iOnWorkspace != other.iOnWorkspace)
+                    return false;
+
+                if (rule.bSolo != -1 && rule.bSolo != other.bSolo)
                     return false;
 
                 return true;
@@ -2089,6 +2098,19 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
 
                 if (rule.bFocus != -1) {
                     if (rule.bFocus != (g_pCompositor->m_pLastWindow == pWindow))
+                        continue;
+                }
+
+                if (rule.bSolo != -1) {
+                    const int id = pWindow->m_iWorkspaceID;
+                    int nb_nonFloating = 0;
+                    for (auto& w : g_pCompositor->m_vWindows) {
+                        if (w->m_iWorkspaceID == id && w->m_bIsMapped && !w->m_bIsFloating)
+                            nb_nonFloating++;
+                    }
+
+                    const bool isSolo = pWindow->m_bIsFullscreen || nb_nonFloating == 1;
+                    if (rule.bSolo != isSolo)
                         continue;
                 }
 

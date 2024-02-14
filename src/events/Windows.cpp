@@ -176,10 +176,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sAdditionalConfigData.noFocus = true;
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
-        } else if (r.szRule.starts_with("nofullscreenrequest")) {
-            PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN;
-        } else if (r.szRule.starts_with("nomaximizerequest")) {
-            PWINDOW->m_eSuppressedEvents |= SUPPRESS_MAXIMIZE;
         } else if (r.szRule.starts_with("suppressevent")) {
             CVarList vars(r.szRule, 0, 's', true);
             for (size_t i = 1; i < vars.size(); ++i) {

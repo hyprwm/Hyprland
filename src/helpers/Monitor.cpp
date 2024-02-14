@@ -169,7 +169,7 @@ void CMonitor::onConnect(bool noRule) {
     //
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{}", szName, szShortDescription)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
     EMIT_HOOK_EVENT("monitorAdded", this);
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet

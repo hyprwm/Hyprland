@@ -177,9 +177,23 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.starts_with("nofullscreenrequest")) {
-            PWINDOW->m_bNoFullscreenRequest = true;
+            PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN;
         } else if (r.szRule.starts_with("nomaximizerequest")) {
-            PWINDOW->m_bNoMaximizeRequest = true;
+            PWINDOW->m_eSuppressedEvents |= SUPPRESS_MAXIMIZE;
+        } else if (r.szRule.starts_with("suppressevent")) {
+            CVarList vars(r.szRule, 0, 's', true);
+            for (size_t i = 1; i < vars.size(); ++i) {
+                if (vars[i] == "fullscreen")
+                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN;
+                else if (vars[i] == "maximize")
+                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_MAXIMIZE;
+                else if (vars[i] == "activate")
+                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE;
+                else if (vars[i] == "activatefocus")
+                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE_FOCUSONLY;
+                else
+                    Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
+            }
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen     = true;
             overridingNoFullscreen = true;
@@ -504,8 +518,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                                                "XWayland Window Late");
     }
 
-    if ((requestsFullscreen && (!PWINDOW->m_bNoFullscreenRequest || overridingNoFullscreen)) || (requestsMaximize && (!PWINDOW->m_bNoMaximizeRequest || overridingNoMaximize)) ||
-        requestsFakeFullscreen) {
+    if ((requestsFullscreen && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN) || overridingNoFullscreen)) ||
+        (requestsMaximize && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE) || overridingNoMaximize)) || requestsFakeFullscreen) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWORKSPACE->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
@@ -905,7 +919,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW->isHidden() || PWINDOW->m_bNoFullscreenRequest)
+    if (PWINDOW->isHidden() || (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN))
         return;
 
     bool requestedFullState = false;
@@ -968,7 +982,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(E->surface);
 
-    if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow)
+    if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
@@ -976,7 +990,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 
     PWINDOW->m_bIsUrgent = true;
 
-    if (!*PFOCUSONACTIVATE)
+    if (!*PFOCUSONACTIVATE || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
         return;
 
     if (PWINDOW->m_bIsFloating)
@@ -1004,13 +1018,13 @@ void Events::listener_activateX11(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow)
+    if (PWINDOW == g_pCompositor->m_pLastWindow || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("urgent", PWINDOW);
 
-    if (!*PFOCUSONACTIVATE)
+    if (!*PFOCUSONACTIVATE || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
         return;
 
     if (PWINDOW->m_bIsFloating)
@@ -1206,7 +1220,7 @@ void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 
-    if (PWINDOW->m_bNoMaximizeRequest)
+    if (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
         return;
 
     Debug::log(LOG, "Maximize request for {}", PWINDOW);

@@ -971,7 +971,7 @@ bool windowRuleValid(const std::string& RULE) {
         RULE == "nomaximizerequest" || RULE == "fakefullscreen" || RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" ||
         RULE == "maximize" || RULE == "keepaspectratio" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") ||
         RULE.starts_with("bordercolor") || RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") ||
-        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor";
+        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent");
 }
 
 bool layerRuleValid(const std::string& RULE) {

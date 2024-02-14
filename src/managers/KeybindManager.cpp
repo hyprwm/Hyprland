@@ -39,6 +39,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["changegroupactive"]              = changeGroupActive;
     m_mDispatchers["movegroupwindow"]                = moveGroupWindow;
     m_mDispatchers["togglesplit"]                    = toggleSplit;
+    m_mDispatchers["swapsplit"]                      = swapSplit;
     m_mDispatchers["splitratio"]                     = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                   = focusMonitor;
     m_mDispatchers["movecursortocorner"]             = moveCursorToCorner;
@@ -1284,6 +1285,21 @@ void CKeybindManager::toggleSplit(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
+}
+
+void CKeybindManager::swapSplit(std::string args) {
+    SLayoutMessageHeader header;
+    header.pWindow = g_pCompositor->m_pLastWindow;
+
+    if (!header.pWindow)
+        return;
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(header.pWindow->m_iWorkspaceID);
+
+    if (PWORKSPACE->m_bHasFullscreenWindow)
+        return;
+
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "swapsplit");
 }
 
 void CKeybindManager::alterSplitRatio(std::string args) {

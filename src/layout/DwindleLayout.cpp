@@ -996,6 +996,8 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
     const auto ARGS = CVarList(message, 0, ' ');
     if (ARGS[0] == "togglesplit") {
         toggleSplit(header.pWindow);
+    } else if (ARGS[0] == "swapsplit") {
+        swapSplit(header.pWindow);
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
@@ -1045,6 +1047,20 @@ void CHyprDwindleLayout::toggleSplit(CWindow* pWindow) {
         return;
 
     PNODE->pParent->splitTop = !PNODE->pParent->splitTop;
+
+    PNODE->pParent->recalcSizePosRecursive();
+}
+
+void CHyprDwindleLayout::swapSplit(CWindow* pWindow) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    if (pWindow->m_bIsFullscreen)
+        return;
+
+    std::swap(PNODE->pParent->children[0], PNODE->pParent->children[1]);
 
     PNODE->pParent->recalcSizePosRecursive();
 }

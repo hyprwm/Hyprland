@@ -71,7 +71,7 @@ struct SRenderData {
     // for iters
     void*        data    = nullptr;
     wlr_surface* surface = nullptr;
-    double       w, h;
+    int          w, h;
 
     // for rounding
     bool dontRound = true;

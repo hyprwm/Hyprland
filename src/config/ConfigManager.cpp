@@ -967,11 +967,11 @@ void CConfigManager::handleUnbind(const std::string& command, const std::string&
 bool windowRuleValid(const std::string& RULE) {
     return RULE == "float" || RULE == "tile" || RULE.starts_with("opacity") || RULE.starts_with("move") || RULE.starts_with("size") || RULE.starts_with("minsize") ||
         RULE.starts_with("maxsize") || RULE.starts_with("pseudo") || RULE.starts_with("monitor") || RULE.starts_with("idleinhibit") || RULE == "nofocus" || RULE == "noblur" ||
-        RULE == "noshadow" || RULE == "nodim" || RULE == "noborder" || RULE == "opaque" || RULE == "forceinput" || RULE == "fullscreen" || RULE == "nofullscreenrequest" ||
-        RULE == "nomaximizerequest" || RULE == "fakefullscreen" || RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" ||
-        RULE == "maximize" || RULE == "keepaspectratio" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") ||
-        RULE.starts_with("bordercolor") || RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") ||
-        RULE.starts_with("center") || RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent");
+        RULE == "noshadow" || RULE == "nodim" || RULE == "noborder" || RULE == "opaque" || RULE == "forceinput" || RULE == "fullscreen" || RULE == "fakefullscreen" ||
+        RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" || RULE == "maximize" || RULE == "keepaspectratio" ||
+        RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") || RULE.starts_with("bordercolor") || RULE == "forcergbx" ||
+        RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") || RULE.starts_with("center") ||
+        RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent");
 }
 
 bool layerRuleValid(const std::string& RULE) {

@@ -2355,6 +2355,9 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
 void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     pMonitor->solitaryClient = nullptr; // reset it, if we find one it will be set.
 
+    if (g_pHyprNotificationOverlay->hasAny())
+        return;
+
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace);
 
     if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient || pMonitor->specialWorkspaceID ||

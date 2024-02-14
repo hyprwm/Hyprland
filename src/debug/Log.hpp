@@ -52,7 +52,7 @@ namespace Debug {
         }
 
         // print date and time to the ofs
-        if (disableTime && !*disableTime) {
+        if (disableTime && !**disableTime) {
 #ifndef _LIBCPP_VERSION
             logMsg += std::format("[{:%T}] ", std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())});
 #else
@@ -73,7 +73,7 @@ namespace Debug {
         if (rollingLog.size() > ROLLING_LOG_SIZE)
             rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
 
-        if (!disableLogs || !*disableLogs) {
+        if (!disableLogs || !**disableLogs) {
             // log to a file
             std::ofstream ofs;
             ofs.open(logFile, std::ios::out | std::ios::app);

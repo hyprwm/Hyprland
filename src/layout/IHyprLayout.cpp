@@ -530,7 +530,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
         // find whether there is a floating window below this one
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus && w.get() != pWindow) {
+                !w->m_sAdditionalConfigData.noFocus && w.get() != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
                     return w.get();
@@ -550,7 +550,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
         // if not, floating window
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
-                !w->m_bNoFocus && w.get() != pWindow)
+                !w->m_sAdditionalConfigData.noFocus && w.get() != pWindow)
                 return w.get();
         }
 

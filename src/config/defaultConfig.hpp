@@ -51,7 +51,7 @@ input {
         natural_scroll = no
     }
 
-    sensitivity = 0 # -1.0 - 1.0, 0 means no modification.
+    sensitivity = 0 # -1.0 to 1.0, 0 means no modification.
 }
 
 general {
@@ -133,7 +133,7 @@ device:epic-mouse-v1 {
 # Example windowrule v2
 # windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
 # See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
-windowrulev2 = nomaximizerequest, class:.* # You'll probably like this.
+windowrulev2 = suppressevent maximize, class:.* # You'll probably like this.
 
 
 # See https://wiki.hyprland.org/Configuring/Keywords/ for more

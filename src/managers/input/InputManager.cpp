@@ -487,10 +487,15 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
         return;
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
-        m_sCursorSurfaceInfo.wlSurface.unassign();
+
+        if (e->surface != m_sCursorSurfaceInfo.wlSurface.wlr()) {
+            m_sCursorSurfaceInfo.wlSurface.unassign();
+
+            if (e->surface)
+                m_sCursorSurfaceInfo.wlSurface.assign(e->surface);
+        }
 
         if (e->surface) {
-            m_sCursorSurfaceInfo.wlSurface.assign(e->surface);
             m_sCursorSurfaceInfo.vHotspot = {e->hotspot_x, e->hotspot_y};
             m_sCursorSurfaceInfo.hidden   = false;
         } else {
@@ -645,9 +650,11 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     }
 
     // notify app if we didnt handle it
-    if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus)) {
+    if (g_pCompositor->doesSeatAcceptInput(g_pCompositor->m_pLastFocus))
         wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, e->time_msec, e->button, e->state);
-    }
+
+    if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_pLastMonitor && PMON)
+        g_pCompositor->setActiveMonitor(PMON);
 }
 
 void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {

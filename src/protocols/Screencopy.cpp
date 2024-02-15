@@ -213,7 +213,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     g_pHyprRenderer->makeEGLCurrent();
 
     if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(PFRAME->pMonitor)) {
-        const auto RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PFRAME->pMonitor);
+        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PFRAME->pMonitor);
         // bind the fb for its format. Suppress gl errors.
 #ifndef GLES2
         glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);

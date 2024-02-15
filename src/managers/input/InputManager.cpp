@@ -486,6 +486,8 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
     if (!cursorImageUnlocked())
         return;
 
+    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)e->surface);
+
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
 
         if (e->surface != m_sCursorSurfaceInfo.wlSurface.wlr()) {
@@ -513,6 +515,8 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
     if (!cursorImageUnlocked())
         return;
+
+    Debug::log(LOG, "cursorImage request: shape {}", (uint32_t)e->shape);
 
     if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
         m_sCursorSurfaceInfo.wlSurface.unassign();

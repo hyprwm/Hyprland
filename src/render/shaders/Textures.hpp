@@ -50,7 +50,7 @@ void main() {
 })#";
 
 inline const std::string QUADFRAGSRC = R"#(
-precision mediump float;
+precision highp float;
 varying vec4 v_color;
 
 uniform vec2 topLeft;
@@ -81,7 +81,7 @@ void main() {
 })#";
 
 inline const std::string TEXFRAGSRCRGBA = R"#(
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 uniform float alpha;
@@ -122,7 +122,7 @@ void main() {
 })#";
 
 inline const std::string TEXFRAGSRCRGBAPASSTHRU = R"#(
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
@@ -131,7 +131,7 @@ void main() {
 })#";
 
 inline const std::string TEXFRAGSRCRGBAMATTE = R"#(
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 uniform sampler2D texMatte;
@@ -141,7 +141,7 @@ void main() {
 })#";
 
 inline const std::string TEXFRAGSRCRGBX = R"#(
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord;
 uniform sampler2D tex;
 uniform float alpha;
@@ -180,8 +180,8 @@ void main() {
 
 inline const std::string FRAGBLUR1 = R"#(
 #version 100
-precision            mediump float;
-varying mediump vec2 v_texcoord; // is in 0-1
+precision            highp float;
+varying highp vec2   v_texcoord; // is in 0-1
 uniform sampler2D    tex;
 
 uniform float        radius;
@@ -324,8 +324,8 @@ void main() {
 
 inline const std::string FRAGBLUR2 = R"#(
 #version 100
-precision mediump float;
-varying mediump vec2 v_texcoord; // is in 0-1
+precision highp float;
+varying highp vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
 uniform float radius;
@@ -349,7 +349,7 @@ void main() {
 )#";
 
 inline const std::string FRAGBLURPREPARE = R"#(
-precision         mediump float;
+precision         highp float;
 varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
@@ -381,7 +381,7 @@ void main() {
 )#";
 
 inline const std::string FRAGBLURFINISH = R"#(
-precision         mediump float;
+precision         highp float;
 varying vec2      v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
@@ -412,7 +412,7 @@ void main() {
 inline const std::string TEXFRAGSRCEXT = R"#(
 #extension GL_OES_EGL_image_external : require
 
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord;
 uniform samplerExternalOES texture0;
 uniform float alpha;
@@ -451,7 +451,7 @@ void main() {
 )#";
 
 static const std::string FRAGGLITCH = R"#(
-precision mediump float;
+precision highp float;
 varying vec2 v_texcoord;
 uniform sampler2D tex;
 uniform float time; // quirk: time is set to 0 at the beginning, should be around 10 when crash.

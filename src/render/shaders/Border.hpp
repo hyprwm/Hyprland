@@ -4,7 +4,7 @@
 
 // makes a stencil without corners
 inline const std::string FRAGBORDER1 = R"#(
-precision mediump float;
+precision highp float;
 varying vec4 v_color;
 varying vec2 v_texcoord;
 

@@ -178,6 +178,18 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PFRAME->pWindow->m_iMonitorID);
 
     g_pHyprRenderer->makeEGLCurrent();
+
+    if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(PMONITOR)) {
+        const auto RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PMONITOR);
+        // bind the fb for its format. Suppress gl errors.
+#ifndef GLES2
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
+#else
+        glBindFramebuffer(GL_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
+#endif
+    } else
+        Debug::log(ERR, "No RDATA in toplevelexport???");
+
     PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture toplevel");

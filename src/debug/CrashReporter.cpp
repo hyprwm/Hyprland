@@ -146,7 +146,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         return;
 
     std::ofstream ofs;
-    std::string reportDir;
+    std::string   reportDir;
 
     if (!CACHE_HOME || std::string(CACHE_HOME).empty())
         reportDir = std::string(HOME) + "/.cache/hyprland";

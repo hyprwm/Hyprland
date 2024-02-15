@@ -1912,12 +1912,18 @@ void CHyprOpenGLImpl::renderMirrored() {
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
-    cairo_select_font_face(CAIRO, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    static auto* const PSPLASHCOLOR = &g_pConfigManager->getConfigValuePtr("misc:col.splash")->intValue;
+
+    static auto* const PSPLASHFONT = &g_pConfigManager->getConfigValuePtr("misc:splash_font_family")->strValue;
+
+    cairo_select_font_face(CAIRO, PSPLASHFONT->c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     const auto FONTSIZE = (int)(size.y / 76);
     cairo_set_font_size(CAIRO, FONTSIZE);
 
-    cairo_set_source_rgba(CAIRO, 1.0, 1.0, 1.0, 0.32);
+    const auto COLOR = CColor(*PSPLASHCOLOR);
+
+    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
     cairo_text_extents_t textExtents;
     cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);

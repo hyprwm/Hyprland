@@ -1,5 +1,7 @@
 #include "Monitor.hpp"
 
+#include "MiscFunctions.hpp"
+
 #include "../Compositor.hpp"
 
 int ratHandler(void* data) {
@@ -53,6 +55,10 @@ void CMonitor::onConnect(bool noRule) {
     szDescription = output->description ? output->description : "";
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
     szDescription.erase(std::remove(szDescription.begin(), szDescription.end(), ','), szDescription.end());
+
+    // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
+    szShortDescription =
+        removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
 
     if (!wlr_backend_is_drm(output->backend))
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
@@ -163,6 +169,7 @@ void CMonitor::onConnect(bool noRule) {
     //
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
     EMIT_HOOK_EVENT("monitorAdded", this);
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet

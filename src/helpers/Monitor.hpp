@@ -62,8 +62,9 @@ class CMonitor {
     float           setScale        = 1; // scale set by cfg
     float           scale           = 1; // real scale
 
-    std::string     szName        = "";
-    std::string     szDescription = "";
+    std::string     szName             = "";
+    std::string     szDescription      = "";
+    std::string     szShortDescription = "";
 
     Vector2D        vecReservedTopLeft     = Vector2D(0, 0);
     Vector2D        vecReservedBottomRight = Vector2D(0, 0);

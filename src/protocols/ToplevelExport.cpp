@@ -180,7 +180,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     g_pHyprRenderer->makeEGLCurrent();
 
     if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(PMONITOR)) {
-        const auto RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PMONITOR);
+        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PMONITOR);
         // bind the fb for its format. Suppress gl errors.
 #ifndef GLES2
         glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);

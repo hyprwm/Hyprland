@@ -240,16 +240,17 @@ class CWindow {
     bool        m_bIsPseudotiled = false;
     Vector2D    m_vPseudoSize    = Vector2D(0, 0);
 
-    bool        m_bFirstMap      = false; // for layouts
-    bool        m_bIsFloating    = false;
-    bool        m_bDraggingTiled = false; // for dragging around tiled windows
-    bool        m_bIsFullscreen  = false;
-    bool        m_bWasMaximized  = false;
-    uint64_t    m_iMonitorID     = -1;
-    std::string m_szTitle        = "";
-    std::string m_szInitialTitle = "";
-    std::string m_szInitialClass = "";
-    int         m_iWorkspaceID   = -1;
+    bool        m_bFirstMap           = false; // for layouts
+    bool        m_bIsFloating         = false;
+    bool        m_bDraggingTiled      = false; // for dragging around tiled windows
+    bool        m_bIsFullscreen       = false;
+    bool        m_bDontSendFullscreen = false;
+    bool        m_bWasMaximized       = false;
+    uint64_t    m_iMonitorID          = -1;
+    std::string m_szTitle             = "";
+    std::string m_szInitialTitle      = "";
+    std::string m_szInitialClass      = "";
+    int         m_iWorkspaceID        = -1;
 
     bool        m_bIsMapped = false;
 

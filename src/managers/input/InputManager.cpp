@@ -315,7 +315,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface =
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor);
+    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0)
+        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor);
 
     if (!foundSurface) {
         if (!m_bEmptyFocusCursorSet) {

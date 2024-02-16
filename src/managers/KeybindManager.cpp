@@ -2177,7 +2177,12 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
         return;
 
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+    CWindow* PWINDOW = nullptr;
+
+    if (args != "" && args != "active" && args.length() > 1)
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    else
+        PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
         return;

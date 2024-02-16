@@ -68,35 +68,33 @@ class CCssGapData : public ICustomConfigValueData {
     int64_t left;
 
     void    parseGapData(CVarList varlist) {
-        try {
-            switch (varlist.size()) {
-                case 0: {
-                    *this = CCssGapData();
-                    break;
-                }
-                case 1: {
-                    *this = CCssGapData(std::stoi(varlist[0]));
-                    break;
-                }
-                case 2: {
-                    *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]));
-                    break;
-                }
-                case 3: {
-                    *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]));
-                    break;
-                }
-                case 4: {
-                    *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
-                    break;
-                }
-                default: {
-                    Debug::log(WARN, "Too many arguments provided for gaps.");
-                    *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
-                    break;
-                }
+        switch (varlist.size()) {
+            case 0: {
+                *this = CCssGapData();
+                break;
             }
-        } catch (...) { Debug::log(LOG, "Failed to parse gap data. Only integers are allowed."); }
+            case 1: {
+                *this = CCssGapData(std::stoi(varlist[0]));
+                break;
+            }
+            case 2: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]));
+                break;
+            }
+            case 3: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]));
+                break;
+            }
+            case 4: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                break;
+            }
+            default: {
+                Debug::log(WARN, "Too many arguments provided for gaps.");
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                break;
+            }
+        }
     }
 
     void reset(int64_t global) {

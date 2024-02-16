@@ -44,7 +44,7 @@ index 45701f5f..3505cefe 100644
 -    wlroots.get_variable('wlroots'),
 +    dependency('wlroots'),
      dependency('cairo'),
-     dependency('hyprlang', version: '>= 0.2.1'),
+     dependency('hyprlang', version: '>= 0.3.2'),
      dependency('libdrm'),
      dependency('egl'),
      dependency('xkbcommon'),

@@ -125,7 +125,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     static auto* const POPTIM       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:new_optimizations");
     static auto* const PBLURSPECIAL = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:special");
 
-    if (m_RenderData.mouseZoomFactor != 1.0)
+    if (m_RenderData.mouseZoomFactor != 1.0 || g_pHyprRenderer->m_bCrashingInProgress)
         return true;
 
     if (!pMonitor->mirrors.empty())
@@ -314,7 +314,7 @@ void CHyprOpenGLImpl::end() {
 
         blend(false);
 
-        if (m_sFinalScreenShader.program < 1)
+        if (m_sFinalScreenShader.program < 1 && !g_pHyprRenderer->m_bCrashingInProgress)
             renderTexturePrimitive(m_RenderData.pCurrentMonData->offloadFB.m_cTex, &monbox);
         else
             renderTexture(m_RenderData.pCurrentMonData->offloadFB.m_cTex, &monbox, 1.f);

@@ -1340,8 +1340,6 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
 
         std::string commandForCfg = "";
         const auto  OUTPUT        = head->state.output;
-        const auto  PMONITOR      = g_pCompositor->getMonitorFromOutput(OUTPUT);
-        RASSERT(PMONITOR, "nullptr monitor in outputMgrApplyTest");
 
         commandForCfg += std::string(OUTPUT->name) + ",";
 
@@ -1352,6 +1350,8 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             continue;
         }
 
+        const auto PMONITOR = g_pCompositor->getRealMonitorFromOutput(OUTPUT);
+        RASSERT(PMONITOR, "nullptr monitor in outputMgrApplyTest");
         wlr_output_state_set_enabled(PMONITOR->state.wlr(), head->state.enabled);
 
         if (head->state.mode)

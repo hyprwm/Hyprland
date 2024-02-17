@@ -797,7 +797,7 @@ void CKeybindManager::clearKeybinds() {
 void CKeybindManager::toggleActiveFloating(std::string args) {
     CWindow* PWINDOW = nullptr;
 
-    if (args != "" && args != "active" && args.length() > 1)
+    if (args != "active" && args.length() > 1)
         PWINDOW = g_pCompositor->getWindowByRegex(args);
     else
         PWINDOW = g_pCompositor->m_pLastWindow;
@@ -1941,7 +1941,7 @@ void CKeybindManager::pinActive(std::string args) {
 
     CWindow* PWINDOW = nullptr;
 
-    if (args != "" && args != "active" && args.length() > 1)
+    if (args != "active" && args.length() > 1)
         PWINDOW = g_pCompositor->getWindowByRegex(args);
     else
         PWINDOW = g_pCompositor->m_pLastWindow;
@@ -2180,7 +2180,12 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
         return;
 
-    const auto PWINDOW = g_pCompositor->m_pLastWindow;
+    CWindow* PWINDOW = nullptr;
+
+    if (args != "active" && args.length() > 1)
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    else
+        PWINDOW = g_pCompositor->m_pLastWindow;
 
     if (!PWINDOW || !PWINDOW->m_sGroupData.pNextWindow)
         return;

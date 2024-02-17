@@ -1064,7 +1064,7 @@ bool CWindow::canBeTorn() {
 
 bool CWindow::shouldSendFullscreenState() {
     const auto MODE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID)->m_efFullscreenMode;
-    return m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL));
+    return m_bDontSendFullscreen ? false : (m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL)));
 }
 
 void CWindow::setSuspended(bool suspend) {

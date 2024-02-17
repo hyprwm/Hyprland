@@ -1010,6 +1010,9 @@ void Events::listener_activateX11(void* owner, void* data) {
         if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->getPID() != PWINDOW->getPID())
             return;
 
+        if (!wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))
+            return;
+
         g_pCompositor->focusWindow(PWINDOW);
         return;
     }

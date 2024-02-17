@@ -320,9 +320,7 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
-    }
-
-    if (wlr_damage_ring_add(&damage, rg))
+    } else if (wlr_damage_ring_add(&damage, rg))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 

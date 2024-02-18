@@ -35,8 +35,8 @@ struct SWorkspaceRule {
     int                                workspaceId     = -1;
     bool                               isDefault       = false;
     bool                               isPersistent    = false;
-    std::optional<int64_t>             gapsIn;
-    std::optional<int64_t>             gapsOut;
+    std::optional<CCssGapData>         gapsIn;
+    std::optional<CCssGapData>         gapsOut;
     std::optional<int64_t>             borderSize;
     std::optional<int>                 border;
     std::optional<int>                 rounding;

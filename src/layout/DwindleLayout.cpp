@@ -134,9 +134,15 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     PWINDOW->updateSpecialRenderData();
 
+/* <<<<<<< HEAD */
     static auto* const PGAPSIN         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
     static auto* const PGAPSOUT        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
     static auto* const PNOGAPSWHENONLY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only");
+/* ======= */
+    /* static auto* const PGAPSIN         = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_in")->data.get(); */
+    /* static auto* const PGAPSOUT        = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_out")->data.get(); */
+    /* static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue; */
+/* >>>>>>> b40d211b (feat: Add css style gap configuration) */
 
     auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(**PGAPSIN);
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(**PGAPSOUT);
@@ -178,9 +184,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto       calcPos  = PWINDOW->m_vPosition;
     auto       calcSize = PWINDOW->m_vSize;
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut.left : gapsIn.left, DISPLAYTOP ? gapsOut.top : gapsIn.top);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut : gapsIn, DISPLAYBOTTOM ? gapsOut : gapsIn);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut.right : gapsIn.right, DISPLAYBOTTOM ? gapsOut.bottom : gapsIn.bottom);
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;

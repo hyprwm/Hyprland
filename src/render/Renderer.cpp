@@ -1098,10 +1098,41 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
-    CRegion damage;
-    wlr_damage_ring_get_buffer_damage(&pMonitor->damage, m_iLastBufferAge, damage.pixman());
+    if (pMonitor->forceFullFrames > 0) {
+        pMonitor->forceFullFrames -= 1;
+        if (pMonitor->forceFullFrames > 10)
+            pMonitor->forceFullFrames = 0;
+    }
 
     pMonitor->renderingActive = true;
+
+    TRACY_GPU_ZONE("Render");
+
+    if (pMonitor == g_pCompositor->getMonitorFromCursor())
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(**PZOOMFACTOR, 1.f, INFINITY);
+    else
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
+
+    if (zoomInFactorFirstLaunch > 1.f) {
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
+        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
+        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+    }
+
+    CRegion damage;
+
+    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
+        Debug::log(ERR, "renderer: couldn't beginRender()!");
+
+        if (UNLOCK_SC)
+            wlr_output_lock_software_cursors(pMonitor->output, false);
+
+        pMonitor->state.clear();
+
+        return;
+    }
+
+    wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
 
     // we need to cleanup fading out when rendering the appropriate context
     g_pCompositor->cleanupFadingOut(pMonitor->ID);
@@ -1134,38 +1165,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         }
     }
 
-    if (pMonitor->forceFullFrames > 0) {
-        pMonitor->forceFullFrames -= 1;
-        if (pMonitor->forceFullFrames > 10)
-            pMonitor->forceFullFrames = 0;
-    }
-
-    // TODO: this is getting called with extents being 0,0,0,0 should it be?
-    // potentially can save on resources.
-
-    TRACY_GPU_ZONE("Render");
-
-    if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(**PZOOMFACTOR, 1.f, INFINITY);
-    else
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
-
-    if (zoomInFactorFirstLaunch > 1.f) {
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
-        g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
-    }
-
-    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
-        Debug::log(ERR, "renderer: couldn't beginRender()!");
-
-        if (UNLOCK_SC)
-            wlr_output_lock_software_cursors(pMonitor->output, false);
-
-        pMonitor->state.clear();
-
-        return;
-    }
+    // apply modified damage to render pass
+    g_pHyprOpenGL->m_RenderData.damage.set(damage);
 
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
 
@@ -1262,8 +1263,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     if (shouldTear)
         pMonitor->tearingState.busy = true;
-
-    wlr_damage_ring_rotate(&pMonitor->damage);
 
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, false);
@@ -2470,7 +2469,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         if (!wlr_output_configure_primary_swapchain(pMonitor->output, pMonitor->state.wlr(), &pMonitor->output->swapchain))
             return false;
 
-        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, &m_iLastBufferAge);
+        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, nullptr);
         if (!m_pCurrentWlrBuffer)
             return false;
     } else {
@@ -2521,7 +2520,6 @@ void CHyprRenderer::endRender() {
 
     m_pCurrentRenderbuffer = nullptr;
     m_pCurrentWlrBuffer    = nullptr;
-    m_iLastBufferAge       = 0;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {

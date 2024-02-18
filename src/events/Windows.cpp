@@ -101,7 +101,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // window rules
-    const auto  WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW);
+    const auto  WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW, false);
     std::string requestedWorkspace = "";
     bool        workspaceSilent    = false;
     bool        requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||

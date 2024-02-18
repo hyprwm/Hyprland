@@ -881,6 +881,16 @@ CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
     return nullptr;
 }
 
+CMonitor* CCompositor::getRealMonitorFromOutput(wlr_output* out) {
+    for (auto& m : m_vRealMonitors) {
+        if (m->output == out) {
+            return m.get();
+        }
+    }
+
+    return nullptr;
+}
+
 void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     static auto* const PFOLLOWMOUSE        = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;

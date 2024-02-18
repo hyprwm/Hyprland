@@ -134,18 +134,14 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     PWINDOW->updateSpecialRenderData();
 
-/* <<<<<<< HEAD */
-    static auto* const PGAPSIN         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
-    static auto* const PGAPSOUT        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
     static auto* const PNOGAPSWHENONLY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only");
-/* ======= */
-    /* static auto* const PGAPSIN         = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_in")->data.get(); */
-    /* static auto* const PGAPSOUT        = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_out")->data.get(); */
-    /* static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only")->intValue; */
-/* >>>>>>> b40d211b (feat: Add css style gap configuration) */
+    static auto* const PGAPSINLOCKED   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
+    static auto* const PGAPSOUTLOCKED  = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
+    auto* const        PGAPSIN         = (CCssGapData*)(*PGAPSINLOCKED)->getData();
+    auto* const        PGAPSOUT        = (CCssGapData*)(*PGAPSOUTLOCKED)->getData();
 
-    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(**PGAPSIN);
-    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(**PGAPSOUT);
+    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowExists(PWINDOW) || !PWINDOW->m_bIsMapped) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);

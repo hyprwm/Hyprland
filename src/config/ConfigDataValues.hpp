@@ -1,6 +1,7 @@
 #pragma once
 #include "../defines.hpp"
 #include "helpers/VarList.hpp"
+#include <hyprlang.hpp>
 #include <vector>
 
 enum eConfigValueDataTypes {
@@ -69,12 +70,8 @@ class CCssGapData : public ICustomConfigValueData {
 
     void    parseGapData(CVarList varlist) {
         switch (varlist.size()) {
-            case 0: {
-                *this = CCssGapData();
-                break;
-            }
             case 1: {
-                *this = CCssGapData(std::stoi(varlist[0]));
+                *this = CCssGapData();
                 break;
             }
             case 2: {
@@ -95,6 +92,32 @@ class CCssGapData : public ICustomConfigValueData {
                 break;
             }
         }
+    }
+
+    static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data) {
+        std::string V = VALUE;
+
+        if (!*data)
+            *data = new CCssGapData();
+
+        const auto             DATA = reinterpret_cast<CCssGapData*>(*data);
+        CVarList               varlist(V);
+        Hyprlang::CParseResult result;
+
+        try {
+            DATA->parseGapData(varlist);
+        } catch (...) {
+            Debug::log(WARN, "Error parsing gaps {}", V);
+            std::string parseError = "Error parsing gaps " + V;
+            result.setError(parseError.c_str());
+        }
+
+        return result;
+    }
+
+    static void configHandleGapDestroy(void** data) {
+        if (*data)
+            delete reinterpret_cast<CCssGapData*>(*data);
     }
 
     void reset(int64_t global) {

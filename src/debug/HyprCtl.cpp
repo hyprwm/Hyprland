@@ -10,7 +10,6 @@
 #include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include <sstream>
 #include <string>
@@ -250,10 +249,11 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         const std::string monitor    = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
         const std::string default_   = (bool)(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
         const std::string persistent = (bool)(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
-        const std::string gapsIn     =
+        const std::string gapsIn =
             (bool)(r.gapsIn) ? std::format(",\n    \"gapsIn\": {} {} {} {}", r.gapsIn.value().top, r.gapsIn.value().right, r.gapsIn.value().bottom, r.gapsIn.value().left) : "";
-        const std::string gapsOut    = 
-            (bool)(r.gapsOut) ? std::format(",\n    \"gapsOut\": {} {} {} {}", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) : "";
+        const std::string gapsOut    = (bool)(r.gapsOut) ?
+               std::format(",\n    \"gapsOut\": {} {} {} {}", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) :
+               "";
         const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
         const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
         const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";

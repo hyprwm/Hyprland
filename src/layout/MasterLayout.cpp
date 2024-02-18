@@ -634,20 +634,15 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     PWINDOW->updateSpecialRenderData();
 
-/* <<<<<<< HEAD */
-    static auto* const PGAPSIN         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
-    static auto* const PGAPSOUT        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
     static auto* const PNOGAPSWHENONLY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("master:no_gaps_when_only");
     static auto* const PANIMATE        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes");
-/* ======= */
-/*     static auto* const PGAPSIN         = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_in")->data.get(); */
-/*     static auto* const PGAPSOUT        = (CCssGapData*)g_pConfigManager->getConfigValuePtr("general:gaps_out")->data.get(); */
-/*     static auto* const PNOGAPSWHENONLY = &g_pConfigManager->getConfigValuePtr("master:no_gaps_when_only")->intValue; */
-/*     static auto* const PANIMATE        = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue; */
-/* >>>>>>> b40d211b (feat: Add css style gap configuration) */
+    static auto* const PGAPSINLOCKED   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
+    static auto* const PGAPSOUTLOCKED  = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
+    auto* const        PGAPSIN         = (CCssGapData*)(*PGAPSINLOCKED)->getData();
+    auto* const        PGAPSOUT        = (CCssGapData*)(*PGAPSOUTLOCKED)->getData();
 
-    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(**PGAPSIN);
-    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(**PGAPSOUT);
+    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);

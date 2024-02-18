@@ -14,6 +14,7 @@
 
 #include <sstream>
 #include <string>
+#include <typeindex>
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -856,7 +857,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
 
     const auto  VALUE = in.substr(in.find_first_of(' ') + 1);
 
-    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE, true);
+    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
 
     if (COMMAND == "monitor")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
@@ -868,8 +869,10 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
         g_pInputManager->setTabletConfigs();      // update tablets
     }
 
+    static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+
     if (COMMAND.contains("general:layout"))
-        g_pLayoutManager->switchToLayout(g_pConfigManager->getString("general:layout")); // update layout
+        g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
     if (COMMAND.contains("decoration:screen_shader"))
         g_pHyprOpenGL->m_bReloadScreenShader = true;
@@ -1193,28 +1196,40 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
     nextItem();
     nextItem();
 
-    const auto PCFGOPT = g_pConfigManager->getConfigValuePtrSafe(curitem);
+    const auto VAR = g_pConfigManager->getHyprlangConfigValuePtr(curitem);
 
-    if (!PCFGOPT)
+    if (!VAR)
         return "no such option";
 
-    if (format == eHyprCtlOutputFormat::FORMAT_NORMAL)
-        return std::format("option {}\n\tint: {}\n\tfloat: {:.5f}\n\tstr: \"{}\"\n\tdata: {:x}\n\tset: {}", curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue,
-                           (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
-    else {
-        return std::format(
-            R"#(
-{{
-    "option": "{}",
-    "int": {},
-    "float": {:.5f},
-    "str": "{}",
-    "data": "0x{:x}",
-    "set": {}
-}}
-)#",
-            curitem, PCFGOPT->intValue, PCFGOPT->floatValue, PCFGOPT->strValue, (uintptr_t)PCFGOPT->data.get(), PCFGOPT->set);
+    const auto VAL  = VAR->getValue();
+    const auto TYPE = std::type_index(VAL.type());
+
+    if (format == FORMAT_NORMAL) {
+        if (TYPE == typeid(Hyprlang::INT))
+            return std::format("int: {}\nset: {}", std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::FLOAT))
+            return std::format("float: {:2f}\nset: {}", std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::VEC2))
+            return std::format("vec2: [{}, {}]\nset: {}", std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y, VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::STRING))
+            return std::format("str: {}\nset: {}", std::any_cast<Hyprlang::STRING>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
+            return std::format("custom type at: {:x}\nset: {}", (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
+    } else {
+        if (TYPE == typeid(Hyprlang::INT))
+            return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::FLOAT))
+            return std::format("{{\"option\": \"{}\", \"float\": {:2f}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::VEC2))
+            return std::format("{{\"option\": \"{}\", \"vec2\": [{},{}], \"set\": {} }}", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
+                               VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::STRING))
+            return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
+        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
+            return std::format("{{\"option\": \"{}\", \"custom\": \"{:x}\", \"set\": {} }}", curitem, (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
     }
+
+    return "invalid type (internal error)";
 }
 
 std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {

@@ -164,19 +164,26 @@ void CKeybindManager::updateXKBTranslationState() {
         m_pXKBTranslationState = nullptr;
     }
 
-    const auto     FILEPATH = g_pConfigManager->getString("input:kb_file");
-    const auto     RULES    = g_pConfigManager->getString("input:kb_rules");
-    const auto     MODEL    = g_pConfigManager->getString("input:kb_model");
-    const auto     LAYOUT   = g_pConfigManager->getString("input:kb_layout");
-    const auto     VARIANT  = g_pConfigManager->getString("input:kb_variant");
-    const auto     OPTIONS  = g_pConfigManager->getString("input:kb_options");
+    static auto* const PFILEPATH = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_file");
+    static auto* const PRULES    = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_rules");
+    static auto* const PMODEL    = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_model");
+    static auto* const PLAYOUT   = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_layout");
+    static auto* const PVARIANT  = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_variant");
+    static auto* const POPTIONS  = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("input:kb_options");
 
-    xkb_rule_names rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
-    const auto     PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const    KEYMAPFILE = FILEPATH == "" ? NULL : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
+    const std::string  FILEPATH = std::string{*PFILEPATH} == STRVAL_EMPTY ? "" : *PFILEPATH;
+    const std::string  RULES    = std::string{*PRULES} == STRVAL_EMPTY ? "" : *PRULES;
+    const std::string  MODEL    = std::string{*PMODEL} == STRVAL_EMPTY ? "" : *PMODEL;
+    const std::string  LAYOUT   = std::string{*PLAYOUT} == STRVAL_EMPTY ? "" : *PLAYOUT;
+    const std::string  VARIANT  = std::string{*PVARIANT} == STRVAL_EMPTY ? "" : *PVARIANT;
+    const std::string  OPTIONS  = std::string{*POPTIONS} == STRVAL_EMPTY ? "" : *POPTIONS;
 
-    auto           PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
-                                          xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    xkb_rule_names     rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
+    const auto         PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    FILE* const        KEYMAPFILE = FILEPATH == "" ? NULL : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
+
+    auto               PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
+                                              xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (KEYMAPFILE)
         fclose(KEYMAPFILE);
 
@@ -369,9 +376,9 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     const auto         MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    static auto* const PDELAY = &g_pConfigManager->getConfigValuePtr("binds:scroll_event_delay")->intValue;
+    static auto* const PDELAY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:scroll_event_delay");
 
-    if (m_tScrollTimer.getMillis() < *PDELAY) {
+    if (m_tScrollTimer.getMillis() < **PDELAY) {
         m_tScrollTimer.reset();
         return true; // timer hasn't passed yet!
     }
@@ -864,9 +871,9 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
-    static auto* const PBACKANDFORTH         = &g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth")->intValue;
-    static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
-    static auto* const PWORKSPACECENTERON    = &g_pConfigManager->getConfigValuePtr("binds:workspace_center_on")->intValue;
+    static auto* const PBACKANDFORTH         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth");
+    static auto* const PALLOWWORKSPACECYCLES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles");
+    static auto* const PWORKSPACECENTERON    = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_center_on");
 
     const auto         PMONITOR = g_pCompositor->m_pLastMonitor;
 
@@ -901,7 +908,7 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     const bool BISWORKSPACECURRENT = workspaceToChangeTo == PCURRENTWORKSPACE->m_iID;
 
-    if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1))
+    if (BISWORKSPACECURRENT && (!(**PBACKANDFORTH || EXPLICITPREVIOUS) || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1))
         return;
 
     g_pInputManager->unconstrainMouse();
@@ -933,14 +940,14 @@ void CKeybindManager::changeworkspace(std::string args) {
         Vector2D middle = PMONITORWORKSPACEOWNER->middle();
         if (const auto PLAST = pWorkspaceToChangeTo->getLastFocusedWindow(); PLAST) {
             g_pCompositor->focusWindow(PLAST);
-            if (*PWORKSPACECENTERON == 1)
+            if (**PWORKSPACECENTERON == 1)
                 middle = PLAST->middle();
         }
         g_pCompositor->warpCursorTo(middle);
     }
 
     if (BISWORKSPACECURRENT) {
-        if (*PALLOWWORKSPACECYCLES)
+        if (**PALLOWWORKSPACECYCLES)
             pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
         else if (!EXPLICITPREVIOUS)
             pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
@@ -1001,7 +1008,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     auto               pWorkspace            = g_pCompositor->getWorkspaceByID(WORKSPACEID);
     CMonitor*          pMonitor              = nullptr;
     const auto         POLDWS                = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-    static auto* const PALLOWWORKSPACECYCLES = &g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles")->intValue;
+    static auto* const PALLOWWORKSPACECYCLES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:allow_workspace_cycles");
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 
@@ -1027,7 +1034,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 
-    if (*PALLOWWORKSPACECYCLES)
+    if (**PALLOWWORKSPACECYCLES)
         pWorkspace->rememberPrevWorkspace(POLDWS);
 }
 
@@ -1079,7 +1086,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {
-    static auto* const PFULLCYCLE = &g_pConfigManager->getConfigValuePtr("binds:movefocus_cycles_fullscreen")->intValue;
+    static auto* const PFULLCYCLE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:movefocus_cycles_fullscreen");
     char               arg        = args[0];
 
     if (!isDirection(args)) {
@@ -1096,7 +1103,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
     // remove constraints
     g_pInputManager->unconstrainMouse();
 
-    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->m_bIsFullscreen ?
+    const auto PWINDOWTOCHANGETO = **PFULLCYCLE && PLASTWINDOW->m_bIsFullscreen ?
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
@@ -1111,8 +1118,8 @@ void CKeybindManager::moveFocusTo(std::string args) {
     if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return;
 
-    static auto* const PNOFALLBACK = &g_pConfigManager->getConfigValuePtr("general:no_focus_fallback")->intValue;
-    if (*PNOFALLBACK)
+    static auto* const PNOFALLBACK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:no_focus_fallback");
+    if (**PNOFALLBACK)
         return;
 
     Debug::log(LOG, "No monitor found in direction {}, falling back to next window on current workspace", arg);
@@ -1570,7 +1577,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
-    static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+    static auto* const PFOLLOWMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("input:follow_mouse");
 
     std::string        workspaceName = "";
     int                workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
@@ -1581,7 +1588,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
-    const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
+    const auto PMONITOR                        = **PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
@@ -2093,8 +2100,8 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
 
-    static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
-    pWindowInDirection            = *USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail();
+    static const auto* USECURRPOS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:insert_after_current");
+    pWindowInDirection            = **USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail();
 
     pWindowInDirection->insertWindowToGroup(pWindow);
     pWindowInDirection->setGroupCurrent(pWindow);
@@ -2108,7 +2115,7 @@ void CKeybindManager::moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDi
 }
 
 void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir) {
-    static auto* const BFOCUSREMOVEDWINDOW = &g_pConfigManager->getConfigValuePtr("group:focus_removed_window")->intValue;
+    static auto* const BFOCUSREMOVEDWINDOW = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:focus_removed_window");
     const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
     eDirection         direction;
 
@@ -2135,7 +2142,7 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
         g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
     }
 
-    if (*BFOCUSREMOVEDWINDOW) {
+    if (**BFOCUSREMOVEDWINDOW) {
         g_pCompositor->focusWindow(pWindow);
         g_pCompositor->warpCursorTo(pWindow->middle());
     } else {
@@ -2147,9 +2154,9 @@ void CKeybindManager::moveWindowOutOfGroup(CWindow* pWindow, const std::string& 
 void CKeybindManager::moveIntoGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const PIGNOREGROUPLOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+    if (!**PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
         return;
 
     if (!isDirection(args)) {
@@ -2168,16 +2175,16 @@ void CKeybindManager::moveIntoGroup(std::string args) {
         return;
 
     // Do not move window into locked group if binds:ignore_group_lock is false
-    if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
+    if (!**PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->getGroupHead()->m_sGroupData.locked)))
         return;
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
 }
 
 void CKeybindManager::moveOutOfGroup(std::string args) {
-    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const PIGNOREGROUPLOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
+    if (!**PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked)
         return;
 
     CWindow* PWINDOW = nullptr;
@@ -2196,7 +2203,7 @@ void CKeybindManager::moveOutOfGroup(std::string args) {
 void CKeybindManager::moveWindowOrGroup(std::string args) {
     char               arg = args[0];
 
-    static auto* const PIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const PIGNOREGROUPLOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock");
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move into group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -2207,7 +2214,7 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     if (!PWINDOW || PWINDOW->m_bIsFullscreen)
         return;
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked) {
+    if (!**PIGNOREGROUPLOCK && g_pKeybindManager->m_bGroupsLocked) {
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
         return;
     }
@@ -2220,13 +2227,13 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_bIsFloating
     if (PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow) { // target is group
-        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_sGroupData.deny)) {
+        if (!**PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_sGroupData.deny)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) { // target is regular window
-        if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_eGroupRules & GROUP_SET_ALWAYS)) {
+        if ((!**PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_eGroupRules & GROUP_SET_ALWAYS)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             g_pCompositor->warpCursorTo(PWINDOW->middle());
         } else
@@ -2238,14 +2245,14 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
 }
 
 void CKeybindManager::setIgnoreGroupLock(std::string args) {
-    static auto* const BIGNOREGROUPLOCK = &g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock")->intValue;
+    static auto* const BIGNOREGROUPLOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock");
 
     if (args == "toggle")
-        *BIGNOREGROUPLOCK = !*BIGNOREGROUPLOCK;
+        **BIGNOREGROUPLOCK = !*BIGNOREGROUPLOCK;
     else
-        *BIGNOREGROUPLOCK = args == "on";
+        **BIGNOREGROUPLOCK = args == "on";
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(*BIGNOREGROUPLOCK)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(**BIGNOREGROUPLOCK)});
 }
 
 void CKeybindManager::denyWindowFromGroup(std::string args) {

@@ -87,7 +87,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         desiredGeometry.y = xy.y;
     }
 
-    static auto* const PXWLFORCESCALEZERO = &g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling")->intValue;
+    static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
 
     if (!PMONITOR) {
         Debug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
@@ -151,7 +151,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
+    if (**PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goalv() / PMONITOR->scale;
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
@@ -275,8 +275,8 @@ void IHyprLayout::onEndDragWindow() {
                 return;
 
             if (pWindow->m_sGroupData.pNextWindow && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
-                static const auto* USECURRPOS = &g_pConfigManager->getConfigValuePtr("group:insert_after_current")->intValue;
-                (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
+                static const auto* USECURRPOS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:insert_after_current");
+                (**USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
                 DRAGGINGWINDOW->updateWindowDecos();
 
@@ -309,8 +309,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     const auto         DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto         TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
-    static auto* const PANIMATEMOUSE = &g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging")->intValue;
-    static auto* const PANIMATE      = &g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes")->intValue;
+    static auto* const PANIMATEMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging");
+    static auto* const PANIMATE      = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes");
 
     if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
         (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
@@ -328,7 +328,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goalv()};
         wb.round();
 
-        if (*PANIMATEMOUSE)
+        if (**PANIMATEMOUSE)
             DRAGGINGWINDOW->m_vRealPosition = wb.pos();
         else
             DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
@@ -386,7 +386,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             CBox wb = {newPos, newSize};
             wb.round();
 
-            if (*PANIMATE) {
+            if (**PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = wb.size();
                 DRAGGINGWINDOW->m_vRealPosition = wb.pos();
             } else {

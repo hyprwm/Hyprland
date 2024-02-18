@@ -225,8 +225,8 @@ void Events::listener_commitSubsurface(void* owner, void* data) {
     if (!g_pHyprRenderer->shouldRenderWindow(pNode->pWindowOwner)) {
         pNode->lastSize = pNode->pSurface->exists() ? Vector2D{pNode->pSurface->wlr()->current.width, pNode->pSurface->wlr()->current.height} : Vector2D{};
 
-        static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
-        if (*PLOGDAMAGE)
+        static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
+        if (**PLOGDAMAGE)
             Debug::log(LOG, "Refusing to commit damage from {} because it's invisible.", pNode->pWindowOwner);
         return;
     }

@@ -21,20 +21,12 @@
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
 
+#include <hyprlang.hpp>
+
 #define INITANIMCFG(name)           animationConfig[name] = {}
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 #define HANDLE void*
-
-struct SConfigValue {
-    int64_t                                 intValue   = -INT64_MAX;
-    float                                   floatValue = -__FLT_MAX__;
-    std::string                             strValue   = "";
-    Vector2D                                vecValue   = Vector2D(-__FLT_MAX__, -__FLT_MAX__);
-    std::shared_ptr<ICustomConfigValueData> data;
-
-    bool                                    set = false; // used for device configs
-};
 
 struct SWorkspaceRule {
     std::string                        monitor         = "";
@@ -74,9 +66,14 @@ struct SAnimationPropertyConfig {
 };
 
 struct SPluginKeyword {
-    HANDLE                                                      handle = 0;
-    std::string                                                 name   = "";
-    std::function<void(const std::string&, const std::string&)> fn;
+    HANDLE                       handle = 0;
+    std::string                  name   = "";
+    Hyprlang::PCONFIGHANDLERFUNC fn     = nullptr;
+};
+
+struct SPluginVariable {
+    HANDLE      handle = 0;
+    std::string name   = "";
 };
 
 struct SExecRequestedRule {
@@ -91,24 +88,17 @@ class CConfigManager {
     void                                                            tick();
     void                                                            init();
 
-    int                                                             getInt(const std::string&);
-    float                                                           getFloat(const std::string&);
-    Vector2D                                                        getVec(const std::string&);
-    std::string                                                     getString(const std::string&);
-    void                                                            setFloat(const std::string&, float);
-    void                                                            setInt(const std::string&, int);
-    void                                                            setVec(const std::string&, Vector2D);
-    void                                                            setString(const std::string&, const std::string&);
-
     int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
     float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
     Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
     std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
     bool                                                            deviceConfigExists(const std::string&);
+    Hyprlang::CConfigValue*                                         getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
     bool                                                            shouldBlurLS(const std::string&);
 
-    SConfigValue*                                                   getConfigValuePtr(const std::string&);
-    SConfigValue*                                                   getConfigValuePtrSafe(const std::string&);
+    void* const*                                                    getConfigValuePtr(const std::string&);
+    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
+    void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getConfigDir();
     static std::string                                              getMainConfigPath();
 
@@ -127,8 +117,8 @@ class CConfigManager {
 
     std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
 
-    void                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const SConfigValue& value);
-    void addPluginKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& cmd, const std::string& val)> fun);
+    void                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
+    void addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fun, Hyprlang::SHandlerOptions opts = {});
     void removePluginConfig(HANDLE handle);
 
     // no-op when done.
@@ -141,7 +131,7 @@ class CConfigManager {
     void                      ensureMonitorStatus();
     void                      ensureVRR(CMonitor* pMonitor = nullptr);
 
-    std::string               parseKeyword(const std::string&, const std::string&, bool dynamic = false);
+    std::string               parseKeyword(const std::string&, const std::string&);
 
     void                      addParseError(const std::string&);
 
@@ -151,77 +141,65 @@ class CConfigManager {
 
     void                      handlePluginLoads();
 
-    std::string               configCurrentPath;
+    // keywords
+    std::optional<std::string> handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string> handleMonitor(const std::string&, const std::string&);
+    std::optional<std::string> handleBind(const std::string&, const std::string&);
+    std::optional<std::string> handleUnbind(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
+    std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
+    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
+    std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
+    std::optional<std::string> handleBezier(const std::string&, const std::string&);
+    std::optional<std::string> handleAnimation(const std::string&, const std::string&);
+    std::optional<std::string> handleSource(const std::string&, const std::string&);
+    std::optional<std::string> handleSubmap(const std::string&, const std::string&);
+    std::optional<std::string> handleBlurLS(const std::string&, const std::string&);
+    std::optional<std::string> handleBindWS(const std::string&, const std::string&);
+    std::optional<std::string> handleEnv(const std::string&, const std::string&);
+    std::optional<std::string> handlePlugin(const std::string&, const std::string&);
+
+    std::string                configCurrentPath;
 
   private:
-    std::deque<std::string>                                                                    configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>                                                    configModifyTimes; // stores modify times
-    std::vector<std::pair<std::string, std::string>>                                           configDynamicVars; // stores dynamic vars declared by the user
-    std::unordered_map<std::string, SConfigValue>                                              configValues;
-    std::unordered_map<std::string, std::unordered_map<std::string, SConfigValue>>             deviceConfigs; // stores device configs
+    std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;
 
-    std::unordered_map<std::string, SAnimationPropertyConfig>                                  animationConfig; // stores all the animations with their set values
+    std::deque<std::string>                                   configPaths;       // stores all the config paths
+    std::unordered_map<std::string, time_t>                   configModifyTimes; // stores modify times
 
-    std::string                                                                                currentCategory = ""; // For storing the category of the current item
+    std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
 
-    std::string                                                                                parseError = ""; // For storing a parse error to display later
+    std::string                                               m_szCurrentSubmap = ""; // For storing the current keybind submap
 
-    std::string                                                                                m_szCurrentSubmap = ""; // For storing the current keybind submap
+    std::vector<SExecRequestedRule>                           execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
-    std::vector<SExecRequestedRule>                                                            execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
+    std::vector<std::string>                                  m_vDeclaredPlugins;
+    std::vector<SPluginKeyword>                               pluginKeywords;
+    std::vector<SPluginVariable>                              pluginVariables;
 
-    std::vector<std::string>                                                                   m_vDeclaredPlugins;
-    std::unordered_map<HANDLE, std::unique_ptr<std::unordered_map<std::string, SConfigValue>>> pluginConfigs; // stores plugin configs
-    std::vector<SPluginKeyword>                                                                pluginKeywords;
+    bool                                                      isFirstLaunch = true; // For exec-once
 
-    bool                                                                                       isFirstLaunch = true; // For exec-once
+    std::deque<SMonitorRule>                                  m_dMonitorRules;
+    std::deque<SWorkspaceRule>                                m_dWorkspaceRules;
+    std::deque<SWindowRule>                                   m_dWindowRules;
+    std::deque<SLayerRule>                                    m_dLayerRules;
+    std::deque<std::string>                                   m_dBlurLSNamespaces;
 
-    std::deque<SMonitorRule>                                                                   m_dMonitorRules;
-    std::deque<SWorkspaceRule>                                                                 m_dWorkspaceRules;
-    std::deque<SWindowRule>                                                                    m_dWindowRules;
-    std::deque<SLayerRule>                                                                     m_dLayerRules;
-    std::deque<std::string>                                                                    m_dBlurLSNamespaces;
+    bool                                                      firstExecDispatched     = false;
+    bool                                                      m_bManualCrashInitiated = false;
+    std::deque<std::string>                                   firstExecRequests;
 
-    bool                                                                                       firstExecDispatched     = false;
-    bool                                                                                       m_bManualCrashInitiated = false;
-    std::deque<std::string>                                                                    firstExecRequests;
-
-    std::vector<std::pair<std::string, std::string>>                                           environmentVariables;
-
-    std::vector<std::pair<std::string, std::string>>                                           m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+    std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
 
     // internal methods
-    void         setDefaultVars();
-    void         setDefaultAnimationVars();
-    void         setDeviceDefaultVars(const std::string&);
-    void         populateEnvironment();
-
-    void         setAnimForChildren(SAnimationPropertyConfig* const);
-    void         updateBlurredLS(const std::string&, const bool);
-
-    void         applyUserDefinedVars(std::string&, const size_t);
-    void         loadConfigLoadVars();
-    SConfigValue getConfigValueSafe(const std::string&);
-    SConfigValue getConfigValueSafeDevice(const std::string&, const std::string&, const std::string& fallback = "");
-    void         parseLine(std::string&);
-    void         configSetValueSafe(const std::string&, const std::string&);
-    void         handleDeviceConfig(const std::string&, const std::string&);
-    void         handleRawExec(const std::string&, const std::string&);
-    void         handleMonitor(const std::string&, const std::string&);
-    void         handleBind(const std::string&, const std::string&);
-    void         handleUnbind(const std::string&, const std::string&);
-    void         handleWindowRule(const std::string&, const std::string&);
-    void         handleLayerRule(const std::string&, const std::string&);
-    void         handleWindowRuleV2(const std::string&, const std::string&);
-    void         handleWorkspaceRules(const std::string&, const std::string&);
-    void         handleBezier(const std::string&, const std::string&);
-    void         handleAnimation(const std::string&, const std::string&);
-    void         handleSource(const std::string&, const std::string&);
-    void         handleSubmap(const std::string&, const std::string&);
-    void         handleBlurLS(const std::string&, const std::string&);
-    void         handleBindWS(const std::string&, const std::string&);
-    void         handleEnv(const std::string&, const std::string&);
-    void         handlePlugin(const std::string&, const std::string&);
+    void                       setAnimForChildren(SAnimationPropertyConfig* const);
+    void                       updateBlurredLS(const std::string&, const bool);
+    void                       setDefaultAnimationVars();
+    std::optional<std::string> resetHLConfig();
+    std::optional<std::string> verifyConfigExists();
+    void                       postConfigReload(const Hyprlang::CParseResult& result);
+    void                       reload();
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

@@ -22,7 +22,7 @@ void Debug::wlrLog(wlr_log_importance level, const char* fmt, va_list args) {
 
     rollingLog += output + "\n";
 
-    if (!disableLogs || !*disableLogs) {
+    if (!disableLogs || !**disableLogs) {
         std::ofstream ofs;
         ofs.open(logFile, std::ios::out | std::ios::app);
         ofs << "[wlr] " << output << "\n";

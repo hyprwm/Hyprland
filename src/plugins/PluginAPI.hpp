@@ -112,7 +112,7 @@ namespace HyprlandAPI {
 
         returns: true on success, false on fail
     */
-    APICALL bool addConfigValue(HANDLE handle, const std::string& name, const SConfigValue& value);
+    APICALL bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
 
     /*
         Add a config keyword.
@@ -120,15 +120,17 @@ namespace HyprlandAPI {
 
         returns: true on success, false on fail
     */
-    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn);
+    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
 
     /*
         Get a config value.
 
+        Please see the <hyprlang.hpp> header or https://hyprland.org/hyprlang/ for docs regarding Hyprlang types.
+
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
                 nullptr on error.
     */
-    APICALL SConfigValue* getConfigValue(HANDLE handle, const std::string& name);
+    APICALL Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
         Register a static (pointer) callback to a selected event.

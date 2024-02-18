@@ -122,7 +122,6 @@ class CHyprRenderer {
     CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
     wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
     eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
-    int            m_iLastBufferAge       = 0;
 
     bool           m_bNvidia = false;
 

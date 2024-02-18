@@ -22,6 +22,7 @@ in {
   hyprland-packages = lib.composeManyExtensions [
     # Dependencies
     inputs.hyprland-protocols.overlays.default
+    inputs.hyprlang.overlays.default
     self.overlays.wlroots-hyprland
     self.overlays.udis86
     # Hyprland packages themselves

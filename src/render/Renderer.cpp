@@ -48,8 +48,8 @@ CHyprRenderer::CHyprRenderer() {
 }
 
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
-    static auto* const PBLURPOPUPS            = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups")->intValue;
-    static auto* const PBLURPOPUPSIGNOREALPHA = &g_pConfigManager->getConfigValuePtr("decoration:blur:popups_ignorealpha")->floatValue;
+    static auto* const PBLURPOPUPS            = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:popups");
+    static auto* const PBLURPOPUPSIGNOREALPHA = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:popups_ignorealpha");
 
     const auto         TEXTURE                     = wlr_surface_get_texture(surface);
     const auto         RDATA                       = (SRenderData*)data;
@@ -148,11 +148,11 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         }
     } else {
-        if (RDATA->blur && RDATA->popup && *PBLURPOPUPS) {
+        if (RDATA->blur && RDATA->popup && **PBLURPOPUPS) {
 
-            if (*PBLURPOPUPSIGNOREALPHA != 1.f) {
+            if (**PBLURPOPUPSIGNOREALPHA != 1.f) {
                 g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
-                g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURPOPUPSIGNOREALPHA;
+                g_pHyprOpenGL->m_RenderData.discardOpacity = **PBLURPOPUPSIGNOREALPHA;
             }
 
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true);
@@ -409,8 +409,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     const auto         PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     const auto         REALPOS    = pWindow->m_vRealPosition.vec() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.vec());
-    static auto* const PDIMAROUND = &g_pConfigManager->getConfigValuePtr("decoration:dim_around")->floatValue;
-    static auto* const PBLUR      = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+    static auto* const PDIMAROUND = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:dim_around");
+    static auto* const PBLUR      = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:enabled");
 
     SRenderData        renderdata = {pMonitor, time};
     CBox               textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.vec().x, 5.0), std::max(pWindow->m_vRealSize.vec().y, 5.0)};
@@ -452,7 +452,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     if (*PDIMAROUND && pWindow->m_sAdditionalConfigData.dimAround && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
+        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, **PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
     }
 
     // clip box for animated offsets
@@ -521,11 +521,11 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             }
         }
 
-        static auto* const PXWLUSENN = &g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor")->intValue;
-        if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
+        static auto* const PXWLUSENN = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:use_nearest_neighbor");
+        if ((pWindow->m_bIsX11 && **PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-        if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur && **PBLUR) {
             CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
             g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
@@ -657,11 +657,11 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
-    static auto* const PDIMSPECIAL      = &g_pConfigManager->getConfigValuePtr("decoration:dim_special")->floatValue;
-    static auto* const PBLURSPECIAL     = &g_pConfigManager->getConfigValuePtr("decoration:blur:special")->intValue;
-    static auto* const PBLUR            = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
-    static auto* const PRENDERTEX       = &g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo")->intValue;
-    static auto* const PBACKGROUNDCOLOR = &g_pConfigManager->getConfigValuePtr("misc:background_color")->intValue;
+    static auto* const PDIMSPECIAL      = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("decoration:dim_special");
+    static auto* const PBLURSPECIAL     = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:special");
+    static auto* const PBLUR            = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:enabled");
+    static auto* const PRENDERTEX       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:disable_hyprland_logo");
+    static auto* const PBACKGROUNDCOLOR = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:background_color");
 
     SRenderModifData   RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
@@ -699,8 +699,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
         g_pHyprOpenGL->blend(false);
         if (!canSkipBackBufferClear(pMonitor)) {
-            if (*PRENDERTEX /* inverted cfg flag */)
-                g_pHyprOpenGL->clear(CColor(*PBACKGROUNDCOLOR));
+            if (**PRENDERTEX /* inverted cfg flag */)
+                g_pHyprOpenGL->clear(CColor(**PBACKGROUNDCOLOR));
             else
                 g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
         }
@@ -736,12 +736,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
             const auto SPECIALANIMPROGRS = ws->m_vRenderOffset.isBeingAnimated() ? ws->m_vRenderOffset.getCurveValue() : ws->m_fAlpha.getCurveValue();
             const bool ANIMOUT           = !pMonitor->specialWorkspaceID;
 
-            if (*PDIMSPECIAL != 0.f) {
+            if (**PDIMSPECIAL != 0.f) {
                 CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, **PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
             }
 
-            if (*PBLURSPECIAL && *PBLUR) {
+            if (**PBLURSPECIAL && **PBLUR) {
                 CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
                 g_pHyprOpenGL->renderRectWithBlur(&monbox, CColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
             }
@@ -943,23 +943,23 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
 
-    static auto* const                                    PDEBUGOVERLAY       = &g_pConfigManager->getConfigValuePtr("debug:overlay")->intValue;
-    static auto* const                                    PDAMAGETRACKINGMODE = &g_pConfigManager->getConfigValuePtr("debug:damage_tracking")->intValue;
-    static auto* const                                    PDAMAGEBLINK        = &g_pConfigManager->getConfigValuePtr("debug:damage_blink")->intValue;
-    static auto* const                                    PNODIRECTSCANOUT    = &g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout")->intValue;
-    static auto* const                                    PVFR                = &g_pConfigManager->getConfigValuePtr("misc:vfr")->intValue;
-    static auto* const                                    PZOOMFACTOR         = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    static auto* const                                    PANIMENABLED        = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
-    static auto* const                                    PFIRSTLAUNCHANIM    = &g_pConfigManager->getConfigValuePtr("animations:first_launch_animation")->intValue;
-    static auto* const                                    PTEARINGENABLED     = &g_pConfigManager->getConfigValuePtr("general:allow_tearing")->intValue;
+    static auto* const                                    PDEBUGOVERLAY       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:overlay");
+    static auto* const                                    PDAMAGETRACKINGMODE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:damage_tracking");
+    static auto* const                                    PDAMAGEBLINK        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:damage_blink");
+    static auto* const                                    PNODIRECTSCANOUT    = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:no_direct_scanout");
+    static auto* const                                    PVFR                = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:vfr");
+    static auto* const                                    PZOOMFACTOR         = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
+    static auto* const                                    PANIMENABLED        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("animations:enabled");
+    static auto* const                                    PFIRSTLAUNCHANIM    = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("animations:first_launch_animation");
+    static auto* const                                    PTEARINGENABLED     = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:allow_tearing");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
-    if (!*PDAMAGEBLINK)
+    if (!**PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 
     static bool firstLaunch           = true;
-    static bool firstLaunchAnimActive = *PFIRSTLAUNCHANIM;
+    static bool firstLaunchAnimActive = **PFIRSTLAUNCHANIM;
 
     float       zoomInFactorFirstLaunch = 1.f;
 
@@ -969,7 +969,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     if (m_tRenderTimer.getSeconds() < 1.5f && firstLaunchAnimActive) { // TODO: make the animation system more damage-flexible so that this can be migrated to there
-        if (!*PANIMENABLED) {
+        if (!**PANIMENABLED) {
             zoomInFactorFirstLaunch = 1.f;
             firstLaunchAnimActive   = false;
         } else {
@@ -982,18 +982,17 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     renderStart = std::chrono::high_resolution_clock::now();
 
-    if (*PDEBUGOVERLAY == 1) {
+    if (**PDEBUGOVERLAY == 1)
         g_pDebugOverlay->frameData(pMonitor);
-    }
 
     if (pMonitor->framesToSkip > 0) {
         pMonitor->framesToSkip -= 1;
 
         if (!pMonitor->noFrameSchedule)
             g_pCompositor->scheduleFrameForMonitor(pMonitor);
-        else {
+        else
             Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
-        }
+
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
         if (pMonitor->framesToSkip > 10)
@@ -1003,7 +1002,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     // checks //
     if (pMonitor->ID == m_pMostHzMonitor->ID ||
-        *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
+        **PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
 
         g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
@@ -1044,7 +1043,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (pMonitor->tearingState.nextRenderTorn) {
         pMonitor->tearingState.nextRenderTorn = false;
 
-        if (!*PTEARINGENABLED) {
+        if (!**PTEARINGENABLED) {
             Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return;
         }
@@ -1063,7 +1062,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             shouldTear = true;
     }
 
-    if (!*PNODIRECTSCANOUT && !shouldTear) {
+    if (!**PNODIRECTSCANOUT && !shouldTear) {
         if (attemptDirectScanout(pMonitor)) {
             return;
         } else if (m_pLastScanout) {
@@ -1085,10 +1084,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     // check the damage
     bool hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
+    if (!hasChanged && **PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
 
-    if (*PDAMAGETRACKINGMODE == -1) {
+    if (**PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
         return;
     }
@@ -1108,21 +1107,21 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     g_pCompositor->cleanupFadingOut(pMonitor->ID);
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
+    if (**PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || **PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
         pMonitor->isMirror() /* why??? */) {
 
         damage                    = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
         pMonitor->lastFrameDamage = damage;
     } else {
-        static auto* const PBLURENABLED = &g_pConfigManager->getConfigValuePtr("decoration:blur:enabled")->intValue;
+        static auto* const PBLURENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:enabled");
 
         // if we use blur we need to expand the damage for proper blurring
-        if (*PBLURENABLED == 1) {
+        if (**PBLURENABLED == 1) {
             // TODO: can this be optimized?
-            static auto* const PBLURSIZE   = &g_pConfigManager->getConfigValuePtr("decoration:blur:size")->intValue;
-            static auto* const PBLURPASSES = &g_pConfigManager->getConfigValuePtr("decoration:blur:passes")->intValue;
+            static auto* const PBLURSIZE   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:size");
+            static auto* const PBLURPASSES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:passes");
             const auto         BLURRADIUS =
-                *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
+                **PBLURPASSES > 10 ? pow(2, 15) : std::clamp(**PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, **PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
             // now, prep the damage, get the extended damage region
             wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
@@ -1147,7 +1146,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     TRACY_GPU_ZONE("Render");
 
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
+        g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(**PZOOMFACTOR, 1.f, INFINITY);
     else
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = 1.f;
 
@@ -1191,17 +1190,17 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             }
 
             // for drawing the debug overlay
-            if (pMonitor == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
+            if (pMonitor == g_pCompositor->m_vMonitors.front().get() && **PDEBUGOVERLAY == 1) {
                 renderStartOverlay = std::chrono::high_resolution_clock::now();
                 g_pDebugOverlay->draw();
                 endRenderOverlay = std::chrono::high_resolution_clock::now();
             }
 
-            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+            if (**PDAMAGEBLINK && damageBlinkCleanup == 0) {
                 CBox monrect = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
                 g_pHyprOpenGL->renderRect(&monrect, CColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
                 damageBlinkCleanup = 1;
-            } else if (*PDAMAGEBLINK) {
+            } else if (**PDAMAGEBLINK) {
                 damageBlinkCleanup++;
                 if (damageBlinkCleanup > 3)
                     damageBlinkCleanup = 0;
@@ -1216,7 +1215,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
 
-        bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
+        bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && **PZOOMFACTOR != 1.f;
 
         if (lockSoftware) {
             wlr_output_lock_software_cursors(pMonitor->output, true);
@@ -1238,10 +1237,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
         wlr_region_transform(frameDamage.pixman(), pMonitor->lastFrameDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
+        if (**PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || **PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
             frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGEBLINK)
+        if (**PDAMAGEBLINK)
             frameDamage.add(damage);
 
         g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
@@ -1269,7 +1268,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, false);
 
-    if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
+    if (**PDAMAGEBLINK || **PVFR == 0 || pMonitor->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor);
 
     pMonitor->pendingFrame = false;
@@ -1277,7 +1276,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
     g_pDebugOverlay->renderData(pMonitor, µs);
 
-    if (*PDEBUGOVERLAY == 1) {
+    if (**PDEBUGOVERLAY == 1) {
         if (pMonitor == g_pCompositor->m_vMonitors.front().get()) {
             const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µsNoOverlay);
@@ -1346,7 +1345,7 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
         if (!head->state.enabled) {
             commandForCfg += "disabled";
             if (!test)
-                g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
+                g_pConfigManager->parseKeyword("monitor", commandForCfg);
             continue;
         }
 
@@ -1365,7 +1364,7 @@ void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool
             std::to_string((int)head->state.transform);
 
         if (!test) {
-            g_pConfigManager->parseKeyword("monitor", commandForCfg, true);
+            g_pConfigManager->parseKeyword("monitor", commandForCfg);
             wlr_output_state_set_adaptive_sync_enabled(PMONITOR->state.wlr(), head->state.adaptive_sync_enabled);
         }
 
@@ -1619,9 +1618,9 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         m->addDamage(&damageBoxForEach);
     }
 
-    static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+    static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
 
-    if (*PLOGDAMAGE)
+    if (**PLOGDAMAGE)
         Debug::log(LOG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
@@ -1640,9 +1639,9 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     for (auto& wd : pWindow->m_dWindowDecorations)
         wd->damageEntire();
 
-    static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+    static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
 
-    if (*PLOGDAMAGE)
+    if (**PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, damageBox.x, damageBox.y, damageBox.width, damageBox.height);
 }
 
@@ -1653,9 +1652,9 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
     pMonitor->addDamage(&damageBox);
 
-    static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+    static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
 
-    if (*PLOGDAMAGE)
+    if (**PLOGDAMAGE)
         Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
@@ -1672,9 +1671,9 @@ void CHyprRenderer::damageBox(CBox* pBox) {
         m->addDamage(&damageBox);
     }
 
-    static auto* const PLOGDAMAGE = &g_pConfigManager->getConfigValuePtr("debug:log_damage")->intValue;
+    static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
 
-    if (*PLOGDAMAGE)
+    if (**PLOGDAMAGE)
         Debug::log(LOG, "Damage: Box: xy: {}, {} wh: {}, {}", pBox->x, pBox->y, pBox->width, pBox->height);
 }
 
@@ -1730,7 +1729,7 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
 
 bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
-    static auto* const PDISABLESCALECHECKS = &g_pConfigManager->getConfigValuePtr("debug:disable_scale_checks")->intValue;
+    static auto* const PDISABLESCALECHECKS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:disable_scale_checks");
 
     Debug::log(LOG, "Applying monitor rule for {}", pMonitor->szName);
 
@@ -2007,7 +2006,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->vecPixelSize = pMonitor->vecSize;
 
     Vector2D logicalSize = pMonitor->vecPixelSize / pMonitor->scale;
-    if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {
+    if (!**PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {
         // invalid scale, will produce fractional pixels.
         // find the nearest valid.
 
@@ -2175,13 +2174,13 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto* const PCURSORTIMEOUT = &g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout")->intValue;
-    static auto* const PHIDEONTOUCH   = &g_pConfigManager->getConfigValuePtr("misc:hide_cursor_on_touch")->intValue;
+    static auto* const PCURSORTIMEOUT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:cursor_inactive_timeout");
+    static auto* const PHIDEONTOUCH   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:hide_cursor_on_touch");
 
     const auto         PASSEDCURSORSECONDS = g_pInputManager->m_tmrLastCursorMovement.getSeconds();
 
-    if (*PCURSORTIMEOUT > 0 || *PHIDEONTOUCH) {
-        const bool HIDE = (*PCURSORTIMEOUT > 0 && *PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && *PHIDEONTOUCH);
+    if (**PCURSORTIMEOUT > 0 || **PHIDEONTOUCH) {
+        const bool HIDE = (**PCURSORTIMEOUT > 0 && **PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && **PHIDEONTOUCH);
 
         if (HIDE && !m_bCursorHidden) {
             Debug::log(LOG, "Hiding the cursor (timeout)");
@@ -2272,7 +2271,9 @@ void CHyprRenderer::initiateManualCrash() {
 
     g_pHyprOpenGL->m_tGlobalTimer.reset();
 
-    g_pConfigManager->setInt("debug:damage_tracking", 0);
+    static auto* const PDT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:damage_tracking");
+
+    **PDT = 0;
 }
 
 void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWorkspace) {
@@ -2491,7 +2492,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 
 void CHyprRenderer::endRender() {
     const auto         PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
-    static auto* const PNVIDIAANTIFLICKER = &g_pConfigManager->getConfigValuePtr("opengl:nvidia_anti_flicker")->intValue;
+    static auto* const PNVIDIAANTIFLICKER = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("opengl:nvidia_anti_flicker");
 
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
@@ -2504,7 +2505,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (isNvidia() && *PNVIDIAANTIFLICKER)
+    if (isNvidia() && **PNVIDIAANTIFLICKER)
         glFinish();
     else
         glFlush();

@@ -21,16 +21,16 @@ enum LogLevel {
 };
 
 namespace Debug {
-    inline std::string logFile;
-    inline int64_t*    disableLogs   = nullptr;
-    inline int64_t*    disableTime   = nullptr;
-    inline bool        disableStdout = false;
-    inline bool        trace         = false;
-    inline bool        shuttingDown  = false;
+    inline std::string     logFile;
+    inline int64_t* const* disableLogs   = nullptr;
+    inline int64_t* const* disableTime   = nullptr;
+    inline bool            disableStdout = false;
+    inline bool            trace         = false;
+    inline bool            shuttingDown  = false;
 
-    inline std::string rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
+    inline std::string     rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
 
-    void               init(const std::string& IS);
+    void                   init(const std::string& IS);
     template <typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
         if (level == TRACE && !trace)
@@ -52,7 +52,7 @@ namespace Debug {
         }
 
         // print date and time to the ofs
-        if (disableTime && !*disableTime) {
+        if (disableTime && !**disableTime) {
 #ifndef _LIBCPP_VERSION
             logMsg += std::format("[{:%T}] ", std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())});
 #else
@@ -73,7 +73,7 @@ namespace Debug {
         if (rollingLog.size() > ROLLING_LOG_SIZE)
             rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
 
-        if (!disableLogs || !*disableLogs) {
+        if (!disableLogs || !**disableLogs) {
             // log to a file
             std::ofstream ofs;
             ofs.open(logFile, std::ios::out | std::ios::app);

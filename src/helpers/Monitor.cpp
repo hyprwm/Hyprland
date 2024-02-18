@@ -316,8 +316,8 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
+    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     } else if (wlr_damage_ring_add(&damage, rg))
@@ -329,8 +329,8 @@ void CMonitor::addDamage(const CRegion* rg) {
 }
 
 void CMonitor::addDamage(const CBox* box) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
+    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     }
@@ -541,11 +541,11 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         }
 
         if (!noFocus && !g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
-            static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+            static auto* const PFOLLOWMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("input:follow_mouse");
             CWindow*           pWindow      = pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
-                if (*PFOLLOWMOUSE == 1)
+                if (**PFOLLOWMOUSE == 1)
                     pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (!pWindow)

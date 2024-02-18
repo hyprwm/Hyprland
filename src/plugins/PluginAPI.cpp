@@ -147,7 +147,7 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
     return false;
 }
 
-APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const SConfigValue& value) {
+APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!g_pPluginSystem->m_bAllowConfigVars)
@@ -163,7 +163,7 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     return true;
 }
 
-APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, std::function<void(const std::string& key, const std::string& val)> fn) {
+APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!g_pPluginSystem->m_bAllowConfigVars)
@@ -172,17 +172,20 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
     if (!PLUGIN)
         return false;
 
-    g_pConfigManager->addPluginKeyword(handle, name, fn);
+    g_pConfigManager->addPluginKeyword(handle, name, fn, opts);
     return true;
 }
 
-APICALL SConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
+APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return nullptr;
 
-    return g_pConfigManager->getConfigValuePtrSafe(name);
+    if (name.starts_with("plugin:"))
+        return g_pConfigManager->getHyprlangConfigValuePtr(name.substr(7), "plugin");
+
+    return g_pConfigManager->getHyprlangConfigValuePtr(name);
 }
 
 APICALL void* HyprlandAPI::getFunctionAddressFromSignature(HANDLE handle, const std::string& sig) {

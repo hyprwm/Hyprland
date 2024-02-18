@@ -56,8 +56,7 @@ class CGradientValueData : public ICustomConfigValueData {
 
 class CCssGapData : public ICustomConfigValueData {
   public:
-    /* default numbers taken from default configuration file */
-    CCssGapData() : top(5), right(20), bottom(5), left(20){};
+    CCssGapData() : top(0), right(0), bottom(0), left(0){};
     CCssGapData(int64_t global) : top(global), right(global), bottom(global), left(global){};
     CCssGapData(int64_t vertical, int64_t horizontal) : top(vertical), right(horizontal), bottom(vertical), left(horizontal){};
     CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : top(top), right(horizontal), bottom(bottom), left(horizontal){};

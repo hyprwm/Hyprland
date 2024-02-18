@@ -2121,11 +2121,15 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         if ((delim = rule.find("gapsin:")) != std::string::npos) {
             CVarList varlist = CVarList(rule.substr(delim + 7), 0, ' ');
             wsRule.gapsIn    = CCssGapData();
-            wsRule.gapsIn->parseGapData(varlist);
+            try {
+                wsRule.gapsIn->parseGapData(varlist);
+            } catch (...) { Debug::log(WARN, "Error parsing workspace rule gaps: {}", rule.substr(delim + 7)); }
         } else if ((delim = rule.find("gapsout:")) != std::string::npos) {
             CVarList varlist = CVarList(rule.substr(delim + 8), 0, ' ');
             wsRule.gapsOut   = CCssGapData();
-            wsRule.gapsOut->parseGapData(varlist);
+            try {
+                wsRule.gapsOut->parseGapData(varlist);
+            } catch (...) { Debug::log(WARN, "Error parsing workspace rule gaps: {}", rule.substr(delim + 8)); }
         } else if ((delim = rule.find("bordersize:")) != std::string::npos)
             wsRule.borderSize = std::stoi(rule.substr(delim + 11));
         else if ((delim = rule.find("border:")) != std::string::npos)

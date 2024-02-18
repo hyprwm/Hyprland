@@ -2002,7 +2002,7 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
     return *IT;
 }
 
-std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
+std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic) {
     if (!g_pCompositor->windowValidMapped(pWindow))
         return std::vector<SWindowRule>();
 
@@ -2127,6 +2127,9 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow) {
         Debug::log(LOG, "Window rule {} -> {} matched {}", rule.szRule, rule.szValue, pWindow);
 
         returns.push_back(rule);
+
+        if (dynamic)
+            continue;
 
         if (rule.szRule == "float")
             hasFloating = true;

@@ -135,10 +135,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->updateSpecialRenderData();
 
     static auto* const PNOGAPSWHENONLY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("dwindle:no_gaps_when_only");
-    static auto* const PGAPSINLOCKED   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
-    static auto* const PGAPSOUTLOCKED  = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
-    auto* const        PGAPSIN         = (CCssGapData*)(*PGAPSINLOCKED)->getData();
-    auto* const        PGAPSOUT        = (CCssGapData*)(*PGAPSOUTLOCKED)->getData();
+    static auto* const PGAPSINDATA   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
+    static auto* const PGAPSOUTDATA  = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
+    auto* const        PGAPSIN         = (CCssGapData*)(*PGAPSINDATA)->getData();
+    auto* const        PGAPSOUT        = (CCssGapData*)(*PGAPSOUTDATA)->getData();
 
     auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);

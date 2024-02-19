@@ -306,8 +306,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:border_size", {1L});
     m_pConfig->addConfigValue("general:no_border_on_floating", {0L});
     m_pConfig->addConfigValue("general:border_part_of_window", {1L});
-    m_pConfig->addConfigValue("general:gaps_in", Hyprlang::CConfigCustomValueType{&configHandleGapSet, configHandleGapDestroy, "5"});
-    m_pConfig->addConfigValue("general:gaps_out", Hyprlang::CConfigCustomValueType{&configHandleGapSet, configHandleGapDestroy, "20"});
+    m_pConfig->addConfigValue("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
+    m_pConfig->addConfigValue("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
     m_pConfig->addConfigValue("general:gaps_workspaces", {0L});
     m_pConfig->addConfigValue("general:cursor_inactive_timeout", {0L});
     m_pConfig->addConfigValue("general:no_cursor_warps", {0L});
@@ -2147,17 +2147,17 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             wsRule.gapsIn    = CCssGapData();
             try {
                 wsRule.gapsIn->parseGapData(varlist);
-            } catch (...) { Debug::log(ERR, "Error parsing workspace rule gaps: {}", rule.substr(delim + 7)); }
+            } catch (...) { return "Error parsing workspace rule gaps: {}", rule.substr(delim + 7); }
         } else if ((delim = rule.find("gapsout:")) != std::string::npos) {
             CVarList varlist = CVarList(rule.substr(delim + 8), 0, ' ');
             wsRule.gapsOut   = CCssGapData();
             try {
                 wsRule.gapsOut->parseGapData(varlist);
-            } catch (...) { Debug::log(ERR, "Error parsing workspace rule gaps: {}", rule.substr(delim + 8)); }
+            } catch (...) { return "Error parsing workspace rule gaps: {}", rule.substr(delim + 8); }
         } else if ((delim = rule.find("bordersize:")) != std::string::npos)
             try {
                 wsRule.borderSize = std::stoi(rule.substr(delim + 11));
-            } catch (...) { Debug::log(ERR, "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11)); }
+            } catch (...) { return "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11); }
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("shadow:")) != std::string::npos)

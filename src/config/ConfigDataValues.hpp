@@ -1,7 +1,6 @@
 #pragma once
 #include "../defines.hpp"
 #include "helpers/VarList.hpp"
-#include <hyprlang.hpp>
 #include <vector>
 
 enum eConfigValueDataTypes {

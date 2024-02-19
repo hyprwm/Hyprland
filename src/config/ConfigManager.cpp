@@ -4,7 +4,6 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "helpers/VarList.hpp"
-#include "hyprerror/HyprError.hpp"
 
 #include <string.h>
 #include <string>
@@ -2161,7 +2160,10 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         } else if ((delim = rule.find("bordersize:")) != std::string::npos)
             try {
                 wsRule.borderSize = std::stoi(rule.substr(delim + 11));
-            } catch (...) { Debug::log(ERR, "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11)); }
+            } catch (...) {
+                Debug::log(ERR, "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11));
+                g_pConfigManager->addParseError("you suck");
+            }
         else if ((delim = rule.find("border:")) != std::string::npos)
             wsRule.border = configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("shadow:")) != std::string::npos)

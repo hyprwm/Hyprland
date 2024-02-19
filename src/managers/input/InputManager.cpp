@@ -680,6 +680,7 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
 }
 
 void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
+    static auto POFFWINDOWAXIS        = CConfigValue<Hyprlang::INT>("input:off_window_axis_events");
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
 
@@ -701,6 +702,24 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
         if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
             return;
+
+        if (PWINDOW && *POFFWINDOWAXIS != 1) {
+            const auto BOX = PWINDOW->getWindowMainSurfaceBox();
+
+            if (!BOX.containsPoint(MOUSECOORDS) && !PWINDOW->hasPopupAt(MOUSECOORDS)) {
+                if (*POFFWINDOWAXIS == 0)
+                    return;
+
+                const auto TEMPCURX = std::clamp(MOUSECOORDS.x, BOX.x, BOX.x + BOX.w - 1);
+                const auto TEMPCURY = std::clamp(MOUSECOORDS.y, BOX.y, BOX.y + BOX.h - 1);
+
+                if (*POFFWINDOWAXIS == 3)
+                    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, TEMPCURX, TEMPCURY);
+
+                wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, TEMPCURX - BOX.x, TEMPCURY - BOX.y);
+                wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
+            }
+        }
     }
 
     wlr_seat_pointer_notify_axis(g_pCompositor->m_sSeat.seat, e->time_msec, e->orientation, factor * e->delta, std::round(factor * e->delta_discrete), e->source,

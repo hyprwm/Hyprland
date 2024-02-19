@@ -440,6 +440,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:follow_mouse", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:mouse_refocus", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:special_fallthrough", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("input:off_window_axis_events", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:sensitivity", {0.f});
     m_pConfig->addConfigValue("input:accel_profile", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("input:kb_file", {STRVAL_EMPTY});

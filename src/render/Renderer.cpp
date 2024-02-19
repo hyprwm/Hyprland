@@ -1588,17 +1588,21 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         y += CORRECTION.y;
     }
 
-    CRegion damageBox{&pSurface->buffer_damage};
+    const auto WLSURF = CWLSurface::surfaceFromWlr(pSurface);
+    if (!WLSURF)
+        Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
+    CRegion damageBox = WLSURF ? WLSURF->logicalDamage() : CRegion{&pSurface->buffer_damage};
     if (scale != 1.0)
-        wlr_region_scale(damageBox.pixman(), damageBox.pixman(), scale);
+        damageBox.scale(scale);
 
     // schedule frame events
-    if (!wl_list_empty(&pSurface->current.frame_callback_list)) {
+    if (!wl_list_empty(&pSurface->current.frame_callback_list))
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
-    }
 
     if (damageBox.empty())
         return;
+
+    damageBox.translate({x, y});
 
     CRegion damageBoxForEach;
 
@@ -1606,13 +1610,8 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         if (!m->output)
             continue;
 
-        double lx = 0, ly = 0;
-        wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, m->output, &lx, &ly);
-
-        damageBoxForEach = damageBox;
-        damageBoxForEach.translate({x - m->vecPosition.x, y - m->vecPosition.y});
-        wlr_region_scale(damageBoxForEach.pixman(), damageBoxForEach.pixman(), m->scale);
-        damageBoxForEach.translate({lx + m->vecPosition.x, ly + m->vecPosition.y});
+        damageBoxForEach.set(damageBox);
+        damageBoxForEach.translate({-m->vecPosition.x, -m->vecPosition.y}).scale(m->scale);
 
         m->addDamage(&damageBoxForEach);
     }

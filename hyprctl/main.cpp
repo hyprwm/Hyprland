@@ -86,7 +86,9 @@ std::vector<SInstanceData> instances() {
         data->id            = el.path().string();
         data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
 
-        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+        try {
+            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+        } catch (std::exception& e) { data->time = 0; }
 
         // read file
         std::ifstream ifs(el.path().string());
@@ -94,7 +96,9 @@ std::vector<SInstanceData> instances() {
         int           i = 0;
         for (std::string line; std::getline(ifs, line); ++i) {
             if (i == 0) {
-                data->pid = std::stoull(line);
+                try {
+                    data->pid = std::stoull(line);
+                } catch (std::exception& e) { data->pid = 0; }
             } else if (i == 1) {
                 data->wlSocket = line;
             } else

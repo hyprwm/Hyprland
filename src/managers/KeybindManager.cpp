@@ -517,7 +517,19 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
         } else {
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
-            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+
+            if (KBKEY == 0) {
+                // Keysym failed to resolve from the key name of the the currently iterated bind.
+                // This happens for names such as `switch:off:Lid Switch` as well as some keys
+                // (such as yen and ro).
+                //
+                // We can't let compare a 0-value with currently pressed key below,
+                // because if this key also have no keysym (i.e. key.keysym == 0) it will incorrectly trigger the
+                // currently iterated bind. That's confirmed to be happening with yen and ro keys.
+                continue;
+            }
+
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
             if (key.keysym != KBKEY && key.keysym != KBKEYUPPER)

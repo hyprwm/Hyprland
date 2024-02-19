@@ -859,10 +859,11 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
 
     std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
 
-    if (COMMAND == "monitor")
+    // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
+    if (COMMAND == "monitor" || COMMAND == "source")
         g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.contains("input") || COMMAND.contains("device:")) {
+    if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
@@ -874,17 +875,17 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     if (COMMAND.contains("general:layout"))
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
-    if (COMMAND.contains("decoration:screen_shader"))
+    if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
         g_pHyprOpenGL->m_bReloadScreenShader = true;
 
-    if (COMMAND.contains("blur")) {
+    if (COMMAND.contains("blur") || COMMAND == "source") {
         for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
             rd.blurFBDirty = true;
         }
     }
 
     // decorations will probably need a repaint
-    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("cursor_zoom_factor")) {
+    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("cursor_zoom_factor") || COMMAND == "source") {
         for (auto& m : g_pCompositor->m_vMonitors) {
             g_pHyprRenderer->damageMonitor(m.get());
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);

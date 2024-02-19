@@ -1588,10 +1588,12 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         y += CORRECTION.y;
     }
 
-    const auto WLSURF = CWLSurface::surfaceFromWlr(pSurface);
-    if (!WLSURF)
+    const auto WLSURF    = CWLSurface::surfaceFromWlr(pSurface);
+    CRegion    damageBox = WLSURF ? WLSURF->logicalDamage() : CRegion{};
+    if (!WLSURF) {
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
-    CRegion damageBox = WLSURF ? WLSURF->logicalDamage() : CRegion{&pSurface->buffer_damage};
+        wlr_surface_get_effective_damage(pSurface, damageBox.pixman());
+    }
     if (scale != 1.0)
         damageBox.scale(scale);
 

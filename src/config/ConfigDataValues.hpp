@@ -94,32 +94,6 @@ class CCssGapData : public ICustomConfigValueData {
         }
     }
 
-    static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data) {
-        std::string V = VALUE;
-
-        if (!*data)
-            *data = new CCssGapData();
-
-        const auto             DATA = reinterpret_cast<CCssGapData*>(*data);
-        CVarList               varlist(V);
-        Hyprlang::CParseResult result;
-
-        try {
-            DATA->parseGapData(varlist);
-        } catch (...) {
-            Debug::log(WARN, "Error parsing gaps {}", V);
-            std::string parseError = "Error parsing gaps " + V;
-            result.setError(parseError.c_str());
-        }
-
-        return result;
-    }
-
-    static void configHandleGapDestroy(void** data) {
-        if (*data)
-            delete reinterpret_cast<CCssGapData*>(*data);
-    }
-
     void reset(int64_t global) {
         top    = global;
         right  = global;

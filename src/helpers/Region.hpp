@@ -49,6 +49,7 @@ class CRegion {
     CRegion&                    invert(pixman_box32_t* box);
     CRegion&                    invert(const CBox& box);
     CRegion&                    scale(float scale);
+    CRegion&                    scale(const Vector2D& scale);
     CBox                        getExtents();
     bool                        containsPoint(const Vector2D& vec) const;
     bool                        empty() const;
@@ -58,7 +59,7 @@ class CRegion {
     std::vector<pixman_box32_t> getRects() const;
 
     pixman_region32_t*          pixman() {
-        return &m_rRegion;
+                 return &m_rRegion;
     }
 
   private:

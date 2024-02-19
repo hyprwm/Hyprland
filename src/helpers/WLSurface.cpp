@@ -52,6 +52,20 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
                                                      Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
 }
 
+CRegion CWLSurface::logicalDamage() const {
+    CRegion damage{&m_pWLRSurface->buffer_damage};
+    damage.transform(m_pWLRSurface->current.transform, m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height);
+    damage.scale(1.0 / m_pWLRSurface->current.scale);
+
+    const auto VPSIZE     = getViewporterCorrectedSize() / m_pWLRSurface->current.scale;
+    const auto CORRECTVEC = correctSmallVec();
+
+    damage.scale({VPSIZE.x / m_pWLRSurface->current.width, VPSIZE.y / m_pWLRSurface->current.height});
+    damage.translate(CORRECTVEC);
+
+    return damage;
+}
+
 void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;

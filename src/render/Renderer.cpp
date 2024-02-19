@@ -1098,13 +1098,13 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (UNLOCK_SC)
         wlr_output_lock_software_cursors(pMonitor->output, true);
 
-    if (pMonitor->forceFullFrames > 0) {
-        pMonitor->forceFullFrames -= 1;
-        if (pMonitor->forceFullFrames > 10)
-            pMonitor->forceFullFrames = 0;
-    }
-
     pMonitor->renderingActive = true;
+
+    // we need to cleanup fading out when rendering the appropriate context
+    g_pCompositor->cleanupFadingOut(pMonitor->ID);
+
+    // TODO: this is getting called with extents being 0,0,0,0 should it be?
+    // potentially can save on resources.
 
     TRACY_GPU_ZONE("Render");
 
@@ -1120,7 +1120,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     CRegion damage;
-
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
 
@@ -1131,11 +1130,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         return;
     }
-
-    wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
-
-    // we need to cleanup fading out when rendering the appropriate context
-    g_pCompositor->cleanupFadingOut(pMonitor->ID);
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (**PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || **PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
@@ -1165,8 +1159,14 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         }
     }
 
-    // apply modified damage to render pass
+    // update damage in renderdata as we modified it
     g_pHyprOpenGL->m_RenderData.damage.set(damage);
+
+    if (pMonitor->forceFullFrames > 0) {
+        pMonitor->forceFullFrames -= 1;
+        if (pMonitor->forceFullFrames > 10)
+            pMonitor->forceFullFrames = 0;
+    }
 
     EMIT_HOOK_EVENT("render", RENDER_BEGIN);
 
@@ -1257,6 +1257,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
+
+        damageMonitor(pMonitor);
 
         return;
     }
@@ -2483,6 +2485,9 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         wlr_buffer_unlock(m_pCurrentWlrBuffer);
         return false;
     }
+
+    if (mode == RENDER_MODE_NORMAL)
+        wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
 
     m_pCurrentRenderbuffer->bind();
     g_pHyprOpenGL->begin(pMonitor, &damage);

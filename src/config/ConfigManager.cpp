@@ -67,10 +67,8 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
     }
 
     Hyprlang::CParseResult result;
-    if (!parseError.empty()) {
-        g_pConfigManager->addParseError(parseError);
+    if (!parseError.empty())
         result.setError(parseError.c_str());
-    }
 
     return result;
 }
@@ -94,7 +92,6 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
         DATA->parseGapData(varlist);
     } catch (...) {
         std::string parseError = "Error parsing gaps " + V;
-        g_pConfigManager->addParseError(parseError);
         result.setError(parseError.c_str());
     }
 

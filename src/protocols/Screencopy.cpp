@@ -531,6 +531,8 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
 
+    frame->pMonitor->lastFrameDamage = fakeDamage;
+
     g_pHyprRenderer->endRender();
 
     wlr_texture_destroy(sourceTex);

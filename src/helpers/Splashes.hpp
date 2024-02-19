@@ -71,6 +71,7 @@ inline const std::vector<std::string> SPLASHES = {
     "\"stop playing league loser\" - hyprBot",
     "\"If it ain't broke, don't fix it\" - Lucascito_03",
     "\"@vaxry how do i learn c++\" - flicko",
+    "\"We choose to rice Linux, not because it is easy, but because it is hard\" - JFK",
     //
     "Join the discord server!",
     "Thanks ThatOneCalculator!",

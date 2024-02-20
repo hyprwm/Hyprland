@@ -573,6 +573,7 @@ std::string CConfigManager::getMainConfigPath() {
 }
 
 void CConfigManager::reload() {
+    EMIT_HOOK_EVENT("preConfigReload", nullptr);
     setDefaultAnimationVars();
     resetHLConfig();
     configCurrentPath = getMainConfigPath();

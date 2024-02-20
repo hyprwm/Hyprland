@@ -112,6 +112,11 @@ CRegion& CRegion::scale(float scale) {
     return *this;
 }
 
+CRegion& CRegion::scale(const Vector2D& scale) {
+    wlr_region_scale_xy(&m_rRegion, &m_rRegion, scale.x, scale.y);
+    return *this;
+}
+
 std::vector<pixman_box32_t> CRegion::getRects() const {
     std::vector<pixman_box32_t> result;
 

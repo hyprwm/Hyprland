@@ -52,6 +52,29 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
                                                      Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
 }
 
+CRegion CWLSurface::logicalDamage() const {
+    CRegion damage{&m_pWLRSurface->buffer_damage};
+    damage.transform(m_pWLRSurface->current.transform, m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height);
+    damage.scale(1.0 / m_pWLRSurface->current.scale);
+
+    const auto VPSIZE     = getViewporterCorrectedSize();
+    const auto CORRECTVEC = correctSmallVec();
+
+    if (m_pWLRSurface->current.viewport.has_src) {
+        damage.intersect(CBox{std::floor(m_pWLRSurface->current.viewport.src.x), std::floor(m_pWLRSurface->current.viewport.src.y),
+                              std::ceil(m_pWLRSurface->current.viewport.src.width), std::ceil(m_pWLRSurface->current.viewport.src.height)});
+    }
+
+    const auto SCALEDSRCSIZE = m_pWLRSurface->current.viewport.has_src ?
+        Vector2D{m_pWLRSurface->current.viewport.src.width, m_pWLRSurface->current.viewport.src.height} * m_pWLRSurface->current.scale :
+        Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
+
+    damage.scale({VPSIZE.x / SCALEDSRCSIZE.x, VPSIZE.y / SCALEDSRCSIZE.y});
+    damage.translate(CORRECTVEC);
+
+    return damage;
+}
+
 void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;

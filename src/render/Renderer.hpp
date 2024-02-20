@@ -73,6 +73,8 @@ class CHyprRenderer {
     void                            makeEGLCurrent();
     void                            unsetEGL();
 
+    // if RENDER_MODE_NORMAL, provided damage will be written to.
+    // otherwise, it will be the one used.
     bool      beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, wlr_buffer* buffer = nullptr, CFramebuffer* fb = nullptr);
     void      endRender();
 

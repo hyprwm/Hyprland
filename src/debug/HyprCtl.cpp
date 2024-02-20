@@ -1145,10 +1145,6 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
             PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "maxsize") {
-            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL), lock);
-        } else if (PROP == "minsize") {
-            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL), lock);
         } else if (PROP == "dimaround") {
             PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {

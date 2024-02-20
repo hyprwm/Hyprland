@@ -60,7 +60,16 @@ CRegion CWLSurface::logicalDamage() const {
     const auto VPSIZE     = getViewporterCorrectedSize();
     const auto CORRECTVEC = correctSmallVec();
 
-    damage.scale({VPSIZE.x / m_pWLRSurface->current.buffer_width, VPSIZE.y / m_pWLRSurface->current.buffer_height});
+    if (m_pWLRSurface->current.viewport.has_src) {
+        damage.intersect(CBox{std::floor(m_pWLRSurface->current.viewport.src.x), std::floor(m_pWLRSurface->current.viewport.src.y),
+                              std::ceil(m_pWLRSurface->current.viewport.src.width), std::ceil(m_pWLRSurface->current.viewport.src.height)});
+    }
+
+    const auto SCALEDSRCSIZE = m_pWLRSurface->current.viewport.has_src ?
+        Vector2D{m_pWLRSurface->current.viewport.src.width, m_pWLRSurface->current.viewport.src.height} * m_pWLRSurface->current.scale :
+        Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
+
+    damage.scale({VPSIZE.x / SCALEDSRCSIZE.x, VPSIZE.y / SCALEDSRCSIZE.y});
     damage.translate(CORRECTVEC);
 
     return damage;

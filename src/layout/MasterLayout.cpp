@@ -1314,19 +1314,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     } else if (command == "orientationcycle") {
         runOrientationCycle(header, &vars, 1);
     } else if (command == "mfact") {
-        if (vars.size() >= 2) {
-            float newMfact = 0;
-            try {
-                newMfact = std::stof(vars[1]);
-            } catch (std::exception& e) {
-                Debug::log(ERR, "Argument is invalid: {}", e.what());
-                return 0;
-            }
-            for (auto& nd : m_lMasterNodesData) {
-                if (nd.isMaster)
-                    nd.percMaster = std::clamp(newMfact, 0.05f, 0.95f);
-            }
-        }
+        g_pKeybindManager->m_mDispatchers["splitratio"](vars[1] + vars[2]);
     } else if (command == "rollnext") {
         const auto PWINDOW = header.pWindow;
         const auto PNODE   = getNodeFromWindow(PWINDOW);

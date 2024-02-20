@@ -75,6 +75,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
             PSURFACE->pWlrLockSurface = PWLRSURFACE;
             PSURFACE->iMonitorID      = PMONITOR->ID;
 
+            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PSURFACE->pWlrLockSurface->surface, PMONITOR->scale);
+
             wlr_session_lock_surface_v1_configure(PWLRSURFACE, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 
             PSURFACE->hyprListener_map.initCallback(&PWLRSURFACE->surface->events.map, &handleSurfaceMap, PSURFACE, "SSessionLockSurface");

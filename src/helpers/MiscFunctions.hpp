@@ -28,6 +28,7 @@ void                             logSystemInfo();
 std::string                      execAndGet(const char*);
 int64_t                          getPPIDof(int64_t pid);
 int64_t                          configStringToInt(const std::string&);
+Vector2D                         configStringToVector2D(const std::string&);
 std::optional<float>             getPlusMinusKeywordResult(std::string in, float relative);
 void                             matrixProjection(float mat[9], int w, int h, wl_output_transform tr);
 double                           normalizeAngleRad(double ang);

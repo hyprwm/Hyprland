@@ -722,6 +722,18 @@ int64_t configStringToInt(const std::string& VALUE) {
     return std::stoll(VALUE);
 }
 
+Vector2D configStringToVector2D(const std::string& VALUE) {
+    std::istringstream iss(VALUE);
+    int                x = 20, y = 20;
+    iss >> x;
+
+    if (!(iss >> y)) {
+        y = x;
+    }
+
+    return Vector2D(x, y);
+}
+
 double normalizeAngleRad(double ang) {
     if (ang > M_PI * 2) {
         while (ang > M_PI * 2)

@@ -570,6 +570,26 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceNoDim = true;
     } else if (r.szRule == "forcergbx") {
         m_sAdditionalConfigData.forceRGBX = true;
+    } else if (r.szRule.starts_with("maxsize")) {
+        try {
+            size_t      spacePos = r.szRule.find(' ');
+            std::string vecStr;
+            if (spacePos != std::string::npos) {
+                vecStr = r.szRule.substr(spacePos + 1);
+            }
+
+            m_sAdditionalConfigData.maxSize = configStringToVector2D(vecStr);
+        } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (r.szRule.starts_with("minsize")) {
+        try {
+            size_t      spacePos = r.szRule.find(' ');
+            std::string vecStr;
+            if (spacePos != std::string::npos) {
+                vecStr = r.szRule.substr(spacePos + 1);
+            }
+
+            m_sAdditionalConfigData.minSize = configStringToVector2D(vecStr);
+        } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
@@ -699,6 +719,8 @@ void CWindow::updateDynamicRules() {
     if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.forceNoAnims    = false;
+    m_sAdditionalConfigData.minSize         = Vector2D(-1, -1);
+    m_sAdditionalConfigData.maxSize         = Vector2D(99999, 99999);
     m_sAdditionalConfigData.animationStyle  = std::string("");
     m_sAdditionalConfigData.rounding        = -1;
     m_sAdditionalConfigData.dimAround       = false;

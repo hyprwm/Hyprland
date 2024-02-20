@@ -340,6 +340,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             Vector2D MINSIZE = g_pXWaylandManager->getMinSizeForWindow(DRAGGINGWINDOW).clamp({20, 20});
             Vector2D MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
+            Vector2D MINSIZE = DRAGGINGWINDOW->m_sAdditionalConfigData.minSize.toUnderlying();
+            Vector2D MAXSIZE = DRAGGINGWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying();
 
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;

@@ -347,7 +347,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
 
     if (!PFRAME->withDamage)
-        g_pCompositor->scheduleFrameForMonitor(PFRAME->pMonitor);
+        g_pHyprRenderer->damageMonitor(PFRAME->pMonitor);
 }
 
 void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {

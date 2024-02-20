@@ -146,21 +146,18 @@ void CrashReporter::createAndSaveCrash(int sig) {
         return;
 
     std::ofstream ofs;
-    std::string   path;
-    if (!CACHE_HOME || std::string(CACHE_HOME).empty()) {
-        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland"))
-            std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
+    std::string   reportDir;
 
-        path = std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
-        ofs.open(path, std::ios::trunc);
+    if (!CACHE_HOME || std::string(CACHE_HOME).empty())
+        reportDir = std::string(HOME) + "/.cache/hyprland";
+    else
+        reportDir = std::string(CACHE_HOME) + "/hyprland";
 
-    } else {
-        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland"))
-            std::filesystem::create_directory(std::string(CACHE_HOME) + "/hyprland");
+    if (!std::filesystem::exists(reportDir))
+        std::filesystem::create_directory(reportDir);
+    const auto path = reportDir + "/hyprlandCrashReport" + std::to_string(PID) + ".txt";
 
-        path = std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
-        ofs.open(path, std::ios::trunc);
-    }
+    ofs.open(path, std::ios::trunc);
 
     ofs << finalCrashReport;
 

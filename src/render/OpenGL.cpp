@@ -1912,16 +1912,16 @@ void CHyprOpenGLImpl::renderMirrored() {
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
-    static auto* const PSPLASHCOLOR = &g_pConfigManager->getConfigValuePtr("misc:col.splash")->intValue;
+    static auto* const PSPLASHCOLOR = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:col.splash");
 
-    static auto* const PSPLASHFONT = &g_pConfigManager->getConfigValuePtr("misc:splash_font_family")->strValue;
+    static auto* const PSPLASHFONT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("misc:splash_font_family");
 
-    cairo_select_font_face(CAIRO, PSPLASHFONT->c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(CAIRO, *PSPLASHFONT, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     const auto FONTSIZE = (int)(size.y / 76);
     cairo_set_font_size(CAIRO, FONTSIZE);
 
-    const auto COLOR = CColor(*PSPLASHCOLOR);
+    const auto COLOR = CColor(**PSPLASHCOLOR);
 
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
@@ -2019,7 +2019,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     cairo_set_source_surface(CAIRO, CAIROISURFACE, 0, 0);
     cairo_paint(CAIRO);
 
-    if (!*PNOSPLASH)
+    if (!**PNOSPLASH)
         renderSplash(CAIRO, CAIROSURFACE, origin.y * WPRATIO / MONRATIO * scale, IMAGESIZE);
 
     cairo_surface_flush(CAIROSURFACE);

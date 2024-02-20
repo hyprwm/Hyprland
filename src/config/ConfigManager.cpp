@@ -293,6 +293,8 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", {0L});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", {0L});
+    m_pConfig->addConfigValue("misc:col.splash", {0xffffffffL});
+    m_pConfig->addConfigValue("misc:splash_font_family", {"Sans"});
     m_pConfig->addConfigValue("misc:force_default_wallpaper", {-1L});
     m_pConfig->addConfigValue("misc:vfr", {1L});
     m_pConfig->addConfigValue("misc:vrr", {0L});

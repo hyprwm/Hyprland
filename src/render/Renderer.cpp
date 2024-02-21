@@ -2152,7 +2152,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force) {
     m_bCursorHasSurface = surf;
 
-    if ((surf == m_sLastCursorData.surf || m_bCursorHidden) && hotspotX == m_sLastCursorData.hotspotX && hotspotY == m_sLastCursorData.hotspotY && !force)
+    if (surf == m_sLastCursorData.surf && hotspotX == m_sLastCursorData.hotspotX && hotspotY == m_sLastCursorData.hotspotY && !force)
         return;
 
     m_sLastCursorData.name     = "";
@@ -2160,17 +2160,23 @@ void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspo
     m_sLastCursorData.hotspotX = hotspotX;
     m_sLastCursorData.hotspotY = hotspotY;
 
+    if (m_bCursorHidden && !force)
+        return;
+
     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
 }
 
 void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     m_bCursorHasSurface = true;
 
-    if ((name == m_sLastCursorData.name || m_bCursorHidden) && !force)
+    if (name == m_sLastCursorData.name && !force)
         return;
 
     m_sLastCursorData.name = name;
     m_sLastCursorData.surf.reset();
+
+    if (m_bCursorHidden && !force)
+        return;
 
     wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
 }

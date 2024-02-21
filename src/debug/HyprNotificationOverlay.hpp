@@ -41,6 +41,7 @@ class CHyprNotificationOverlay {
 
     void draw(CMonitor* pMonitor);
     void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE);
+    void dismissNotifications(const int amount);
     bool hasAny();
 
   private:

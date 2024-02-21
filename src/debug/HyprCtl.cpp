@@ -1423,6 +1423,26 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
+std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    int      amount = -1;
+
+    if (vars.size() > 1) {
+        const auto AMOUNT = vars[1];
+        if (!isNumber(AMOUNT))
+            return "invalid arg 1";
+
+        try {
+            amount = std::stoi(AMOUNT);
+        } catch (std::exception& e) { return "invalid arg 1"; }
+    }
+
+    g_pHyprNotificationOverlay->dismissNotifications(amount);
+
+    return "ok";
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1446,6 +1466,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
+    registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
     registerCommand(SHyprCtlCommand{"setprop", false, dispatchSetProp});
     registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});

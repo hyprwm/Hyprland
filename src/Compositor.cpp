@@ -2615,6 +2615,9 @@ void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
     }
 
     const auto PWORKSPACE = getWorkspaceByID(pMonitor->activeWorkspace);
+    if (!PWORKSPACE) {
+        return;
+    }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + PWORKSPACE->m_szName});
     EMIT_HOOK_EVENT("focusedMon", pMonitor);

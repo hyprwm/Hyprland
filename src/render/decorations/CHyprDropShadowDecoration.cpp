@@ -116,7 +116,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
     fullBox.scale(pMonitor->scale).round();
 
-    if (*PSHADOWIGNOREWINDOW) {
+    if (**PSHADOWIGNOREWINDOW) {
         CBox windowBox = m_bLastWindowBox;
         CBox withDecos = m_bLastWindowBoxWithDecos;
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "../defines.hpp"
-#include "helpers/VarList.hpp"
+#include "../helpers/VarList.hpp"
 #include <vector>
 
 enum eConfigValueDataTypes {

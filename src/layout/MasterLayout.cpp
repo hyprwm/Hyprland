@@ -1,6 +1,7 @@
 #include "MasterLayout.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "config/ConfigDataValues.hpp"
 #include <ranges>
 
 SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(CWindow* pWindow) {
@@ -633,13 +634,15 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     PWINDOW->updateSpecialRenderData();
 
-    static auto* const PGAPSIN         = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
-    static auto* const PGAPSOUT        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
     static auto* const PNOGAPSWHENONLY = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("master:no_gaps_when_only");
     static auto* const PANIMATE        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes");
+    static auto* const PGAPSINDATA     = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_in");
+    static auto* const PGAPSOUTDATA    = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("general:gaps_out");
+    auto* const        PGAPSIN         = (CCssGapData*)(*PGAPSINDATA)->getData();
+    auto* const        PGAPSOUT        = (CCssGapData*)(*PGAPSOUTDATA)->getData();
 
-    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(**PGAPSIN);
-    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(**PGAPSOUT);
+    auto               gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    auto               gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
@@ -673,9 +676,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto       calcPos  = PWINDOW->m_vPosition;
     auto       calcSize = PWINDOW->m_vSize;
 
-    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut : gapsIn, DISPLAYTOP ? gapsOut : gapsIn);
+    const auto OFFSETTOPLEFT = Vector2D(DISPLAYLEFT ? gapsOut.left : gapsIn.left, DISPLAYTOP ? gapsOut.top : gapsIn.top);
 
-    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut : gapsIn, DISPLAYBOTTOM ? gapsOut : gapsIn);
+    const auto OFFSETBOTTOMRIGHT = Vector2D(DISPLAYRIGHT ? gapsOut.right : gapsIn.right, DISPLAYBOTTOM ? gapsOut.bottom : gapsIn.bottom);
 
     calcPos  = calcPos + OFFSETTOPLEFT;
     calcSize = calcSize - OFFSETTOPLEFT - OFFSETBOTTOMRIGHT;

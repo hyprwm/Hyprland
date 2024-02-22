@@ -99,8 +99,11 @@ void CCompositor::initServer() {
 
     // register crit signal handler
     wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
-    signal(SIGSEGV, handleUnrecoverableSignal);
-    signal(SIGABRT, handleUnrecoverableSignal);
+
+    if (!envEnabled("HYPRLAND_NO_CRASHREPORTER")) {
+        signal(SIGSEGV, handleUnrecoverableSignal);
+        signal(SIGABRT, handleUnrecoverableSignal);
+    }
     signal(SIGUSR1, handleUserSignal);
 
     initManagers(STAGE_PRIORITY);

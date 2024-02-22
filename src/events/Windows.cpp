@@ -804,6 +804,11 @@ void Events::listener_ackConfigure(void* owner, void* data) {
 void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
+    if (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->initial_commit) {
+        wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, 0, 0);
+        return;
+    }
+
     if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
         return;
 

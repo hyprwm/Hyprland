@@ -164,7 +164,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         }
     }
 
-    if (*PXRAY)
+    if (**PXRAY)
         return false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
@@ -249,7 +249,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
     }
 
     const auto PRBO         = g_pHyprRenderer->getCurrentRBO();
-    const bool FBPROPERSIZE = fb && fb->m_vSize == pMonitor->vecPixelSize;
+    const bool FBPROPERSIZE = !fb || fb->m_vSize == pMonitor->vecPixelSize;
 
     if (m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) ||
         passRequiresIntrospection(pMonitor)) {

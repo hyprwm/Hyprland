@@ -223,6 +223,11 @@ void CAnimationManager::tick() {
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
+
+                    // some fucking layers miss 1 pixel???
+                    CBox expandBox = WLRBOXPREV;
+                    expandBox.expand(5);
+                    g_pHyprRenderer->damageBox(&expandBox);
                 }
                 break;
             }

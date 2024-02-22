@@ -724,8 +724,7 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
     }
 
     auto windowForWorkspace = [&](bool special) -> CWindow* {
-        if (properties & ALLOW_FLOATING) {
-            // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
+        auto floating = [&](bool aboveFullscreen) -> CWindow* {
             for (auto& w : m_vWindows | std::views::reverse) {
 
                 if (special && !isWorkspaceSpecial(w->m_iWorkspaceID)) // because special floating may creep up into regular
@@ -734,7 +733,7 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
                 if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
-                    w.get() != pIgnoreWindow) {
+                    w.get() != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent
                     if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
                         continue;
@@ -756,16 +755,29 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
                     }
                 }
             }
+
+            return nullptr;
+        };
+
+        if (properties & ALLOW_FLOATING) {
+            // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
+            auto found = floating(true);
+            if (found)
+                return found;
         }
 
         if (properties & FLOATING_ONLY)
-            return nullptr;
+            return floating(false);
 
         const int64_t WORKSPACEID = special ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
         const auto    PWORKSPACE  = getWorkspaceByID(WORKSPACEID);
 
         if (PWORKSPACE->m_bHasFullscreenWindow)
             return getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+
+        auto found = floating(false);
+        if (found)
+            return found;
 
         // for windows, we need to check their extensions too, first.
         for (auto& w : m_vWindows) {

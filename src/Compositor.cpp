@@ -122,13 +122,25 @@ void CCompositor::initServer() {
         throwError("wlr_backend_autocreate() failed!");
     }
 
-    m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
-    if (m_iDRMFD < 0) {
-        Debug::log(CRIT, "Couldn't query the DRM FD!");
-        throwError("wlr_backend_get_drm_fd() failed!");
-    }
+    bool isHeadlessOnly = true;
+    wlr_multi_for_each_backend(
+        m_sWLRBackend,
+        [](wlr_backend* backend, void* isHeadlessOnly) {
+            *(bool*)isHeadlessOnly = *(bool*)isHeadlessOnly && wlr_backend_is_headless(backend);
+        },
+        &isHeadlessOnly);
 
-    m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
+    if (isHeadlessOnly) {
+        m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend);
+    } else {
+        m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
+        if (m_iDRMFD < 0) {
+            Debug::log(CRIT, "Couldn't query the DRM FD!");
+            throwError("wlr_backend_get_drm_fd() failed!");
+        }
+
+        m_sWLRRenderer = wlr_gles2_renderer_create_with_drm_fd(m_iDRMFD);
+    }
 
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL! This usually means wlroots could not find a GPU or enountered some issues.");

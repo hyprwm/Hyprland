@@ -29,16 +29,20 @@ CHyprRenderer::CHyprRenderer() {
     } else {
         Debug::log(LOG, "m_sWLRSession is null, omitting full DRM node checks");
 
-        const auto  DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
+        const auto DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
 
-        std::string name = std::string{DRMV->name, DRMV->name_len};
-        std::transform(name.begin(), name.end(), name.begin(), tolower);
+        if (DRMV) {
+            std::string name = std::string{DRMV->name, DRMV->name_len};
+            std::transform(name.begin(), name.end(), name.begin(), tolower);
 
-        if (name.contains("nvidia"))
-            m_bNvidia = true;
+            if (name.contains("nvidia"))
+                m_bNvidia = true;
 
-        Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                   std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+            Debug::log(LOG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                       std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+        } else {
+            Debug::log(LOG, "No primary DRM driver information found");
+        }
 
         drmFreeVersion(DRMV);
     }

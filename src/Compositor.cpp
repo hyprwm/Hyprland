@@ -124,11 +124,7 @@ void CCompositor::initServer() {
 
     bool isHeadlessOnly = true;
     wlr_multi_for_each_backend(
-        m_sWLRBackend,
-        [](wlr_backend* backend, void* isHeadlessOnly) {
-            *(bool*)isHeadlessOnly = *(bool*)isHeadlessOnly && wlr_backend_is_headless(backend);
-        },
-        &isHeadlessOnly);
+        m_sWLRBackend, [](wlr_backend* backend, void* isHeadlessOnly) { *(bool*)isHeadlessOnly = *(bool*)isHeadlessOnly && wlr_backend_is_headless(backend); }, &isHeadlessOnly);
 
     if (isHeadlessOnly) {
         m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend);

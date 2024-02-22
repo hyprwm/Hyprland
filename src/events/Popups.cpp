@@ -228,6 +228,11 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 void Events::listener_commitPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
 
+    if (PPOPUP->popup->base->initial_commit) {
+        wlr_xdg_surface_schedule_configure(PPOPUP->popup->base);
+        return;
+    }
+
     if (g_pCompositor->windowValidMapped(PPOPUP->parentWindow)) {
         PPOPUP->lx = PPOPUP->parentWindow->m_vRealPosition.vec().x;
         PPOPUP->ly = PPOPUP->parentWindow->m_vRealPosition.vec().y;

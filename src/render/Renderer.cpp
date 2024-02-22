@@ -1141,7 +1141,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         static auto* const PBLURENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:enabled");
 
         // if we use blur we need to expand the damage for proper blurring
-        if (**PBLURENABLED == 1) {
+        // if framebuffer was not offloaded we're not doing introspection aka not blurring so this is redundant and dumb
+        if (**PBLURENABLED == 1 && g_pHyprOpenGL->m_bOffloadedFramebuffer) {
             // TODO: can this be optimized?
             static auto* const PBLURSIZE   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:size");
             static auto* const PBLURPASSES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:passes");

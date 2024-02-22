@@ -2476,19 +2476,23 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     }
 
     if (!buffer) {
-        if (!wlr_output_configure_primary_swapchain(pMonitor->output, pMonitor->state.wlr(), &pMonitor->output->swapchain))
+        if (!wlr_output_configure_primary_swapchain(pMonitor->output, pMonitor->state.wlr(), &pMonitor->output->swapchain)) {
+            Debug::log(ERR, "Failed to configure primary swapchain for {}", pMonitor);
             return false;
+        }
 
         m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, nullptr);
-        if (!m_pCurrentWlrBuffer)
+        if (!m_pCurrentWlrBuffer) {
+            Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor);
             return false;
-    } else {
+        }
+    } else
         m_pCurrentWlrBuffer = wlr_buffer_lock(buffer);
-    }
 
     try {
         m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat);
     } catch (std::exception& e) {
+        Debug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor);
         wlr_buffer_unlock(m_pCurrentWlrBuffer);
         return false;
     }

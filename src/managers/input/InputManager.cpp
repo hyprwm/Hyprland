@@ -1207,8 +1207,13 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
         updateKeyboardsLeds(pKeyboard->keyboard);
     }
 
-    if (m_bExitTriggered)
+    if (m_bExitTriggered) {
+        // remove signals so that the crash reporter won't get accidentally triggered
+        signal(SIGABRT, SIG_DFL);
+        signal(SIGSEGV, SIG_DFL);
+
         g_pCompositor->cleanup();
+    }
 }
 
 void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {

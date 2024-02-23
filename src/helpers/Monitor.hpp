@@ -107,8 +107,6 @@ class CMonitor {
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
 
-    CRegion                lastFrameDamage; // stores last frame damage
-
     // for tearing
     CWindow* solitaryClient = nullptr;
 

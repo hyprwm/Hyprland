@@ -1119,7 +1119,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
     }
 
-    CRegion damage;
+    CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
 
@@ -1135,8 +1135,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (**PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || **PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
         pMonitor->isMirror() /* why??? */) {
 
-        damage                    = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
-        pMonitor->lastFrameDamage = damage;
+        damage      = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
+        finalDamage = damage;
     } else {
         static auto* const PBLURENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:blur:enabled");
 
@@ -1152,16 +1152,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             // now, prep the damage, get the extended damage region
             wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
 
-            pMonitor->lastFrameDamage = damage;
+            finalDamage = damage;
 
             wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring 2
-        } else {
-            pMonitor->lastFrameDamage = damage;
-        }
+        } else
+            finalDamage = damage;
     }
 
     // update damage in renderdata as we modified it
-    g_pHyprOpenGL->m_RenderData.damage.set(damage);
+    g_pHyprOpenGL->setDamage(damage, finalDamage);
 
     if (pMonitor->forceFullFrames > 0) {
         pMonitor->forceFullFrames -= 1;
@@ -1237,7 +1236,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         CRegion    frameDamage{};
 
         const auto TRANSFORM = wlr_output_transform_invert(pMonitor->output->transform);
-        wlr_region_transform(frameDamage.pixman(), pMonitor->lastFrameDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+        wlr_region_transform(frameDamage.pixman(), finalDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
         if (**PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || **PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
             frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
@@ -2471,7 +2470,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     if (mode == RENDER_MODE_FULL_FAKE) {
         RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
         fb->bind();
-        g_pHyprOpenGL->begin(pMonitor, &damage, fb);
+        g_pHyprOpenGL->begin(pMonitor, damage, fb);
         return true;
     }
 
@@ -2501,7 +2500,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
 
     m_pCurrentRenderbuffer->bind();
-    g_pHyprOpenGL->begin(pMonitor, &damage);
+    g_pHyprOpenGL->begin(pMonitor, damage);
 
     return true;
 }

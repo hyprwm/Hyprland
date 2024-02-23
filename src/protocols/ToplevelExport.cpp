@@ -452,10 +452,6 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
     if (frame->overlayCursor)
         g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
 
-    // introspection uses this as final damage.
-    // TODO: dont. This fucking sucks.
-    PMONITOR->lastFrameDamage = fakeDamage;
-
     g_pHyprRenderer->endRender();
     return true;
 }

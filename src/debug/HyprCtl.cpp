@@ -1105,17 +1105,21 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     if (!PWINDOW)
         return "window not found";
 
-    const auto PROP = vars[2];
-    const auto VAL  = vars[3];
+    const auto  PROP = vars[2];
+    const auto  VAL  = vars[3];
+    std::string vec;
 
-    auto       noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
+    auto        noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
 
-    bool       lock = false;
+    bool        lock = false;
 
-    if (vars.size() > 4) {
-        if (vars[4].starts_with("lock")) {
-            lock = true;
-        }
+    if (request.ends_with("lock"))
+        lock = true;
+
+    if (PROP == "maxsize" || "minsize") {
+        vec = PROP + " " + VAL;
+        if (vars.size() > 4)
+            vec = PROP + " " + VAL + " " + vars[4];
     }
 
     try {
@@ -1145,6 +1149,10 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
             PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "maxsize") {
+            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(vec), lock);
+        } else if (PROP == "minsize") {
+            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(vec), lock);
         } else if (PROP == "dimaround") {
             PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {

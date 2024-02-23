@@ -703,7 +703,7 @@ void CWindow::updateDynamicRules() {
     if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.maxSize         = Vector2D(99999, 99999);
-    m_sAdditionalConfigData.minSize         = Vector2D(-1, -1);
+    m_sAdditionalConfigData.minSize         = Vector2D(20, 20);
     m_sAdditionalConfigData.forceNoAnims    = false;
     m_sAdditionalConfigData.animationStyle  = std::string("");
     m_sAdditionalConfigData.rounding        = -1;

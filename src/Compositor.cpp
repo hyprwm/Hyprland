@@ -29,8 +29,7 @@ void handleUnrecoverableSignal(int sig) {
         return;
     }
 
-    if (g_pCompositor->m_bShouldSaveCrash)
-        CrashReporter::createAndSaveCrash(sig);
+    CrashReporter::createAndSaveCrash(sig);
 
     abort();
 }
@@ -372,6 +371,9 @@ void CCompositor::removeAllSignals() {
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
+
+    signal(SIGABRT, SIG_DFL);
+    signal(SIGSEGV, SIG_DFL);
 
     removeLockFile();
 

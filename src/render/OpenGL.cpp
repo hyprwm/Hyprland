@@ -200,6 +200,8 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
 void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_RenderData.pMonitor = pMonitor;
 
+    static auto* const PFORCEINTROSPECTION = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("opengl:force_introspection");
+
 #ifndef GLES2
 
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
@@ -260,11 +262,12 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebu
         applyScreenShader(*PSHADER);
     }
 
-    const auto PRBO         = g_pHyprRenderer->getCurrentRBO();
-    const bool FBPROPERSIZE = !fb || fb->m_vSize == pMonitor->vecPixelSize;
+    const auto PRBO                    = g_pHyprRenderer->getCurrentRBO();
+    const bool FBPROPERSIZE            = !fb || fb->m_vSize == pMonitor->vecPixelSize;
+    const bool USERFORCEDINTROSPECTION = **PFORCEINTROSPECTION == 1 ? true : (**PFORCEINTROSPECTION == 2 ? g_pHyprRenderer->isNvidia() : false); // 0 - no, 1 - yes, 2 - nvidia only
 
-    if (m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 || (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) ||
-        passRequiresIntrospection(pMonitor)) {
+    if (USERFORCEDINTROSPECTION || m_RenderData.forceIntrospection || !FBPROPERSIZE || m_sFinalScreenShader.program > 0 ||
+        (PRBO && pMonitor->vecPixelSize != PRBO->getFB()->m_vSize) || passRequiresIntrospection(pMonitor)) {
         // we have to offload
         // bind the offload Hypr Framebuffer
         m_RenderData.pCurrentMonData->offloadFB.bind();

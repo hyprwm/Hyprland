@@ -25,6 +25,7 @@
     hyprlang = {
       url = "github:hyprwm/hyprlang";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
     };
 
     xdph = {
@@ -32,6 +33,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
       inputs.hyprland-protocols.follows = "hyprland-protocols";
+      inputs.hyprlang.follows = "hyprlang";
     };
   };
 

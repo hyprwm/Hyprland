@@ -152,6 +152,17 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
             return true;
     }
 
+    // these two block optimization
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        if (ls->forceBlur)
+            return true;
+    }
+
+    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+        if (ls->forceBlur)
+            return true;
+    }
+
     if (*PBLURSPECIAL) {
         for (auto& ws : g_pCompositor->m_vWorkspaces) {
             if (!ws->m_bIsSpecialWorkspace || ws->m_iMonitorID != pMonitor->ID)

@@ -1208,10 +1208,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     }
 
     if (m_bExitTriggered) {
-        // remove signals so that the crash reporter won't get accidentally triggered
-        signal(SIGABRT, SIG_DFL);
-        signal(SIGSEGV, SIG_DFL);
-
+        g_pCompositor->m_bShouldSaveCrash = false;
         g_pCompositor->cleanup();
     }
 }

@@ -29,7 +29,8 @@ void handleUnrecoverableSignal(int sig) {
         return;
     }
 
-    CrashReporter::createAndSaveCrash(sig);
+    if (g_pCompositor->m_bShouldSaveCrash)
+        CrashReporter::createAndSaveCrash(sig);
 
     abort();
 }

@@ -186,7 +186,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     return false;
 }
 
-void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* fb) {
+void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_RenderData.pMonitor = pMonitor;
 
 #ifndef GLES2
@@ -238,7 +238,8 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, CRegion* pDamage, CFramebuffer* 
     if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
         m_RenderData.pCurrentMonData->monitorMirrorFB.release();
 
-    m_RenderData.damage.set(*pDamage);
+    m_RenderData.damage.set(damage_);
+    m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 
     m_bFakeFrame = fb;
 
@@ -284,7 +285,7 @@ void CHyprOpenGLImpl::end() {
 
     // end the render, copy the data to the WLR framebuffer
     if (m_bOffloadedFramebuffer) {
-        m_RenderData.damage = m_RenderData.pMonitor->lastFrameDamage;
+        m_RenderData.damage = m_RenderData.finalDamage;
 
         m_RenderData.outFB->bind();
 
@@ -340,6 +341,11 @@ void CHyprOpenGLImpl::end() {
 
     if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
+}
+
+void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
+    m_RenderData.damage.set(damage_);
+    m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 }
 
 void CHyprOpenGLImpl::initShaders() {

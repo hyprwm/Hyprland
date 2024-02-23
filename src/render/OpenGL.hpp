@@ -101,6 +101,7 @@ struct SCurrentRenderData {
     CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
 
     CRegion             damage;
+    CRegion             finalDamage; // damage used for funal off -> main
 
     SRenderModifData    renderModif;
     float               mouseZoomFactor    = 1.f;
@@ -123,7 +124,7 @@ class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
 
-    void                  begin(CMonitor*, CRegion*, CFramebuffer* fb = nullptr /* if provided, it's not a real frame */);
+    void                  begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
     void                  end();
 
     void                  renderRect(CBox*, const CColor&, int round = 0);
@@ -173,6 +174,8 @@ class CHyprOpenGLImpl {
     void                  bindOffMain();
     void                  renderOffToMain(CFramebuffer* off);
     void                  bindBackOnMain();
+
+    void                  setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
     uint32_t              getPreferredReadFormat(CMonitor* pMonitor);
     const SGLPixelFormat* getPixelFormatFromDRM(uint32_t drmFormat);

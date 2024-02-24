@@ -414,6 +414,8 @@ void CCompositor::cleanup() {
 
     removeAllSignals();
 
+    g_pInputManager.reset();
+
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
 
     g_pDecorationPositioner.reset();
@@ -425,7 +427,6 @@ void CCompositor::cleanup() {
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
-    g_pInputManager.reset();
     g_pThreadManager.reset();
     g_pConfigManager.reset();
     g_pLayoutManager.reset();

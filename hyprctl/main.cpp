@@ -58,6 +58,7 @@ commands:
 
 flags:
     -j -> output in JSON
+    -r -> refresh state after issuing command (e.g. for updating variables)
     --batch -> execute a batch of commands, separated by ';'
     --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
 )#";
@@ -305,6 +306,8 @@ int main(int argc, char** argv) {
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
                 json = true;
+            } else if (ARGS[i] == "-r" && !fullArgs.contains("r")) {
+                fullArgs += "r";
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {

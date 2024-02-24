@@ -1476,7 +1476,8 @@ void CHyprCtl::unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd) {
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    auto format    = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll = false;
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1497,30 +1498,66 @@ std::string CHyprCtl::getReply(std::string request) {
 
             if (c == 'j')
                 format = eHyprCtlOutputFormat::FORMAT_JSON;
+            if (c == 'r')
+                reloadAll = true;
         }
 
         if (sepIndex < request.size())
             request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
     }
 
+    std::string result = "";
+
     // parse exact cmds first, then non-exact.
     for (auto& cmd : m_vCommands) {
         if (!cmd->exact)
             continue;
 
-        if (cmd->name == request)
-            return cmd->fn(format, request);
+        if (cmd->name == request) {
+            result = cmd->fn(format, request);
+            break;
+        }
     }
 
-    for (auto& cmd : m_vCommands) {
-        if (cmd->exact)
-            continue;
+    if (result.empty())
+        for (auto& cmd : m_vCommands) {
+            if (cmd->exact)
+                continue;
 
-        if (request.starts_with(cmd->name))
-            return cmd->fn(format, request);
+            if (request.starts_with(cmd->name)) {
+                result = cmd->fn(format, request);
+                break;
+            }
+        }
+
+    if (result.empty())
+        return "unknown request";
+
+    if (reloadAll) {
+        g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
+
+        g_pInputManager->setKeyboardLayout();     // update kb layout
+        g_pInputManager->setPointerConfigs();     // update mouse cfgs
+        g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
+        g_pInputManager->setTabletConfigs();      // update tablets
+
+        static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+
+        g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
+
+        g_pHyprOpenGL->m_bReloadScreenShader = true;
+
+        for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
+            rd.blurFBDirty = true;
+        }
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            g_pHyprRenderer->damageMonitor(m.get());
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+        }
     }
 
-    return "unknown request";
+    return result;
 }
 
 std::string CHyprCtl::makeDynamicCall(const std::string& input) {

@@ -79,7 +79,7 @@ std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
     for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
-        if (el.is_directory())
+        if (el.is_directory() || !el.path().string().ends_with(".lock"))
             continue;
 
         // read lock

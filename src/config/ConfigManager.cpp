@@ -818,16 +818,12 @@ void CConfigManager::init() {
 }
 
 std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::string& VALUE) {
-    int        needsLayoutRecalc = COMMAND == "monitor"; // 0 - no, 1 - yes, 2 - maybe
-
     const auto RET = m_pConfig->parseDynamic(COMMAND.c_str(), VALUE.c_str());
 
     // invalidate layouts if they changed
-    if (needsLayoutRecalc) {
-        if (needsLayoutRecalc == 1 || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-            for (auto& m : g_pCompositor->m_vMonitors)
-                g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
-        }
+    if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
+        for (auto& m : g_pCompositor->m_vMonitors)
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
     }
 
     // Update window border colors

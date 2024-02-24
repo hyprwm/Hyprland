@@ -412,6 +412,8 @@ void CCompositor::cleanup() {
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
+    g_pInputManager.reset();
+
     removeAllSignals();
 
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
@@ -425,7 +427,6 @@ void CCompositor::cleanup() {
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
-    g_pInputManager.reset();
     g_pThreadManager.reset();
     g_pConfigManager.reset();
     g_pLayoutManager.reset();

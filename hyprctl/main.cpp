@@ -89,7 +89,7 @@ std::vector<SInstanceData> instances() {
 
         try {
             data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
-        } catch (std::exception& e) { data->time = 0; }
+        } catch (std::exception& e) { continue; }
 
         // read file
         std::ifstream ifs(el.path().string());
@@ -99,7 +99,7 @@ std::vector<SInstanceData> instances() {
             if (i == 0) {
                 try {
                     data->pid = std::stoull(line);
-                } catch (std::exception& e) { data->pid = 0; }
+                } catch (std::exception& e) { continue; }
             } else if (i == 1) {
                 data->wlSocket = line;
             } else

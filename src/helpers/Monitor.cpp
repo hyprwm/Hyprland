@@ -142,6 +142,20 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
+    for (const auto& PTOUCHDEV : g_pInputManager->m_lTouchDevices) {
+        if (matchesStaticSelector(PTOUCHDEV.boundOutput)) {
+            Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV.name, szName);
+            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV.pWlrDevice, output);
+        }
+    }
+
+    for (const auto& PTABLET : g_pInputManager->m_lTablets) {
+        if (matchesStaticSelector(PTABLET.boundOutput)) {
+            Debug::log(LOG, "Binding tablet {} to output {}", PTABLET.name, szName);
+            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTABLET.wlrDevice, output);
+        }
+    }
+
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 
@@ -341,6 +355,19 @@ void CMonitor::addDamage(const CBox* box) {
 
 bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
+}
+
+bool CMonitor::matchesStaticSelector(const std::string& selector) const {
+    if (selector.starts_with("desc:")) {
+        // match by description
+        const auto DESCRIPTIONSELECTOR = selector.substr(5);
+        const auto DESCRIPTION         = removeBeginEndSpacesTabs(szDescription.substr(0, szDescription.find_first_of('(')));
+
+        return DESCRIPTIONSELECTOR == szDescription || DESCRIPTIONSELECTOR == DESCRIPTION;
+    } else {
+        // match by selector
+        return szName == selector;
+    }
 }
 
 int CMonitor::findAvailableDefaultWS() {

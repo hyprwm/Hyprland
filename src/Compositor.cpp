@@ -1802,8 +1802,14 @@ CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
 }
 
 CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
-    const auto POSA  = m_pLastMonitor->vecPosition;
-    const auto SIZEA = m_pLastMonitor->vecSize;
+    return this->getMonitorInDirection(m_pLastMonitor, dir);
+}
+
+CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const char& dir) {
+    if(!pSourceMonitor) return nullptr;
+
+    const auto POSA  = pSourceMonitor->vecPosition;
+    const auto SIZEA = pSourceMonitor->vecSize;
 
     auto       longestIntersect        = -1;
     CMonitor*  longestIntersectMonitor = nullptr;

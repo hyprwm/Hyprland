@@ -2080,7 +2080,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 }
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
-    if (name[0] == '+' || name[0] == '-') {
+    if (name == "current")
+        return g_pCompositor->m_pLastMonitor;
+    else if (isDirection(name))
+        return getMonitorInDirection(name[0]);
+    else if (name[0] == '+' || name[0] == '-') {
         // relative
 
         if (m_vMonitors.size() == 1)
@@ -2135,31 +2139,13 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             Debug::log(ERR, "Error in getMonitorFromString: invalid arg 1");
             return nullptr;
         }
-    } else if (name.starts_with("desc:")) {
-        const auto DESCRIPTION = name.substr(5);
-
+    } else {
         for (auto& m : m_vMonitors) {
             if (!m->output)
                 continue;
 
-            if (m->szDescription.starts_with(DESCRIPTION)) {
+            if (m->matchesStaticSelector(name)) {
                 return m.get();
-            }
-        }
-
-        return nullptr;
-    } else {
-        if (name == "current")
-            return g_pCompositor->m_pLastMonitor;
-
-        if (isDirection(name)) {
-            const auto PMONITOR = getMonitorInDirection(name[0]);
-            return PMONITOR;
-        } else {
-            for (auto& m : m_vMonitors) {
-                if (m->szName == name) {
-                    return m.get();
-                }
             }
         }
     }

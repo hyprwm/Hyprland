@@ -465,7 +465,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:touchpad:drag_lock", {0L});
     m_pConfig->addConfigValue("input:touchpad:scroll_factor", {1.f});
     m_pConfig->addConfigValue("input:touchdevice:transform", {0L});
-    m_pConfig->addConfigValue("input:touchdevice:output", {STRVAL_EMPTY});
+    m_pConfig->addConfigValue("input:touchdevice:output", {"[[Auto]]"});
     m_pConfig->addConfigValue("input:touchdevice:enabled", {1L});
     m_pConfig->addConfigValue("input:tablet:transform", {0L});
     m_pConfig->addConfigValue("input:tablet:output", {STRVAL_EMPTY});

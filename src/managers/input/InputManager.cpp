@@ -1495,9 +1495,10 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            auto output = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
-            bool bound  = !output.empty() && output != STRVAL_EMPTY;
-            if (!bound) {
+            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
+            bool       bound      = !output.empty() && output != STRVAL_EMPTY;
+            const bool AUTODETECT = output == "[[Auto]]";
+            if (!bound && AUTODETECT) {
                 const auto DEFAULTOUTPUT = wlr_touch_from_input_device(PTOUCHDEV->pWlrDevice)->output_name;
                 if (DEFAULTOUTPUT) {
                     output = DEFAULTOUTPUT;
@@ -1509,7 +1510,7 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
             if (PMONITOR) {
                 Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->name, PMONITOR->szName);
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV->pWlrDevice, PMONITOR->output);
-            } else
+            } else if (bound)
                 Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->name, output);
         }
     };

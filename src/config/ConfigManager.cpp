@@ -907,32 +907,20 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     return VAL;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(const std::string& name, const std::string& displayName) {
-    SMonitorRule* found = nullptr;
-
+SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     for (auto& r : m_dMonitorRules) {
-        if (r.name == name ||
-            (r.name.starts_with("desc:") &&
-             (r.name.substr(5) == displayName || r.name.substr(5) == removeBeginEndSpacesTabs(displayName.substr(0, displayName.find_first_of('(')))))) {
-            found = &r;
-            break;
+        if (PMONITOR.matchesStaticSelector(r.name)) {
+            return r;
         }
     }
 
-    if (found)
-        return *found;
-
-    Debug::log(WARN, "No rule found for {}, trying to use the first.", name);
+    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
 
     for (auto& r : m_dMonitorRules) {
         if (r.name == "") {
-            found = &r;
-            break;
+            return r;
         }
     }
-
-    if (found)
-        return *found;
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
@@ -1173,7 +1161,7 @@ void CConfigManager::performMonitorReload() {
         if (!m->output || m->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(m->szName, m->szDescription);
+        auto rule = getMonitorRuleFor(*m);
 
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
@@ -1230,7 +1218,7 @@ void CConfigManager::ensureMonitorStatus() {
         if (!rm->output || rm->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(rm->szName, rm->szDescription);
+        auto rule = getMonitorRuleFor(*rm);
 
         if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);

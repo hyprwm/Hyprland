@@ -171,6 +171,7 @@ class CCompositor {
     bool           isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);
     CWindow*       getConstraintWindow(SMouse*);
     CMonitor*      getMonitorInDirection(const char&);
+    CMonitor*      getMonitorInDirection(CMonitor*, const char&);
     void           updateAllWindowsAnimatedDecorationValues();
     void           updateWorkspaceWindows(const int64_t& id);
     void           updateWindowAnimatedDecorationValues(CWindow*);

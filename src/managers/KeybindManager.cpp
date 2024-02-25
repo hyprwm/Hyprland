@@ -1748,17 +1748,31 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
     Debug::log(LOG, "Focusing to window name: {}", PWINDOW->m_szTitle);
 
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    if (!PWORKSPACE) {
+        Debug::log(ERR, "BUG THIS: null workspace in focusWindow");
+        return;
+    }
+
     if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_iWorkspaceID) {
         Debug::log(LOG, "Fake executing workspace to move focus");
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-        if (!PWORKSPACE) {
-            Debug::log(ERR, "BUG THIS: null workspace in focusWindow");
-            return;
-        }
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    g_pCompositor->focusWindow(PWINDOW);
+    if (PWORKSPACE->m_bHasFullscreenWindow) {
+        const auto FSWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        const auto FSMODE   = PWORKSPACE->m_efFullscreenMode;
+
+        if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
+            g_pCompositor->setWindowFullscreen(FSWINDOW, false, FULLSCREEN_FULL);
+
+        g_pCompositor->focusWindow(PWINDOW);
+
+        if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
+            g_pCompositor->setWindowFullscreen(PWINDOW, true, FSMODE);
+    } else {
+        g_pCompositor->focusWindow(PWINDOW);
+    }
 
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 }

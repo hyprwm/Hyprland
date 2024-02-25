@@ -1806,7 +1806,8 @@ CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
 }
 
 CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const char& dir) {
-    if(!pSourceMonitor) return nullptr;
+    if (!pSourceMonitor)
+        return nullptr;
 
     const auto POSA  = pSourceMonitor->vecPosition;
     const auto SIZEA = pSourceMonitor->vecSize;

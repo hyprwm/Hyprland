@@ -2398,7 +2398,8 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bIsFloating && w->m_bCreatedOverFullscreen && !w->isHidden() && w->m_bIsMapped && w.get() != PCANDIDATE)
+        if (w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bIsFloating && w->m_bCreatedOverFullscreen && !w->isHidden() && (w->m_bIsMapped || w->m_bFadingOut) &&
+            w.get() != PCANDIDATE)
             return;
     }
 

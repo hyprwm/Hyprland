@@ -1763,16 +1763,25 @@ void CKeybindManager::focusWindow(std::string regexp) {
         const auto FSWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
         const auto FSMODE   = PWORKSPACE->m_efFullscreenMode;
 
-        if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
-            g_pCompositor->setWindowFullscreen(FSWINDOW, false, FULLSCREEN_FULL);
+        if (PWINDOW->m_bIsFloating) {
+            // don't make floating implicitly fs
+            if (!PWINDOW->m_bCreatedOverFullscreen) {
+                g_pCompositor->changeWindowZOrder(PWINDOW, true);
+                g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
+            }
 
-        g_pCompositor->focusWindow(PWINDOW);
+            g_pCompositor->focusWindow(PWINDOW);
+        } else {
+            if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
+                g_pCompositor->setWindowFullscreen(FSWINDOW, false, FULLSCREEN_FULL);
 
-        if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
-            g_pCompositor->setWindowFullscreen(PWINDOW, true, FSMODE);
-    } else {
+            g_pCompositor->focusWindow(PWINDOW);
+
+            if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
+                g_pCompositor->setWindowFullscreen(PWINDOW, true, FSMODE);
+        }
+    } else
         g_pCompositor->focusWindow(PWINDOW);
-    }
 
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 }

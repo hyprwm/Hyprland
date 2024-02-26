@@ -47,7 +47,7 @@ basically, directories in /tmp/hypr are your sessions.
 
 ## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
 
-If you have `$XDG_CACHE_HOME` set, the crash report directory is `$XDG_CACHE_HOME/hyprland`. If not, it's `~/.hyprland`
+If you have `$XDG_CACHE_HOME` set, the crash report directory is `$XDG_CACHE_HOME/hyprland`. If not, it's `$HOME/.cache/hyprland`.
 
 Go to the crash report directory and you should find a file named `hyprlandCrashReport[XXXX].txt` where `[XXXX]` is the PID of the process that crashed.
 

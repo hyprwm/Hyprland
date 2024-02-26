@@ -34,16 +34,17 @@ index 1d2c7f9f..c5ef4e67 100644
  headers = globber.stdout().strip().split('\n')
  foreach file : headers
 diff --git a/src/meson.build b/src/meson.build
-index 0af864b9..38723b8c 100644
+index 45701f5f..3505cefe 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -9,16 +9,16 @@ executable('Hyprland', src,
+@@ -9,17 +9,17 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),
 -    wlroots.get_variable('wlroots'),
 +    dependency('wlroots'),
      dependency('cairo'),
+     dependency('hyprlang', version: '>= 0.3.2'),
      dependency('libdrm'),
      dependency('egl'),
      dependency('xkbcommon'),

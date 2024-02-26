@@ -55,7 +55,7 @@ void addPopupGlobalCoords(void* pPopup, int* x, int* y) {
 void createNewPopup(wlr_xdg_popup* popup, SXDGPopup* pHyprPopup) {
     pHyprPopup->popup = popup;
 
-    pHyprPopup->hyprListener_destroyPopupXDG.initCallback(&popup->base->events.destroy, &Events::listener_destroyPopupXDG, pHyprPopup, "HyprPopup");
+    pHyprPopup->hyprListener_destroyPopupXDG.initCallback(&popup->events.destroy, &Events::listener_destroyPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_mapPopupXDG.initCallback(&popup->base->surface->events.map, &Events::listener_mapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_unmapPopupXDG.initCallback(&popup->base->surface->events.unmap, &Events::listener_unmapPopupXDG, pHyprPopup, "HyprPopup");
     pHyprPopup->hyprListener_newPopupFromPopupXDG.initCallback(&popup->base->events.new_popup, &Events::listener_newPopupFromPopupXDG, pHyprPopup, "HyprPopup");
@@ -227,6 +227,11 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
 
 void Events::listener_commitPopupXDG(void* owner, void* data) {
     SXDGPopup* PPOPUP = (SXDGPopup*)owner;
+
+    if (PPOPUP->popup->base->initial_commit) {
+        wlr_xdg_surface_schedule_configure(PPOPUP->popup->base);
+        return;
+    }
 
     if (g_pCompositor->windowValidMapped(PPOPUP->parentWindow)) {
         PPOPUP->lx = PPOPUP->parentWindow->m_vRealPosition.vec().x;

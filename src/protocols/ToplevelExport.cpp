@@ -178,6 +178,18 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PFRAME->pWindow->m_iMonitorID);
 
     g_pHyprRenderer->makeEGLCurrent();
+
+    if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(PMONITOR)) {
+        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(PMONITOR);
+        // bind the fb for its format. Suppress gl errors.
+#ifndef GLES2
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
+#else
+        glBindFramebuffer(GL_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
+#endif
+    } else
+        Debug::log(ERR, "No RDATA in toplevelexport???");
+
     PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture toplevel");
@@ -221,6 +233,13 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
 
     if (!PFRAME) {
         Debug::log(ERR, "No frame in copyFrame??");
+        return;
+    }
+
+    if (!g_pCompositor->windowValidMapped(PFRAME->pWindow)) {
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", (uintptr_t)PFRAME->pWindow);
+        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
+        removeFrame(PFRAME);
         return;
     }
 

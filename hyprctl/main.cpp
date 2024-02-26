@@ -58,6 +58,7 @@ commands:
 
 flags:
     -j -> output in JSON
+    -r -> refresh state after issuing command (e.g. for updating variables)
     --batch -> execute a batch of commands, separated by ';'
     --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
 )#";
@@ -78,7 +79,7 @@ std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
     for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
-        if (el.is_directory())
+        if (el.is_directory() || !el.path().string().ends_with(".lock"))
             continue;
 
         // read lock
@@ -86,7 +87,9 @@ std::vector<SInstanceData> instances() {
         data->id            = el.path().string();
         data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
 
-        data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+        try {
+            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+        } catch (std::exception& e) { continue; }
 
         // read file
         std::ifstream ifs(el.path().string());
@@ -94,7 +97,9 @@ std::vector<SInstanceData> instances() {
         int           i = 0;
         for (std::string line; std::getline(ifs, line); ++i) {
             if (i == 0) {
-                data->pid = std::stoull(line);
+                try {
+                    data->pid = std::stoull(line);
+                } catch (std::exception& e) { continue; }
             } else if (i == 1) {
                 data->wlSocket = line;
             } else
@@ -301,6 +306,8 @@ int main(int argc, char** argv) {
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
                 json = true;
+            } else if (ARGS[i] == "-r" && !fullArgs.contains("r")) {
+                fullArgs += "r";
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -360,7 +367,7 @@ int main(int argc, char** argv) {
         const auto ISIG = getenv("HYPRLAND_INSTANCE_SIGNATURE");
 
         if (!ISIG) {
-            std::cout << "HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)";
+            std::cout << "HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)\n";
             return 1;
         }
 
@@ -371,44 +378,8 @@ int main(int argc, char** argv) {
 
     if (fullRequest.contains("/--batch"))
         batchRequest(fullRequest);
-    else if (fullRequest.contains("/monitors"))
-        request(fullRequest);
-    else if (fullRequest.contains("/clients"))
-        request(fullRequest);
-    else if (fullRequest.contains("/workspaces"))
-        request(fullRequest);
-    else if (fullRequest.contains("/activeworkspace"))
-        request(fullRequest);
-    else if (fullRequest.contains("/workspacerules"))
-        request(fullRequest);
-    else if (fullRequest.contains("/activewindow"))
-        request(fullRequest);
-    else if (fullRequest.contains("/layers"))
-        request(fullRequest);
-    else if (fullRequest.contains("/version"))
-        request(fullRequest);
-    else if (fullRequest.contains("/kill"))
-        request(fullRequest);
-    else if (fullRequest.contains("/systeminfo"))
-        request(fullRequest);
-    else if (fullRequest.contains("/splash"))
-        request(fullRequest);
-    else if (fullRequest.contains("/devices"))
-        request(fullRequest);
-    else if (fullRequest.contains("/reload"))
-        request(fullRequest);
-    else if (fullRequest.contains("/getoption"))
-        request(fullRequest);
-    else if (fullRequest.contains("/binds"))
-        request(fullRequest);
-    else if (fullRequest.contains("/cursorpos"))
-        request(fullRequest);
-    else if (fullRequest.contains("/animations"))
-        request(fullRequest);
-    else if (fullRequest.contains("/globalshortcuts"))
-        request(fullRequest);
-    else if (fullRequest.contains("/rollinglog"))
-        request(fullRequest);
+    else if (fullRequest.contains("/hyprpaper"))
+        requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))
@@ -429,15 +400,10 @@ int main(int argc, char** argv) {
         request(fullRequest, 2);
     else if (fullRequest.contains("/decorations"))
         request(fullRequest, 1);
-    else if (fullRequest.contains("/hyprpaper"))
-        requestHyprpaper(fullRequest);
-    else if (fullRequest.contains("/layouts"))
-        request(fullRequest);
     else if (fullRequest.contains("/--help"))
         printf("%s", USAGE.c_str());
     else {
-        printf("%s\n", USAGE.c_str());
-        return 1;
+        request(fullRequest);
     }
 
     printf("\n");

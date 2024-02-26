@@ -3,6 +3,7 @@
 #include <sys/utsname.h>
 #include <fstream>
 #include <signal.h>
+#include <link.h>
 
 #include "../plugins/PluginSystem.hpp"
 
@@ -105,16 +106,33 @@ void CrashReporter::createAndSaveCrash(int sig) {
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
 
+    std::string addrs = "";
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-        finalCrashReport += std::format("\t#{} | {}\n", i, CALLSTACK[i].desc);
+        // convert in memory address to VMA address
+        Dl_info          info;
+        struct link_map* linkMap;
+        dladdr1((void*)CALLSTACK[i].adr, &info, (void**)&linkMap, RTLD_DL_LINKMAP);
+        size_t vmaAddr = (size_t)CALLSTACK[i].adr - linkMap->l_addr;
 
+        addrs += std::format("0x{:x} ", vmaAddr);
+    }
 #ifdef __clang__
-        const auto CMD = std::format("llvm-addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
+    const auto CMD = std::format("llvm-addr2line -e {} -Cf {}", FPATH.c_str(), addrs);
 #else
-        const auto CMD = std::format("addr2line -e {} -f 0x{:x}", FPATH.c_str(), (uint64_t)CALLSTACK[i].adr);
+    const auto CMD   = std::format("addr2line -e {} -Cf {}", FPATH.c_str(), addrs);
 #endif
-        const auto ADDR2LINE = replaceInString(execAndGet(CMD.c_str()), "\n", "\n\t\t");
-        finalCrashReport += "\t\t" + ADDR2LINE.substr(0, ADDR2LINE.length() - 2);
+
+    const auto        ADDR2LINE = execAndGet(CMD.c_str());
+
+    std::stringstream ssin(ADDR2LINE);
+
+    for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+        finalCrashReport += std::format("\t#{} | {}", i, CALLSTACK[i].desc);
+        std::string functionInfo;
+        std::string fileLineInfo;
+        std::getline(ssin, functionInfo);
+        std::getline(ssin, fileLineInfo);
+        finalCrashReport += std::format("\n\t\t{}\n\t\t{}\n", functionInfo, fileLineInfo);
     }
 
     finalCrashReport += "\n\nLog tail:\n";
@@ -128,21 +146,18 @@ void CrashReporter::createAndSaveCrash(int sig) {
         return;
 
     std::ofstream ofs;
-    std::string   path;
-    if (!CACHE_HOME || std::string(CACHE_HOME).empty()) {
-        if (!std::filesystem::exists(std::string(HOME) + "/.hyprland"))
-            std::filesystem::create_directory(std::string(HOME) + "/.hyprland");
+    std::string   reportDir;
 
-        path = std::string(HOME) + "/.hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
-        ofs.open(path, std::ios::trunc);
+    if (!CACHE_HOME || std::string(CACHE_HOME).empty())
+        reportDir = std::string(HOME) + "/.cache/hyprland";
+    else
+        reportDir = std::string(CACHE_HOME) + "/hyprland";
 
-    } else {
-        if (!std::filesystem::exists(std::string(CACHE_HOME) + "/hyprland"))
-            std::filesystem::create_directory(std::string(CACHE_HOME) + "/hyprland");
+    if (!std::filesystem::exists(reportDir))
+        std::filesystem::create_directory(reportDir);
+    const auto path = reportDir + "/hyprlandCrashReport" + std::to_string(PID) + ".txt";
 
-        path = std::string(CACHE_HOME) + "/hyprland/hyprlandCrashReport" + std::to_string(PID) + ".txt";
-        ofs.open(path, std::ios::trunc);
-    }
+    ofs.open(path, std::ios::trunc);
 
     ofs << finalCrashReport;
 

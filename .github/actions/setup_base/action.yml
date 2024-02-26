@@ -23,6 +23,7 @@ runs:
           glm \
           glslang \
           go \
+          hyprlang \
           jq \
           libc++ \
           libdisplay-info \

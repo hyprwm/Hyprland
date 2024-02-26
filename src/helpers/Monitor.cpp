@@ -1,5 +1,7 @@
 #include "Monitor.hpp"
 
+#include "MiscFunctions.hpp"
+
 #include "../Compositor.hpp"
 
 int ratHandler(void* data) {
@@ -53,6 +55,10 @@ void CMonitor::onConnect(bool noRule) {
     szDescription = output->description ? output->description : "";
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
     szDescription.erase(std::remove(szDescription.begin(), szDescription.end(), ','), szDescription.end());
+
+    // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
+    szShortDescription =
+        removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
 
     if (!wlr_backend_is_drm(output->backend))
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
@@ -163,6 +169,7 @@ void CMonitor::onConnect(bool noRule) {
     //
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
     EMIT_HOOK_EVENT("monitorAdded", this);
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
@@ -309,13 +316,11 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
+    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
-    }
-
-    if (wlr_damage_ring_add(&damage, rg))
+    } else if (wlr_damage_ring_add(&damage, rg))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
@@ -324,8 +329,8 @@ void CMonitor::addDamage(const CRegion* rg) {
 }
 
 void CMonitor::addDamage(const CBox* box) {
-    static auto* const PZOOMFACTOR = &g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor")->floatValue;
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
+    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     }
@@ -536,11 +541,11 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         }
 
         if (!noFocus && !g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
-            static auto* const PFOLLOWMOUSE = &g_pConfigManager->getConfigValuePtr("input:follow_mouse")->intValue;
+            static auto* const PFOLLOWMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("input:follow_mouse");
             CWindow*           pWindow      = pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
-                if (*PFOLLOWMOUSE == 1)
+                if (**PFOLLOWMOUSE == 1)
                     pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (!pWindow)
@@ -571,8 +576,8 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pCompositor->updateSuspendedStates();
 }
 
-void CMonitor::changeWorkspace(const int& id, bool internal) {
-    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal);
+void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
+    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {

@@ -1,10 +1,12 @@
 #pragma once
 #include "../defines.hpp"
+#include "../helpers/VarList.hpp"
 #include <vector>
 
 enum eConfigValueDataTypes {
-    CVD_TYPE_INVALID  = -1,
-    CVD_TYPE_GRADIENT = 0
+    CVD_TYPE_INVALID   = -1,
+    CVD_TYPE_GRADIENT  = 0,
+    CVD_TYPE_CSS_VALUE = 1
 };
 
 class ICustomConfigValueData {
@@ -48,5 +50,57 @@ class CGradientValueData : public ICustomConfigValueData {
                 return false;
 
         return true;
+    }
+};
+
+class CCssGapData : public ICustomConfigValueData {
+  public:
+    CCssGapData() : top(0), right(0), bottom(0), left(0){};
+    CCssGapData(int64_t global) : top(global), right(global), bottom(global), left(global){};
+    CCssGapData(int64_t vertical, int64_t horizontal) : top(vertical), right(horizontal), bottom(vertical), left(horizontal){};
+    CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : top(top), right(horizontal), bottom(bottom), left(horizontal){};
+    CCssGapData(int64_t top, int64_t right, int64_t bottom, int64_t left) : top(top), right(right), bottom(bottom), left(left){};
+
+    /* Css like directions */
+    int64_t top;
+    int64_t right;
+    int64_t bottom;
+    int64_t left;
+
+    void    parseGapData(CVarList varlist) {
+        switch (varlist.size()) {
+            case 1: {
+                *this = CCssGapData(std::stoi(varlist[0]));
+                break;
+            }
+            case 2: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]));
+                break;
+            }
+            case 3: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]));
+                break;
+            }
+            case 4: {
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                break;
+            }
+            default: {
+                Debug::log(WARN, "Too many arguments provided for gaps.");
+                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                break;
+            }
+        }
+    }
+
+    void reset(int64_t global) {
+        top    = global;
+        right  = global;
+        bottom = global;
+        left   = global;
+    }
+
+    virtual eConfigValueDataTypes getDataType() {
+        return CVD_TYPE_CSS_VALUE;
     }
 };

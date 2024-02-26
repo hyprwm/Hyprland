@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "Region.hpp"
 
 class CWindow;
 
@@ -23,6 +24,7 @@ class CWLSurface {
     bool         small() const;           // means surface is smaller than the requested size
     Vector2D     correctSmallVec() const; // returns a corrective vector for small() surfaces
     Vector2D     getViewporterCorrectedSize() const;
+    CRegion      logicalDamage() const;
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;

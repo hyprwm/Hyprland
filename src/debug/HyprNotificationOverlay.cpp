@@ -227,3 +227,7 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
     CBox pMonBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
     g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
 }
+
+bool CHyprNotificationOverlay::hasAny() {
+    return !m_dNotifications.empty();
+}

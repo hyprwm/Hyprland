@@ -44,9 +44,9 @@ static void handleSurfaceDestroy(void* owner, void* data) {
 
 void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
-    static auto* const PALLOWRELOCK = &g_pConfigManager->getConfigValuePtr("misc:allow_session_lock_restore")->intValue;
+    static auto* const PALLOWRELOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:allow_session_lock_restore");
 
-    if (m_sSessionLock.active && (!*PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
+    if (m_sSessionLock.active && (!**PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
         Debug::log(LOG, "Attempted to lock a locked session!");
         wlr_session_lock_v1_destroy(pWlrLock);
         return;
@@ -74,6 +74,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             PSURFACE->pWlrLockSurface = PWLRSURFACE;
             PSURFACE->iMonitorID      = PMONITOR->ID;
+
+            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PSURFACE->pWlrLockSurface->surface, PMONITOR->scale);
 
             wlr_session_lock_surface_v1_configure(PWLRSURFACE, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 

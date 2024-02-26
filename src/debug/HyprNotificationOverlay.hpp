@@ -41,6 +41,7 @@ class CHyprNotificationOverlay {
 
     void draw(CMonitor* pMonitor);
     void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE);
+    bool hasAny();
 
   private:
     CBox                                       drawNotifications(CMonitor* pMonitor);

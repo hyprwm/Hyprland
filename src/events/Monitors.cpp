@@ -147,12 +147,12 @@ void Events::listener_monitorFrame(void* owner, void* data) {
         PMONITOR->tearingState.frameScheduledWhileBusy = false;
     }
 
-    static auto* const PENABLERAT = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time")->intValue;
-    static auto* const PRATSAFE   = &g_pConfigManager->getConfigValuePtr("misc:render_ahead_safezone")->intValue;
+    static auto* const PENABLERAT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:render_ahead_of_time");
+    static auto* const PRATSAFE   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:render_ahead_safezone");
 
     PMONITOR->lastPresentationTimer.reset();
 
-    if (*PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
+    if (**PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
         if (!PMONITOR->RATScheduled) {
             // render
             g_pHyprRenderer->renderMonitor(PMONITOR);
@@ -162,14 +162,14 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
         const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(PMONITOR);
 
-        if (max + *PRATSAFE > 1000.0 / PMONITOR->refreshRate)
+        if (max + **PRATSAFE > 1000.0 / PMONITOR->refreshRate)
             return;
 
         const auto MSLEFT = 1000.0 / PMONITOR->refreshRate - PMONITOR->lastPresentationTimer.getMillis();
 
         PMONITOR->RATScheduled = true;
 
-        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
+        const auto ESTRENDERTIME = std::ceil(avg + **PRATSAFE);
         const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
 
         if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
@@ -209,10 +209,20 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 }
 
 void Events::listener_monitorStateRequest(void* owner, void* data) {
-    //const auto PMONITOR = (CMonitor*)owner;
-    //const auto E        = (wlr_output_event_request_state*)data;
+    const auto PMONITOR = (CMonitor*)owner;
+    const auto E        = (wlr_output_event_request_state*)data;
 
-    // TODO: maybe don't ignore?
+    if (!PMONITOR->createdByUser)
+        return;
+
+    const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
+
+    PMONITOR->forceSize = SIZE;
+
+    SMonitorRule rule = PMONITOR->activeMonitorRule;
+    rule.resolution   = SIZE;
+
+    g_pHyprRenderer->applyMonitorRule(PMONITOR, &rule);
 }
 
 void Events::listener_monitorDamage(void* owner, void* data) {

@@ -53,12 +53,12 @@ void CAnimationManager::tick() {
 
     bool               animGlobalDisabled = false;
 
-    static auto* const PANIMENABLED = &g_pConfigManager->getConfigValuePtr("animations:enabled")->intValue;
+    static auto* const PANIMENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("animations:enabled");
 
-    if (!*PANIMENABLED)
+    if (!**PANIMENABLED)
         animGlobalDisabled = true;
 
-    static auto* const              PSHADOWSENABLED = &g_pConfigManager->getConfigValuePtr("decoration:drop_shadow")->intValue;
+    static auto* const              PSHADOWSENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:drop_shadow");
 
     const auto                      DEFAULTBEZIER = m_mBezierCurves.find("default");
 
@@ -66,7 +66,7 @@ void CAnimationManager::tick() {
 
     for (auto& av : m_vActiveAnimatedVariables) {
 
-        if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
+        if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !**PSHADOWSENABLED) {
             av->warp(false);
             animationEndedVars.push_back(av);
             continue;
@@ -223,6 +223,11 @@ void CAnimationManager::tick() {
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
+
+                    // some fucking layers miss 1 pixel???
+                    CBox expandBox = WLRBOXPREV;
+                    expandBox.expand(5);
+                    g_pHyprRenderer->damageBox(&expandBox);
                 }
                 break;
             }
@@ -232,9 +237,9 @@ void CAnimationManager::tick() {
                 // TODO: move this to the border class
 
                 // damage only the border.
-                static auto* const PROUNDING    = &g_pConfigManager->getConfigValuePtr("decoration:rounding")->intValue;
-                const auto         ROUNDINGSIZE = *PROUNDING + 1;
-                const auto         BORDERSIZE   = PWINDOW->getRealBorderSize();
+                const auto ROUNDING     = PWINDOW->rounding();
+                const auto ROUNDINGSIZE = ROUNDING + 1;
+                const auto BORDERSIZE   = PWINDOW->getRealBorderSize();
 
                 // damage for old box
                 g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top

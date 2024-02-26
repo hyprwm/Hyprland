@@ -21,6 +21,11 @@ class CEventManager {
 
     std::thread m_tThread;
 
+    int         m_iSocketFD = -1;
+
+    int         onSocket2Write(int fd, uint32_t mask);
+    int         onFDWrite(int fd, uint32_t mask);
+
   private:
     void                                         flushEvents();
 
@@ -28,6 +33,8 @@ class CEventManager {
     std::deque<SHyprIPCEvent>                    m_dQueuedEvents;
 
     std::deque<std::pair<int, wl_event_source*>> m_dAcceptedSocketFDs;
+
+    wl_event_source*                             m_pEventSource = nullptr;
 };
 
 inline std::unique_ptr<CEventManager> g_pEventManager;

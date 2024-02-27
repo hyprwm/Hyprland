@@ -64,7 +64,7 @@ void CMonitor::onConnect(bool noRule) {
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
 
     // get monitor rule that matches
-    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(output->name, output->description ? output->description : "");
+    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(*this);
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
@@ -141,6 +141,20 @@ void CMonitor::onConnect(bool noRule) {
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
+
+    for (const auto& PTOUCHDEV : g_pInputManager->m_lTouchDevices) {
+        if (matchesStaticSelector(PTOUCHDEV.boundOutput)) {
+            Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV.name, szName);
+            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV.pWlrDevice, output);
+        }
+    }
+
+    for (const auto& PTABLET : g_pInputManager->m_lTablets) {
+        if (matchesStaticSelector(PTABLET.boundOutput)) {
+            Debug::log(LOG, "Binding tablet {} to output {}", PTABLET.name, szName);
+            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTABLET.wlrDevice, output);
+        }
+    }
 
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
@@ -343,6 +357,19 @@ bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
 }
 
+bool CMonitor::matchesStaticSelector(const std::string& selector) const {
+    if (selector.starts_with("desc:")) {
+        // match by description
+        const auto DESCRIPTIONSELECTOR = selector.substr(5);
+        const auto DESCRIPTION         = removeBeginEndSpacesTabs(szDescription.substr(0, szDescription.find_first_of('(')));
+
+        return DESCRIPTIONSELECTOR == szDescription || DESCRIPTIONSELECTOR == DESCRIPTION;
+    } else {
+        // match by selector
+        return szName == selector;
+    }
+}
+
 int CMonitor::findAvailableDefaultWS() {
     for (size_t i = 1; i < INT32_MAX; ++i) {
         if (g_pCompositor->getWorkspaceByID(i))
@@ -422,7 +449,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf = nullptr;
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(this->szName, this->output->description ? this->output->description : "");
+        const auto RULE = g_pConfigManager->getMonitorRuleFor(*this);
 
         vecPosition = RULE.offset;
 

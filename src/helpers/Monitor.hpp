@@ -140,6 +140,7 @@ class CMonitor {
     void     addDamage(const CBox* box);
     void     setMirror(const std::string&);
     bool     isMirror();
+    bool     matchesStaticSelector(const std::string& selector) const;
     float    getDefaultScale();
     void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
     void     changeWorkspace(const int& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);

@@ -43,6 +43,7 @@ struct SWorkspaceRule {
     std::optional<int>                 decorate;
     std::optional<int>                 shadow;
     std::optional<std::string>         onCreatedEmptyRunCmd;
+    std::optional<std::string>         defaultName;
     std::map<std::string, std::string> layoutopts;
 };
 

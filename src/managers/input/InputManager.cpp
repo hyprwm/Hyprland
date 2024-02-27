@@ -1491,14 +1491,27 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
                 libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
 
             const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
+            Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->name);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            const auto OUTPUT = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
-            if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY)
-                PTOUCHDEV->boundOutput = OUTPUT;
-            else
-                PTOUCHDEV->boundOutput = "";
+            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
+            bool       bound      = !output.empty() && output != STRVAL_EMPTY;
+            const bool AUTODETECT = output == "[[Auto]]";
+            if (!bound && AUTODETECT) {
+                const auto DEFAULTOUTPUT = wlr_touch_from_input_device(PTOUCHDEV->pWlrDevice)->output_name;
+                if (DEFAULTOUTPUT) {
+                    output = DEFAULTOUTPUT;
+                    bound  = true;
+                }
+            }
+            PTOUCHDEV->boundOutput = bound ? output : "";
+            const auto PMONITOR    = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
+            if (PMONITOR) {
+                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->name, PMONITOR->szName);
+                wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV->pWlrDevice, PMONITOR->output);
+            } else if (bound)
+                Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->name, output);
         }
     };
 
@@ -1529,9 +1542,12 @@ void CInputManager::setTabletConfigs() {
             const auto OUTPUT   = g_pConfigManager->getDeviceString(t.name, "output", "input:tablet:output");
             const auto PMONITOR = g_pCompositor->getMonitorFromString(OUTPUT);
             if (!OUTPUT.empty() && OUTPUT != STRVAL_EMPTY && PMONITOR) {
+                Debug::log(LOG, "Binding tablet {} to output {}", t.name, PMONITOR->szName);
                 wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, t.wlrDevice, PMONITOR->output);
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, nullptr);
-            }
+                t.boundOutput = OUTPUT;
+            } else if (!PMONITOR)
+                Debug::log(ERR, "Failed to bind tablet {} to output '{}': monitor not found", t.name, OUTPUT);
 
             const auto REGION_POS  = g_pConfigManager->getDeviceVec(t.name, "region_position", "input:tablet:region_position");
             const auto REGION_SIZE = g_pConfigManager->getDeviceVec(t.name, "region_size", "input:tablet:region_size");

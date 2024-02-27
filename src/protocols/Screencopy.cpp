@@ -453,6 +453,8 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
     //     zwlr_screencopy_frame_v1_send_damage(frame->resource, std::clamp(RECT.x1, 0, frame->buffer->width), std::clamp(RECT.y1, 0, frame->buffer->height),
     //                                          std::clamp(RECT.x2 - RECT.x1, 0, frame->buffer->width - RECT.x1), std::clamp(RECT.y2 - RECT.y1, 0, frame->buffer->height - RECT.y1));
     // }
+
+    zwlr_screencopy_frame_v1_send_damage(frame->resource, 0, 0, frame->buffer->width, frame->buffer->height);
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {

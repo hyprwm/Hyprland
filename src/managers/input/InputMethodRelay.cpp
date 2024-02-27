@@ -122,10 +122,6 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 
                     Debug::log(LOG, "IME TextInput Keyboard Grab destroy");
 
-                    if (m_pKeyboardGrab->pKeyboard) {
-                        wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &m_pKeyboardGrab->pKeyboard->modifiers);
-                    }
-
                     m_pKeyboardGrab.reset(nullptr);
                 },
                 m_pKeyboardGrab.get(), "IME Keyboard Grab");

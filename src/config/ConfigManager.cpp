@@ -2160,6 +2160,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
         else if ((delim = rule.find("persistent:")) != std::string::npos)
             wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
+        else if ((delim = rule.find("defaultName:")) != std::string::npos)
+            wsRule.defaultName = rule.substr(delim + 12);
         else if ((delim = rule.find(ruleOnCreatedEmtpy)) != std::string::npos)
             wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmtpyLen));
         else if ((delim = rule.find("layoutopt:")) != std::string::npos) {

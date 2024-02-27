@@ -24,6 +24,10 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
 
+    const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(this);
+    if (RULEFORTHIS.defaultName.has_value())
+        m_szName = RULEFORTHIS.defaultName.value();
+
     g_pEventManager->postEvent({"createworkspace", m_szName});
     EMIT_HOOK_EVENT("createWorkspace", this);
 }

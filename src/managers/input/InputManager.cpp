@@ -823,7 +823,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     const auto REPEATRATE  = g_pConfigManager->getDeviceInt(devname, "repeat_rate", "input:repeat_rate");
     const auto REPEATDELAY = g_pConfigManager->getDeviceInt(devname, "repeat_delay", "input:repeat_delay");
 
-    const auto NUMLOCKON = g_pConfigManager->getDeviceInt(devname, "numlock_by_default", "input:numlock_by_default");
+    const auto NUMLOCKON         = g_pConfigManager->getDeviceInt(devname, "numlock_by_default", "input:numlock_by_default");
+    const auto RESOLVEBINDSBYSYM = g_pConfigManager->getDeviceInt(devname, "resolve_binds_by_sym", "input:resolve_binds_by_sym");
 
     const auto FILEPATH = g_pConfigManager->getDeviceString(devname, "kb_file", "input:kb_file");
     const auto RULES    = g_pConfigManager->getDeviceString(devname, "kb_rules", "input:kb_rules");
@@ -834,7 +835,8 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
     const auto ENABLED = HASCONFIG ? g_pConfigManager->getDeviceInt(devname, "enabled") : true;
 
-    pKeyboard->enabled = ENABLED;
+    pKeyboard->enabled           = ENABLED;
+    pKeyboard->resolveBindsBySym = RESOLVEBINDSBYSYM;
 
     try {
         if (NUMLOCKON == pKeyboard->numlockOn && REPEATDELAY == pKeyboard->repeatDelay && REPEATRATE == pKeyboard->repeatRate && RULES != "" &&
@@ -905,6 +907,9 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
 
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
+
+    xkb_state_unref(pKeyboard->xkbTranslationState);
+    pKeyboard->xkbTranslationState = xkb_state_new(KEYMAP);
 
     wlr_keyboard_set_keymap(wlr_keyboard_from_input_device(pKeyboard->keyboard), KEYMAP);
 
@@ -1126,6 +1131,8 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
     pKeyboard->hyprListener_keyboardDestroy.removeCallback();
     pKeyboard->hyprListener_keyboardMod.removeCallback();
     pKeyboard->hyprListener_keyboardKey.removeCallback();
+
+    xkb_state_unref(pKeyboard->xkbTranslationState);
 
     if (pKeyboard->active) {
         m_lKeyboards.remove(*pKeyboard);

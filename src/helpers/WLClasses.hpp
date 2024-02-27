@@ -127,15 +127,17 @@ struct SKeyboard {
     bool               active    = false;
     bool               enabled   = true;
 
-    xkb_layout_index_t activeLayout = 0;
+    xkb_layout_index_t activeLayout        = 0;
+    xkb_state*         xkbTranslationState = nullptr;
 
     std::string        name        = "";
     std::string        xkbFilePath = "";
 
     SStringRuleNames   currentRules;
-    int                repeatRate  = 0;
-    int                repeatDelay = 0;
-    int                numlockOn   = -1;
+    int                repeatRate        = 0;
+    int                repeatDelay       = 0;
+    int                numlockOn         = -1;
+    bool               resolveBindsBySym = false;
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) const {

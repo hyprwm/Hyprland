@@ -448,6 +448,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:repeat_delay", {600L});
     m_pConfig->addConfigValue("input:natural_scroll", {0L});
     m_pConfig->addConfigValue("input:numlock_by_default", {0L});
+    m_pConfig->addConfigValue("input:resolve_binds_by_sym", {0L});
     m_pConfig->addConfigValue("input:force_no_accel", {0L});
     m_pConfig->addConfigValue("input:float_switch_override_focus", {1L});
     m_pConfig->addConfigValue("input:left_handed", {0L});
@@ -533,6 +534,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "natural_scroll", {0L});
     m_pConfig->addSpecialConfigValue("device", "tap_button_map", {STRVAL_EMPTY});
     m_pConfig->addSpecialConfigValue("device", "numlock_by_default", {0L});
+    m_pConfig->addSpecialConfigValue("device", "resolve_binds_by_sym", {0L});
     m_pConfig->addSpecialConfigValue("device", "disable_while_typing", {1L});
     m_pConfig->addSpecialConfigValue("device", "clickfinger_behavior", {0L});
     m_pConfig->addSpecialConfigValue("device", "middle_button_emulation", {0L});

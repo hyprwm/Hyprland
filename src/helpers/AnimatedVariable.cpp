@@ -75,6 +75,9 @@ float CAnimatedVariable::getPercent() {
 }
 
 float CAnimatedVariable::getCurveValue() {
+    if (!m_bIsBeingAnimated)
+        return 1.f;
+
     const auto SPENT = getPercent();
 
     if (SPENT >= 1.f)

@@ -95,6 +95,9 @@ static SScreencopyFrame* frameFromResource(wl_resource* resource) {
 }
 
 void CScreencopyProtocolManager::removeClient(CScreencopyClient* client, bool force) {
+    if (!client)
+        return;
+
     if (!force) {
         if (!client || client->ref <= 0)
             return;
@@ -104,6 +107,12 @@ void CScreencopyProtocolManager::removeClient(CScreencopyClient* client, bool fo
     }
 
     m_lClients.remove(*client); // TODO: this doesn't get cleaned up after sharing app exits???
+
+    for (auto& f : m_lFrames) {
+        // avoid dangling ptrs
+        if (f.client == client)
+            f.client = nullptr;
+    }
 }
 
 static void handleManagerResourceDestroy(wl_resource* resource) {

@@ -412,3 +412,13 @@ struct STearingController {
         return pWlrHint == other.pWlrHint;
     }
 };
+
+struct SShortcutInhibitor {
+    wlr_keyboard_shortcuts_inhibitor_v1* pWlrInhibitor = nullptr;
+
+    DYNLISTENER(destroy);
+
+    bool operator==(const SShortcutInhibitor& other) {
+        return pWlrInhibitor == other.pWlrInhibitor;
+    }
+};

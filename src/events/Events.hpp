@@ -174,4 +174,7 @@ namespace Events {
 
     // Tearing hints
     LISTENER(newTearingHint);
+
+    // Shortcut inhibitor
+    LISTENER(newShortcutInhibitor);
 };

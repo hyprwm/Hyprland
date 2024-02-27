@@ -70,6 +70,7 @@ class CKeybindManager {
     bool                                                              m_bGroupsLocked = false;
 
     std::list<SKeybind>                                               m_lKeybinds;
+    std::list<SShortcutInhibitor>                                     m_lShortcutInhibitors;
 
   private:
     std::deque<SPressedKeyWithMods> m_dPressedKeys;

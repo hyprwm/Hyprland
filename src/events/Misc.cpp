@@ -262,3 +262,20 @@ void Events::listener_newTearingHint(wl_listener* listener, void* data) {
         },
         NEWCTRL, "TearingController");
 }
+
+void Events::listener_newShortcutInhibitor(wl_listener* listener, void* data) {
+    const auto INHIBITOR = (wlr_keyboard_shortcuts_inhibitor_v1*)data;
+
+    const auto PINH = &g_pKeybindManager->m_lShortcutInhibitors.emplace_back();
+    PINH->hyprListener_destroy.initCallback(
+        &INHIBITOR->events.destroy,
+        [](void* owner, void* data) {
+            const auto OWNER = (SShortcutInhibitor*)owner;
+            g_pKeybindManager->m_lShortcutInhibitors.remove(*OWNER);
+        },
+        PINH, "ShortcutInhibitor");
+
+    PINH->pWlrInhibitor = INHIBITOR;
+
+    Debug::log(LOG, "New shortcut inhibitor for surface {:x}", (uintptr_t)INHIBITOR->surface);
+}

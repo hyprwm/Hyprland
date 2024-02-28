@@ -1459,6 +1459,33 @@ void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
     applyNodeDataToWindow(PNODE);
 }
 
+Vector2D CHyprMasterLayout::predictSizeForNewWindow() {
+    static auto* const PNEWISMASTER = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("master:new_is_master");
+
+    if (!g_pCompositor->m_pLastMonitor)
+        return {};
+
+    const int NODES = getNodesOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+    if (NODES <= 0)
+        return g_pCompositor->m_pLastMonitor->vecSize;
+
+    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    if (!MASTER) // wtf
+        return {};
+
+    if (*PNEWISMASTER) {
+        return MASTER->size;
+    } else {
+        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+
+        // TODO: make this better
+        return {g_pCompositor->m_pLastMonitor->vecSize.x - MASTER->size.x, g_pCompositor->m_pLastMonitor->vecSize.y / (SLAVES + 1)};
+    }
+
+    return {};
+}
+
 void CHyprMasterLayout::onEnable() {
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())

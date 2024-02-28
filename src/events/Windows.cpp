@@ -806,7 +806,9 @@ void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->initial_commit) {
-        wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, 0, 0);
+        const auto PREDSIZE = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow();
+        Debug::log(LOG, "Layout predicts size {} for {}", PREDSIZE, PWINDOW);
+        wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, PREDSIZE.x, PREDSIZE.y);
         return;
     }
 

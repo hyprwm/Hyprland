@@ -181,6 +181,12 @@ class IHyprLayout {
     */
     virtual void requestFocusForWindow(CWindow*);
 
+    /*
+        Called to predict the size of a newly opened window to send it a configure.
+        Return 0,0 if unpredictable
+    */
+    virtual Vector2D predictSizeForNewWindow();
+
   private:
     Vector2D    m_vBeginDragXY;
     Vector2D    m_vLastDragXY;

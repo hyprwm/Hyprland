@@ -593,4 +593,8 @@ void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
     g_pCompositor->focusWindow(pWindow);
 }
 
+Vector2D IHyprLayout::predictSizeForNewWindow() {
+    return Vector2D{};
+}
+
 IHyprLayout::~IHyprLayout() {}

@@ -1264,7 +1264,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         if (UNLOCK_SC)
             wlr_output_lock_software_cursors(pMonitor->output, false);
 
-        damageMonitor(pMonitor);
+        wlr_damage_ring_add_whole(&pMonitor->damage);
 
         return;
     }

@@ -606,14 +606,19 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
 
     TRACY_GPU_ZONE("RenderLayer");
 
-    SRenderData renderdata           = {pMonitor, time, pLayer->geometry.x, pLayer->geometry.y};
+    const auto  REALPOS = pLayer->realPosition.vec();
+    const auto  REALSIZ = pLayer->realSize.vec();
+
+    SRenderData renderdata           = {pMonitor, time, REALPOS.x, REALPOS.y};
     renderdata.fadeAlpha             = pLayer->alpha.fl();
     renderdata.blur                  = pLayer->forceBlur;
     renderdata.surface               = pLayer->layerSurface->surface;
     renderdata.decorate              = false;
-    renderdata.w                     = pLayer->geometry.width;
-    renderdata.h                     = pLayer->geometry.height;
+    renderdata.w                     = REALSIZ.x;
+    renderdata.h                     = REALSIZ.y;
     renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+
+    g_pHyprOpenGL->m_RenderData.clipBox = CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y}.scale(pMonitor->scale);
 
     g_pHyprOpenGL->m_pCurrentLayer = pLayer;
 
@@ -629,7 +634,8 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     renderdata.popup           = true;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 
-    g_pHyprOpenGL->m_pCurrentLayer = nullptr;
+    g_pHyprOpenGL->m_pCurrentLayer      = nullptr;
+    g_pHyprOpenGL->m_RenderData.clipBox = {};
 }
 
 void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timespec* time) {

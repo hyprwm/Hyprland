@@ -113,9 +113,6 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
     layersurface->surface           = layersurface->layerSurface->surface;
 
-    // anim
-    layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
-
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -166,8 +163,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     const auto WORKSPACE  = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
 
-    layersurface->alpha.setValue(0);
-    layersurface->alpha         = ((layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS) ? 0.f : 1.f);
+    layersurface->startAnimation(!(layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
     layersurface->readyToDelete = false;
     layersurface->fadingOut     = false;
 
@@ -198,22 +194,16 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 
         layersurface->mapped = false;
 
-        layersurface->fadingOut = true;
-
-        layersurface->alpha.setValueAndWarp(0.f);
+        layersurface->startAnimation(false);
         return;
     }
 
-    // anim
-    layersurface->alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
-
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);
-    layersurface->alpha = 0.f;
+
+    layersurface->startAnimation(false);
 
     layersurface->mapped = false;
-
-    layersurface->fadingOut = true;
 
     g_pCompositor->addToFadingOutSafe(layersurface);
 

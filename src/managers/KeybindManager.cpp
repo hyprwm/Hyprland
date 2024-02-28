@@ -234,6 +234,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PWORKSPACE        = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
     const auto PNEWMAINWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
 
+    g_pInputManager->unconstrainMouse();
     g_pCompositor->setActiveMonitor(monitor);
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
@@ -256,6 +257,9 @@ void CKeybindManager::switchToWindow(CWindow* PWINDOWTOCHANGETO) {
 
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
+
+    // remove constraints
+    g_pInputManager->unconstrainMouse();
 
     if (PLASTWINDOW && PLASTWINDOW->m_iWorkspaceID == PWINDOWTOCHANGETO->m_iWorkspaceID && PLASTWINDOW->m_bIsFullscreen) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PLASTWINDOW->m_iWorkspaceID);
@@ -1112,9 +1116,6 @@ void CKeybindManager::moveFocusTo(std::string args) {
         return;
     }
 
-    // remove constraints
-    g_pInputManager->unconstrainMouse();
-
     const auto PWINDOWTOCHANGETO = **PFULLCYCLE && PLASTWINDOW->m_bIsFullscreen ?
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
@@ -1149,9 +1150,6 @@ void CKeybindManager::focusUrgentOrLast(std::string args) {
     if (!PWINDOWURGENT && !PWINDOWPREV)
         return;
 
-    // remove constraints
-    g_pInputManager->unconstrainMouse();
-
     switchToWindow(PWINDOWURGENT ? PWINDOWURGENT : PWINDOWPREV);
 }
 
@@ -1161,9 +1159,6 @@ void CKeybindManager::focusCurrentOrLast(std::string args) {
 
     if (!PWINDOWPREV)
         return;
-
-    // remove constraints
-    g_pInputManager->unconstrainMouse();
 
     switchToWindow(PWINDOWPREV);
 }

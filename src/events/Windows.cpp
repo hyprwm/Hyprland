@@ -806,9 +806,26 @@ void Events::listener_commitWindow(void* owner, void* data) {
     CWindow* PWINDOW = (CWindow*)owner;
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->initial_commit) {
-        const auto PREDSIZE = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow();
-        Debug::log(LOG, "Layout predicts size {} for {}", PREDSIZE, PWINDOW);
-        wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, PREDSIZE.x, PREDSIZE.y);
+        Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow();
+
+        if (g_pXWaylandManager->shouldBeFloated(PWINDOW, true))
+            predSize = {};
+
+        Vector2D maxSize = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->pending.max_width, PWINDOW->m_uSurface.xdg->toplevel->pending.max_height};
+
+        if ((maxSize.x > 0 && maxSize.x < predSize.x) || (maxSize.y > 0 && maxSize.y < predSize.y))
+            predSize = {};
+
+        for (auto& r : g_pConfigManager->getMatchingRules(PWINDOW)) {
+            if (r.szRule == "float") {
+                predSize = {};
+                break;
+            }
+        }
+
+        Debug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
+
+        wlr_xdg_toplevel_set_size(PWINDOW->m_uSurface.xdg->toplevel, predSize.x, predSize.y);
         return;
     }
 

@@ -23,7 +23,7 @@ class CHyprXWaylandManager {
     void          setWindowStyleTiled(CWindow*, uint32_t);
     void          setWindowFullscreen(CWindow*, bool);
     wlr_surface*  surfaceAt(CWindow*, const Vector2D&, Vector2D&);
-    bool          shouldBeFloated(CWindow*);
+    bool          shouldBeFloated(CWindow*, bool pending = false);
     void          moveXWaylandWindow(CWindow*, const Vector2D&);
     void          checkBorders(CWindow*);
     Vector2D      getMaxSizeForWindow(CWindow*);

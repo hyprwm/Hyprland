@@ -946,7 +946,7 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+    if (!g_pCompositor->windowExists(pWindow))
         return std::vector<SWindowRule>();
 
     std::vector<SWindowRule> returns;

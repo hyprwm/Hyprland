@@ -36,7 +36,6 @@ struct SSurfaceTreeNode {
 
 struct SSubsurface {
     wlr_subsurface*   pSubsurface = nullptr;
-    CWLSurface        surface;
 
     SSurfaceTreeNode* pParent = nullptr;
     SSurfaceTreeNode* pChild  = nullptr;

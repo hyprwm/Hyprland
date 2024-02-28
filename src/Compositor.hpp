@@ -95,7 +95,6 @@ class CCompositor {
     std::vector<std::unique_ptr<CWindow>>     m_vWindows;
     std::vector<std::unique_ptr<SXDGPopup>>   m_vXDGPopups;
     std::vector<std::unique_ptr<CWorkspace>>  m_vWorkspaces;
-    std::vector<std::unique_ptr<SSubsurface>> m_vSubsurfaces;
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 

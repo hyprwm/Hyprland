@@ -4,7 +4,7 @@
 #include "../defines.hpp"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "../Window.hpp"
-#include "SubsurfaceTree.hpp"
+#include "Subsurface.hpp"
 #include "AnimatedVariable.hpp"
 #include "WLSurface.hpp"
 #include "Region.hpp"
@@ -213,13 +213,11 @@ struct SXDGPopup {
     DYNLISTENER(commitPopupXDG);
     DYNLISTENER(repositionPopupXDG);
 
-    double            lx;
-    double            ly;
+    double   lx;
+    double   ly;
 
-    Vector2D          lastPos             = {};
-    bool              repositionRequested = false;
-
-    SSurfaceTreeNode* pSurfaceTree = nullptr;
+    Vector2D lastPos             = {};
+    bool     repositionRequested = false;
 
     // For the list lookup
     bool operator==(const SXDGPopup& rhs) const {

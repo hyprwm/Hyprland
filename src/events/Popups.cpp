@@ -154,7 +154,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
     else if (PPOPUP->parentLS)
         PPOPUP->parentLS->popupSurfaces.emplace_back(PPOPUP->popup->base->surface);
 
-    PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP, PPOPUP->parentWindow);
+    //PPOPUP->pSurfaceTree = SubsurfaceTree::createTreeRoot(PPOPUP->popup->base->surface, addPopupGlobalCoords, PPOPUP, PPOPUP->parentWindow);
 
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
@@ -170,7 +170,7 @@ void Events::listener_mapPopupXDG(void* owner, void* data) {
         g_pCompositor->setPreferredTransformForSurface(PPOPUP->popup->base->surface, PPOPUP->monitor->transform);
     }
 
-    Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
+    // Debug::log(LOG, "XDG Popup got assigned a surfaceTreeNode {:x}", (uintptr_t)PPOPUP->pSurfaceTree);
 }
 
 void Events::listener_repositionPopupXDG(void* owner, void* data) {
@@ -204,7 +204,7 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     if (PPOPUP->popup->base->surface == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
 
-    SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
+    // SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
 
     int lx = 0, ly = 0;
     addPopupGlobalCoords(PPOPUP, &lx, &ly);
@@ -220,7 +220,7 @@ void Events::listener_unmapPopupXDG(void* owner, void* data) {
     else if (PPOPUP->parentLS)
         std::erase(PPOPUP->parentLS->popupSurfaces, PPOPUP->popup->base->surface);
 
-    PPOPUP->pSurfaceTree = nullptr;
+    // PPOPUP->pSurfaceTree = nullptr;
 
     g_pInputManager->simulateMouseMovement(); // to focus and return back to an appropriate surface
 }
@@ -260,10 +260,10 @@ void Events::listener_destroyPopupXDG(void* owner, void* data) {
 
     Debug::log(LOG, "Destroyed popup XDG {:x}", (uintptr_t)PPOPUP);
 
-    if (PPOPUP->pSurfaceTree) {
-        SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
-        PPOPUP->pSurfaceTree = nullptr;
-    }
+    // if (PPOPUP->pSurfaceTree) {
+    //     SubsurfaceTree::destroySurfaceTree(PPOPUP->pSurfaceTree);
+    //     PPOPUP->pSurfaceTree = nullptr;
+    // }
 
     std::erase_if(g_pCompositor->m_vXDGPopups, [&](std::unique_ptr<SXDGPopup>& el) { return el.get() == PPOPUP; });
 }

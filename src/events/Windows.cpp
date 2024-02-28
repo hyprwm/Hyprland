@@ -486,8 +486,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }
 
-    Debug::log(LOG, "Window got assigned a surfaceTreeNode {:x}", (uintptr_t)PWINDOW->m_pSurfaceTree);
-
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
@@ -537,8 +535,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
-
-    PWINDOW->m_pSurfaceTree = SubsurfaceTree::createTreeRoot(PWINDOW->m_pWLSurface.wlr(), addViewCoords, PWINDOW, PWINDOW);
 
     PWINDOW->updateToplevel();
 
@@ -757,11 +753,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
     }
 
-    Debug::log(LOG, "Destroying the SubSurface tree of unmapped window {}", PWINDOW);
-    SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
-
-    PWINDOW->m_pSurfaceTree = nullptr;
-
     PWINDOW->m_bFadingOut = true;
 
     g_pCompositor->addToFadingOutSafe(PWINDOW);
@@ -825,6 +816,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
+    PWINDOW->m_pSubsurfaceHead->recheckDamageForSubsurfaces();
+
     if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
@@ -877,12 +870,6 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->hyprListener_dissociateX11.removeCallback();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
-
-    if (PWINDOW->m_pSurfaceTree) {
-        Debug::log(LOG, "Destroying Subsurface tree of {} in destroyWindow", PWINDOW);
-        SubsurfaceTree::destroySurfaceTree(PWINDOW->m_pSurfaceTree);
-        PWINDOW->m_pSurfaceTree = nullptr;
-    }
 
     PWINDOW->m_bReadyToDelete = true;
 

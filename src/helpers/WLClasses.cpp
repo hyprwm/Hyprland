@@ -3,9 +3,17 @@
 #include "../Compositor.hpp"
 
 SLayerSurface::SLayerSurface() {
-    alpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), nullptr, AVARDAMAGE_ENTIRE);
-    alpha.m_pLayer = this;
+    alpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), nullptr, AVARDAMAGE_ENTIRE);
+    realPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
+    realSize.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
+    alpha.m_pLayer        = this;
+    realPosition.m_pLayer = this;
+    realSize.m_pLayer     = this;
     alpha.registerVar();
+    realPosition.registerVar();
+    realSize.registerVar();
+
+    alpha.setValueAndWarp(0.f);
 }
 
 SLayerSurface::~SLayerSurface() {
@@ -22,6 +30,7 @@ void SLayerSurface::applyRules() {
     ignoreAlpha      = false;
     ignoreAlphaValue = 0.f;
     xray             = -1;
+    animationStyle.reset();
 
     for (auto& rule : g_pConfigManager->getMatchingRules(this)) {
         if (rule.rule == "noanim")
@@ -44,8 +53,118 @@ void SLayerSurface::applyRules() {
             try {
                 xray = configStringToInt(vars[1]);
             } catch (...) {}
+        } else if (rule.rule.starts_with("animation")) {
+            CVarList vars{rule.rule, 0, 's'};
+            animationStyle = vars[1];
         }
     }
+}
+
+void SLayerSurface::startAnimation(bool in, bool instant) {
+    const auto ANIMSTYLE = animationStyle.value_or(realPosition.m_pConfig->pValues->internalStyle);
+
+    if (ANIMSTYLE == "slide") {
+        // get closest edge
+        const auto                    MIDDLE = geometry.middle();
+
+        const auto                    PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+
+        const std::array<Vector2D, 4> edgePoints = {
+            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, 0},
+            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, PMONITOR->vecSize.y},
+            PMONITOR->vecPosition + Vector2D{0, PMONITOR->vecSize.y},
+            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x, PMONITOR->vecSize.y / 2},
+        };
+
+        float  closest = std::numeric_limits<float>::max();
+        size_t leader  = 0;
+        for (size_t i = 0; i < 4; ++i) {
+            float dist = MIDDLE.distance(edgePoints[i]);
+            if (dist < closest) {
+                leader  = i;
+                closest = dist;
+            }
+        }
+
+        realSize.setValueAndWarp(geometry.size());
+        alpha.setValueAndWarp(1.f);
+
+        Vector2D prePos;
+
+        switch (leader) {
+            case 0:
+                // TOP
+                prePos = {geometry.x, PMONITOR->vecPosition.y - geometry.h};
+                break;
+            case 1:
+                // BOTTOM
+                prePos = {geometry.x, PMONITOR->vecPosition.y + PMONITOR->vecPosition.y};
+                break;
+            case 2:
+                // LEFT
+                prePos = {PMONITOR->vecPosition.x - geometry.w, geometry.y};
+                break;
+            case 3:
+                // RIGHT
+                prePos = {PMONITOR->vecPosition.x + PMONITOR->vecSize.x, geometry.y};
+                break;
+            default: UNREACHABLE();
+        }
+
+        if (in) {
+            realPosition.setValueAndWarp(prePos);
+            realPosition = geometry.pos();
+        } else {
+            realPosition.setValueAndWarp(geometry.pos());
+            realPosition = prePos;
+        }
+
+    } else if (ANIMSTYLE.starts_with("popin")) {
+        float minPerc = 0.f;
+        if (ANIMSTYLE.find("%") != std::string::npos) {
+            try {
+                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' '));
+                minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+            } catch (std::exception& e) {
+                ; // oops
+            }
+        }
+
+        minPerc *= 0.01;
+
+        const auto GOALSIZE = (geometry.size() * minPerc).clamp({5, 5});
+        const auto GOALPOS  = geometry.pos() + (geometry.size() - GOALSIZE) / 2.f;
+
+        alpha.setValueAndWarp(in ? 0.f : 1.f);
+        alpha = in ? 1.f : 0.f;
+
+        if (in) {
+            realSize.setValueAndWarp(GOALSIZE);
+            realPosition.setValueAndWarp(GOALPOS);
+            realSize     = geometry.size();
+            realPosition = geometry.pos();
+        } else {
+            realSize.setValueAndWarp(geometry.size());
+            realPosition.setValueAndWarp(geometry.pos());
+            realSize     = GOALSIZE;
+            realPosition = GOALPOS;
+        }
+    } else {
+        // fade
+        realPosition.setValueAndWarp(geometry.pos());
+        realSize.setValueAndWarp(geometry.size());
+        alpha = in ? 1.f : 0.f;
+    }
+
+    if (!in)
+        fadingOut = true;
+}
+
+bool SLayerSurface::isFadedOut() {
+    if (!fadingOut)
+        return false;
+
+    return !realPosition.isBeingAnimated() && !realSize.isBeingAnimated() && !alpha.isBeingAnimated();
 }
 
 CRegion SConstraint::getLogicCoordsRegion() {

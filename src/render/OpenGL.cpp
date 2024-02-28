@@ -1812,13 +1812,22 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
 
-    CBox       monbox = {0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    CBox       layerBox;
+    // some mafs to figure out the correct box
+    // the originalClosedPos is relative to the monitor's pos
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * PLAYER->realSize.vec().x / (PLAYER->geometry.w * PMONITOR->scale)),
+                                (PMONITOR->scale * PLAYER->realSize.vec().y / (PLAYER->geometry.h * PMONITOR->scale)));
 
-    CRegion    fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    layerBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
+    layerBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
+    layerBox.x = ((PLAYER->realPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((PLAYER->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
+    layerBox.y = ((PLAYER->realPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((PLAYER->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
+
+    CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(it->second.m_cTex, &monbox, PLAYER->alpha.fl(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(it->second.m_cTex, &layerBox, PLAYER->alpha.fl(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }

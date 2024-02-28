@@ -112,7 +112,7 @@ struct SCurrentRenderData {
     Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    CBox                clipBox = {};
+    CBox                clipBox = {}; // scaled coordinates
 
     uint32_t            discardMode    = DISCARD_OPAQUE;
     float               discardOpacity = 0.f;

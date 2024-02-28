@@ -101,7 +101,7 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(w.get());
             }
         } else if (PLAYER) {
-            WLRBOXPREV = PLAYER->geometry;
+            WLRBOXPREV = CBox{PLAYER->realPosition.vec(), PLAYER->realSize.vec()};
             PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
             if (!PMONITOR)
                 continue;
@@ -512,6 +512,27 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     } else if (config == "borderangle") {
         if (style == "loop" || style == "once")
             return "";
+        return "unknown style";
+    } else if (config.starts_with("layers")) {
+        if (style == "fade" || style == "" || style == "slide")
+            return "";
+        else if (style.starts_with("popin")) {
+            // try parsing
+            float minPerc = 0.f;
+            if (style.find("%") != std::string::npos) {
+                try {
+                    auto percstr = style.substr(style.find_last_of(' '));
+                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+                } catch (std::exception& e) { return "invalid minperc"; }
+
+                return "";
+            }
+
+            minPerc; // fix warning
+
+            return "";
+        }
+        return "";
         return "unknown style";
     } else {
         return "animation has no styles";

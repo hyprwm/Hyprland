@@ -19,6 +19,11 @@ struct SLayerSurface {
     ~SLayerSurface();
 
     void                  applyRules();
+    void                  startAnimation(bool in, bool instant = false);
+    bool                  isFadedOut();
+
+    CAnimatedVariable     realPosition;
+    CAnimatedVariable     realSize;
 
     wlr_layer_surface_v1* layerSurface;
     wl_list               link;
@@ -34,26 +39,28 @@ struct SLayerSurface {
     DYNLISTENER(commitLayerSurface);
     DYNLISTENER(newPopup);
 
-    CBox                      geometry = {0, 0, 0, 0};
-    Vector2D                  position;
-    zwlr_layer_shell_v1_layer layer;
+    CBox                       geometry = {0, 0, 0, 0};
+    Vector2D                   position;
+    zwlr_layer_shell_v1_layer  layer;
 
-    bool                      mapped = false;
+    bool                       mapped = false;
 
-    int                       monitorID = -1;
+    int                        monitorID = -1;
 
-    std::string               szNamespace = "";
+    std::string                szNamespace = "";
 
-    CAnimatedVariable         alpha;
-    bool                      fadingOut     = false;
-    bool                      readyToDelete = false;
-    bool                      noProcess     = false;
-    bool                      noAnimations  = false;
+    CAnimatedVariable          alpha;
+    bool                       fadingOut     = false;
+    bool                       readyToDelete = false;
+    bool                       noProcess     = false;
+    bool                       noAnimations  = false;
 
-    bool                      forceBlur        = false;
-    int                       xray             = -1;
-    bool                      ignoreAlpha      = false;
-    float                     ignoreAlphaValue = 0.f;
+    bool                       forceBlur        = false;
+    int                        xray             = -1;
+    bool                       ignoreAlpha      = false;
+    float                      ignoreAlphaValue = 0.f;
+
+    std::optional<std::string> animationStyle;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) const {

@@ -1480,7 +1480,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
             g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
 
-        if (ls->fadingOut && ls->readyToDelete && !ls->alpha.isBeingAnimated()) {
+        if (ls->fadingOut && ls->readyToDelete && ls->isFadedOut()) {
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end()) {

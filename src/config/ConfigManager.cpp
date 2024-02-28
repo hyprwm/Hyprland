@@ -617,6 +617,7 @@ void CConfigManager::setDefaultAnimationVars() {
     if (isFirstLaunch) {
         INITANIMCFG("global");
         INITANIMCFG("windows");
+        INITANIMCFG("layers");
         INITANIMCFG("fade");
         INITANIMCFG("border");
         INITANIMCFG("borderangle");
@@ -644,6 +645,7 @@ void CConfigManager::setDefaultAnimationVars() {
     animationConfig["global"] = {false, "default", "", 8.f, 1, &animationConfig["general"], nullptr};
 
     CREATEANIMCFG("windows", "global");
+    CREATEANIMCFG("layers", "global");
     CREATEANIMCFG("fade", "global");
     CREATEANIMCFG("border", "global");
     CREATEANIMCFG("borderangle", "global");
@@ -658,6 +660,7 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeSwitch", "fade");
     CREATEANIMCFG("fadeShadow", "fade");
     CREATEANIMCFG("fadeDim", "fade");
+    CREATEANIMCFG("fadeLayers", "fade");
 
     CREATEANIMCFG("specialWorkspace", "workspaces");
 }
@@ -1840,7 +1843,7 @@ bool windowRuleValid(const std::string& RULE) {
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return RULE == "noanim" || RULE == "blur" || RULE.starts_with("ignorealpha") || RULE.starts_with("ignorezero") || RULE.starts_with("xray");
+    return RULE == "noanim" || RULE == "blur" || RULE.starts_with("ignorealpha") || RULE.starts_with("ignorezero") || RULE.starts_with("xray") || RULE.starts_with("animation");
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {

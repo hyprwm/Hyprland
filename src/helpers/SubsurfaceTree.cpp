@@ -145,7 +145,6 @@ void Events::listener_newSubsurfaceNode(void* owner, void* data) {
     const auto        PSUBSURFACE = (wlr_subsurface*)data;
 
     const auto        PNEWSUBSURFACE = &pNode->childSubsurfaces.emplace_back();
-    PNEWSUBSURFACE->surface.assign(PSUBSURFACE->surface);
 
     Debug::log(LOG, "Added a new subsurface {:x}", (uintptr_t)PSUBSURFACE);
 

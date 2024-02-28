@@ -54,7 +54,7 @@ void SLayerSurface::applyRules() {
                 xray = configStringToInt(vars[1]);
             } catch (...) {}
         } else if (rule.rule.starts_with("animation")) {
-            CVarList vars{rule.rule, 0, 's'};
+            CVarList vars{rule.rule, 2, 's'};
             animationStyle = vars[1];
         }
     }

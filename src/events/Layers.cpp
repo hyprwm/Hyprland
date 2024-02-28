@@ -325,6 +325,19 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         }
     }
 
+    if (layersurface->realPosition.goalv() != layersurface->geometry.pos()) {
+        if (layersurface->realPosition.isBeingAnimated())
+            layersurface->realPosition = layersurface->geometry.pos();
+        else
+            layersurface->realPosition.setValueAndWarp(layersurface->geometry.pos());
+    }
+    if (layersurface->realSize.goalv() != layersurface->geometry.size()) {
+        if (layersurface->realSize.isBeingAnimated())
+            layersurface->realSize = layersurface->geometry.size();
+        else
+            layersurface->realSize.setValueAndWarp(layersurface->geometry.size());
+    }
+
     if (layersurface->layerSurface->current.keyboard_interactive &&
         (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) // don't focus if constrained
         && !layersurface->keyboardExclusive && layersurface->mapped) {

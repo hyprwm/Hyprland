@@ -54,6 +54,7 @@ struct SLayerSurface {
     int                       xray             = -1;
     bool                      ignoreAlpha      = false;
     float                     ignoreAlphaValue = 0.f;
+    bool                      dimAround        = false;
 
     // For the list lookup
     bool operator==(const SLayerSurface& rhs) const {

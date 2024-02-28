@@ -98,11 +98,11 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
 }
 
 std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
-    if (!pWindow->m_bIsMapped)
-        return "";
-
     try {
         if (pWindow->m_bIsX11) {
+            if (!pWindow->m_bIsMapped && pWindow->m_iX11Type != 1)
+                return "";
+
             if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->title) {
                 return std::string(pWindow->m_uSurface.xwayland->title);
             }
@@ -119,11 +119,11 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 }
 
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
-    if (!pWindow->m_bIsMapped)
-        return "";
-
     try {
         if (pWindow->m_bIsX11) {
+            if (!pWindow->m_bIsMapped && pWindow->m_iX11Type != 1)
+                return "";
+
             if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->_class) {
                 return std::string(pWindow->m_uSurface.xwayland->_class);
             }
@@ -198,7 +198,7 @@ wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& c
     return wlr_xdg_surface_surface_at(pWindow->m_uSurface.xdg, client.x, client.y, &surface.x, &surface.y);
 }
 
-bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
+bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow, bool pending) {
     if (pWindow->m_bIsX11) {
         for (size_t i = 0; i < pWindow->m_uSurface.xwayland->window_type_len; i++)
             if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] ||
@@ -243,7 +243,7 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow) {
         if (SIZEHINTS && (pWindow->m_uSurface.xwayland->parent || ((SIZEHINTS->min_width == SIZEHINTS->max_width) && (SIZEHINTS->min_height == SIZEHINTS->max_height))))
             return true;
     } else {
-        const auto PSTATE = &pWindow->m_uSurface.xdg->toplevel->current;
+        const auto PSTATE = pending ? &pWindow->m_uSurface.xdg->toplevel->pending : &pWindow->m_uSurface.xdg->toplevel->current;
 
         if ((PSTATE->min_width != 0 && PSTATE->min_height != 0 && (PSTATE->min_width == PSTATE->max_width || PSTATE->min_height == PSTATE->max_height)) ||
             pWindow->m_uSurface.xdg->toplevel->parent)

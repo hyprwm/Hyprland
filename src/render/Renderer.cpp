@@ -1123,6 +1123,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor    = zoomInFactorFirstLaunch;
         g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse  = false;
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+        pMonitor->forceFullFrames                      = 10;
     }
 
     CRegion damage, finalDamage;

@@ -29,13 +29,13 @@ CSubsurface::CSubsurface(CPopup* pOwner) : m_pPopupParent(pOwner) {
 }
 
 CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, CWindow* pOwner) : m_pSubsurface(pSubsurface), m_pWindowParent(pOwner) {
-    m_sWLSurface.assign(pSubsurface->surface);
+    m_sWLSurface.assign(pSubsurface->surface, this);
     initSignals();
     initExistingSubsurfaces();
 }
 
 CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, CPopup* pOwner) : m_pSubsurface(pSubsurface), m_pPopupParent(pOwner) {
-    m_sWLSurface.assign(pSubsurface->surface);
+    m_sWLSurface.assign(pSubsurface->surface, this);
     initSignals();
     initExistingSubsurfaces();
 }
@@ -254,4 +254,8 @@ void CSubsurface::initExistingSubsurfaces() {
     wl_list_for_each(wlrSubsurface, &m_sWLSurface.wlr()->current.subsurfaces_above, current.link) {
         ::onNewSubsurface(this, wlrSubsurface);
     }
+}
+
+Vector2D CSubsurface::size() {
+    return {m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 }

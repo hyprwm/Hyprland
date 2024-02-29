@@ -10,7 +10,7 @@ CPopup::CPopup(SLayerSurface* pOwner) : m_pLayerOwner(pOwner) {
 
 CPopup::CPopup(wlr_xdg_popup* popup, CPopup* pOwner) : m_pParent(pOwner), m_pWLR(popup) {
     m_pWLR->base->data = this;
-    m_sWLSurface.assign(popup->base->surface);
+    m_sWLSurface.assign(popup->base->surface, this);
 
     m_pLayerOwner  = pOwner->m_pLayerOwner;
     m_pWindowOwner = pOwner->m_pWindowOwner;
@@ -222,4 +222,8 @@ void CPopup::recheckChildrenRecursive() {
         c->onCommit();
         c->recheckChildrenRecursive();
     }
+}
+
+Vector2D CPopup::size() {
+    return m_vLastSize;
 }

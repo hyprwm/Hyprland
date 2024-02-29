@@ -70,7 +70,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         // however, if surface buffer w / h < box, we need to adjust them
         auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
 
-        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pOwner */) {
+        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pWindowOwner */) {
             const auto CORRECT = PSURFACE->correctSmallVec();
             const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
 
@@ -78,8 +78,8 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 windowBox.x += CORRECT.x;
                 windowBox.y += CORRECT.y;
 
-                windowBox.width  = SIZE.x * (PSURFACE->m_pOwner->m_vRealSize.vec().x / PSURFACE->m_pOwner->m_vReportedSize.x);
-                windowBox.height = SIZE.y * (PSURFACE->m_pOwner->m_vRealSize.vec().y / PSURFACE->m_pOwner->m_vReportedSize.y);
+                windowBox.width  = SIZE.x * (PSURFACE->getWindow()->m_vRealSize.vec().x / PSURFACE->getWindow()->m_vReportedSize.x);
+                windowBox.height = SIZE.y * (PSURFACE->getWindow()->m_vRealSize.vec().y / PSURFACE->getWindow()->m_vReportedSize.y);
             } else {
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
@@ -1590,7 +1590,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         return;
 
     auto* const PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
-    if (PSURFACE && PSURFACE->m_pOwner && PSURFACE->small()) {
+    if (PSURFACE && PSURFACE->small()) {
         const auto CORRECTION = PSURFACE->correctSmallVec();
         x += CORRECTION.x;
         y += CORRECTION.y;

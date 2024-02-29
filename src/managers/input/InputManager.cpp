@@ -144,11 +144,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         const auto CONSTRAINT = SURF->constraint();
 
         if (SURF && CONSTRAINT) {
-            const auto HINT = CONSTRAINT->logicPositionHint();
-
-            if (CONSTRAINT->isLocked())
+            if (CONSTRAINT->isLocked()) {
+                const auto HINT = CONSTRAINT->logicPositionHint();
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, HINT.x, HINT.y);
-            else {
+            } else {
                 const auto RG           = CONSTRAINT->logicConstraintRegion();
                 const auto CLOSEST      = RG.closestPoint(mouseCoords);
                 const auto BOX          = SURF->getSurfaceBoxGlobal();

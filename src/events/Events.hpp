@@ -22,17 +22,6 @@ namespace Events {
     DYNLISTENFUNC(unmapLayerSurface);
     DYNLISTENFUNC(commitLayerSurface);
 
-    // Popups
-    DYNLISTENFUNC(newPopup); // LayerSurface
-
-    DYNLISTENFUNC(newPopupXDG);
-    DYNLISTENFUNC(mapPopupXDG);
-    DYNLISTENFUNC(unmapPopupXDG);
-    DYNLISTENFUNC(destroyPopupXDG);
-    DYNLISTENFUNC(commitPopupXDG);
-    DYNLISTENFUNC(newPopupFromPopupXDG);
-    DYNLISTENFUNC(repositionPopupXDG);
-
     // Surface XDG (window)
     LISTENER(newXDGToplevel);
     LISTENER(activateXDG);

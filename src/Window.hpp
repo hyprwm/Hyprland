@@ -8,6 +8,7 @@
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
 #include "desktop/WLSurface.hpp"
+#include "desktop/Popup.hpp"
 #include "macros.hpp"
 #include "managers/XWaylandManager.hpp"
 
@@ -193,7 +194,6 @@ class CWindow {
     DYNLISTENER(setTitleWindow);
     DYNLISTENER(setGeometryX11U);
     DYNLISTENER(fullscreenWindow);
-    DYNLISTENER(newPopupXDG);
     DYNLISTENER(requestMove);
     DYNLISTENER(requestMinimize);
     DYNLISTENER(requestMaximize);
@@ -278,8 +278,9 @@ class CWindow {
     // bitfield eSuppressEvents
     uint64_t m_eSuppressedEvents = SUPPRESS_NONE;
 
-    // for the subsurface tree
+    // desktop components
     std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
+    std::unique_ptr<CPopup>      m_pPopupHead;
 
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};

@@ -488,7 +488,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.set_title, &Events::listener_setTitleWindow, PWINDOW, "XDG Window Late");
-        PWINDOW->hyprListener_newPopupXDG.initCallback(&PWINDOW->m_uSurface.xdg->events.new_popup, &Events::listener_newPopupXDG, PWINDOW, "XDG Window Late");
         PWINDOW->hyprListener_requestMaximize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_maximize, &Events::listener_requestMaximize, PWINDOW,
                                                            "XDG Window Late");
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW,
@@ -681,7 +680,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (!PWINDOW->m_bIsX11) {
         Debug::log(LOG, "Unregistered late callbacks XDG");
         PWINDOW->hyprListener_setTitleWindow.removeCallback();
-        PWINDOW->hyprListener_newPopupXDG.removeCallback();
         PWINDOW->hyprListener_requestMaximize.removeCallback();
         PWINDOW->hyprListener_requestMinimize.removeCallback();
         PWINDOW->hyprListener_requestMove.removeCallback();
@@ -833,7 +831,10 @@ void Events::listener_commitWindow(void* owner, void* data) {
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goalv().x, PWINDOW->m_vRealPosition.goalv().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
-    PWINDOW->m_pSubsurfaceHead->recheckDamageForSubsurfaces();
+    if (!PWINDOW->m_bIsX11) {
+        PWINDOW->m_pSubsurfaceHead->recheckDamageForSubsurfaces();
+        PWINDOW->m_pPopupHead->recheckTree();
+    }
 
     if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;

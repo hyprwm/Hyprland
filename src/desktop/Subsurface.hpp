@@ -5,6 +5,7 @@
 #include "WLSurface.hpp"
 
 class CWindow;
+struct SXDGPopup;
 
 class CSubsurface {
   public:
@@ -28,6 +29,7 @@ class CSubsurface {
     void     recheckDamageForSubsurfaces();
 
   private:
+
     DYNLISTENER(destroySubsurface);
     DYNLISTENER(commitSubsurface);
     DYNLISTENER(newSubsurface);

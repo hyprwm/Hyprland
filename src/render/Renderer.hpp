@@ -3,7 +3,6 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/Monitor.hpp"
-#include "../helpers/Workspace.hpp"
 #include "../Window.hpp"
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
@@ -11,6 +10,7 @@
 #include "../helpers/Region.hpp"
 
 struct SMonitorRule;
+class CWorkspace;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {

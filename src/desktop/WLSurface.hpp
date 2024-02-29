@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "Region.hpp"
+#include "../helpers/Region.hpp"
 
 class CWindow;
 

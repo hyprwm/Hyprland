@@ -22,14 +22,6 @@ namespace Events {
     DYNLISTENFUNC(unmapLayerSurface);
     DYNLISTENFUNC(commitLayerSurface);
 
-    // Subsurfaces
-    DYNLISTENFUNC(newSubsurfaceNode);
-    DYNLISTENFUNC(destroySubsurfaceNode);
-    DYNLISTENFUNC(mapSubsurface);
-    DYNLISTENFUNC(unmapSubsurface);
-    DYNLISTENFUNC(destroySubsurface);
-    DYNLISTENFUNC(commitSubsurface);
-
     // Popups
     DYNLISTENFUNC(newPopup); // LayerSurface
 

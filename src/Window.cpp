@@ -471,6 +471,8 @@ void CWindow::onUnmap() {
         PMONITOR->solitaryClient = nullptr;
 
     g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
+
+    m_pSubsurfaceHead.reset();
 }
 
 void CWindow::onMap() {
@@ -516,6 +518,8 @@ void CWindow::onMap() {
         m_bTearingHint = ctrl->pWlrHint->current;
         break;
     }
+
+    m_pSubsurfaceHead = std::make_unique<CSubsurface>(this);
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

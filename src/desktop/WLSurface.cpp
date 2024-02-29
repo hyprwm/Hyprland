@@ -103,7 +103,10 @@ void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;
 
+    m_pConstraint.reset();
+
     hyprListener_destroy.removeCallback();
+    hyprListener_commit.removeCallback();
     m_pWLRSurface->data = nullptr;
     m_pWindowOwner      = nullptr;
     m_pLayerOwner       = nullptr;
@@ -123,6 +126,11 @@ void CWLSurface::destroy() {
     Debug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
 }
 
+static void onCommit(void* owner, void* data) {
+    const auto SURF = (CWLSurface*)owner;
+    SURF->onCommit();
+}
+
 void CWLSurface::init() {
     if (!m_pWLRSurface)
         return;
@@ -133,6 +141,7 @@ void CWLSurface::init() {
 
     hyprListener_destroy.initCallback(
         &m_pWLRSurface->events.destroy, [&](void* owner, void* data) { destroy(); }, this, "CWLSurface");
+    hyprListener_commit.initCallback(&m_pWLRSurface->events.commit, ::onCommit, this, "CWLSurface");
 
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
@@ -171,4 +180,17 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
         return CBox{m_pSubsurfaceOwner->coordsGlobal(), m_pSubsurfaceOwner->size()};
 
     return {};
+}
+
+void CWLSurface::appendConstraint(wlr_pointer_constraint_v1* constraint) {
+    m_pConstraint = std::make_unique<CConstraint>(constraint, this);
+}
+
+void CWLSurface::onCommit() {
+    if (m_pConstraint)
+        m_pConstraint->onCommit();
+}
+
+CConstraint* CWLSurface::constraint() {
+    return m_pConstraint.get();
 }

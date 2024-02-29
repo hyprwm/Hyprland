@@ -415,7 +415,7 @@ struct STearingController {
     DYNLISTENER(set);
     DYNLISTENER(destroy);
 
-    bool operator==(const STearingController& other) {
+    bool operator==(const STearingController& other) const {
         return pWlrHint == other.pWlrHint;
     }
 };
@@ -425,7 +425,7 @@ struct SShortcutInhibitor {
 
     DYNLISTENER(destroy);
 
-    bool operator==(const SShortcutInhibitor& other) {
+    bool operator==(const SShortcutInhibitor& other) const {
         return pWlrInhibitor == other.pWlrInhibitor;
     }
 };

@@ -107,6 +107,9 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
                 return std::string(pWindow->m_uSurface.xwayland->title);
             }
         } else if (pWindow->m_uSurface.xdg) {
+            if (pWindow->m_bFadingOut || !pWindow->m_uSurface.xdg)
+                return "";
+
             if (pWindow->m_uSurface.xdg->toplevel && pWindow->m_uSurface.xdg->toplevel->title) {
                 return std::string(pWindow->m_uSurface.xdg->toplevel->title);
             }
@@ -128,6 +131,9 @@ std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
                 return std::string(pWindow->m_uSurface.xwayland->_class);
             }
         } else if (pWindow->m_uSurface.xdg) {
+            if (pWindow->m_bFadingOut || !pWindow->m_uSurface.xdg)
+                return "";
+
             if (pWindow->m_uSurface.xdg->toplevel && pWindow->m_uSurface.xdg->toplevel->app_id) {
                 return std::string(pWindow->m_uSurface.xdg->toplevel->app_id);
             }

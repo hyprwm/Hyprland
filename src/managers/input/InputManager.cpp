@@ -56,7 +56,7 @@ void CInputManager::simulateMouseMovement() {
 }
 
 void CInputManager::sendMotionEventsToFocused() {
-    if (!g_pCompositor->m_pLastFocus)
+    if (!g_pCompositor->m_pLastFocus || isConstrained())
         return;
 
     // todo: this sucks ass

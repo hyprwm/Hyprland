@@ -106,13 +106,13 @@ void CConstraint::activate() {
     // TODO: hack, probably not a super duper great idea
     if (g_pCompositor->m_sSeat.seat->pointer_state.focused_surface != m_pOwner->wlr()) {
         const auto SURFBOX = m_pOwner->getSurfaceBoxGlobal();
-        const auto LOCAL   = SURFBOX.has_value() ? SURFBOX->middle() - SURFBOX->pos() : Vector2D{};
+        const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
         wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, m_pOwner->wlr(), LOCAL.x, LOCAL.y);
     }
 
+    g_pCompositor->warpCursorTo(logicPositionHint(), true);
     wlr_pointer_constraint_v1_send_activated(m_pConstraint);
     m_bActive = true;
-    g_pCompositor->warpCursorTo(logicPositionHint(), true);
 }
 
 bool CConstraint::active() {

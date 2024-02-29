@@ -100,7 +100,7 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
 std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
     try {
         if (pWindow->m_bIsX11) {
-            if (!pWindow->m_bIsMapped && pWindow->m_iX11Type != 1)
+            if (!pWindow->m_bIsMapped)
                 return "";
 
             if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->title) {
@@ -121,7 +121,7 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
 std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
     try {
         if (pWindow->m_bIsX11) {
-            if (!pWindow->m_bIsMapped && pWindow->m_iX11Type != 1)
+            if (!pWindow->m_bIsMapped)
                 return "";
 
             if (pWindow->m_uSurface.xwayland && pWindow->m_uSurface.xwayland->_class) {

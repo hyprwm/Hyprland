@@ -5,6 +5,7 @@
 #include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "../Window.hpp"
 #include "../desktop/Subsurface.hpp"
+#include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "Region.hpp"
@@ -31,13 +32,14 @@ struct SLayerSurface {
     bool                  keyboardExclusive = false;
 
     CWLSurface            surface;
-    std::list<CWLSurface> popupSurfaces;
+
+    // desktop components
+    std::unique_ptr<CPopup> popupHead;
 
     DYNLISTENER(destroyLayerSurface);
     DYNLISTENER(mapLayerSurface);
     DYNLISTENER(unmapLayerSurface);
     DYNLISTENER(commitLayerSurface);
-    DYNLISTENER(newPopup);
 
     CBox                       geometry = {0, 0, 0, 0};
     Vector2D                   position;
@@ -198,32 +200,6 @@ struct SConstraint {
 };
 
 class CMonitor;
-
-struct SXDGPopup {
-    CWindow*       parentWindow = nullptr;
-    SLayerSurface* parentLS     = nullptr;
-    SXDGPopup*     parentPopup  = nullptr;
-    wlr_xdg_popup* popup        = nullptr;
-    CMonitor*      monitor      = nullptr;
-
-    DYNLISTENER(newPopupFromPopupXDG);
-    DYNLISTENER(destroyPopupXDG);
-    DYNLISTENER(mapPopupXDG);
-    DYNLISTENER(unmapPopupXDG);
-    DYNLISTENER(commitPopupXDG);
-    DYNLISTENER(repositionPopupXDG);
-
-    double   lx;
-    double   ly;
-
-    Vector2D lastPos             = {};
-    bool     repositionRequested = false;
-
-    // For the list lookup
-    bool operator==(const SXDGPopup& rhs) const {
-        return popup == rhs.popup;
-    }
-};
 
 struct SSeat {
     wlr_seat*  seat            = nullptr;

@@ -16,7 +16,25 @@ CSubsurface::CSubsurface(CWindow* pOwner) : m_pWindowParent(pOwner) {
     }
 }
 
+CSubsurface::CSubsurface(CPopup* pOwner) : m_pPopupParent(pOwner) {
+    initSignals();
+
+    wlr_subsurface* wlrSubsurface;
+    wl_list_for_each(wlrSubsurface, &pOwner->m_sWLSurface.wlr()->current.subsurfaces_below, current.link) {
+        ::onNewSubsurface(this, wlrSubsurface);
+    }
+    wl_list_for_each(wlrSubsurface, &pOwner->m_sWLSurface.wlr()->current.subsurfaces_above, current.link) {
+        ::onNewSubsurface(this, wlrSubsurface);
+    }
+}
+
 CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, CWindow* pOwner) : m_pSubsurface(pSubsurface), m_pWindowParent(pOwner) {
+    m_sWLSurface.assign(pSubsurface->surface);
+    initSignals();
+    initExistingSubsurfaces();
+}
+
+CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, CPopup* pOwner) : m_pSubsurface(pSubsurface), m_pPopupParent(pOwner) {
     m_sWLSurface.assign(pSubsurface->surface);
     initSignals();
     initExistingSubsurfaces();
@@ -30,11 +48,6 @@ CSubsurface::~CSubsurface() {
 
     hyprListener_commitSubsurface.removeCallback();
     hyprListener_destroySubsurface.removeCallback();
-
-    const auto COORDS = coordsGlobal();
-
-    CBox       box = {COORDS, m_vLastSize};
-    g_pHyprRenderer->damageBox(&box);
 }
 
 static void onNewSubsurface(void* owner, void* data) {
@@ -68,10 +81,12 @@ void CSubsurface::initSignals() {
         hyprListener_destroySubsurface.initCallback(&m_pSubsurface->events.destroy, &onDestroySubsurface, this, "CSubsurface");
         hyprListener_newSubsurface.initCallback(&m_pSubsurface->surface->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface");
         hyprListener_mapSubsurface.initCallback(&m_pSubsurface->surface->events.map, &onMapSubsurface, this, "CSubsurface");
-        hyprListener_newSubsurface.initCallback(&m_pSubsurface->surface->events.unmap, &onUnmapSubsurface, this, "CSubsurface");
+        hyprListener_unmapSubsurface.initCallback(&m_pSubsurface->surface->events.unmap, &onUnmapSubsurface, this, "CSubsurface");
     } else {
         if (m_pWindowParent)
-            hyprListener_newSubsurface.initCallback(&m_pWindowParent->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface");
+            hyprListener_newSubsurface.initCallback(&m_pWindowParent->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
+        else if (m_pPopupParent)
+            hyprListener_newSubsurface.initCallback(&m_pPopupParent->m_sWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
         else
             RASSERT(false, "CSubsurface::initSignals empty subsurface");
     }
@@ -93,11 +108,9 @@ void CSubsurface::checkSiblingDamage() {
 }
 
 void CSubsurface::recheckDamageForSubsurfaces() {
-    const double SCALE = m_pWindowParent && m_pWindowParent->m_bIsX11 ? 1.0 / m_pWindowParent->m_fX11SurfaceScaledBy : 1.0;
-
     for (auto& n : m_vChildren) {
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->m_sWLSurface.wlr(), COORDS.x, COORDS.y, SCALE);
+        g_pHyprRenderer->damageSurface(n->m_sWLSurface.wlr(), COORDS.x, COORDS.y);
     }
 }
 
@@ -112,11 +125,14 @@ void CSubsurface::onCommit() {
         return;
     }
 
-    const auto   COORDS = coordsGlobal();
+    const auto COORDS = coordsGlobal();
 
-    const double SCALE = m_pWindowParent && m_pWindowParent->m_bIsX11 ? 1.0 / m_pWindowParent->m_fX11SurfaceScaledBy : 1.0;
+    g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);
 
-    g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y, SCALE);
+    if (m_pPopupParent)
+        m_pPopupParent->recheckTree();
+    if (m_pWindowParent) // I hate you firefox why are you doing this
+        m_pWindowParent->m_pPopupHead->recheckTree();
 
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
@@ -130,9 +146,6 @@ void CSubsurface::onCommit() {
     }
 
     if (m_pWindowParent) {
-        if (m_pWindowParent->m_bIsX11)
-            m_pWindowParent->m_vReportedSize = m_pWindowParent->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
-
         // tearing: if solitary, redraw it. This still might be a single surface window
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_pWindowParent->m_iMonitorID);
         if (PMONITOR && PMONITOR->solitaryClient == m_pWindowParent && m_pWindowParent->canBeTorn() && PMONITOR->tearingState.canTear &&
@@ -155,6 +168,8 @@ void CSubsurface::onDestroy() {
     // destroy children
     m_vChildren.clear();
 
+    m_bInert = true;
+
     if (!m_pSubsurface)
         return; // dummy node, nothing to do, it's the parent dying
 
@@ -167,6 +182,8 @@ void CSubsurface::onNewSubsurface(wlr_subsurface* pSubsurface) {
 
     if (m_pWindowParent)
         PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pWindowParent)).get();
+    else if (m_pPopupParent)
+        PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pPopupParent)).get();
     PSUBSURFACE->m_pParent = this;
 
     ASSERT(PSUBSURFACE);
@@ -220,6 +237,8 @@ Vector2D CSubsurface::coordsGlobal() {
 
     if (m_pWindowParent)
         coords += m_pWindowParent->m_vRealPosition.vec();
+    else if (m_pPopupParent)
+        coords += m_pPopupParent->coordsGlobal();
 
     return coords;
 }

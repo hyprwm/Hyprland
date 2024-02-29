@@ -46,7 +46,6 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->hyprListener_destroyLayerSurface.initCallback(&WLRLAYERSURFACE->events.destroy, &Events::listener_destroyLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_mapLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.map, &Events::listener_mapLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_unmapLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.unmap, &Events::listener_unmapLayerSurface, layerSurface, "layerSurface");
-    layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     layerSurface->layer        = WLRLAYERSURFACE->current.layer;
@@ -87,7 +86,6 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     layersurface->hyprListener_destroyLayerSurface.removeCallback();
     layersurface->hyprListener_mapLayerSurface.removeCallback();
     layersurface->hyprListener_unmapLayerSurface.removeCallback();
-    layersurface->hyprListener_newPopup.removeCallback();
 
     // rearrange to fix the reserved areas
     if (PMONITOR) {
@@ -112,6 +110,8 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->mapped            = true;
     layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
     layersurface->surface           = layersurface->layerSurface->surface;
+
+    layersurface->popupHead = std::make_unique<CPopup>(layersurface);
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
@@ -183,6 +183,8 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     EMIT_HOOK_EVENT("closeLayer", layersurface);
 
     std::erase(g_pInputManager->m_dExclusiveLSes, layersurface);
+
+    layersurface->popupHead.reset();
 
     if (!g_pInputManager->m_dExclusiveLSes.empty())
         g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->layerSurface->surface);

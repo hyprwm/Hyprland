@@ -5,15 +5,17 @@
 #include "WLSurface.hpp"
 
 class CWindow;
-struct SXDGPopup;
+class CPopup;
 
 class CSubsurface {
   public:
     // root dummy nodes
     CSubsurface(CWindow* pOwner);
+    CSubsurface(CPopup* pOwner);
 
     // real nodes
     CSubsurface(wlr_subsurface* pSubsurface, CWindow* pOwner);
+    CSubsurface(wlr_subsurface* pSubsurface, CPopup* pOwner);
 
     ~CSubsurface();
 
@@ -29,7 +31,6 @@ class CSubsurface {
     void     recheckDamageForSubsurfaces();
 
   private:
-
     DYNLISTENER(destroySubsurface);
     DYNLISTENER(commitSubsurface);
     DYNLISTENER(newSubsurface);
@@ -44,8 +45,11 @@ class CSubsurface {
     CSubsurface*                              m_pParent = nullptr;
 
     CWindow*                                  m_pWindowParent = nullptr;
+    CPopup*                                   m_pPopupParent  = nullptr;
 
     std::vector<std::unique_ptr<CSubsurface>> m_vChildren;
+
+    bool                                      m_bInert = false;
 
     void                                      initSignals();
     void                                      initExistingSubsurfaces();

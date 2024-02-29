@@ -93,7 +93,6 @@ class CCompositor {
     std::vector<std::shared_ptr<CMonitor>>    m_vMonitors;
     std::vector<std::shared_ptr<CMonitor>>    m_vRealMonitors; // for all monitors, even those turned off
     std::vector<std::unique_ptr<CWindow>>     m_vWindows;
-    std::vector<std::unique_ptr<SXDGPopup>>   m_vXDGPopups;
     std::vector<std::unique_ptr<CWorkspace>>  m_vWorkspaces;
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
@@ -142,7 +141,6 @@ class CCompositor {
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CMonitor*      getMonitorFromOutput(wlr_output*);
     CMonitor*      getRealMonitorFromOutput(wlr_output*);
-    CWindow*       getWindowForPopup(wlr_xdg_popup*);
     CWindow*       getWindowFromSurface(wlr_surface*);
     CWindow*       getWindowFromHandle(uint32_t);
     CWindow*       getWindowFromZWLRHandle(wl_resource*);

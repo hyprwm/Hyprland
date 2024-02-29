@@ -1120,15 +1120,6 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
     return true;
 }
 
-CWindow* CCompositor::getWindowForPopup(wlr_xdg_popup* popup) {
-    for (auto& p : m_vXDGPopups) {
-        if (p->popup == popup)
-            return p->parentWindow;
-    }
-
-    return nullptr;
-}
-
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<std::unique_ptr<SLayerSurface>>* layerSurfaces, Vector2D* sCoords,
                                                SLayerSurface** ppLayerSurfaceFound) {
     for (auto& ls : *layerSurfaces | std::views::reverse) {

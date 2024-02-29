@@ -472,7 +472,11 @@ void CWindow::onUnmap() {
 
     g_pCompositor->updateWorkspaceWindows(m_iWorkspaceID);
 
+    if (m_bIsX11)
+        return;
+
     m_pSubsurfaceHead.reset();
+    m_pPopupHead.reset();
 }
 
 void CWindow::onMap() {
@@ -519,7 +523,11 @@ void CWindow::onMap() {
         break;
     }
 
+    if (m_bIsX11)
+        return;
+
     m_pSubsurfaceHead = std::make_unique<CSubsurface>(this);
+    m_pPopupHead      = std::make_unique<CPopup>(this);
 }
 
 void CWindow::onBorderAngleAnimEnd(void* ptr) {

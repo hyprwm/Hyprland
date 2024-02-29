@@ -34,6 +34,9 @@ class CConstraint {
     Vector2D                   m_vPositionHint        = {-1, -1};
     Vector2D                   m_vCursorPosOnActivate = {-1, -1};
 
+    // for oneshot constraints that have been activated once
+    bool m_bDead = false;
+
     DYNLISTENER(destroyConstraint);
     DYNLISTENER(setConstraintRegion);
 

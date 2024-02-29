@@ -94,10 +94,13 @@ void CConstraint::deactivate() {
     wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
     m_bActive = false;
     g_pCompositor->warpCursorTo(logicPositionHint(), true);
+
+    if (m_pConstraint->lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT)
+        m_bDead = true;
 }
 
 void CConstraint::activate() {
-    if (m_bActive)
+    if (m_bActive || m_bDead)
         return;
 
     // TODO: hack, probably not a super duper great idea

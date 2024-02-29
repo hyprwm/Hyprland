@@ -20,6 +20,8 @@ class CPopup {
     Vector2D   coordsRelativeToParent();
     Vector2D   coordsGlobal();
 
+    Vector2D   size();
+
     void       onNewPopup(wlr_xdg_popup* popup);
     void       onDestroy();
     void       onMap();

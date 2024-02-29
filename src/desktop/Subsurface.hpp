@@ -22,6 +22,8 @@ class CSubsurface {
     Vector2D coordsRelativeToParent();
     Vector2D coordsGlobal();
 
+    Vector2D size();
+
     void     onCommit();
     void     onDestroy();
     void     onNewSubsurface(wlr_subsurface* pSubsurface);

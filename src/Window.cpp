@@ -481,8 +481,7 @@ void CWindow::onUnmap() {
 
 void CWindow::onMap() {
 
-    m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this));
-    m_pWLSurface.m_pOwner = this;
+    m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this), this);
 
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();

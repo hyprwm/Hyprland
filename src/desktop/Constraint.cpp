@@ -57,6 +57,7 @@ void CConstraint::onCommit() {
     if (COMMITTED & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
         m_bHintSet      = true;
         m_vPositionHint = {m_pConstraint->current.cursor_hint.x, m_pConstraint->current.cursor_hint.y};
+        g_pInputManager->simulateMouseMovement();
     }
 
     if (COMMITTED & WLR_POINTER_CONSTRAINT_V1_STATE_REGION)

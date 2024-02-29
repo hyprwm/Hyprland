@@ -21,7 +21,7 @@
 #include "debug/HyprDebugOverlay.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "helpers/Monitor.hpp"
-#include "helpers/Workspace.hpp"
+#include "desktop/Workspace.hpp"
 #include "Window.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"

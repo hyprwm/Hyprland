@@ -1,13 +1,13 @@
 #pragma once
 
 #include "defines.hpp"
-#include "helpers/Subsurface.hpp"
+#include "desktop/Subsurface.hpp"
 #include "helpers/AnimatedVariable.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
 #include "config/ConfigDataValues.hpp"
 #include "helpers/Vector2D.hpp"
-#include "helpers/WLSurface.hpp"
+#include "desktop/WLSurface.hpp"
 #include "macros.hpp"
 #include "managers/XWaylandManager.hpp"
 

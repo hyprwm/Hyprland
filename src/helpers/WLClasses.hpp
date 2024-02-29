@@ -4,9 +4,9 @@
 #include "../defines.hpp"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "../Window.hpp"
-#include "Subsurface.hpp"
+#include "../desktop/Subsurface.hpp"
 #include "AnimatedVariable.hpp"
-#include "WLSurface.hpp"
+#include "../desktop/WLSurface.hpp"
 #include "Region.hpp"
 
 struct SLayerRule {

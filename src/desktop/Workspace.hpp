@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AnimatedVariable.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 #include <string>
 #include "../defines.hpp"
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "defines.hpp"
-#include "helpers/SubsurfaceTree.hpp"
+#include "helpers/Subsurface.hpp"
 #include "helpers/AnimatedVariable.hpp"
 #include "render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
@@ -276,9 +276,10 @@ class CWindow {
     bool m_bWantsInitialFullscreen = false;
 
     // bitfield eSuppressEvents
-    uint64_t          m_eSuppressedEvents = SUPPRESS_NONE;
+    uint64_t m_eSuppressedEvents = SUPPRESS_NONE;
 
-    SSurfaceTreeNode* m_pSurfaceTree = nullptr;
+    // for the subsurface tree
+    std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
 
     // Animated border
     CGradientValueData m_cRealBorderColor         = {0};

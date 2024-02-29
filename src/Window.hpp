@@ -209,8 +209,7 @@ class CWindow {
     DYNLISTENER(ackConfigure);
     // DYNLISTENER(newSubsurfaceWindow);
 
-    CWLSurface            m_pWLSurface;
-    std::list<CWLSurface> m_lPopupSurfaces;
+    CWLSurface m_pWLSurface;
 
     union {
         wlr_xdg_surface*      xdg;

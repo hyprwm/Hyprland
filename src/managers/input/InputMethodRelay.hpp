@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include "../../defines.hpp"
 #include "../../helpers/WLClasses.hpp"
 

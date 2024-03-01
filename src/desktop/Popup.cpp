@@ -1,4 +1,5 @@
 #include "Popup.hpp"
+#include "../Compositor.hpp"
 
 CPopup::CPopup(CWindow* pOwner) : m_pWindowOwner(pOwner) {
     initAllSignals();

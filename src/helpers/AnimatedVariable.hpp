@@ -18,20 +18,27 @@ enum ANIMATEDVARTYPE {
 
 // Utility to bind a type with its corresponding ANIMATEDVARTYPE
 template <class T>
-struct typeToANIMATEDVARTYPE_t { static constexpr ANIMATEDVARTYPE value = AVARTYPE_INVALID; };
+struct typeToANIMATEDVARTYPE_t {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_INVALID;
+};
 
-template<>
-struct typeToANIMATEDVARTYPE_t<float> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_FLOAT; };
+template <>
+struct typeToANIMATEDVARTYPE_t<float> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_FLOAT;
+};
 
-template<>
-struct typeToANIMATEDVARTYPE_t<Vector2D> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_VECTOR; };
+template <>
+struct typeToANIMATEDVARTYPE_t<Vector2D> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_VECTOR;
+};
 
-template<>
-struct typeToANIMATEDVARTYPE_t<CColor> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_COLOR; };
+template <>
+struct typeToANIMATEDVARTYPE_t<CColor> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_COLOR;
+};
 
 template <class T>
 inline constexpr ANIMATEDVARTYPE typeToANIMATEDVARTYPE = typeToANIMATEDVARTYPE_t<T>::value;
-
 
 enum AVARDAMAGEPOLICY {
     AVARDAMAGE_NONE   = -1,
@@ -73,7 +80,8 @@ class CBaseAnimatedVariable {
 
     virtual void warp(bool endCallback = true) = 0;
 
-    void         setConfig(SAnimationPropertyConfig* pConfig) {
+    //
+    void setConfig(SAnimationPropertyConfig* pConfig) {
         m_pConfig = pConfig;
     }
 
@@ -192,7 +200,6 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
     CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
 
     void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
-
         create(pAnimConfig, pWindow, policy);
         m_Value = value;
     }

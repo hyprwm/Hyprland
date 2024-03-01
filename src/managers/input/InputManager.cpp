@@ -154,7 +154,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 const auto CLOSESTLOCAL = CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{});
 
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, CLOSEST.x, CLOSEST.y);
-                wlr_seat_pointer_send_motion(g_pCompositor->m_sSeat.seat, time, CLOSESTLOCAL.x, CLOSESTLOCAL.y);
             }
 
             return;

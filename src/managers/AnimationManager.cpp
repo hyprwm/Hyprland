@@ -1,6 +1,7 @@
 #include "AnimationManager.hpp"
 #include "../Compositor.hpp"
 #include "HookSystemManager.hpp"
+#include "macros.hpp"
 
 int wlTick(void* data) {
     if (g_pAnimationManager)
@@ -113,7 +114,7 @@ void CAnimationManager::tick() {
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
 
-        auto visitFunction = [&]<Animable T>(CAnimatedVariable<T>& av) {
+        auto updateVariable = [&]<Animable T>(CAnimatedVariable<T>& av) {
             // for disabled anims just warp
             if (av.m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
                 av.warp(false);
@@ -134,14 +135,25 @@ void CAnimationManager::tick() {
                 av.m_Value = av.m_Begun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
         };
 
-        auto visitor = CAnimatedVisitorOverload{
-            [&](CAnimatedVariable<float>& av) { visitFunction(av); },
-            [&](CAnimatedVariable<Vector2D>& av) { visitFunction(av); },
-            [&](CAnimatedVariable<CColor>& av) { visitFunction(av); },
-        };
-
-        av->accept(visitor);
-
+        switch (av->m_Type) {
+            case AVARTYPE_FLOAT: {
+                auto typedAv = static_cast<CAnimatedVariable<float>*>(av);
+                updateVariable(*typedAv);
+                break;
+            }
+            case AVARTYPE_VECTOR: {
+                auto typedAv = static_cast<CAnimatedVariable<Vector2D>*>(av);
+                updateVariable(*typedAv);
+                break;
+            }
+            case AVARTYPE_COLOR: {
+                auto typedAv = static_cast<CAnimatedVariable<CColor>*>(av);
+                updateVariable(*typedAv);
+                break;
+            }
+            default:
+                UNREACHABLE();
+        }
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
         if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());

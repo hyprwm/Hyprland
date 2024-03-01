@@ -2,7 +2,7 @@
 #include "../managers/AnimationManager.hpp"
 #include "../config/ConfigManager.hpp"
 
-CBaseAnimatedVariable::CBaseAnimatedVariable() {
+CBaseAnimatedVariable::CBaseAnimatedVariable(ANIMATEDVARTYPE type) : m_Type(type) {
     ; // dummy var
 }
 

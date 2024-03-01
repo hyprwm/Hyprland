@@ -3,6 +3,7 @@
 #include <functional>
 #include <any>
 #include <chrono>
+#include <type_traits>
 #include "Vector2D.hpp"
 #include "Color.hpp"
 #include "../macros.hpp"
@@ -14,6 +15,23 @@ enum ANIMATEDVARTYPE {
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
+
+// Utility to bind a type with its corresponding ANIMATEDVARTYPE
+template <class T>
+struct typeToANIMATEDVARTYPE_t { static constexpr ANIMATEDVARTYPE value = AVARTYPE_INVALID; };
+
+template<>
+struct typeToANIMATEDVARTYPE_t<float> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_FLOAT; };
+
+template<>
+struct typeToANIMATEDVARTYPE_t<Vector2D> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_VECTOR; };
+
+template<>
+struct typeToANIMATEDVARTYPE_t<CColor> { static constexpr ANIMATEDVARTYPE value = AVARTYPE_COLOR; };
+
+template <class T>
+inline constexpr ANIMATEDVARTYPE typeToANIMATEDVARTYPE = typeToANIMATEDVARTYPE_t<T>::value;
+
 
 enum AVARDAMAGEPOLICY {
     AVARDAMAGE_NONE   = -1,
@@ -28,64 +46,19 @@ struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
 
-#define ANIMABLE_TYPES Vector2D, float, CColor
-
+// Utility to define a concept as a list of possible type
 template <class T, class... U>
 concept OneOf = (... or std::same_as<T, U>);
 
+// Concept to describe which type can be placed into CAnimatedVariable
+// This is mainly to get better errors if we put a type that's not supported
+// Otherwise template errors are ugly
 template <class T>
-concept Animable = OneOf<T, ANIMABLE_TYPES>;
-
-template<Animable T>
-class CAnimatedVariable;
-
-template <Animable T, Animable... Ts>
-class CAnimatedVariableVisitorTyped : CAnimatedVariableVisitorTyped<Ts...> {
-  public:
-    virtual void visit(CAnimatedVariable<T>&) {}
-
-    using CAnimatedVariableVisitorTyped<Ts...>::visit;
-};
-template <Animable T>
-class CAnimatedVariableVisitorTyped<T> {
-  public:
-    virtual void visit(CAnimatedVariable<T>&) {}
-};
-
-using CAnimatedVariableVisitor = CAnimatedVariableVisitorTyped<ANIMABLE_TYPES>;
-
-template <class T> struct decompose;
-
-template <class T, class Arg> struct decompose<void (T::*)(Arg) const> {
-    using arg_type = Arg;
-};
-
-template <class T, class... Ts> class CAnimatedVisitorOverload : public CAnimatedVisitorOverload<Ts...>, T {
-  public:
-    CAnimatedVisitorOverload(T t, Ts... ts) : T(t), CAnimatedVisitorOverload<Ts...>(ts...) {}
-
-    virtual void visit(decompose<decltype(&T::operator())>::arg_type arg) override {
-        T::operator()(arg);
-    }
-
-    using CAnimatedVisitorOverload<Ts...>::visit;
-};
-
-template <class T> class CAnimatedVisitorOverload<T> : public CAnimatedVariableVisitor, T {
-  public:
-    CAnimatedVisitorOverload(T t) : T(t) {}
-    virtual void visit(decompose<decltype(&T::operator())>::arg_type arg) override {
-        T::operator()(arg);
-    }
-};
-
-template <class... Ts> CAnimatedVisitorOverload(Ts...) -> CAnimatedVisitorOverload<Ts...>;
-template <class T> CAnimatedVisitorOverload(T) -> CAnimatedVisitorOverload<T>;
-
+concept Animable = OneOf<T, Vector2D, float, CColor>;
 
 class CBaseAnimatedVariable {
   public:
-    CBaseAnimatedVariable(); // dummy var
+    CBaseAnimatedVariable(ANIMATEDVARTYPE type);
     void create(SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy);
 
     CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
@@ -98,7 +71,6 @@ class CBaseAnimatedVariable {
     void         unregister();
     void         registerVar();
 
-    virtual void accept(CAnimatedVariableVisitor& visitor) = 0;
     virtual void warp(bool endCallback = true) = 0;
 
     void         setConfig(SAnimationPropertyConfig* pConfig) {
@@ -169,6 +141,7 @@ class CBaseAnimatedVariable {
     std::chrono::system_clock::time_point animationBegin;
 
     AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
+    ANIMATEDVARTYPE                       m_Type;
 
     bool                                  m_bRemoveEndAfterRan   = true;
     bool                                  m_bRemoveBeginAfterRan = true;
@@ -216,7 +189,7 @@ class CBaseAnimatedVariable {
 template <Animable VarType>
 class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
-    CAnimatedVariable() = default; // dummy var
+    CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
 
     void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
 
@@ -233,9 +206,6 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
 
     ~CAnimatedVariable() = default;
 
-    void accept(CAnimatedVariableVisitor& visitor) override {
-        visitor.visit(*this);
-    }
     // gets the current vector value (real time)
     const VarType& value() const {
         return m_Value;

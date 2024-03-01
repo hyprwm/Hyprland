@@ -1,0 +1,23 @@
+diff --git a/src/meson.build b/src/meson.build
+index 5d04334..6645eec 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -170,7 +170,7 @@ if get_option('libraries')
+ 		error('We probably need to bump the SONAME of libwayland-server and -client')
+ 	endif
+ 
+-	wayland_server = library(
++	wayland_server = static_library(
+ 		'wayland-server',
+ 		sources: [
+ 			wayland_server_protocol_core_h,
+@@ -180,9 +180,6 @@ if get_option('libraries')
+ 			'wayland-shm.c',
+ 			'event-loop.c'
+ 		],
+-		# To avoid an unnecessary SONAME bump, wayland 1.x.y produces
+-		# libwayland-server.so.0.x.y.
+-		version: '.'.join(['0', wayland_version[1], wayland_version[2]]),
+ 		dependencies: [
+ 			epoll_dep,
+ 			ffi_dep,

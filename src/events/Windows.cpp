@@ -652,6 +652,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 
     g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
+
+    if (PMONITOR && PWINDOW->m_iX11Type == 2)
+        PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
@@ -1057,6 +1060,8 @@ void Events::listener_configureX11(void* owner, void* data) {
         wlr_xwayland_surface_configure(PWINDOW->m_uSurface.xwayland, E->x, E->y, E->width, E->height);
         PWINDOW->m_vPendingReportedSize = {E->width, E->height};
         PWINDOW->m_vReportedSize        = {E->width, E->height};
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+            PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
         return;
     }
 
@@ -1081,8 +1086,10 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
     if (**PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
             PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goalv() / PMONITOR->scale);
+            PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
+        }
     }
 
     PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.vec();

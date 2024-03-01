@@ -327,13 +327,13 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         }
     }
 
-    if (layersurface->realPosition.goalv() != layersurface->geometry.pos()) {
+    if (layersurface->realPosition.goal() != layersurface->geometry.pos()) {
         if (layersurface->realPosition.isBeingAnimated())
             layersurface->realPosition = layersurface->geometry.pos();
         else
             layersurface->realPosition.setValueAndWarp(layersurface->geometry.pos());
     }
-    if (layersurface->realSize.goalv() != layersurface->geometry.size()) {
+    if (layersurface->realSize.goal() != layersurface->geometry.size()) {
         if (layersurface->realSize.isBeingAnimated())
             layersurface->realSize = layersurface->geometry.size();
         else

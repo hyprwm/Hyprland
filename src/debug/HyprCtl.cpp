@@ -171,8 +171,8 @@ static std::string getWindowData(CWindow* w, eHyprCtlOutputFormat format) {
     "swallowing": "0x{:x}",
     "focusHistoryID": {}
 }},)#",
-            (uintptr_t)w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
-            (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
+            (uintptr_t)w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
+            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_iWorkspaceID,
             escapeJSONStrings(w->m_iWorkspaceID == -1                                ? "" :
                                   g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
                                                                                        std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))),
@@ -187,8 +187,8 @@ static std::string getWindowData(CWindow* w, eHyprCtlOutputFormat format) {
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
             "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
-            (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goalv().x, (int)w->m_vRealPosition.goalv().y,
-            (int)w->m_vRealSize.goalv().x, (int)w->m_vRealSize.goalv().y, w->m_iWorkspaceID,
+            (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
+            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_iWorkspaceID,
             (w->m_iWorkspaceID == -1                                ? "" :
                  g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
                                                                       std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))),

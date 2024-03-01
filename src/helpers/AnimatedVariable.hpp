@@ -28,175 +28,80 @@ struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
 
-class CAnimatedVariable {
+#define ANIMABLE_TYPES Vector2D, float, CColor
+
+template <class T, class... U>
+concept OneOf = (... or std::same_as<T, U>);
+
+template <class T>
+concept Animable = OneOf<T, ANIMABLE_TYPES>;
+
+template<Animable T>
+class CAnimatedVariable;
+
+template <Animable T, Animable... Ts>
+class CAnimatedVariableVisitorTyped : CAnimatedVariableVisitorTyped<Ts...> {
   public:
-    CAnimatedVariable(); // dummy var
+    virtual void visit(CAnimatedVariable<T>&) {}
 
-    void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
-    void create(ANIMATEDVARTYPE, std::any val, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
+    using CAnimatedVariableVisitorTyped<Ts...>::visit;
+};
+template <Animable T>
+class CAnimatedVariableVisitorTyped<T> {
+  public:
+    virtual void visit(CAnimatedVariable<T>&) {}
+};
 
-    CAnimatedVariable(const CAnimatedVariable&)            = delete;
-    CAnimatedVariable(CAnimatedVariable&&)                 = delete;
-    CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
-    CAnimatedVariable& operator=(CAnimatedVariable&&)      = delete;
+using CAnimatedVariableVisitor = CAnimatedVariableVisitorTyped<ANIMABLE_TYPES>;
 
-    ~CAnimatedVariable();
+template <class T> struct decompose;
 
-    void unregister();
-    void registerVar();
+template <class T, class Arg> struct decompose<void (T::*)(Arg) const> {
+    using arg_type = Arg;
+};
 
-    // gets the current vector value (real time)
-    const Vector2D& vec() const {
-        return m_vValue;
+template <class T, class... Ts> class CAnimatedVisitorOverload : public CAnimatedVisitorOverload<Ts...>, T {
+  public:
+    CAnimatedVisitorOverload(T t, Ts... ts) : T(t), CAnimatedVisitorOverload<Ts...>(ts...) {}
+
+    virtual void visit(decompose<decltype(&T::operator())>::arg_type arg) override {
+        T::operator()(arg);
     }
 
-    // gets the current float value (real time)
-    const float& fl() const {
-        return m_fValue;
+    using CAnimatedVisitorOverload<Ts...>::visit;
+};
+
+template <class T> class CAnimatedVisitorOverload<T> : public CAnimatedVariableVisitor, T {
+  public:
+    CAnimatedVisitorOverload(T t) : T(t) {}
+    virtual void visit(decompose<decltype(&T::operator())>::arg_type arg) override {
+        T::operator()(arg);
     }
+};
 
-    // gets the current color value (real time)
-    const CColor& col() const {
-        return m_cValue;
-    }
+template <class... Ts> CAnimatedVisitorOverload(Ts...) -> CAnimatedVisitorOverload<Ts...>;
+template <class T> CAnimatedVisitorOverload(T) -> CAnimatedVisitorOverload<T>;
 
-    // gets the goal vector value
-    const Vector2D& goalv() const {
-        return m_vGoal;
-    }
 
-    // gets the goal float value
-    const float& goalf() const {
-        return m_fGoal;
-    }
+class CBaseAnimatedVariable {
+  public:
+    CBaseAnimatedVariable(); // dummy var
+    void create(SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy);
 
-    // gets the goal color value
-    const CColor& goalc() const {
-        return m_cGoal;
-    }
+    CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
+    CBaseAnimatedVariable(CBaseAnimatedVariable&&)                 = delete;
+    CBaseAnimatedVariable& operator=(const CBaseAnimatedVariable&) = delete;
+    CBaseAnimatedVariable& operator=(CBaseAnimatedVariable&&)      = delete;
 
-    CAnimatedVariable& operator=(const Vector2D& v) {
-        if (v == m_vGoal)
-            return *this;
+    virtual ~CBaseAnimatedVariable();
 
-        m_vGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
+    void         unregister();
+    void         registerVar();
 
-        onAnimationBegin();
+    virtual void accept(CAnimatedVariableVisitor& visitor) = 0;
+    virtual void warp(bool endCallback = true) = 0;
 
-        return *this;
-    }
-
-    CAnimatedVariable& operator=(const float& v) {
-        if (v == m_fGoal)
-            return *this;
-
-        m_fGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_fBegun       = m_fValue;
-
-        onAnimationBegin();
-
-        return *this;
-    }
-
-    CAnimatedVariable& operator=(const CColor& v) {
-        if (v == m_cGoal)
-            return *this;
-
-        m_cGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_cBegun       = m_cValue;
-
-        onAnimationBegin();
-
-        return *this;
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const Vector2D& v) {
-        if (v == m_vValue)
-            return;
-
-        m_vValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const float& v) {
-        if (v == m_fValue)
-            return;
-
-        m_fValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const CColor& v) {
-        if (v == m_cValue)
-            return;
-
-        m_cValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const Vector2D& v) {
-        m_vGoal = v;
-        warp();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const float& v) {
-        m_fGoal = v;
-        warp();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const CColor& v) {
-        m_cGoal = v;
-        warp();
-    }
-
-    // checks if an animation is in progress
-    inline bool isBeingAnimated() {
-        return m_bIsBeingAnimated;
-    }
-
-    void warp(bool endCallback = true) {
-        switch (m_eVarType) {
-            case AVARTYPE_FLOAT: {
-                m_fValue = m_fGoal;
-                break;
-            }
-            case AVARTYPE_VECTOR: {
-                m_vValue = m_vGoal;
-                break;
-            }
-            case AVARTYPE_COLOR: {
-                m_cValue = m_cGoal;
-                break;
-            }
-            default: UNREACHABLE();
-        }
-
-        m_bIsBeingAnimated = false;
-
-        if (endCallback)
-            onAnimationEnd();
-    }
-
-    void setConfig(SAnimationPropertyConfig* pConfig) {
+    void         setConfig(SAnimationPropertyConfig* pConfig) {
         m_pConfig = pConfig;
     }
 
@@ -211,6 +116,11 @@ class CAnimatedVariable {
 
     /* returns the current curve value */
     float getCurveValue();
+
+    // checks if an animation is in progress
+    inline bool isBeingAnimated() {
+        return m_bIsBeingAnimated;
+    }
 
     /*  sets a function to be ran when the animation finishes.
         if an animation is not running, runs instantly.
@@ -245,20 +155,7 @@ class CAnimatedVariable {
         m_bRemoveEndAfterRan   = false;
     }
 
-  private:
-    Vector2D m_vValue = Vector2D(0, 0);
-    float    m_fValue = 0;
-    CColor   m_cValue;
-
-    Vector2D m_vGoal = Vector2D(0, 0);
-    float    m_fGoal = 0;
-    CColor   m_cGoal;
-
-    Vector2D m_vBegun = Vector2D(0, 0);
-    float    m_fBegun = 0;
-    CColor   m_cBegun;
-
-    // owners
+  protected:
     void*                                 m_pWindow    = nullptr;
     void*                                 m_pWorkspace = nullptr;
     void*                                 m_pLayer     = nullptr;
@@ -271,7 +168,6 @@ class CAnimatedVariable {
 
     std::chrono::system_clock::time_point animationBegin;
 
-    ANIMATEDVARTYPE                       m_eVarType      = AVARTYPE_INVALID;
     AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
 
     bool                                  m_bRemoveEndAfterRan   = true;
@@ -281,7 +177,9 @@ class CAnimatedVariable {
     std::function<void(void* thisptr)>    m_fUpdateCallback;
 
     bool                                  m_bIsConnectedToActive = false;
+
     void                                  connectToActive();
+
     void                                  disconnectFromActive();
 
     // methods
@@ -308,6 +206,92 @@ class CAnimatedVariable {
                 m_fBeginCallback = nullptr; // reset
         }
     }
+
+    friend class CAnimationManager;
+    friend class CWorkspace;
+    friend struct SLayerSurface;
+    friend class CHyprRenderer;
+};
+
+template <Animable VarType>
+class CAnimatedVariable : public CBaseAnimatedVariable {
+  public:
+    CAnimatedVariable() = default; // dummy var
+
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
+
+        create(pAnimConfig, pWindow, policy);
+        m_Value = value;
+    }
+
+    using CBaseAnimatedVariable::create;
+
+    CAnimatedVariable(const CAnimatedVariable&)            = delete;
+    CAnimatedVariable(CAnimatedVariable&&)                 = delete;
+    CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
+    CAnimatedVariable& operator=(CAnimatedVariable&&)      = delete;
+
+    ~CAnimatedVariable() = default;
+
+    void accept(CAnimatedVariableVisitor& visitor) override {
+        visitor.visit(*this);
+    }
+    // gets the current vector value (real time)
+    const VarType& value() const {
+        return m_Value;
+    }
+
+    // gets the goal vector value
+    const VarType& goal() const {
+        return m_Goal;
+    }
+
+    CAnimatedVariable& operator=(const VarType& v) {
+        if (v == m_Goal)
+            return *this;
+
+        m_Goal         = v;
+        animationBegin = std::chrono::system_clock::now();
+        m_Begun        = m_Value;
+
+        onAnimationBegin();
+
+        return *this;
+    }
+
+    // Sets the actual stored value, without affecting the goal, but resets the timer
+    void setValue(const VarType& v) {
+        if (v == m_Value)
+            return;
+
+        m_Value        = v;
+        animationBegin = std::chrono::system_clock::now();
+        m_Begun        = m_Value;
+
+        onAnimationBegin();
+    }
+
+    // Sets the actual value and goal
+    void setValueAndWarp(const VarType& v) {
+        m_Goal = v;
+        warp();
+    }
+
+    void warp(bool endCallback = true) override {
+        m_Value = m_Goal;
+
+        m_bIsBeingAnimated = false;
+
+        if (endCallback)
+            onAnimationEnd();
+    }
+
+  private:
+    VarType m_Value{};
+    VarType m_Goal{};
+    VarType m_Begun{};
+
+    // owners
 
     friend class CAnimationManager;
     friend class CWorkspace;

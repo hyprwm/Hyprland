@@ -668,7 +668,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
         PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goalv());
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
 
         return;
     }
@@ -732,7 +732,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-        PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goalv() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goalv() + pixResize).y, 20.0));
+        PWINDOW->m_vRealSize = Vector2D(std::max((PWINDOW->m_vRealSize.goal() + pixResize).x, 20.0), std::max((PWINDOW->m_vRealSize.goal() + pixResize).y, 20.0));
         PWINDOW->updateWindowDecos();
         return;
     }
@@ -884,10 +884,10 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
 
     // save position and size if floating
     if (pWindow->m_bIsFloating && on) {
-        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goalv();
-        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goalv();
-        pWindow->m_vPosition             = pWindow->m_vRealPosition.goalv();
-        pWindow->m_vSize                 = pWindow->m_vRealSize.goalv();
+        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goal();
+        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goal();
+        pWindow->m_vPosition             = pWindow->m_vRealPosition.goal();
+        pWindow->m_vSize                 = pWindow->m_vRealSize.goal();
     }
 
     // otherwise, accept it.
@@ -941,7 +941,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
 
     g_pCompositor->updateWindowAnimatedDecorationValues(pWindow);
 
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv());
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal());
 
     g_pCompositor->changeWindowZOrder(pWindow, true);
 

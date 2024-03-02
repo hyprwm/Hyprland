@@ -808,8 +808,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
         if ((maxSize.x > 0 && maxSize.x < predSize.x) || (maxSize.y > 0 && maxSize.y < predSize.y))
             predSize = {};
 
-        for (auto& r : g_pConfigManager->getMatchingRules(PWINDOW)) {
-            if (r.szRule == "float") {
+        for (auto& r : g_pConfigManager->getMatchingRules(PWINDOW, true, true)) {
+            if (r.szRule.starts_with("float")) {
                 predSize = {};
                 break;
             }

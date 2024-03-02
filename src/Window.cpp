@@ -239,13 +239,12 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
 pid_t CWindow::getPID() {
     pid_t PID = -1;
     if (!m_bIsX11) {
-
-        if (!m_bIsMapped)
+        if (!m_uSurface.xdg)
             return -1;
 
         wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
     } else {
-        if (!m_bIsMapped)
+        if (!m_uSurface.xwayland)
             return -1;
 
         PID = m_uSurface.xwayland->pid;

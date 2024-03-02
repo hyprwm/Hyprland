@@ -1820,6 +1820,11 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if (KEY != "") {
         SParsedKey parsedKey = parseKey(KEY);
 
+        if (parsedKey.catchAll && m_szCurrentSubmap == "") {
+            Debug::log(ERR, "Catchall not allowed outside of submap!");
+            return "Invalid catchall, catchall keybinds are only allowed in submaps.";
+        }
+
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
                                                nonConsuming, transparent, ignoreMods});
     }

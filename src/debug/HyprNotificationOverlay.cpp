@@ -50,6 +50,18 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     }
 }
 
+void CHyprNotificationOverlay::dismissNotifications(const int amount) {
+    if (amount == -1)
+        m_dNotifications.clear();
+    else {
+        const int AMT = std::min(amount, static_cast<int>(m_dNotifications.size()));
+
+        for (int i = 0; i < AMT; ++i) {
+            m_dNotifications.pop_front();
+        }
+    }
+}
+
 CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     static constexpr auto ANIM_DURATION_MS   = 600.0;
     static constexpr auto ANIM_LAG_MS        = 100.0;

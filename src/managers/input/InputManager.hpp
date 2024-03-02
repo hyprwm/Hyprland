@@ -7,6 +7,8 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
+class CConstraint;
+
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
@@ -80,11 +82,8 @@ class CInputManager {
     void               destroyMouse(wlr_input_device*);
     void               destroySwitch(SSwitchDevice*);
 
-    void               constrainMouse(SMouse*, wlr_pointer_constraint_v1*);
-    void               warpMouseToConstraintMiddle(SConstraint*);
-    void               recheckConstraint(SMouse*);
     void               unconstrainMouse();
-    SConstraint*       constraintFromWlr(wlr_pointer_constraint_v1*);
+    bool               isConstrained();
     std::string        getActiveLayoutForKeyboard(SKeyboard*);
 
     Vector2D           getMouseCoordsInternal();
@@ -120,13 +119,12 @@ class CInputManager {
     bool           m_bWasDraggingWindow   = false;
 
     // for refocus to be forced
-    CWindow*               m_pForcedFocus = nullptr;
+    CWindow*             m_pForcedFocus = nullptr;
 
-    SDrag                  m_sDrag;
+    SDrag                m_sDrag;
 
-    std::list<SConstraint> m_lConstraints;
-    std::list<SKeyboard>   m_lKeyboards;
-    std::list<SMouse>      m_lMice;
+    std::list<SKeyboard> m_lKeyboards;
+    std::list<SMouse>    m_lMice;
 
     // tablets
     std::list<STablet>     m_lTablets;
@@ -145,25 +143,28 @@ class CInputManager {
     // Exclusive layer surfaces
     std::deque<SLayerSurface*> m_dExclusiveLSes;
 
-    void                       newTabletTool(wlr_input_device*);
-    void                       newTabletPad(wlr_input_device*);
-    void                       focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
-    void                       newIdleInhibitor(wlr_idle_inhibitor_v1*);
-    void                       recheckIdleInhibitorStatus();
+    // constraints
+    std::vector<CConstraint*> m_vConstraints;
 
-    void                       onSwipeBegin(wlr_pointer_swipe_begin_event*);
-    void                       onSwipeEnd(wlr_pointer_swipe_end_event*);
-    void                       onSwipeUpdate(wlr_pointer_swipe_update_event*);
+    void                      newTabletTool(wlr_input_device*);
+    void                      newTabletPad(wlr_input_device*);
+    void                      focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+    void                      newIdleInhibitor(wlr_idle_inhibitor_v1*);
+    void                      recheckIdleInhibitorStatus();
 
-    SSwipeGesture              m_sActiveSwipe;
+    void                      onSwipeBegin(wlr_pointer_swipe_begin_event*);
+    void                      onSwipeEnd(wlr_pointer_swipe_end_event*);
+    void                      onSwipeUpdate(wlr_pointer_swipe_update_event*);
 
-    SKeyboard*                 m_pActiveKeyboard = nullptr;
+    SSwipeGesture             m_sActiveSwipe;
 
-    CTimer                     m_tmrLastCursorMovement;
+    SKeyboard*                m_pActiveKeyboard = nullptr;
 
-    CInputMethodRelay          m_sIMERelay;
+    CTimer                    m_tmrLastCursorMovement;
 
-    void                       updateKeyboardsLeds(wlr_input_device* pKeyboard);
+    CInputMethodRelay         m_sIMERelay;
+
+    void                      updateKeyboardsLeds(wlr_input_device* pKeyboard);
 
     // for shared mods
     uint32_t accumulateModsFromAllKBs();

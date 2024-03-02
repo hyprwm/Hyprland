@@ -144,7 +144,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     const bool GRABSFOCUS = layersurface->layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
-        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint);
+        (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained());
 
     if (GRABSFOCUS) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
@@ -340,8 +340,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             layersurface->realSize.setValueAndWarp(layersurface->geometry.size());
     }
 
-    if (layersurface->layerSurface->current.keyboard_interactive &&
-        (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) // don't focus if constrained
+    if (layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained()) // don't focus if constrained
         && !layersurface->keyboardExclusive && layersurface->mapped) {
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
@@ -349,7 +348,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
-    } else if (!layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->currentConstraint) &&
+    } else if (!layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained()) &&
                layersurface->keyboardExclusive) {
         g_pInputManager->refocus();
     }

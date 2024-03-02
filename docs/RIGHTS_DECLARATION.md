@@ -18,6 +18,6 @@ By making a contribution to this project, I certify that:
 
  Ⅲ) I give full rights to Hypr Development to redistribute this contribution as a part of the parent project in both source and binary form.
 
- Ⅳ) I give full rights to Hypr Development to relicense the parent project to which I am contributing at a later date to any license as long as that license does not hinder the ability of one to contribute to, or view the source code of the project.
+ Ⅳ) I give full rights to Hypr Development to relicense the parent project to which I am contributing at a later date to any license as long as that license does not hinder the ability of any non-commercial entity to contribute to, redistribute or view the source code of the project.
 
  Ⅴ) I understand this document may change in the future, although any contributions made will be subject to the version at the time of the submission.

@@ -151,8 +151,7 @@ void CAnimationManager::tick() {
                 updateVariable(*typedAv);
                 break;
             }
-            default:
-                UNREACHABLE();
+            default: UNREACHABLE();
         }
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
         if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)

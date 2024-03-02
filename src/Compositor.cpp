@@ -843,7 +843,8 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, geom.pWlr());
     geom.applyFromWlr();
 
-    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx, &suby);
+    const auto PFOUND =
+        wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx, &suby);
 
     if (PFOUND) {
         sl.x = subx;

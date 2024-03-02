@@ -471,7 +471,8 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         CBox wb = {pWindow->m_vRealPosition.goal() + (pWindow->m_vRealSize.goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
         wb.round();
 
-        if (DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) && DELTALESSTHAN(pWindow->m_vRealSize.value().y, pWindow->m_vLastFloatingSize.y, 10)) {
+        if (DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) &&
+            DELTALESSTHAN(pWindow->m_vRealSize.value().y, pWindow->m_vLastFloatingSize.y, 10)) {
             wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 

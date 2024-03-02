@@ -30,7 +30,7 @@ void addViewCoords(void* pWindow, int* x, int* y) {
 }
 
 void setAnimToMove(void* data) {
-    auto* const        PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+    auto* const            PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
 
     CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;
 
@@ -760,7 +760,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 
-    if (!PWINDOW->m_bX11DoesntWantBorders)                                                  // don't animate out if they weren't animated in.
+    if (!PWINDOW->m_bX11DoesntWantBorders)                                                    // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
 
     // anims

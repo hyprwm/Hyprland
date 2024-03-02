@@ -2307,8 +2307,8 @@ void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWo
             continue;
 
         const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.value() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.value());
-        const Vector2D SIZE     = w->m_vRealSize.value() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+        const Vector2D POS  = w->m_vRealPosition.value() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.value());
+        const Vector2D SIZE = w->m_vRealSize.value() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
@@ -2333,8 +2333,8 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, CWorkspace* pWorks
             continue;
 
         const auto     ROUNDING = w->rounding() * PMONITOR->scale;
-        const Vector2D POS      = w->m_vRealPosition.value() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.value());
-        const Vector2D SIZE     = w->m_vRealSize.value() - Vector2D{ROUNDING * 2, ROUNDING * 2};
+        const Vector2D POS  = w->m_vRealPosition.value() + Vector2D{ROUNDING, ROUNDING} - PMONITOR->vecPosition + (w->m_bPinned ? Vector2D{} : pWorkspace->m_vRenderOffset.value());
+        const Vector2D SIZE = w->m_vRealSize.value() - Vector2D{ROUNDING * 2, ROUNDING * 2};
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 

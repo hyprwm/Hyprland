@@ -91,7 +91,7 @@
           stdenv = pkgsFor.${system}.gcc13Stdenv;
         } {
           name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [cmake python3];
+          nativeBuildInputs = with pkgsFor.${system}; [cmake python3 expat libxml2];
           buildInputs = [self.packages.${system}.wlroots-hyprland];
           hardeningDisable = ["fortify"];
           inputsFrom = [

@@ -55,7 +55,7 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
 
 void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
-        setWindowSize(pWindow, pWindow->m_vRealSize.vec()); // update xwayland output pos
+        setWindowSize(pWindow, pWindow->m_vRealSize.value()); // update xwayland output pos
 
         if (activate) {
             wlr_xwayland_surface_set_minimized(pWindow->m_uSurface.xwayland, false);
@@ -161,7 +161,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO
-    Vector2D windowPos = pWindow->m_vRealPosition.vec();
+    Vector2D windowPos = pWindow->m_vRealPosition.value();
 
     if (pWindow->m_bIsX11 && PMONITOR) {
         windowPos = windowPos - PMONITOR->vecPosition; // normalize to monitor
@@ -266,7 +266,7 @@ void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& 
     if (!pWindow->m_bIsX11)
         return;
 
-    wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.vec().x, pWindow->m_vRealSize.vec().y);
+    wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.value().x, pWindow->m_vRealSize.value().y);
 }
 
 void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {

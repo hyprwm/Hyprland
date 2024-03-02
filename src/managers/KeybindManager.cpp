@@ -874,8 +874,8 @@ void CKeybindManager::centerWindow(std::string args) {
     if (args == "1")
         RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goalv() / 2.f + RESERVEDOFFSET;
-    PWINDOW->m_vPosition     = PWINDOW->m_vRealPosition.goalv();
+    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
+    PWINDOW->m_vPosition     = PWINDOW->m_vRealPosition.goal();
 }
 
 void CKeybindManager::toggleActivePseudo(std::string args) {
@@ -1222,14 +1222,14 @@ void CKeybindManager::moveActiveTo(std::string args) {
 
         switch (arg) {
             case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
-            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goalv().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
             case 't':
             case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
             case 'b':
-            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goalv().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
         }
 
-        PLASTWINDOW->m_vRealPosition = Vector2D(vPos.x != 0 ? vPos.x : PLASTWINDOW->m_vRealPosition.goalv().x, vPos.y != 0 ? vPos.y : PLASTWINDOW->m_vRealPosition.goalv().y);
+        PLASTWINDOW->m_vRealPosition = Vector2D(vPos.x != 0 ? vPos.x : PLASTWINDOW->m_vRealPosition.goal().x, vPos.y != 0 ? vPos.y : PLASTWINDOW->m_vRealPosition.goal().y);
         return;
     }
 
@@ -1377,22 +1377,22 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
     switch (CORNER) {
         case 0:
             // bottom left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x,
-                            PWINDOW->m_vRealPosition.vec().y + PWINDOW->m_vRealSize.vec().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x,
+                            PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
             break;
         case 1:
             // bottom right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x + PWINDOW->m_vRealSize.vec().x,
-                            PWINDOW->m_vRealPosition.vec().y + PWINDOW->m_vRealSize.vec().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
+                            PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
             break;
         case 2:
             // top right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x + PWINDOW->m_vRealSize.vec().x,
-                            PWINDOW->m_vRealPosition.vec().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
+                            PWINDOW->m_vRealPosition.value().y);
             break;
         case 3:
             // top left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.vec().x, PWINDOW->m_vRealPosition.vec().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y);
             break;
     }
 }
@@ -1457,8 +1457,8 @@ void CKeybindManager::workspaceOpt(std::string args) {
                 continue;
 
             if (!w->m_bRequestsFloat && w->m_bIsFloating != PWORKSPACE->m_bDefaultFloating) {
-                const auto SAVEDPOS  = w->m_vRealPosition.vec();
-                const auto SAVEDSIZE = w->m_vRealSize.vec();
+                const auto SAVEDPOS  = w->m_vRealPosition.value();
+                const auto SAVEDSIZE = w->m_vRealSize.value();
 
                 w->m_bIsFloating = PWORKSPACE->m_bDefaultFloating;
                 g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
@@ -1467,8 +1467,8 @@ void CKeybindManager::workspaceOpt(std::string args) {
                     w->m_vRealPosition.setValueAndWarp(SAVEDPOS);
                     w->m_vRealSize.setValueAndWarp(SAVEDSIZE);
                     g_pXWaylandManager->setWindowSize(w, SAVEDSIZE);
-                    w->m_vRealSize     = w->m_vRealSize.vec() + Vector2D(4, 4);
-                    w->m_vRealPosition = w->m_vRealPosition.vec() - Vector2D(2, 2);
+                    w->m_vRealSize     = w->m_vRealSize.value() + Vector2D(4, 4);
+                    w->m_vRealPosition = w->m_vRealPosition.value() - Vector2D(2, 2);
                 }
             }
         }
@@ -1651,14 +1651,14 @@ void CKeybindManager::resizeActive(std::string args) {
     if (!g_pCompositor->m_pLastWindow || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
         return;
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealSize.goal());
 
     if (SIZ.x < 1 || SIZ.y < 1)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - g_pCompositor->m_pLastWindow->m_vRealSize.goalv());
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - g_pCompositor->m_pLastWindow->m_vRealSize.goal());
 
-    if (g_pCompositor->m_pLastWindow->m_vRealSize.goalv().x > 1 && g_pCompositor->m_pLastWindow->m_vRealSize.goalv().y > 1)
+    if (g_pCompositor->m_pLastWindow->m_vRealSize.goal().x > 1 && g_pCompositor->m_pLastWindow->m_vRealSize.goal().y > 1)
         g_pCompositor->m_pLastWindow->setHidden(false);
 }
 
@@ -1666,9 +1666,9 @@ void CKeybindManager::moveActive(std::string args) {
     if (!g_pCompositor->m_pLastWindow || g_pCompositor->m_pLastWindow->m_bIsFullscreen)
         return;
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealPosition.goalv());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, g_pCompositor->m_pLastWindow->m_vRealPosition.goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - g_pCompositor->m_pLastWindow->m_vRealPosition.goalv());
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - g_pCompositor->m_pLastWindow->m_vRealPosition.goal());
 }
 
 void CKeybindManager::moveWindow(std::string args) {
@@ -1686,9 +1686,9 @@ void CKeybindManager::moveWindow(std::string args) {
     if (PWINDOW->m_bIsFullscreen)
         return;
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition.goalv());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition.goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition.goalv(), PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition.goal(), PWINDOW);
 }
 
 void CKeybindManager::resizeWindow(std::string args) {
@@ -1706,14 +1706,14 @@ void CKeybindManager::resizeWindow(std::string args) {
     if (PWINDOW->m_bIsFullscreen)
         return;
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goalv());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goal());
 
     if (SIZ.x < 1 || SIZ.y < 1)
         return;
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goalv(), CORNER_NONE, PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goal(), CORNER_NONE, PWINDOW);
 
-    if (PWINDOW->m_vRealSize.goalv().x > 1 && PWINDOW->m_vRealSize.goalv().y > 1)
+    if (PWINDOW->m_vRealSize.goal().x > 1 && PWINDOW->m_vRealSize.goal().y > 1)
         PWINDOW->setHidden(false);
 }
 

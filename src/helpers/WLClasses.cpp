@@ -3,9 +3,9 @@
 #include "../Compositor.hpp"
 
 SLayerSurface::SLayerSurface() {
-    alpha.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), nullptr, AVARDAMAGE_ENTIRE);
-    realPosition.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
-    realSize.create(AVARTYPE_VECTOR, g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
+    alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), nullptr, AVARDAMAGE_ENTIRE);
+    realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
+    realSize.create(g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
     alpha.m_pLayer        = this;
     realPosition.m_pLayer = this;
     realSize.m_pLayer     = this;
@@ -181,11 +181,11 @@ CRegion SConstraint::getLogicCoordsRegion() {
     result.add(&constraint->region); // surface-local coords
 
     if (!PWINDOWOWNER->m_bIsX11) {
-        result.translate(PWINDOWOWNER->m_vRealPosition.goalv());
+        result.translate(PWINDOWOWNER->m_vRealPosition.goal());
         return result;
     }
 
-    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goalv() :
+    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goal() :
                                                     g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y});
 
     const auto PMONITOR = PWINDOWOWNER->m_bIsMapped ? g_pCompositor->getMonitorFromID(PWINDOWOWNER->m_iMonitorID) : g_pCompositor->getMonitorFromVector(COORDS);
@@ -210,9 +210,9 @@ Vector2D SConstraint::getLogicConstraintPos() {
         return {};
 
     if (!PWINDOWOWNER->m_bIsX11)
-        return PWINDOWOWNER->m_vRealPosition.goalv();
+        return PWINDOWOWNER->m_vRealPosition.goal();
 
-    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goalv() :
+    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goal() :
                                                     g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y});
 
     return COORDS;
@@ -228,7 +228,7 @@ Vector2D SConstraint::getLogicConstraintSize() {
         return {};
 
     if (!PWINDOWOWNER->m_bIsX11)
-        return PWINDOWOWNER->m_vRealSize.goalv();
+        return PWINDOWOWNER->m_vRealSize.goal();
 
     const auto PMONITOR = PWINDOWOWNER->m_bIsMapped ?
         g_pCompositor->getMonitorFromID(PWINDOWOWNER->m_iMonitorID) :
@@ -237,7 +237,7 @@ Vector2D SConstraint::getLogicConstraintSize() {
     if (!PMONITOR)
         return {};
 
-    const auto SIZE = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealSize.goalv() :
+    const auto SIZE = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealSize.goal() :
                                                   Vector2D{PWINDOWOWNER->m_uSurface.xwayland->width, PWINDOWOWNER->m_uSurface.xwayland->height} * PMONITOR->xwaylandScale;
 
     return SIZE;

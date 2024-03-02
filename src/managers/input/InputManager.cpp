@@ -908,10 +908,9 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    xkb_state_unref(pKeyboard->xkbTranslationState);
-    pKeyboard->xkbTranslationState = xkb_state_new(KEYMAP);
-
     wlr_keyboard_set_keymap(wlr_keyboard_from_input_device(pKeyboard->keyboard), KEYMAP);
+
+    pKeyboard->updateXKBTranslationState();
 
     wlr_keyboard_modifiers wlrMods = {0};
 
@@ -1245,6 +1244,8 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
         pKeyboard->activeLayout = PWLRKB->modifiers.group;
 
         const auto LAYOUT = getActiveLayoutForKeyboard(pKeyboard);
+
+        pKeyboard->updateXKBTranslationState();
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUT}));

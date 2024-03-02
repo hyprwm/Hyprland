@@ -792,7 +792,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
     if (!g_pCompositor->windowValidMapped(pWindow))
         return;
 
-    if (on == pWindow->m_bIsFullscreen || g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID))
+    if (on == pWindow->m_bIsFullscreen)
         return; // ignore
 
     const auto PMONITOR   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
@@ -854,8 +854,9 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscree
             fakeNode.workspaceID = pWindow->m_iWorkspaceID;
             pWindow->m_vPosition = fakeNode.box.pos();
             pWindow->m_vSize     = fakeNode.box.size();
+            fakeNode.ignoreFullscreenChecks = true;
 
-            applyNodeDataToWindow(&fakeNode, true);
+            applyNodeDataToWindow(&fakeNode);
         }
     }
 

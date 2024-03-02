@@ -212,7 +212,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
         PFRAME->dmabufFormat = DRM_FORMAT_INVALID;
     }
 
-    PFRAME->box = {0, 0, (int)(PFRAME->pWindow->m_vRealSize.vec().x * PMONITOR->scale), (int)(PFRAME->pWindow->m_vRealSize.vec().y * PMONITOR->scale)};
+    PFRAME->box = {0, 0, (int)(PFRAME->pWindow->m_vRealSize.value().x * PMONITOR->scale), (int)(PFRAME->pWindow->m_vRealSize.value().y * PMONITOR->scale)};
     int ow, oh;
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
     PFRAME->box.transform(PMONITOR->transform, ow, oh).round();
@@ -322,7 +322,7 @@ void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_outp
         if (PMONITOR != g_pCompositor->getMonitorFromID(f->pWindow->m_iMonitorID))
             continue;
 
-        CBox geometry = {f->pWindow->m_vRealPosition.vec().x, f->pWindow->m_vRealPosition.vec().y, f->pWindow->m_vRealSize.vec().x, f->pWindow->m_vRealSize.vec().y};
+        CBox geometry = {f->pWindow->m_vRealPosition.value().x, f->pWindow->m_vRealPosition.value().y, f->pWindow->m_vRealSize.value().x, f->pWindow->m_vRealSize.value().y};
 
         if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
             continue;
@@ -404,7 +404,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
     if (!PFORMAT) {
@@ -450,7 +450,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.vec());
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     g_pHyprRenderer->endRender();
     return true;

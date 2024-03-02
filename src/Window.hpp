@@ -221,8 +221,8 @@ class CWindow {
     Vector2D m_vSize     = Vector2D(0, 0);
 
     // this is the real position and size used to draw the thing
-    CAnimatedVariable m_vRealPosition;
-    CAnimatedVariable m_vRealSize;
+    CAnimatedVariable<Vector2D> m_vRealPosition;
+    CAnimatedVariable<Vector2D> m_vRealSize;
 
     // for not spamming the protocols
     Vector2D                                     m_vReportedPosition;
@@ -282,13 +282,13 @@ class CWindow {
     std::unique_ptr<CPopup>      m_pPopupHead;
 
     // Animated border
-    CGradientValueData m_cRealBorderColor         = {0};
-    CGradientValueData m_cRealBorderColorPrevious = {0};
-    CAnimatedVariable  m_fBorderFadeAnimationProgress;
-    CAnimatedVariable  m_fBorderAngleAnimationProgress;
+    CGradientValueData       m_cRealBorderColor         = {0};
+    CGradientValueData       m_cRealBorderColorPrevious = {0};
+    CAnimatedVariable<float> m_fBorderFadeAnimationProgress;
+    CAnimatedVariable<float> m_fBorderAngleAnimationProgress;
 
     // Fade in-out
-    CAnimatedVariable        m_fAlpha;
+    CAnimatedVariable<float> m_fAlpha;
     bool                     m_bFadingOut     = false;
     bool                     m_bReadyToDelete = false;
     Vector2D                 m_vOriginalClosedPos;  // these will be used for calculations later on in
@@ -322,13 +322,13 @@ class CWindow {
     std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
 
     // for alpha
-    CAnimatedVariable m_fActiveInactiveAlpha;
+    CAnimatedVariable<float> m_fActiveInactiveAlpha;
 
     // animated shadow color
-    CAnimatedVariable m_cRealShadowColor;
+    CAnimatedVariable<CColor> m_cRealShadowColor;
 
     // animated tint
-    CAnimatedVariable m_fDimPercent;
+    CAnimatedVariable<float> m_fDimPercent;
 
     // swallowing
     CWindow* m_pSwallowed = nullptr;

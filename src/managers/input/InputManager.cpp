@@ -66,7 +66,7 @@ void CInputManager::sendMotionEventsToFocused() {
     timespec   now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition.goalv() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
+    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition.goal() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
 
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, g_pCompositor->m_pLastFocus, LOCAL.x, LOCAL.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, now.tv_sec * 1000 + now.tv_nsec / 10000000, LOCAL.x, LOCAL.y);
@@ -134,7 +134,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (forcedFocus) {
         pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_vRealPosition.vec();
+        surfacePos   = pFoundWindow->m_vRealPosition.value();
         foundSurface = pFoundWindow->m_pWLSurface.wlr();
     }
 
@@ -182,7 +182,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
             if (CONSTRAINTWINDOW->m_bIsX11) {
                 foundSurface = CONSTRAINTWINDOW->m_pWLSurface.wlr();
-                surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.vec();
+                surfacePos   = CONSTRAINTWINDOW->m_vRealPosition.value();
             } else {
                 g_pCompositor->vectorWindowToSurface(mouseCoords, CONSTRAINTWINDOW, surfaceCoords);
             }
@@ -273,7 +273,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             surfacePos   = Vector2D(-1337, -1337);
         } else {
             foundSurface = pFoundWindow->m_pWLSurface.wlr();
-            surfacePos   = pFoundWindow->m_vRealPosition.vec();
+            surfacePos   = pFoundWindow->m_vRealPosition.value();
         }
     }
 
@@ -302,7 +302,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             } else {
                 foundSurface = pFoundWindow->m_pWLSurface.wlr();
-                surfacePos   = pFoundWindow->m_vRealPosition.vec();
+                surfacePos   = pFoundWindow->m_vRealPosition.value();
             }
         }
     }
@@ -626,7 +626,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     // TODO detect click on LS properly
     if (**PRESIZEONBORDER && !m_bLastFocusOnLS && e->state == WLR_BUTTON_PRESSED) {
         if (w && !w->m_bIsFullscreen) {
-            const CBox real = {w->m_vRealPosition.vec().x, w->m_vRealPosition.vec().y, w->m_vRealSize.vec().x, w->m_vRealSize.vec().y};
+            const CBox real = {w->m_vRealPosition.value().x, w->m_vRealPosition.value().y, w->m_vRealSize.value().x, w->m_vRealSize.value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
@@ -1304,9 +1304,9 @@ void CInputManager::constrainMouse(SMouse* pMouse, wlr_pointer_constraint_v1* co
 
     if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(constraint->surface); PWINDOW) {
         const auto RELATIVETO = PWINDOW->m_bIsX11 ?
-            (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealPosition.goalv() :
+            (PWINDOW->m_bIsMapped ? PWINDOW->m_vRealPosition.goal() :
                                     g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOW->m_uSurface.xwayland->x, PWINDOW->m_uSurface.xwayland->y})) :
-            PWINDOW->m_vRealPosition.goalv();
+            PWINDOW->m_vRealPosition.goal();
 
         PCONSTRAINT->cursorPosOnActivate = (MOUSECOORDS - RELATIVETO) * PWINDOW->m_fX11SurfaceScaledBy;
     }

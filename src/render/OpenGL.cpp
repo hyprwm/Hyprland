@@ -168,7 +168,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
             if (!ws->m_bIsSpecialWorkspace || ws->m_iMonitorID != pMonitor->ID)
                 continue;
 
-            if (ws->m_fAlpha.fl() == 0)
+            if (ws->m_fAlpha.value() == 0)
                 continue;
 
             return true;
@@ -881,7 +881,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(const CTexture& tex, CBox*
 
         if (allowDim && m_pCurrentWindow && **PDIMINACTIVE) {
             glUniform1i(shader->applyTint, 1);
-            const auto DIM = m_pCurrentWindow->m_fDimPercent.fl();
+            const auto DIM = m_pCurrentWindow->m_fDimPercent.value();
             glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
         } else {
             glUniform1i(shader->applyTint, 0);
@@ -1292,7 +1292,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         const auto  PSURFACE = pWindow->m_pWLSurface.wlr();
 
         const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-        const float A          = pWindow->m_fAlpha.fl() * pWindow->m_fActiveInactiveAlpha.fl() * PWORKSPACE->m_fAlpha.fl();
+        const float A          = pWindow->m_fAlpha.value() * pWindow->m_fActiveInactiveAlpha.value() * PWORKSPACE->m_fAlpha.value();
 
         if (A >= 1.f) {
             if (PSURFACE->opaque)
@@ -1330,7 +1330,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
                 if (!ls->layerSurface || ls->xray != 1)
                     continue;
 
-                if (ls->layerSurface->surface->opaque && ls->alpha.fl() >= 1.f)
+                if (ls->layerSurface->surface->opaque && ls->alpha.value() >= 1.f)
                     continue;
 
                 hasWindows = true;
@@ -1773,25 +1773,25 @@ void CHyprOpenGLImpl::renderSnapshot(CWindow** pWindow) {
     CBox       windowBox;
     // some mafs to figure out the correct box
     // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.vec().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)),
-                                (PMONITOR->scale * PWINDOW->m_vRealSize.vec().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * PWINDOW->m_vRealSize.value().x / (PWINDOW->m_vOriginalClosedSize.x * PMONITOR->scale)),
+                                (PMONITOR->scale * PWINDOW->m_vRealSize.value().y / (PWINDOW->m_vOriginalClosedSize.y * PMONITOR->scale)));
 
     windowBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
     windowBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
-    windowBox.x      = ((PWINDOW->m_vRealPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
-    windowBox.y      = ((PWINDOW->m_vRealPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
+    windowBox.x      = ((PWINDOW->m_vRealPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
+    windowBox.y      = ((PWINDOW->m_vRealPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((PWINDOW->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
 
     CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     if (**PDIMAROUND && (*pWindow)->m_sAdditionalConfigData.dimAround) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, **PDIMAROUND * PWINDOW->m_fAlpha.fl()));
+        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, **PDIMAROUND * PWINDOW->m_fAlpha.value()));
         g_pHyprRenderer->damageMonitor(PMONITOR);
     }
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.fl(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(it->second.m_cTex, &windowBox, PWINDOW->m_fAlpha.value(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }
@@ -1815,19 +1815,19 @@ void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
     CBox       layerBox;
     // some mafs to figure out the correct box
     // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * PLAYER->realSize.vec().x / (PLAYER->geometry.w * PMONITOR->scale)),
-                                (PMONITOR->scale * PLAYER->realSize.vec().y / (PLAYER->geometry.h * PMONITOR->scale)));
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * PLAYER->realSize.value().x / (PLAYER->geometry.w * PMONITOR->scale)),
+                                (PMONITOR->scale * PLAYER->realSize.value().y / (PLAYER->geometry.h * PMONITOR->scale)));
 
     layerBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
     layerBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
-    layerBox.x = ((PLAYER->realPosition.vec().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((PLAYER->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
-    layerBox.y = ((PLAYER->realPosition.vec().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((PLAYER->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
+    layerBox.x = ((PLAYER->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((PLAYER->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
+    layerBox.y = ((PLAYER->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((PLAYER->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
 
     CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(it->second.m_cTex, &layerBox, PLAYER->alpha.fl(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(it->second.m_cTex, &layerBox, PLAYER->alpha.value(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }

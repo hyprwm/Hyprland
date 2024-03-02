@@ -139,7 +139,7 @@ void CHyprError::draw() {
 
     if (m_bQueuedDestroy) {
         if (!m_fFadeOpacity.isBeingAnimated()) {
-            if (m_fFadeOpacity.fl() == 0.f) {
+            if (m_fFadeOpacity.value() == 0.f) {
                 m_bQueuedDestroy = false;
                 m_tTexture.destroyTexture();
                 m_bIsCreated = false;
@@ -164,7 +164,7 @@ void CHyprError::draw() {
 
     m_bMonitorChanged = false;
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.fl(), 0);
+    g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.value(), 0);
 }
 
 void CHyprError::destroy() {

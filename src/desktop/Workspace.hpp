@@ -35,9 +35,9 @@ class CWorkspace {
     wl_array        m_wlrCoordinateArr;
 
     // for animations
-    CAnimatedVariable m_vRenderOffset;
-    CAnimatedVariable m_fAlpha;
-    bool              m_bForceRendering = false;
+    CAnimatedVariable<Vector2D> m_vRenderOffset;
+    CAnimatedVariable<float>    m_fAlpha;
+    bool                        m_bForceRendering = false;
 
     // "scratchpad"
     bool m_bIsSpecialWorkspace = false;

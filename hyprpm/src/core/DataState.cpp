@@ -50,7 +50,8 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     };
     for (auto& p : repo.plugins) {
         // copy .so to the good place
-        std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");
+        if (std::filesystem::exists(p.filename))
+            std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");
 
         DATA.emplace(p.name, toml::table{
             {"filename", p.name + ".so"},

@@ -148,6 +148,8 @@ struct SKeyboard {
     int                numlockOn         = -1;
     bool               resolveBindsBySym = false;
 
+    void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+
     // For the list lookup
     bool operator==(const SKeyboard& rhs) const {
         return keyboard == rhs.keyboard;

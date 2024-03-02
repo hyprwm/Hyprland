@@ -95,18 +95,9 @@ void CKeybindManager::addKeybind(SKeybind kb) {
     m_pActiveKeybind = nullptr;
 }
 
-void CKeybindManager::removeKeybind(uint32_t mod, const std::string& key) {
+void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
     for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
-        if (isNumber(key) && std::stoi(key) > 9) {
-            const uint32_t KEYNUM = std::stoi(key);
-
-            if (it->modmask == mod && it->keycode == KEYNUM) {
-                it = m_lKeybinds.erase(it);
-
-                if (it == m_lKeybinds.end())
-                    break;
-            }
-        } else if (it->modmask == mod && it->key == key) {
+        if (it->modmask == mod && it->key == key.key && it->keycode == key.keycode && it->catchAll == key.catchAll) {
             it = m_lKeybinds.erase(it);
 
             if (it == m_lKeybinds.end())
@@ -526,6 +517,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                 continue;
         } else if (k.keycode != 0) {
             if (key.keycode != k.keycode)
+                continue;
+        } else if (k.catchAll) {
+            if (found)
                 continue;
         } else {
             // oMg such performance hit!!11!

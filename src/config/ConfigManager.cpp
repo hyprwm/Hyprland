@@ -1732,6 +1732,17 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     return {};
 }
 
+SParsedKey parseKey(const std::string& key) {
+    if (isNumber(key) && std::stoi(key) > 9)
+        return {.keycode = std::stoi(key)};
+    else if (key.starts_with("code:") && isNumber(key.substr(5)))
+        return {.keycode = std::stoi(key.substr(5))};
+    else if (key == "catchall")
+        return {.catchAll = true};
+    else
+        return {.key = key};
+}
+
 std::optional<std::string> CConfigManager::handleBind(const std::string& command, const std::string& value) {
     // example:
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
@@ -1807,14 +1818,10 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     }
 
     if (KEY != "") {
-        if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
-        else if (KEY.starts_with("code:") && isNumber(KEY.substr(5)))
-            g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
-        else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, 0, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
+        SParsedKey parsedKey = parseKey(KEY);
+
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
+                                               nonConsuming, transparent, ignoreMods});
     }
 
     return {};
@@ -1825,7 +1832,7 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
     const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
 
-    const auto KEY = ARGS[1];
+    const auto KEY = parseKey(ARGS[1]);
 
     g_pKeybindManager->removeKeybind(MOD, KEY);
 

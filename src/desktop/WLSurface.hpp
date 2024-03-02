@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include "../helpers/Region.hpp"
+#include "Constraint.hpp"
 
 class CWindow;
 struct SLayerSurface;
@@ -32,6 +33,7 @@ class CWLSurface {
     Vector2D     correctSmallVec() const; // returns a corrective vector for small() surfaces
     Vector2D     getViewporterCorrectedSize() const;
     CRegion      logicalDamage() const;
+    void         onCommit();
 
     // getters for owners.
     CWindow*       getWindow();
@@ -41,6 +43,8 @@ class CWLSurface {
 
     // desktop components misc utils
     std::optional<CBox> getSurfaceBoxGlobal();
+    void                appendConstraint(wlr_pointer_constraint_v1* constraint);
+    CConstraint*        constraint();
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;
@@ -72,6 +76,8 @@ class CWLSurface {
     }
 
     static CWLSurface* surfaceFromWlr(wlr_surface* pSurface) {
+        if (!pSurface)
+            return nullptr;
         return (CWLSurface*)pSurface->data;
     }
 
@@ -85,9 +91,15 @@ class CWLSurface {
     CPopup*        m_pPopupOwner      = nullptr;
     CSubsurface*   m_pSubsurfaceOwner = nullptr;
 
-    void           destroy();
-    void           init();
-    bool           desktopComponent();
+    //
+    std::unique_ptr<CConstraint> m_pConstraint;
+
+    void                         destroy();
+    void                         init();
+    bool                         desktopComponent();
 
     DYNLISTENER(destroy);
+    DYNLISTENER(commit);
+
+    friend class CConstraint;
 };

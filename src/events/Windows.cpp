@@ -476,8 +476,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (!PWINDOW->m_sAdditionalConfigData.noFocus && !PWINDOW->m_bNoInitialFocus &&
-        (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) && !workspaceSilent &&
-        (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW)) {
+        (PWINDOW->m_iX11Type != 2 ||
+         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->window_type_len > 0 && wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))) &&
+        !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) && !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(**PACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sAdditionalConfigData.forceNoDim ? 0.f : **PDIMSTRENGTH);
@@ -645,7 +646,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
 
-    if (!g_pCompositor->m_sSeat.mouse || !g_pCompositor->m_sSeat.mouse->constraintActive)
+    if (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely

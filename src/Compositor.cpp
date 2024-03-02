@@ -1040,13 +1040,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     if (pWindow->m_phForeignToplevel)
         wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
 
-    if (!pWindow->m_bIsX11) {
-        const auto PCONSTRAINT = wlr_pointer_constraints_v1_constraint_for_surface(m_sWLRPointerConstraints, pWindow->m_uSurface.xdg->surface, m_sSeat.seat);
-
-        if (PCONSTRAINT)
-            g_pInputManager->constrainMouse(m_sSeat.mouse, PCONSTRAINT);
-    }
-
     g_pInputManager->recheckIdleInhibitorStatus();
 
     // move to front of the window history
@@ -1068,6 +1061,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
         return;
+
+    const auto PLASTSURF = m_pLastFocus;
 
     // Unfocus last surface if should
     if (m_pLastFocus && !pWindowOwner)
@@ -1103,6 +1098,15 @@ void CCompositor::focusSurface(wlr_surface* pSurface, CWindow* pWindowOwner) {
     m_pLastFocus = pSurface;
 
     EMIT_HOOK_EVENT("keyboardFocus", pSurface);
+
+    const auto SURF    = CWLSurface::surfaceFromWlr(pSurface);
+    const auto OLDSURF = CWLSurface::surfaceFromWlr(PLASTSURF);
+
+    if (OLDSURF && OLDSURF->constraint())
+        OLDSURF->constraint()->deactivate();
+
+    if (SURF && SURF->constraint())
+        SURF->constraint()->activate();
 }
 
 bool CCompositor::windowValidMapped(CWindow* pWindow) {
@@ -1768,31 +1772,6 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const CMonitor* p
 void checkFocusSurfaceIter(wlr_surface* pSurface, int x, int y, void* data) {
     auto pair    = (std::pair<wlr_surface*, bool>*)data;
     pair->second = pair->second || pSurface == pair->first;
-}
-
-CWindow* CCompositor::getConstraintWindow(SMouse* pMouse) {
-    if (!pMouse->currentConstraint)
-        return nullptr;
-
-    const auto PSURFACE = pMouse->currentConstraint->surface;
-
-    for (auto& w : m_vWindows) {
-        if (w->isHidden() || !w->m_bIsMapped || !w->m_pWLSurface.exists())
-            continue;
-
-        if (w->m_bIsX11) {
-            if (PSURFACE == w->m_pWLSurface.wlr())
-                return w.get();
-        } else {
-            std::pair<wlr_surface*, bool> check = {PSURFACE, false};
-            wlr_surface_for_each_surface(w->m_uSurface.xdg->surface, checkFocusSurfaceIter, &check);
-
-            if (check.second)
-                return w.get();
-        }
-    }
-
-    return nullptr;
 }
 
 CMonitor* CCompositor::getMonitorInDirection(const char& dir) {

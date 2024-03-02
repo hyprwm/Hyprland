@@ -688,7 +688,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
-    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
+    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) && !PWINDOW->m_bIsFullscreen) {
         static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("master:special_scale_factor");
 
         CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};

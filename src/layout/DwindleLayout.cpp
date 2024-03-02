@@ -216,7 +216,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
-    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID)) {
+    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) && !PWINDOW->m_bIsFullscreen) {
         // if special, we adjust the coords a bit
         static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("dwindle:special_scale_factor");
 

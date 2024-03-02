@@ -1124,12 +1124,9 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindow() {
         static auto* const PPRESERVESPLIT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("dwindle:preserve_split");
         static auto* const PFLMULT        = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("dwindle:split_width_multiplier");
 
-        bool               splitTop = false;
+        bool               splitTop = box.h * **PFLMULT > box.w;
 
-        if (**PPRESERVESPLIT == 0 && **PSMARTSPLIT == 0)
-            splitTop = box.h * **PFLMULT > box.w;
-
-        const auto SPLITSIDE = !splitTop;
+        const auto         SPLITSIDE = !splitTop;
 
         if (SPLITSIDE)
             node.box = {{}, {box.w / 2.0, box.h}};

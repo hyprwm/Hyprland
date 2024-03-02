@@ -945,7 +945,7 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
     return *IT;
 }
 
-std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic) {
+std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic, bool shadowExec) {
     if (!g_pCompositor->windowExists(pWindow))
         return std::vector<SWindowRule>();
 
@@ -1093,7 +1093,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
         }
     }
 
-    if (anyExecFound) // remove exec rules to unclog searches in the future, why have the garbage here.
+    if (anyExecFound && !shadowExec) // remove exec rules to unclog searches in the future, why have the garbage here.
         execRequestedRules.erase(std::remove_if(execRequestedRules.begin(), execRequestedRules.end(),
                                                 [&](const SExecRequestedRule& other) { return std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == other.iPid; }); }));
 

@@ -79,7 +79,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
     auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
     auto        PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
 
-    const auto  RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.vec();
+    const auto  RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.value();
     const auto  XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + **PWORKSPACEGAP;
     const auto  YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + **PWORKSPACEGAP;
 
@@ -118,7 +118,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         pSwitchedTo = m_sActiveSwipe.pWorkspaceBegin;
     } else if (m_sActiveSwipe.delta < 0) {
         // switch to left
-        const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_vRenderOffset.vec() : Vector2D();
+        const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_vRenderOffset.value() : Vector2D();
 
         if (PWORKSPACEL)
             m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDLeft);
@@ -144,7 +144,7 @@ void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
         pSwitchedTo = PWORKSPACEL;
     } else {
         // switch to right
-        const auto RENDEROFFSET = PWORKSPACER ? PWORKSPACER->m_vRenderOffset.vec() : Vector2D();
+        const auto RENDEROFFSET = PWORKSPACER ? PWORKSPACER->m_vRenderOffset.value() : Vector2D();
 
         if (PWORKSPACER)
             m_sActiveSwipe.pMonitor->changeWorkspace(workspaceIDRight);

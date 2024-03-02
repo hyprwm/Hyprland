@@ -267,7 +267,7 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
         }
 
         if (motion) {
-            auto local = CURSORPOS - PWINDOW->m_vRealPosition.goalv();
+            auto local = CURSORPOS - PWINDOW->m_vRealPosition.goal();
 
             if (PWINDOW->m_bIsX11)
                 local = local * PWINDOW->m_fX11SurfaceScaledBy;

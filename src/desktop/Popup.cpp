@@ -1,4 +1,5 @@
 #include "Popup.hpp"
+#include "../Compositor.hpp"
 
 CPopup::CPopup(CWindow* pOwner) : m_pWindowOwner(pOwner) {
     initAllSignals();
@@ -100,10 +101,12 @@ void CPopup::onDestroy() {
 }
 
 void CPopup::onMap() {
-    m_vLastSize       = {m_pWLR->current.geometry.width, m_pWLR->current.geometry.height};
+    m_vLastSize       = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
     const auto COORDS = coordsGlobal();
 
-    CBox       box = {COORDS, m_vLastSize};
+    CBox       box;
+    wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
+    box.applyFromWlr().translate(COORDS);
     g_pHyprRenderer->damageBox(&box);
 
     m_vLastPos = coordsRelativeToParent();
@@ -116,10 +119,12 @@ void CPopup::onMap() {
 }
 
 void CPopup::onUnmap() {
-    m_vLastSize       = {m_pWLR->current.geometry.width, m_pWLR->current.geometry.height};
+    m_vLastSize       = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
     const auto COORDS = coordsGlobal();
 
-    CBox       box = {COORDS, m_vLastSize};
+    CBox       box;
+    wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
+    box.applyFromWlr().translate(COORDS);
     g_pHyprRenderer->damageBox(&box);
 
     m_pSubsurfaceHead.reset();
@@ -136,10 +141,10 @@ void CPopup::onCommit() {
     const auto COORDS      = coordsGlobal();
     const auto COORDSLOCAL = coordsRelativeToParent();
 
-    if (m_vLastSize != Vector2D{m_pWLR->current.geometry.width, m_pWLR->current.geometry.height} || m_bRequestedReposition || m_vLastPos != COORDSLOCAL) {
+    if (m_vLastSize != Vector2D{m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height} || m_bRequestedReposition || m_vLastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_vLastPos), m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
-        m_vLastSize = {m_pWLR->current.geometry.width, m_pWLR->current.geometry.height};
+        m_vLastSize = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
         box         = {COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
 
@@ -179,6 +184,8 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     CPopup*  current = this;
 
+    offset -= {m_pWLR->base->current.geometry.x, m_pWLR->base->current.geometry.y};
+
     while (current->m_pParent) {
 
         offset += {current->m_sWLSurface.wlr()->current.dx, current->m_sWLSurface.wlr()->current.dy};
@@ -200,9 +207,9 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 
 Vector2D CPopup::t1ParentCoords() {
     if (m_pWindowOwner)
-        return m_pWindowOwner->m_vRealPosition.vec();
+        return m_pWindowOwner->m_vRealPosition.value();
     if (m_pLayerOwner)
-        return m_pLayerOwner->realPosition.vec();
+        return m_pLayerOwner->realPosition.value();
 
     ASSERT(false);
     return {};

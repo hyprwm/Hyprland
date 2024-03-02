@@ -65,7 +65,7 @@ Vector2D CWLSurface::correctSmallVec() const {
     const auto SIZE = getViewporterCorrectedSize();
 
     return Vector2D{(m_pWindowOwner->m_vReportedSize.x - SIZE.x) / 2, (m_pWindowOwner->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) *
-        (m_pWindowOwner->m_vRealSize.vec() / m_pWindowOwner->m_vReportedSize);
+        (m_pWindowOwner->m_vRealSize.value() / m_pWindowOwner->m_vReportedSize);
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {

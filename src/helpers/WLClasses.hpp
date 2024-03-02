@@ -19,19 +19,19 @@ struct SLayerSurface {
     SLayerSurface();
     ~SLayerSurface();
 
-    void                  applyRules();
-    void                  startAnimation(bool in, bool instant = false);
-    bool                  isFadedOut();
+    void                        applyRules();
+    void                        startAnimation(bool in, bool instant = false);
+    bool                        isFadedOut();
 
-    CAnimatedVariable     realPosition;
-    CAnimatedVariable     realSize;
+    CAnimatedVariable<Vector2D> realPosition;
+    CAnimatedVariable<Vector2D> realSize;
 
-    wlr_layer_surface_v1* layerSurface;
-    wl_list               link;
+    wlr_layer_surface_v1*       layerSurface;
+    wl_list                     link;
 
-    bool                  keyboardExclusive = false;
+    bool                        keyboardExclusive = false;
 
-    CWLSurface            surface;
+    CWLSurface                  surface;
 
     // desktop components
     std::unique_ptr<CPopup> popupHead;
@@ -51,7 +51,7 @@ struct SLayerSurface {
 
     std::string                szNamespace = "";
 
-    CAnimatedVariable          alpha;
+    CAnimatedVariable<float>   alpha;
     bool                       fadingOut     = false;
     bool                       readyToDelete = false;
     bool                       noProcess     = false;
@@ -147,6 +147,8 @@ struct SKeyboard {
     int                repeatDelay       = 0;
     int                numlockOn         = -1;
     bool               resolveBindsBySym = false;
+
+    void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) const {

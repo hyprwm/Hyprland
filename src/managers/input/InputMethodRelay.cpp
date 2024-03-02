@@ -192,8 +192,8 @@ void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
         const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
 
         if (PWINDOW) {
-            parentPos  = PWINDOW->m_vRealPosition.goalv();
-            parentSize = PWINDOW->m_vRealSize.goalv();
+            parentPos  = PWINDOW->m_vRealPosition.goal();
+            parentSize = PWINDOW->m_vRealSize.goal();
             pMonitor   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
         }
     }
@@ -298,7 +298,7 @@ void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
         const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
 
         if (PWINDOW) {
-            parentPos = PWINDOW->m_vRealPosition.goalv();
+            parentPos = PWINDOW->m_vRealPosition.goal();
         }
     }
 

@@ -3,6 +3,7 @@
 #include <functional>
 #include <any>
 #include <chrono>
+#include <type_traits>
 #include "Vector2D.hpp"
 #include "Color.hpp"
 #include "../macros.hpp"
@@ -14,6 +15,30 @@ enum ANIMATEDVARTYPE {
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
+
+// Utility to bind a type with its corresponding ANIMATEDVARTYPE
+template <class T>
+struct typeToANIMATEDVARTYPE_t {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_INVALID;
+};
+
+template <>
+struct typeToANIMATEDVARTYPE_t<float> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_FLOAT;
+};
+
+template <>
+struct typeToANIMATEDVARTYPE_t<Vector2D> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_VECTOR;
+};
+
+template <>
+struct typeToANIMATEDVARTYPE_t<CColor> {
+    static constexpr ANIMATEDVARTYPE value = AVARTYPE_COLOR;
+};
+
+template <class T>
+inline constexpr ANIMATEDVARTYPE typeToANIMATEDVARTYPE = typeToANIMATEDVARTYPE_t<T>::value;
 
 enum AVARDAMAGEPOLICY {
     AVARDAMAGE_NONE   = -1,
@@ -28,174 +53,34 @@ struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
 
-class CAnimatedVariable {
+// Utility to define a concept as a list of possible type
+template <class T, class... U>
+concept OneOf = (... or std::same_as<T, U>);
+
+// Concept to describe which type can be placed into CAnimatedVariable
+// This is mainly to get better errors if we put a type that's not supported
+// Otherwise template errors are ugly
+template <class T>
+concept Animable = OneOf<T, Vector2D, float, CColor>;
+
+class CBaseAnimatedVariable {
   public:
-    CAnimatedVariable(); // dummy var
+    CBaseAnimatedVariable(ANIMATEDVARTYPE type);
+    void create(SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy);
 
-    void create(ANIMATEDVARTYPE, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
-    void create(ANIMATEDVARTYPE, std::any val, SAnimationPropertyConfig*, void* pWindow, AVARDAMAGEPOLICY);
+    CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
+    CBaseAnimatedVariable(CBaseAnimatedVariable&&)                 = delete;
+    CBaseAnimatedVariable& operator=(const CBaseAnimatedVariable&) = delete;
+    CBaseAnimatedVariable& operator=(CBaseAnimatedVariable&&)      = delete;
 
-    CAnimatedVariable(const CAnimatedVariable&)            = delete;
-    CAnimatedVariable(CAnimatedVariable&&)                 = delete;
-    CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
-    CAnimatedVariable& operator=(CAnimatedVariable&&)      = delete;
+    virtual ~CBaseAnimatedVariable();
 
-    ~CAnimatedVariable();
+    void         unregister();
+    void         registerVar();
 
-    void unregister();
-    void registerVar();
+    virtual void warp(bool endCallback = true) = 0;
 
-    // gets the current vector value (real time)
-    const Vector2D& vec() const {
-        return m_vValue;
-    }
-
-    // gets the current float value (real time)
-    const float& fl() const {
-        return m_fValue;
-    }
-
-    // gets the current color value (real time)
-    const CColor& col() const {
-        return m_cValue;
-    }
-
-    // gets the goal vector value
-    const Vector2D& goalv() const {
-        return m_vGoal;
-    }
-
-    // gets the goal float value
-    const float& goalf() const {
-        return m_fGoal;
-    }
-
-    // gets the goal color value
-    const CColor& goalc() const {
-        return m_cGoal;
-    }
-
-    CAnimatedVariable& operator=(const Vector2D& v) {
-        if (v == m_vGoal)
-            return *this;
-
-        m_vGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-
-        return *this;
-    }
-
-    CAnimatedVariable& operator=(const float& v) {
-        if (v == m_fGoal)
-            return *this;
-
-        m_fGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_fBegun       = m_fValue;
-
-        onAnimationBegin();
-
-        return *this;
-    }
-
-    CAnimatedVariable& operator=(const CColor& v) {
-        if (v == m_cGoal)
-            return *this;
-
-        m_cGoal        = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_cBegun       = m_cValue;
-
-        onAnimationBegin();
-
-        return *this;
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const Vector2D& v) {
-        if (v == m_vValue)
-            return;
-
-        m_vValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const float& v) {
-        if (v == m_fValue)
-            return;
-
-        m_fValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual stored value, without affecting the goal, but resets the timer
-    void setValue(const CColor& v) {
-        if (v == m_cValue)
-            return;
-
-        m_cValue       = v;
-        animationBegin = std::chrono::system_clock::now();
-        m_vBegun       = m_vValue;
-
-        onAnimationBegin();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const Vector2D& v) {
-        m_vGoal = v;
-        warp();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const float& v) {
-        m_fGoal = v;
-        warp();
-    }
-
-    // Sets the actual value and goal
-    void setValueAndWarp(const CColor& v) {
-        m_cGoal = v;
-        warp();
-    }
-
-    // checks if an animation is in progress
-    inline bool isBeingAnimated() {
-        return m_bIsBeingAnimated;
-    }
-
-    void warp(bool endCallback = true) {
-        switch (m_eVarType) {
-            case AVARTYPE_FLOAT: {
-                m_fValue = m_fGoal;
-                break;
-            }
-            case AVARTYPE_VECTOR: {
-                m_vValue = m_vGoal;
-                break;
-            }
-            case AVARTYPE_COLOR: {
-                m_cValue = m_cGoal;
-                break;
-            }
-            default: UNREACHABLE();
-        }
-
-        m_bIsBeingAnimated = false;
-
-        if (endCallback)
-            onAnimationEnd();
-    }
-
+    //
     void setConfig(SAnimationPropertyConfig* pConfig) {
         m_pConfig = pConfig;
     }
@@ -211,6 +96,11 @@ class CAnimatedVariable {
 
     /* returns the current curve value */
     float getCurveValue();
+
+    // checks if an animation is in progress
+    inline bool isBeingAnimated() {
+        return m_bIsBeingAnimated;
+    }
 
     /*  sets a function to be ran when the animation finishes.
         if an animation is not running, runs instantly.
@@ -245,20 +135,7 @@ class CAnimatedVariable {
         m_bRemoveEndAfterRan   = false;
     }
 
-  private:
-    Vector2D m_vValue = Vector2D(0, 0);
-    float    m_fValue = 0;
-    CColor   m_cValue;
-
-    Vector2D m_vGoal = Vector2D(0, 0);
-    float    m_fGoal = 0;
-    CColor   m_cGoal;
-
-    Vector2D m_vBegun = Vector2D(0, 0);
-    float    m_fBegun = 0;
-    CColor   m_cBegun;
-
-    // owners
+  protected:
     void*                                 m_pWindow    = nullptr;
     void*                                 m_pWorkspace = nullptr;
     void*                                 m_pLayer     = nullptr;
@@ -271,8 +148,8 @@ class CAnimatedVariable {
 
     std::chrono::system_clock::time_point animationBegin;
 
-    ANIMATEDVARTYPE                       m_eVarType      = AVARTYPE_INVALID;
     AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
+    ANIMATEDVARTYPE                       m_Type;
 
     bool                                  m_bRemoveEndAfterRan   = true;
     bool                                  m_bRemoveBeginAfterRan = true;
@@ -281,7 +158,9 @@ class CAnimatedVariable {
     std::function<void(void* thisptr)>    m_fUpdateCallback;
 
     bool                                  m_bIsConnectedToActive = false;
+
     void                                  connectToActive();
+
     void                                  disconnectFromActive();
 
     // methods
@@ -308,6 +187,88 @@ class CAnimatedVariable {
                 m_fBeginCallback = nullptr; // reset
         }
     }
+
+    friend class CAnimationManager;
+    friend class CWorkspace;
+    friend struct SLayerSurface;
+    friend class CHyprRenderer;
+};
+
+template <Animable VarType>
+class CAnimatedVariable : public CBaseAnimatedVariable {
+  public:
+    CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
+
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
+        create(pAnimConfig, pWindow, policy);
+        m_Value = value;
+    }
+
+    using CBaseAnimatedVariable::create;
+
+    CAnimatedVariable(const CAnimatedVariable&)            = delete;
+    CAnimatedVariable(CAnimatedVariable&&)                 = delete;
+    CAnimatedVariable& operator=(const CAnimatedVariable&) = delete;
+    CAnimatedVariable& operator=(CAnimatedVariable&&)      = delete;
+
+    ~CAnimatedVariable() = default;
+
+    // gets the current vector value (real time)
+    const VarType& value() const {
+        return m_Value;
+    }
+
+    // gets the goal vector value
+    const VarType& goal() const {
+        return m_Goal;
+    }
+
+    CAnimatedVariable& operator=(const VarType& v) {
+        if (v == m_Goal)
+            return *this;
+
+        m_Goal         = v;
+        animationBegin = std::chrono::system_clock::now();
+        m_Begun        = m_Value;
+
+        onAnimationBegin();
+
+        return *this;
+    }
+
+    // Sets the actual stored value, without affecting the goal, but resets the timer
+    void setValue(const VarType& v) {
+        if (v == m_Value)
+            return;
+
+        m_Value        = v;
+        animationBegin = std::chrono::system_clock::now();
+        m_Begun        = m_Value;
+
+        onAnimationBegin();
+    }
+
+    // Sets the actual value and goal
+    void setValueAndWarp(const VarType& v) {
+        m_Goal = v;
+        warp();
+    }
+
+    void warp(bool endCallback = true) override {
+        m_Value = m_Goal;
+
+        m_bIsBeingAnimated = false;
+
+        if (endCallback)
+            onAnimationEnd();
+    }
+
+  private:
+    VarType m_Value{};
+    VarType m_Goal{};
+    VarType m_Begun{};
+
+    // owners
 
     friend class CAnimationManager;
     friend class CWorkspace;

@@ -46,8 +46,8 @@ void CHyprDropShadowDecoration::damageEntire() {
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
-    m_vLastWindowPos  = m_pWindow->m_vRealPosition.vec();
-    m_vLastWindowSize = m_pWindow->m_vRealSize.vec();
+    m_vLastWindowPos  = m_pWindow->m_vRealPosition.value();
+    m_vLastWindowSize = m_pWindow->m_vRealSize.value();
 
     m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
@@ -58,7 +58,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
-    if (m_pWindow->m_cRealShadowColor.col() == CColor(0, 0, 0, 0))
+    if (m_pWindow->m_cRealShadowColor.value() == CColor(0, 0, 0, 0))
         return; // don't draw invisible shadows
 
     if (!m_pWindow->m_sSpecialRenderData.decorate)
@@ -82,7 +82,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     const auto ROUNDINGBASE    = m_pWindow->rounding();
     const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + m_pWindow->getRealBorderSize() : 0;
     const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_bLastWindowBoxWithDecos;
@@ -147,7 +147,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         g_pHyprOpenGL->renderRect(&fullBox, CColor(0, 0, 0, 1), 0);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, **PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.col().a), a);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, **PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.value().a), a);
 
         // render black window box ("clip")
         g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), ROUNDING * pMonitor->scale);
@@ -155,7 +155,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         alphaSwapFB.bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprOpenGL->renderRect(&fullBox, m_pWindow->m_cRealShadowColor.col().stripA(), 0);
+        g_pHyprOpenGL->renderRect(&fullBox, m_pWindow->m_cRealShadowColor.value().stripA(), 0);
 
         LASTFB->bind();
 
@@ -166,7 +166,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
 
         g_pHyprOpenGL->m_RenderData.damage = saveDamage;
     } else {
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, **PSHADOWSIZE * pMonitor->scale, m_pWindow->m_cRealShadowColor.col(), a);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, **PSHADOWSIZE * pMonitor->scale, m_pWindow->m_cRealShadowColor.value(), a);
     }
 
     if (m_seExtents != m_seReportedExtents)

@@ -843,7 +843,8 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
     wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, geom.pWlr());
     geom.applyFromWlr();
 
-    const auto PFOUND = wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.vec().x + geom.x, pos.y - pWindow->m_vRealPosition.vec().y + geom.y, &subx, &suby);
+    const auto PFOUND =
+        wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx, &suby);
 
     if (PFOUND) {
         sl.x = subx;
@@ -851,8 +852,8 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, CWindow* pW
         return PFOUND;
     }
 
-    sl.x = pos.x - pWindow->m_vRealPosition.vec().x;
-    sl.y = pos.y - pWindow->m_vRealPosition.vec().y;
+    sl.x = pos.x - pWindow->m_vRealPosition.value().x;
+    sl.y = pos.y - pWindow->m_vRealPosition.value().y;
 
     sl.x += geom.x;
     sl.y += geom.y;
@@ -865,7 +866,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, CWindow* pWindow
         return {};
 
     if (pWindow->m_bIsX11)
-        return vec - pWindow->m_vRealPosition.goalv();
+        return vec - pWindow->m_vRealPosition.goal();
 
     const auto                         PSURFACE = pWindow->m_uSurface.xdg;
 
@@ -887,9 +888,9 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, CWindow* pWindow
     geom.applyFromWlr();
 
     if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
-        return vec - pWindow->m_vRealPosition.goalv();
+        return vec - pWindow->m_vRealPosition.goal();
 
-    return vec - pWindow->m_vRealPosition.goalv() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)} + Vector2D{geom.x, geom.y};
+    return vec - pWindow->m_vRealPosition.goal() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)} + Vector2D{geom.x, geom.y};
 }
 
 CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
@@ -1127,7 +1128,7 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<std::unique_ptr<SLayerSurface>>* layerSurfaces, Vector2D* sCoords,
                                                SLayerSurface** ppLayerSurfaceFound) {
     for (auto& ls : *layerSurfaces | std::views::reverse) {
-        if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.fl() == 0.f)
+        if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
         auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
@@ -1245,7 +1246,7 @@ void CCompositor::sanityCheckWorkspaces() {
             if (!isWorkspaceVisible(WORKSPACE->m_iID)) {
 
                 if (WORKSPACE->m_bIsSpecialWorkspace) {
-                    if (WORKSPACE->m_fAlpha.fl() > 0.f /* don't abruptly end the fadeout */) {
+                    if (WORKSPACE->m_fAlpha.value() > 0.f /* don't abruptly end the fadeout */) {
                         ++it;
                         continue;
                     }
@@ -1426,7 +1427,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
 
         bool valid = windowExists(w);
 
-        if (!valid || !w->m_bFadingOut || w->m_fAlpha.fl() == 0.f) {
+        if (!valid || !w->m_bFadingOut || w->m_fAlpha.value() == 0.f) {
             if (valid && !w->m_bReadyToDelete)
                 continue;
 
@@ -1993,7 +1994,7 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
             // additionally, move floating and fs windows manually
             if (w->m_bIsFloating)
-                w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorA->vecPosition + pMonitorB->vecPosition;
+                w->m_vRealPosition = w->m_vRealPosition.value() - pMonitorA->vecPosition + pMonitorB->vecPosition;
 
             if (w->m_bIsFullscreen) {
                 w->m_vRealPosition = pMonitorB->vecPosition;
@@ -2018,7 +2019,7 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
             // additionally, move floating and fs windows manually
             if (w->m_bIsFloating)
-                w->m_vRealPosition = w->m_vRealPosition.vec() - pMonitorB->vecPosition + pMonitorA->vecPosition;
+                w->m_vRealPosition = w->m_vRealPosition.value() - pMonitorB->vecPosition + pMonitorA->vecPosition;
 
             if (w->m_bIsFullscreen) {
                 w->m_vRealPosition = pMonitorA->vecPosition;
@@ -2185,14 +2186,14 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
             if (w->m_bIsMapped && !w->isHidden()) {
                 if (POLDMON) {
                     if (w->m_bIsFloating)
-                        w->m_vRealPosition = w->m_vRealPosition.vec() - POLDMON->vecPosition + pMonitor->vecPosition;
+                        w->m_vRealPosition = w->m_vRealPosition.value() - POLDMON->vecPosition + pMonitor->vecPosition;
 
                     if (w->m_bIsFullscreen) {
                         w->m_vRealPosition = pMonitor->vecPosition;
                         w->m_vRealSize     = pMonitor->vecSize;
                     }
                 } else {
-                    w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition.goalv().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition.goalv().y % (int)pMonitor->vecSize.y};
+                    w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition.goal().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition.goal().y % (int)pMonitor->vecSize.y};
                 }
             }
 
@@ -2309,7 +2310,7 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
     }
     updateFullscreenFadeOnWorkspace(PWORKSPACE);
 
-    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goalv(), true);
+    g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal(), true);
 
     forceReportSizesToWindowsOnWorkspace(pWindow->m_iWorkspaceID);
 
@@ -2548,7 +2549,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
 void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {
     for (auto& w : m_vWindows) {
         if (w->m_iWorkspaceID == wid && w->m_bIsMapped && !w->isHidden()) {
-            g_pXWaylandManager->setWindowSize(w.get(), w->m_vRealSize.vec(), true);
+            g_pXWaylandManager->setWindowSize(w.get(), w->m_vRealSize.value(), true);
         }
     }
 }
@@ -2649,7 +2650,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
     } else {
         const auto PWINDOWMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-        const auto POSTOMON       = pWindow->m_vRealPosition.goalv() - PWINDOWMONITOR->vecPosition;
+        const auto POSTOMON       = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
 
         const auto PWORKSPACEMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 

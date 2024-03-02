@@ -34,8 +34,8 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     if (m_sTouchData.touchFocusWindow) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
-            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goalv()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
-            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goalv();
+            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
+            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goal();
         } else {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow, local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;

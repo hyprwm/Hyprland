@@ -504,6 +504,6 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.vec() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }

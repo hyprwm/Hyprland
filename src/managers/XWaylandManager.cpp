@@ -321,6 +321,21 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
     return MAXSIZE;
 }
 
+Vector2D CHyprXWaylandManager::getMinSizeForWindow(CWindow* pWindow) {
+    if (!g_pCompositor->windowValidMapped(pWindow))
+        return Vector2D(0, 0);
+
+    if ((pWindow->m_bIsX11 && !pWindow->m_uSurface.xwayland->size_hints) || (!pWindow->m_bIsX11 && !pWindow->m_uSurface.xdg->toplevel))
+        return Vector2D(0, 0);
+
+    auto MINSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_uSurface.xwayland->size_hints->min_width, pWindow->m_uSurface.xwayland->size_hints->min_height) :
+                                       Vector2D(pWindow->m_uSurface.xdg->toplevel->current.min_width, pWindow->m_uSurface.xdg->toplevel->current.min_height);
+
+    MINSIZE = MINSIZE.clamp({1, 1});
+
+    return MINSIZE;
+}
+
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");

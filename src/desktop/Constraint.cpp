@@ -45,6 +45,7 @@ void CConstraint::onSetRegion() {
         return;
 
     m_rRegion.set(&m_pConstraint->region);
+    m_vPositionHint = m_rRegion.closestPoint(m_vPositionHint);
     g_pInputManager->simulateMouseMovement(); // to warp the cursor if anything's amiss
 }
 

@@ -258,8 +258,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->applyDynamicRule(r);
     }
 
-    PWINDOW->updateSpecialRenderData();
-
     // disallow tiled pinned
     if (PWINDOW->m_bPinned && !PWINDOW->m_bIsFloating)
         PWINDOW->m_bPinned = false;
@@ -298,6 +296,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else
             workspaceSilent = false;
     }
+
+    PWINDOW->updateSpecialRenderData();
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);

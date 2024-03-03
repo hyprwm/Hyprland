@@ -1546,9 +1546,9 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 
 void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
     std::string workspaceName;
-    const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
+    int         workspaceID = getWorkspaceIDFromString(args, workspaceName);
 
-    if (WORKSPACEID == WORKSPACE_INVALID) {
+    if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return;
     }
@@ -1560,30 +1560,43 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    auto pWorkspace = g_pCompositor->getWorkspaceByID(workspaceID);
 
-    if (!PWORKSPACE) {
-        PWORKSPACE = g_pCompositor->createNewWorkspace(WORKSPACEID, PCURRMONITOR->ID);
+    if (!pWorkspace) {
+        pWorkspace = g_pCompositor->createNewWorkspace(workspaceID, PCURRMONITOR->ID);
         // we can skip the moving, since it's already on the current monitor
-        changeworkspace(PWORKSPACE->getConfigName());
+        changeworkspace(pWorkspace->getConfigName());
         return;
     }
 
-    if (PWORKSPACE->m_iMonitorID != PCURRMONITOR->ID) {
-        const auto POLDMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+    static auto* const PBACKANDFORTH = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth");
+
+    if (**PBACKANDFORTH && PCURRMONITOR->activeWorkspace == workspaceID && pWorkspace->m_sPrevWorkspace.iID != -1) {
+        const int  PREVWORKSPACEID   = pWorkspace->m_sPrevWorkspace.iID;
+        const auto PREVWORKSPACENAME = pWorkspace->m_sPrevWorkspace.name;
+        // Workspace to focus is previous workspace
+        pWorkspace = g_pCompositor->getWorkspaceByID(PREVWORKSPACEID);
+        if (!pWorkspace)
+            pWorkspace = g_pCompositor->createNewWorkspace(PREVWORKSPACEID, PCURRMONITOR->ID, PREVWORKSPACENAME);
+
+        workspaceID = pWorkspace->m_iID;
+    }
+
+    if (pWorkspace->m_iMonitorID != PCURRMONITOR->ID) {
+        const auto POLDMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         if (!POLDMONITOR) { // wat
             Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
             return;
         }
-        if (POLDMONITOR->activeWorkspace == WORKSPACEID) {
+        if (POLDMONITOR->activeWorkspace == workspaceID) {
             g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
             return;
         } else {
-            g_pCompositor->moveWorkspaceToMonitor(PWORKSPACE, PCURRMONITOR, true);
+            g_pCompositor->moveWorkspaceToMonitor(pWorkspace, PCURRMONITOR, true);
         }
     }
 
-    changeworkspace(PWORKSPACE->getConfigName());
+    changeworkspace(pWorkspace->getConfigName());
 }
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {

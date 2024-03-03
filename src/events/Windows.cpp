@@ -435,7 +435,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (ARGS[1] == "1")
                     RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-                PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.value() / 2.f + RESERVEDOFFSET;
+                PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
             }
         }
 

@@ -15,6 +15,8 @@
 #include <string>
 #include <typeindex>
 
+#include "../config/ConfigValue.hpp"
+
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
         str.pop_back();
@@ -879,7 +881,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
         g_pInputManager->setTabletConfigs();      // update tablets
     }
 
-    static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+    static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
     if (COMMAND.contains("general:layout"))
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
@@ -1564,7 +1566,7 @@ std::string CHyprCtl::getReply(std::string request) {
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
         g_pInputManager->setTabletConfigs();      // update tablets
 
-        static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+        static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 

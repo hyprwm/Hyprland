@@ -1231,9 +1231,9 @@ void CConfigManager::ensureMonitorStatus() {
 }
 
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
-    static auto* const PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
+    static auto PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
 
-    static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+    static auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
         if (!m->output || m->createdByUser)
             return;
 

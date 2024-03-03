@@ -1,6 +1,7 @@
 #include "Subsurface.hpp"
 #include "../events/Events.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 static void onNewSubsurface(void* owner, void* data);
 
@@ -119,8 +120,8 @@ void CSubsurface::onCommit() {
     if (!g_pHyprRenderer->shouldRenderWindow(m_pWindowParent)) {
         m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 
-        static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
-        if (**PLOGDAMAGE)
+        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        if (*PLOGDAMAGE)
             Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowParent);
         return;
     }

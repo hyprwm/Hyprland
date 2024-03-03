@@ -1,5 +1,6 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
@@ -42,8 +43,8 @@ CWorkspace::~CWorkspace() {
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
-    const auto         ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
-    static auto* const PWORKSPACEGAP = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:gaps_workspaces");
+    const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
+    static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
@@ -95,7 +96,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        const auto YDISTANCE = PMONITOR->vecSize.y + **PWORKSPACEGAP;
+        const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
@@ -108,7 +109,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else {
         // fallback is slide
         const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        const auto XDISTANCE = PMONITOR->vecSize.x + **PWORKSPACEGAP;
+        const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 

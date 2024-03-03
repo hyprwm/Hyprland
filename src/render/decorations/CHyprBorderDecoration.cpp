@@ -1,5 +1,6 @@
 #include "CHyprBorderDecoration.hpp"
 #include "../../Compositor.hpp"
+#include "../../config/ConfigValue.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
@@ -94,9 +95,9 @@ eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {
 }
 
 uint64_t CHyprBorderDecoration::getDecorationFlags() {
-    static auto* const PPARTOFWINDOW = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:border_part_of_window");
+    static auto PPARTOFWINDOW = CConfigValue<Hyprlang::INT>("general:border_part_of_window");
 
-    return **PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
+    return *PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
 }
 
 std::string CHyprBorderDecoration::getDisplayName() {

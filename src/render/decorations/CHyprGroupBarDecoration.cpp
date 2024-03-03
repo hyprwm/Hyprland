@@ -1,5 +1,6 @@
 #include "CHyprGroupBarDecoration.hpp"
 #include "../../Compositor.hpp"
+#include "../../config/ConfigValue.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
 
@@ -15,31 +16,31 @@ constexpr int   BAR_TEXT_PAD           = 2;
 constexpr int   BAR_HORIZONTAL_PADDING = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
-    static auto* const PGRADIENTS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:enabled");
-    static auto* const PENABLED   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:gradients");
-    m_pWindow                     = pWindow;
+    static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
+    m_pWindow              = pWindow;
 
-    if (m_tGradientActive.m_iTexID == 0 && **PENABLED && **PGRADIENTS)
+    if (m_tGradientActive.m_iTexID == 0 && *PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
 CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
-    static auto* const         PHEIGHT       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:height");
-    static auto* const         PENABLED      = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:enabled");
-    static auto* const         PRENDERTITLES = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles");
-    static auto* const         PGRADIENTS    = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:gradients");
-    static auto* const         PPRIORITY     = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:priority");
+    static auto                PHEIGHT       = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto                PENABLED      = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    static auto                PRENDERTITLES = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
+    static auto                PGRADIENTS    = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
+    static auto                PPRIORITY     = CConfigValue<Hyprlang::INT>("group:groupbar:priority");
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
     info.edges    = DECORATION_EDGE_TOP;
-    info.priority = **PPRIORITY;
+    info.priority = *PPRIORITY;
     info.reserved = true;
 
-    if (**PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
-        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (**PGRADIENTS || **PRENDERTITLES ? **PHEIGHT : 0) + 2}, {0, 0}};
+    if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate)
+        info.desiredExtents = {{0, BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2}, {0, 0}};
     else
         info.desiredExtents = {{0, 0}, {0, 0}};
 
@@ -87,22 +88,22 @@ void CHyprGroupBarDecoration::damageEntire() {
 
 void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
     // get how many bars we will draw
-    int                barsToDraw = m_dwGroupMembers.size();
+    int         barsToDraw = m_dwGroupMembers.size();
 
-    static auto* const PENABLED       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:enabled");
-    static auto* const PRENDERTITLES  = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:render_titles");
-    static auto* const PTITLEFONTSIZE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:font_size");
-    static auto* const PHEIGHT        = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:height");
-    static auto* const PGRADIENTS     = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:gradients");
+    static auto PENABLED       = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    static auto PRENDERTITLES  = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
+    static auto PTITLEFONTSIZE = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
+    static auto PHEIGHT        = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto PGRADIENTS     = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
 
-    if (!**PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
+    if (!*PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
         return;
 
     const auto ASSIGNEDBOX = assignedBoxGlobal();
 
     m_fBarWidth = (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
 
-    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (**PGRADIENTS || **PRENDERTITLES ? **PHEIGHT : 0) + 2;
+    const auto DESIREDHEIGHT = BAR_PADDING_OUTER_VERT * 2 + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0) + 2;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h)
         g_pDecorationPositioner->repositionDeco(this);
 
@@ -117,20 +118,20 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
 
         rect.scale(pMonitor->scale);
 
-        static auto* const PGROUPCOLACTIVE         = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.active");
-        static auto* const PGROUPCOLINACTIVE       = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive");
-        static auto* const PGROUPCOLACTIVELOCKED   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active");
-        static auto* const PGROUPCOLINACTIVELOCKED = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive");
-        auto* const        GROUPCOLACTIVE          = (CGradientValueData*)(*PGROUPCOLACTIVE)->getData();
-        auto* const        GROUPCOLINACTIVE        = (CGradientValueData*)(*PGROUPCOLINACTIVE)->getData();
-        auto* const        GROUPCOLACTIVELOCKED    = (CGradientValueData*)(*PGROUPCOLACTIVELOCKED)->getData();
-        auto* const        GROUPCOLINACTIVELOCKED  = (CGradientValueData*)(*PGROUPCOLINACTIVELOCKED)->getData();
+        static auto       PGROUPCOLACTIVE         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
+        static auto       PGROUPCOLINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
+        static auto       PGROUPCOLACTIVELOCKED   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
+        static auto       PGROUPCOLINACTIVELOCKED = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+        auto* const       GROUPCOLACTIVE          = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
+        auto* const       GROUPCOLINACTIVE        = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
+        auto* const       GROUPCOLACTIVELOCKED    = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
+        auto* const       GROUPCOLINACTIVELOCKED  = (CGradientValueData*)(PGROUPCOLINACTIVELOCKED.ptr())->getData();
 
-        const bool         GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
-        const auto* const  PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
-        const auto* const  PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
+        const bool        GROUPLOCKED  = m_pWindow->getGroupHead()->m_sGroupData.locked;
+        const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
+        const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CColor             color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
+        CColor            color = m_dwGroupMembers[i] == g_pCompositor->m_pLastWindow ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
@@ -145,17 +146,17 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
                 g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
         }
 
-        if (**PRENDERTITLES) {
+        if (*PRENDERTITLES) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[i]->m_szTitle);
 
             if (!pTitleTex)
                 pTitleTex = m_sTitleTexs.titleTexs
                                 .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i],
-                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (**PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
+                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
                                 .get();
 
-            rect.y += (ASSIGNEDBOX.h / 2.0 - (**PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
-            rect.height = (**PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
+            rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
+            rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
         }
@@ -163,7 +164,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         xoff += BAR_HORIZONTAL_PADDING + m_fBarWidth;
     }
 
-    if (**PRENDERTITLES)
+    if (*PRENDERTITLES)
         invalidateTextures();
 }
 
@@ -181,17 +182,16 @@ void CHyprGroupBarDecoration::invalidateTextures() {
 }
 
 CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
-    szContent                       = pWindow->m_szTitle;
-    pWindowOwner                    = pWindow;
-    const auto         CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto         CAIRO        = cairo_create(CAIROSURFACE);
-    const auto         MONITORSCALE = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID)->scale;
+    szContent                 = pWindow->m_szTitle;
+    pWindowOwner              = pWindow;
+    const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
+    const auto   CAIRO        = cairo_create(CAIROSURFACE);
 
-    static auto* const PTITLEFONTFAMILY = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("group:groupbar:font_family");
-    static auto* const PTITLEFONTSIZE   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:font_size");
-    static auto* const PTEXTCOLOR       = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:text_color");
+    static auto  PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
+    static auto  PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
+    static auto  PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
 
-    const CColor       COLOR = CColor(**PTEXTCOLOR);
+    const CColor COLOR = CColor(*PTEXTCOLOR);
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -203,8 +203,8 @@ CTitleTex::CTitleTex(CWindow* pWindow, const Vector2D& bufferSize) {
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string(*PTITLEFONTFAMILY);
-    pango_font_description_set_size(fontDesc, **PTITLEFONTSIZE * PANGO_SCALE);
+    PangoFontDescription* fontDesc = pango_font_description_from_string((*PTITLEFONTFAMILY).c_str());
+    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
@@ -301,17 +301,17 @@ void renderGradientTo(CTexture& tex, CGradientValueData* grad) {
 }
 
 void refreshGroupBarGradients() {
-    static auto* const PGRADIENTS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:enabled");
-    static auto* const PENABLED   = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:gradients");
+    static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
+    static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
 
-    static auto* const PGROUPCOLACTIVE         = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.active");
-    static auto* const PGROUPCOLINACTIVE       = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.inactive");
-    static auto* const PGROUPCOLACTIVELOCKED   = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_active");
-    static auto* const PGROUPCOLINACTIVELOCKED = (Hyprlang::CUSTOMTYPE* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:col.locked_inactive");
-    auto* const        GROUPCOLACTIVE          = (CGradientValueData*)(*PGROUPCOLACTIVE)->getData();
-    auto* const        GROUPCOLINACTIVE        = (CGradientValueData*)(*PGROUPCOLINACTIVE)->getData();
-    auto* const        GROUPCOLACTIVELOCKED    = (CGradientValueData*)(*PGROUPCOLACTIVELOCKED)->getData();
-    auto* const        GROUPCOLINACTIVELOCKED  = (CGradientValueData*)(*PGROUPCOLINACTIVELOCKED)->getData();
+    static auto PGROUPCOLACTIVE         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
+    static auto PGROUPCOLINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
+    static auto PGROUPCOLACTIVELOCKED   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
+    static auto PGROUPCOLINACTIVELOCKED = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+    auto* const GROUPCOLACTIVE          = (CGradientValueData*)(PGROUPCOLACTIVE.ptr())->getData();
+    auto* const GROUPCOLINACTIVE        = (CGradientValueData*)(PGROUPCOLINACTIVE.ptr())->getData();
+    auto* const GROUPCOLACTIVELOCKED    = (CGradientValueData*)(PGROUPCOLACTIVELOCKED.ptr())->getData();
+    auto* const GROUPCOLINACTIVELOCKED  = (CGradientValueData*)(PGROUPCOLINACTIVELOCKED.ptr())->getData();
 
     g_pHyprRenderer->makeEGLCurrent();
 
@@ -322,7 +322,7 @@ void refreshGroupBarGradients() {
         m_tGradientLockedInactive.destroyTexture();
     }
 
-    if (!**PENABLED || !**PGRADIENTS)
+    if (!*PENABLED || !*PGRADIENTS)
         return;
 
     renderGradientTo(m_tGradientActive, GROUPCOLACTIVE);
@@ -460,9 +460,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
 }
 
 bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_axis_event* e) {
-    static auto* const PGROUPBARSCROLLING = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:groupbar:scrolling");
+    static auto PGROUPBARSCROLLING = CConfigValue<Hyprlang::INT>("group:groupbar:scrolling");
 
-    if (!**PGROUPBARSCROLLING || !m_pWindow->m_sGroupData.pNextWindow)
+    if (!*PGROUPBARSCROLLING || !m_pWindow->m_sGroupData.pNextWindow)
         return false;
 
     if (e->delta > 0)

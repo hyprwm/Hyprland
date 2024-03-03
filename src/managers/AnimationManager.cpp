@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "HookSystemManager.hpp"
 #include "macros.hpp"
+#include "../config/ConfigValue.hpp"
 
 int wlTick(void* data) {
     if (g_pAnimationManager)
@@ -52,11 +53,11 @@ void CAnimationManager::tick() {
     if (m_vActiveAnimatedVariables.empty())
         return;
 
-    bool               animGlobalDisabled = false;
+    bool        animGlobalDisabled = false;
 
-    static auto* const PANIMENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("animations:enabled");
+    static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
-    if (!**PANIMENABLED)
+    if (!*PANIMENABLED)
         animGlobalDisabled = true;
 
     static auto* const                  PSHADOWSENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:drop_shadow");
@@ -67,7 +68,7 @@ void CAnimationManager::tick() {
 
     for (auto& av : m_vActiveAnimatedVariables) {
 
-        if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !**PSHADOWSENABLED) {
+        if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
             av->warp(false);
             animationEndedVars.push_back(av);
             continue;

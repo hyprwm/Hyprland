@@ -3,6 +3,7 @@
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
 #include "render/decorations/CHyprBorderDecoration.hpp"
+#include "config/ConfigValue.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
@@ -370,9 +371,9 @@ void CWindow::moveToWorkspace(int workspaceID) {
     if (m_iWorkspaceID == workspaceID)
         return;
 
-    static auto* const PCLOSEONLASTSPECIAL = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
-    const int          OLDWORKSPACE = m_iWorkspaceID;
+    const int   OLDWORKSPACE = m_iWorkspaceID;
 
     m_iWorkspaceID = workspaceID;
 
@@ -393,7 +394,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(this, m_vRealSize.value());
 
-    if (g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE) == 0 && **PCLOSEONLASTSPECIAL) {
+    if (g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE) == 0 && *PCLOSEONLASTSPECIAL) {
         const auto PWS = g_pCompositor->getWorkspaceByID(OLDWORKSPACE);
 
         if (PWS) {
@@ -436,7 +437,7 @@ void unregisterVar(void* ptr) {
 }
 
 void CWindow::onUnmap() {
-    static auto* const PCLOSEONLASTSPECIAL = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:close_special_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
@@ -458,7 +459,7 @@ void CWindow::onUnmap() {
 
     hyprListener_unmapWindow.removeCallback();
 
-    if (**PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
+    if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         if (PMONITOR && PMONITOR->specialWorkspaceID == m_iWorkspaceID)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -1033,21 +1034,21 @@ bool CWindow::opaque() {
 }
 
 float CWindow::rounding() {
-    static auto* const PROUNDING = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:rounding");
+    static auto PROUNDING = CConfigValue<Hyprlang::INT>("decoration:rounding");
 
-    float              rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? **PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
+    float       rounding = m_sAdditionalConfigData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sAdditionalConfigData.rounding.toUnderlying();
 
     return m_sSpecialRenderData.rounding ? rounding : 0;
 }
 
 void CWindow::updateSpecialRenderData() {
-    const auto          PWORKSPACE    = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-    const auto          WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
-    bool                border        = true;
+    const auto  PWORKSPACE    = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+    const auto  WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+    bool        border        = true;
 
-    static auto* const* PNOBORDERONFLOATING = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:no_border_on_floating");
+    static auto PNOBORDERONFLOATING = CConfigValue<Hyprlang::INT>("general:no_border_on_floating");
 
-    if (m_bIsFloating && **PNOBORDERONFLOATING == 1)
+    if (m_bIsFloating && *PNOBORDERONFLOATING == 1)
         border = false;
 
     m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(border);
@@ -1067,9 +1068,9 @@ int CWindow::getRealBorderSize() {
     if (m_sSpecialRenderData.borderSize.toUnderlying() != -1)
         return m_sSpecialRenderData.borderSize.toUnderlying();
 
-    static auto* const* PBORDERSIZE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("general:border_size");
+    static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
 
-    return **PBORDERSIZE;
+    return *PBORDERSIZE;
 }
 
 bool CWindow::canBeTorn() {

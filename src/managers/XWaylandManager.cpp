@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "xdg-output-unstable-v1-protocol.h"
+#include "../config/ConfigValue.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3
@@ -153,9 +154,9 @@ void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
 
 void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool force) {
 
-    static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto         PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     size = size.clamp(Vector2D{0, 0}, Vector2D{std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()});
 
@@ -165,7 +166,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     if (pWindow->m_bIsX11 && PMONITOR) {
         windowPos = windowPos - PMONITOR->vecPosition; // normalize to monitor
-        if (**PXWLFORCESCALEZERO)
+        if (*PXWLFORCESCALEZERO)
             windowPos = windowPos * PMONITOR->scale;           // scale if applicable
         windowPos = windowPos + PMONITOR->vecXWaylandPosition; // move to correct position for xwayland
     }
@@ -178,7 +179,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
 
     pWindow->m_fX11SurfaceScaledBy = 1.f;
 
-    if (**PXWLFORCESCALEZERO && pWindow->m_bIsX11 && PMONITOR) {
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11 && PMONITOR) {
         size                           = size * PMONITOR->scale;
         pWindow->m_fX11SurfaceScaledBy = PMONITOR->scale;
     }
@@ -336,12 +337,12 @@ Vector2D CHyprXWaylandManager::getMinSizeForWindow(CWindow* pWindow) {
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
-    static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    CMonitor*          pMonitor     = nullptr;
-    double             bestDistance = __FLT_MAX__;
+    CMonitor*   pMonitor     = nullptr;
+    double      bestDistance = __FLT_MAX__;
     for (auto& m : g_pCompositor->m_vMonitors) {
-        const auto SIZ = **PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
+        const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
 
         double     distance =
             vecToRectDistanceSquared(coord, {m->vecXWaylandPosition.x, m->vecXWaylandPosition.y}, {m->vecXWaylandPosition.x + SIZ.x - 1, m->vecXWaylandPosition.y + SIZ.y - 1});
@@ -358,7 +359,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
     // get local coords
     Vector2D result = coord - pMonitor->vecXWaylandPosition;
     // if scaled, unscale
-    if (**PXWLFORCESCALEZERO)
+    if (*PXWLFORCESCALEZERO)
         result = result / pMonitor->scale;
     // add pos
     result = result + pMonitor->vecPosition;

@@ -6,6 +6,7 @@
 
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
+#define HYPRLAND_DEBUG
 #define ISDEBUG true
 #else
 #define ISDEBUG false

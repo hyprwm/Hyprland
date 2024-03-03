@@ -1,6 +1,7 @@
 #include "Watchdog.hpp"
 #include <signal.h>
 #include "config/ConfigManager.hpp"
+#include "../config/ConfigValue.hpp"
 
 CWatchdog::~CWatchdog() {
     m_bExitThread = true;
@@ -13,7 +14,7 @@ CWatchdog::CWatchdog() {
     m_iMainThreadPID = pthread_self();
 
     m_pWatchdog = std::make_unique<std::thread>([this] {
-        static auto* const PTIMEOUT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:watchdog_timeout");
+        static auto PTIMEOUT = CConfigValue<Hyprlang::INT>("debug:watchdog_timeout");
 
         while (1337) {
             std::unique_lock lk(m_mWatchdogMutex);
@@ -21,7 +22,7 @@ CWatchdog::CWatchdog() {
             if (!m_bWillWatch)
                 m_cvWatchdogCondition.wait(lk, [this] { return m_bNotified; });
             else {
-                if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(**PTIMEOUT * 1000.0)), [this] { return m_bNotified; }) == false)
+                if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(*PTIMEOUT * 1000.0)), [this] { return m_bNotified; }) == false)
                     pthread_kill(m_iMainThreadPID, SIGUSR1);
             }
 
@@ -37,9 +38,9 @@ CWatchdog::CWatchdog() {
 }
 
 void CWatchdog::startWatching() {
-    static auto* const PTIMEOUT = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:watchdog_timeout");
+    static auto PTIMEOUT = CConfigValue<Hyprlang::INT>("debug:watchdog_timeout");
 
-    if (**PTIMEOUT == 0)
+    if (*PTIMEOUT == 0)
         return;
 
     m_tTriggered = std::chrono::high_resolution_clock::now();

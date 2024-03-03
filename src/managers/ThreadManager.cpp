@@ -1,15 +1,16 @@
 #include "ThreadManager.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 int slowUpdate = 0;
 
 int handleTimer(void* data) {
-    const auto         PTM = (CThreadManager*)data;
+    const auto  PTM = (CThreadManager*)data;
 
-    static auto* const PDISABLECFGRELOAD = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:disable_autoreload");
+    static auto PDISABLECFGRELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
 
-    if (**PDISABLECFGRELOAD != 1)
+    if (*PDISABLECFGRELOAD != 1)
         g_pConfigManager->tick();
 
     wl_event_source_timer_update(PTM->m_esConfigTimer, 1000);

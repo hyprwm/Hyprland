@@ -707,7 +707,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     }
 
-    if (m_bForceWarps && !*PANIMATE) {
+    if (m_bForceWarps && !**PANIMATE) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
         PWINDOW->m_vRealPosition.warp();
@@ -774,7 +774,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             if (WINDOWS > 2) {
                 if (!NONE || !PNODE->isMaster)
                     delta *= 2;
-                if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && *PSMARTRESIZING))
+                if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && **PSMARTRESIZING))
                     delta = -delta;
             }
             break;

@@ -761,7 +761,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
         if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
             if (ws->m_bHasFullscreenWindow)
-                renderWorkspaceWindowsFullscreen(pMonitor, ws.get(), time); // call by non-special
+                renderWorkspaceWindowsFullscreen(pMonitor, ws.get(), time);
             else
                 renderWorkspaceWindows(pMonitor, ws.get(), time);
         }

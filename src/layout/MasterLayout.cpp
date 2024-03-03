@@ -707,7 +707,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     }
 
-    if (m_bForceWarps && !*PANIMATE) {
+    if (m_bForceWarps && !**PANIMATE) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
         PWINDOW->m_vRealPosition.warp();

@@ -1136,6 +1136,51 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         }
 
         return 0;
+    } else if (command == "promote") {
+        const auto PWINDOW = header.pWindow;
+        const auto PNODE = getNodeFromWindow(PWINDOW);
+
+        if (!PNODE)
+            return 0;
+
+        if (!isWindowTiled(PWINDOW))
+            return 0;
+
+        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+
+        if (!PMASTER)
+            return 0;
+
+        const auto PMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PMASTER);
+
+        if (PMASTER->pWindow != PWINDOW) {
+            PNODE->isMaster              = true;
+            const auto NEWMASTER         = PNODE;
+            const auto NEWMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *NEWMASTER);
+            m_lMasterNodesData.splice(PMASTERIT, m_lMasterNodesData, NEWMASTERIT);
+            const bool inheritFullscreen = prepareLoseFocus(NEWMASTER->pWindow);
+            switchToWindow(NEWMASTER->pWindow);
+            prepareNewFocus(NEWMASTER->pWindow, inheritFullscreen);
+            PMASTER->isMaster = false;
+        } else {
+            for (auto& n : m_lMasterNodesData) {
+                if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
+                    n.isMaster                   = true;
+                    const auto NEWMASTER         = n;
+                    const auto NEWMASTERIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), NEWMASTER);
+                    m_lMasterNodesData.splice(PMASTERIT, m_lMasterNodesData, NEWMASTERIT);
+                    const bool inheritFullscreen = prepareLoseFocus(PWINDOW);
+                    switchToWindow(NEWMASTER.pWindow);
+                    prepareNewFocus(NEWMASTER.pWindow, inheritFullscreen);
+                    PMASTER->isMaster = false;
+                    break;
+                }
+            }
+        }
+
+        recalculateMonitor(PWINDOW->m_iMonitorID);
+
+        return 0;
     }
     // focusmaster <master | auto>
     // first message argument can have the following values:

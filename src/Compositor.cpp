@@ -742,15 +742,13 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
                 const auto BB             = w->getWindowBoxUnified(properties);
                 const auto PWINDOWMONITOR = getMonitorFromID(w->m_iMonitorID);
 
-                /* if special fallthrough is disabled and the window is contained within its monitor, do not apply border grab extends
-                   to avoid focusing windows behind special workspaces from other monitors */
-                auto box = (!**PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->specialWorkspaceID && w->m_iWorkspaceID != PWINDOWMONITOR->specialWorkspaceID &&
-                            BB.x >= PWINDOWMONITOR->vecPosition.x && BB.y >= PWINDOWMONITOR->vecPosition.y &&
-                            BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x &&
-                            BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y) ?
-                    CBox{BB.x, BB.y, BB.width, BB.height} :
-                    CBox{BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
+                // to avoid focusing windows behind special workspaces from other monitors
+                if (!**PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->specialWorkspaceID && w->m_iWorkspaceID != PWINDOWMONITOR->specialWorkspaceID &&
+                    BB.x >= PWINDOWMONITOR->vecPosition.x && BB.y >= PWINDOWMONITOR->vecPosition.y &&
+                    BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x && BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
+                    continue;
 
+                CBox box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
                 if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_iWorkspaceID) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
                     w.get() != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent

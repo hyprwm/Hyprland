@@ -123,7 +123,7 @@ misc {
 }
 
 # Example per-device config
-# See https://wiki.hyprland.org/Configuring/Keywords/#executing for more
+# See https://wiki.hyprland.org/Configuring/Keywords/#per-device-input-configs for more
 device {
     name = epic-mouse-v1
     sensitivity = -0.5

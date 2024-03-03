@@ -195,14 +195,27 @@ void SKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
             std::string    layout, model, variant;
             layout  = keyboardLayouts[i % keyboardLayouts.size()];
-            model   = keyboardModels[i % keyboardLayouts.size()];
-            variant = keyboardVariants[i % keyboardLayouts.size()];
+            model   = keyboardModels[i % keyboardModels.size()];
+            variant = keyboardVariants[i % keyboardVariants.size()];
 
             rules.layout  = layout.c_str();
             rules.model   = model.c_str();
             rules.variant = variant.c_str();
 
-            const auto KEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            auto KEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+            if (!KEYMAP) {
+                Debug::log(ERR, "updateXKBTranslationState: keymap failed 1, fallback without model/variant");
+                rules.model   = "";
+                rules.variant = "";
+                KEYMAP        = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            }
+
+            if (!KEYMAP) {
+                Debug::log(ERR, "updateXKBTranslationState: keymap failed 2, fallback to us");
+                rules.layout = "us";
+                KEYMAP       = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            }
 
             xkbTranslationState = xkb_state_new(KEYMAP);
 

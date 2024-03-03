@@ -2173,7 +2173,7 @@ void CHyprOpenGLImpl::bindBackOnMain() {
 }
 
 void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
-    m_bEndFrame = !enabled;
+    m_bEndFrame = enabled;
 }
 
 inline const SGLPixelFormat GLES2_FORMATS[] = {

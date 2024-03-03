@@ -484,9 +484,9 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     }
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecTransformedSize.x, frame->pMonitor->vecTransformedSize.y}.translate({-frame->box.x, -frame->box.y});
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
-    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
 #ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
@@ -535,15 +535,17 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     if (!sourceTex)
         return false;
 
-    CRegion fakeDamage = {0, 0, frame->box.width, frame->box.height};
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer))
         return false;
 
-    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}.translate({-frame->box.x, -frame->box.y});
-    g_pHyprOpenGL->setMonitorTransformEnabled(false);
-    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
+                      .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+                      .transform(wlr_output_transform_invert(frame->pMonitor->output->transform), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
     g_pHyprRenderer->endRender();
 

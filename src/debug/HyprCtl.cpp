@@ -718,8 +718,8 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (kb.nonConsuming)
                 ret += "n";
 
-            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap, kb.key, kb.keycode, kb.handler,
-                               kb.arg);
+            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap, kb.key,
+                               kb.keycode, kb.catchAll, kb.handler, kb.arg);
         }
     } else {
         // json
@@ -737,11 +737,13 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "submap": "{}",
     "key": "{}",
     "keycode": {},
+    "catch_all": {},
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
                 kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.nonConsuming ? "true" : "false",
-                kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, escapeJSONStrings(kb.handler), escapeJSONStrings(kb.arg));
+                kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, kb.catchAll ? "true" : "false", escapeJSONStrings(kb.handler),
+                escapeJSONStrings(kb.arg));
         }
         trimTrailingComma(ret);
         ret += "]";

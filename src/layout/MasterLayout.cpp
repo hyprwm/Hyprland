@@ -774,7 +774,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
             if (WINDOWS > 2) {
                 if (!NONE || !PNODE->isMaster)
                     delta *= 2;
-                if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && *PSMARTRESIZING))
+                if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && **PSMARTRESIZING))
                     delta = -delta;
             }
             break;

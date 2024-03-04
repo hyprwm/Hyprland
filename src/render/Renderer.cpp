@@ -295,6 +295,9 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
         if (!w->m_bIsFullscreen)
             continue;
 
+        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+            continue;
+
         renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
 
         if (w->m_iWorkspaceID != pWorkspace->m_iID)
@@ -759,8 +762,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
     // special
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
-        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace)
-            renderWorkspaceWindows(pMonitor, ws.get(), time);
+        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
+            if (ws->m_bHasFullscreenWindow)
+                renderWorkspaceWindowsFullscreen(pMonitor, ws.get(), time);
+            else
+                renderWorkspaceWindows(pMonitor, ws.get(), time);
+        }
     }
 
     // pinned always above

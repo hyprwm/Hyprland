@@ -2042,6 +2042,9 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
     pMonitorA->activeWorkspace = PWORKSPACEB->m_iID;
     pMonitorB->activeWorkspace = PWORKSPACEA->m_iID;
 
+    PWORKSPACEA->rememberPrevWorkspace(PWORKSPACEB);
+    PWORKSPACEB->rememberPrevWorkspace(PWORKSPACEA);
+
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->ID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
 
@@ -2150,7 +2153,7 @@ void CCompositor::moveWorkspaceToMonitor(CWorkspace* pWorkspace, CMonitor* pMoni
 
     // fix old mon
     int nextWorkspaceOnMonitorID = -1;
-    if (!SWITCHINGISACTIVE || !POLDMON)
+    if (!SWITCHINGISACTIVE)
         nextWorkspaceOnMonitorID = pWorkspace->m_iID;
     else {
         for (auto& w : m_vWorkspaces) {

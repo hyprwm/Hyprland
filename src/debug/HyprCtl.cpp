@@ -1225,8 +1225,8 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             return std::format("vec2: [{}, {}]\nset: {}", std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y, VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("str: {}\nset: {}", std::any_cast<Hyprlang::STRING>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
-            return std::format("custom type at: {:x}\nset: {}", (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(void*))
+            return std::format("custom type: {}\nset: {}", ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
             return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
@@ -1237,8 +1237,9 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
                                VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
-            return std::format("{{\"option\": \"{}\", \"custom\": \"{:x}\", \"set\": {} }}", curitem, (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(void*))
+            return std::format("{{\"option\": \"{}\", \"custom\": \"{}\", \"set\": {} }}", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(),
+                               VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";

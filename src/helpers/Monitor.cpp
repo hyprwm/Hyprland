@@ -628,6 +628,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         else
             g_pInputManager->refocus();
 
+        g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
+
+        g_pConfigManager->ensureVRR(this);
+
         g_pCompositor->updateSuspendedStates();
 
         return;
@@ -687,6 +691,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(this);
+
+    g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
+
+    g_pConfigManager->ensureVRR(this);
 
     g_pCompositor->updateSuspendedStates();
 }

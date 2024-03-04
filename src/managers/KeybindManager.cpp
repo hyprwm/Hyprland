@@ -988,9 +988,6 @@ void CKeybindManager::fullscreenActive(std::string args) {
     if (!PWINDOW)
         return;
 
-    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID))
-        return;
-
     PWINDOW->m_bDontSendFullscreen = false;
     if (args == "2")
         PWINDOW->m_bDontSendFullscreen = true;

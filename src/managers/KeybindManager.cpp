@@ -1569,9 +1569,9 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    static auto* const PBACKANDFORTH = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("binds:workspace_back_and_forth");
+    static auto PBACKANDFORTH = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
 
-    if (**PBACKANDFORTH && PCURRMONITOR->activeWorkspace == workspaceID && pWorkspace->m_sPrevWorkspace.iID != -1) {
+    if (*PBACKANDFORTH && PCURRMONITOR->activeWorkspace == workspaceID && pWorkspace->m_sPrevWorkspace.iID != -1) {
         const int  PREVWORKSPACEID   = pWorkspace->m_sPrevWorkspace.iID;
         const auto PREVWORKSPACENAME = pWorkspace->m_sPrevWorkspace.name;
         // Workspace to focus is previous workspace

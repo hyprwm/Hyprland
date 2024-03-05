@@ -336,7 +336,7 @@ void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 void CWindow::updateSurfaceScaleTransformDetails() {
-    if (!m_bIsMapped || m_bHidden)
+    if (!m_bIsMapped || m_bHidden || g_pCompositor->m_bUnsafeState)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
@@ -344,6 +344,9 @@ void CWindow::updateSurfaceScaleTransformDetails() {
     m_iLastSurfaceMonitorID = m_iMonitorID;
 
     const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+
+    if (!PNEWMONITOR)
+        return;
 
     if (PNEWMONITOR != PLASTMONITOR) {
         if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)

@@ -11,7 +11,7 @@
 
 const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git
+┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision is optional, when set, commit locks are ignored.
 ┣ remove [url/name]      → Remove an installed plugin repository
 ┣ enable [name]          → Enable a plugin
 ┣ disable [name]         → Disable a plugin

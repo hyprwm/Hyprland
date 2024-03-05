@@ -729,7 +729,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
         vecStr = VALUE.substr(spacePos + 1);
 
     std::istringstream iss(vecStr);
-    int                x = 20, y = 20;
+    int                x = 1, y = 1;
     iss >> x;
 
     if (!(iss >> y))

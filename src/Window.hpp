@@ -155,8 +155,8 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool>     noFocus               = false;
     CWindowOverridableVar<bool>     windowDanceCompat     = false;
     CWindowOverridableVar<bool>     noMaxSize             = false;
-    CWindowOverridableVar<Vector2D> maxSize               = Vector2D(99999, 99999);
-    CWindowOverridableVar<Vector2D> minSize               = Vector2D(20, 20);
+    CWindowOverridableVar<Vector2D> maxSize               = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    CWindowOverridableVar<Vector2D> minSize               = Vector2D(1, 1);
     CWindowOverridableVar<bool>     dimAround             = false;
     CWindowOverridableVar<bool>     forceRGBX             = false;
     CWindowOverridableVar<bool>     keepAspectRatio       = false;

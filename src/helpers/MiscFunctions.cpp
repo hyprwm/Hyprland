@@ -725,17 +725,15 @@ int64_t configStringToInt(const std::string& VALUE) {
 Vector2D configStringToVector2D(const std::string& VALUE) {
     size_t      spacePos = VALUE.find(' ');
     std::string vecStr;
-    if (spacePos != std::string::npos) {
+    if (spacePos != std::string::npos)
         vecStr = VALUE.substr(spacePos + 1);
-    }
 
     std::istringstream iss(vecStr);
     int                x = 20, y = 20;
     iss >> x;
 
-    if (!(iss >> y)) {
+    if (!(iss >> y))
         y = x;
-    }
 
     return Vector2D(x, y);
 }

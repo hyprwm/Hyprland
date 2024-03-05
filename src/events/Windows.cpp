@@ -841,6 +841,22 @@ void Events::listener_commitWindow(void* owner, void* data) {
         PWINDOW->m_pPopupHead->recheckTree();
     }
 
+    // tearing: if solitary, redraw it. This still might be a single surface window
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    if (PMONITOR && PMONITOR->solitaryClient == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->tearingState.canTear &&
+        PWINDOW->m_pWLSurface.wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
+        CRegion damageBox{&PWINDOW->m_pWLSurface.wlr()->buffer_damage};
+
+        if (!damageBox.empty()) {
+            if (PMONITOR->tearingState.busy) {
+                PMONITOR->tearingState.frameScheduledWhileBusy = true;
+            } else {
+                PMONITOR->tearingState.nextRenderTorn = true;
+                g_pHyprRenderer->renderMonitor(PMONITOR);
+            }
+        }
+    }
+
     if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 

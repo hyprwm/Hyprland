@@ -33,7 +33,7 @@ struct SNotification {
     CTimer      started;
     float       timeMs   = 0;
     eIcons      icon     = ICON_NONE;
-    float       fontSize = 18.f;
+    float       fontSize = 13.f;
 };
 
 class CHyprNotificationOverlay {
@@ -41,7 +41,7 @@ class CHyprNotificationOverlay {
     CHyprNotificationOverlay();
 
     void draw(CMonitor* pMonitor);
-    void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE, const float fontSize = 18.f);
+    void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE, const float fontSize = 13.f);
     void dismissNotifications(const int amount);
     bool hasAny();
 

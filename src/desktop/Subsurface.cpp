@@ -145,24 +145,6 @@ void CSubsurface::onCommit() {
         box         = {COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
     }
-
-    if (m_pWindowParent) {
-        // tearing: if solitary, redraw it. This still might be a single surface window
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_pWindowParent->m_iMonitorID);
-        if (PMONITOR && PMONITOR->solitaryClient == m_pWindowParent && m_pWindowParent->canBeTorn() && PMONITOR->tearingState.canTear &&
-            m_sWLSurface.wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
-            CRegion damageBox{&m_sWLSurface.wlr()->buffer_damage};
-
-            if (!damageBox.empty()) {
-                if (PMONITOR->tearingState.busy) {
-                    PMONITOR->tearingState.frameScheduledWhileBusy = true;
-                } else {
-                    PMONITOR->tearingState.nextRenderTorn = true;
-                    g_pHyprRenderer->renderMonitor(PMONITOR);
-                }
-            }
-        }
-    }
 }
 
 void CSubsurface::onDestroy() {

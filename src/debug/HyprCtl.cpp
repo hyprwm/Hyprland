@@ -1425,12 +1425,12 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     const auto FONTSIZE = vars[4];
 
     if (!isNumber(FONTSIZE, true))
-        return "invalid arg 4 (NaN: '" + FONTSIZE + "')";
+        return "invalid arg 4";
 
     float fontsize = -1;
     try {
         fontsize = std::stoi(FONTSIZE);
-    } catch (std::exception& e) { return "invalid arg 4 (stoi)"; }
+    } catch (std::exception& e) { return "invalid arg 4"; }
 
     std::string message = "";
 

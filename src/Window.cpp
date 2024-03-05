@@ -685,9 +685,19 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         else
             Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     } else if (r.szRule.starts_with("maxsize")) {
+        CVarList vars(r.szValue, 0, ',');
         m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule);
+        try {
+            if (std::stoi(vars[0]))
+                m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule + " " + vars[0]);
+        } catch (std::invalid_argument& e) {}
     } else if (r.szRule.starts_with("minsize")) {
+        CVarList vars(r.szValue, 0, ',');
         m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule);
+        try {
+            if (std::stoi(vars[0]))
+                m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule + " " + vars[0]);
+        } catch (std::invalid_argument& e) {}
     }
 }
 

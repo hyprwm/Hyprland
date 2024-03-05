@@ -188,6 +188,7 @@ class IHyprLayout {
     virtual Vector2D predictSizeForNewWindow();
 
   private:
+    int         m_iMouseMoveEventCount;
     Vector2D    m_vBeginDragXY;
     Vector2D    m_vLastDragXY;
     Vector2D    m_vBeginDragPositionXY;

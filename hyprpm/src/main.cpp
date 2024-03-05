@@ -77,7 +77,12 @@ int               main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        return g_pPluginManager->addNewPluginRepo(command[1]) ? 0 : 1;
+        std::string rev = "";
+        if (command.size() >= 3) {
+            rev = command[2];
+        }
+
+        return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
         if (ARGS.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for remove.\n";

@@ -36,7 +36,7 @@ struct SHyprlandVersion {
 
 class CPluginManager {
   public:
-    bool                   addNewPluginRepo(const std::string& url);
+    bool                   addNewPluginRepo(const std::string& url, const std::string& rev);
     bool                   removePluginRepo(const std::string& urlOrName);
 
     eHeadersErrors         headersValid();

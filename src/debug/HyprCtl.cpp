@@ -1116,11 +1116,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     if (request.ends_with("lock"))
         lock = true;
 
-    if (PROP == "maxsize" || "minsize") {
-        vec = PROP + " " + VAL;
-        if (vars.size() > 4)
-            vec = PROP + " " + VAL + " " + vars[4];
-    }
+    if (PROP == "maxsize" || "minsize")
+        vec = PROP + " " + VAL + " " + vars[4];
 
     try {
         if (PROP == "animationstyle") {

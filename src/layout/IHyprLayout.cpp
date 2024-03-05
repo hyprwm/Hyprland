@@ -331,6 +331,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
         m_iMouseMoveEventCount += 1;
 
+        // check if time-window is enough to skip render on 60hz monitor
         canSkipRender = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
     }
 

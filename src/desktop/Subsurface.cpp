@@ -191,9 +191,6 @@ void CSubsurface::onUnmap() {
     if (m_sWLSurface.wlr() == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
 
-    if (m_pWindowParent)
-        m_pWindowParent->updateSurfaceScaleTransformDetails();
-
     g_pInputManager->simulateMouseMovement();
 
     // TODO: should this remove children? Currently it won't, only on .destroy

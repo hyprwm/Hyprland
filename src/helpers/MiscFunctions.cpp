@@ -723,19 +723,11 @@ int64_t configStringToInt(const std::string& VALUE) {
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {
-    size_t      spacePos = VALUE.find(' ');
-    std::string vecStr;
-    if (spacePos != std::string::npos)
-        vecStr = VALUE.substr(spacePos + 1);
+    const auto SIZESTR  = VALUE.substr(VALUE.find(' ') + 1);
+    const auto SIZEXSTR = SIZESTR.substr(0, SIZESTR.find(' '));
+    const auto SIZEYSTR = SIZESTR.substr(SIZESTR.find(' ') + 1);
 
-    std::istringstream iss(vecStr);
-    int                x = 1, y = 1;
-    iss >> x;
-
-    if (!(iss >> y))
-        y = x;
-
-    return Vector2D(x, y);
+    return Vector2D(std::stoll(SIZEXSTR), std::stoll(SIZEYSTR));
 }
 
 double normalizeAngleRad(double ang) {

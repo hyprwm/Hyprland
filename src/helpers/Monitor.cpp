@@ -56,11 +56,12 @@ void CMonitor::onConnect(bool noRule) {
 
     szDescription = output->description ? output->description : "";
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
-    szDescription.erase(std::remove(szDescription.begin(), szDescription.end(), ','), szDescription.end());
+    std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
     szShortDescription =
         removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    std::erase(szShortDescription, ',');
 
     if (!wlr_backend_is_drm(output->backend))
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
@@ -363,9 +364,8 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
         const auto DESCRIPTIONSELECTOR = selector.substr(5);
-        const auto DESCRIPTION         = removeBeginEndSpacesTabs(szDescription.substr(0, szDescription.find_first_of('(')));
 
-        return DESCRIPTIONSELECTOR == szDescription || DESCRIPTIONSELECTOR == DESCRIPTION;
+        return DESCRIPTIONSELECTOR == szShortDescription || DESCRIPTIONSELECTOR == szDescription;
     } else {
         // match by selector
         return szName == selector;

@@ -316,21 +316,25 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
     static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
 
-    const auto  TIMERDELTA = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
-    const auto  MSDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
-    const auto  MSMONITOR  = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
-    static int  totalMs    = 0;
+    const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
+    const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
+    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
+    static int  totalMs       = 0;
+    bool        canSkipRender = true;
 
     MSTIMER = std::chrono::high_resolution_clock::now();
 
     if (m_iMouseMoveEventCount == 1)
         totalMs = 0;
 
-    totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
-    m_iMouseMoveEventCount += 1;
+    if (MSMONITOR > 16.0) {
+        totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
+        m_iMouseMoveEventCount += 1;
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
-        (TIMERDELTA < MSMONITOR && (MSMONITOR < 16.0 || std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount)))
+        canSkipRender = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
+    }
+
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipRender))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();

@@ -717,7 +717,6 @@ void CWindow::updateDynamicRules() {
     m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
     const auto WINDOWRULES = g_pConfigManager->getMatchingRules(this);
-
     for (auto& r : WINDOWRULES) {
         applyDynamicRule(r);
     }

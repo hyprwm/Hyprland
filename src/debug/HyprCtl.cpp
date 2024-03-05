@@ -1397,7 +1397,7 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
 std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
-    if (vars.size() < 5)
+    if (vars.size() < 6)
         return "not enough args";
 
     const auto ICON = vars[1];
@@ -1420,17 +1420,27 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor      color = configStringToInt(vars[3]);
+    CColor     color = configStringToInt(vars[3]);
+
+    const auto FONTSIZE = vars[4];
+
+    if (!isNumber(FONTSIZE, true))
+        return "invalid arg 4 (NaN: '" + FONTSIZE + "')";
+
+    float fontsize = -1;
+    try {
+        fontsize = std::stoi(FONTSIZE);
+    } catch (std::exception& e) { return "invalid arg 4 (stoi)"; }
 
     std::string message = "";
 
-    for (size_t i = 4; i < vars.size(); ++i) {
+    for (size_t i = 5; i < vars.size(); ++i) {
         message += vars[i] + " ";
     }
 
     message.pop_back();
 
-    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
+    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon, fontsize);
 
     return "ok";
 }

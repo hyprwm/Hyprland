@@ -65,6 +65,7 @@ class CPopup {
     void     initAllSignals();
     void     unconstrain();
     void     recheckChildrenRecursive();
+    void     sendScale();
 
     Vector2D localToGlobal(const Vector2D& rel);
     Vector2D t1ParentCoords();

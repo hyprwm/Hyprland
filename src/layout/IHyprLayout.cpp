@@ -320,7 +320,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
     const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
     static int  totalMs       = 0;
-    bool        canSkipRender = true;
+    bool        canSkipUpdate = true;
 
     MSTIMER = std::chrono::high_resolution_clock::now();
 
@@ -331,11 +331,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
         m_iMouseMoveEventCount += 1;
 
-        // check if time-window is enough to skip render on 60hz monitor
-        canSkipRender = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
+        // check if time-window is enough to skip update on 60hz monitor
+        canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
     }
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipRender))
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();

@@ -31,6 +31,38 @@ static std::string getWorkspaceNameFromSpecialID(const int workspaceID) {
     return workspace->m_szName;
 }
 
+static std::string formatToString(uint32_t drmFormat) {
+    switch (drmFormat) {
+        case DRM_FORMAT_XRGB2101010: return "XRGB2101010";
+        case DRM_FORMAT_XBGR2101010: return "XBGR2101010";
+        case DRM_FORMAT_XRGB8888: return "XRGB8888";
+        case DRM_FORMAT_XBGR8888: return "XBGR8888";
+        default: break;
+    }
+
+    return "Invalid";
+}
+
+static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
+    std::string result;
+
+    if (!wl_list_empty(&pMonitor->output->modes)) {
+        wlr_output_mode* mode;
+
+        wl_list_for_each(mode, &pMonitor->output->modes, link) {
+
+            if (format == FORMAT_NORMAL)
+                result += std::format("{}x{}@{:.2f}Hz ", mode->width, mode->height, mode->refresh / 1000.0);
+            else
+                result += std::format("\"{}x{}@{:.2f}Hz\",", mode->width, mode->height, mode->refresh / 1000.0);
+        }
+
+        result.pop_back();
+    }
+
+    return result;
+}
+
 std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
     auto     allMonitors = false;
@@ -76,7 +108,9 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     "focused": {},
     "dpmsStatus": {},
     "vrr": {},
-    "activelyTearing": {}
+    "activelyTearing": {},
+    "currentFormat": "{}",
+    "availableModes": [{}]
 }},)#",
                 m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                 (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
@@ -84,7 +118,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                m->tearingState.activelyTearing ? "true" : "false");
+                m->tearingState.activelyTearing ? "true" : "false", formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
 
         trimTrailingComma(result);
@@ -99,13 +133,14 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
                             "workspace: {} ({})\n\treserved: {} "
                             "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
+                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
                             m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
                             (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspace,
                             (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing, formatToString(m->drmFormat),
+                            availableModesForOutput(m.get(), format));
         }
     }
 

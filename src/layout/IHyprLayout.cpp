@@ -593,6 +593,7 @@ void IHyprLayout::bringWindowToTop(CWindow* pWindow) {
 void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
     bringWindowToTop(pWindow);
     g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
 Vector2D IHyprLayout::predictSizeForNewWindow() {

@@ -2651,9 +2651,6 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
         setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
     pWindow->moveToWorkspace(pWorkspace->m_iID);
-    pWindow->updateToplevel();
-    pWindow->updateDynamicRules();
-    pWindow->uncacheWindowDecos();
 
     if (!pWindow->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
@@ -2671,6 +2668,10 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorks
 
         pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
     }
+
+    pWindow->updateToplevel();
+    pWindow->updateDynamicRules();
+    pWindow->uncacheWindowDecos();
 
     if (pWindow->m_sGroupData.pNextWindow) {
         CWindow* next = pWindow->m_sGroupData.pNextWindow;

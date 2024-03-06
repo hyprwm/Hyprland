@@ -173,7 +173,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 void IHyprLayout::onBeginDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    m_vBeginDragSizeXY = Vector2D();
+    m_iMouseMoveEventCount = 1;
+    m_vBeginDragSizeXY     = Vector2D();
 
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
@@ -248,6 +249,8 @@ void IHyprLayout::onBeginDragWindow() {
 void IHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
+    m_iMouseMoveEventCount = 1;
+
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
         if (DRAGGINGWINDOW) {
             g_pInputManager->unsetCursorImage();
@@ -303,7 +306,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         return;
     }
 
-    static auto TIMER = std::chrono::high_resolution_clock::now();
+    static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
 
     const auto  SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
 
@@ -313,9 +316,26 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
     static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
-        (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
-         1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate))
+    const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
+    const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
+    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
+    static int  totalMs       = 0;
+    bool        canSkipUpdate = true;
+
+    MSTIMER = std::chrono::high_resolution_clock::now();
+
+    if (m_iMouseMoveEventCount == 1)
+        totalMs = 0;
+
+    if (MSMONITOR > 16.0) {
+        totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
+        m_iMouseMoveEventCount += 1;
+
+        // check if time-window is enough to skip update on 60hz monitor
+        canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
+    }
+
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();

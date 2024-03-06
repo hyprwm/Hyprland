@@ -202,6 +202,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
     void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pWindow, policy);
         m_Value = value;
+        m_Goal  = value;
     }
 
     using CBaseAnimatedVariable::create;

@@ -1455,17 +1455,29 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor      color = configStringToInt(vars[3]);
+    CColor color = configStringToInt(vars[3]);
 
-    std::string message = "";
+    size_t msgidx   = 4;
+    float  fontsize = 13.f;
+    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 10, "fontsize:")) {
+        const auto FONTSIZE = vars[msgidx].substr(9);
 
-    for (size_t i = 4; i < vars.size(); ++i) {
-        message += vars[i] + " ";
+        if (!isNumber(FONTSIZE, true))
+            return "invalid fontsize kwarg";
+
+        try {
+            fontsize = std::stoi(FONTSIZE);
+        } catch (std::exception& e) { return "invalid fontsize karg"; }
+
+        ++msgidx;
     }
 
-    message.pop_back();
+    if (vars.size() <= msgidx)
+        return "not enough args";
 
-    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
+    const auto MESSAGE = vars.join(" ", msgidx);
+
+    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, (eIcons)icon, fontsize);
 
     return "ok";
 }

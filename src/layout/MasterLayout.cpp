@@ -977,6 +977,8 @@ void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
         onWindowRemovedTiling(pWindow);
         pWindow->moveToWorkspace(PWINDOW2->m_iWorkspaceID);
         pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
+        const auto pMonitor   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        g_pCompositor->setActiveMonitor(pMonitor);
         onWindowCreatedTiling(pWindow);
     } else {
         // if same monitor, switch windows

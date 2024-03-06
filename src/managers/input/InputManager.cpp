@@ -1467,11 +1467,11 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
 
             switch (E->switch_state) {
                 case WLR_SWITCH_STATE_OFF:
-                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
+                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
                     g_pKeybindManager->onSwitchOnEvent(NAME);
                     break;
                 case WLR_SWITCH_STATE_ON:
-                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
+                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
                     g_pKeybindManager->onSwitchOffEvent(NAME);
                     break;
             }

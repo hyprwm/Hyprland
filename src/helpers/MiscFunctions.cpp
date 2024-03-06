@@ -723,9 +723,8 @@ int64_t configStringToInt(const std::string& VALUE) {
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {
-    const auto SIZESTR  = VALUE.substr(VALUE.find(' ') + 1);
-    const auto SIZEXSTR = SIZESTR.substr(0, SIZESTR.find(' '));
-    const auto SIZEYSTR = SIZESTR.substr(SIZESTR.find(' ') + 1);
+    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
     return Vector2D(std::stoll(SIZEXSTR), std::stoll(SIZEYSTR));
 }

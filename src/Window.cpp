@@ -686,11 +686,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     } else if (r.szRule.starts_with("maxsize")) {
         CVarList vars(r.szValue, 0, ',');
-        m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule);
         try {
-            if (std::stoi(vars[0]))
-                m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule + " " + vars[0]);
-        } catch (std::invalid_argument& e) {}
+            std::stoi(vars[0]);
+            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8) + " " + vars[0]);
+        } catch (std::invalid_argument& e) {
+            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8));
+        }
         const auto SIZE = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
                                    std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
         m_vRealSize     = SIZE;
@@ -698,11 +699,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         setHidden(false);
     } else if (r.szRule.starts_with("minsize")) {
         CVarList vars(r.szValue, 0, ',');
-        m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule);
         try {
-            if (std::stoi(vars[0]))
-                m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule + " " + vars[0]);
-        } catch (std::invalid_argument& e) {}
+            std::stoi(vars[0]);
+            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8) + " " + vars[0]);
+        } catch (std::invalid_argument& e) {
+            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8));
+        }
         const auto SIZE = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
                                    std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
         m_vRealSize     = SIZE;

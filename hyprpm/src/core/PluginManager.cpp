@@ -77,8 +77,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     return ver;
 }
 
-bool CPluginManager::addNewPluginRepo(const std::string& url) {
-
+bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string& rev) {
     const auto HLVER = getHyprlandVersion();
 
     if (DataState::pluginRepoExists(url)) {
@@ -132,6 +131,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
     if (!std::filesystem::exists("/tmp/hyprpm/new")) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the plugin repository. shell returned:\n" << ret << "\n";
         return false;
+    }
+
+    if (!rev.empty()) {
+        std::string ret = execAndGet("git -C /tmp/hyprpm/new reset --hard --recurse-submodules " + rev);
+        if (ret.compare(0, 6, "fatal:") == 0) {
+            std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not check out revision " << rev << ". shell returned:\n" << ret << "\n";
+            return false;
+        }
     }
 
     progress.m_iSteps = 1;
@@ -240,6 +247,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url) {
         repohash.pop_back();
     repo.name = pManifest->m_sRepository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_sRepository.name;
     repo.url  = url;
+    repo.rev  = rev;
     repo.hash = repohash;
     for (auto& p : pManifest->m_vPlugins) {
         repo.plugins.push_back(SPlugin{p.name, "/tmp/hyprpm/new/" + p.output, false, p.failed});
@@ -494,6 +502,16 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             return false;
         }
 
+        if (!repo.rev.empty()) {
+            progress.printMessageAbove(std::string{Colors::RESET} + " → Plugin has revision set, resetting: " + repo.rev);
+
+            std::string ret = execAndGet("git -C /tmp/hyprpm reset --hard --recurse-submodules " + repo.rev);
+            if (ret.compare(0, 6, "fatal:") == 0) {
+                std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " could not check out revision " + repo.rev + ": shell returned:\n" + ret;
+                return false;
+            }
+        }
+
         if (!update) {
             // check if git has updates
             std::string hash = execAndGet("cd /tmp/hyprpm/update && git rev-parse HEAD");
@@ -538,8 +556,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             continue;
         }
 
-        if (!pManifest->m_sRepository.commitPins.empty()) {
-            // check commit pins
+        if (repo.rev.empty() && !pManifest->m_sRepository.commitPins.empty()) {
+            // check commit pins unless a revision is specified
 
             progress.printMessageAbove(std::string{Colors::RESET} + " → Manifest has " + std::to_string(pManifest->m_sRepository.commitPins.size()) + " pins, checking");
 

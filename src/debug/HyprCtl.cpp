@@ -1440,13 +1440,9 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     if (vars.size() <= msgidx)
         return "not enough args";
 
-    std::string message = "";
-    for (size_t i = msgidx; i < vars.size(); ++i) {
-        message += vars[i] + " ";
-    }
-    message.pop_back();
+    const auto MESSAGE = vars.join(" ", msgidx);
 
-    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon, fontsize);
+    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, (eIcons)icon, fontsize);
 
     return "ok";
 }

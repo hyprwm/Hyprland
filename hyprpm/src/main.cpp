@@ -11,7 +11,8 @@
 
 const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url]              → Install a new plugin repository from git
+┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
+┃                          is optional, when set, commit locks are ignored.
 ┣ remove [url/name]      → Remove an installed plugin repository
 ┣ enable [name]          → Enable a plugin
 ┣ disable [name]         → Disable a plugin
@@ -77,7 +78,12 @@ int               main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        return g_pPluginManager->addNewPluginRepo(command[1]) ? 0 : 1;
+        std::string rev = "";
+        if (command.size() >= 3) {
+            rev = command[2];
+        }
+
+        return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
         if (ARGS.size() < 2) {
             std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for remove.\n";

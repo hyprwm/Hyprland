@@ -12,6 +12,7 @@ struct SPlugin {
 
 struct SPluginRepository {
     std::string          url;
+    std::string          rev;
     std::string          name;
     std::vector<SPlugin> plugins;
     std::string          hash;

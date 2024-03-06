@@ -1397,7 +1397,7 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
 std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
-    if (vars.size() < 6)
+    if (vars.size() < 5)
         return "not enough args";
 
     const auto ICON = vars[1];
@@ -1420,24 +1420,30 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor     color = configStringToInt(vars[3]);
+    CColor color = configStringToInt(vars[3]);
 
-    const auto FONTSIZE = vars[4];
+    int    msgidx   = 4;
+    float  fontsize = 13.f;
+    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 10, "fontsize:")) {
+        const auto FONTSIZE = vars[msgidx].substr(9);
 
-    if (!isNumber(FONTSIZE, true))
-        return "invalid arg 4";
+        if (!isNumber(FONTSIZE, true))
+            return "invalid fontsize kwarg";
 
-    float fontsize = -1;
-    try {
-        fontsize = std::stoi(FONTSIZE);
-    } catch (std::exception& e) { return "invalid arg 4"; }
+        try {
+            fontsize = std::stoi(FONTSIZE);
+        } catch (std::exception& e) { return "invalid fontsize karg"; }
 
-    std::string message = "";
-
-    for (size_t i = 5; i < vars.size(); ++i) {
-        message += vars[i] + " ";
+        ++msgidx;
     }
 
+    if (vars.size() <= msgidx)
+        return "not enough args";
+
+    std::string message = "";
+    for (size_t i = msgidx; i < vars.size(); ++i) {
+        message += vars[i] + " ";
+    }
     message.pop_back();
 
     g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon, fontsize);

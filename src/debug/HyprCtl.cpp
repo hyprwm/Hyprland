@@ -1422,7 +1422,7 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
 
     CColor color = configStringToInt(vars[3]);
 
-    int    msgidx   = 4;
+    size_t msgidx   = 4;
     float  fontsize = 13.f;
     if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 10, "fontsize:")) {
         const auto FONTSIZE = vars[msgidx].substr(9);

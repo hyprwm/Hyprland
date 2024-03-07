@@ -603,6 +603,12 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pConfigManager->ensureVRR(this);
 
     g_pCompositor->updateSuspendedStates();
+
+    if (specialWorkspaceID) {
+        const auto PSPECIALWS = g_pCompositor->getWorkspaceByID(specialWorkspaceID);
+        if (PSPECIALWS->m_bHasFullscreenWindow)
+            g_pCompositor->updateFullscreenFadeOnWorkspace(PSPECIALWS);
+    }
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -649,6 +655,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         PMONITORWORKSPACEOWNER->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+
+        const auto PACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITORWORKSPACEOWNER->activeWorkspace);
+        g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
+
         animate = false;
     }
 

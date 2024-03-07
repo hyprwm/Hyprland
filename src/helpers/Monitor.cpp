@@ -649,6 +649,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         PMONITORWORKSPACEOWNER->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+
+        const auto PACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITORWORKSPACEOWNER->activeWorkspace);
+        g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
+
         animate = false;
     }
 

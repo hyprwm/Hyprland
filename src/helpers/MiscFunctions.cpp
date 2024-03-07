@@ -723,10 +723,29 @@ int64_t configStringToInt(const std::string& VALUE) {
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {
-    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+    std::istringstream iss(VALUE);
+    std::string        token;
 
-    return Vector2D(std::stoll(SIZEXSTR), std::stoll(SIZEYSTR));
+    if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
+        throw std::invalid_argument("Invalid string format");
+
+    if (!std::all_of(token.begin(), token.end(), ::isdigit))
+        throw std::invalid_argument("Invalid x value");
+
+    long long x = std::stoll(token);
+
+    if (!std::getline(iss, token))
+        throw std::invalid_argument("Invalid string format");
+
+    if (!std::all_of(token.begin(), token.end(), ::isdigit))
+        throw std::invalid_argument("Invalid y value");
+
+    long long y = std::stoll(token);
+
+    if (std::getline(iss, token))
+        throw std::invalid_argument("Invalid string format");
+
+    return Vector2D(x, y);
 }
 
 double normalizeAngleRad(double ang) {

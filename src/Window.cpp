@@ -685,27 +685,21 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         else
             Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     } else if (r.szRule.starts_with("maxsize")) {
-        CVarList vars(r.szValue, 0, ',');
         try {
-            std::stoi(vars[0]);
-            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8) + " " + vars[0]);
-        } catch (std::invalid_argument& e) { m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8)); }
-        const auto SIZE = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
-                                   std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
-        m_vRealSize     = SIZE;
-        g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
-        setHidden(false);
+            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8));
+            m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
+        } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
-        CVarList vars(r.szValue, 0, ',');
         try {
-            std::stoi(vars[0]);
-            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8) + " " + vars[0]);
-        } catch (std::invalid_argument& e) { m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8)); }
-        const auto SIZE = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
-                                   std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
-        m_vRealSize     = SIZE;
-        g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
-        setHidden(false);
+            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8));
+            m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
+        } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     }
 }
 

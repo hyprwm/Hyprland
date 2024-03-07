@@ -1459,7 +1459,7 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
 
     size_t msgidx   = 4;
     float  fontsize = 13.f;
-    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 10, "fontsize:")) {
+    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 9, "fontsize:") == 0) {
         const auto FONTSIZE = vars[msgidx].substr(9);
 
         if (!isNumber(FONTSIZE, true))

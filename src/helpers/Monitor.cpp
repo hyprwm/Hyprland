@@ -164,8 +164,6 @@ void CMonitor::onConnect(bool noRule) {
 
     wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
 
-    wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
-
     Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
     setupDefaultWS(monitorRule);
@@ -191,8 +189,6 @@ void CMonitor::onConnect(bool noRule) {
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
-
-    wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, scale);
 
     g_pHyprRenderer->arrangeLayersForMonitor(ID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);

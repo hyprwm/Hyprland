@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
+#include "managers/CursorManager.hpp"
 #include <random>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
@@ -181,18 +182,6 @@ void CCompositor::initServer() {
 
     m_sWLRCursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
-
-    if (const auto XCURSORENV = getenv("XCURSOR_SIZE"); !XCURSORENV || std::string(XCURSORENV).empty())
-        setenv("XCURSOR_SIZE", "24", true);
-
-    const auto XCURSORENV = getenv("XCURSOR_SIZE");
-    int        cursorSize = 24;
-    try {
-        cursorSize = std::stoi(XCURSORENV);
-    } catch (std::exception& e) { Debug::log(ERR, "XCURSOR_SIZE invalid in check #2? ({})", XCURSORENV); }
-
-    m_sWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, cursorSize);
-    wlr_xcursor_manager_load(m_sWLRXCursorMgr, 1);
 
     m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
@@ -422,6 +411,7 @@ void CCompositor::cleanup() {
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
 
     g_pDecorationPositioner.reset();
+    g_pCursorManager.reset();
     g_pPluginSystem.reset();
     g_pHyprNotificationOverlay.reset();
     g_pDebugOverlay.reset();
@@ -511,6 +501,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the DecorationPositioner!");
             g_pDecorationPositioner = std::make_unique<CDecorationPositioner>();
+
+            Debug::log(LOG, "Creating the CursorManager!");
+            g_pCursorManager = std::make_unique<CCursorManager>();
         } break;
         default: UNREACHABLE();
     }

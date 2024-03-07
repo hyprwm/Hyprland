@@ -4,6 +4,7 @@
 #include "../helpers/Region.hpp"
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
+#include "../managers/CursorManager.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -2193,7 +2194,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     if (m_bCursorHidden && !force)
         return;
 
-    wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sWLRXCursorMgr, name.c_str());
+    g_pCursorManager->setCursorFromName(name);
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {

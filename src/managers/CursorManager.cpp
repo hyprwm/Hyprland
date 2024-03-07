@@ -126,10 +126,15 @@ void CCursorManager::updateTheme() {
     m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
 
     setCursorFromName("left_ptr");
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        m->forceFullFrames = 5;
+        g_pCompositor->scheduleFrameForMonitor(m.get());
+    }
 }
 
 void CCursorManager::changeTheme(const std::string& name, const int size) {
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), size);
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str());
     m_szTheme     = name;
     m_iSize       = size;
 

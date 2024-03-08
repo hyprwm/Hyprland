@@ -124,7 +124,7 @@ easy IPC, much more QoL stuff than other wlr-based compositors and more...
 [Wayfire]: https://github.com/WayfireWM/wayfire
 [TinyWl]: https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/tinywl/tinywl.c
 [Sway]: https://github.com/swaywm/sway
-[DWL]: https://github.com/djpohly/dwl
+[DWL]: https://codeberg.org/dwl/dwl
 
 <!----------------------------------{ Images }--------------------------------->
 

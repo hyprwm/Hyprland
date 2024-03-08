@@ -309,6 +309,8 @@ int main(int argc, char** argv) {
                 json = true;
             } else if (ARGS[i] == "-r" && !fullArgs.contains("r")) {
                 fullArgs += "r";
+            } else if (ARGS[i] == "-a" && !fullArgs.contains("a")) {
+                fullArgs += "a";
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {

@@ -414,9 +414,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         if (newDefaultWorkspaceName == "")
             newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
-
-        PNEWWORKSPACE->m_iID = WORKSPACEID;
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(WORKSPACEID, ID, newDefaultWorkspaceName)).get();
     }
 
     activeWorkspace = PNEWWORKSPACE->m_iID;
@@ -593,6 +591,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
+        g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_iID, pWorkspace->m_szName)});
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 

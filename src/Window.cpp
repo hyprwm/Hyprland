@@ -691,7 +691,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             if (!m_bIsFloating)
                 return;
-            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8));
+            const auto VEC = configStringToVector2D(r.szRule.substr(8));
+            if (VEC.x < 1 || VEC.y < 1) {
+                Debug::log(ERR, "Invalid size for maxsize");
+                return;
+            }
+
+            m_sAdditionalConfigData.maxSize = VEC;
             m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
                                                        std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
@@ -701,7 +707,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             if (!m_bIsFloating)
                 return;
-            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8));
+            const auto VEC = configStringToVector2D(r.szRule.substr(8));
+            if (VEC.x < 1 || VEC.y < 1) {
+                Debug::log(ERR, "Invalid size for minsize");
+                return;
+            }
+
+            m_sAdditionalConfigData.minSize = VEC;
             m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
                                                        std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
@@ -722,7 +734,7 @@ void CWindow::updateDynamicRules() {
     if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
     m_sAdditionalConfigData.maxSize         = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-    m_sAdditionalConfigData.minSize         = Vector2D(1, 1);
+    m_sAdditionalConfigData.minSize         = Vector2D(20, 20);
     m_sAdditionalConfigData.forceNoAnims    = false;
     m_sAdditionalConfigData.animationStyle  = std::string("");
     m_sAdditionalConfigData.rounding        = -1;

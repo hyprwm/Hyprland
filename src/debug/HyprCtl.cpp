@@ -242,6 +242,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
 
@@ -250,6 +253,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
     }
@@ -1562,8 +1568,9 @@ void CHyprCtl::unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd) {
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format    = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll = false;
+    auto format             = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll          = false;
+    m_sCurrentRequestParams = {};
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1584,8 +1591,10 @@ std::string CHyprCtl::getReply(std::string request) {
 
             if (c == 'j')
                 format = eHyprCtlOutputFormat::FORMAT_JSON;
-            if (c == 'r')
+            else if (c == 'r')
                 reloadAll = true;
+            else if (c == 'a')
+                m_sCurrentRequestParams.all = true;
         }
 
         if (sepIndex < request.size())

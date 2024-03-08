@@ -1147,11 +1147,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     bool       lock = false;
 
-    if (vars.size() > 4) {
-        if (vars[4].starts_with("lock")) {
-            lock = true;
-        }
-    }
+    if (request.ends_with("lock"))
+        lock = true;
 
     try {
         if (PROP == "animationstyle") {
@@ -1180,6 +1177,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
             PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "maxsize") {
+            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
+        } else if (PROP == "minsize") {
+            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
         } else if (PROP == "dimaround") {
             PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {

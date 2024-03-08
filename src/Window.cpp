@@ -689,23 +689,23 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
     } else if (r.szRule.starts_with("maxsize")) {
         try {
-            if (m_bIsFloating) {
-                m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8));
-                m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
-                                                           std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
-                setHidden(false);
-            }
+            if (!m_bIsFloating)
+                return;
+            m_sAdditionalConfigData.maxSize = configStringToVector2D(r.szRule.substr(8));
+            m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
         try {
-            if (m_bIsFloating) {
-                m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8));
-                m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
-                                                           std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
-                setHidden(false);
-            }
+            if (!m_bIsFloating)
+                return;
+            m_sAdditionalConfigData.minSize = configStringToVector2D(r.szRule.substr(8));
+            m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     }
 }

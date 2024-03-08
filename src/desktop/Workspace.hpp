@@ -14,7 +14,7 @@ class CWindow;
 
 class CWorkspace {
   public:
-    CWorkspace(int monitorID, std::string name, bool special = false);
+    CWorkspace(int id, int monitorID, std::string name, bool special = false);
     ~CWorkspace();
 
     // Workspaces ID-based have IDs > 0

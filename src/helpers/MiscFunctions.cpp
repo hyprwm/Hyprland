@@ -729,7 +729,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
         throw std::invalid_argument("Invalid string format");
 
-    if (!std::all_of(token.begin(), token.end(), ::isdigit))
+    if (!isNumber(token))
         throw std::invalid_argument("Invalid x value");
 
     long long x = std::stoll(token);
@@ -737,7 +737,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (!std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    if (!std::all_of(token.begin(), token.end(), ::isdigit))
+    if (!isNumber(token))
         throw std::invalid_argument("Invalid y value");
 
     long long y = std::stoll(token);

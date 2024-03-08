@@ -31,9 +31,13 @@ CCursorManager::CCursorManager() {
     g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
 }
 
+void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
+    std::erase_if(m_vCursorBuffers, [ref] (const auto& buf) { return buf.get() == ref; });
+}
+
 static void cursorBufferDestroy(struct wlr_buffer* wlr_buffer) {
     CCursorManager::CCursorBuffer::SCursorWlrBuffer* buffer = wl_container_of(wlr_buffer, buffer, base);
-    buffer->dropped                                         = true;
+    g_pCursorManager->dropBufferRef(buffer->parent);
 }
 
 static bool cursorBufferBeginDataPtr(struct wlr_buffer* wlr_buffer, uint32_t flags, void** data, uint32_t* format, size_t* stride) {
@@ -62,18 +66,19 @@ static const wlr_buffer_impl bufferImpl = {
 CCursorManager::CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : size(size_), hotspot(hot_) {
     wlrBuffer.surface = surf;
     wlr_buffer_init(&wlrBuffer.base, &bufferImpl, size.x, size.y);
+    wlrBuffer.parent = this;
 }
 
 CCursorManager::CCursorBuffer::~CCursorBuffer() {
-    if (g_pCursorManager->m_bOurBufferConnected)
-        wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0);
+    // if (g_pCursorManager->m_bOurBufferConnected)
+    //     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0);
 
-    if (!wlrBuffer.dropped)
-        wlr_buffer_drop(&wlrBuffer.base);
+    // if (!wlrBuffer.dropped)
+    //     wlr_buffer_drop(&wlrBuffer.base);
 }
 
 wlr_buffer* CCursorManager::getCursorBuffer() {
-    return m_sCursorBuffer ? &m_sCursorBuffer->wlrBuffer.base : nullptr;
+    return !m_vCursorBuffers.empty() ? &m_vCursorBuffers.back()->wlrBuffer.base : nullptr;
 }
 
 void CCursorManager::setCursorSurface(wlr_surface* surf, const Vector2D& hotspot) {
@@ -83,13 +88,15 @@ void CCursorManager::setCursorSurface(wlr_surface* surf, const Vector2D& hotspot
 }
 
 void CCursorManager::setCursorFromName(const std::string& name) {
-    if (m_sCursorBuffer)
-        m_sCursorBuffer.reset();
-
     const auto IMAGES = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
-    m_sCursorBuffer = std::make_unique<CCursorBuffer>(IMAGES.images[0].surface, Vector2D{IMAGES.images[0].size, IMAGES.images[0].size},
-                                                      Vector2D{IMAGES.images[0].hotspotX, IMAGES.images[0].hotspotY});
+    if (IMAGES.images.size() < 1) {
+        Debug::log(ERR, "BUG THIS: No cursor returned by getShape()");
+        return;
+    }
+
+    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(IMAGES.images[0].surface, Vector2D{IMAGES.images[0].size, IMAGES.images[0].size},
+                                                      Vector2D{IMAGES.images[0].hotspotX, IMAGES.images[0].hotspotY}));
 
     if (g_pCompositor->m_sWLRCursor)
         wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), IMAGES.images[0].hotspotX, IMAGES.images[0].hotspotY, m_fCursorScale);

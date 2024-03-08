@@ -30,6 +30,7 @@ class CCursorManager {
             wlr_buffer       base;
             cairo_surface_t* surface = nullptr;
             bool             dropped = false;
+            CCursorBuffer*   parent  = nullptr;
         } wlrBuffer;
 
       private:
@@ -39,10 +40,12 @@ class CCursorManager {
         friend class CCursorManager;
     };
 
+    void dropBufferRef(CCursorBuffer* ref);
+
     bool m_bOurBufferConnected = false;
 
   private:
-    std::unique_ptr<CCursorBuffer>                  m_sCursorBuffer;
+    std::vector<std::unique_ptr<CCursorBuffer>>     m_vCursorBuffers;
 
     std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
 

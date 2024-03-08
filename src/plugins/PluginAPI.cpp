@@ -296,7 +296,7 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     const auto FPATH = std::filesystem::canonical(exe);
 #elif defined(__OpenBSD__)
     // Neither KERN_PROC_PATHNAME nor /proc are supported
-    const auto        FPATH            = std::filesystem::canonical("/usr/local/bin/Hyprland");
+    const auto FPATH = std::filesystem::canonical("/usr/local/bin/Hyprland");
 #else
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif

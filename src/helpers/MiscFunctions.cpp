@@ -649,8 +649,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)

@@ -21,6 +21,8 @@ class CCursorManager {
     void             updateTheme();
     SCursorImageData dataFor(const std::string& name); // for xwayland
 
+    void             tickAnimatedCursor();
+
     class CCursorBuffer {
       public:
         CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
@@ -54,6 +56,10 @@ class CCursorManager {
     float                                           m_fCursorScale = 1.0;
 
     Hyprcursor::SCursorStyleInfo                    m_sCurrentStyleInfo;
+
+    wl_event_source*                                m_pAnimationTimer        = nullptr;
+    int                                             m_iCurrentAnimationFrame = 0;
+    Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
 };
 
 inline std::unique_ptr<CCursorManager> g_pCursorManager;

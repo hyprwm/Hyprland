@@ -5,6 +5,11 @@ extern "C" {
 #include <wlr/interfaces/wlr_buffer.h>
 }
 
+static int cursorAnimTimer(void* data) {
+    g_pCursorManager->tickAnimatedCursor();
+    return 1;
+}
+
 CCursorManager::CCursorManager() {
     m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str());
 
@@ -26,13 +31,15 @@ CCursorManager::CCursorManager() {
     if (m_iSize == 0)
         m_iSize = 24;
 
+    m_pAnimationTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ::cursorAnimTimer, nullptr);
+
     updateTheme();
 
     g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
-    std::erase_if(m_vCursorBuffers, [ref] (const auto& buf) { return buf.get() == ref; });
+    std::erase_if(m_vCursorBuffers, [ref](const auto& buf) { return buf.get() == ref; });
 }
 
 static void cursorBufferDestroy(struct wlr_buffer* wlr_buffer) {
@@ -88,20 +95,51 @@ void CCursorManager::setCursorSurface(wlr_surface* surf, const Vector2D& hotspot
 }
 
 void CCursorManager::setCursorFromName(const std::string& name) {
-    const auto IMAGES = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
+    m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
-    if (IMAGES.images.size() < 1) {
+    if (m_sCurrentCursorShapeData.images.size() < 1) {
         Debug::log(ERR, "BUG THIS: No cursor returned by getShape()");
         return;
     }
 
-    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(IMAGES.images[0].surface, Vector2D{IMAGES.images[0].size, IMAGES.images[0].size},
-                                                      Vector2D{IMAGES.images[0].hotspotX, IMAGES.images[0].hotspotY}));
+    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(m_sCurrentCursorShapeData.images[0].surface,
+                                                                  Vector2D{m_sCurrentCursorShapeData.images[0].size, m_sCurrentCursorShapeData.images[0].size},
+                                                                  Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY}));
 
     if (g_pCompositor->m_sWLRCursor)
-        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), IMAGES.images[0].hotspotX, IMAGES.images[0].hotspotY, m_fCursorScale);
+        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY,
+                              m_fCursorScale);
 
     m_bOurBufferConnected = true;
+
+    if (m_sCurrentCursorShapeData.images.size() > 1) {
+        // animated
+        wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[0].delay);
+        m_iCurrentAnimationFrame = 0;
+    } else {
+        // disarm
+        wl_event_source_timer_update(m_pAnimationTimer, 0);
+    }
+}
+
+void CCursorManager::tickAnimatedCursor() {
+    if (m_sCurrentCursorShapeData.images.size() < 2 || !m_bOurBufferConnected)
+        return;
+
+    m_iCurrentAnimationFrame++;
+    if ((size_t)m_iCurrentAnimationFrame >= m_sCurrentCursorShapeData.images.size())
+        m_iCurrentAnimationFrame = 0;
+
+    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(
+        m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].surface,
+        Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size},
+        Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY}));
+
+    if (g_pCompositor->m_sWLRCursor)
+        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX,
+                              m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY, m_fCursorScale);
+
+    wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay);
 }
 
 SCursorImageData CCursorManager::dataFor(const std::string& name) {

@@ -43,6 +43,7 @@ struct SPressedKeyWithMods {
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
+    std::string  submapAtPress      = "";
 };
 
 struct SParsedKey {

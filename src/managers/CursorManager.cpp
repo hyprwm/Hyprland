@@ -127,9 +127,12 @@ void CCursorManager::setCursorFromName(const std::string& name) {
                                                                   Vector2D{m_sCurrentCursorShapeData.images[0].size, m_sCurrentCursorShapeData.images[0].size},
                                                                   Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY}));
 
-    if (g_pCompositor->m_sWLRCursor)
+    if (g_pCompositor->m_sWLRCursor) {
         wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY,
                               m_fCursorScale);
+        if (m_vCursorBuffers.size() > 1)
+            wlr_buffer_drop(&m_vCursorBuffers.front()->wlrBuffer.base);
+    }
 
     m_bOurBufferConnected = true;
 

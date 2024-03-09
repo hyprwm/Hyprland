@@ -167,12 +167,28 @@ void CCursorManager::tickAnimatedCursor() {
 }
 
 SCursorImageData CCursorManager::dataFor(const std::string& name) {
+
+    if (!m_pHyprcursor->valid())
+        return {};
+
     const auto IMAGES = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
     if (IMAGES.images.empty())
         return {};
 
     return IMAGES.images[0];
+}
+
+void CCursorManager::setXWaylandCursor(wlr_xwayland* xwayland) {
+    const auto CURSOR = dataFor("left_ptr");
+    if (CURSOR.surface) {
+        wlr_xwayland_set_cursor(xwayland, cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), CURSOR.size, CURSOR.size, CURSOR.hotspotX,
+                                CURSOR.hotspotY);
+    } else if (const auto XCURSOR = wlr_xcursor_manager_get_xcursor(m_pWLRXCursorMgr, "left_ptr", 1); XCURSOR) {
+        wlr_xwayland_set_cursor(xwayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width, XCURSOR->images[0]->height,
+                                XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
+    } else
+        Debug::log(ERR, "CursorManager: no valid cursor for xwayland");
 }
 
 void CCursorManager::updateTheme() {

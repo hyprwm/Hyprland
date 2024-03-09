@@ -70,11 +70,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 
     wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sSeat.seat);
 
-    const auto CURSOR = g_pCursorManager->dataFor("left_ptr");
-    if (CURSOR.surface) {
-        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), CURSOR.size,
-                                CURSOR.size, CURSOR.hotspotX, CURSOR.hotspotY);
-    }
+    g_pCursorManager->setXWaylandCursor(g_pXWaylandManager->m_sWLRXWayland);
 
     const auto  ROOT   = xcb_setup_roots_iterator(xcb_get_setup(XCBCONNECTION)).data->root;
     auto        cookie = xcb_get_property(XCBCONNECTION, 0, ROOT, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_ANY, 0, 2048);

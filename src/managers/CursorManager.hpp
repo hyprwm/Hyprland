@@ -8,6 +8,7 @@
 
 struct wlr_buffer;
 struct wlr_xcursor_manager;
+struct wlr_xwayland;
 
 class CCursorManager {
   public:
@@ -21,6 +22,7 @@ class CCursorManager {
     void             changeTheme(const std::string& name, const int size);
     void             updateTheme();
     SCursorImageData dataFor(const std::string& name); // for xwayland
+    void             setXWaylandCursor(wlr_xwayland* xwayland);
 
     void             tickAnimatedCursor();
 

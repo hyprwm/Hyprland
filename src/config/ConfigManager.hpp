@@ -111,7 +111,7 @@ class CConfigManager {
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
 
-    std::vector<SWindowRule>                                        getMatchingRules(CWindow*, bool dynamic = true);
+    std::vector<SWindowRule>                                        getMatchingRules(CWindow*, bool dynamic = true, bool shadowExec = false);
     std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;

@@ -1,5 +1,6 @@
 #include "SessionLockManager.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 static void handleSurfaceMap(void* owner, void* data) {
     const auto PSURFACE = (SSessionLockSurface*)owner;
@@ -44,9 +45,9 @@ static void handleSurfaceDestroy(void* owner, void* data) {
 
 void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
-    static auto* const PALLOWRELOCK = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:allow_session_lock_restore");
+    static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
-    if (m_sSessionLock.active && (!**PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
+    if (m_sSessionLock.active && (!*PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
         Debug::log(LOG, "Attempted to lock a locked session!");
         wlr_session_lock_v1_destroy(pWlrLock);
         return;

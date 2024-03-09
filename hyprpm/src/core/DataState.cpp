@@ -45,12 +45,14 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         {"repository", toml::table{
             {"name", repo.name},
             {"hash", repo.hash},
-            {"url", repo.url}
+            {"url", repo.url},
+            {"rev", repo.rev}
         }}
     };
     for (auto& p : repo.plugins) {
         // copy .so to the good place
-        std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");
+        if (std::filesystem::exists(p.filename))
+            std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");
 
         DATA.emplace(p.name, toml::table{
             {"filename", p.name + ".so"},
@@ -177,12 +179,14 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
 
         const auto        NAME = STATE["repository"]["name"].value_or("");
         const auto        URL  = STATE["repository"]["url"].value_or("");
+        const auto        REV  = STATE["repository"]["rev"].value_or("");
         const auto        HASH = STATE["repository"]["hash"].value_or("");
 
         SPluginRepository repo;
         repo.hash = HASH;
         repo.name = NAME;
         repo.url  = URL;
+        repo.rev  = REV;
 
         for (const auto& [key, val] : STATE) {
             if (key == "repository")

@@ -649,8 +649,8 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string       dir     = "/proc/" + std::to_string(pid) + "/status";
-    FILE*             infile;
+    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
     if (!infile)
@@ -720,6 +720,32 @@ int64_t configStringToInt(const std::string& VALUE) {
         return 0;
 
     return std::stoll(VALUE);
+}
+
+Vector2D configStringToVector2D(const std::string& VALUE) {
+    std::istringstream iss(VALUE);
+    std::string        token;
+
+    if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
+        throw std::invalid_argument("Invalid string format");
+
+    if (!isNumber(token))
+        throw std::invalid_argument("Invalid x value");
+
+    long long x = std::stoll(token);
+
+    if (!std::getline(iss, token))
+        throw std::invalid_argument("Invalid string format");
+
+    if (!isNumber(token))
+        throw std::invalid_argument("Invalid y value");
+
+    long long y = std::stoll(token);
+
+    if (std::getline(iss, token))
+        throw std::invalid_argument("Invalid string format");
+
+    return Vector2D(x, y);
 }
 
 double normalizeAngleRad(double ang) {

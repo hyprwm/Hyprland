@@ -14,6 +14,8 @@ class ICustomConfigValueData {
     virtual ~ICustomConfigValueData() = 0;
 
     virtual eConfigValueDataTypes getDataType() = 0;
+
+    virtual std::string           toString() = 0;
 };
 
 class CGradientValueData : public ICustomConfigValueData {
@@ -50,6 +52,15 @@ class CGradientValueData : public ICustomConfigValueData {
                 return false;
 
         return true;
+    }
+
+    virtual std::string toString() {
+        std::string result;
+        for (auto& c : m_vColors) {
+            result += std::format("{:x} ", c.getAsHex());
+        }
+
+        result += std::format("{}deg", (int)(m_fAngle * 180.0 / M_PI));
     }
 };
 
@@ -102,5 +113,9 @@ class CCssGapData : public ICustomConfigValueData {
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_CSS_VALUE;
+    }
+
+    virtual std::string toString() {
+        return std::format("{} {} {} {}", top, right, bottom, left);
     }
 };

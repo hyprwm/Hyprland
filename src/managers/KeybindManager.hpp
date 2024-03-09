@@ -13,6 +13,7 @@ class CPluginSystem;
 struct SKeybind {
     std::string key          = "";
     uint32_t    keycode      = 0;
+    bool        catchAll     = false;
     uint32_t    modmask      = 0;
     std::string handler      = "";
     std::string arg          = "";
@@ -42,6 +43,13 @@ struct SPressedKeyWithMods {
     uint32_t     keycode            = 0;
     uint32_t     modmaskAtPressTime = 0;
     bool         sent               = false;
+    std::string  submapAtPress      = "";
+};
+
+struct SParsedKey {
+    std::string key      = "";
+    uint32_t    keycode  = 0;
+    bool        catchAll = false;
 };
 
 class CKeybindManager {
@@ -57,7 +65,7 @@ class CKeybindManager {
     void                                                              onSwitchOffEvent(const std::string&);
 
     void                                                              addKeybind(SKeybind);
-    void                                                              removeKeybind(uint32_t, const std::string&);
+    void                                                              removeKeybind(uint32_t, const SParsedKey&);
     uint32_t                                                          stringToModMask(std::string);
     uint32_t                                                          keycodeToModifier(xkb_keycode_t);
     void                                                              clearKeybinds();

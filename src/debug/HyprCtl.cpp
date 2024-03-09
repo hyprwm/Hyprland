@@ -15,6 +15,8 @@
 #include <string>
 #include <typeindex>
 
+#include "../config/ConfigValue.hpp"
+
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
         str.pop_back();
@@ -27,6 +29,38 @@ static std::string getWorkspaceNameFromSpecialID(const int workspaceID) {
     if (!workspace)
         return "";
     return workspace->m_szName;
+}
+
+static std::string formatToString(uint32_t drmFormat) {
+    switch (drmFormat) {
+        case DRM_FORMAT_XRGB2101010: return "XRGB2101010";
+        case DRM_FORMAT_XBGR2101010: return "XBGR2101010";
+        case DRM_FORMAT_XRGB8888: return "XRGB8888";
+        case DRM_FORMAT_XBGR8888: return "XBGR8888";
+        default: break;
+    }
+
+    return "Invalid";
+}
+
+static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
+    std::string result;
+
+    if (!wl_list_empty(&pMonitor->output->modes)) {
+        wlr_output_mode* mode;
+
+        wl_list_for_each(mode, &pMonitor->output->modes, link) {
+
+            if (format == FORMAT_NORMAL)
+                result += std::format("{}x{}@{:.2f}Hz ", mode->width, mode->height, mode->refresh / 1000.0);
+            else
+                result += std::format("\"{}x{}@{:.2f}Hz\",", mode->width, mode->height, mode->refresh / 1000.0);
+        }
+
+        result.pop_back();
+    }
+
+    return result;
 }
 
 std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -74,7 +108,9 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     "focused": {},
     "dpmsStatus": {},
     "vrr": {},
-    "activelyTearing": {}
+    "activelyTearing": {},
+    "currentFormat": "{}",
+    "availableModes": [{}]
 }},)#",
                 m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                 (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
@@ -82,7 +118,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                m->tearingState.activelyTearing ? "true" : "false");
+                m->tearingState.activelyTearing ? "true" : "false", formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
 
         trimTrailingComma(result);
@@ -97,13 +133,14 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
                             "workspace: {} ({})\n\treserved: {} "
                             "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\n",
+                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
                             m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
                             (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspace,
                             (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
                             getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
                             (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing);
+                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing, formatToString(m->drmFormat),
+                            availableModesForOutput(m.get(), format));
         }
     }
 
@@ -205,6 +242,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
 
@@ -213,6 +253,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
     }
@@ -718,8 +761,8 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (kb.nonConsuming)
                 ret += "n";
 
-            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap, kb.key, kb.keycode, kb.handler,
-                               kb.arg);
+            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap, kb.key,
+                               kb.keycode, kb.catchAll, kb.handler, kb.arg);
         }
     } else {
         // json
@@ -737,11 +780,13 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "submap": "{}",
     "key": "{}",
     "keycode": {},
+    "catch_all": {},
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
                 kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.nonConsuming ? "true" : "false",
-                kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, escapeJSONStrings(kb.handler), escapeJSONStrings(kb.arg));
+                kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, kb.catchAll ? "true" : "false", escapeJSONStrings(kb.handler),
+                escapeJSONStrings(kb.arg));
         }
         trimTrailingComma(ret);
         ret += "]";
@@ -877,7 +922,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
         g_pInputManager->setTabletConfigs();      // update tablets
     }
 
-    static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+    static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
     if (COMMAND.contains("general:layout"))
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
@@ -1108,11 +1153,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     bool       lock = false;
 
-    if (vars.size() > 4) {
-        if (vars[4].starts_with("lock")) {
-            lock = true;
-        }
-    }
+    if (request.ends_with("lock"))
+        lock = true;
 
     try {
         if (PROP == "animationstyle") {
@@ -1141,6 +1183,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
             PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "maxsize") {
+            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
+        } else if (PROP == "minsize") {
+            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
         } else if (PROP == "dimaround") {
             PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {
@@ -1221,8 +1279,8 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             return std::format("vec2: [{}, {}]\nset: {}", std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y, VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("str: {}\nset: {}", std::any_cast<Hyprlang::STRING>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
-            return std::format("custom type at: {:x}\nset: {}", (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(void*))
+            return std::format("custom type: {}\nset: {}", ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
             return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
@@ -1233,8 +1291,9 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
                                VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::CUSTOMTYPE*))
-            return std::format("{{\"option\": \"{}\", \"custom\": \"{:x}\", \"set\": {} }}", curitem, (uintptr_t)std::any_cast<Hyprlang::CUSTOMTYPE*>(VAL), VAR->m_bSetByUser);
+        else if (TYPE == typeid(void*))
+            return std::format("{{\"option\": \"{}\", \"custom\": \"{}\", \"set\": {} }}", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(),
+                               VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";
@@ -1415,17 +1474,49 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor      color = configStringToInt(vars[3]);
+    CColor color = configStringToInt(vars[3]);
 
-    std::string message = "";
+    size_t msgidx   = 4;
+    float  fontsize = 13.f;
+    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 9, "fontsize:") == 0) {
+        const auto FONTSIZE = vars[msgidx].substr(9);
 
-    for (size_t i = 4; i < vars.size(); ++i) {
-        message += vars[i] + " ";
+        if (!isNumber(FONTSIZE, true))
+            return "invalid fontsize kwarg";
+
+        try {
+            fontsize = std::stoi(FONTSIZE);
+        } catch (std::exception& e) { return "invalid fontsize karg"; }
+
+        ++msgidx;
     }
 
-    message.pop_back();
+    if (vars.size() <= msgidx)
+        return "not enough args";
 
-    g_pHyprNotificationOverlay->addNotification(message, color, time, (eIcons)icon);
+    const auto MESSAGE = vars.join(" ", msgidx);
+
+    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, (eIcons)icon, fontsize);
+
+    return "ok";
+}
+
+std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string request) {
+    CVarList vars(request, 0, ' ');
+
+    int      amount = -1;
+
+    if (vars.size() > 1) {
+        const auto AMOUNT = vars[1];
+        if (!isNumber(AMOUNT))
+            return "invalid arg 1";
+
+        try {
+            amount = std::stoi(AMOUNT);
+        } catch (std::exception& e) { return "invalid arg 1"; }
+    }
+
+    g_pHyprNotificationOverlay->dismissNotifications(amount);
 
     return "ok";
 }
@@ -1453,6 +1544,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
+    registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
     registerCommand(SHyprCtlCommand{"setprop", false, dispatchSetProp});
     registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
@@ -1476,8 +1568,9 @@ void CHyprCtl::unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd) {
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format    = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll = false;
+    auto format             = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll          = false;
+    m_sCurrentRequestParams = {};
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1498,8 +1591,10 @@ std::string CHyprCtl::getReply(std::string request) {
 
             if (c == 'j')
                 format = eHyprCtlOutputFormat::FORMAT_JSON;
-            if (c == 'r')
+            else if (c == 'r')
                 reloadAll = true;
+            else if (c == 'a')
+                m_sCurrentRequestParams.all = true;
         }
 
         if (sepIndex < request.size())
@@ -1541,7 +1636,7 @@ std::string CHyprCtl::getReply(std::string request) {
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
         g_pInputManager->setTabletConfigs();      // update tablets
 
-        static auto* const PLAYOUT = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("general:layout");
+        static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
         g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 

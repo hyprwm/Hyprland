@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../config/ConfigValue.hpp"
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -87,7 +88,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         desiredGeometry.y = xy.y;
     }
 
-    static auto* const PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     if (!PMONITOR) {
         Debug::log(ERR, "{:m} has an invalid monitor in onWindowCreatedFloating!!!", pWindow);
@@ -151,7 +152,7 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
         }
     }
 
-    if (**PXWLFORCESCALEZERO && pWindow->m_bIsX11)
+    if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
@@ -172,7 +173,8 @@ void IHyprLayout::onWindowCreatedFloating(CWindow* pWindow) {
 void IHyprLayout::onBeginDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
-    m_vBeginDragSizeXY = Vector2D();
+    m_iMouseMoveEventCount = 1;
+    m_vBeginDragSizeXY     = Vector2D();
 
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
@@ -247,6 +249,8 @@ void IHyprLayout::onBeginDragWindow() {
 void IHyprLayout::onEndDragWindow() {
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow;
 
+    m_iMouseMoveEventCount = 1;
+
     if (!g_pCompositor->windowValidMapped(DRAGGINGWINDOW)) {
         if (DRAGGINGWINDOW) {
             g_pInputManager->unsetCursorImage();
@@ -275,8 +279,8 @@ void IHyprLayout::onEndDragWindow() {
                 return;
 
             if (pWindow->m_sGroupData.pNextWindow && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
-                static const auto* USECURRPOS = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("group:insert_after_current");
-                (**USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
+                static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+                (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
                 DRAGGINGWINDOW->updateWindowDecos();
 
@@ -302,19 +306,36 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         return;
     }
 
-    static auto        TIMER = std::chrono::high_resolution_clock::now();
+    static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
 
-    const auto         SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
+    const auto  SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
 
-    const auto         DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
-    const auto         TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
+    const auto  DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
+    const auto  TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
 
-    static auto* const PANIMATEMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_mouse_windowdragging");
-    static auto* const PANIMATE      = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("misc:animate_manual_resizes");
+    static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
+    static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) ||
-        (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count() <
-         1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate))
+    const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
+    const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
+    const auto  MSMONITOR     = 1000.0 / g_pHyprRenderer->m_pMostHzMonitor->refreshRate;
+    static int  totalMs       = 0;
+    bool        canSkipUpdate = true;
+
+    MSTIMER = std::chrono::high_resolution_clock::now();
+
+    if (m_iMouseMoveEventCount == 1)
+        totalMs = 0;
+
+    if (MSMONITOR > 16.0) {
+        totalMs += MSDELTA < MSMONITOR ? MSDELTA : std::round(totalMs * 1.0 / m_iMouseMoveEventCount);
+        m_iMouseMoveEventCount += 1;
+
+        // check if time-window is enough to skip update on 60hz monitor
+        canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
+    }
+
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();
@@ -328,7 +349,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goal()};
         wb.round();
 
-        if (**PANIMATEMOUSE)
+        if (*PANIMATEMOUSE)
             DRAGGINGWINDOW->m_vRealPosition = wb.pos();
         else
             DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
@@ -337,8 +358,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            Vector2D MINSIZE = g_pXWaylandManager->getMinSizeForWindow(DRAGGINGWINDOW).clamp({20, 20});
-            Vector2D MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW);
+            Vector2D MINSIZE = g_pXWaylandManager->getMinSizeForWindow(DRAGGINGWINDOW).clamp(DRAGGINGWINDOW->m_sAdditionalConfigData.minSize.toUnderlying());
+            Vector2D MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW).clamp({}, DRAGGINGWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying());
 
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
@@ -386,7 +407,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             CBox wb = {newPos, newSize};
             wb.round();
 
-            if (**PANIMATE) {
+            if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = wb.size();
                 DRAGGINGWINDOW->m_vRealPosition = wb.pos();
             } else {
@@ -592,6 +613,7 @@ void IHyprLayout::bringWindowToTop(CWindow* pWindow) {
 void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
     bringWindowToTop(pWindow);
     g_pCompositor->focusWindow(pWindow);
+    g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
 Vector2D IHyprLayout::predictSizeForNewWindow() {

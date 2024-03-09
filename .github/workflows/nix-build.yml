@@ -19,7 +19,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: cachix/install-nix-action@v25
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: cachix/cachix-action@v12
         with:

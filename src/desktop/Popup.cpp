@@ -116,6 +116,7 @@ void CPopup::onMap() {
     m_pSubsurfaceHead = std::make_unique<CSubsurface>(this);
 
     unconstrain();
+    sendScale();
 }
 
 void CPopup::onUnmap() {
@@ -233,4 +234,13 @@ void CPopup::recheckChildrenRecursive() {
 
 Vector2D CPopup::size() {
     return m_vLastSize;
+}
+
+void CPopup::sendScale() {
+    if (m_pWindowOwner)
+        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pWindowOwner->m_pWLSurface.m_fLastScale);
+    else if (m_pLayerOwner)
+        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner->surface.m_fLastScale);
+    else
+        UNREACHABLE();
 }

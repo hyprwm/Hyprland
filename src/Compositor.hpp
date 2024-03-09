@@ -166,7 +166,6 @@ class CCompositor {
     int            getNextAvailableNamedWorkspace();
     bool           isPointOnAnyMonitor(const Vector2D&);
     bool           isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);
-    CWindow*       getConstraintWindow(SMouse*);
     CMonitor*      getMonitorInDirection(const char&);
     CMonitor*      getMonitorInDirection(CMonitor*, const char&);
     void           updateAllWindowsAnimatedDecorationValues();

@@ -4,6 +4,8 @@
 
 #include "../Compositor.hpp"
 
+#include "../config/ConfigValue.hpp"
+
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
 
@@ -54,11 +56,12 @@ void CMonitor::onConnect(bool noRule) {
 
     szDescription = output->description ? output->description : "";
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
-    szDescription.erase(std::remove(szDescription.begin(), szDescription.end(), ','), szDescription.end());
+    std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
     szShortDescription =
         removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    std::erase(szShortDescription, ',');
 
     if (!wlr_backend_is_drm(output->backend))
         createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
@@ -330,8 +333,8 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
-    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("misc:cursor_zoom_factor");
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     } else if (wlr_damage_ring_add(&damage, rg))
@@ -343,8 +346,8 @@ void CMonitor::addDamage(const CRegion* rg) {
 }
 
 void CMonitor::addDamage(const CBox* box) {
-    static auto* const PZOOMFACTOR = (Hyprlang::FLOAT* const*)g_pConfigManager->getConfigValuePtr("misc:cursor_zoom_factor");
-    if (**PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("misc:cursor_zoom_factor");
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
     }
@@ -361,9 +364,8 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
         const auto DESCRIPTIONSELECTOR = selector.substr(5);
-        const auto DESCRIPTION         = removeBeginEndSpacesTabs(szDescription.substr(0, szDescription.find_first_of('(')));
 
-        return DESCRIPTIONSELECTOR == szDescription || DESCRIPTIONSELECTOR == DESCRIPTION;
+        return DESCRIPTIONSELECTOR == szShortDescription || DESCRIPTIONSELECTOR == szDescription;
     } else {
         // match by selector
         return szName == selector;
@@ -412,9 +414,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         if (newDefaultWorkspaceName == "")
             newDefaultWorkspaceName = std::to_string(WORKSPACEID);
 
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(ID, newDefaultWorkspaceName)).get();
-
-        PNEWWORKSPACE->m_iID = WORKSPACEID;
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(std::make_unique<CWorkspace>(WORKSPACEID, ID, newDefaultWorkspaceName)).get();
     }
 
     activeWorkspace = PNEWWORKSPACE->m_iID;
@@ -568,11 +568,11 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         }
 
         if (!noFocus && !g_pCompositor->m_pLastMonitor->specialWorkspaceID) {
-            static auto* const PFOLLOWMOUSE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("input:follow_mouse");
-            CWindow*           pWindow      = pWorkspace->getLastFocusedWindow();
+            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            CWindow*    pWindow      = pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
-                if (**PFOLLOWMOUSE == 1)
+                if (*PFOLLOWMOUSE == 1)
                     pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                 if (!pWindow)
@@ -591,6 +591,7 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_szName});
+        g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_iID, pWorkspace->m_szName)});
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 
@@ -601,6 +602,12 @@ void CMonitor::changeWorkspace(CWorkspace* const pWorkspace, bool internal, bool
     g_pConfigManager->ensureVRR(this);
 
     g_pCompositor->updateSuspendedStates();
+
+    if (specialWorkspaceID) {
+        const auto PSPECIALWS = g_pCompositor->getWorkspaceByID(specialWorkspaceID);
+        if (PSPECIALWS->m_bHasFullscreenWindow)
+            g_pCompositor->updateFullscreenFadeOnWorkspace(PSPECIALWS);
+    }
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -626,6 +633,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         else
             g_pInputManager->refocus();
 
+        g_pCompositor->updateFullscreenFadeOnWorkspace(PWORKSPACE);
+
+        g_pConfigManager->ensureVRR(this);
+
         g_pCompositor->updateSuspendedStates();
 
         return;
@@ -643,6 +654,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
         PMONITORWORKSPACEOWNER->specialWorkspaceID = 0;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITORWORKSPACEOWNER->ID);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->szName});
+
+        const auto PACTIVEWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITORWORKSPACEOWNER->activeWorkspace);
+        g_pCompositor->updateFullscreenFadeOnWorkspace(PACTIVEWORKSPACE);
+
         animate = false;
     }
 
@@ -685,6 +700,10 @@ void CMonitor::setSpecialWorkspace(CWorkspace* const pWorkspace) {
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 
     g_pHyprRenderer->damageMonitor(this);
+
+    g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
+
+    g_pConfigManager->ensureVRR(this);
 
     g_pCompositor->updateSuspendedStates();
 }

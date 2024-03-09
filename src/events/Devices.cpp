@@ -74,7 +74,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             Debug::log(LOG, "Attached a touch device with name {}", DEVICE->name);
             g_pInputManager->newTouchDevice(DEVICE);
             break;
-        case WLR_INPUT_DEVICE_TABLET_TOOL:
+        case WLR_INPUT_DEVICE_TABLET:
             Debug::log(LOG, "Attached a tablet tool with name {}", DEVICE->name);
             g_pInputManager->newTabletTool(DEVICE);
             break;
@@ -97,44 +97,14 @@ void Events::listener_newConstraint(wl_listener* listener, void* data) {
 
     Debug::log(LOG, "New mouse constraint at {:x}", (uintptr_t)PCONSTRAINT);
 
-    g_pInputManager->m_lConstraints.emplace_back();
-    const auto CONSTRAINT = &g_pInputManager->m_lConstraints.back();
+    const auto SURFACE = CWLSurface::surfaceFromWlr(PCONSTRAINT->surface);
 
-    CONSTRAINT->pMouse     = g_pCompositor->m_sSeat.mouse;
-    CONSTRAINT->constraint = PCONSTRAINT;
-
-    CONSTRAINT->hyprListener_destroyConstraint.initCallback(&PCONSTRAINT->events.destroy, &Events::listener_destroyConstraint, CONSTRAINT, "Constraint");
-    CONSTRAINT->hyprListener_setConstraintRegion.initCallback(&PCONSTRAINT->events.set_region, &Events::listener_setConstraintRegion, CONSTRAINT, "Constraint");
-
-    if (g_pCompositor->m_pLastFocus == PCONSTRAINT->surface) {
-        g_pInputManager->constrainMouse(CONSTRAINT->pMouse, PCONSTRAINT);
-
-        if (!CONSTRAINT->hintSet)
-            CONSTRAINT->positionHint = Vector2D{-1, -1};
-    }
-}
-
-void Events::listener_destroyConstraint(void* owner, void* data) {
-    const auto PCONSTRAINT = (SConstraint*)owner;
-
-    if (PCONSTRAINT->pMouse->currentConstraint == PCONSTRAINT->constraint) {
-        PCONSTRAINT->pMouse->hyprListener_commitConstraint.removeCallback();
-
-        const auto PWINDOW = g_pCompositor->getConstraintWindow(g_pCompositor->m_sSeat.mouse);
-
-        if (PWINDOW && PCONSTRAINT->active && PCONSTRAINT->constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED)
-            g_pInputManager->warpMouseToConstraintMiddle(PCONSTRAINT);
-
-        PCONSTRAINT->pMouse->currentConstraint = nullptr;
+    if (!SURFACE) {
+        Debug::log(ERR, "Refusing a constraint from an unassigned wl_surface {:x}", (uintptr_t)PCONSTRAINT->surface);
+        return;
     }
 
-    Debug::log(LOG, "Unconstrained mouse from {:x}", (uintptr_t)PCONSTRAINT->constraint);
-
-    g_pInputManager->m_lConstraints.remove(*PCONSTRAINT);
-}
-
-void Events::listener_setConstraintRegion(void* owner, void* data) {
-    // no
+    SURFACE->appendConstraint(PCONSTRAINT);
 }
 
 void Events::listener_newVirtPtr(wl_listener* listener, void* data) {

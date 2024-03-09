@@ -167,82 +167,6 @@ bool SLayerSurface::isFadedOut() {
     return !realPosition.isBeingAnimated() && !realSize.isBeingAnimated() && !alpha.isBeingAnimated();
 }
 
-CRegion SConstraint::getLogicCoordsRegion() {
-    CRegion result;
-
-    if (!constraint)
-        return result;
-
-    const auto PWINDOWOWNER = g_pCompositor->getWindowFromSurface(constraint->surface);
-
-    if (!PWINDOWOWNER)
-        return result;
-
-    result.add(&constraint->region); // surface-local coords
-
-    if (!PWINDOWOWNER->m_bIsX11) {
-        result.translate(PWINDOWOWNER->m_vRealPosition.goal());
-        return result;
-    }
-
-    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goal() :
-                                                    g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y});
-
-    const auto PMONITOR = PWINDOWOWNER->m_bIsMapped ? g_pCompositor->getMonitorFromID(PWINDOWOWNER->m_iMonitorID) : g_pCompositor->getMonitorFromVector(COORDS);
-
-    if (!PMONITOR)
-        return CRegion{};
-
-    result.scale(PMONITOR->xwaylandScale);
-
-    result.translate(COORDS);
-
-    return result;
-}
-
-Vector2D SConstraint::getLogicConstraintPos() {
-    if (!constraint)
-        return {};
-
-    const auto PWINDOWOWNER = g_pCompositor->getWindowFromSurface(constraint->surface);
-
-    if (!PWINDOWOWNER)
-        return {};
-
-    if (!PWINDOWOWNER->m_bIsX11)
-        return PWINDOWOWNER->m_vRealPosition.goal();
-
-    const auto COORDS = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealPosition.goal() :
-                                                    g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y});
-
-    return COORDS;
-}
-
-Vector2D SConstraint::getLogicConstraintSize() {
-    if (!constraint)
-        return {};
-
-    const auto PWINDOWOWNER = g_pCompositor->getWindowFromSurface(constraint->surface);
-
-    if (!PWINDOWOWNER)
-        return {};
-
-    if (!PWINDOWOWNER->m_bIsX11)
-        return PWINDOWOWNER->m_vRealSize.goal();
-
-    const auto PMONITOR = PWINDOWOWNER->m_bIsMapped ?
-        g_pCompositor->getMonitorFromID(PWINDOWOWNER->m_iMonitorID) :
-        g_pCompositor->getMonitorFromVector(g_pXWaylandManager->xwaylandToWaylandCoords({PWINDOWOWNER->m_uSurface.xwayland->x, PWINDOWOWNER->m_uSurface.xwayland->y}));
-
-    if (!PMONITOR)
-        return {};
-
-    const auto SIZE = PWINDOWOWNER->m_bIsMapped ? PWINDOWOWNER->m_vRealSize.goal() :
-                                                  Vector2D{PWINDOWOWNER->m_uSurface.xwayland->width, PWINDOWOWNER->m_uSurface.xwayland->height} * PMONITOR->xwaylandScale;
-
-    return SIZE;
-}
-
 void SKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     xkb_state_unref(xkbTranslationState);
 
@@ -271,14 +195,27 @@ void SKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
             std::string    layout, model, variant;
             layout  = keyboardLayouts[i % keyboardLayouts.size()];
-            model   = keyboardModels[i % keyboardLayouts.size()];
-            variant = keyboardVariants[i % keyboardLayouts.size()];
+            model   = keyboardModels[i % keyboardModels.size()];
+            variant = keyboardVariants[i % keyboardVariants.size()];
 
             rules.layout  = layout.c_str();
             rules.model   = model.c_str();
             rules.variant = variant.c_str();
 
-            const auto KEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            auto KEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+            if (!KEYMAP) {
+                Debug::log(ERR, "updateXKBTranslationState: keymap failed 1, fallback without model/variant");
+                rules.model   = "";
+                rules.variant = "";
+                KEYMAP        = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            }
+
+            if (!KEYMAP) {
+                Debug::log(ERR, "updateXKBTranslationState: keymap failed 2, fallback to us");
+                rules.layout = "us";
+                KEYMAP       = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            }
 
             xkbTranslationState = xkb_state_new(KEYMAP);
 

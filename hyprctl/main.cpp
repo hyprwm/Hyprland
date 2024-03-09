@@ -33,6 +33,7 @@ commands:
     cursorpos
     decorations
     devices
+    dismissnotify
     dispatch
     getoption
     globalshortcuts
@@ -308,6 +309,8 @@ int main(int argc, char** argv) {
                 json = true;
             } else if (ARGS[i] == "-r" && !fullArgs.contains("r")) {
                 fullArgs += "r";
+            } else if (ARGS[i] == "-a" && !fullArgs.contains("a")) {
+                fullArgs += "a";
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -388,6 +391,8 @@ int main(int argc, char** argv) {
         request(fullRequest, 3);
     else if (fullRequest.contains("/plugin"))
         request(fullRequest, 1);
+    else if (fullRequest.contains("/dismissnotify"))
+        request(fullRequest, 0);
     else if (fullRequest.contains("/notify"))
         request(fullRequest, 2);
     else if (fullRequest.contains("/output"))

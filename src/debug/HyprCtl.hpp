@@ -16,6 +16,10 @@ class CHyprCtl {
 
     int                              m_iSocketFD = -1;
 
+    struct {
+        bool all = false;
+    } m_sCurrentRequestParams;
+
   private:
     void                                          startHyprCtlSocket();
 

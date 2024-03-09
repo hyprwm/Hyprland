@@ -142,26 +142,28 @@ struct SWindowSpecialRenderData {
 };
 
 struct SWindowAdditionalConfigData {
-    std::string                 animationStyle        = std::string("");
-    CWindowOverridableVar<int>  rounding              = -1; // -1 means no
-    CWindowOverridableVar<bool> forceNoBlur           = false;
-    CWindowOverridableVar<bool> forceOpaque           = false;
-    CWindowOverridableVar<bool> forceOpaqueOverridden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
-    CWindowOverridableVar<bool> forceAllowsInput      = false;
-    CWindowOverridableVar<bool> forceNoAnims          = false;
-    CWindowOverridableVar<bool> forceNoBorder         = false;
-    CWindowOverridableVar<bool> forceNoShadow         = false;
-    CWindowOverridableVar<bool> forceNoDim            = false;
-    CWindowOverridableVar<bool> noFocus               = false;
-    CWindowOverridableVar<bool> windowDanceCompat     = false;
-    CWindowOverridableVar<bool> noMaxSize             = false;
-    CWindowOverridableVar<bool> dimAround             = false;
-    CWindowOverridableVar<bool> forceRGBX             = false;
-    CWindowOverridableVar<bool> keepAspectRatio       = false;
-    CWindowOverridableVar<int>  xray                  = -1; // -1 means unset, takes precedence over the renderdata one
-    CWindowOverridableVar<int>  borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
-    CWindowOverridableVar<bool> forceTearing          = false;
-    CWindowOverridableVar<bool> nearestNeighbor       = false;
+    std::string                     animationStyle        = std::string("");
+    CWindowOverridableVar<int>      rounding              = -1; // -1 means no
+    CWindowOverridableVar<bool>     forceNoBlur           = false;
+    CWindowOverridableVar<bool>     forceOpaque           = false;
+    CWindowOverridableVar<bool>     forceOpaqueOverridden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool>     forceAllowsInput      = false;
+    CWindowOverridableVar<bool>     forceNoAnims          = false;
+    CWindowOverridableVar<bool>     forceNoBorder         = false;
+    CWindowOverridableVar<bool>     forceNoShadow         = false;
+    CWindowOverridableVar<bool>     forceNoDim            = false;
+    CWindowOverridableVar<bool>     noFocus               = false;
+    CWindowOverridableVar<bool>     windowDanceCompat     = false;
+    CWindowOverridableVar<bool>     noMaxSize             = false;
+    CWindowOverridableVar<Vector2D> maxSize               = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    CWindowOverridableVar<Vector2D> minSize               = Vector2D(20, 20);
+    CWindowOverridableVar<bool>     dimAround             = false;
+    CWindowOverridableVar<bool>     forceRGBX             = false;
+    CWindowOverridableVar<bool>     keepAspectRatio       = false;
+    CWindowOverridableVar<int>      xray                  = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<int>      borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<bool>     forceTearing          = false;
+    CWindowOverridableVar<bool>     nearestNeighbor       = false;
 };
 
 struct SWindowRule {

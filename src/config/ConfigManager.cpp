@@ -455,6 +455,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:scroll_method", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("input:scroll_button", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:scroll_button_lock", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("input:scroll_factor", {1.f});
     m_pConfig->addConfigValue("input:scroll_points", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("input:touchpad:natural_scroll", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:touchpad:disable_while_typing", Hyprlang::INT{1});
@@ -945,7 +946,7 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
     return *IT;
 }
 
-std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic) {
+std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic, bool shadowExec) {
     if (!g_pCompositor->windowExists(pWindow))
         return std::vector<SWindowRule>();
 
@@ -1093,7 +1094,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
         }
     }
 
-    if (anyExecFound) // remove exec rules to unclog searches in the future, why have the garbage here.
+    if (anyExecFound && !shadowExec) // remove exec rules to unclog searches in the future, why have the garbage here.
         execRequestedRules.erase(std::remove_if(execRequestedRules.begin(), execRequestedRules.end(),
                                                 [&](const SExecRequestedRule& other) { return std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == other.iPid; }); }));
 
@@ -1231,9 +1232,9 @@ void CConfigManager::ensureMonitorStatus() {
 }
 
 void CConfigManager::ensureVRR(CMonitor* pMonitor) {
-    static auto* const PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
+    static auto PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
 
-    static auto        ensureVRRForDisplay = [&](CMonitor* m) -> void {
+    static auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
         if (!m->output || m->createdByUser)
             return;
 
@@ -1732,6 +1733,17 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     return {};
 }
 
+SParsedKey parseKey(const std::string& key) {
+    if (isNumber(key) && std::stoi(key) > 9)
+        return {.keycode = std::stoi(key)};
+    else if (key.starts_with("code:") && isNumber(key.substr(5)))
+        return {.keycode = std::stoi(key.substr(5))};
+    else if (key == "catchall")
+        return {.catchAll = true};
+    else
+        return {.key = key};
+}
+
 std::optional<std::string> CConfigManager::handleBind(const std::string& command, const std::string& value) {
     // example:
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
@@ -1807,14 +1819,15 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     }
 
     if (KEY != "") {
-        if (isNumber(KEY) && std::stoi(KEY) > 9)
-            g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
-        else if (KEY.starts_with("code:") && isNumber(KEY.substr(5)))
-            g_pKeybindManager->addKeybind(
-                SKeybind{"", std::stoi(KEY.substr(5)), MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
-        else
-            g_pKeybindManager->addKeybind(SKeybind{KEY, 0, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse, nonConsuming, transparent, ignoreMods});
+        SParsedKey parsedKey = parseKey(KEY);
+
+        if (parsedKey.catchAll && m_szCurrentSubmap == "") {
+            Debug::log(ERR, "Catchall not allowed outside of submap!");
+            return "Invalid catchall, catchall keybinds are only allowed in submaps.";
+        }
+
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
+                                               nonConsuming, transparent, ignoreMods});
     }
 
     return {};
@@ -1825,7 +1838,7 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
     const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
 
-    const auto KEY = ARGS[1];
+    const auto KEY = parseKey(ARGS[1]);
 
     g_pKeybindManager->removeKeybind(MOD, KEY);
 

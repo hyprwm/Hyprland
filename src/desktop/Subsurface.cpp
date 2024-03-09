@@ -1,6 +1,7 @@
 #include "Subsurface.hpp"
 #include "../events/Events.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 static void onNewSubsurface(void* owner, void* data);
 
@@ -119,8 +120,8 @@ void CSubsurface::onCommit() {
     if (!g_pHyprRenderer->shouldRenderWindow(m_pWindowParent)) {
         m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 
-        static auto* const PLOGDAMAGE = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("debug:log_damage");
-        if (**PLOGDAMAGE)
+        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        if (*PLOGDAMAGE)
             Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowParent);
         return;
     }
@@ -143,24 +144,6 @@ void CSubsurface::onCommit() {
         m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
         box         = {COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
-    }
-
-    if (m_pWindowParent) {
-        // tearing: if solitary, redraw it. This still might be a single surface window
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_pWindowParent->m_iMonitorID);
-        if (PMONITOR && PMONITOR->solitaryClient == m_pWindowParent && m_pWindowParent->canBeTorn() && PMONITOR->tearingState.canTear &&
-            m_sWLSurface.wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
-            CRegion damageBox{&m_sWLSurface.wlr()->buffer_damage};
-
-            if (!damageBox.empty()) {
-                if (PMONITOR->tearingState.busy) {
-                    PMONITOR->tearingState.frameScheduledWhileBusy = true;
-                } else {
-                    PMONITOR->tearingState.nextRenderTorn = true;
-                    g_pHyprRenderer->renderMonitor(PMONITOR);
-                }
-            }
-        }
     }
 }
 
@@ -207,9 +190,6 @@ void CSubsurface::onUnmap() {
 
     if (m_sWLSurface.wlr() == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
-
-    if (m_pWindowParent)
-        m_pWindowParent->updateSurfaceScaleTransformDetails();
 
     g_pInputManager->simulateMouseMovement();
 

@@ -430,15 +430,15 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     if (e->button == 274) {
         static Vector2D pressedCursorPos;
 
-        if (e->state == WLR_BUTTON_PRESSED)
+        if (e->state == WL_POINTER_BUTTON_STATE_PRESSED)
             pressedCursorPos = pos;
-        else if (e->state == WLR_BUTTON_RELEASED && pressedCursorPos == pos)
+        else if (e->state == WL_POINTER_BUTTON_STATE_RELEASED && pressedCursorPos == pos)
             g_pXWaylandManager->sendCloseWindow(m_pWindow->getGroupWindowByIndex(WINDOWINDEX));
 
         return true;
     }
 
-    if (e->state != WLR_BUTTON_PRESSED)
+    if (e->state != WL_POINTER_BUTTON_STATE_PRESSED)
         return true;
 
     // click on padding

@@ -19,7 +19,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     if (m_ecbClickBehavior == CLICKMODE_KILL) {
         wlr_pointer_button_event e;
-        e.state = WLR_BUTTON_PRESSED;
+        e.state = WL_POINTER_BUTTON_STATE_PRESSED;
         g_pInputManager->processMouseDownKill(&e);
         return;
     }

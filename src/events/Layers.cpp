@@ -51,6 +51,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->layer        = WLRLAYERSURFACE->current.layer;
     WLRLAYERSURFACE->data      = layerSurface;
     layerSurface->monitorID    = PMONITOR->ID;
+    layerSurface->popupHead    = std::make_unique<CPopup>(layerSurface);
 
     layerSurface->forceBlur = g_pConfigManager->shouldBlurLS(layerSurface->szNamespace);
 
@@ -64,6 +65,8 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
     Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layersurface->layerSurface);
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(layersurface->monitorID);
+
+    layersurface->popupHead.reset();
 
     if (!g_pCompositor->getMonitorFromID(layersurface->monitorID))
         Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
@@ -110,8 +113,6 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     layersurface->mapped            = true;
     layersurface->keyboardExclusive = layersurface->layerSurface->current.keyboard_interactive;
     layersurface->surface           = layersurface->layerSurface->surface;
-
-    layersurface->popupHead = std::make_unique<CPopup>(layersurface);
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
@@ -183,8 +184,6 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
     EMIT_HOOK_EVENT("closeLayer", layersurface);
 
     std::erase(g_pInputManager->m_dExclusiveLSes, layersurface);
-
-    layersurface->popupHead.reset();
 
     if (!g_pInputManager->m_dExclusiveLSes.empty())
         g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->layerSurface->surface);

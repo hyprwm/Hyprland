@@ -319,6 +319,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
         .sent               = true,
+        .submapAtPress      = m_szCurrentSelectedSubmap,
     };
 
     bool suppressEvent = false;
@@ -349,7 +350,8 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                suppressEvent      = handleKeybinds(MODS, *it, false);
+                if (it->submapAtPress == m_szCurrentSelectedSubmap)
+                    handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
@@ -382,12 +384,12 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     m_tScrollTimer.reset();
 
     bool found = false;
-    if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_VERTICAL) {
+    if (e->source == WL_POINTER_AXIS_SOURCE_WHEEL && e->orientation == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         if (e->delta < 0)
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true);
         else
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true);
-    } else if (e->source == WLR_AXIS_SOURCE_WHEEL && e->orientation == WLR_AXIS_ORIENTATION_HORIZONTAL) {
+    } else if (e->source == WL_POINTER_AXIS_SOURCE_WHEEL && e->orientation == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
         if (e->delta < 0)
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true);
         else
@@ -418,7 +420,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         .modmaskAtPressTime = MODS,
     };
 
-    if (e->state == WLR_BUTTON_PRESSED) {
+    if (e->state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 
         suppressEvent = handleKeybinds(MODS, KEY, true);
@@ -452,7 +454,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
 }
 
 void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
-    if (e->state == WLR_BUTTON_PRESSED) {
+    if (e->state == WL_POINTER_BUTTON_STATE_PRESSED) {
         mouse("1resizewindow");
     } else {
         mouse("0resizewindow");
@@ -1855,20 +1857,20 @@ void CKeybindManager::pass(std::string regexp) {
         if (g_pKeybindManager->m_uLastCode != 0)
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
         else
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_PRESSED);
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
     } else if (g_pKeybindManager->m_iPassPressed == 0)
         if (g_pKeybindManager->m_uLastCode != 0)
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
         else
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_RELEASED);
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
     else {
         // dynamic call of the dispatcher
         if (g_pKeybindManager->m_uLastCode != 0) {
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
         } else {
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_PRESSED);
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WLR_BUTTON_RELEASED);
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
+            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 

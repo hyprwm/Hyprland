@@ -319,6 +319,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
         .sent               = true,
+        .submapAtPress      = m_szCurrentSelectedSubmap,
     };
 
     bool suppressEvent = false;
@@ -349,7 +350,8 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                suppressEvent      = handleKeybinds(MODS, *it, false);
+                if (it->submapAtPress == m_szCurrentSelectedSubmap)
+                    handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);

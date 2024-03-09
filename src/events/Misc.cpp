@@ -4,6 +4,7 @@
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
+#include "../managers/CursorManager.hpp"
 
 // ------------------------------ //
 //   __  __ _____  _____  _____   //
@@ -69,10 +70,10 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 
     wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sSeat.seat);
 
-    const auto XCURSOR = wlr_xcursor_manager_get_xcursor(g_pCompositor->m_sWLRXCursorMgr, "left_ptr", 1);
-    if (XCURSOR) {
-        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width,
-                                XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
+    const auto CURSOR = g_pCursorManager->dataFor("left_ptr");
+    if (CURSOR.surface) {
+        wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), CURSOR.size,
+                                CURSOR.size, CURSOR.hotspotX, CURSOR.hotspotY);
     }
 
     const auto  ROOT   = xcb_setup_roots_iterator(xcb_get_setup(XCBCONNECTION)).data->root;

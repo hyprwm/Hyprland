@@ -168,3 +168,5 @@ inline wlr_xwayland_surface* wlr_xwayland_surface_try_from_wlr_surface(wlr_surfa
 inline bool wlr_xwayland_or_surface_wants_focus(const wlr_xwayland_surface*) {
     return false;
 }
+
+inline void wlr_xwayland_set_cursor(wlr_xwayland* wlr_xwayland, uint8_t* pixels, uint32_t stride, uint32_t width, uint32_t height, int32_t hotspot_x, int32_t hotspot_y) {}

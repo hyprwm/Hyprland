@@ -51,7 +51,17 @@ runs:
           wayland-protocols \
           xcb-util-errors \
           xcb-util-renderutil \
-          xcb-util-wm
+          xcb-util-wm \
+          libzip \
+          librsvg
+
+    - name: Get hyprcursor-git
+      run: |
+        git clone https://github.com/hyprwm/hyprcursor --recursive
+        cd hyprcursor
+        cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
+        cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+        cmake --install build
 
     - name: Get Xorg pacman pkgs
       shell: bash

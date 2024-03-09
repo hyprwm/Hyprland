@@ -63,6 +63,8 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
         }
 
         ATOM.second = reply->atom;
+
+        free(reply);
     }
 
     wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sSeat.seat);
@@ -72,6 +74,19 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
         wlr_xwayland_set_cursor(g_pXWaylandManager->m_sWLRXWayland, XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, XCURSOR->images[0]->width,
                                 XCURSOR->images[0]->height, XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y);
     }
+
+    const auto  ROOT   = xcb_setup_roots_iterator(xcb_get_setup(XCBCONNECTION)).data->root;
+    auto        cookie = xcb_get_property(XCBCONNECTION, 0, ROOT, HYPRATOMS["_NET_SUPPORTING_WM_CHECK"], XCB_ATOM_ANY, 0, 2048);
+    auto        reply  = xcb_get_property_reply(XCBCONNECTION, cookie, nullptr);
+
+    const auto  XWMWINDOW = *(xcb_window_t*)xcb_get_property_value(reply);
+    const char* name      = "Hyprland";
+
+    xcb_change_property(wlr_xwayland_get_xwm_connection(g_pXWaylandManager->m_sWLRXWayland), XCB_PROP_MODE_REPLACE, XWMWINDOW, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
+                        8, // format
+                        strlen(name), name);
+
+    free(reply);
 
     xcb_disconnect(XCBCONNECTION);
 #endif

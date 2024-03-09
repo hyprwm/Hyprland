@@ -82,7 +82,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
     const auto  XWMWINDOW = *(xcb_window_t*)xcb_get_property_value(reply);
     const char* name      = "Hyprland";
 
-    xcb_change_property(wlr_xwayland_xwm_get_connection(g_pXWaylandManager->m_sWLRXWayland), XCB_PROP_MODE_REPLACE, XWMWINDOW, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
+    xcb_change_property(wlr_xwayland_get_xwm_connection(g_pXWaylandManager->m_sWLRXWayland), XCB_PROP_MODE_REPLACE, XWMWINDOW, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
                         8, // format
                         strlen(name), name);
 

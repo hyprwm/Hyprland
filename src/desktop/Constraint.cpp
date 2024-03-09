@@ -94,7 +94,9 @@ void CConstraint::deactivate() {
 
     wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
     m_bActive = false;
-    g_pCompositor->warpCursorTo(logicPositionHint(), true);
+
+    if (isLocked())
+        g_pCompositor->warpCursorTo(logicPositionHint(), true);
 
     if (m_pConstraint->lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT)
         m_bDead = true;

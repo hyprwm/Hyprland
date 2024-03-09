@@ -3,6 +3,7 @@
 
 extern "C" {
 #include <wlr/interfaces/wlr_buffer.h>
+#include <wlr/types/wlr_xcursor_manager.h>
 }
 
 static int cursorAnimTimer(void* data) {
@@ -30,6 +31,9 @@ CCursorManager::CCursorManager() {
 
     if (m_iSize == 0)
         m_iSize = 24;
+
+    m_pWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, m_iSize);
+    wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0);
 
     m_pAnimationTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ::cursorAnimTimer, nullptr);
 
@@ -77,11 +81,7 @@ CCursorManager::CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector
 }
 
 CCursorManager::CCursorBuffer::~CCursorBuffer() {
-    // if (g_pCursorManager->m_bOurBufferConnected)
-    //     wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, nullptr, 0, 0);
-
-    // if (!wlrBuffer.dropped)
-    //     wlr_buffer_drop(&wlrBuffer.base);
+    ; // will be freed in .destroy
 }
 
 wlr_buffer* CCursorManager::getCursorBuffer() {
@@ -95,6 +95,12 @@ void CCursorManager::setCursorSurface(wlr_surface* surf, const Vector2D& hotspot
 }
 
 void CCursorManager::setCursorFromName(const std::string& name) {
+
+    if (!m_pHyprcursor->valid()) {
+        wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, m_pWLRXCursorMgr, name.c_str());
+        return;
+    }
+
     m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
     if (m_sCurrentCursorShapeData.images.size() < 1) {
@@ -162,13 +168,14 @@ void CCursorManager::updateTheme() {
     if (highestScale * m_iSize == m_sCurrentStyleInfo.size)
         return;
 
-    if (m_sCurrentStyleInfo.size)
+    if (m_sCurrentStyleInfo.size && m_pHyprcursor->valid())
         m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
 
     m_sCurrentStyleInfo.size = m_iSize * highestScale;
     m_fCursorScale           = highestScale;
 
-    m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
+    if (m_pHyprcursor->valid())
+        m_pHyprcursor->loadThemeStyle(m_sCurrentStyleInfo);
 
     setCursorFromName("left_ptr");
 
@@ -182,6 +189,9 @@ void CCursorManager::changeTheme(const std::string& name, const int size) {
     m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str());
     m_szTheme     = name;
     m_iSize       = size;
+
+    setenv("XCURSOR_SIZE", std::to_string(m_iSize).c_str(), true);
+    setenv("XCURSOR_THEME", name.c_str(), true);
 
     updateTheme();
 }

@@ -7,6 +7,7 @@
 #include "../helpers/Vector2D.hpp"
 
 struct wlr_buffer;
+struct wlr_xcursor_manager;
 
 class CCursorManager {
   public:
@@ -60,6 +61,9 @@ class CCursorManager {
     wl_event_source*                                m_pAnimationTimer        = nullptr;
     int                                             m_iCurrentAnimationFrame = 0;
     Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
+
+    // xcursor fallback
+    wlr_xcursor_manager* m_pWLRXCursorMgr = nullptr;
 };
 
 inline std::unique_ptr<CCursorManager> g_pCursorManager;

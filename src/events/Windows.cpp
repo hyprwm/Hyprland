@@ -716,6 +716,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
+        if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->m_iWorkspaceID) == 0)
+            g_pInputManager->refocus();
+
         g_pInputManager->sendMotionEventsToFocused();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.

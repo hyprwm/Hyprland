@@ -69,6 +69,8 @@ void CInputManager::sendMotionEventsToFocused() {
 
     const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition.goal() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
 
+    m_bEmptyFocusCursorSet = false;
+
     wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, g_pCompositor->m_pLastFocus, LOCAL.x, LOCAL.y);
     wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, now.tv_sec * 1000 + now.tv_nsec / 10000000, LOCAL.x, LOCAL.y);
 }

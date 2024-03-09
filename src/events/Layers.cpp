@@ -154,6 +154,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
             g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+        g_pInputManager->m_bEmptyFocusCursorSet = false;
     }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
@@ -235,7 +236,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
             foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                                &surfaceCoords, &pFoundLayerSurface);
 
-        if (!foundSurface) {
+        if (!foundSurface && g_pCompositor->m_pLastWindow) {
             // if there isn't any, focus the last window
             const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
             g_pCompositor->focusWindow(nullptr);
@@ -347,6 +348,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             g_pInputManager->getMouseCoordsInternal() - Vector2D(layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y);
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layersurface->layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+        g_pInputManager->m_bEmptyFocusCursorSet = false;
     } else if (!layersurface->layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained()) &&
                layersurface->keyboardExclusive) {
         g_pInputManager->refocus();

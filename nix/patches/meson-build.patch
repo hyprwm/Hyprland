@@ -37,15 +37,16 @@ diff --git a/src/meson.build b/src/meson.build
 index 45701f5f..3505cefe 100644
 --- a/src/meson.build
 +++ b/src/meson.build
-@@ -9,17 +9,17 @@ executable('Hyprland', src,
+@@ -9,7 +9,7 @@ executable('Hyprland', src,
      server_protos,
      dependency('wayland-server'),
      dependency('wayland-client'),
 -    wlroots.get_variable('wlroots'),
 +    dependency('wlroots'),
      dependency('cairo'),
+     dependency('hyprcursor'),
      dependency('hyprlang', version: '>= 0.3.2'),
-     dependency('libdrm'),
+@@ -16,12 +16,12 @@ executable('Hyprland', src,
      dependency('egl'),
      dependency('xkbcommon'),
      dependency('libinput'),

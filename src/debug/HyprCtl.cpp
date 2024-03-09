@@ -16,6 +16,7 @@
 #include <typeindex>
 
 #include "../config/ConfigValue.hpp"
+#include "../managers/CursorManager.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -1045,16 +1046,7 @@ std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) 
     if (size <= 0)
         return "size not positive";
 
-    wlr_xcursor_manager_destroy(g_pCompositor->m_sWLRXCursorMgr);
-
-    g_pCompositor->m_sWLRXCursorMgr = wlr_xcursor_manager_create(theme.c_str(), size);
-
-    setenv("XCURSOR_SIZE", SIZESTR.c_str(), true);
-    setenv("XCURSOR_THEME", theme.c_str(), true);
-
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        wlr_xcursor_manager_load(g_pCompositor->m_sWLRXCursorMgr, m->scale);
-    }
+    g_pCursorManager->changeTheme(theme, size);
 
     return "ok";
 }

@@ -57,7 +57,6 @@ class CCompositor {
     wlr_layer_shell_v1*                        m_sWLRLayerShell;
     wlr_xdg_shell*                             m_sWLRXDGShell;
     wlr_cursor*                                m_sWLRCursor;
-    wlr_xcursor_manager*                       m_sWLRXCursorMgr;
     wlr_virtual_keyboard_manager_v1*           m_sWLRVKeyboardMgr;
     wlr_output_manager_v1*                     m_sWLROutputMgr;
     wlr_presentation*                          m_sWLRPresentation;

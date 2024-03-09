@@ -8,6 +8,7 @@
   binutils,
   cairo,
   git,
+  hyprcursor,
   hyprland-protocols,
   hyprlang,
   jq,
@@ -32,7 +33,6 @@
   enableXWayland ? true,
   legacyRenderer ? false,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
-  wrapRuntimeDeps ? true,
   version ? "git",
   commit,
   date,
@@ -75,6 +75,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       [
         cairo
         git
+        hyprcursor.dev
         hyprland-protocols
         hyprlang
         libdrm

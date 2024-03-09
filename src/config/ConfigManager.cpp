@@ -462,8 +462,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:touchpad:clickfinger_behavior", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:touchpad:tap_button_map", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("input:touchpad:middle_button_emulation", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("input:touchpad:tap-to-click", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("input:touchpad:tap-and-drag", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("input:touchpad:tap_to_click", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("input:touchpad:tap_and_drag", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:touchpad:drag_lock", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:touchpad:scroll_factor", {1.f});
     m_pConfig->addConfigValue("input:touchdevice:transform", Hyprlang::INT{0});
@@ -539,8 +539,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "disable_while_typing", Hyprlang::INT{1});
     m_pConfig->addSpecialConfigValue("device", "clickfinger_behavior", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "middle_button_emulation", Hyprlang::INT{0});
-    m_pConfig->addSpecialConfigValue("device", "tap-to-click", Hyprlang::INT{1});
-    m_pConfig->addSpecialConfigValue("device", "tap-and-drag", Hyprlang::INT{1});
+    m_pConfig->addSpecialConfigValue("device", "tap_to_click", Hyprlang::INT{1});
+    m_pConfig->addSpecialConfigValue("device", "tap_and_drag", Hyprlang::INT{1});
     m_pConfig->addSpecialConfigValue("device", "drag_lock", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "left_handed", Hyprlang::INT{0});
     m_pConfig->addSpecialConfigValue("device", "scroll_method", {STRVAL_EMPTY});

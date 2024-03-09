@@ -1012,7 +1012,7 @@ void CInputManager::setPointerConfigs() {
                 Debug::log(WARN, "Scroll method unknown");
             }
 
-            if (g_pConfigManager->getDeviceInt(devname, "tap-and-drag", "input:touchpad:tap-and-drag") == 0)
+            if (g_pConfigManager->getDeviceInt(devname, "tap_and_drag", "input:touchpad:tap_and_drag") == 0)
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_DISABLED);
             else
                 libinput_device_config_tap_set_drag_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_ENABLED);
@@ -1023,7 +1023,7 @@ void CInputManager::setPointerConfigs() {
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
-                if (g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1)
+                if (g_pConfigManager->getDeviceInt(devname, "tap_to_click", "input:touchpad:tap_to_click") == 1)
                     libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
 
             if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {

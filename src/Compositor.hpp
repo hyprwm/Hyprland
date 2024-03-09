@@ -233,4 +233,7 @@ inline std::map<std::string, xcb_atom_t> HYPRATOMS = {HYPRATOM("_NET_WM_WINDOW_T
                                                       HYPRATOM("_NET_WM_WINDOW_TYPE_POPUP_MENU"),
                                                       HYPRATOM("_NET_WM_WINDOW_TYPE_TOOLTIP"),
                                                       HYPRATOM("_NET_WM_WINDOW_TYPE_NOTIFICATION"),
-                                                      HYPRATOM("_KDE_NET_WM_WINDOW_TYPE_OVERRIDE")};
+                                                      HYPRATOM("_KDE_NET_WM_WINDOW_TYPE_OVERRIDE"),
+                                                      HYPRATOM("_NET_SUPPORTING_WM_CHECK"),
+                                                      HYPRATOM("_NET_WM_NAME"),
+                                                      HYPRATOM("UTF8_STRING")};

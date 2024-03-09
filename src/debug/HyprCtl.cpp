@@ -243,6 +243,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "[";
 
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
 
@@ -251,6 +254,9 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
+                continue;
+
             result += getWindowData(w.get(), format);
         }
     }
@@ -1139,11 +1145,8 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     bool       lock = false;
 
-    if (vars.size() > 4) {
-        if (vars[4].starts_with("lock")) {
-            lock = true;
-        }
-    }
+    if (request.ends_with("lock"))
+        lock = true;
 
     try {
         if (PROP == "animationstyle") {
@@ -1172,6 +1175,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "nomaxsize") {
             PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "maxsize") {
+            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
+        } else if (PROP == "minsize") {
+            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
+            if (lock) {
+                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
+                                                std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
+                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                PWINDOW->setHidden(false);
+            }
         } else if (PROP == "dimaround") {
             PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {
@@ -1451,7 +1470,7 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
 
     size_t msgidx   = 4;
     float  fontsize = 13.f;
-    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 10, "fontsize:")) {
+    if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 9, "fontsize:") == 0) {
         const auto FONTSIZE = vars[msgidx].substr(9);
 
         if (!isNumber(FONTSIZE, true))
@@ -1541,8 +1560,9 @@ void CHyprCtl::unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd) {
 }
 
 std::string CHyprCtl::getReply(std::string request) {
-    auto format    = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll = false;
+    auto format             = eHyprCtlOutputFormat::FORMAT_NORMAL;
+    bool reloadAll          = false;
+    m_sCurrentRequestParams = {};
 
     // process flags for non-batch requests
     if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
@@ -1563,8 +1583,10 @@ std::string CHyprCtl::getReply(std::string request) {
 
             if (c == 'j')
                 format = eHyprCtlOutputFormat::FORMAT_JSON;
-            if (c == 'r')
+            else if (c == 'r')
                 reloadAll = true;
+            else if (c == 'a')
+                m_sCurrentRequestParams.all = true;
         }
 
         if (sepIndex < request.size())

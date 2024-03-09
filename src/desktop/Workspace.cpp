@@ -2,7 +2,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
-CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
+CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     if (!PMONITOR) {
@@ -11,6 +11,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
     }
 
     m_iMonitorID          = monitorID;
+    m_iID                 = id;
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
 
@@ -30,6 +31,7 @@ CWorkspace::CWorkspace(int monitorID, std::string name, bool special) {
         m_szName = RULEFORTHIS.defaultName.value();
 
     g_pEventManager->postEvent({"createworkspace", m_szName});
+    g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});
     EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
@@ -39,6 +41,7 @@ CWorkspace::~CWorkspace() {
     Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName});
+    g_pEventManager->postEvent({"destroyworkspacev2", std::format("{},{}", m_iID, m_szName)});
     EMIT_HOOK_EVENT("destroyWorkspace", this);
 }
 

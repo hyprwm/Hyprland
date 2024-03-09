@@ -386,6 +386,7 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     if (PWORKSPACE) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, PWORKSPACE->m_szName)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"movewindowv2", std::format("{:x},{},{}", (uintptr_t)this, PWORKSPACE->m_iID, PWORKSPACE->m_szName)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<void*>{this, PWORKSPACE}));
     }
 
@@ -687,6 +688,38 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_eIdleInhibitMode = IDLEINHIBIT_FULLSCREEN;
         else
             Debug::log(ERR, "Rule idleinhibit: unknown mode {}", IDLERULE);
+    } else if (r.szRule.starts_with("maxsize")) {
+        try {
+            if (!m_bIsFloating)
+                return;
+            const auto VEC = configStringToVector2D(r.szRule.substr(8));
+            if (VEC.x < 1 || VEC.y < 1) {
+                Debug::log(ERR, "Invalid size for maxsize");
+                return;
+            }
+
+            m_sAdditionalConfigData.maxSize = VEC;
+            m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
+        } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (r.szRule.starts_with("minsize")) {
+        try {
+            if (!m_bIsFloating)
+                return;
+            const auto VEC = configStringToVector2D(r.szRule.substr(8));
+            if (VEC.x < 1 || VEC.y < 1) {
+                Debug::log(ERR, "Invalid size for minsize");
+                return;
+            }
+
+            m_sAdditionalConfigData.minSize = VEC;
+            m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
+                                                       std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(this, m_vRealSize.goal());
+            setHidden(false);
+        } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     }
 }
 
@@ -701,6 +734,8 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceNoDim       = false;
     if (!m_sAdditionalConfigData.forceOpaqueOverridden)
         m_sAdditionalConfigData.forceOpaque = false;
+    m_sAdditionalConfigData.maxSize         = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    m_sAdditionalConfigData.minSize         = Vector2D(20, 20);
     m_sAdditionalConfigData.forceNoAnims    = false;
     m_sAdditionalConfigData.animationStyle  = std::string("");
     m_sAdditionalConfigData.rounding        = -1;

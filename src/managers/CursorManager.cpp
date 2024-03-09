@@ -1,5 +1,6 @@
 #include "CursorManager.hpp"
 #include "Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 extern "C" {
 #include <wlr/interfaces/wlr_buffer.h>
@@ -96,7 +97,9 @@ void CCursorManager::setCursorSurface(wlr_surface* surf, const Vector2D& hotspot
 
 void CCursorManager::setCursorFromName(const std::string& name) {
 
-    if (!m_pHyprcursor->valid()) {
+    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("misc:enable_hyprcursor");
+
+    if (!m_pHyprcursor->valid() || !*PUSEHYPRCURSOR) {
         wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, m_pWLRXCursorMgr, name.c_str());
         return;
     }

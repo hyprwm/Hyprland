@@ -107,8 +107,20 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
     if (m_sCurrentCursorShapeData.images.size() < 1) {
-        Debug::log(ERR, "BUG THIS: No cursor returned by getShape()");
-        return;
+        // fallback to a default if available
+        constexpr const std::array<const char*, 2> fallbackShapes = {"default", "left_ptr"};
+
+        for (auto& s : fallbackShapes) {
+            m_sCurrentCursorShapeData = m_pHyprcursor->getShape(s, m_sCurrentStyleInfo);
+
+            if (m_sCurrentCursorShapeData.images.size() > 0)
+                break;
+        }
+
+        if (m_sCurrentCursorShapeData.images.size() < 1) {
+            Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
+            return;
+        }
     }
 
     m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(m_sCurrentCursorShapeData.images[0].surface,

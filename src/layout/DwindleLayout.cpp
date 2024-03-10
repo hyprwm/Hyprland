@@ -963,9 +963,16 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     auto PNODE  = getNodeFromWindow(pWindow);
     auto PNODE2 = getNodeFromWindow(pWindow2);
 
-    if (!PNODE2 || !PNODE) {
+    if (!PNODE2 || !PNODE)
         return;
-    }
+
+    const bool FS1 = pWindow->m_bIsFullscreen;
+    const bool FS2 = pWindow2->m_bIsFullscreen;
+
+    if (FS1)
+        g_pCompositor->setWindowFullscreen(pWindow, false);
+    if (FS2)
+        g_pCompositor->setWindowFullscreen(pWindow2, false);
 
     SDwindleNodeData* ACTIVE1 = nullptr;
     SDwindleNodeData* ACTIVE2 = nullptr;
@@ -982,9 +989,8 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();
 
-    if (PNODE2->workspaceID != PNODE->workspaceID) {
+    if (PNODE2->workspaceID != PNODE->workspaceID)
         getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
-    }
 
     if (ACTIVE1) {
         ACTIVE1->box                  = PNODE->box;
@@ -1000,6 +1006,11 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 
     g_pHyprRenderer->damageWindow(pWindow);
     g_pHyprRenderer->damageWindow(pWindow2);
+
+    if (FS1)
+        g_pCompositor->setWindowFullscreen(pWindow2, true);
+    if (FS2)
+        g_pCompositor->setWindowFullscreen(pWindow, true);
 }
 
 void CHyprDwindleLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exact) {

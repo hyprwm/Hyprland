@@ -194,7 +194,14 @@ void CWindow::updateWindowDecos() {
 
     m_vDecosToRemove.clear();
 
+    // make a copy because updateWindow can remove decos.
+    std::vector<IHyprWindowDecoration*> decos;
+
     for (auto& wd : m_dWindowDecorations) {
+        decos.push_back(wd.get());
+    }
+
+    for (auto& wd : decos) {
         wd->updateWindow(this);
     }
 }

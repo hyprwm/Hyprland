@@ -461,6 +461,11 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
         pWindow->moveToWorkspace(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
         pWindow->updateGroupOutputs();
 
+        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
+
+        if (PWORKSPACE->m_bHasFullscreenWindow)
+            g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false);
+
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS  = pWindow->m_vRealPosition.goal();
         const auto PSAVEDSIZE = pWindow->m_vRealSize.goal();

@@ -33,7 +33,7 @@ CCursorManager::CCursorManager() {
     if (m_iSize == 0)
         m_iSize = 24;
 
-    m_pWLRXCursorMgr = wlr_xcursor_manager_create(nullptr, m_iSize);
+    m_pWLRXCursorMgr = wlr_xcursor_manager_create(getenv("XCURSOR_THEME"), m_iSize);
     wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0);
 
     m_pAnimationTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ::cursorAnimTimer, nullptr);

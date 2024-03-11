@@ -2243,6 +2243,8 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         return err;
     }
 
+    std::string errorsFromParsing;
+
     for (size_t i = 0; i < glob_buf->gl_pathc; i++) {
         auto value = absolutePath(glob_buf->gl_pathv[i], configCurrentPath);
 
@@ -2268,12 +2270,17 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
         auto configCurrentPathBackup = configCurrentPath;
         configCurrentPath            = value;
 
-        m_pConfig->parseFile(value.c_str());
+        const auto THISRESULT = m_pConfig->parseFile(value.c_str());
 
         configCurrentPath = configCurrentPathBackup;
+
+        if (THISRESULT.error && errorsFromParsing.empty())
+            errorsFromParsing += THISRESULT.getError();
     }
 
-    return {};
+    if (errorsFromParsing.empty())
+        return {};
+    return errorsFromParsing;
 }
 
 std::optional<std::string> CConfigManager::handleEnv(const std::string& command, const std::string& value) {

@@ -792,9 +792,9 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
     close(socket[1]);
     read(socket[0], &grandchild, sizeof(grandchild));
     close(socket[0]);
-    // clear child and leave child to init
+    // clear child and leave grandchild to init
     waitpid(child, NULL, 0);
-    if (child < 0) {
+    if (grandchild < 0) {
         Debug::log(LOG, "Fail to create the second fork");
         return 0;
     }

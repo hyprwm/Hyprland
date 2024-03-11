@@ -1105,6 +1105,10 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
         g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
+
+        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+        g_pInputManager->simulateMouseMovement();
+        g_pInputManager->m_pForcedFocus = nullptr;
     };
 
     CVarList vars(message, 0, ' ');

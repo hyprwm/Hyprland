@@ -1552,6 +1552,8 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         return {};
     }
 
+    std::string error = "";
+
     if (ARGS[1].starts_with("pref")) {
         newrule.resolution = Vector2D();
     } else if (ARGS[1].starts_with("highrr")) {
@@ -1562,30 +1564,43 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
         newrule.refreshRate = newrule.drmMode.vrefresh / 1000;
     } else {
-        newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
-        newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
 
-        if (ARGS[1].contains("@"))
-            newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+        if (!ARGS[1].contains("x")) {
+            error += "invalid resolution ";
+            newrule.resolution = Vector2D();
+        } else {
+            newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
+            newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
+
+            if (ARGS[1].contains("@"))
+                newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+        }
     }
 
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
     } else {
-        newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
-        newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
+        if (!ARGS[2].contains("x")) {
+            error += "invalid offset ";
+            newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+        } else {
+            newrule.offset.x = stoi(ARGS[2].substr(0, ARGS[2].find_first_of('x')));
+            newrule.offset.y = stoi(ARGS[2].substr(ARGS[2].find_first_of('x') + 1));
+        }
     }
-
-    std::string error = "";
 
     if (ARGS[3].starts_with("auto")) {
         newrule.scale = -1;
     } else {
-        newrule.scale = stof(ARGS[3]);
+        if (!isNumber(ARGS[3], true))
+            error += "invalid scale ";
+        else {
+            newrule.scale = stof(ARGS[3]);
 
-        if (newrule.scale < 0.25f) {
-            error         = "invalid scale";
-            newrule.scale = 1;
+            if (newrule.scale < 0.25f) {
+                error += "invalid scale ";
+                newrule.scale = 1;
+            }
         }
     }
 
@@ -1599,9 +1614,29 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.enable10bit = ARGS[argno + 1] == "10";
             argno++;
         } else if (ARGS[argno] == "transform") {
+            if (!isNumber(ARGS[argno + 1])) {
+                error = "invalid transform ";
+                argno++;
+                continue;
+            }
+
+            const auto NUM = std::stoi(ARGS[argno + 1]);
+
+            if (NUM < 0 || NUM > 7) {
+                error = "invalid transform ";
+                argno++;
+                continue;
+            }
+
             newrule.transform = (wl_output_transform)std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "vrr") {
+            if (!isNumber(ARGS[argno + 1])) {
+                error = "invalid vrr ";
+                argno++;
+                continue;
+            }
+
             newrule.vrr = std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {

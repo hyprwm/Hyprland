@@ -227,7 +227,6 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWMAINWORKSPACE = g_pCompositor->getWorkspaceByID(monitor->activeWorkspace);
 
     g_pInputManager->unconstrainMouse();
-    g_pCompositor->setActiveMonitor(monitor);
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
     const auto PNEWWORKSPACE = monitor->specialWorkspaceID != 0 ? g_pCompositor->getWorkspaceByID(monitor->specialWorkspaceID) : PNEWMAINWORKSPACE;
@@ -236,10 +235,15 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     if (PNEWWINDOW) {
         g_pCompositor->focusWindow(PNEWWINDOW);
         g_pCompositor->warpCursorTo(PNEWWINDOW->middle());
+
+        g_pInputManager->m_pForcedFocus = PNEWWINDOW;
+        g_pInputManager->simulateMouseMovement();
+        g_pInputManager->m_pForcedFocus = nullptr;
     } else {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->warpCursorTo(monitor->middle());
     }
+    g_pCompositor->setActiveMonitor(monitor);
 
     return true;
 }

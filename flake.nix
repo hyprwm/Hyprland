@@ -77,7 +77,6 @@
         # hyprland-packages
         
         hyprland
-        hyprland-unwrapped
         hyprland-debug
         hyprland-legacy-renderer
         # hyprland-extras

@@ -530,7 +530,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             const auto KBKEY = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
 
             if (KBKEY == 0) {
-                // Keysym failed to resolve from the key name of the the currently iterated bind.
+                // Keysym failed to resolve from the key name of the currently iterated bind.
                 // This happens for names such as `switch:off:Lid Switch` as well as some keys
                 // (such as yen and ro).
                 //

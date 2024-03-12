@@ -2297,6 +2297,11 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         return;
     }
 
+    if (!pWindow->m_bIsFullscreen && !on) {
+        Debug::log(LOG, "Cannot unfullscreen when Window is not in fullscreen");
+        return;
+    }
+
     const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
 
     const auto PWORKSPACE = getWorkspaceByID(pWindow->m_iWorkspaceID);

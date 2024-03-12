@@ -245,8 +245,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
 
     pWindow->updateSpecialRenderData();
 
-    if (pWindow->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+    g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
         // find a new master from top of the list
@@ -1204,8 +1203,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, true);
 
         if (PWINDOWTOSWAPWITH) {
-            if (header.pWindow->m_bIsFullscreen)
-                g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
+            g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             switchToWindow(header.pWindow);
         }
@@ -1221,8 +1219,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         const auto PWINDOWTOSWAPWITH = getNextWindow(header.pWindow, false);
 
         if (PWINDOWTOSWAPWITH) {
-            if (header.pWindow->m_bIsFullscreen)
-                g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
+            g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
             switchWindows(header.pWindow, PWINDOWTOSWAPWITH);
             switchToWindow(header.pWindow);
         }
@@ -1241,8 +1238,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
             return 0;
-        if (header.pWindow->m_bIsFullscreen)
-            g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
 
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
@@ -1274,8 +1270,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (WINDOWS < 2 || MASTERS < 2)
             return 0;
 
-        if (header.pWindow->m_bIsFullscreen)
-            g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -1296,8 +1291,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
-        if (PWINDOW->m_bIsFullscreen)
-            g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
         const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 
@@ -1405,8 +1399,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
     if (!PWINDOW)
         return;
 
-    if (PWINDOW->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
+    g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
     const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
 

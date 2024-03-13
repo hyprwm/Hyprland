@@ -2297,8 +2297,8 @@ void CCompositor::setWindowFullscreen(CWindow* pWindow, bool on, eFullscreenMode
         return;
     }
 
-    if (!pWindow->m_bIsFullscreen && !on) {
-        Debug::log(LOG, "Cannot unfullscreen when Window is not in fullscreen");
+    if (pWindow->m_bIsFullscreen == on) {
+        Debug::log(LOG, "Window is already in the required fullscreen state");
         return;
     }
 

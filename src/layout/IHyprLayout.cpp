@@ -218,7 +218,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     // get the grab corner
     static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
-    if (*RESIZECORNER != 0 && *RESIZECORNER <= 4) {
+    if (*RESIZECORNER != 0 && *RESIZECORNER <= 4 && DRAGGINGWINDOW->m_bIsFloating) {
         switch (*RESIZECORNER) {
             case 1:
                 m_eGrabbedCorner = CORNER_TOPLEFT;

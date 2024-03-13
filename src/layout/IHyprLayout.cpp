@@ -218,25 +218,25 @@ void IHyprLayout::onBeginDragWindow() {
 
     // get the grab corner
     static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
-    if( *RESIZECORNER != 0 && *RESIZECORNER <= 4){
-      switch(*RESIZECORNER){
-        case 1:
-            m_eGrabbedCorner = CORNER_TOPLEFT;
-            g_pInputManager->setCursorImageUntilUnset("nw-resize");
-            break;
-        case 2:
-            m_eGrabbedCorner = CORNER_TOPRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("ne-resize");
-            break;
-        case 3:
-            m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("se-resize");
-            break;
-        case 4:
-            m_eGrabbedCorner = CORNER_BOTTOMLEFT;
-            g_pInputManager->setCursorImageUntilUnset("sw-resize");
-            break;
-      }
+    if (*RESIZECORNER != 0 && *RESIZECORNER <= 4) {
+        switch (*RESIZECORNER) {
+            case 1:
+                m_eGrabbedCorner = CORNER_TOPLEFT;
+                g_pInputManager->setCursorImageUntilUnset("nw-resize");
+                break;
+            case 2:
+                m_eGrabbedCorner = CORNER_TOPRIGHT;
+                g_pInputManager->setCursorImageUntilUnset("ne-resize");
+                break;
+            case 3:
+                m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
+                g_pInputManager->setCursorImageUntilUnset("se-resize");
+                break;
+            case 4:
+                m_eGrabbedCorner = CORNER_BOTTOMLEFT;
+                g_pInputManager->setCursorImageUntilUnset("sw-resize");
+                break;
+        }
     } else if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
         if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0) {
             m_eGrabbedCorner = CORNER_TOPLEFT;

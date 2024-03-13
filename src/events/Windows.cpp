@@ -901,7 +901,12 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
     if (!g_pCompositor->windowValidMapped(PWINDOW))
         return;
 
-    PWINDOW->m_szTitle = g_pXWaylandManager->getTitle(PWINDOW);
+    const auto NEWTITLE = g_pXWaylandManager->getTitle(PWINDOW);
+
+    if (NEWTITLE == PWINDOW->m_szTitle)
+        return;
+
+    PWINDOW->m_szTitle = NEWTITLE;
     g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)PWINDOW)});
     EMIT_HOOK_EVENT("windowTitle", PWINDOW);
 

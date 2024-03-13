@@ -317,6 +317,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:hover_icon_on_border", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:layout", {"dwindle"});
     m_pConfig->addConfigValue("general:allow_tearing", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("general:resize_corner", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});

@@ -335,7 +335,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
 
     // Non-floating main
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() || (!w->m_bIsMapped && !w->m_bFadingOut))
             continue;
 
         if (w->m_bIsFloating)
@@ -362,7 +362,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
 
     // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() || (!w->m_bIsMapped && !w->m_bFadingOut))
             continue;
 
         if (w->m_bIsFloating)
@@ -380,7 +380,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
 
     // floating on top
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+        if (w->isHidden() || (!w->m_bIsMapped && !w->m_bFadingOut))
             continue;
 
         if (!w->m_bIsFloating || w->m_bPinned)
@@ -409,6 +409,9 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             g_pHyprOpenGL->renderSnapshot(&pWindow);
         return;
     }
+
+    if (!pWindow->m_bIsMapped)
+        return;
 
     TRACY_GPU_ZONE("RenderWindow");
 
@@ -2414,8 +2417,10 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bIsFloating && w->m_bCreatedOverFullscreen && !w->isHidden() && (w->m_bIsMapped || w->m_bFadingOut) &&
-            w.get() != PCANDIDATE)
+        if (w.get() == PCANDIDATE || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isHidden())
+            continue;
+
+        if (w->m_iWorkspaceID == PCANDIDATE->m_iWorkspaceID && w->m_bIsFloating && w->m_bCreatedOverFullscreen && w->visibleOnMonitor(pMonitor))
             return;
     }
 

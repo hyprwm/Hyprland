@@ -395,6 +395,7 @@ class CWindow {
     bool                     canBeTorn();
     bool                     shouldSendFullscreenState();
     void                     setSuspended(bool suspend);
+    bool                     visibleOnMonitor(CMonitor* pMonitor);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

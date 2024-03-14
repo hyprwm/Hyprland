@@ -1433,11 +1433,15 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         bool valid = windowExists(w);
 
         if (!valid || !w->m_bFadingOut || w->m_fAlpha.value() == 0.f) {
-            if (valid && !w->m_bReadyToDelete)
-                continue;
+            if (valid) {
+                w->m_bFadingOut = false;
 
-            w->m_bFadingOut = false;
-            removeWindowFromVectorSafe(w);
+                if (!w->m_bReadyToDelete)
+                    continue;
+
+                removeWindowFromVectorSafe(w);
+            }
+
             std::erase(m_vWindowsFadingOut, w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");

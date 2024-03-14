@@ -1137,3 +1137,9 @@ void CWindow::setSuspended(bool suspend) {
     wlr_xdg_toplevel_set_suspended(m_uSurface.xdg->toplevel, suspend);
     m_bSuspended = suspend;
 }
+
+bool CWindow::visibleOnMonitor(CMonitor* pMonitor) {
+    CBox wbox = {m_vRealPosition.value(), m_vRealSize.value()};
+
+    return wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, wbox.pWlr());
+}

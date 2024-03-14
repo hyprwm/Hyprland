@@ -106,7 +106,7 @@ void CPopup::onMap() {
 
     CBox       box;
     wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
-    box.applyFromWlr().translate(COORDS);
+    box.applyFromWlr().translate(COORDS).expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     m_vLastPos = coordsRelativeToParent();
@@ -125,7 +125,7 @@ void CPopup::onUnmap() {
 
     CBox       box;
     wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
-    box.applyFromWlr().translate(COORDS);
+    box.applyFromWlr().translate(COORDS).expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     m_pSubsurfaceHead.reset();

@@ -177,6 +177,7 @@ void CSubsurface::onMap() {
 
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
+    box.expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     if (m_pWindowParent)
@@ -186,6 +187,7 @@ void CSubsurface::onMap() {
 void CSubsurface::onUnmap() {
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
+    box.expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     if (m_sWLSurface.wlr() == g_pCompositor->m_pLastFocus)

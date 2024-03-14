@@ -537,8 +537,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             renderdata.blur = false;
         }
 
-        pWindow->m_vReportedSize = pWindow->m_vRealSize.goal();
-
         wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;

@@ -43,9 +43,9 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     //create on the fly if it doesn't exist yet
     const auto PWORKSPACEDATA    = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID  = ws;
-    const auto  orientation      = (Hyprlang::STRING const*)g_pConfigManager->getConfigValuePtr("master:orientation");
+    static auto PORIENTATION     = CConfigValue<std::string>("master:orientation");
     const auto  layoutoptsForWs  = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
-    std::string orientationForWs = *orientation;
+    std::string orientationForWs = *PORIENTATION;
 
     if (layoutoptsForWs.contains("orientation"))
         orientationForWs = layoutoptsForWs.at("orientation");

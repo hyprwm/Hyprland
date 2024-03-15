@@ -26,7 +26,7 @@ class CPopup {
     void       onDestroy();
     void       onMap();
     void       onUnmap();
-    void       onCommit();
+    void       onCommit(bool ignoreSiblings = false);
     void       onReposition();
 
     void       recheckTree();

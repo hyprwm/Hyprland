@@ -808,16 +808,23 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     g_pHyprOpenGL->m_RenderData.renderModif = {};
 }
 
-void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now) {
+void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
+        Vector2D   translate = {geometry.x, geometry.y};
+        float      scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
+        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
         if (!PSLS) {
             // locked with no surface, fill with red
-            CBox boxe = {0, 0, INT16_MAX, INT16_MAX};
-            g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+            const auto ALPHA = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
+
+            CBox       monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
+            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
+
+            if (ALPHA < 1.f) /* animate */
+                g_pCompositor->scheduleFrameForMonitor(pMonitor);
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
         }
@@ -1199,7 +1206,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
             renderWorkspace(pMonitor, g_pCompositor->getWorkspaceByID(pMonitor->activeWorkspace), &now, renderBox);
 
-            renderLockscreen(pMonitor, &now);
+            renderLockscreen(pMonitor, &now, renderBox);
 
             if (pMonitor == g_pCompositor->m_pLastMonitor) {
                 g_pHyprNotificationOverlay->draw(pMonitor);

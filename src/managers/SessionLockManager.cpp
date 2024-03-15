@@ -95,6 +95,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             m_sSessionLock.active = false;
 
+            m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.clear();
+
             g_pCompositor->m_sSeat.exclusiveClient = nullptr;
             g_pInputManager->refocus();
 
@@ -143,6 +145,20 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
     }
 
     return nullptr;
+}
+
+// We don't want the red screen to flash.
+// This violates the protocol a bit, but tries to handle the missing sync between a lock surface beeing created and the red screen beeing drawn.
+float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
+    const auto& NOMAPPEDSURFACETIMER = m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.find(id);
+
+    if (NOMAPPEDSURFACETIMER == m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.end()) {
+        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.emplace(id, CTimer());
+        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers[id].reset();
+        return 0.f;
+    }
+
+    return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds(), 0.f, 1.f);
 }
 
 bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {

@@ -113,8 +113,6 @@ void CTextInputV1ProtocolManager::removeTI(STextInputV1* pTI) {
     // if ((*TI)->resourceImpl)
     //  wl_resource_destroy((*TI)->resourceImpl);
 
-    g_pInputManager->m_sIMERelay.removeTextInput((*TI)->pTextInput);
-
     std::erase_if(m_pClients, [&](const auto& other) { return other.get() == pTI; });
 }
 
@@ -165,7 +163,11 @@ void CTextInputV1ProtocolManager::createTI(wl_client* client, wl_resource* resou
 
 void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
     const auto PTI = tiFromResource(resource);
-    PTI->pTextInput->hyprListener_textInputEnable.emit(nullptr);
+    if(!surface){
+        Debug::log(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)PTI);
+        return;
+    }
+    PTI->pTextInput->hyprListener_textInputEnable.emit(surface);
 }
 
 void CTextInputV1ProtocolManager::handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {

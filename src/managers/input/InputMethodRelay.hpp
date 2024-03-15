@@ -22,9 +22,7 @@ class CInputMethodRelay {
     void                 onKeyboardFocus(wlr_surface*);
 
     STextInput*          getFocusedTextInput();
-    STextInput*          getFocusableTextInput();
 
-    void                 setPendingSurface(STextInput*, wlr_surface*);
 
     SIMEKbGrab*          getIMEKeyboardGrab(SKeyboard*);
 
@@ -46,7 +44,25 @@ class CInputMethodRelay {
     DYNLISTENER(IMENewPopup);
 
     void         createNewTextInput(wlr_text_input_v3*, STextInputV1* tiv1 = nullptr);
+
     wlr_surface* focusedSurface(STextInput* pInput);
+    wlr_surface* m_pFocusedSurface;
+    void onTextInputLeave(wlr_surface* pSurface);
+    void onTextInputEnter(wlr_surface* pSurface);
+
+    std::unordered_map<wlr_surface*, STextInput*> m_mSurfaceToTextInput;
+    void setSurfaceToPTI(wlr_surface* pSurface,STextInput* pInput);
+    STextInput* getTextInput(wlr_surface* pSurface);
+    void removeSurfaceToPTI(STextInput* pInput);
+
+    std::unordered_map<wl_client*, int> m_mClientTextInputVersion;
+    int setTextInputVersion(wl_client* pClient, int version);
+    int getTextInputVersion(wl_client* pClient);
+    void removeTextInputVersion(wl_client* pClient);
+
+
+
+
 
     friend class CHyprRenderer;
     friend class CInputManager;

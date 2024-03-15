@@ -224,6 +224,15 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
     if (pMonitor->specialWorkspaceID == pWindow->m_iWorkspaceID)
         return true;
 
+    if (pWindow->m_vRealPosition.isBeingAnimated()) {
+        // render window if window and monitor intersect
+        // (when moving out of or through a monitor)
+        CBox       windowBox  = {pWindow->m_vRealPosition.value(), pWindow->m_vRealSize.value()};
+        const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
+        if (!windowBox.intersection(monitorBox).empty())
+            return true;
+    }
+
     return false;
 }
 
@@ -363,7 +372,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
             continue;
 
         // render active window after all others of this pass
-        if (w.get() == g_pCompositor->m_pLastWindow && w->m_iWorkspaceID == pWorkspace->m_iID) {
+        if (w.get() == g_pCompositor->m_pLastWindow) {
             lastWindow = w.get();
             continue;
         }
@@ -404,7 +413,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
             continue;
 
-        if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+        if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
@@ -781,7 +790,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
     // special
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
-        if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
+        if (ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
             if (ws->m_bHasFullscreenWindow)
                 renderWorkspaceWindowsFullscreen(pMonitor, ws.get(), time);
             else

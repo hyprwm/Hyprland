@@ -15,8 +15,6 @@ static void handleSurfaceMap(void* owner, void* data) {
 
     if (PMONITOR)
         g_pHyprRenderer->damageMonitor(PMONITOR);
-
-    g_pSessionLockManager->activateLock(); // activate lock here to prevent the red screen from flashing before that
 }
 
 static void handleSurfaceCommit(void* owner, void* data) {
@@ -97,6 +95,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
 
             m_sSessionLock.active = false;
 
+            m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.clear();
+
             g_pCompositor->m_sSeat.exclusiveClient = nullptr;
             g_pInputManager->refocus();
 
@@ -126,13 +126,15 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
         pWlrLock, "wlr_session_lock_v1");
 
     wlr_session_lock_v1_send_locked(pWlrLock);
+
+    g_pSessionLockManager->activateLock();
 }
 
 bool CSessionLockManager::isSessionLocked() {
     return m_sSessionLock.active;
 }
 
-SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(const int& id) {
+SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64_t id) {
     for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)
@@ -143,6 +145,20 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(const 
     }
 
     return nullptr;
+}
+
+// We don't want the red screen to flash.
+// This violates the protocol a bit, but tries to handle the missing sync between a lock surface beeing created and the red screen beeing drawn.
+float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
+    const auto& NOMAPPEDSURFACETIMER = m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.find(id);
+
+    if (NOMAPPEDSURFACETIMER == m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.end()) {
+        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.emplace(id, CTimer());
+        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers[id].reset();
+        return 0.f;
+    }
+
+    return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds() - /* delay for screencopy */ 0.5f, 0.f, 1.f);
 }
 
 bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {

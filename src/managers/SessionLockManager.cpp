@@ -15,8 +15,6 @@ static void handleSurfaceMap(void* owner, void* data) {
 
     if (PMONITOR)
         g_pHyprRenderer->damageMonitor(PMONITOR);
-
-    g_pSessionLockManager->activateLock(); // activate lock here to prevent the red screen from flashing before that
 }
 
 static void handleSurfaceCommit(void* owner, void* data) {
@@ -126,6 +124,8 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
         pWlrLock, "wlr_session_lock_v1");
 
     wlr_session_lock_v1_send_locked(pWlrLock);
+
+    g_pSessionLockManager->activateLock();
 }
 
 bool CSessionLockManager::isSessionLocked() {

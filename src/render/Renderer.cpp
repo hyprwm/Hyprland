@@ -823,8 +823,10 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
             CBox       monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
             g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
 
-            if (ALPHA < 1.f) /* animate */
+            if (ALPHA < 1.f) /* animate */ {
+                damageMonitor(pMonitor);
                 g_pCompositor->scheduleFrameForMonitor(pMonitor);
+            }
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
         }

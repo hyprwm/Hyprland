@@ -158,7 +158,7 @@ float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
         return 0.f;
     }
 
-    return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds(), 0.f, 1.f);
+    return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds() - /* delay for screencopy */ 0.5f, 0.f, 1.f);
 }
 
 bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {

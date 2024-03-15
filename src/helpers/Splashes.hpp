@@ -75,6 +75,8 @@ inline const std::vector<std::string> SPLASHES = {
     "Join the discord server!",
     "Thanks ThatOneCalculator!",
     "The AUR packages always work, except for the times they don't.",
-    "Funny animation compositor woo"
+    "Funny animation compositor woo",
+    //
+    "2 years!"
     // clang-format on
 };

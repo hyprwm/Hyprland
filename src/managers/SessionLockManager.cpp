@@ -132,7 +132,7 @@ bool CSessionLockManager::isSessionLocked() {
     return m_sSessionLock.active;
 }
 
-SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(const int& id) {
+SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64_t id) {
     for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)

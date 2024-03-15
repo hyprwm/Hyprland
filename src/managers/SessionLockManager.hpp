@@ -1,10 +1,11 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <cstdint>
 
 struct SSessionLockSurface {
     wlr_session_lock_surface_v1* pWlrLockSurface = nullptr;
-    int                          iMonitorID      = -1;
+    uint64_t                     iMonitorID      = -1;
 
     bool                         mapped = false;
 
@@ -30,7 +31,7 @@ class CSessionLockManager {
     ~CSessionLockManager() = default;
 
     void                 onNewSessionLock(wlr_session_lock_v1*);
-    SSessionLockSurface* getSessionLockSurfaceForMonitor(const int&);
+    SSessionLockSurface* getSessionLockSurfaceForMonitor(uint64_t);
 
     bool                 isSessionLocked();
     bool                 isSurfaceSessionLock(wlr_surface*);

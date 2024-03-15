@@ -33,6 +33,7 @@
   enableXWayland ? true,
   legacyRenderer ? false,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
+  wrapRuntimeDeps ? true,
   version ? "git",
   commit,
   date,
@@ -94,13 +95,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
       ++ lib.optionals withSystemd [systemd];
 
-    # avoid wrapping
-    propagatedBuildInputs = [
-      stdenv.cc
-      binutils
-      pciutils
-    ];
-
     mesonBuildType =
       if debug
       then "debug"
@@ -140,6 +134,15 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     postInstall = ''
       ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
+
+      ${lib.optionalString wrapRuntimeDeps ''
+        wrapProgram $out/bin/Hyprland \
+          --suffix PATH : ${lib.makeBinPath [
+          stdenv.cc
+          binutils
+          pciutils
+        ]}
+      ''}
     '';
 
     passthru.providedSessions = ["hyprland"];

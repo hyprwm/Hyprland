@@ -417,12 +417,18 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     static auto PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
     SRenderData renderdata = {pMonitor, time};
-    CBox        textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
+    CBox        textureBox;
+    if (pWindow->m_vRealSize.isBeingAnimated())
+        textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
+    else
+        textureBox = {REALPOS.x, REALPOS.y, std::max((double)pWindow->m_pWLSurface.wlr()->current.width, 5.0), std::max((double)pWindow->m_pWLSurface.wlr()->current.height, 5.0)};
 
     renderdata.x = textureBox.x;
     renderdata.y = textureBox.y;
     renderdata.w = textureBox.w;
     renderdata.h = textureBox.h;
+
+    g_pHyprOpenGL->m_RenderData.clipBox = pWindow->getFullWindowBoundingBox();
 
     if (ignorePosition) {
         renderdata.x = pMonitor->vecPosition.x;
@@ -871,7 +877,7 @@ void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurfac
         geom.applyFromWlr();
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.value().x || geom.height > pWindow->m_vRealSize.value().y) {
+        if (geom.x != 0 || geom.y != 0 || geom.width > pSurface->current.width || geom.height > pSurface->current.height) {
             const auto XPERC = (double)geom.x / (double)pSurface->current.width;
             const auto YPERC = (double)geom.y / (double)pSurface->current.height;
             const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;

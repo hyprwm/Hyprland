@@ -75,21 +75,32 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
         // however, if surface buffer w / h < box, we need to adjust them
         auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
+        const auto  PWINDOW  = PSURFACE->getWindow();
 
-        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees m_pWindowOwner */) {
+        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT = PSURFACE->correctSmallVec();
             const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {
-                windowBox.x += CORRECT.x;
-                windowBox.y += CORRECT.y;
+                windowBox.translate(CORRECT);
 
-                windowBox.width  = SIZE.x * (PSURFACE->getWindow()->m_vRealSize.value().x / PSURFACE->getWindow()->m_vReportedSize.x);
-                windowBox.height = SIZE.y * (PSURFACE->getWindow()->m_vRealSize.value().y / PSURFACE->getWindow()->m_vReportedSize.y);
+                windowBox.width  = SIZE.x * (PWINDOW->m_vRealSize.value().x / PWINDOW->m_vReportedSize.x);
+                windowBox.height = SIZE.y * (PWINDOW->m_vRealSize.value().y / PWINDOW->m_vReportedSize.y);
             } else {
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
             }
+        }
+
+        if (PSURFACE && PWINDOW && PWINDOW->m_vRealSize.goal() > PWINDOW->m_vReportedSize) {
+            Vector2D size =
+                Vector2D{windowBox.w * (PWINDOW->m_vReportedSize.x / PWINDOW->m_vRealSize.value().x), windowBox.h * (PWINDOW->m_vReportedSize.y / PWINDOW->m_vRealSize.value().y)};
+            Vector2D correct = Vector2D{windowBox.w, windowBox.h} - size;
+
+            windowBox.translate(correct / 2.0);
+
+            windowBox.w = size.x;
+            windowBox.h = size.y;
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks

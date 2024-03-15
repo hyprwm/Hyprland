@@ -38,6 +38,7 @@ in {
         udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
+      hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
       hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
       hyprland-nvidia =

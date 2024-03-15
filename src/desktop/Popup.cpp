@@ -133,7 +133,7 @@ void CPopup::onUnmap() {
     g_pInputManager->simulateMouseMovement();
 }
 
-void CPopup::onCommit() {
+void CPopup::onCommit(bool ignoreSiblings) {
     if (m_pWLR->base->initial_commit) {
         wlr_xdg_surface_schedule_configure(m_pWLR->base);
         return;
@@ -152,7 +152,8 @@ void CPopup::onCommit() {
         m_vLastPos = COORDSLOCAL;
     }
 
-    m_pSubsurfaceHead->recheckDamageForSubsurfaces();
+    if (!ignoreSiblings)
+        m_pSubsurfaceHead->recheckDamageForSubsurfaces();
 
     g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);
 
@@ -227,7 +228,7 @@ void CPopup::recheckTree() {
 
 void CPopup::recheckChildrenRecursive() {
     for (auto& c : m_vChildren) {
-        c->onCommit();
+        c->onCommit(true);
         c->recheckChildrenRecursive();
     }
 }

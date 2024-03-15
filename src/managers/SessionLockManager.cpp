@@ -163,7 +163,7 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
         if (!sls->mapped)
             continue;
-        
+
         g_pCompositor->focusSurface(sls->pWlrLockSurface->surface);
         break;
     }

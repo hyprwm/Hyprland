@@ -157,7 +157,7 @@ bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {
 void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     std::erase_if(m_sSessionLock.vSessionLockSurfaces, [&](const auto& other) { return pSLS == other.get(); });
 
-    if (g_pCompositor->m_pLastFocus != nullptr)
+    if (g_pCompositor->m_pLastFocus)
         return;
 
     for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {

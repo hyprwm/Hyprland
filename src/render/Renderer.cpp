@@ -75,7 +75,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
         // however, if surface buffer w / h < box, we need to adjust them
         auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
-        const auto  PWINDOW  = PSURFACE->getWindow();
+        const auto  PWINDOW  = PSURFACE ? PSURFACE->getWindow() : nullptr;
 
         if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT = PSURFACE->correctSmallVec();

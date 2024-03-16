@@ -830,7 +830,7 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, 2);
+    return CKeybindManager::toggleActiveFloatingCore(args, 0);
 }
 
 void CKeybindManager::setActiveFloating(std::string args) {
@@ -838,10 +838,10 @@ void CKeybindManager::setActiveFloating(std::string args) {
 }
 
 void CKeybindManager::setActiveTiled(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, 0);
+    return CKeybindManager::toggleActiveFloatingCore(args, 2);
 }
 
-// forceFloat 0 for no force, 1 for force float, 2 for force tile
+// forceFloat: 0 for no force, 1 for force float, 2 for force tile
 void CKeybindManager::toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
     CWindow* PWINDOW = nullptr;
 

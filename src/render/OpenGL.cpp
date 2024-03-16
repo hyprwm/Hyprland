@@ -89,8 +89,19 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
+            GLint maxLength = 0;
+            glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> errorLog(maxLength);
+            glGetProgramInfoLog(prog, maxLength, &maxLength, &errorLog[0]);
+            std::string errorStr(errorLog.begin(), errorLog.end());
+
+            g_pConfigManager->addParseError("Screen shader parser: Error linking program:" + errorStr);
+
             return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
     }
@@ -108,9 +119,21 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
     GLint ok;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
+            GLint maxLength = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> errorLog(maxLength);
+            glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
+            std::string errorStr(errorLog.begin(), errorLog.end());
+
+            g_pConfigManager->addParseError("Screen shader parser: Error compiling shader: " + errorStr);
+
             return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
     }
@@ -550,7 +573,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.program = createProgram(TEXVERTSRC, fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
-        g_pConfigManager->addParseError("Screen shader parser: Screen shader parse failed");
+        // Error will have been sent by now by the underlying cause
         return;
     }
 

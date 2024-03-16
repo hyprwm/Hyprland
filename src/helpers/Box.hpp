@@ -52,6 +52,7 @@ class CBox {
     CBox&                    addExtents(const SWindowDecorationExtents& e);
     CBox&                    expand(const double& value);
     CBox&                    noNegativeSize();
+    CBox&                    intersection(const CBox other);
 
     CBox                     copy() const;
 

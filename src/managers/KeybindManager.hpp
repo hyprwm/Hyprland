@@ -112,7 +112,7 @@ class CKeybindManager {
     static void                     moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
     static void                     moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void                     switchToWindow(CWindow* PWINDOWTOCHANGETO);
-    static void                     toggleActiveFloatingCore(std::string, bool forceToggle, bool setFloat);
+    static void                     toggleActiveFloatingCore(std::string, bool forceState, bool isFloat);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

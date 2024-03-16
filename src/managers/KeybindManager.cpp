@@ -25,6 +25,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["killactive"]                     = killActive;
     m_mDispatchers["closewindow"]                    = kill;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
+    m_mDispatchers["setfloating"]                    = setActiveFloating;
+    m_mDispatchers["settiling"]                      = setActiveTiled;
     m_mDispatchers["workspace"]                      = changeworkspace;
     m_mDispatchers["renameworkspace"]                = renameWorkspace;
     m_mDispatchers["fullscreen"]                     = fullscreenActive;
@@ -828,6 +830,18 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
+    return CKeybindManager::toggleActiveFloatingCore(args, false, false);
+}
+
+void CKeybindManager::setActiveFloating(std::string args) {
+    return CKeybindManager::toggleActiveFloatingCore(args, true, true);
+}
+
+void CKeybindManager::setActiveTiled(std::string args) {
+    return CKeybindManager::toggleActiveFloatingCore(args, true, false);
+}
+
+void CKeybindManager::toggleActiveFloatingCore(std::string args, bool forceToggle, bool setFloat) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -843,8 +857,9 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
 
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
 
-        const auto PCURRENT     = PWINDOW->getGroupCurrent();
-        PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
+        const auto PCURRENT      = PWINDOW->getGroupCurrent();
+        bool       newIsFloating = forceToggle ? setFloat : !PCURRENT->m_bIsFloating;
+        PCURRENT->m_bIsFloating  = newIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
 
         CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
@@ -855,7 +870,8 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
-        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
+        bool newIsFloating     = forceToggle ? setFloat : !PWINDOW->m_bIsFloating;
+        PWINDOW->m_bIsFloating = newIsFloating;
 
         PWINDOW->updateDynamicRules();
 

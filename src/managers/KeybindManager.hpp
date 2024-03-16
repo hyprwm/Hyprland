@@ -112,6 +112,7 @@ class CKeybindManager {
     static void                     moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
     static void                     moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void                     switchToWindow(CWindow* PWINDOWTOCHANGETO);
+    static void                     toggleActiveFloatingCore(std::string, bool forceToggle, bool setFloat);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);
@@ -120,6 +121,8 @@ class CKeybindManager {
     static uint64_t spawnRaw(std::string);
     static void     toggleActiveFloating(std::string);
     static void     toggleActivePseudo(std::string);
+    static void     setActiveFloating(std::string);
+    static void     setActiveTiled(std::string);
     static void     changeworkspace(std::string);
     static void     fullscreenActive(std::string);
     static void     fakeFullscreenActive(std::string);

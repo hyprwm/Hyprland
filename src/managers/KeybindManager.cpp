@@ -858,18 +858,24 @@ void CKeybindManager::toggleActiveFloatingCore(std::string args, bool forceState
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
         const auto PCURRENT      = PWINDOW->getGroupCurrent();
         bool       newIsFloating = forceState ? isFloat : !PCURRENT->m_bIsFloating;
+        if(newIsFloating == PCURRENT->m_bIsFloating){
+          return;
+        }
         PCURRENT->m_bIsFloating  = newIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
 
         CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
         while (curr != PCURRENT) {
-            curr->m_bIsFloating = newIsFloating
+            curr->m_bIsFloating = newIsFloating;
             curr->updateDynamicRules();
             curr->updateSpecialRenderData();
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
         bool newIsFloating     = forceState ? isFloat : !PWINDOW->m_bIsFloating;
+        if(newIsFloating == PWINDOW->m_bIsFloating){
+          return;
+        }
         PWINDOW->m_bIsFloating = newIsFloating;
 
         PWINDOW->updateDynamicRules();

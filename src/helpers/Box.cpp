@@ -116,6 +116,24 @@ CBox& CBox::noNegativeSize() {
     return *this;
 }
 
+CBox& CBox::intersection(const CBox other) {
+    const float newTop    = std::max(y, other.y);
+    const float newBottom = std::min(y + h, other.y + other.h);
+    const float newLeft   = std::max(x, other.x);
+    const float newRight  = std::min(x + w, other.x + other.w);
+    y                     = newTop;
+    x                     = newLeft;
+    w                     = newRight - newLeft;
+    h                     = newBottom - newTop;
+
+    if (w <= 0 || h <= 0) {
+        w = 0;
+        h = 0;
+    }
+
+    return *this;
+}
+
 CBox CBox::roundInternal() {
     float newW = x + w - std::floor(x);
     float newH = y + h - std::floor(y);

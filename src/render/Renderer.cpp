@@ -97,7 +97,8 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 Vector2D{windowBox.w * (PWINDOW->m_vReportedSize.x / PWINDOW->m_vRealSize.value().x), windowBox.h * (PWINDOW->m_vReportedSize.y / PWINDOW->m_vRealSize.value().y)};
             Vector2D correct = Vector2D{windowBox.w, windowBox.h} - size;
 
-            windowBox.translate(correct / 2.0);
+            if (!INTERACTIVERESIZEINPROGRESS)
+                windowBox.translate(correct / 2.0);
 
             windowBox.w = size.x;
             windowBox.h = size.y;

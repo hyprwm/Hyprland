@@ -14,6 +14,7 @@
   jq,
   libGL,
   libdrm,
+  libexecinfo,
   libinput,
   libxcb,
   libxkbcommon,
@@ -44,7 +45,9 @@
 }:
 assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
 assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
-assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
+assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland"; let
+  wlr = wlroots.override {inherit enableXWayland;};
+in
   stdenv.mkDerivation {
     pname = "hyprland${lib.optionalString debug "-debug"}";
     inherit version;
@@ -57,12 +60,36 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       src = lib.cleanSource ../.;
     };
 
+    patches = [
+      # make meson use the provided wlroots instead of the git submodule
+      ./patches/meson-build.patch
+    ];
+
+    postPatch = ''
+      # Fix hardcoded paths to /usr installation
+      sed -i "s#/usr#$out#" src/render/OpenGL.cpp
+
+      # Generate version.h
+      cp src/version.h.in src/version.h
+      substituteInPlace src/version.h \
+        --replace "@HASH@" '${commit}' \
+        --replace "@BRANCH@" "" \
+        --replace "@MESSAGE@" "" \
+        --replace "@DATE@" "${date}" \
+        --replace "@TAG@" "" \
+        --replace "@DIRTY@" '${
+        if commit == ""
+        then "dirty"
+        else ""
+      }'
+    '';
+
     nativeBuildInputs = [
       jq
+      makeWrapper
       meson
       ninja
       pkg-config
-      makeWrapper
       wayland-scanner
     ];
 
@@ -90,8 +117,9 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         udis86
         wayland
         wayland-protocols
-        wlroots
+        wlr
       ]
+      ++ lib.optionals stdenv.hostPlatform.isMusl [libexecinfo]
       ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
       ++ lib.optionals withSystemd [systemd];
 
@@ -102,38 +130,14 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     mesonAutoFeatures = "disabled";
 
-    mesonFlags = builtins.concatLists [
-      (lib.optional enableXWayland "-Dxwayland=enabled")
-      (lib.optional legacyRenderer "-Dlegacy_renderer=enabled")
-      (lib.optional withSystemd "-Dsystemd=enabled")
+    mesonFlags = [
+      (lib.mesonEnable "xwayland" enableXWayland)
+      (lib.mesonEnable "legacy_renderer" legacyRenderer)
+      (lib.mesonEnable "systemd" withSystemd)
     ];
-
-    patches = [
-      # make meson use the provided wlroots instead of the git submodule
-      ./patches/meson-build.patch
-    ];
-
-    postPatch = ''
-      # Fix hardcoded paths to /usr installation
-      sed -i "s#/usr#$out#" src/render/OpenGL.cpp
-
-      # Generate version.h
-      cp src/version.h.in src/version.h
-      substituteInPlace src/version.h \
-        --replace "@HASH@" '${commit}' \
-        --replace "@BRANCH@" "" \
-        --replace "@MESSAGE@" "" \
-        --replace "@DATE@" "${date}" \
-        --replace "@TAG@" "" \
-        --replace "@DIRTY@" '${
-        if commit == ""
-        then "dirty"
-        else ""
-      }'
-    '';
 
     postInstall = ''
-      ln -s ${wlroots}/include/wlr $dev/include/hyprland/wlroots
+      ln -s ${wlr}/include/wlr $dev/include/hyprland/wlroots
 
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
@@ -148,10 +152,10 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     passthru.providedSessions = ["hyprland"];
 
     meta = with lib; {
-      homepage = "https://github.com/vaxerski/Hyprland";
+      homepage = "https://github.com/hyprwm/Hyprland";
       description = "A dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
       license = licenses.bsd3;
-      platforms = platforms.linux;
+      platforms = wlr.meta.platforms;
       mainProgram = "Hyprland";
     };
   }

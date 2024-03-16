@@ -283,6 +283,7 @@ struct SSwipeGesture {
     int         initialDirection = 0;
     float       avgSpeed         = 0;
     int         speedPoints      = 0;
+    int         touch_id         = 0;
 
     CMonitor*   pMonitor = nullptr;
 };

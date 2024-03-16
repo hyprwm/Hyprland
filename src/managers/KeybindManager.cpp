@@ -830,18 +830,19 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, false, false);
+    return CKeybindManager::toggleActiveFloatingCore(args, 2);
 }
 
 void CKeybindManager::setActiveFloating(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, true, true);
+    return CKeybindManager::toggleActiveFloatingCore(args, 1);
 }
 
 void CKeybindManager::setActiveTiled(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, true, false);
+    return CKeybindManager::toggleActiveFloatingCore(args, 0);
 }
 
-void CKeybindManager::toggleActiveFloatingCore(std::string args, bool forceState, bool isFloat) {
+// forceFloat 0 for no force, 1 for force float, 2 for force tile
+void CKeybindManager::toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -852,31 +853,34 @@ void CKeybindManager::toggleActiveFloatingCore(std::string args, bool forceState
     if (!PWINDOW)
         return;
 
-    // remove drag status
-    g_pInputManager->currentlyDraggedWindow = nullptr;
-
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
-        const auto PCURRENT      = PWINDOW->getGroupCurrent();
-        bool       newIsFloating = forceState ? isFloat : !PCURRENT->m_bIsFloating;
-        if(newIsFloating == PCURRENT->m_bIsFloating){
-          return;
+        const auto PCURRENT = PWINDOW->getGroupCurrent();
+        if ((forceFloat == 1 && PCURRENT->m_bIsFloating) || (forceFloat == 2 && !PCURRENT->m_bIsFloating)) {
+            return;
         }
-        PCURRENT->m_bIsFloating  = newIsFloating;
+
+        // remove drag status
+        g_pInputManager->currentlyDraggedWindow = nullptr;
+
+        PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
 
         CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
         while (curr != PCURRENT) {
-            curr->m_bIsFloating = newIsFloating;
+            curr->m_bIsFloating = PCURRENT->m_bIsFloating;
             curr->updateDynamicRules();
             curr->updateSpecialRenderData();
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
-        bool newIsFloating     = forceState ? isFloat : !PWINDOW->m_bIsFloating;
-        if(newIsFloating == PWINDOW->m_bIsFloating){
-          return;
+        if ((forceFloat == 1 && PWINDOW->m_bIsFloating) || (forceFloat == 2 && !PWINDOW->m_bIsFloating)) {
+            return;
         }
-        PWINDOW->m_bIsFloating = newIsFloating;
+
+        // remove drag status
+        g_pInputManager->currentlyDraggedWindow = nullptr;
+
+        PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
         PWINDOW->updateDynamicRules();
 

@@ -25,6 +25,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["killactive"]                     = killActive;
     m_mDispatchers["closewindow"]                    = kill;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
+    m_mDispatchers["setfloating"]                    = setActiveFloating;
+    m_mDispatchers["settiled"]                       = setActiveTiled;
     m_mDispatchers["workspace"]                      = changeworkspace;
     m_mDispatchers["renameworkspace"]                = renameWorkspace;
     m_mDispatchers["fullscreen"]                     = fullscreenActive;
@@ -828,6 +830,18 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
+    return toggleActiveFloatingCore(args, std::nullopt);
+}
+
+void CKeybindManager::setActiveFloating(std::string args) {
+    return toggleActiveFloatingCore(args, true);
+}
+
+void CKeybindManager::setActiveTiled(std::string args) {
+    return toggleActiveFloatingCore(args, false);
+}
+
+void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -838,12 +852,15 @@ void CKeybindManager::toggleActiveFloating(std::string args) {
     if (!PWINDOW)
         return;
 
+    if (floatState.has_value() && floatState == PWINDOW->m_bIsFloating)
+        return;
+
     // remove drag status
     g_pInputManager->currentlyDraggedWindow = nullptr;
 
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
+        const auto PCURRENT = PWINDOW->getGroupCurrent();
 
-        const auto PCURRENT     = PWINDOW->getGroupCurrent();
         PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
 

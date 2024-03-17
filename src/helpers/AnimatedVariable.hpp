@@ -52,6 +52,7 @@ class CWorkspace;
 struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
+class CWindow;
 
 // Utility to define a concept as a list of possible type
 template <class T, class... U>
@@ -133,6 +134,10 @@ class CBaseAnimatedVariable {
         m_fUpdateCallback      = nullptr;
         m_bRemoveBeginAfterRan = false;
         m_bRemoveEndAfterRan   = false;
+    }
+
+    CWindow* getWindow() {
+        return (CWindow*)m_pWindow;
     }
 
   protected:

@@ -841,7 +841,6 @@ void CKeybindManager::setActiveTiled(std::string args) {
     return toggleActiveFloatingCore(args, false);
 }
 
-// floatState: 0 for no force, 1 for force float, 2 for force tile
 void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
     CWindow* PWINDOW = nullptr;
 

@@ -541,42 +541,24 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
     if (!PMONITOR)
         return; // ???
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    g_pHyprRenderer->damageMonitor(PMONITOR);
+
+    if (PMONITOR->specialWorkspaceID)
+        calculateWorkspace(PMONITOR->specialWorkspaceID);
+
+    calculateWorkspace(PMONITOR->activeWorkspace);
+}
+
+void CHyprDwindleLayout::calculateWorkspace(const int& ws) {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
 
     if (!PWORKSPACE)
         return;
 
-    g_pHyprRenderer->damageMonitor(PMONITOR);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
 
-    if (PMONITOR->specialWorkspaceID) {
-        const auto PSPECIALWS = g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID);
-
-        if (PSPECIALWS->m_bHasFullscreenWindow) {
-            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PSPECIALWS->m_iID);
-
-            if (PSPECIALWS->m_efFullscreenMode == FULLSCREEN_FULL) {
-                PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
-                PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
-            } else if (PSPECIALWS->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
-                SDwindleNodeData fakeNode;
-                fakeNode.pWindow     = PFULLWINDOW;
-                fakeNode.box         = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
-                fakeNode.workspaceID = PSPECIALWS->m_iID;
-                PFULLWINDOW->m_vPosition        = fakeNode.box.pos();
-                PFULLWINDOW->m_vSize            = fakeNode.box.size();
-                fakeNode.ignoreFullscreenChecks = true;
-
-                applyNodeDataToWindow(&fakeNode);
-            }
-        }
-
-        const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->specialWorkspaceID);
-
-        if (TOPNODE && PMONITOR) {
-            TOPNODE->box = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
-            TOPNODE->recalcSizePosRecursive();
-        }
-    }
+    if (!PMONITOR)
+        return;
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         // massive hack from the fullscreen func
@@ -597,12 +579,13 @@ void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
             applyNodeDataToWindow(&fakeNode);
         }
 
+        // if has fullscreen, don't calculate the rest
         return;
     }
 
-    const auto TOPNODE = getMasterNodeOnWorkspace(PMONITOR->activeWorkspace);
+    const auto TOPNODE = getMasterNodeOnWorkspace(ws);
 
-    if (TOPNODE && PMONITOR) {
+    if (TOPNODE) {
         TOPNODE->box = {PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
         TOPNODE->recalcSizePosRecursive();
     }

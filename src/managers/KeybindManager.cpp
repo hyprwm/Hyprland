@@ -853,13 +853,14 @@ void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
     if (!PWINDOW)
         return;
 
+    if (forceFloat != 0 && forceFloat - 1 == !PWINDOW->m_bIsFloating)
+        return;
+
+    // remove drag status
+    g_pInputManager->currentlyDraggedWindow = nullptr;
+
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
         const auto PCURRENT = PWINDOW->getGroupCurrent();
-        if (forceFloat != 0 && forceFloat - 1 == !PCURRENT->m_bIsFloating)
-            return;
-
-        // remove drag status
-        g_pInputManager->currentlyDraggedWindow = nullptr;
 
         PCURRENT->m_bIsFloating = !PCURRENT->m_bIsFloating;
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
@@ -872,12 +873,6 @@ void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
-        if (forceFloat != 0 && forceFloat - 1 == !PWINDOW->m_bIsFloating)
-            return;
-
-        // remove drag status
-        g_pInputManager->currentlyDraggedWindow = nullptr;
-
         PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
         PWINDOW->updateDynamicRules();

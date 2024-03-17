@@ -287,38 +287,24 @@ void CHyprMasterLayout::recalculateMonitor(const int& monid) {
     if (!PMONITOR)
         return;
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    g_pHyprRenderer->damageMonitor(PMONITOR);
+
+    if (PMONITOR->specialWorkspaceID)
+        calculateWorkspace(PMONITOR->specialWorkspaceID);
+
+    calculateWorkspace(PMONITOR->activeWorkspace);
+}
+
+void CHyprMasterLayout::calculateWorkspace(const int& ws) {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
 
     if (!PWORKSPACE)
         return;
 
-    g_pHyprRenderer->damageMonitor(PMONITOR);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
 
-    if (PMONITOR->specialWorkspaceID) {
-        const auto PSPECIALWS = g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID);
-
-        if (PSPECIALWS->m_bHasFullscreenWindow) {
-            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PSPECIALWS->m_iID);
-
-            if (PSPECIALWS->m_efFullscreenMode == FULLSCREEN_FULL) {
-                PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
-                PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
-            } else if (PSPECIALWS->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
-                SMasterNodeData fakeNode;
-                fakeNode.pWindow                = PFULLWINDOW;
-                fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-                fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-                fakeNode.workspaceID            = PSPECIALWS->m_iID;
-                PFULLWINDOW->m_vPosition        = fakeNode.position;
-                PFULLWINDOW->m_vSize            = fakeNode.size;
-                fakeNode.ignoreFullscreenChecks = true;
-
-                applyNodeDataToWindow(&fakeNode);
-            }
-        }
-
-        calculateWorkspace(PMONITOR->specialWorkspaceID);
-    }
+    if (!PMONITOR)
+        return;
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
         // massive hack from the fullscreen func
@@ -329,31 +315,22 @@ void CHyprMasterLayout::recalculateMonitor(const int& monid) {
             PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
         } else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             SMasterNodeData fakeNode;
-            fakeNode.pWindow         = PFULLWINDOW;
-            fakeNode.position        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
-            fakeNode.size            = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID     = PWORKSPACE->m_iID;
-            PFULLWINDOW->m_vPosition = fakeNode.position;
-            PFULLWINDOW->m_vSize     = fakeNode.size;
+            fakeNode.pWindow                = PFULLWINDOW;
+            fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
+            fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
+            fakeNode.workspaceID            = PWORKSPACE->m_iID;
+            PFULLWINDOW->m_vPosition        = fakeNode.position;
+            PFULLWINDOW->m_vSize            = fakeNode.size;
+            fakeNode.ignoreFullscreenChecks = true;
 
             applyNodeDataToWindow(&fakeNode);
         }
 
+        // if has fullscreen, don't calculate the rest
         return;
     }
 
-    // calc the WS
-    calculateWorkspace(PWORKSPACE->m_iID);
-}
-
-void CHyprMasterLayout::calculateWorkspace(const int& ws) {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-
-    if (!PWORKSPACE)
-        return;
-
     const auto PWORKSPACEDATA = getMasterWorkspaceData(ws);
-    const auto PMONITOR       = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
     const auto PMASTERNODE    = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
 
     if (!PMASTERNODE)

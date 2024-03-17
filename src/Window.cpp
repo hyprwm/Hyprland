@@ -389,6 +389,8 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
+    m_bAnimatingIn = false;
+
     updateSpecialRenderData();
 
     if (PWORKSPACE) {

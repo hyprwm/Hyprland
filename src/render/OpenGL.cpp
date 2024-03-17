@@ -95,7 +95,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
 
             // The maxLength includes the NULL character
             std::vector<GLchar> errorLog(maxLength);
-            glGetProgramInfoLog(prog, maxLength, &maxLength, &errorLog[0]);
+            glGetProgramInfoLog(prog, maxLength, &maxLength, errorLog.data());
             std::string errorStr(errorLog.begin(), errorLog.end());
 
             g_pConfigManager->addParseError("Screen shader parser: Error linking program:" + errorStr);
@@ -127,7 +127,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
             // The maxLength includes the NULL character
             std::vector<GLchar> errorLog(maxLength);
-            glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
+            glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
             std::string errorStr(errorLog.begin(), errorLog.end());
 
             g_pConfigManager->addParseError("Screen shader parser: Error compiling shader: " + errorStr);

@@ -830,19 +830,19 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    return toggleActiveFloatingCore(args, 0);
+    return toggleActiveFloatingCore(args, std::nullopt);
 }
 
 void CKeybindManager::setActiveFloating(std::string args) {
-    return toggleActiveFloatingCore(args, 1);
+    return toggleActiveFloatingCore(args, true);
 }
 
 void CKeybindManager::setActiveTiled(std::string args) {
-    return toggleActiveFloatingCore(args, 2);
+    return toggleActiveFloatingCore(args, false);
 }
 
-// forceFloat: 0 for no force, 1 for force float, 2 for force tile
-void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
+// floatState: 0 for no force, 1 for force float, 2 for force tile
+void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -853,7 +853,7 @@ void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
     if (!PWINDOW)
         return;
 
-    if (forceFloat != 0 && forceFloat - 1 == !PWINDOW->m_bIsFloating)
+    if (floatState.has_value() && floatState == PWINDOW->m_bIsFloating)
         return;
 
     // remove drag status

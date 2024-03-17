@@ -128,8 +128,8 @@ void CCursorManager::setCursorFromName(const std::string& name) {
                                                                   Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY}));
 
     if (g_pCompositor->m_sWLRCursor) {
-        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY,
-                              m_fCursorScale);
+        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[0].hotspotX / m_fCursorScale,
+                              m_sCurrentCursorShapeData.images[0].hotspotY / m_fCursorScale, m_fCursorScale);
         if (m_vCursorBuffers.size() > 1)
             wlr_buffer_drop(&m_vCursorBuffers.front()->wlrBuffer.base);
     }
@@ -160,8 +160,8 @@ void CCursorManager::tickAnimatedCursor() {
         Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY}));
 
     if (g_pCompositor->m_sWLRCursor)
-        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX,
-                              m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY, m_fCursorScale);
+        wlr_cursor_set_buffer(g_pCompositor->m_sWLRCursor, getCursorBuffer(), m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX / m_fCursorScale,
+                              m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY / m_fCursorScale, m_fCursorScale);
 
     wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay);
 }

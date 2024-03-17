@@ -52,7 +52,6 @@ struct SParsedKey {
     bool        catchAll = false;
 };
 
-
 class CKeybindManager {
   public:
     CKeybindManager();
@@ -182,6 +181,6 @@ class CKeybindManager {
     friend class CConfigManager;
 };
 
-static void toggleActiveFloatingCore(std::string, unsigned char forceFloat);
+static void                             toggleActiveFloatingCore(std::string, unsigned char forceFloat);
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

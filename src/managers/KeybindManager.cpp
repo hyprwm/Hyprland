@@ -830,19 +830,19 @@ void CKeybindManager::clearKeybinds() {
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, 0);
+    return toggleActiveFloatingCore(args, 0);
 }
 
 void CKeybindManager::setActiveFloating(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, 1);
+    return toggleActiveFloatingCore(args, 1);
 }
 
 void CKeybindManager::setActiveTiled(std::string args) {
-    return CKeybindManager::toggleActiveFloatingCore(args, 2);
+    return toggleActiveFloatingCore(args, 2);
 }
 
 // forceFloat: 0 for no force, 1 for force float, 2 for force tile
-void CKeybindManager::toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
+void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -855,9 +855,8 @@ void CKeybindManager::toggleActiveFloatingCore(std::string args, unsigned char f
 
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
         const auto PCURRENT = PWINDOW->getGroupCurrent();
-        if ((forceFloat == 1 && PCURRENT->m_bIsFloating) || (forceFloat == 2 && !PCURRENT->m_bIsFloating)) {
-            return;
-        }
+        if ((forceFloat == 1 && PCURRENT->m_bIsFloating) || (forceFloat == 2 && !PCURRENT->m_bIsFloating)) 
+          return;
 
         // remove drag status
         g_pInputManager->currentlyDraggedWindow = nullptr;
@@ -873,9 +872,8 @@ void CKeybindManager::toggleActiveFloatingCore(std::string args, unsigned char f
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
-        if ((forceFloat == 1 && PWINDOW->m_bIsFloating) || (forceFloat == 2 && !PWINDOW->m_bIsFloating)) {
-            return;
-        }
+        if ((forceFloat == 1 && PWINDOW->m_bIsFloating) || (forceFloat == 2 && !PWINDOW->m_bIsFloating))
+          return;
 
         // remove drag status
         g_pInputManager->currentlyDraggedWindow = nullptr;

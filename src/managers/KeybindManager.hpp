@@ -52,6 +52,7 @@ struct SParsedKey {
     bool        catchAll = false;
 };
 
+
 class CKeybindManager {
   public:
     CKeybindManager();
@@ -112,7 +113,6 @@ class CKeybindManager {
     static void                     moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
     static void                     moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
     static void                     switchToWindow(CWindow* PWINDOWTOCHANGETO);
-    static void                     toggleActiveFloatingCore(std::string, unsigned char forceFloat);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);
@@ -181,5 +181,7 @@ class CKeybindManager {
     friend class CInputManager;
     friend class CConfigManager;
 };
+
+static void toggleActiveFloatingCore(std::string, unsigned char forceFloat);
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

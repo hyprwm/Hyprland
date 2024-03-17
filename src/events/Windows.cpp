@@ -36,6 +36,9 @@ void setAnimToMove(void* data) {
     CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;
 
     animvar->setConfig(PANIMCFG);
+
+    if (animvar->getWindow() && !animvar->getWindow()->m_vRealPosition.isBeingAnimated() && !animvar->getWindow()->m_vRealSize.isBeingAnimated())
+        animvar->getWindow()->m_bAnimatingIn = false;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {

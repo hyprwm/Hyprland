@@ -524,6 +524,10 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
     }
 
+    // if window is tiled and it's flying in, don't render on other mons (for slide)
+    if (!ignorePosition && !pWindow->m_bIsFloating && pWindow->m_vRealPosition.isBeingAnimated() && pWindow->m_bAnimatingIn && pWindow->m_iMonitorID != pMonitor->ID)
+        return;
+
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
 

@@ -855,7 +855,7 @@ void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
 
     if (PWINDOW->m_sGroupData.pNextWindow && PWINDOW->m_sGroupData.pNextWindow != PWINDOW) {
         const auto PCURRENT = PWINDOW->getGroupCurrent();
-        if ((forceFloat == 1 && PCURRENT->m_bIsFloating) || (forceFloat == 2 && !PCURRENT->m_bIsFloating))
+        if (forceFloat != 0 && forceFloat - 1 == !PCURRENT->m_bIsFloating)
             return;
 
         // remove drag status
@@ -872,7 +872,7 @@ void toggleActiveFloatingCore(std::string args, unsigned char forceFloat) {
             curr = curr->m_sGroupData.pNextWindow;
         }
     } else {
-        if ((forceFloat == 1 && PWINDOW->m_bIsFloating) || (forceFloat == 2 && !PWINDOW->m_bIsFloating))
+        if (forceFloat != 0 && forceFloat - 1 == !PWINDOW->m_bIsFloating)
             return;
 
         // remove drag status

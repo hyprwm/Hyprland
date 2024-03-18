@@ -27,8 +27,14 @@ CHyprError::~CHyprError() {
     m_fFadeOpacity.unregister();
 }
 
+std::string CHyprError::getErrors() {
+    return m_szSavedQueue;
+}
+
 void CHyprError::queueCreate(std::string message, const CColor& color) {
     m_szQueued = message;
+    //Keep unmodified copy for hyprctl
+    m_szSavedQueue = message;
     m_cQueued  = color;
 }
 

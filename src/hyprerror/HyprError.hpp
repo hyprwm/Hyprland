@@ -14,10 +14,12 @@ class CHyprError {
     void queueCreate(std::string message, const CColor& color);
     void draw();
     void destroy();
+    std::string getErrors();
 
   private:
     void                     createQueued();
     std::string              m_szQueued = "";
+    std::string              m_szSavedQueue = "";
     CColor                   m_cQueued;
     bool                     m_bQueuedDestroy = false;
     bool                     m_bIsCreated     = false;

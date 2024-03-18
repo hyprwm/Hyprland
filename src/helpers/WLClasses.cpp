@@ -87,7 +87,8 @@ void SLayerSurface::startAnimation(bool in, bool instant) {
         }
 
         realSize.setValueAndWarp(geometry.size());
-        alpha.setValueAndWarp(1.f);
+        alpha.setValueAndWarp(in ? 0.f : 1.f);
+        alpha = in ? 1.f : 0.f;
 
         Vector2D prePos;
 

@@ -547,7 +547,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
     std::string fragmentShader((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
 
-    m_sFinalScreenShader.program = createProgram(TEXVERTSRC, fragmentShader, true);
+    m_sFinalScreenShader.program = createProgram(fragmentShader.starts_with("#version 320 es") ? TEXVERTSRC320 : TEXVERTSRC, fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
         g_pConfigManager->addParseError("Screen shader parser: Screen shader parse failed");

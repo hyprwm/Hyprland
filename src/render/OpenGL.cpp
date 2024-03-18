@@ -61,7 +61,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
 static void logError(const GLuint& shader, bool program = false) {
     GLint maxLength = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+    if (program) {
+        glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+    } else {
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+    }
 
     std::vector<GLchar> errorLog(maxLength);
     if (program) {

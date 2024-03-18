@@ -59,6 +59,26 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
+static void logError(const GLuint& shader, bool program = false) {
+    GLint maxLength = 0;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    std::vector<GLchar> errorLog(maxLength);
+    if (program) {
+        glGetProgramInfoLog(shader, maxLength, &maxLength, errorLog.data());
+    } else {
+        glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
+    }
+    std::string errorStr(errorLog.begin(), errorLog.end());
+
+    g_pConfigManager->addParseError(
+        (program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ")
+        + errorStr
+    );
+
+    return 0;
+}
+
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
     auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert, dynamic);
     if (dynamic) {
@@ -89,19 +109,8 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
-        if (ok == GL_FALSE) {
-            GLint maxLength = 0;
-            glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> errorLog(maxLength);
-            glGetProgramInfoLog(prog, maxLength, &maxLength, errorLog.data());
-            std::string errorStr(errorLog.begin(), errorLog.end());
-
-            g_pConfigManager->addParseError("Screen shader parser: Error linking program:" + errorStr);
-
-            return 0;
-        }
+        if (ok == GL_FALSE)
+            logError(prog, true);
     } else {
         RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
     }
@@ -121,19 +130,8 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
 
     if (dynamic) {
-        if (ok == GL_FALSE) {
-            GLint maxLength = 0;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> errorLog(maxLength);
-            glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
-            std::string errorStr(errorLog.begin(), errorLog.end());
-
-            g_pConfigManager->addParseError("Screen shader parser: Error compiling shader: " + errorStr);
-
-            return 0;
-        }
+        if (ok == GL_FALSE)
+            logError(shader, false);
     } else {
         RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
     }

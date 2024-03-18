@@ -2037,6 +2037,9 @@ void CKeybindManager::pinActive(std::string args) {
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
 
     PWORKSPACE->m_pLastFocusedWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"pin", std::format("{:x},{}", (uintptr_t)PWINDOW, (int)PWINDOW->m_bPinned)});
+    EMIT_HOOK_EVENT("pin", PWINDOW);
 }
 
 void CKeybindManager::mouse(std::string args) {

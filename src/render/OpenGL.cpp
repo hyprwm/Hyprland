@@ -59,7 +59,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
-static void logError(const GLuint& shader, bool program = false) {
+static void CHyprOpenGLImpl::logError(const GLuint& shader, bool program = false) {
     GLint maxLength = 0;
     if (program) {
         glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);

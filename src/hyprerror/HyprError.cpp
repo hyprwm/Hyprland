@@ -65,10 +65,9 @@ void CHyprError::createQueued() {
     cairo_restore(CAIRO);
 
     const auto   LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
-    static auto LINELIMIT = CConfigValue<Hyprlang::INT>("debug:error_limit");
-		
-    const auto VISLINECOUNT = std::min(LINECOUNT, *LINELIMIT);
+    static auto  LINELIMIT = CConfigValue<Hyprlang::INT>("debug:error_limit");
 
+    const auto   VISLINECOUNT = std::min(LINECOUNT, *LINELIMIT);
 
     const double DEGREES = M_PI / 180.0;
 
@@ -103,7 +102,7 @@ void CHyprError::createQueued() {
     cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
     float yoffset = FONTSIZE;
-    int renderedcnt = 0;
+    int   renderedcnt = 0;
     while (m_szQueued != "" && renderedcnt < VISLINECOUNT) {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));
         if (const auto NEWLPOS = m_szQueued.find('\n'); NEWLPOS != std::string::npos)
@@ -113,7 +112,7 @@ void CHyprError::createQueued() {
         cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
         cairo_show_text(CAIRO, current.c_str());
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
-				renderedcnt++;
+        renderedcnt++;
     }
 
     m_szQueued = "";

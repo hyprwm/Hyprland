@@ -499,38 +499,38 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
 }
 
 std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
-    std::string result = "";
+    std::string result     = "";
     std::string currErrors = g_pHyprError->getErrors();
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-			result += "[";
+        result += "[";
         size_t currstart = 0;
-		    while (currstart != std::string::npos) {
-			      const auto NEWLPOS = currErrors.find('\n', currstart);
-			      std::string current = currErrors.substr(currstart, NEWLPOS-currstart);
-			      currstart = NEWLPOS;
-			      if (NEWLPOS != std::string::npos) currstart++;
-				    result += std::format(
-            R"#(
+        while (currstart != std::string::npos) {
+            const auto  NEWLPOS = currErrors.find('\n', currstart);
+            std::string current = currErrors.substr(currstart, NEWLPOS - currstart);
+            currstart           = NEWLPOS;
+            if (NEWLPOS != std::string::npos)
+                currstart++;
+            result += std::format(
+                R"#(
 	"{}",)#",
 
-			current);
-
-		    }
-			trimTrailingComma(result);
-			result += "\n]\n";
+                current);
+        }
+        trimTrailingComma(result);
+        result += "\n]\n";
     } else {
         size_t currstart = 0;
-		    while (currstart != std::string::npos) {
-			      const auto NEWLPOS = currErrors.find('\n', currstart);
-			      std::string current = currErrors.substr(currstart, NEWLPOS-currstart);
-			      currstart = NEWLPOS;
-			      if (NEWLPOS != std::string::npos) currstart++;
-				    result += std::format("{}\n", current);
+        while (currstart != std::string::npos) {
+            const auto  NEWLPOS = currErrors.find('\n', currstart);
+            std::string current = currErrors.substr(currstart, NEWLPOS - currstart);
+            currstart           = NEWLPOS;
+            if (NEWLPOS != std::string::npos)
+                currstart++;
+            result += std::format("{}\n", current);
         }
     }
     return result;
 }
-
 
 std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
@@ -1566,7 +1566,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"animations", true, animationsRequest});
     registerCommand(SHyprCtlCommand{"rollinglog", true, rollinglogRequest});
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
-	  registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
+    registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

@@ -175,13 +175,13 @@ struct SWindowRule {
     std::string szClass;
     std::string szInitialTitle;
     std::string szInitialClass;
-    int         bX11         = -1; // -1 means "ANY"
-    int         bFloating    = -1;
-    int         bFullscreen  = -1;
-    int         bPinned      = -1;
-    int         bFocus       = -1;
-    int         iOnWorkspace = -1;
-    std::string szWorkspace  = ""; // empty means any
+    int         bX11          = -1; // -1 means "ANY"
+    int         bFloating     = -1;
+    int         bFullscreen   = -1;
+    int         bPinned       = -1;
+    int         bFocus        = -1;
+    std::string szOnWorkspace = ""; // empty means any
+    std::string szWorkspace   = ""; // empty means any
 };
 
 class CWindow {

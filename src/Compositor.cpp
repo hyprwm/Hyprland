@@ -1290,10 +1290,10 @@ void CCompositor::sanityCheckWorkspaces() {
     }
 }
 
-int CCompositor::getWindowsOnWorkspace(const int& id) {
+int CCompositor::getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTiled) {
     int no = 0;
     for (auto& w : m_vWindows) {
-        if (w->m_iWorkspaceID == id && w->m_bIsMapped)
+        if (w->m_iWorkspaceID == id && w->m_bIsMapped && !(onlyTiled.has_value() && !w->m_bIsFloating != onlyTiled.value()))
             no++;
     }
 

@@ -937,13 +937,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
-    const auto WORKSPACEIDSTR = std::to_string(pWorkspace->m_iID);
-    const auto IT             = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) {
-        return other.workspaceName == pWorkspace->m_szName /* name matches */
-            || (pWorkspace->m_bIsSpecialWorkspace && other.workspaceName.starts_with("special:") &&
-                other.workspaceName.substr(8) == pWorkspace->m_szName)           /* special and special:name */
-            || (pWorkspace->m_iID > 0 && WORKSPACEIDSTR == other.workspaceName); /* id matches and workspace is numerical */
-    });
+    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return pWorkspace->matchesStaticSelector(other.workspaceString); });
     if (IT == m_dWorkspaceRules.end())
         return SWorkspaceRule{};
     return *IT;
@@ -1039,8 +1033,9 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
                         continue;
                 }
 
-                if (rule.iOnWorkspace != -1) {
-                    if (rule.iOnWorkspace != g_pCompositor->getWindowsOnWorkspace(pWindow->m_iWorkspaceID))
+                if (!rule.szOnWorkspace.empty()) {
+                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+                    if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule.szOnWorkspace))
                         continue;
                 }
 
@@ -1327,9 +1322,8 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     for (auto& wr : m_dWorkspaceRules) {
         const auto WSNAME = wr.workspaceName.starts_with("name:") ? wr.workspaceName.substr(5) : wr.workspaceName;
 
-        if (WSNAME == wsname) {
+        if (WSNAME == wsname)
             return wr.monitor;
-        }
     }
 
     return "";
@@ -2065,7 +2059,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         rule.bFocus = extract(FOCUSPOS + 6) == "1" ? 1 : 0;
 
     if (ONWORKSPACEPOS != std::string::npos)
-        rule.iOnWorkspace = configStringToInt(extract(ONWORKSPACEPOS + 12));
+        rule.szOnWorkspace = extract(ONWORKSPACEPOS + 12);
 
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
@@ -2102,7 +2096,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                 if (rule.bFocus != -1 && rule.bFocus != other.bFocus)
                     return false;
 
-                if (rule.iOnWorkspace != -1 && rule.iOnWorkspace != other.iOnWorkspace)
+                if (!rule.szOnWorkspace.empty() && rule.szOnWorkspace != other.szOnWorkspace)
                     return false;
 
                 return true;
@@ -2165,21 +2159,21 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;
     wsRule.workspaceString = first_ident;
-    if (id == WORKSPACE_INVALID) {
-        // it could be the monitor. If so, second value MUST be
-        // the workspace.
-        const auto WORKSPACE_DELIM = value.find_first_of(',', FIRST_DELIM + 1);
-        auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
-        id                         = getWorkspaceIDFromString(wsIdent, name);
-        if (id == WORKSPACE_INVALID) {
-            Debug::log(ERR, "Invalid workspace identifier found: {}", wsIdent);
-            return "Invalid workspace identifier found: " + wsIdent;
-        }
-        wsRule.monitor         = first_ident;
-        wsRule.workspaceString = wsIdent;
-        wsRule.isDefault       = true; // backwards compat
-        rules                  = value.substr(WORKSPACE_DELIM + 1);
-    }
+    // if (id == WORKSPACE_INVALID) {
+    //     // it could be the monitor. If so, second value MUST be
+    //     // the workspace.
+    //     const auto WORKSPACE_DELIM = value.find_first_of(',', FIRST_DELIM + 1);
+    //     auto       wsIdent         = removeBeginEndSpacesTabs(value.substr(FIRST_DELIM + 1, (WORKSPACE_DELIM - FIRST_DELIM - 1)));
+    //     id                         = getWorkspaceIDFromString(wsIdent, name);
+    //     if (id == WORKSPACE_INVALID) {
+    //         Debug::log(ERR, "Invalid workspace identifier found: {}", wsIdent);
+    //         return "Invalid workspace identifier found: " + wsIdent;
+    //     }
+    //     wsRule.monitor         = first_ident;
+    //     wsRule.workspaceString = wsIdent;
+    //     wsRule.isDefault       = true; // backwards compat
+    //     rules                  = value.substr(WORKSPACE_DELIM + 1);
+    // }
 
     const static std::string ruleOnCreatedEmtpy    = "on-created-empty:";
     const static int         ruleOnCreatedEmtpyLen = ruleOnCreatedEmtpy.length();

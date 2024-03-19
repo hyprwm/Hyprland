@@ -39,7 +39,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             switch (EVENT->tool->type) {
                 case WLR_TABLET_TOOL_TYPE_MOUSE:
                     wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
-                    g_pInputManager->refocus();
+                    g_pInputManager->simulateMouseMovement();
+                    g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
                     g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;
                 default:
@@ -53,7 +54,8 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                     else
                         wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
 
-                    g_pInputManager->refocus();
+                    g_pInputManager->simulateMouseMovement();
+                    g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
                     g_pInputManager->m_tmrLastCursorMovement.reset();
                     break;
             }
@@ -62,7 +64,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
             // TODO: this might be wrong
             if (PTOOL->active) {
-                g_pInputManager->refocus();
+                g_pInputManager->simulateMouseMovement();
 
                 g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
             }
@@ -105,7 +107,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
             // TODO: this might be wrong
             if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN) {
-                g_pInputManager->refocus();
+                g_pInputManager->simulateMouseMovement();
                 g_pInputManager->focusTablet(PTAB, EVENT->tool);
                 wlr_send_tablet_v2_tablet_tool_down(PTOOL->wlrTabletToolV2);
             } else {
@@ -146,7 +148,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
             } else {
                 PTOOL->active = true;
-                g_pInputManager->refocus();
+                g_pInputManager->simulateMouseMovement();
                 g_pInputManager->focusTablet(PTAB, EVENT->tool);
             }
 
@@ -258,12 +260,12 @@ void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool moti
     if (const auto PWINDOW = g_pCompositor->m_pLastWindow; PWINDOW) {
         const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
-        if (PTOOL->pSurface != g_pCompositor->m_pLastFocus)
+        if (PTOOL->pSurface != g_pInputManager->m_pLastMouseSurface)
             wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
 
-        if (g_pCompositor->m_pLastFocus) {
+        if (g_pInputManager->m_pLastMouseSurface) {
             PTOOL->pSurface = g_pCompositor->m_pLastFocus;
-            wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pCompositor->m_pLastFocus);
+            wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pInputManager->m_pLastMouseSurface);
         }
 
         if (motion) {

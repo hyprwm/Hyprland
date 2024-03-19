@@ -419,6 +419,7 @@ class CWindow {
     void                     insertWindowToGroup(CWindow* pWindow);
     void                     updateGroupOutputs();
     void                     switchWithWindowInGroup(CWindow* pWindow);
+    void                     setAnimationsToMove();
 
   private:
     // For hidden windows and stuff

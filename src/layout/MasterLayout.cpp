@@ -970,6 +970,8 @@ void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
 
     const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
 
+    pWindow->setAnimationsToMove();
+
     if (pWindow->m_iWorkspaceID != PWINDOW2->m_iWorkspaceID) {
         // if different monitors, send to monitor
         onWindowRemovedTiling(pWindow);
@@ -1001,6 +1003,9 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
     // massive hack: just swap window pointers, lol
     PNODE->pWindow  = pWindow2;
     PNODE2->pWindow = pWindow;
+
+    pWindow->setAnimationsToMove();
+    pWindow2->setAnimationsToMove();
 
     recalculateMonitor(pWindow->m_iMonitorID);
     if (PNODE2->workspaceID != PNODE->workspaceID)

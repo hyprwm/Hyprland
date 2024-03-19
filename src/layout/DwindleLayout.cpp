@@ -924,6 +924,8 @@ void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) 
         default: UNREACHABLE();
     }
 
+    pWindow->setAnimationsToMove();
+
     onWindowRemovedTiling(pWindow);
 
     m_vOverrideFocalPoint = focalPoint;
@@ -968,6 +970,9 @@ void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
         std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
         std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
     }
+
+    pWindow->setAnimationsToMove();
+    pWindow2->setAnimationsToMove();
 
     // recalc the workspace
     getMasterNodeOnWorkspace(PNODE->workspaceID)->recalcSizePosRecursive();

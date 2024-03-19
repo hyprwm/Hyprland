@@ -552,6 +552,8 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, CWindow* pWindow) {
         return;
     }
 
+    PWINDOW->setAnimationsToMove();
+
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + delta;
 
     g_pHyprRenderer->damageWindow(PWINDOW);

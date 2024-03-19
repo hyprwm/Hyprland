@@ -163,7 +163,7 @@ void CTextInputV1ProtocolManager::createTI(wl_client* client, wl_resource* resou
 
 void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
     const auto PTI = tiFromResource(resource);
-    if(!surface){
+    if (!surface) {
         Debug::log(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)PTI);
         return;
     }

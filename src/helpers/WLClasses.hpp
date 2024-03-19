@@ -291,15 +291,14 @@ struct SSwipeGesture {
 struct STextInputV1;
 
 struct STextInput {
-    wlr_text_input_v3* pWlrInput = nullptr;
-    STextInputV1*      pV1Input  = nullptr;
+    wlr_text_input_v3* pWlrInput      = nullptr;
+    STextInputV1*      pV1Input       = nullptr;
     wlr_surface*       focusedSurface = nullptr;
 
     DYNLISTENER(textInputEnable);
     DYNLISTENER(textInputDisable);
     DYNLISTENER(textInputCommit);
     DYNLISTENER(textInputDestroy);
-
 };
 
 struct SIMEKbGrab {

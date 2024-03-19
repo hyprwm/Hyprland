@@ -89,7 +89,6 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 
             if (PTI)
                 onTextInputEnter(PTI->focusedSurface);
-
         },
         this, "IMERelay");
 
@@ -141,7 +140,6 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 
     if (const auto PTI = getFocusedTextInput(); PTI)
         onTextInputEnter(PTI->focusedSurface);
-
 }
 
 wlr_surface* CInputMethodRelay::focusedSurface(STextInput* pTI) {
@@ -322,13 +320,13 @@ void CInputMethodRelay::onNewTextInput(wlr_text_input_v3* pInput) {
 
 void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInputV1* pTIV1) {
     // if client already has a version, reject
-    if(pInput){
-        if(!setTextInputVersion(wl_resource_get_client(pInput->resource), 3))
+    if (pInput) {
+        if (!setTextInputVersion(wl_resource_get_client(pInput->resource), 3))
             //reject
             return;
 
-    }else{
-        if(!setTextInputVersion(pTIV1->client, 1))
+    } else {
+        if (!setTextInputVersion(pTIV1->client, 1))
             // reject
             return;
     }
@@ -352,11 +350,11 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
             }
 
             // v1 only, map surface to PTI
-            if(PINPUT->pV1Input) {
-                wlr_surface* pSurface = wlr_surface_from_resource((wl_resource*)data);
+            if (PINPUT->pV1Input) {
+                wlr_surface* pSurface  = wlr_surface_from_resource((wl_resource*)data);
                 PINPUT->focusedSurface = pSurface;
                 setSurfaceToPTI(pSurface, PINPUT);
-                if(m_pFocusedSurface == pSurface)
+                if (m_pFocusedSurface == pSurface)
                     onTextInputEnter(pSurface);
             }
 
@@ -474,11 +472,11 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     if (!m_pWLRIME)
         return;
 
-    if(pSurface == m_pFocusedSurface)
+    if (pSurface == m_pFocusedSurface)
         return;
 
     // say goodbye to the last focused surface
-    if (STextInput* lastTI = getTextInput(m_pFocusedSurface); lastTI){
+    if (STextInput* lastTI = getTextInput(m_pFocusedSurface); lastTI) {
         wlr_input_method_v2_send_deactivate(m_pWLRIME);
         commitIMEState(lastTI);
         onTextInputLeave(m_pFocusedSurface);
@@ -492,11 +490,11 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
          * POSSIBLE BUG here: if one client has multiple STextInput and multiple surfaces, for any pSurface we can only record the last found ti.
          * since original code has the same problem, it may not be a big deal.
     */
-    if(getTextInputVersion(wl_resource_get_client(pSurface->resource)) == 3){
-        if (!getTextInput(pSurface)){
+    if (getTextInputVersion(wl_resource_get_client(pSurface->resource)) == 3) {
+        if (!getTextInput(pSurface)) {
             auto client = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
             for (auto& ti : m_lTextInputs)
-                if (client(&ti) == wl_resource_get_client(pSurface->resource)  && ti.pWlrInput)
+                if (client(&ti) == wl_resource_get_client(pSurface->resource) && ti.pWlrInput)
                     setSurfaceToPTI(pSurface, &ti);
         }
     }
@@ -504,8 +502,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     onTextInputEnter(m_pFocusedSurface);
 }
 
-
- void CInputMethodRelay::onTextInputLeave(wlr_surface *pSurface){
+void CInputMethodRelay::onTextInputLeave(wlr_surface* pSurface) {
     if (!pSurface)
         return;
 
@@ -522,7 +519,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     }
 }
 
-void CInputMethodRelay::onTextInputEnter(wlr_surface *pSurface){
+void CInputMethodRelay::onTextInputEnter(wlr_surface* pSurface) {
     if (!pSurface)
         return;
 
@@ -539,23 +536,21 @@ void CInputMethodRelay::onTextInputEnter(wlr_surface *pSurface){
     }
 }
 
-void  CInputMethodRelay::setSurfaceToPTI(wlr_surface* pSurface, STextInput* pInput){
-    if(pSurface){
+void CInputMethodRelay::setSurfaceToPTI(wlr_surface* pSurface, STextInput* pInput) {
+    if (pSurface) {
         m_mSurfaceToTextInput[pSurface] = pInput;
-        pInput->focusedSurface = pSurface;
+        pInput->focusedSurface          = pSurface;
     }
 }
 
-
-void  CInputMethodRelay::removeSurfaceToPTI(STextInput* pInput){
-    if(pInput->focusedSurface){
+void CInputMethodRelay::removeSurfaceToPTI(STextInput* pInput) {
+    if (pInput->focusedSurface) {
         m_mSurfaceToTextInput.erase(pInput->focusedSurface);
         pInput->focusedSurface = nullptr;
     }
 }
 
-
-STextInput* CInputMethodRelay::getTextInput(wlr_surface* pSurface){
+STextInput* CInputMethodRelay::getTextInput(wlr_surface* pSurface) {
     auto result = m_mSurfaceToTextInput.find(pSurface);
     if (result != m_mSurfaceToTextInput.end())
         return result->second;
@@ -564,7 +559,7 @@ STextInput* CInputMethodRelay::getTextInput(wlr_surface* pSurface){
 }
 
 int CInputMethodRelay::setTextInputVersion(wl_client* pClient, int version) {
-    if(int v = getTextInputVersion(pClient); v != 0 && v != version){
+    if (int v = getTextInputVersion(pClient); v != 0 && v != version) {
         Debug::log(WARN, "Client attempt to register text-input-v{}, but it has already registered text-input-v{}, ignored", version, v);
         return 0;
     }
@@ -572,7 +567,7 @@ int CInputMethodRelay::setTextInputVersion(wl_client* pClient, int version) {
     return 1;
 }
 
-int  CInputMethodRelay::getTextInputVersion(wl_client* pClient) {
+int CInputMethodRelay::getTextInputVersion(wl_client* pClient) {
     auto result = m_mClientTextInputVersion.find(pClient);
     if (result != m_mClientTextInputVersion.end())
         return result->second;
@@ -580,6 +575,6 @@ int  CInputMethodRelay::getTextInputVersion(wl_client* pClient) {
     return 0;
 }
 
-void  CInputMethodRelay::removeTextInputVersion(wl_client* pClient){
+void CInputMethodRelay::removeTextInputVersion(wl_client* pClient) {
     m_mClientTextInputVersion.erase(pClient);
 }

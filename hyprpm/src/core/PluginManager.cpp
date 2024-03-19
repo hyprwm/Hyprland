@@ -221,11 +221,11 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 
+        if (m_bVerbose)
+            std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
+
         if (!std::filesystem::exists("/tmp/hyprpm/new/" + p.output)) {
             progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Plugin " + p.name + " failed to build.\n");
-
-            if (m_bVerbose)
-                std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
 
             p.failed = true;
 
@@ -582,11 +582,12 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                 out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
 
+            if (m_bVerbose)
+                std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
+
             if (!std::filesystem::exists("/tmp/hyprpm/update/" + p.output)) {
                 std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n";
                 failed = true;
-                if (m_bVerbose)
-                    std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
                 break;
             }
 

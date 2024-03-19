@@ -389,6 +389,8 @@ void CWindow::moveToWorkspace(int workspaceID) {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
 
+    setAnimationsToMove();
+
     updateSpecialRenderData();
 
     if (PWORKSPACE) {
@@ -1146,4 +1148,11 @@ bool CWindow::visibleOnMonitor(CMonitor* pMonitor) {
     CBox wbox = {m_vRealPosition.value(), m_vRealSize.value()};
 
     return wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, wbox.pWlr());
+}
+
+void CWindow::setAnimationsToMove() {
+    auto* const PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+    m_vRealPosition.setConfig(PANIMCFG);
+    m_vRealSize.setConfig(PANIMCFG);
+    m_bAnimatingIn = false;
 }

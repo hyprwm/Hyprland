@@ -2286,10 +2286,10 @@ inline const SGLPixelFormat GLES2_FORMATS[] = {
 };
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
-    GLint glf = -1, glt = -1, as = -1;
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
+    GLint glf = -1, glt = -1, as = 0;
+    /*glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
     glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
-    glGetIntegerv(GL_ALPHA_BITS, &as);
+    glGetIntegerv(GL_ALPHA_BITS, &as);*/
 
     if (glf == 0 || glt == 0) {
         glf = drmFormatToGL(pMonitor->drmFormat);

@@ -92,8 +92,9 @@ void CConstraint::deactivate() {
     if (!m_bActive)
         return;
 
-    wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
     m_bActive = false;
+
+    wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
 
     if (isLocked())
         g_pCompositor->warpCursorTo(logicPositionHint(), true);
@@ -106,6 +107,8 @@ void CConstraint::activate() {
     if (m_bActive || m_bDead)
         return;
 
+    m_bActive = true;
+
     // TODO: hack, probably not a super duper great idea
     if (g_pCompositor->m_sSeat.seat->pointer_state.focused_surface != m_pOwner->wlr()) {
         const auto SURFBOX = m_pOwner->getSurfaceBoxGlobal();
@@ -115,7 +118,6 @@ void CConstraint::activate() {
 
     g_pCompositor->warpCursorTo(logicPositionHint(), true);
     wlr_pointer_constraint_v1_send_activated(m_pConstraint);
-    m_bActive = true;
 }
 
 bool CConstraint::active() {

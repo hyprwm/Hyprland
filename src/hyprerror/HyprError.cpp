@@ -35,7 +35,7 @@ void CHyprError::queueCreate(std::string message, const CColor& color) {
     m_szQueued = message;
     //Keep unmodified copy for hyprctl
     m_szSavedQueue = message;
-    m_cQueued  = color;
+    m_cQueued      = color;
 }
 
 void CHyprError::createQueued() {
@@ -101,7 +101,7 @@ void CHyprError::createQueued() {
     cairo_set_font_size(CAIRO, FONTSIZE);
     cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
-    float yoffset = FONTSIZE;
+    float yoffset     = FONTSIZE;
     int   renderedcnt = 0;
     while (m_szQueued != "" && renderedcnt < VISLINECOUNT) {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));

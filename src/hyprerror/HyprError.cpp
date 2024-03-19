@@ -68,6 +68,7 @@ void CHyprError::createQueued() {
     static auto  LINELIMIT = CConfigValue<Hyprlang::INT>("debug:error_limit");
 
     const auto   VISLINECOUNT = std::min(LINECOUNT, *LINELIMIT);
+    const auto   EXTRALINES   = (VISLINECOUNT < LINECOUNT) ? 1 : 0;
 
     const double DEGREES = M_PI / 180.0;
 
@@ -76,7 +77,7 @@ void CHyprError::createQueued() {
     const double X      = PAD;
     const double Y      = PAD;
     const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
-    const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * VISLINECOUNT + 3;
+    const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * (VISLINECOUNT + EXTRALINES) + 3;
     const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
 
     m_bDamageBox = {0, 0, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
@@ -114,7 +115,11 @@ void CHyprError::createQueued() {
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
         renderedcnt++;
     }
-
+    if (VISLINECOUNT < LINECOUNT) {
+        std::string moreString = std::format("({} more...)", LINECOUNT - VISLINECOUNT);
+        cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
+        cairo_show_text(CAIRO, moreString.c_str());
+    }
     m_szQueued = "";
 
     cairo_surface_flush(CAIROSURFACE);

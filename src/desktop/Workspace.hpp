@@ -64,4 +64,6 @@ class CWorkspace {
     void        rememberPrevWorkspace(const CWorkspace* prevWorkspace);
 
     std::string getConfigName();
+
+    bool        matchesStaticSelector(const std::string& selector);
 };

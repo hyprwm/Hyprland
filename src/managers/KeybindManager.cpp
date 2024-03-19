@@ -871,10 +871,12 @@ void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) 
             curr->updateSpecialRenderData();
             curr = curr->m_sGroupData.pNextWindow;
         }
+
+        g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
     } else {
         PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
-        PWINDOW->updateDynamicRules();
+        g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }

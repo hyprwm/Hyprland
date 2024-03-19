@@ -182,3 +182,205 @@ std::string CWorkspace::getConfigName() {
 
     return "name:" + m_szName;
 }
+
+bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
+    auto selector = removeBeginEndSpacesTabs(selector_);
+
+    if (selector.empty())
+        return true;
+
+    if (isNumber(selector)) {
+
+        std::string wsname = "";
+        int         wsid   = getWorkspaceIDFromString(selector, wsname);
+
+        if (wsid == WORKSPACE_INVALID)
+            return false;
+
+        return wsid == m_iID;
+
+    } else if (selector.starts_with("name:")) {
+        return m_szName == selector.substr(5);
+    } else {
+        // parse selector
+
+        for (size_t i = 0; i < selector.length(); ++i) {
+            const char& cur = selector[i];
+            if (std::isspace(cur))
+                continue;
+
+            // Allowed selectors:
+            // r - range: r[1-5]
+            // s - special: s[true]
+            // n - named: n[true] or n[s:string] or n[e:string]
+            // m - monitor: m[monitor_selector]
+            // w - windowCount: w[0-4] or w[1], optional flag t or f for tiled or floating, e.g. w[t0-1]
+
+            const auto  NEXTSPACE = selector.find_first_of(' ', i);
+            std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
+            i                     = NEXTSPACE;
+
+            if (cur == 'r') {
+                int from = 0, to = 0;
+                if (!prop.starts_with("r[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop = prop.substr(2, prop.length() - 3);
+
+                if (!prop.contains("-")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                const auto DASHPOS = prop.find("-");
+                const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
+
+                if (!isNumber(LHS) || !isNumber(RHS)) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                try {
+                    from = std::stoll(LHS);
+                    to   = std::stoll(RHS);
+                } catch (std::exception& e) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                if (to < from || to < 1 || from < 1) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                if (std::clamp(m_iID, from, to) != m_iID)
+                    return false;
+                continue;
+            }
+
+            if (cur == 's') {
+                if (!prop.starts_with("s[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop = prop.substr(2, prop.length() - 3);
+
+                const auto SHOULDBESPECIAL = configStringToInt(prop);
+
+                if ((bool)SHOULDBESPECIAL != m_bIsSpecialWorkspace)
+                    return false;
+                continue;
+            }
+
+            if (cur == 'm') {
+                if (!prop.starts_with("m[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop = prop.substr(2, prop.length() - 3);
+
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(prop);
+
+                if (!(PMONITOR ? PMONITOR->ID == m_iMonitorID : false))
+                    return false;
+                continue;
+            }
+
+            if (cur == 'n') {
+                if (!prop.starts_with("n[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop = prop.substr(2, prop.length() - 3);
+
+                if (prop.starts_with("s:"))
+                    return m_szName.starts_with(prop.substr(2));
+                if (prop.starts_with("e:"))
+                    return m_szName.ends_with(prop.substr(2));
+
+                const auto WANTSNAMED = configStringToInt(prop);
+
+                if (WANTSNAMED != (m_iID <= -1337))
+                    return false;
+                continue;
+            }
+
+            if (cur == 'w') {
+                int from = 0, to = 0;
+                if (!prop.starts_with("w[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop = prop.substr(2, prop.length() - 3);
+
+                int wantsOnlyTiled = -1;
+
+                if (prop.starts_with("t")) {
+                    wantsOnlyTiled = 1;
+                    prop           = prop.substr(1);
+                } else if (prop.starts_with("f")) {
+                    wantsOnlyTiled = 0;
+                    prop           = prop.substr(1);
+                }
+
+                if (!prop.contains("-")) {
+                    // try single
+
+                    if (!isNumber(prop)) {
+                        Debug::log(LOG, "Invalid selector {}", selector);
+                        return false;
+                    }
+
+                    try {
+                        from = std::stoll(prop);
+                    } catch (std::exception& e) {
+                        Debug::log(LOG, "Invalid selector {}", selector);
+                        return false;
+                    }
+
+                    return g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled)) == from;
+                }
+
+                const auto DASHPOS = prop.find("-");
+                const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
+
+                if (!isNumber(LHS) || !isNumber(RHS)) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                try {
+                    from = std::stoll(LHS);
+                    to   = std::stoll(RHS);
+                } catch (std::exception& e) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                if (to < from || to < 1 || from < 1) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                const auto WINDOWSONWORKSPACE = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                if (std::clamp(WINDOWSONWORKSPACE, from, to) != WINDOWSONWORKSPACE)
+                    return false;
+                continue;
+            }
+
+            Debug::log(LOG, "Invalid selector {}", selector);
+            return false;
+        }
+
+        return true;
+    }
+
+    UNREACHABLE();
+    return false;
+}

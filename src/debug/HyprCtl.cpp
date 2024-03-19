@@ -501,32 +501,21 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
 std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
     std::string currErrors = g_pHyprError->getErrors();
+    CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        size_t currstart = 0;
-        while (currstart != std::string::npos) {
-            const auto  NEWLPOS = currErrors.find('\n', currstart);
-            std::string current = currErrors.substr(currstart, NEWLPOS - currstart);
-            currstart           = NEWLPOS;
-            if (NEWLPOS != std::string::npos)
-                currstart++;
+        for (auto line : errLines) {
             result += std::format(
                 R"#(
 	"{}",)#",
 
-                current);
+                escapeJSONStrings(line));
         }
         trimTrailingComma(result);
         result += "\n]\n";
     } else {
-        size_t currstart = 0;
-        while (currstart != std::string::npos) {
-            const auto  NEWLPOS = currErrors.find('\n', currstart);
-            std::string current = currErrors.substr(currstart, NEWLPOS - currstart);
-            currstart           = NEWLPOS;
-            if (NEWLPOS != std::string::npos)
-                currstart++;
-            result += std::format("{}\n", current);
+        for (auto line : errLines) {
+            result += std::format("{}\n", line);
         }
     }
     return result;

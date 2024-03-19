@@ -319,17 +319,12 @@ void CInputMethodRelay::onNewTextInput(wlr_text_input_v3* pInput) {
 }
 
 void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInputV1* pTIV1) {
-    // if client already has a version, reject
+
     if (pInput) {
         if (!setTextInputVersion(wl_resource_get_client(pInput->resource), 3))
-            //reject
             return;
-
-    } else {
-        if (!setTextInputVersion(pTIV1->client, 1))
-            // reject
-            return;
-    }
+    } else if (!setTextInputVersion(pTIV1->client, 1))
+        return;
 
     const auto PTEXTINPUT = &m_lTextInputs.emplace_back();
 
@@ -493,9 +488,10 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     if (getTextInputVersion(wl_resource_get_client(pSurface->resource)) == 3) {
         if (!getTextInput(pSurface)) {
             auto client = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
-            for (auto& ti : m_lTextInputs)
+            for (auto& ti : m_lTextInputs) {
                 if (client(&ti) == wl_resource_get_client(pSurface->resource) && ti.pWlrInput)
                     setSurfaceToPTI(pSurface, &ti);
+            }
         }
     }
 

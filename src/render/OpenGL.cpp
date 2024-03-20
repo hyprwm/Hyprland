@@ -61,24 +61,19 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
 static void CHyprOpenGLImpl::logError(const GLuint& shader, bool program = false) {
     GLint maxLength = 0;
-    if (program) {
+    if (program)
         glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-    } else {
+    else
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-    }
 
     std::vector<GLchar> errorLog(maxLength);
-    if (program) {
+    if (program)
         glGetProgramInfoLog(shader, maxLength, &maxLength, errorLog.data());
-    } else {
+    else
         glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
-    }
     std::string errorStr(errorLog.begin(), errorLog.end());
 
-    g_pConfigManager->addParseError(
-        (program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ")
-        + errorStr
-    );
+    g_pConfigManager->addParseError((program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr);
 
     return 0;
 }

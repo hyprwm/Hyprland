@@ -195,11 +195,11 @@ void CInputManager::endWorkspaceSwipe() {
 }
 
 void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
+    if (!m_sActiveSwipe.pWorkspaceBegin)
+        return;
     static auto PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
     const bool  VERTANIMS  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
-    if (!m_sActiveSwipe.pWorkspaceBegin)
-        return;
 
     const double delta = m_sActiveSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx));
     updateWorkspaceSwipe(delta);

@@ -218,7 +218,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             const auto  NEXTSPACE = selector.find_first_of(' ', i);
             std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
-            i                     = NEXTSPACE;
+            i                     = std::min(NEXTSPACE, std::string::npos - 1);
 
             if (cur == 'r') {
                 int from = 0, to = 0;

@@ -201,6 +201,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
     } else if (selector.starts_with("name:")) {
         return m_szName == selector.substr(5);
+    } else if (selector.starts_with("special:")) {
+        return m_szName == selector;
     } else {
         // parse selector
 

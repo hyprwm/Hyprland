@@ -3,7 +3,7 @@
 #include "../events/Events.hpp"
 #include "../defines.hpp"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
-#include "../Window.hpp"
+#include "../desktop/Window.hpp"
 #include "../desktop/Subsurface.hpp"
 #include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"

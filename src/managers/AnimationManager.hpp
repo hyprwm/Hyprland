@@ -5,8 +5,9 @@
 #include <unordered_map>
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/BezierCurve.hpp"
-#include "../Window.hpp"
 #include "../helpers/Timer.hpp"
+
+class CWindow;
 
 class CAnimationManager {
   public:

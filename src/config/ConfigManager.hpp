@@ -13,7 +13,6 @@
 #include <optional>
 #include <functional>
 #include <xf86drmMode.h>
-#include "../Window.hpp"
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/VarList.hpp"
@@ -27,6 +26,8 @@
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 #define HANDLE void*
+
+class CWindow;
 
 struct SWorkspaceRule {
     std::string                        monitor         = "";

@@ -33,8 +33,11 @@ void CConstraint::initSignals() {
 }
 
 void CConstraint::onDestroy() {
-    if (active())
-        deactivate();
+    hyprListener_setConstraintRegion.removeCallback();
+    hyprListener_destroyConstraint.removeCallback();
+
+    if (active() && isLocked())
+        g_pCompositor->warpCursorTo(logicPositionHint(), true);
 
     // this is us
     m_pOwner->m_pConstraint.reset();

@@ -59,7 +59,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
-static void CHyprOpenGLImpl::logError(const GLuint& shader, bool program = false) {
+void CHyprOpenGLImpl::logError(const GLuint& shader, bool program) {
     GLint maxLength = 0;
     if (program)
         glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
@@ -74,8 +74,6 @@ static void CHyprOpenGLImpl::logError(const GLuint& shader, bool program = false
     std::string errorStr(errorLog.begin(), errorLog.end());
 
     g_pConfigManager->addParseError((program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr);
-
-    return 0;
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
@@ -108,8 +106,10 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
             logError(prog, true);
+            return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
     }
@@ -129,8 +129,10 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
 
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
             logError(shader, false);
+            return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
     }

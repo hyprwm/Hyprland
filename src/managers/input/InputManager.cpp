@@ -1418,7 +1418,7 @@ void CInputManager::setTabletConfigs() {
             Debug::log(LOG, "Setting calibration matrix for device {}", t.name);
             libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            if (g_pConfigManager->getDeviceInt(t.name, "left_handed", "input:left_handed") == 0)
+            if (g_pConfigManager->getDeviceInt(t.name, "left_handed", "input:tablet:left_handed") == 0)
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 0);
             else
                 libinput_device_config_left_handed_set(LIBINPUTDEV, 1);

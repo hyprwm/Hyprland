@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../desktop/Window.hpp"
 
 void IHyprLayout::onWindowCreated(CWindow* pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {

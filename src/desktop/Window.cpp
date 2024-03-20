@@ -1,9 +1,9 @@
 #include "Window.hpp"
-#include "Compositor.hpp"
-#include "render/decorations/CHyprDropShadowDecoration.hpp"
-#include "render/decorations/CHyprGroupBarDecoration.hpp"
-#include "render/decorations/CHyprBorderDecoration.hpp"
-#include "config/ConfigValue.hpp"
+#include "../Compositor.hpp"
+#include "../render/decorations/CHyprDropShadowDecoration.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../render/decorations/CHyprBorderDecoration.hpp"
+#include "../config/ConfigValue.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);

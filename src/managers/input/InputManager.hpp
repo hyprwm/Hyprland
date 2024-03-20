@@ -3,11 +3,11 @@
 #include "../../defines.hpp"
 #include <list>
 #include "../../helpers/WLClasses.hpp"
-#include "../../Window.hpp"
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 
 class CConstraint;
+class CWindow;
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,

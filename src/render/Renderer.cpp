@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
+#include "../desktop/Window.hpp"
 
 extern "C" {
 #include <xf86drm.h>

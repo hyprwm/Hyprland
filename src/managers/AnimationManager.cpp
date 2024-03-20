@@ -3,6 +3,7 @@
 #include "HookSystemManager.hpp"
 #include "macros.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../desktop/Window.hpp"
 
 int wlTick(void* data) {
     if (g_pAnimationManager)

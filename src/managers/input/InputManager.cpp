@@ -3,6 +3,7 @@
 #include "wlr/types/wlr_switch.h"
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
+#include "../../desktop/Window.hpp"
 
 CInputManager::~CInputManager() {
     m_vConstraints.clear();

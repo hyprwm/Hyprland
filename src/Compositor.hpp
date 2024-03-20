@@ -22,7 +22,7 @@
 #include "debug/HyprNotificationOverlay.hpp"
 #include "helpers/Monitor.hpp"
 #include "desktop/Workspace.hpp"
-#include "Window.hpp"
+#include "desktop/Window.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"

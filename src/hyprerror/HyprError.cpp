@@ -28,8 +28,8 @@ CHyprError::~CHyprError() {
 }
 
 void CHyprError::queueCreate(std::string message, const CColor& color) {
-    m_szQueued     = message;
-    m_cQueued      = color;
+    m_szQueued = message;
+    m_cQueued  = color;
 }
 
 void CHyprError::createQueued() {

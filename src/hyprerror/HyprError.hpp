@@ -11,9 +11,9 @@ class CHyprError {
     CHyprError();
     ~CHyprError();
 
-    void        queueCreate(std::string message, const CColor& color);
-    void        draw();
-    void        destroy();
+    void queueCreate(std::string message, const CColor& color);
+    void draw();
+    void destroy();
 
   private:
     void                     createQueued();

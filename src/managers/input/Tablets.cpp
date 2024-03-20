@@ -36,6 +36,12 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             const auto EVENT = (wlr_tablet_tool_axis_event*)data;
             const auto PTAB  = (STablet*)owner;
 
+            // Get tablet active area in mm and calculate bounds
+            const auto ACTIVE_AREA_SIZE = g_pConfigManager->getDeviceVec(PTAB->name, "active_area_size", "input:tablet:active_area_size");
+            const auto ACTIVE_AREA_POS = g_pConfigManager->getDeviceVec(PTAB->name, "active_area_position", "input:tablet:active_area_position");
+            const auto MIN_BOUNDS = Vector2D { ACTIVE_AREA_POS.x / PTAB->wlrTablet->width_mm, ACTIVE_AREA_POS.y / PTAB->wlrTablet->height_mm };
+            const auto MAX_BOUNDS = Vector2D { ( ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x ) / PTAB->wlrTablet->width_mm, ( ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y ) / PTAB->wlrTablet->height_mm };
+
             switch (EVENT->tool->type) {
                 case WLR_TABLET_TOOL_TYPE_MOUSE:
                     wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
@@ -52,7 +58,14 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                     if (PTAB->relativeInput)
                         wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
                     else
+                    {
+                        // Calculate transformations if upper bounds are set
+                        if(MAX_BOUNDS.x != 0 || MAX_BOUNDS.y != 0) {
+                            x = (x - MIN_BOUNDS.x) / (MAX_BOUNDS.x - MIN_BOUNDS.x);
+                            y = (y - MIN_BOUNDS.y) / (MAX_BOUNDS.y - MIN_BOUNDS.y);
+                        }
                         wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
+                    }
 
                     g_pInputManager->simulateMouseMovement();
                     g_pInputManager->focusTablet(PTAB, EVENT->tool, true);

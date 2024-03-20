@@ -500,7 +500,7 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
 
 std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
-    std::string currErrors = g_pHyprError->getErrors();
+    std::string currErrors = g_pConfigManager->getErrors();
     CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";

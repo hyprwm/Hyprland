@@ -476,6 +476,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:tablet:region_position", Hyprlang::VEC2{0, 0});
     m_pConfig->addConfigValue("input:tablet:region_size", Hyprlang::VEC2{0, 0});
     m_pConfig->addConfigValue("input:tablet:relative_input", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("input:tablet:left_handed", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("binds:pass_mouse_when_bound", Hyprlang::INT{0});
     m_pConfig->addConfigValue("binds:scroll_event_delay", Hyprlang::INT{300});

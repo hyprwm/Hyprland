@@ -17,6 +17,7 @@
 
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
+#include "../hyprerror/HyprError.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -492,6 +493,29 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
     } else {
         for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
             result += std::format("{}\n", m);
+        }
+    }
+    return result;
+}
+
+std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
+    std::string result     = "";
+    std::string currErrors = g_pConfigManager->getErrors();
+    CVarList    errLines(currErrors, 0, '\n');
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        result += "[";
+        for (auto line : errLines) {
+            result += std::format(
+                R"#(
+	"{}",)#",
+
+                escapeJSONStrings(line));
+        }
+        trimTrailingComma(result);
+        result += "\n]\n";
+    } else {
+        for (auto line : errLines) {
+            result += std::format("{}\n", line);
         }
     }
     return result;
@@ -1531,6 +1555,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"animations", true, animationsRequest});
     registerCommand(SHyprCtlCommand{"rollinglog", true, rollinglogRequest});
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
+    registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

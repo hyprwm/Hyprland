@@ -142,6 +142,7 @@ class CConfigManager {
     void                      addExecRule(const SExecRequestedRule&);
 
     void                      handlePluginLoads();
+    std::string               getErrors();
 
     // keywords
     std::optional<std::string> handleRawExec(const std::string&, const std::string&);
@@ -193,6 +194,7 @@ class CConfigManager {
     std::deque<std::string>                                   firstExecRequests;
 
     std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+    std::string                                               m_szConfigErrors = "";
 
     // internal methods
     void                       setAnimForChildren(SAnimationPropertyConfig* const);

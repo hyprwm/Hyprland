@@ -299,6 +299,7 @@ struct STextInput {
     DYNLISTENER(textInputDisable);
     DYNLISTENER(textInputCommit);
     DYNLISTENER(textInputDestroy);
+    DYNLISTENER(surfaceDestroy);
 };
 
 struct SIMEKbGrab {

@@ -49,6 +49,7 @@ class CInputMethodRelay {
     void                                          onTextInputLeave(wlr_surface* pSurface);
     void                                          onTextInputEnter(wlr_surface* pSurface);
 
+    mutable std::mutex                            m_mSurfaceToTextInputMutex;
     std::unordered_map<wlr_surface*, STextInput*> m_mSurfaceToTextInput;
     void                                          setSurfaceToPTI(wlr_surface* pSurface, STextInput* pInput);
     STextInput*                                   getTextInput(wlr_surface* pSurface);

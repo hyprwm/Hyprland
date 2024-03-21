@@ -393,7 +393,6 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
 
             wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
 
-            g_pInputManager->m_sIMERelay.removeSurfaceToPTI(PINPUT);
             g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
         },
         PTEXTINPUT, "textInput");
@@ -414,6 +413,7 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
                 g_pInputManager->m_sIMERelay.commitIMEState(PINPUT);
             }
 
+            PINPUT->hyprListener_surfaceDestroy.removeCallback();
             PINPUT->hyprListener_textInputCommit.removeCallback();
             PINPUT->hyprListener_textInputDestroy.removeCallback();
             PINPUT->hyprListener_textInputDisable.removeCallback();
@@ -474,7 +474,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
     if (STextInput* lastTI = getTextInput(m_pFocusedSurface); lastTI) {
         wlr_input_method_v2_send_deactivate(m_pWLRIME);
         commitIMEState(lastTI);
-        onTextInputLeave(m_pFocusedSurface);
+        onTextInputLeave(lastTI->focusedSurface);
     }
 
     // do some work for the new focused surface
@@ -486,7 +486,7 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
          * since original code has the same problem, it may not be a big deal.
     */
     if (getTextInputVersion(wl_resource_get_client(pSurface->resource)) == 3) {
-        if (!getTextInput(pSurface)) {
+        if (const STextInput* PTI = getTextInput(pSurface); !PTI || !PTI->focusedSurface) {
             auto client = [](STextInput* pTI) -> wl_client* { return pTI->pWlrInput ? wl_resource_get_client(pTI->pWlrInput->resource) : pTI->pV1Input->client; };
             for (auto& ti : m_lTextInputs) {
                 if (client(&ti) == wl_resource_get_client(pSurface->resource) && ti.pWlrInput)
@@ -534,20 +534,35 @@ void CInputMethodRelay::onTextInputEnter(wlr_surface* pSurface) {
 
 void CInputMethodRelay::setSurfaceToPTI(wlr_surface* pSurface, STextInput* pInput) {
     if (pSurface) {
+        std::lock_guard<std::mutex> lock(m_mSurfaceToTextInputMutex);
         m_mSurfaceToTextInput[pSurface] = pInput;
         pInput->focusedSurface          = pSurface;
+        pInput->hyprListener_surfaceDestroy.removeCallback();
+        pInput->hyprListener_surfaceDestroy.initCallback(
+            &pSurface->events.destroy,
+            [&](void* owner, void* data) {
+                // do not use owner, we need to check PTI is still in map
+                if (const auto PTI = getTextInput(pSurface); PTI) {
+                    PTI->hyprListener_surfaceDestroy.removeCallback();
+                    PTI->focusedSurface = nullptr;
+                }
+            },
+            pInput, "textInput");
     }
 }
 
 void CInputMethodRelay::removeSurfaceToPTI(STextInput* pInput) {
     if (pInput->focusedSurface) {
+        std::lock_guard<std::mutex> lock(m_mSurfaceToTextInputMutex);
         m_mSurfaceToTextInput.erase(pInput->focusedSurface);
         pInput->focusedSurface = nullptr;
     }
 }
 
 STextInput* CInputMethodRelay::getTextInput(wlr_surface* pSurface) {
-    auto result = m_mSurfaceToTextInput.find(pSurface);
+    std::lock_guard<std::mutex> lock(m_mSurfaceToTextInputMutex);
+
+    auto                        result = m_mSurfaceToTextInput.find(pSurface);
     if (result != m_mSurfaceToTextInput.end())
         return result->second;
 

@@ -217,7 +217,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
         }
     }
 
-    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID)
+    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID && pWorkspace->m_iMonitorID == pMonitor->ID)
         return true;
 
     // if not, check if it maybe is active on a different monitor.
@@ -227,8 +227,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
     if (pMonitor->specialWorkspaceID == pWindow->m_iWorkspaceID)
         return true;
 
-    if (pWindow->m_vRealPosition.isBeingAnimated()) {
-        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+    static auto PANIMMONS = CConfigValue<Hyprlang::INT>("misc:animate_across_monitors");
+    if (*PANIMMONS && pWindow->m_vRealPosition.isBeingAnimated()) {
+        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_bIsSpecialWorkspace && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
             return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)

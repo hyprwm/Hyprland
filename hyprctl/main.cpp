@@ -30,6 +30,7 @@ commands:
     activeworkspace
     binds
     clients
+    configerrors
     cursorpos
     decorations
     devices
@@ -45,8 +46,10 @@ commands:
     layouts
     monitors
     notify
+    output
     plugin
     reload
+    rollinglog
     setcursor
     seterror
     setprop

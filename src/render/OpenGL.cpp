@@ -59,7 +59,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
-void CHyprOpenGLImpl::logError(const GLuint& shader, bool program) {
+void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program) {
     GLint maxLength = 0;
     if (program)
         glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
@@ -107,7 +107,7 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
         if (ok == GL_FALSE) {
-            logError(prog, true);
+            logShaderError(prog, true);
             return 0;
         }
     } else {
@@ -130,7 +130,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
     if (dynamic) {
         if (ok == GL_FALSE) {
-            logError(shader, false);
+            logShaderError(shader, false);
             return 0;
         }
     } else {

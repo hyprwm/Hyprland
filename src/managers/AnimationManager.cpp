@@ -87,8 +87,13 @@ void CAnimationManager::tick() {
 
         CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
-            WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
-            PMONITOR   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+            CBox       bb               = PWINDOW->getFullWindowBoundingBox();
+            const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+            if (PWINDOWWORKSPACE)
+                bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+            WLRBOXPREV = bb;
+
+            PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             if (!PMONITOR)
                 continue;
             animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;
@@ -189,7 +194,11 @@ void CAnimationManager::tick() {
 
                 if (PWINDOW) {
                     PWINDOW->updateWindowDecos();
-                    g_pHyprRenderer->damageWindow(PWINDOW);
+                    auto       bb               = PWINDOW->getFullWindowBoundingBox();
+                    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+                    if (PWINDOWWORKSPACE)
+                        bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+                    g_pHyprRenderer->damageBox(&bb);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
                         if (!w->m_bIsMapped || w->isHidden())
@@ -236,7 +245,10 @@ void CAnimationManager::tick() {
                                            BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
-                CBox WLRBOXNEW = {PWINDOW->m_vRealPosition.value(), PWINDOW->m_vRealSize.value()};
+                CBox       WLRBOXNEW        = PWINDOW->getFullWindowBoundingBox();
+                const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+                if (PWINDOWWORKSPACE)
+                    WLRBOXNEW.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE); // left
                 g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,

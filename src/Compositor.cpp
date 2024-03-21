@@ -2542,7 +2542,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     bool        isExact    = false;
 
     std::string x = args.substr(0, args.find_first_of(' '));
-    std::string y = args.substr(args.find_first_of(' ') + 1);
+    std::string y = args.substr(args.find_last_of(' ') + 1);
 
     if (x == "exact") {
         x       = y.substr(0, y.find_first_of(' '));

@@ -56,7 +56,7 @@ int               main(int argc, char** argv, char** envp) {
                 force = true;
                 std::cout << Colors::RED << "!" << Colors::RESET << " Using --force, I hope you know what you are doing.\n";
             } else {
-                std::cerr << "Unrecognized option " << ARGS[i];
+                std::cerr << "Unrecognized option " << ARGS[i] << "\n";
                 return 1;
             }
         } else {

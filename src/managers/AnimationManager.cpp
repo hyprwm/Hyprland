@@ -88,7 +88,7 @@ void CAnimationManager::tick() {
         CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
             WLRBOXPREV = PWINDOW->getFullWindowBoundingBox();
-            PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+            PMONITOR   = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             if (!PMONITOR)
                 continue;
             animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;

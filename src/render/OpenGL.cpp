@@ -59,6 +59,23 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
+void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program) {
+    GLint maxLength = 0;
+    if (program)
+        glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+    else
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    std::vector<GLchar> errorLog(maxLength);
+    if (program)
+        glGetProgramInfoLog(shader, maxLength, &maxLength, errorLog.data());
+    else
+        glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
+    std::string errorStr(errorLog.begin(), errorLog.end());
+
+    g_pConfigManager->addParseError((program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr);
+}
+
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
     auto vertCompiled = compileShader(GL_VERTEX_SHADER, vert, dynamic);
     if (dynamic) {
@@ -89,8 +106,10 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     GLint ok;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
+            logShaderError(prog, true);
             return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
     }
@@ -108,9 +127,12 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 
     GLint ok;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+
     if (dynamic) {
-        if (ok == GL_FALSE)
+        if (ok == GL_FALSE) {
+            logShaderError(shader, false);
             return 0;
+        }
     } else {
         RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
     }
@@ -550,7 +572,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.program = createProgram(fragmentShader.starts_with("#version 320 es") ? TEXVERTSRC320 : TEXVERTSRC, fragmentShader, true);
 
     if (!m_sFinalScreenShader.program) {
-        g_pConfigManager->addParseError("Screen shader parser: Screen shader parse failed");
+        // Error will have been sent by now by the underlying cause
         return;
     }
 

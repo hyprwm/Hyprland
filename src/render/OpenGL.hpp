@@ -219,6 +219,7 @@ class CHyprOpenGLImpl {
     CShader           m_sFinalScreenShader;
     CTimer            m_tGlobalTimer;
 
+    void              logShaderError(const GLuint&, bool program = false);
     GLuint            createProgram(const std::string&, const std::string&, bool dynamic = false);
     GLuint            compileShader(const GLuint&, std::string, bool dynamic = false);
     void              createBGTextureForMonitor(CMonitor*);

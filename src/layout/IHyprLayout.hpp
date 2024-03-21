@@ -4,6 +4,7 @@
 #include <any>
 
 class CWindow;
+class CGradientValueData;
 
 struct SWindowRenderLayoutHints {
     bool                isBorderGradient = false;

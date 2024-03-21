@@ -227,7 +227,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
     if (pMonitor->specialWorkspaceID == pWindow->m_iWorkspaceID)
         return true;
 
-    if (pWindow->m_vRealPosition.isBeingAnimated() && !PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated()) {
+    if (pWindow->m_vRealPosition.isBeingAnimated()) {
+        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+            return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
         CBox       windowBox  = {pWindow->m_vRealPosition.value(), pWindow->m_vRealSize.value()};

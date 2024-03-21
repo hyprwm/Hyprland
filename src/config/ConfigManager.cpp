@@ -744,11 +744,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     // parseError will be displayed next frame
 
-    if (result.error) {
+    if (result.error)
         m_szConfigErrors = result.getError();
-    } else {
+    else
         m_szConfigErrors = "";
-    }
 
     if (result.error && !std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("debug:suppress_errors")))
         g_pHyprError->queueCreate(result.getError(), CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));

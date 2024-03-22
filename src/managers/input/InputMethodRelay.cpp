@@ -506,6 +506,9 @@ void CInputMethodRelay::onTextInputLeave(wlr_surface* pSurface) {
     if (!ti)
         return;
 
+    if (ti->pWlrInput && !ti->pWlrInput->focused_surface)
+        return;
+
     if (ti->pWlrInput)
         wlr_text_input_v3_send_leave(ti->pWlrInput);
     else {

@@ -13,8 +13,6 @@ struct STextInputV1 {
 
     wl_resource* resourceImpl = nullptr;
 
-    wlr_surface* focusedSurface = nullptr;
-
     STextInput*  pTextInput = nullptr;
 
     wl_signal    sEnable;

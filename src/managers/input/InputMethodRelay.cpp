@@ -143,7 +143,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
 }
 
 wlr_surface* CInputMethodRelay::focusedSurface(STextInput* pTI) {
-    return pTI->pWlrInput ? pTI->pWlrInput->focused_surface : pTI->pV1Input->focusedSurface;
+    return pTI->pWlrInput ? pTI->pWlrInput->focused_surface : pTI->focusedSurface;
 }
 
 void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
@@ -346,8 +346,8 @@ void CInputMethodRelay::createNewTextInput(wlr_text_input_v3* pInput, STextInput
 
             // v1 only, map surface to PTI
             if (PINPUT->pV1Input) {
-                wlr_surface* pSurface  = wlr_surface_from_resource((wl_resource*)data);
-                PINPUT->focusedSurface = pSurface;
+                wlr_surface* pSurface = wlr_surface_from_resource((wl_resource*)data);
+                PINPUT->setFocusedSurface(pSurface);
                 setSurfaceToPTI(pSurface, PINPUT);
                 if (m_pFocusedSurface == pSurface)
                     onTextInputEnter(pSurface);
@@ -510,8 +510,8 @@ void CInputMethodRelay::onTextInputLeave(wlr_surface* pSurface) {
         wlr_text_input_v3_send_leave(ti->pWlrInput);
     else {
         zwp_text_input_v1_send_leave(ti->pV1Input->resourceImpl);
-        ti->pV1Input->focusedSurface = nullptr;
-        ti->pV1Input->active         = false;
+        ti->setFocusedSurface(nullptr);
+        ti->pV1Input->active = false;
     }
 }
 
@@ -527,23 +527,26 @@ void CInputMethodRelay::onTextInputEnter(wlr_surface* pSurface) {
         wlr_text_input_v3_send_enter(ti->pWlrInput, pSurface);
     else {
         zwp_text_input_v1_send_enter(ti->pV1Input->resourceImpl, pSurface->resource);
-        ti->pV1Input->focusedSurface = pSurface;
-        ti->pV1Input->active         = true;
+        ti->setFocusedSurface(pSurface);
+        ti->pV1Input->active = true;
     }
 }
 
 void CInputMethodRelay::setSurfaceToPTI(wlr_surface* pSurface, STextInput* pInput) {
     if (pSurface) {
         m_mSurfaceToTextInput[pSurface] = pInput;
-        pInput->focusedSurface          = pSurface;
+        pInput->setFocusedSurface(pSurface);
     }
 }
 
 void CInputMethodRelay::removeSurfaceToPTI(STextInput* pInput) {
     if (pInput->focusedSurface) {
         m_mSurfaceToTextInput.erase(pInput->focusedSurface);
-        pInput->focusedSurface = nullptr;
+        pInput->setFocusedSurface(nullptr);
+        return;
     }
+
+    std::erase_if(m_mSurfaceToTextInput, [pInput](const auto& el) { return el.second == pInput; });
 }
 
 STextInput* CInputMethodRelay::getTextInput(wlr_surface* pSurface) {

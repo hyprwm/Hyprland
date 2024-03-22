@@ -62,4 +62,5 @@ class CInputMethodRelay {
     friend class CHyprRenderer;
     friend class CInputManager;
     friend class CTextInputV1ProtocolManager;
+    friend struct STextInput;
 };

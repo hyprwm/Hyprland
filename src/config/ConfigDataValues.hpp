@@ -61,6 +61,7 @@ class CGradientValueData : public ICustomConfigValueData {
         }
 
         result += std::format("{}deg", (int)(m_fAngle * 180.0 / M_PI));
+        return result;
     }
 };
 

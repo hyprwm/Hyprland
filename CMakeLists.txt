@@ -121,7 +121,6 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         message(STATUS "Enabling ASan")
 
         target_link_libraries(Hyprland asan)
-        target_link_libraries(Hyprland ${CMAKE_SOURCE_DIR}/libwayland-server.a)
         target_compile_options(Hyprland PUBLIC -fsanitize=address)
     endif()
 

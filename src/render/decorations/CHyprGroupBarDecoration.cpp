@@ -425,6 +425,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const int   WINDOWINDEX  = (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
     // close window on middle click
     if (e->button == 274) {
@@ -452,6 +453,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
 
     if (pWindow != m_pWindow)
         pWindow->setGroupCurrent(pWindow);
+
+    if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
+        g_pCompositor->focusWindow(pWindow);
 
     if (pWindow->m_bIsFloating)
         g_pCompositor->changeWindowZOrder(pWindow, 1);

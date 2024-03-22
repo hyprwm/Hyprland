@@ -295,10 +295,14 @@ struct STextInput {
     STextInputV1*      pV1Input       = nullptr;
     wlr_surface*       focusedSurface = nullptr;
 
+    void               setFocusedSurface(wlr_surface* pSurface);
+
     DYNLISTENER(textInputEnable);
     DYNLISTENER(textInputDisable);
     DYNLISTENER(textInputCommit);
     DYNLISTENER(textInputDestroy);
+    DYNLISTENER(surfaceUnmapped);
+    DYNLISTENER(surfaceDestroyed);
 };
 
 struct SIMEKbGrab {

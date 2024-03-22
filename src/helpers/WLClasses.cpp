@@ -244,39 +244,3 @@ void SKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     xkb_keymap_unref(NEWKEYMAP);
     xkb_context_unref(PCONTEXT);
 }
-
-void STextInput::setFocusedSurface(wlr_surface* pSurface) {
-    focusedSurface = pSurface;
-
-    hyprListener_surfaceUnmapped.removeCallback();
-    hyprListener_surfaceDestroyed.removeCallback();
-
-    if (!pSurface)
-        return;
-
-    hyprListener_surfaceUnmapped.initCallback(
-        &pSurface->events.unmap,
-        [this](void* owner, void* data) {
-            if (!focusedSurface)
-                return;
-
-            focusedSurface = nullptr;
-            hyprListener_surfaceUnmapped.removeCallback();
-            hyprListener_surfaceDestroyed.removeCallback();
-            g_pInputManager->m_sIMERelay.removeSurfaceToPTI(this);
-        },
-        this, "STextInput");
-
-    hyprListener_surfaceDestroyed.initCallback(
-        &pSurface->events.destroy,
-        [this](void* owner, void* data) {
-            if (!focusedSurface)
-                return;
-
-            focusedSurface = nullptr;
-            hyprListener_surfaceUnmapped.removeCallback();
-            hyprListener_surfaceDestroyed.removeCallback();
-            g_pInputManager->m_sIMERelay.removeSurfaceToPTI(this);
-        },
-        this, "STextInput");
-}

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-struct STextInput;
+class CTextInput;
 
 struct STextInputV1 {
     wl_client*   client         = nullptr;
@@ -13,7 +13,7 @@ struct STextInputV1 {
 
     wl_resource* resourceImpl = nullptr;
 
-    STextInput*  pTextInput = nullptr;
+    CTextInput*  pTextInput = nullptr;
 
     wl_signal    sEnable;
     wl_signal    sDisable;

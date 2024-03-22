@@ -288,23 +288,6 @@ struct SSwipeGesture {
     CMonitor*   pMonitor = nullptr;
 };
 
-struct STextInputV1;
-
-struct STextInput {
-    wlr_text_input_v3* pWlrInput      = nullptr;
-    STextInputV1*      pV1Input       = nullptr;
-    wlr_surface*       focusedSurface = nullptr;
-
-    void               setFocusedSurface(wlr_surface* pSurface);
-
-    DYNLISTENER(textInputEnable);
-    DYNLISTENER(textInputDisable);
-    DYNLISTENER(textInputCommit);
-    DYNLISTENER(textInputDestroy);
-    DYNLISTENER(surfaceUnmapped);
-    DYNLISTENER(surfaceDestroyed);
-};
-
 struct SIMEKbGrab {
     wlr_input_method_keyboard_grab_v2* pWlrKbGrab = nullptr;
 
@@ -319,7 +302,7 @@ struct SIMEPopup {
     int                         x, y;
     int                         realX, realY;
     bool                        visible;
-    Vector2D                    lastSize;
+    CBox                        lastBox;
 
     DYNLISTENER(mapPopup);
     DYNLISTENER(unmapPopup);

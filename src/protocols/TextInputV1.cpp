@@ -131,7 +131,7 @@ static void destroyTI(wl_resource* resource) {
         wl_resource_set_user_data(resource, nullptr);
     }
 
-    TI->pTextInput->hyprListener_textInputDestroy.emit(nullptr);
+    TI->pTextInput->tiV1Destroyed();
 
     g_pProtocolManager->m_pTextInputV1ProtocolManager->removeTI(TI);
 }
@@ -158,7 +158,7 @@ void CTextInputV1ProtocolManager::createTI(wl_client* client, wl_resource* resou
     wl_signal_init(&PTI->sDestroy);
     wl_signal_init(&PTI->sCommit);
 
-    g_pInputManager->m_sIMERelay.createNewTextInput(nullptr, PTI);
+    g_pInputManager->m_sIMERelay.onNewTextInput(PTI);
 }
 
 void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface) {
@@ -167,12 +167,12 @@ void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource*
         Debug::log(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)PTI);
         return;
     }
-    PTI->pTextInput->hyprListener_textInputEnable.emit(surface);
+    PTI->pTextInput->onEnabled(wlr_surface_from_resource(surface));
 }
 
 void CTextInputV1ProtocolManager::handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {
     const auto PTI = tiFromResource(resource);
-    PTI->pTextInput->hyprListener_textInputDisable.emit(nullptr);
+    PTI->pTextInput->onDisabled();
 }
 
 void CTextInputV1ProtocolManager::handleShowInputPanel(wl_client* client, wl_resource* resource) {
@@ -212,7 +212,7 @@ void CTextInputV1ProtocolManager::handleSetPreferredLanguage(wl_client* client, 
 void CTextInputV1ProtocolManager::handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial) {
     const auto PTI = tiFromResource(resource);
     PTI->serial    = serial;
-    PTI->pTextInput->hyprListener_textInputCommit.emit(nullptr);
+    PTI->pTextInput->onCommit();
 }
 
 void CTextInputV1ProtocolManager::handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index) {

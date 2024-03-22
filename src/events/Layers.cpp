@@ -148,6 +148,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
         (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained());
 
     if (GRABSFOCUS) {
+        g_pInputManager->releaseAllMouseButtons();
         g_pCompositor->focusSurface(layersurface->layerSurface->surface);
 
         const auto LOCAL =

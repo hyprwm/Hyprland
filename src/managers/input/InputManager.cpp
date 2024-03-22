@@ -1438,6 +1438,13 @@ void CInputManager::setTabletConfigs() {
             auto       regionBox   = CBox{REGION_POS.x, REGION_POS.y, REGION_SIZE.x, REGION_SIZE.y};
             if (!regionBox.empty())
                 wlr_cursor_map_input_to_region(g_pCompositor->m_sWLRCursor, t.wlrDevice, regionBox.pWlr());
+
+            const auto ACTIVE_AREA_SIZE = g_pConfigManager->getDeviceVec(t.name, "active_area_size", "input:tablet:active_area_size");
+            const auto ACTIVE_AREA_POS  = g_pConfigManager->getDeviceVec(t.name, "active_area_position", "input:tablet:active_area_position");
+            if (ACTIVE_AREA_SIZE.x != 0 || ACTIVE_AREA_SIZE.y != 0) {
+                t.activeArea = CBox{ACTIVE_AREA_POS.x / t.wlrTablet->width_mm, ACTIVE_AREA_POS.y / t.wlrTablet->height_mm,
+                                    (ACTIVE_AREA_POS.x + ACTIVE_AREA_SIZE.x) / t.wlrTablet->width_mm, (ACTIVE_AREA_POS.y + ACTIVE_AREA_SIZE.y) / t.wlrTablet->height_mm};
+            }
         }
     }
 }

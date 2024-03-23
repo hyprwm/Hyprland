@@ -657,7 +657,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         }
 
         for (auto& d : g_pInputManager->m_lTablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.name);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)&d, d.name, d.wlrTablet->width_mm, d.wlrTablet->height_mm);
         }
 
         for (auto& d : g_pInputManager->m_lTabletTools) {

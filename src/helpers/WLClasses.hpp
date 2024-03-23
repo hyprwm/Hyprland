@@ -217,6 +217,8 @@ struct STablet {
 
     std::string           boundOutput = "";
 
+    CBox                  activeArea;
+
     //
     bool operator==(const STablet& b) const {
         return wlrDevice == b.wlrDevice;

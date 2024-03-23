@@ -71,9 +71,10 @@ void CTextInput::onEnabled(wlr_surface* surfV1) {
     // v1 only, map surface to PTI
     if (!isV3()) {
         wlr_surface* pSurface = surfV1;
-        setFocusedSurface(pSurface);
         if (g_pCompositor->m_pLastFocus == pSurface)
             enter(pSurface);
+        else
+            setFocusedSurface(pSurface);
     }
 
     wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);

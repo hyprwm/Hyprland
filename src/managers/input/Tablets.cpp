@@ -51,8 +51,14 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
                     if (PTAB->relativeInput)
                         wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
-                    else
+                    else {
+                        // Calculate transformations if active area is set
+                        if (!PTAB->activeArea.empty()) {
+                            x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
+                            y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
+                        }
                         wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
+                    }
 
                     g_pInputManager->simulateMouseMovement();
                     g_pInputManager->focusTablet(PTAB, EVENT->tool, true);

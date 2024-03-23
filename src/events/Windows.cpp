@@ -877,6 +877,8 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         g_pCompositor->m_pLastFocus  = nullptr;
     }
 
+    PWINDOW->m_pWLSurface.unassign();
+
     PWINDOW->hyprListener_commitWindow.removeCallback();
     PWINDOW->hyprListener_mapWindow.removeCallback();
     PWINDOW->hyprListener_unmapWindow.removeCallback();
@@ -1217,6 +1219,8 @@ void Events::listener_surfaceXWayland(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XWSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_setOverrideRedirect.initCallback(&XWSURFACE->events.set_override_redirect, &Events::listener_setOverrideRedirect, PNEWWINDOW, "XWayland Window");
     PNEWWINDOW->hyprListener_configureX11.initCallback(&XWSURFACE->events.request_configure, &Events::listener_configureX11, PNEWWINDOW, "XWayland Window");
+
+    PNEWWINDOW->m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(PNEWWINDOW), PNEWWINDOW);
 }
 
 void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
@@ -1232,6 +1236,8 @@ void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     PNEWWINDOW->hyprListener_mapWindow.initCallback(&XDGSURFACE->surface->events.map, &Events::listener_mapWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_destroyWindow.initCallback(&XDGSURFACE->events.destroy, &Events::listener_destroyWindow, PNEWWINDOW, "XDG Window");
     PNEWWINDOW->hyprListener_commitWindow.initCallback(&XDGSURFACE->surface->events.commit, &Events::listener_commitWindow, PNEWWINDOW, "XDG Window");
+
+    PNEWWINDOW->m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(PNEWWINDOW), PNEWWINDOW);
 }
 
 void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {

@@ -109,14 +109,13 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(w.get());
             }
 
-            // if a workspace window is on any monitor, damage it
+            // if a special workspace window is on any monitor, damage it
             for (auto& w : g_pCompositor->m_vWindows) {
                 for (auto& m : g_pCompositor->m_vMonitors) {
-                    if (w->m_iWorkspaceID == PWORKSPACE->m_iID && g_pCompositor->windowValidMapped(w.get()) && g_pHyprRenderer->shouldRenderWindow(w.get(), m.get(), PWORKSPACE)) {
+                    if (w->m_iWorkspaceID == PWORKSPACE->m_iID && PWORKSPACE->m_bIsSpecialWorkspace && g_pCompositor->windowValidMapped(w.get()) &&
+                        g_pHyprRenderer->shouldRenderWindow(w.get(), m.get(), PWORKSPACE)) {
                         CBox bb = w->getFullWindowBoundingBox();
                         bb.translate(PWORKSPACE->m_vRenderOffset.value());
-                        if (PWORKSPACE->m_bIsSpecialWorkspace)
-                            bb.scaleFromCenter(1.1); // for some reason special ws windows getting border artifacts if you close it too quickly...
                         bb.intersection({m->vecPosition, m->vecSize});
                         g_pHyprRenderer->damageBox(&bb);
                     }
@@ -197,7 +196,8 @@ void CAnimationManager::tick() {
                     PWINDOW->updateWindowDecos();
                     auto       bb               = PWINDOW->getFullWindowBoundingBox();
                     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-                    bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+                    if (PWINDOWWORKSPACE)
+                        bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
                     g_pHyprRenderer->damageBox(&bb);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
@@ -245,7 +245,7 @@ void CAnimationManager::tick() {
                                            BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
-                CBox       WLRBOXNEW        = {PWINDOW->m_vRealPosition.value(), PWINDOW->m_vRealSize.value()};
+                CBox       WLRBOXNEW        = PWINDOW->getFullWindowBoundingBox();
                 const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
                 if (PWINDOWWORKSPACE)
                     WLRBOXNEW.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());

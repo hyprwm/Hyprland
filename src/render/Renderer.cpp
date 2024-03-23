@@ -217,7 +217,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
         }
     }
 
-    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID)
+    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID && pWorkspace->m_iMonitorID == pMonitor->ID)
         return true;
 
     // if not, check if it maybe is active on a different monitor.
@@ -228,9 +228,11 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
         return true;
 
     if (pWindow->m_vRealPosition.isBeingAnimated()) {
+        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_bIsSpecialWorkspace && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+            return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
-        CBox       windowBox  = {pWindow->m_vRealPosition.value(), pWindow->m_vRealSize.value()};
+        CBox       windowBox  = pWindow->getFullWindowBoundingBox();
         const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
         if (!windowBox.intersection(monitorBox).empty())
             return true;

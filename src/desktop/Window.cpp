@@ -468,8 +468,6 @@ void CWindow::onUnmap() {
 
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other == this; });
 
-    m_pWLSurface.unassign();
-
     hyprListener_unmapWindow.removeCallback();
 
     if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(m_iWorkspaceID) == 0 && g_pCompositor->isWorkspaceSpecial(m_iWorkspaceID)) {
@@ -493,9 +491,6 @@ void CWindow::onUnmap() {
 }
 
 void CWindow::onMap() {
-
-    m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(this), this);
-
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
     m_vRealPosition.resetAllCallbacks();
     m_vRealSize.resetAllCallbacks();

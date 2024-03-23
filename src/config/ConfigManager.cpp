@@ -586,10 +586,12 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->commence();
 
-    Debug::log(LOG, "NOTE: further logs to stdout / logfile are disabled by default. Use debug:disable_logs and debug:enable_stdout_logs to override this.");
-
     setDefaultAnimationVars();
     resetHLConfig();
+
+    Debug::log(LOG,
+               "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
+               "https://wiki.hyprland.org/Configuring/Variables/#debug");
 
     Debug::disableLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_logs")->getDataStaticPtr());
     Debug::disableTime = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:disable_time")->getDataStaticPtr());

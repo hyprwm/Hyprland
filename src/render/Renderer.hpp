@@ -115,7 +115,7 @@ class CHyprRenderer {
     void           renderLayer(SLayerSurface*, CMonitor*, timespec*);
     void           renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void           renderDragIcon(CMonitor*, timespec*);
-    void           renderIMEPopup(SIMEPopup*, CMonitor*, timespec*);
+    void           renderIMEPopup(CInputPopup*, CMonitor*, timespec*);
     void           renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const CBox& geometry);
     void           renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 

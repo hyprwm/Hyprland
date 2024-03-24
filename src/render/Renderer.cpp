@@ -679,16 +679,20 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
     g_pHyprOpenGL->m_RenderData.clipBox = {};
 }
 
-void CHyprRenderer::renderIMEPopup(SIMEPopup* pPopup, CMonitor* pMonitor, timespec* time) {
-    SRenderData renderdata = {pMonitor, time, pPopup->realX, pPopup->realY};
+void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, CMonitor* pMonitor, timespec* time) {
+    const auto  POS = pPopup->globalBox().pos();
+
+    SRenderData renderdata = {pMonitor, time, POS.x, POS.y};
+
+    const auto  SURF = pPopup->getWlrSurface();
 
     renderdata.blur     = false;
-    renderdata.surface  = pPopup->pSurface->surface;
+    renderdata.surface  = SURF;
     renderdata.decorate = false;
-    renderdata.w        = pPopup->pSurface->surface->current.width;
-    renderdata.h        = pPopup->pSurface->surface->current.height;
+    renderdata.w        = SURF->current.width;
+    renderdata.h        = SURF->current.height;
 
-    wlr_surface_for_each_surface(pPopup->pSurface->surface, renderSurface, &renderdata);
+    wlr_surface_for_each_surface(SURF, renderSurface, &renderdata);
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMonitor* pMonitor, timespec* time) {
@@ -830,8 +834,8 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     }
 
     // Render IME popups
-    for (auto& imep : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
-        renderIMEPopup(&imep, pMonitor, time);
+    for (auto& imep : g_pInputManager->m_sIMERelay.m_vIMEPopups) {
+        renderIMEPopup(imep.get(), pMonitor, time);
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {

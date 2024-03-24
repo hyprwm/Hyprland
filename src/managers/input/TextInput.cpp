@@ -222,9 +222,7 @@ void CTextInput::commitStateToIME(wlr_input_method_v2* ime) {
             wlr_input_method_v2_send_content_type(ime, pV1Input->pendingContentType.hint, pV1Input->pendingContentType.purpose);
     }
 
-    for (auto& p : g_pInputManager->m_sIMERelay.m_lIMEPopups) {
-        g_pInputManager->m_sIMERelay.updateInputPopup(&p);
-    }
+    g_pInputManager->m_sIMERelay.updateAllPopups();
 
     wlr_input_method_v2_send_done(ime);
 }

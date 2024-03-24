@@ -126,12 +126,6 @@ namespace Events {
     LISTENER(newTextInput);
     LISTENER(newVirtualKeyboard);
 
-    // IME Popups
-    DYNLISTENFUNC(mapInputPopup);
-    DYNLISTENFUNC(unmapInputPopup);
-    DYNLISTENFUNC(commitInputPopup);
-    DYNLISTENFUNC(destroyInputPopup);
-
     // Touch
     LISTENER(touchBegin);
     LISTENER(touchEnd);

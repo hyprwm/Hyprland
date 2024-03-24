@@ -86,14 +86,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
     hyprListener_IMENewPopup.initCallback(
         &m_pWLRIME->events.new_popup_surface,
         [&](void* owner, void* data) {
-            const auto PNEWPOPUP = &m_lIMEPopups.emplace_back();
-
-            PNEWPOPUP->pSurface = (wlr_input_popup_surface_v2*)data;
-
-            PNEWPOPUP->hyprListener_commitPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.commit, &Events::listener_commitInputPopup, PNEWPOPUP, "IME Popup");
-            PNEWPOPUP->hyprListener_mapPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.map, &Events::listener_mapInputPopup, PNEWPOPUP, "IME Popup");
-            PNEWPOPUP->hyprListener_unmapPopup.initCallback(&PNEWPOPUP->pSurface->surface->events.unmap, &Events::listener_unmapInputPopup, PNEWPOPUP, "IME Popup");
-            PNEWPOPUP->hyprListener_destroyPopup.initCallback(&PNEWPOPUP->pSurface->events.destroy, &Events::listener_destroyInputPopup, PNEWPOPUP, "IME Popup");
+            m_vIMEPopups.emplace_back(std::make_unique<CInputPopup>((wlr_input_popup_surface_v2*)data));
 
             Debug::log(LOG, "New input popup");
         },
@@ -103,132 +96,12 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
         PTI->enter(PTI->focusedSurface());
 }
 
-void CInputMethodRelay::updateInputPopup(SIMEPopup* pPopup) {
-    if (!pPopup->pSurface->surface->mapped)
-        return;
-
-    // damage last known pos & size
-    g_pHyprRenderer->damageBox(&pPopup->lastBox);
-
-    const auto PFOCUSEDTI = getFocusedTextInput();
-
-    if (!PFOCUSEDTI || !PFOCUSEDTI->focusedSurface())
-        return;
-
-    bool       cursorRect      = PFOCUSEDTI->hasCursorRectangle();
-    const auto PFOCUSEDSURFACE = PFOCUSEDTI->focusedSurface();
-    CBox       cursorBox       = PFOCUSEDTI->cursorBox();
-
-    CBox       parentBox;
-
-    const auto PSURFACE = CWLSurface::surfaceFromWlr(PFOCUSEDSURFACE);
-
-    if (!PSURFACE)
-        parentBox = {0, 0, 200, 200};
-    else
-        parentBox = PSURFACE->getSurfaceBoxGlobal().value_or(CBox{0, 0, 200, 200});
-
-    if (!cursorRect)
-        cursorBox = {0, 0, (int)parentBox.w, (int)parentBox.h};
-
-    CMonitor* pMonitor = g_pCompositor->getMonitorFromVector(cursorBox.middle());
-
-    if (cursorBox.y + parentBox.y + pPopup->pSurface->surface->current.height + cursorBox.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
-        cursorBox.y -= pPopup->pSurface->surface->current.height + cursorBox.height;
-
-    if (cursorBox.x + parentBox.x + pPopup->pSurface->surface->current.width > pMonitor->vecPosition.x + pMonitor->vecSize.x)
-        cursorBox.x -= (cursorBox.x + parentBox.x + pPopup->pSurface->surface->current.width) - (pMonitor->vecPosition.x + pMonitor->vecSize.x);
-
-    pPopup->x = cursorBox.x;
-    pPopup->y = cursorBox.y + cursorBox.height;
-
-    pPopup->realX = cursorBox.x + parentBox.x;
-    pPopup->realY = cursorBox.y + parentBox.y + cursorBox.height;
-
-    pPopup->lastBox = cursorBox;
-
-    wlr_input_popup_surface_v2_send_text_input_rectangle(pPopup->pSurface, cursorBox.pWlr());
-
-    damagePopup(pPopup);
+void CInputMethodRelay::setIMEPopupFocus(CInputPopup* pPopup, wlr_surface* pSurface) {
+    pPopup->onCommit();
 }
 
-void CInputMethodRelay::setIMEPopupFocus(SIMEPopup* pPopup, wlr_surface* pSurface) {
-    updateInputPopup(pPopup);
-}
-
-void Events::listener_mapInputPopup(void* owner, void* data) {
-    const auto PPOPUP = (SIMEPopup*)owner;
-
-    Debug::log(LOG, "Mapped an IME Popup");
-
-    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
-
-    if (const auto PMONITOR = g_pCompositor->getMonitorFromVector(PPOPUP->lastBox.middle()); PMONITOR)
-        wlr_surface_send_enter(PPOPUP->pSurface->surface, PMONITOR->output);
-}
-
-void Events::listener_unmapInputPopup(void* owner, void* data) {
-    const auto PPOPUP = (SIMEPopup*)owner;
-
-    Debug::log(LOG, "Unmapped an IME Popup");
-
-    g_pHyprRenderer->damageBox(&PPOPUP->lastBox);
-
-    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
-}
-
-void Events::listener_destroyInputPopup(void* owner, void* data) {
-    const auto PPOPUP = (SIMEPopup*)owner;
-
-    Debug::log(LOG, "Removed an IME Popup");
-
-    PPOPUP->hyprListener_commitPopup.removeCallback();
-    PPOPUP->hyprListener_destroyPopup.removeCallback();
-    PPOPUP->hyprListener_focusedSurfaceUnmap.removeCallback();
-    PPOPUP->hyprListener_mapPopup.removeCallback();
-    PPOPUP->hyprListener_unmapPopup.removeCallback();
-
-    g_pInputManager->m_sIMERelay.removePopup(PPOPUP);
-}
-
-void Events::listener_commitInputPopup(void* owner, void* data) {
-    const auto PPOPUP = (SIMEPopup*)owner;
-
-    g_pInputManager->m_sIMERelay.updateInputPopup(PPOPUP);
-}
-
-void CInputMethodRelay::removePopup(SIMEPopup* pPopup) {
-    m_lIMEPopups.remove(*pPopup);
-}
-
-void CInputMethodRelay::damagePopup(SIMEPopup* pPopup) {
-    if (!pPopup->pSurface->surface->mapped)
-        return;
-
-    const auto PFOCUSEDTI = getFocusedTextInput();
-
-    if (!PFOCUSEDTI || !PFOCUSEDTI->focusedSurface())
-        return;
-
-    Vector2D   parentPos;
-
-    const auto PFOCUSEDSURFACE = PFOCUSEDTI->focusedSurface();
-
-    if (wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE)) {
-        const auto PLS = g_pCompositor->getLayerSurfaceFromWlr(wlr_layer_surface_v1_try_from_wlr_surface(PFOCUSEDSURFACE));
-
-        if (PLS) {
-            parentPos = Vector2D(PLS->geometry.x, PLS->geometry.y) + g_pCompositor->getMonitorFromID(PLS->monitorID)->vecPosition;
-        }
-    } else {
-        const auto PWINDOW = g_pCompositor->getWindowFromSurface(PFOCUSEDSURFACE);
-
-        if (PWINDOW) {
-            parentPos = PWINDOW->m_vRealPosition.goal();
-        }
-    }
-
-    g_pHyprRenderer->damageSurface(pPopup->pSurface->surface, parentPos.x + pPopup->x, parentPos.y + pPopup->y);
+void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
+    std::erase_if(m_vIMEPopups, [pPopup](const auto& other) { return other.get() == pPopup; });
 }
 
 SIMEKbGrab* CInputMethodRelay::getIMEKeyboardGrab(SKeyboard* pKeyboard) {
@@ -268,7 +141,13 @@ void CInputMethodRelay::onNewTextInput(STextInputV1* pTIV1) {
 }
 
 void CInputMethodRelay::removeTextInput(CTextInput* pInput) {
-    m_vTextInputs.remove_if([&](const auto& other) { return other.get() == pInput; });
+    std::erase_if(m_vTextInputs, [pInput](const auto& other) { return other.get() == pInput; });
+}
+
+void CInputMethodRelay::updateAllPopups() {
+    for (auto& p : m_vIMEPopups) {
+        p->onCommit();
+    }
 }
 
 void CInputMethodRelay::commitIMEState(CTextInput* pInput) {
@@ -303,4 +182,13 @@ void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
 
         ti->enter(pSurface);
     }
+}
+
+CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
+    for (auto& p : m_vIMEPopups) {
+        if (p->isVecInPopup(point))
+            return p.get();
+    }
+
+    return nullptr;
 }

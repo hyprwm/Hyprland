@@ -230,8 +230,5 @@ void CCursorManager::changeTheme(const std::string& name, const int size) {
     if (!m_pHyprcursor->valid())
         Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", m_szTheme);
 
-    setenv("XCURSOR_SIZE", std::to_string(m_iSize).c_str(), true);
-    setenv("XCURSOR_THEME", name.c_str(), true);
-
     updateTheme();
 }

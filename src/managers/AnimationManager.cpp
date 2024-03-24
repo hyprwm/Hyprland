@@ -245,7 +245,7 @@ void CAnimationManager::tick() {
                                            BORDERSIZE + ROUNDINGSIZE); // bottom
 
                 // damage for new box
-                CBox       WLRBOXNEW        = PWINDOW->getFullWindowBoundingBox();
+                CBox       WLRBOXNEW        = {PWINDOW->m_vRealPosition.value(), PWINDOW->m_vRealSize.value()};
                 const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
                 if (PWINDOWWORKSPACE)
                     WLRBOXNEW.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());

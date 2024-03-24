@@ -55,7 +55,7 @@ class CCursorManager {
     std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
 
     std::string                                     m_szTheme      = "";
-    int                                             m_iSize        = 24;
+    int                                             m_iSize        = 0;
     float                                           m_fCursorScale = 1.0;
 
     Hyprcursor::SCursorStyleInfo                    m_sCurrentStyleInfo;

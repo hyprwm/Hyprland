@@ -127,6 +127,8 @@ void CTextInput::setFocusedSurface(wlr_surface* pSurface) {
         [this](void* owner, void* data) {
             Debug::log(LOG, "Unmap TI owner1");
 
+            if (enterLocks)
+                enterLocks--;
             pFocusedSurface = nullptr;
             hyprListener_surfaceUnmapped.removeCallback();
             hyprListener_surfaceDestroyed.removeCallback();
@@ -138,6 +140,8 @@ void CTextInput::setFocusedSurface(wlr_surface* pSurface) {
         [this](void* owner, void* data) {
             Debug::log(LOG, "destroy TI owner1");
 
+            if (enterLocks)
+                enterLocks--;
             pFocusedSurface = nullptr;
             hyprListener_surfaceUnmapped.removeCallback();
             hyprListener_surfaceDestroyed.removeCallback();

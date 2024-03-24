@@ -1,4 +1,6 @@
 #include "InputMethodPopup.hpp"
+#include "InputManager.hpp"
+#include "../../Compositor.hpp"
 
 CInputPopup::CInputPopup(wlr_input_popup_surface_v2* surf) : pWlr(surf) {
     surface.assign(surf->surface);

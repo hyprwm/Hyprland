@@ -11,6 +11,7 @@
 struct SMonitorRule;
 class CWorkspace;
 class CWindow;
+class CInputPopup;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {

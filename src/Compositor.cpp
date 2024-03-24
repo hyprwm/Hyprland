@@ -1163,21 +1163,6 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
     return nullptr;
 }
 
-SIMEPopup* CCompositor::vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups) {
-    for (auto& popup : popups) {
-        auto surface = popup.pSurface->surface;
-        CBox box{
-            popup.realX,
-            popup.realY,
-            surface->current.width,
-            surface->current.height,
-        };
-        if (box.containsPoint(pos))
-            return &popup;
-    }
-    return nullptr;
-}
-
 CWindow* CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
     for (auto& w : m_vWindows) {
         if (!w->m_bIsMapped || w->m_bFadingOut)

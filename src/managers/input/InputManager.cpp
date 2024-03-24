@@ -215,10 +215,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // also IME popups
     if (!foundSurface) {
-        auto popup = g_pCompositor->vectorToIMEPopup(mouseCoords, m_sIMERelay.m_lIMEPopups);
+        auto popup = g_pInputManager->m_sIMERelay.popupFromCoords(mouseCoords);
         if (popup) {
-            foundSurface = popup->pSurface->surface;
-            surfacePos   = Vector2D(popup->realX, popup->realY);
+            foundSurface = popup->getWlrSurface();
+            surfacePos   = popup->globalBox().pos();
         }
     }
 

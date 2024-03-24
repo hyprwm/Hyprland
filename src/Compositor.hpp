@@ -135,7 +135,6 @@ class CCompositor {
     bool           monitorExists(CMonitor*);
     CWindow*       vectorToWindowUnified(const Vector2D&, uint8_t properties, CWindow* pIgnoreWindow = nullptr);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
-    SIMEPopup*     vectorToIMEPopup(const Vector2D& pos, std::list<SIMEPopup>& popups);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CMonitor*      getMonitorFromOutput(wlr_output*);

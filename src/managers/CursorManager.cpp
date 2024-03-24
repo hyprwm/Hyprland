@@ -15,6 +15,9 @@ static int cursorAnimTimer(void* data) {
 CCursorManager::CCursorManager() {
     m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str());
 
+    if (!m_pHyprcursor->valid())
+        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", m_szTheme);
+
     // find default size. First, HYPRCURSOR_SIZE, then XCURSOR_SIZE, then 24
     auto SIZE = getenv("HYPRCURSOR_SIZE");
     if (SIZE) {
@@ -223,6 +226,9 @@ void CCursorManager::changeTheme(const std::string& name, const int size) {
     m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str());
     m_szTheme     = name;
     m_iSize       = size;
+
+    if (!m_pHyprcursor->valid())
+        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", m_szTheme);
 
     setenv("XCURSOR_SIZE", std::to_string(m_iSize).c_str(), true);
     setenv("XCURSOR_THEME", name.c_str(), true);

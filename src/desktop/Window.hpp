@@ -404,6 +404,7 @@ class CWindow {
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);
     bool                     hasPopupAt(const Vector2D& pos);
+    int                      popupsCount();
 
     void                     applyGroupRules();
     void                     createGroup();

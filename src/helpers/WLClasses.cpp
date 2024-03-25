@@ -37,6 +37,8 @@ void SLayerSurface::applyRules() {
             noAnimations = true;
         else if (rule.rule == "blur")
             forceBlur = true;
+        else if (rule.rule == "blurpopups")
+            forceBlurPopups = true;
         else if (rule.rule.starts_with("ignorealpha") || rule.rule.starts_with("ignorezero")) {
             const auto  FIRST_SPACE_POS = rule.rule.find_first_of(' ');
             std::string alphaValue      = "";
@@ -166,6 +168,13 @@ bool SLayerSurface::isFadedOut() {
         return false;
 
     return !realPosition.isBeingAnimated() && !realSize.isBeingAnimated() && !alpha.isBeingAnimated();
+}
+
+int SLayerSurface::popupsCount() {
+    int no = 0;
+    wlr_layer_surface_v1_for_each_popup_surface(
+        layerSurface, [](wlr_surface* s, int x, int y, void* data) { *(int*)data += 1; }, &no);
+    return no;
 }
 
 void SKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {

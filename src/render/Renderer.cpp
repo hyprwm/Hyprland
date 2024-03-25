@@ -55,12 +55,9 @@ CHyprRenderer::CHyprRenderer() {
 }
 
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
-    static auto PBLURPOPUPS            = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
-    static auto PBLURPOPUPSIGNOREALPHA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
-
-    const auto  TEXTURE                     = wlr_surface_get_texture(surface);
-    const auto  RDATA                       = (SRenderData*)data;
-    const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    const auto TEXTURE                     = wlr_surface_get_texture(surface);
+    const auto RDATA                       = (SRenderData*)data;
+    const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
     if (!TEXTURE)
         return;
@@ -168,16 +165,9 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
                 g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
         }
     } else {
-        if (RDATA->blur && RDATA->popup && *PBLURPOPUPS) {
-
-            if (*PBLURPOPUPSIGNOREALPHA != 1.f) {
-                g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
-                g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURPOPUPSIGNOREALPHA;
-            }
-
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true);
-            g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
-        } else
+        if (RDATA->blur && RDATA->popup)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, surface, rounding, true, RDATA->fadeAlpha);
+        else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, RDATA->fadeAlpha * RDATA->alpha, rounding, true);
     }
 
@@ -616,12 +606,28 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             renderdata.squishOversized = false; // don't squish popups
             renderdata.popup           = true;
 
+            static CConfigValue PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
+            static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
+
+            renderdata.blur = *PBLURPOPUPS;
+
+            const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
+            const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
+
+            if (renderdata.blur) {
+                g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
+                g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURIGNOREA;
+            }
+
             if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
             wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
 
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+
+            g_pHyprOpenGL->m_RenderData.discardMode    = DM;
+            g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
         }
 
         if (decorate) {
@@ -664,20 +670,26 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
 
     g_pHyprOpenGL->m_pCurrentLayer = pLayer;
 
-    if (pLayer->ignoreAlpha) {
+    const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
+    const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
+
+    if (renderdata.blur && pLayer->ignoreAlpha) {
         g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
         g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
     }
+
     wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
-    g_pHyprOpenGL->m_RenderData.discardMode &= ~DISCARD_ALPHA;
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
+    renderdata.blur            = pLayer->forceBlurPopups;
     wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 
-    g_pHyprOpenGL->m_pCurrentLayer      = nullptr;
-    g_pHyprOpenGL->m_RenderData.clipBox = {};
+    g_pHyprOpenGL->m_pCurrentLayer             = nullptr;
+    g_pHyprOpenGL->m_RenderData.clipBox        = {};
+    g_pHyprOpenGL->m_RenderData.discardMode    = DM;
+    g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
 }
 
 void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, CMonitor* pMonitor, timespec* time) {

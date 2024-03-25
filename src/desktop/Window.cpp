@@ -1151,3 +1151,13 @@ void CWindow::setAnimationsToMove() {
     m_vRealSize.setConfig(PANIMCFG);
     m_bAnimatingIn = false;
 }
+
+int CWindow::popupsCount() {
+    if (m_bIsX11)
+        return 1;
+
+    int no = 0;
+    wlr_xdg_surface_for_each_popup_surface(
+        m_uSurface.xdg, [](wlr_surface* s, int x, int y, void* data) { *(int*)data += 1; }, &no);
+    return no;
+}

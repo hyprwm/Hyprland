@@ -2053,6 +2053,11 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
         const auto LASTWIN = pMonitorA->ID == g_pCompositor->m_pLastMonitor->ID ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
         g_pCompositor->focusWindow(LASTWIN ? LASTWIN :
                                              (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
+
+        const auto PNEWWORKSPACE = pMonitorA->ID == g_pCompositor->m_pLastMonitor->ID ? PWORKSPACEB : PWORKSPACEA;
+        g_pEventManager->postEvent(SHyprIPCEvent{"workspace", PNEWWORKSPACE->m_szName});
+        g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", PNEWWORKSPACE->m_iID, PNEWWORKSPACE->m_szName)});
+        EMIT_HOOK_EVENT("workspace", PNEWWORKSPACE);
     }
 
     // event

@@ -10,6 +10,7 @@
 #include <systemd/sd-daemon.h> // for sd_notify
 #endif
 #include <ranges>
+#include "helpers/VarList.hpp"
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -2531,8 +2532,9 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     bool        yIsPercent = false;
     bool        isExact    = false;
 
-    std::string x = args.substr(0, args.find_first_of(' '));
-    std::string y = args.substr(args.find_first_of(' ') + 1);
+    CVarList varList(args, 2, ' ', true);
+    std::string x = varList.size() > 0 ? varList[0] : "";
+    std::string y = varList.size() > 1 ? varList[1] : "";
 
     if (x == "exact") {
         x       = y.substr(0, y.find_first_of(' '));

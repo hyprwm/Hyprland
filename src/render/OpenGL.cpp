@@ -147,6 +147,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     static auto PXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
     static auto POPTIM       = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURSPECIAL = CConfigValue<Hyprlang::INT>("decoration:blur:special");
+    static auto PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
 
     if (m_RenderData.mouseZoomFactor != 1.0 || g_pHyprRenderer->m_bCrashingInProgress)
         return true;
@@ -167,11 +168,17 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
         if (ls->forceBlur && !XRAYMODE)
             return true;
+
+        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
+            return true;
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
         if (ls->forceBlur && !XRAYMODE)
+            return true;
+
+        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
             return true;
     }
 
@@ -179,10 +186,16 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
         if (ls->forceBlur)
             return true;
+
+        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
+            return true;
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
         if (ls->forceBlur)
+            return true;
+
+        if (ls->popupsCount() > 0 && ls->forceBlurPopups)
             return true;
     }
 
@@ -202,10 +215,16 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         return false;
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden() || (!w->m_bIsFloating && *POPTIM && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID)))
+        if (!w->m_bIsMapped || w->isHidden())
             continue;
 
         if (!g_pHyprRenderer->shouldRenderWindow(w.get()))
+            continue;
+
+        if (w->popupsCount() > 0 && *PBLURPOPUPS)
+            return true;
+
+        if (!w->m_bIsFloating && *POPTIM && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
         if (w->m_sAdditionalConfigData.forceNoBlur.toUnderlying() == true || w->m_sAdditionalConfigData.xray.toUnderlying() == true)

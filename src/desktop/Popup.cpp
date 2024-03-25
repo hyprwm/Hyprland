@@ -117,6 +117,9 @@ void CPopup::onMap() {
 
     unconstrain();
     sendScale();
+
+    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
 void CPopup::onUnmap() {
@@ -131,6 +134,9 @@ void CPopup::onUnmap() {
     m_pSubsurfaceHead.reset();
 
     g_pInputManager->simulateMouseMovement();
+
+    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {
@@ -158,6 +164,9 @@ void CPopup::onCommit(bool ignoreSiblings) {
     g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);
 
     m_bRequestedReposition = false;
+
+    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
 void CPopup::onReposition() {

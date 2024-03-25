@@ -22,6 +22,7 @@ struct SLayerSurface {
     void                        applyRules();
     void                        startAnimation(bool in, bool instant = false);
     bool                        isFadedOut();
+    int                         popupsCount();
 
     CAnimatedVariable<Vector2D> realPosition;
     CAnimatedVariable<Vector2D> realSize;
@@ -58,6 +59,7 @@ struct SLayerSurface {
     bool                       noAnimations  = false;
 
     bool                       forceBlur        = false;
+    bool                       forceBlurPopups  = false;
     int                        xray             = -1;
     bool                       ignoreAlpha      = false;
     float                      ignoreAlphaValue = 0.f;

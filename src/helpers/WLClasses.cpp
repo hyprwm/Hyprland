@@ -171,6 +171,9 @@ bool SLayerSurface::isFadedOut() {
 }
 
 int SLayerSurface::popupsCount() {
+    if (!layerSurface || !mapped || fadingOut)
+        return 0;
+
     int no = 0;
     wlr_layer_surface_v1_for_each_popup_surface(
         layerSurface, [](wlr_surface* s, int x, int y, void* data) { *(int*)data += 1; }, &no);

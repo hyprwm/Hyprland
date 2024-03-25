@@ -646,7 +646,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
     g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
-void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
     if (pLayer->fadingOut) {
         g_pHyprOpenGL->renderSnapshot(&pLayer);
         return;
@@ -678,13 +678,15 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
         g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
     }
 
-    wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
+    if (!popups)
+        wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
     renderdata.blur            = pLayer->forceBlurPopups;
-    wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
+    if (popups)
+        wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
 
     g_pHyprOpenGL->m_pCurrentLayer             = nullptr;
     g_pHyprOpenGL->m_RenderData.clipBox        = {};
@@ -853,6 +855,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls.get(), pMonitor, time);
+    }
+
+    for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
+        for (auto& ls : lsl) {
+            renderLayer(ls.get(), pMonitor, time, true);
+        }
     }
 
     renderDragIcon(pMonitor, time);

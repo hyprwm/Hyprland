@@ -113,7 +113,7 @@ class CHyprRenderer {
     void           renderWorkspaceWindowsFullscreen(CMonitor*, CWorkspace*, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void           renderWorkspaceWindows(CMonitor*, CWorkspace*, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void           renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
-    void           renderLayer(SLayerSurface*, CMonitor*, timespec*);
+    void           renderLayer(SLayerSurface*, CMonitor*, timespec*, bool popups = false);
     void           renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void           renderDragIcon(CMonitor*, timespec*);
     void           renderIMEPopup(CInputPopup*, CMonitor*, timespec*);

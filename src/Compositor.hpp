@@ -118,7 +118,7 @@ class CCompositor {
     bool                                      m_bUnsafeState    = false;   // unsafe state is when there is no monitors.
     bool                                      m_bNextIsUnsafe   = false;   // because wlroots
     CMonitor*                                 m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
-    bool                                      m_bExitTriggered = false;    // For exit dispatcher
+    bool                                      m_bExitTriggered  = false;   // For exit dispatcher
     bool                                      m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //
@@ -136,6 +136,7 @@ class CCompositor {
     bool           monitorExists(CMonitor*);
     CWindow*       vectorToWindowUnified(const Vector2D&, uint8_t properties, CWindow* pIgnoreWindow = nullptr);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
+    wlr_surface*   vectorToLayerPopupSurface(const Vector2D&, CMonitor* monitor, Vector2D*, SLayerSurface**);
     wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
     Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
     CMonitor*      getMonitorFromOutput(wlr_output*);

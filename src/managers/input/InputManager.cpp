@@ -209,6 +209,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         surfacePos   = PMONITOR->vecPosition;
     }
 
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerPopupSurface(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
+
     // overlays are above fullscreen
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);

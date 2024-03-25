@@ -1143,13 +1143,34 @@ bool CCompositor::windowValidMapped(CWindow* pWindow) {
     return true;
 }
 
+wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, SLayerSurface** ppLayerSurfaceFound) {
+    for (auto& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
+        for (auto& ls : lsl | std::views::reverse) {
+            if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
+                continue;
+
+            auto SURFACEAT = wlr_layer_surface_v1_popup_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
+
+            if (SURFACEAT) {
+                if (!pixman_region32_not_empty(&SURFACEAT->input_region))
+                    continue;
+
+                *ppLayerSurfaceFound = ls.get();
+                return SURFACEAT;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<std::unique_ptr<SLayerSurface>>* layerSurfaces, Vector2D* sCoords,
                                                SLayerSurface** ppLayerSurfaceFound) {
     for (auto& ls : *layerSurfaces | std::views::reverse) {
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
-        auto SURFACEAT = wlr_layer_surface_v1_surface_at(ls->layerSurface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
+        auto SURFACEAT = wlr_surface_surface_at(ls->layerSurface->surface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
 
         if (SURFACEAT) {
             if (!pixman_region32_not_empty(&SURFACEAT->input_region))

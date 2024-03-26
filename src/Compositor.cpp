@@ -2533,12 +2533,12 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     bool        isExact    = false;
 
     CVarList    varList(args, 3, 's', true);
-    std::string x = varList.size() > 0 ? varList[0] : "";
-    std::string y = varList.size() > 1 ? varList[1] : "";
+    std::string x = varList[0];
+    std::string y = varList[1];
 
     if (x == "exact") {
-        x       = varList.size() > 1 ? varList[1] : "";
-        y       = varList.size() > 2 ? varList[2] : "";
+        x       = varList[1];
+        y       = varList[2];
         isExact = true;
     }
 

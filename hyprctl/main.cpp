@@ -22,6 +22,7 @@
 #include <deque>
 #include <filesystem>
 #include <stdarg.h>
+#include <regex>
 
 const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
 
@@ -234,9 +235,14 @@ void requestHyprpaper(std::string arg) {
     std::cout << std::string(buffer);
 }
 
-void batchRequest(std::string arg) {
-    std::string rq = "[[BATCH]]" + arg.substr(arg.find_first_of(" ") + 1);
+void batchRequest(std::string arg, bool json) {
+    std::string commands = arg.substr(arg.find_first_of(" ") + 1);
 
+    if (json) {
+        commands = "j/" + std::regex_replace(commands, std::regex(";\\s*"), ";j/");
+    }
+
+    std::string rq = "[[BATCH]]" + commands;
     request(rq);
 }
 
@@ -383,7 +389,7 @@ int main(int argc, char** argv) {
     int exitStatus = 0;
 
     if (fullRequest.contains("/--batch"))
-        batchRequest(fullRequest);
+        batchRequest(fullRequest, json);
     else if (fullRequest.contains("/hyprpaper"))
         requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))

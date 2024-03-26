@@ -310,7 +310,7 @@ void CMonitor::onDisconnect(bool destroy) {
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor == this)
-        g_pCompositor->setActiveMonitor(BACKUPMON);
+        g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput);
 
     if (g_pHyprRenderer->m_pMostHzMonitor == this) {
         int       mostHz         = 0;

@@ -53,6 +53,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PNEWTAKESOVERFS = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
 
     auto        PMONITOR = g_pCompositor->m_pLastMonitor;
+    if (!g_pCompositor->m_pLastMonitor) {
+        g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
+        PMONITOR = g_pCompositor->m_pLastMonitor;
+    }
     auto PWORKSPACE = PMONITOR->specialWorkspaceID ? g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
     PWINDOW->m_iWorkspaceID   = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;

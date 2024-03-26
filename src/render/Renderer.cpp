@@ -91,11 +91,9 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         }
 
         if (!INTERACTIVERESIZEINPROGRESS && PSURFACE && PWINDOW && PWINDOW->m_vRealSize.goal().floor() > PWINDOW->m_vReportedSize && PWINDOW->m_vReportedSize > Vector2D{1, 1}) {
-            Vector2D coeff  = PWINDOW->m_vReportedSize / PWINDOW->m_vRealSize.value();
-            Vector2D coeff2 = PWINDOW->m_vReportedSize / PWINDOW->m_vRealSize.goal();
-
-            Vector2D size    = Vector2D{windowBox.w, windowBox.h} * coeff;
-            Vector2D correct = Vector2D{windowBox.w, windowBox.h} - Vector2D{windowBox.w, windowBox.h} * coeff2;
+            Vector2D size =
+                Vector2D{windowBox.w * (PWINDOW->m_vReportedSize.x / PWINDOW->m_vRealSize.value().x), windowBox.h * (PWINDOW->m_vReportedSize.y / PWINDOW->m_vRealSize.value().y)};
+            Vector2D correct = Vector2D{windowBox.w, windowBox.h} - size;
 
             windowBox.translate(correct / 2.0);
 

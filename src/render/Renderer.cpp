@@ -249,7 +249,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
             return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
-        CBox       windowBox  = pWindow->getFullWindowBoundingBox();
+        const CBox windowBox  = pWindow->getFullWindowBoundingBox();
         const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
         if (!windowBox.intersection(monitorBox).empty())
             return true;
@@ -1757,6 +1757,29 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, damageBox.x, damageBox.y, damageBox.width, damageBox.height);
+}
+
+void CHyprRenderer::damageWindowRenderedParts(CWindow* pWindow) {
+    auto       windowBox        = pWindow->getFullWindowBoundingBox();
+    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    if (PWINDOWWORKSPACE) {
+        windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get(), PWINDOWWORKSPACE)) { // only damage if window is rendered on monitor
+                CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
+                fixedDamageBox.scale(m->scale);
+                m->addDamage(&fixedDamageBox);
+            }
+        }
+        for (auto& wd : pWindow->m_dWindowDecorations)
+            wd->damageEntire();
+        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+
+        if (*PLOGDAMAGE)
+            Debug::log(LOG, "Damage: Window Rendered Parts ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+    } else {
+        g_pHyprRenderer->damageWindow(pWindow);
+    }
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {

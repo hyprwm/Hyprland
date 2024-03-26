@@ -87,7 +87,7 @@ void CAnimationManager::tick() {
 
         CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
-            CBox       bb               = PWINDOW->getFullWindowBoundingBox();
+            CBox       bb               = av->m_eDamagePolicy == AVARDAMAGE_BORDER ? PWINDOW->getWindowMainSurfaceBox() : PWINDOW->getFullWindowBoundingBox();
             const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
             if (PWINDOWWORKSPACE)
                 bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
@@ -111,15 +111,10 @@ void CAnimationManager::tick() {
 
             // if a special workspace window is on any monitor, damage it
             for (auto& w : g_pCompositor->m_vWindows) {
-                for (auto& m : g_pCompositor->m_vMonitors) {
-                    if (w->m_iWorkspaceID == PWORKSPACE->m_iID && PWORKSPACE->m_bIsSpecialWorkspace && g_pCompositor->windowValidMapped(w.get()) &&
-                        g_pHyprRenderer->shouldRenderWindow(w.get(), m.get(), PWORKSPACE)) {
-                        CBox bb = w->getFullWindowBoundingBox();
-                        bb.translate(PWORKSPACE->m_vRenderOffset.value());
-                        bb.intersection({m->vecPosition, m->vecSize});
-                        g_pHyprRenderer->damageBox(&bb);
-                    }
-                }
+                if (w->m_iWorkspaceID != PWORKSPACE->m_iID || !PWORKSPACE->m_bIsSpecialWorkspace || !g_pCompositor->windowValidMapped(w.get()))
+                    continue;
+
+                g_pHyprRenderer->damageWindowRenderedParts(w.get());
             }
         } else if (PLAYER) {
             WLRBOXPREV = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
@@ -194,11 +189,7 @@ void CAnimationManager::tick() {
 
                 if (PWINDOW) {
                     PWINDOW->updateWindowDecos();
-                    auto       bb               = PWINDOW->getFullWindowBoundingBox();
-                    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-                    if (PWINDOWWORKSPACE)
-                        bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-                    g_pHyprRenderer->damageBox(&bb);
+                    g_pHyprRenderer->damageWindowRenderedParts(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
                         if (!w->m_bIsMapped || w->isHidden())

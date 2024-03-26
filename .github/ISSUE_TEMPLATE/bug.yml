@@ -63,5 +63,5 @@ body:
       description: |
         Anything that can help. Please always ATTACH and not paste them.
         Logs can be found in /tmp/hypr
-        Crash reports are stored in ~/.hyprland or $XDG_CACHE_HOME/hyprland
+        Crash reports are stored in ~/.cache/hyprland or $XDG_CACHE_HOME/hyprland
 

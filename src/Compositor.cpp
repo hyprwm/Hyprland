@@ -2808,6 +2808,8 @@ void CCompositor::enterUnsafeState() {
         m_pUnsafeOutput->onConnect(false);
 
     m_bUnsafeState = true;
+
+    setActiveMonitor(m_pUnsafeOutput);
 }
 
 void CCompositor::leaveUnsafeState() {

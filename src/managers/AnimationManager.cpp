@@ -92,6 +92,9 @@ void CAnimationManager::tick() {
             } else if (av->m_eDamagePolicy == AVARDAMAGE_BORDER) {
                 const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
                 PDECO->damageEntire();
+            } else if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW) {
+                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
+                PDECO->damageEntire();
             }
 
             PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);

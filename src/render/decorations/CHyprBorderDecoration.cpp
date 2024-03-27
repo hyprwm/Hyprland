@@ -87,7 +87,33 @@ void CHyprBorderDecoration::updateWindow(CWindow*) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    ; // ignored, done in animationManager. todo, move.
+    if (!g_pCompositor->windowValidMapped(m_pWindow))
+        return;
+
+    auto       windowBox    = m_pWindow->getWindowMainSurfaceBox();
+    const auto ROUNDING     = m_pWindow->rounding();
+    const auto ROUNDINGSIZE = ROUNDING + 1;
+    const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
+
+    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    if (PWINDOWWORKSPACE)
+        windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+
+    std::vector<CBox> borderBoxes;
+    borderBoxes.push_back({windowBox.x - BORDERSIZE, windowBox.y - BORDERSIZE, windowBox.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE});                      // top
+    borderBoxes.push_back({windowBox.x - BORDERSIZE, windowBox.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, windowBox.height + 2 * BORDERSIZE});                     // left
+    borderBoxes.push_back({windowBox.x + windowBox.width - ROUNDINGSIZE, windowBox.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, windowBox.height + 2 * BORDERSIZE}); // right
+    borderBoxes.push_back({windowBox.x, windowBox.y + windowBox.height - ROUNDINGSIZE, windowBox.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE});              // bottom
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            for (auto borderBox : borderBoxes) {
+                CBox fixedDamageBox = {borderBox.x - m->vecPosition.x, borderBox.y - m->vecPosition.y, borderBox.width, borderBox.height};
+                fixedDamageBox.scale(m->scale);
+                m->addDamage(&fixedDamageBox);
+            }
+        }
+    }
 }
 
 eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {

@@ -47,14 +47,13 @@ class CHyprRenderer {
     void                            arrangeLayersForMonitor(const int&);
     void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
     void                            damageWindow(CWindow*);
-    void                            damageWindowRenderedParts(CWindow*);
     void                            damageBox(CBox*);
     void                            damageBox(const int& x, const int& y, const int& w, const int& h);
     void                            damageRegion(const CRegion&);
     void                            damageMonitor(CMonitor*);
     void                            damageMirrorsWith(CMonitor*, const CRegion&);
     bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
-    bool                            shouldRenderWindow(CWindow*, CMonitor*, CWorkspace*);
+    bool                            shouldRenderWindow(CWindow*, CMonitor*);
     bool                            shouldRenderWindow(CWindow*);
     void                            ensureCursorRenderingMode();
     bool                            shouldRenderCursor();

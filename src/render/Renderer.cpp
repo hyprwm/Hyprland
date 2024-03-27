@@ -211,7 +211,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
 }
 
-bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWorkspace* pWorkspace) {
+bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     CBox geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
@@ -234,7 +234,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor, CWo
         }
     }
 
-    if (pWindow->m_iWorkspaceID == pWorkspace->m_iID && pWorkspace->m_iMonitorID == pMonitor->ID)
+    if (pWindow->m_iMonitorID == pMonitor->ID)
         return true;
 
     // if not, check if it maybe is active on a different monitor.
@@ -292,7 +292,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
 
     // loop over the tiled windows that are fading out
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         if (w->m_fAlpha.value() == 0.f)
@@ -309,7 +309,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
 
     // and floating ones too
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         if (w->m_fAlpha.value() == 0.f)
@@ -345,7 +345,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, CWorksp
         if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (shouldRenderWindow(w.get(), pMonitor))
             renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
 
         if (w->m_iWorkspaceID != pWorkspace->m_iID)
@@ -388,7 +388,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
@@ -418,7 +418,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
@@ -433,7 +433,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, CWorkspace* pWork
         if (!w->m_bIsFloating || w->m_bPinned)
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace != g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
@@ -861,7 +861,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
         if (!w->m_bPinned || !w->m_bIsFloating)
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor, pWorkspace))
+        if (!shouldRenderWindow(w.get(), pMonitor))
             continue;
 
         // render the bad boy
@@ -1743,11 +1743,16 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
-    CBox damageBox = pWindow->getFullWindowBoundingBox();
+    CBox       damageBox        = pWindow->getFullWindowBoundingBox();
+    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    if (PWINDOWWORKSPACE)
+        damageBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     for (auto& m : g_pCompositor->m_vMonitors) {
-        CBox fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
-        fixedDamageBox.scale(m->scale);
-        m->addDamage(&fixedDamageBox);
+        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor
+            CBox fixedDamageBox = {damageBox.x - m->vecPosition.x, damageBox.y - m->vecPosition.y, damageBox.width, damageBox.height};
+            fixedDamageBox.scale(m->scale);
+            m->addDamage(&fixedDamageBox);
+        }
     }
 
     for (auto& wd : pWindow->m_dWindowDecorations)
@@ -1757,29 +1762,6 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 
     if (*PLOGDAMAGE)
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, damageBox.x, damageBox.y, damageBox.width, damageBox.height);
-}
-
-void CHyprRenderer::damageWindowRenderedParts(CWindow* pWindow) {
-    auto       windowBox        = pWindow->getFullWindowBoundingBox();
-    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE) {
-        windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get(), PWINDOWWORKSPACE)) { // only damage if window is rendered on monitor
-                CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
-                fixedDamageBox.scale(m->scale);
-                m->addDamage(&fixedDamageBox);
-            }
-        }
-        for (auto& wd : pWindow->m_dWindowDecorations)
-            wd->damageEntire();
-        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
-
-        if (*PLOGDAMAGE)
-            Debug::log(LOG, "Damage: Window Rendered Parts ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
-    } else {
-        g_pHyprRenderer->damageWindow(pWindow);
-    }
 }
 
 void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {

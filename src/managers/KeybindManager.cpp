@@ -1622,9 +1622,6 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
 }
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {
-
-    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-
     std::string workspaceName = "";
     int         workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
 
@@ -1634,7 +1631,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
     }
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
-    const auto PMONITOR                        = *PFOLLOWMOUSE == 1 ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->m_pLastMonitor;
+    const auto PMONITOR                        = g_pCompositor->m_pLastMonitor;
     int        specialOpenOnMonitor            = PMONITOR->specialWorkspaceID;
 
     for (auto& m : g_pCompositor->m_vMonitors) {

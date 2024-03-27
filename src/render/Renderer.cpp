@@ -1618,6 +1618,9 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std:
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
+
+        ls->realPosition = box.pos();
+        ls->realSize     = box.size();
     }
 }
 

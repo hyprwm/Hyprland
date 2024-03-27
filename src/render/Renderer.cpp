@@ -244,6 +244,10 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     if (pMonitor->specialWorkspaceID == pWindow->m_iWorkspaceID)
         return true;
 
+    // if window is tiled and it's flying in, don't render on other mons (for slide)
+    if (!pWindow->m_bIsFloating && pWindow->m_vRealPosition.isBeingAnimated() && pWindow->m_bAnimatingIn && pWindow->m_iMonitorID != pMonitor->ID)
+        return false;
+
     if (pWindow->m_vRealPosition.isBeingAnimated()) {
         if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_bIsSpecialWorkspace && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
             return false;
@@ -546,10 +550,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         CRegion rg                          = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value()).scale(pMonitor->scale);
         g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
     }
-
-    // if window is tiled and it's flying in, don't render on other mons (for slide)
-    if (!ignorePosition && !pWindow->m_bIsFloating && pWindow->m_vRealPosition.isBeingAnimated() && pWindow->m_bAnimatingIn && pWindow->m_iMonitorID != pMonitor->ID)
-        return;
 
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
@@ -1745,7 +1745,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
 
     CBox       damageBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE)
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
         damageBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor

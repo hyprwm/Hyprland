@@ -43,7 +43,14 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     CBox dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
                m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
-    g_pHyprRenderer->damageBox(&dm);
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            const CBox monitorBox = {m->vecPosition, m->vecSize};
+            CBox       damageBox  = monitorBox.intersection(dm);
+            g_pHyprRenderer->damageBox(&damageBox);
+        }
+    }
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {

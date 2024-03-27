@@ -96,7 +96,7 @@ void CHyprBorderDecoration::damageEntire() {
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
 
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE)
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
 
     std::vector<CBox> borderBoxes;
@@ -108,9 +108,9 @@ void CHyprBorderDecoration::damageEntire() {
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
             for (auto borderBox : borderBoxes) {
-                CBox fixedDamageBox = {borderBox.x - m->vecPosition.x, borderBox.y - m->vecPosition.y, borderBox.width, borderBox.height};
-                fixedDamageBox.scale(m->scale);
-                m->addDamage(&fixedDamageBox);
+                const CBox monitorBox = {m->vecPosition, m->vecSize};
+                CBox       damageBox  = borderBox.intersection(monitorBox);
+                g_pHyprRenderer->damageBox(&damageBox);
             }
         }
     }

@@ -1,0 +1,138 @@
+# https://github.com/adaszko/complgen#syntax
+hyprctl [<OPTION>]... <COMMAND>;
+
+<OPTION> ::= -j                "JSON output"
+           | (-i | --instance) "use specified Hyprland instance" <INSTANCE>
+           ;
+
+<COMMAND> ::= monitors          "list all outputs with their properties"
+            | workspaces        "list all workspaces with their properties"
+            | activeworkspace   "show info about active workspace"
+            | clients           "list all windows with their properties"
+            | activewindow      "print active window name"
+            | layers            "list all layers"
+            | devices           "list all connected input devices"
+            | binds             "list all keybindings"
+            | dispatch          "run a dispatcher" <DISPATCHER>
+            | keyword           "execute a keyword" <KEYWORD>
+            | version           "print Hyprland version"
+            | kill              "kill an app by clicking on it"
+            | splash            "print current random splash"
+            | hyprpaper         <PAPERCOMMAND>
+            | reload            "reload config file"
+            | setcursor         "set cursor theme" <CURSORTHEME>
+            | getoption         "print value of config option" <CONFIG_OPTION>
+            | cursorpos         "print cursor position"
+            | switchxkblayout   "switch keyboard layout" <DEVICE> (next | prev)
+            | seterror          "show text in error bar" disable
+            | setprop           "set windowrule properties"
+            | plugin            ((load | unload) <PATH> | list)
+            | notify            "send notification" <ICON>
+            | globalshortcuts   "list all global shortcuts"
+            | output            "creates/destroys a fake output" (create (wayland | x11 | headless | auto) | remove <MONITOR>)
+            | animations        "list animations and beziers"
+            | instances         "list running Hyprland instances"
+            | --batch           "execute multiple commands, separated by ';'"
+            ;
+
+# see KeybindManager.cpp
+<DISPATCHER> ::= alterzorder (top | bottom)
+               | bringactivetotop
+               | centerwindow
+               | changegroupactive
+               | closewindow
+               | cyclenext
+               | dpms
+               | exec
+               | execr
+               | exit
+               | fakefullscreen
+               | focuscurrentorlast
+               | focusmonitor
+               | focusurgentorlast
+               | focuswindow
+               | focuswindowbyclass
+               | forcerendererreload
+               | fullscreen
+               | global
+               | killactive
+               | layoutmsg
+               | lockactivegroup
+               | lockgroups
+               | mfact
+               | mouse
+               | moveactive
+               | movecurrentworkspacetomonitor
+               | movecursor
+               | movecursortocorner
+               | movefocus
+               | moveintogroup
+               | moveoutofgroup
+               | movetoworkspace
+               | movetoworkspacesilent
+               | movewindow
+               | movewindoworgroup
+               | movewindowpixel
+               | moveworkspacetomonitor
+               | pass
+               | pin
+               | pseudo
+               | renameworkspace
+               | resizeactive
+               | resizewindowpixel
+               | splitratio
+               | submap
+               | swapactiveworkspaces
+               | swapnext
+               | swapwindow
+               | togglefloating
+               | togglegroup
+               | toggleopaque
+               | togglespecialworkspace
+               | togglesplit
+               | workspace
+               | workspaceopt
+               ;
+
+<ICON> ::= -1 "no icon"
+         | 0 "warning"
+         | 1 "info"
+         | 2 "hint"
+         | 3 "error"
+         | 4 "confused"
+         | 5 "ok"
+         ;
+
+<PAPERCOMMAND> ::= preload <PATH>
+                 | unload (<PATH> | all)
+                 | wallpaper
+                 ;
+
+# See parseKeyword in ConfigManager.cpp
+<KEYWORD> ::= monitor
+            | exec
+            | exec-once
+            | monitor
+            | bind
+            | unbind
+            | workspace
+            | windowrule
+            | windowrulev2
+            | layerrule
+            | bezier
+            | animation
+            | source <PATH>
+            | submap
+            | blurls
+            | wsbind
+            | env
+            | plugin
+            ;
+
+<DEVICE> ::= {{{ hyprctl devices -j | awk '/^"keyboards"/,/^\],$/' | sed -n 's/.*"name": "\(.*\)".*/\1/p' }}};
+
+<CURSORTHEME> ::= {{{ printf '%s\n' /usr/share/icons/*/cursors | cut -d/ -f5 }}};
+
+<MONITOR> ::= {{{ hyprctl monitors | sed -n 's/^Monitor \(.*\) (ID .*/\1/p' }}};
+
+<INSTANCE> ::= {{{ hyprctl instances -j | sed -n 's/.*"instance": "\(.*\)".*/\1/p' }}};

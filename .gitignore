@@ -23,6 +23,7 @@ result*
 *.so
 
 hyprctl/hyprctl
+completions/generated/*.usage
 
 gmon.out
 *.out

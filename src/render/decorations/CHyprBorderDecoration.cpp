@@ -90,31 +90,32 @@ void CHyprBorderDecoration::damageEntire() {
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
 
-    auto       windowBox    = m_pWindow->getWindowMainSurfaceBox();
+    auto       surfaceBox   = m_pWindow->getWindowMainSurfaceBox();
     const auto ROUNDING     = m_pWindow->rounding();
-    const auto ROUNDINGSIZE = ROUNDING + 1;
+    const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
 
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
-        windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-    windowBox.translate(m_pWindow->m_vFloatingOffset);
+        surfaceBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+    surfaceBox.translate(m_pWindow->m_vFloatingOffset);
 
-    std::vector<CBox> borderBoxes;
-    borderBoxes.push_back({windowBox.x - BORDERSIZE, windowBox.y - BORDERSIZE, windowBox.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE});                      // top
-    borderBoxes.push_back({windowBox.x - BORDERSIZE, windowBox.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, windowBox.height + 2 * BORDERSIZE});                     // left
-    borderBoxes.push_back({windowBox.x + windowBox.width - ROUNDINGSIZE, windowBox.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, windowBox.height + 2 * BORDERSIZE}); // right
-    borderBoxes.push_back({windowBox.x, windowBox.y + windowBox.height - ROUNDINGSIZE, windowBox.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE});              // bottom
+    CBox surfaceBoxExpandedBorder = surfaceBox;
+    surfaceBoxExpandedBorder.expand(BORDERSIZE);
+    CBox surfaceBoxShrunkRounding = surfaceBox;
+    surfaceBoxShrunkRounding.shrink(ROUNDINGSIZE);
+
+    CRegion borderRegion(surfaceBoxExpandedBorder);
+    borderRegion.subtract(surfaceBoxShrunkRounding);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
-            for (auto borderBox : borderBoxes) {
-                const CBox monitorBox = {m->vecPosition, m->vecSize};
-                CBox       damageBox  = borderBox.intersection(monitorBox);
-                g_pHyprRenderer->damageBox(&damageBox);
-            }
+        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            const CRegion monitorRegion({m->vecPosition, m->vecSize});
+            borderRegion.subtract(monitorRegion);
         }
     }
+
+    g_pHyprRenderer->damageRegion(borderRegion);
 }
 
 eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {

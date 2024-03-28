@@ -65,11 +65,26 @@ void SLayerSurface::applyRules() {
 void SLayerSurface::startAnimation(bool in, bool instant) {
     const auto ANIMSTYLE = animationStyle.value_or(realPosition.m_pConfig->pValues->internalStyle);
 
-    if (ANIMSTYLE == "slide") {
+    if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
-        const auto                    MIDDLE = geometry.middle();
+        const auto MIDDLE = geometry.middle();
 
-        const auto                    PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+
+        int        force = -1;
+
+        CVarList   args(ANIMSTYLE, 0, 's');
+        if (args.size() > 1) {
+            const auto ARG2 = args[1];
+            if (ARG2 == "top")
+                force = 0;
+            else if (ARG2 == "bottom")
+                force = 1;
+            else if (ARG2 == "left")
+                force = 2;
+            else if (ARG2 == "right")
+                force = 3;
+        }
 
         const std::array<Vector2D, 4> edgePoints = {
             PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, 0},
@@ -78,13 +93,15 @@ void SLayerSurface::startAnimation(bool in, bool instant) {
             PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x, PMONITOR->vecSize.y / 2},
         };
 
-        float  closest = std::numeric_limits<float>::max();
-        size_t leader  = 0;
-        for (size_t i = 0; i < 4; ++i) {
-            float dist = MIDDLE.distance(edgePoints[i]);
-            if (dist < closest) {
-                leader  = i;
-                closest = dist;
+        float closest = std::numeric_limits<float>::max();
+        int   leader  = force;
+        if (leader == -1) {
+            for (size_t i = 0; i < 4; ++i) {
+                float dist = MIDDLE.distance(edgePoints[i]);
+                if (dist < closest) {
+                    leader  = i;
+                    closest = dist;
+                }
             }
         }
 

@@ -96,7 +96,7 @@ void CHyprBorderDecoration::damageEntire() {
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
 
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     windowBox.translate(m_pWindow->m_vFloatingOffset);
 

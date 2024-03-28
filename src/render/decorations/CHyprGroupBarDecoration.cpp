@@ -83,6 +83,7 @@ void CHyprGroupBarDecoration::updateWindow(CWindow* pWindow) {
 
 void CHyprGroupBarDecoration::damageEntire() {
     auto box = assignedBoxGlobal();
+    box.translate(m_pWindow->m_vFloatingOffset);
     g_pHyprRenderer->damageBox(&box);
 }
 
@@ -505,9 +506,8 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
 
-    if (!PWORKSPACE)
-        return box;
+    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+        box.translate(PWORKSPACE->m_vRenderOffset.value());
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
-    return box.translate(WORKSPACEOFFSET);
+    return box;
 }

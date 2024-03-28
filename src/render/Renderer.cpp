@@ -1746,7 +1746,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
 
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned)
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     windowBox.translate(pWindow->m_vFloatingOffset);
 

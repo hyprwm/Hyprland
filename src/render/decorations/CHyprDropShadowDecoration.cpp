@@ -50,13 +50,28 @@ void CHyprDropShadowDecoration::damageEntire() {
         shadowBox.translate(PWORKSPACE->m_vRenderOffset.value());
     shadowBox.translate(m_pWindow->m_vFloatingOffset);
 
+    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow_ignore_window");
+    const auto  ROUNDING            = m_pWindow->rounding();
+    const auto  ROUNDINGSIZE        = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
+
+    CRegion     shadowRegion(shadowBox);
+    if (*PSHADOWIGNOREWINDOW) {
+        CBox surfaceBox = m_pWindow->getWindowMainSurfaceBox();
+        if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+            surfaceBox.translate(PWORKSPACE->m_vRenderOffset.value());
+        surfaceBox.translate(m_pWindow->m_vFloatingOffset);
+        surfaceBox.shrink(ROUNDINGSIZE);
+        shadowRegion.subtract(CRegion(surfaceBox));
+    }
+
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
-            const CBox monitorBox = {m->vecPosition, m->vecSize};
-            CBox       damageBox  = monitorBox.intersection(shadowBox);
-            g_pHyprRenderer->damageBox(&damageBox);
+        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            const CRegion monitorRegion({m->vecPosition, m->vecSize});
+            shadowRegion.subtract(monitorRegion);
         }
     }
+
+    g_pHyprRenderer->damageRegion(shadowRegion);
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {

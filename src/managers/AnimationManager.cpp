@@ -114,7 +114,7 @@ void CAnimationManager::tick() {
             for (auto& w : g_pCompositor->m_vWindows) {
                 // still doing the full damage hack for floating because sometimes when the window
                 // goes through multiple monitors the last rendered frame is missing damage somehow??
-                if (!w->isHidden() && w->m_bIsMapped && w->m_bIsFloating && !w->m_bPinned) {
+                if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned) {
                     const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
                     const CBox monitorBox        = {PMONITOR->vecPosition, PMONITOR->vecSize};
                     if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
@@ -205,10 +205,7 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
-                        if (!w->m_bIsMapped || w->isHidden())
-                            continue;
-
-                        if (w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                        if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
                             continue;
 
                         w->updateWindowDecos();

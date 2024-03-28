@@ -109,6 +109,15 @@ CBox& CBox::expand(const double& value) {
     return *this;
 }
 
+CBox& CBox::shrink(const double& value) {
+    x += value;
+    y += value;
+    w -= value * 2.0;
+    h -= value * 2.0;
+
+    return *this;
+}
+
 CBox& CBox::noNegativeSize() {
     std::clamp(w, 0.0, std::numeric_limits<double>::infinity());
     std::clamp(h, 0.0, std::numeric_limits<double>::infinity());

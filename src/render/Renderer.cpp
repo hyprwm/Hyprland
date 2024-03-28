@@ -1741,7 +1741,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
-void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
+void CHyprRenderer::damageWindow(CWindow* pWindow) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1752,7 +1752,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get()) || forceFull) { // only damage if window is rendered on monitor
+        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
             m->addDamage(&fixedDamageBox);

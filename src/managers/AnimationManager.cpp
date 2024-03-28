@@ -110,7 +110,7 @@ void CAnimationManager::tick() {
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
                 if (!w->isHidden() && w->m_bIsMapped && w->m_bIsFloating)
-                    g_pHyprRenderer->damageWindow(w.get(), true);
+                    g_pHyprRenderer->damageWindow(w.get());
             }
 
             // if a special workspace window is on any monitor, damage it
@@ -205,7 +205,7 @@ void CAnimationManager::tick() {
                         w->updateWindowDecos();
 
                         if (w->m_bIsFloating)
-                            g_pHyprRenderer->damageWindow(w.get(), true);
+                            g_pHyprRenderer->damageWindow(w.get());
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)

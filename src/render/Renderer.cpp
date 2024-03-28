@@ -537,7 +537,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             if (WINBB.y < PWSMON->vecPosition.y) {
                 offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
             } else if (WINBB.y + WINBB.height > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
-                offset.y = (WINBB.y + WINBB.width - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
+                offset.y = (WINBB.y + WINBB.height - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
             }
         }
 

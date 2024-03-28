@@ -253,7 +253,11 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
             return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
-        const CBox windowBox  = pWindow->getFullWindowBoundingBox();
+        CBox windowBox = pWindow->getFullWindowBoundingBox();
+        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
+            windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+        windowBox.translate(pWindow->m_vFloatingOffset);
+
         const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
         if (!windowBox.intersection(monitorBox).empty())
             return true;

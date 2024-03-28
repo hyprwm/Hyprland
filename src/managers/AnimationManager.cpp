@@ -105,17 +105,22 @@ void CAnimationManager::tick() {
             PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             if (!PMONITOR)
                 continue;
-            WLRBOXPREV = {PMONITOR->vecPosition, PMONITOR->vecSize};
+
+            // dont damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
+            if (PWORKSPACE->m_bIsSpecialWorkspace)
+                g_pHyprRenderer->damageMonitor(PMONITOR);
 
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
+                // still doing the full damage hack for floating because sometimes when the window
+                // goes through multiple monitors the last rendered frame is missing damage somehow??
                 if (!w->isHidden() && w->m_bIsMapped && w->m_bIsFloating)
                     g_pHyprRenderer->damageWindow(w.get(), true);
             }
 
-            // if a special workspace window is on any monitor, damage it
+            // damage any workspace window that is on any monitor
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (w->m_iWorkspaceID != PWORKSPACE->m_iID || !PWORKSPACE->m_bIsSpecialWorkspace || !g_pCompositor->windowValidMapped(w.get()))
+                if (w->m_iWorkspaceID != PWORKSPACE->m_iID || !g_pCompositor->windowValidMapped(w.get()))
                     continue;
 
                 g_pHyprRenderer->damageWindow(w.get());
@@ -203,9 +208,6 @@ void CAnimationManager::tick() {
                             continue;
 
                         w->updateWindowDecos();
-
-                        if (w->m_bIsFloating)
-                            g_pHyprRenderer->damageWindow(w.get(), true);
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)

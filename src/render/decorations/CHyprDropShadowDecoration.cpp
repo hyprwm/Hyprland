@@ -41,9 +41,22 @@ void CHyprDropShadowDecoration::damageEntire() {
     if (*PSHADOWS != 1)
         return; // disabled
 
-    CBox dm = {m_vLastWindowPos.x - m_seExtents.topLeft.x, m_vLastWindowPos.y - m_seExtents.topLeft.y, m_vLastWindowSize.x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-               m_vLastWindowSize.y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
-    g_pHyprRenderer->damageBox(&dm);
+    CBox       shadowBox = {m_pWindow->m_vRealPosition.value().x - m_seExtents.topLeft.x, m_pWindow->m_vRealPosition.value().y - m_seExtents.topLeft.y,
+                            m_pWindow->m_vRealSize.value().x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
+                            m_pWindow->m_vRealSize.value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
+
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+        shadowBox.translate(PWORKSPACE->m_vRenderOffset.value());
+    shadowBox.translate(m_pWindow->m_vFloatingOffset);
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            const CBox monitorBox = {m->vecPosition, m->vecSize};
+            CBox       damageBox  = monitorBox.intersection(shadowBox);
+            g_pHyprRenderer->damageBox(&damageBox);
+        }
+    }
 }
 
 void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
@@ -98,6 +111,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     // scale the box in relation to the center of the box
     fullBox.scaleFromCenter(SHADOWSCALE).translate(*PSHADOWOFFSET);
 
+    updateWindow(m_pWindow);
     m_vLastWindowPos += WORKSPACEOFFSET;
     m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
                    {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
@@ -124,6 +138,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         // get window box
         windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
         withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
+
+        windowBox.translate(offset);
+        withDecos.translate(offset);
 
         auto scaledExtentss = withDecos.extentsFrom(windowBox);
         scaledExtentss      = scaledExtentss * pMonitor->scale;

@@ -96,6 +96,7 @@ class CHyprRenderer {
     bool                                             m_bCrashingInProgress = false;
     float                                            m_fCrashingDistort    = 0.5f;
     wl_event_source*                                 m_pCrashingLoop       = nullptr;
+    wl_event_source*                                 m_pCursorTicker       = nullptr;
 
     std::vector<std::unique_ptr<STearingController>> m_vTearingControllers;
 
@@ -128,7 +129,13 @@ class CHyprRenderer {
 
     bool           m_bNvidia = false;
 
-    CRenderbuffer* getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
+    struct {
+        bool hiddenOnTouch    = false;
+        bool hiddenOnTimeout  = false;
+        bool hiddenOnKeyboard = false;
+    } m_sCursorHiddenConditions;
+
+    CRenderbuffer*                              getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
     std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;

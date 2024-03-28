@@ -118,7 +118,7 @@ void SLayerSurface::startAnimation(bool in, bool instant) {
                 break;
             case 1:
                 // BOTTOM
-                prePos = {geometry.x, PMONITOR->vecPosition.y + PMONITOR->vecPosition.y};
+                prePos = {geometry.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y};
                 break;
             case 2:
                 // LEFT

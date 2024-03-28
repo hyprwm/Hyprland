@@ -46,7 +46,7 @@ void CHyprDropShadowDecoration::damageEntire() {
                             m_pWindow->m_vRealSize.value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
-    if (PWORKSPACE)
+    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
         shadowBox.translate(PWORKSPACE->m_vRenderOffset.value());
     shadowBox.translate(m_pWindow->m_vFloatingOffset);
 

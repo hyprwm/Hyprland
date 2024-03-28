@@ -523,7 +523,6 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
             const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
             const auto WINBB    = pWindow->getFullWindowBoundingBox();
-            // WINBB.translate(PWORKSPACE->m_vRenderOffset.value());
 
             if (WINBB.x < PWSMON->vecPosition.x) {
                 offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;

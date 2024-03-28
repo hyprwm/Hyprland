@@ -11,8 +11,13 @@ extern "C" {
 #include <xf86drm.h>
 }
 
-CHyprRenderer::CHyprRenderer() {
+static int cursorTicker(void* data) {
+    g_pHyprRenderer->ensureCursorRenderingMode();
+    wl_event_source_timer_update(g_pHyprRenderer->m_pCursorTicker, 500);
+    return 0;
+}
 
+CHyprRenderer::CHyprRenderer() {
     if (g_pCompositor->m_sWLRSession) {
         wlr_device* dev;
         wl_list_for_each(dev, &g_pCompositor->m_sWLRSession->devices, link) {
@@ -52,6 +57,30 @@ CHyprRenderer::CHyprRenderer() {
 
     if (m_bNvidia)
         Debug::log(WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
+
+    // cursor hiding stuff
+
+    g_pHookSystem->hookDynamic("keyPress", [&](void* self, SCallbackInfo& info, std::any param) {
+        if (m_sCursorHiddenConditions.hiddenOnKeyboard)
+            return;
+
+        m_sCursorHiddenConditions.hiddenOnKeyboard = true;
+        ensureCursorRenderingMode();
+    });
+
+    g_pHookSystem->hookDynamic("mouseMove", [&](void* self, SCallbackInfo& info, std::any param) {
+        if (!m_sCursorHiddenConditions.hiddenOnKeyboard && m_sCursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_bLastInputTouch &&
+            !m_sCursorHiddenConditions.hiddenOnTimeout)
+            return;
+
+        m_sCursorHiddenConditions.hiddenOnKeyboard = false;
+        m_sCursorHiddenConditions.hiddenOnTimeout  = false;
+        m_sCursorHiddenConditions.hiddenOnTouch    = g_pInputManager->m_bLastInputTouch;
+        ensureCursorRenderingMode();
+    });
+
+    m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, cursorTicker, nullptr);
+    wl_event_source_timer_update(m_pCursorTicker, 500);
 }
 
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
@@ -1090,8 +1119,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         if (g_pConfigManager->m_bWantsMonitorReload)
             g_pConfigManager->performMonitorReload();
-
-        ensureCursorRenderingMode(); // so that the cursor gets hidden/shown if the user requested timeouts
     }
     //       //
 
@@ -2269,29 +2296,45 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 void CHyprRenderer::ensureCursorRenderingMode() {
     static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("general:cursor_inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("misc:hide_cursor_on_touch");
+    static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("misc:hide_cursor_on_key_press");
 
-    const auto  PASSEDCURSORSECONDS = g_pInputManager->m_tmrLastCursorMovement.getSeconds();
+    if (*PCURSORTIMEOUT <= 0)
+        m_sCursorHiddenConditions.hiddenOnTimeout = false;
+    if (*PHIDEONTOUCH == 0)
+        m_sCursorHiddenConditions.hiddenOnTouch = false;
+    if (*PHIDEONKEY == 0)
+        m_sCursorHiddenConditions.hiddenOnKeyboard = false;
 
-    if (*PCURSORTIMEOUT > 0 || *PHIDEONTOUCH) {
-        const bool HIDE = (*PCURSORTIMEOUT > 0 && *PCURSORTIMEOUT < PASSEDCURSORSECONDS) || (g_pInputManager->m_bLastInputTouch && *PHIDEONTOUCH);
+    if (*PCURSORTIMEOUT > 0)
+        m_sCursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_tmrLastCursorMovement.getSeconds();
 
-        if (HIDE && !m_bCursorHidden) {
-            Debug::log(LOG, "Hiding the cursor (timeout)");
+    const bool HIDE = m_sCursorHiddenConditions.hiddenOnTimeout || m_sCursorHiddenConditions.hiddenOnTouch || m_sCursorHiddenConditions.hiddenOnKeyboard;
 
-            for (auto& m : g_pCompositor->m_vMonitors)
-                g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
+    if (HIDE == m_bCursorHidden)
+        return;
 
-            setCursorHidden(true);
+    if (HIDE) {
+        Debug::log(LOG, "Hiding the cursor (hl-mandated)");
 
-        } else if (!HIDE && m_bCursorHidden) {
-            Debug::log(LOG, "Showing the cursor (timeout)");
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->output->software_cursor_locks == 0)
+                continue;
 
-            for (auto& m : g_pCompositor->m_vMonitors)
-                g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
-
-            setCursorHidden(false);
+            g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
         }
+
+        setCursorHidden(true);
+
     } else {
+        Debug::log(LOG, "Showing the cursor (hl-mandated)");
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (m->output->software_cursor_locks == 0)
+                continue;
+
+            g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
+        }
+
         setCursorHidden(false);
     }
 }

@@ -516,13 +516,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     // clip box for animated offsets
     const Vector2D PREOFFSETPOS = {renderdata.x, renderdata.y};
+    Vector2D       offset;
     if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned && !pWindow->m_bIsFullscreen) {
-        Vector2D offset;
 
         if (PWORKSPACE->m_vRenderOffset.value().x != 0) {
             const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
             const auto WINBB    = pWindow->getFullWindowBoundingBox();
+            // WINBB.translate(PWORKSPACE->m_vRenderOffset.value());
 
             if (WINBB.x < PWSMON->vecPosition.x) {
                 offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
@@ -543,11 +544,12 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
         renderdata.x += offset.x;
         renderdata.y += offset.y;
+        pWindow->m_vFloatingOffset = offset;
     }
 
     // if window is floating and we have a slide animation, clip it to its full bb
     if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned) {
-        CRegion rg                          = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value()).scale(pMonitor->scale);
+        CRegion rg = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value() + offset).scale(pMonitor->scale);
         g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
     }
 
@@ -569,14 +571,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
             }
 
             for (auto& wd : pWindow->m_dWindowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
             }
         }
 
@@ -1739,7 +1741,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
-void CHyprRenderer::damageWindow(CWindow* pWindow) {
+void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1747,9 +1749,10 @@ void CHyprRenderer::damageWindow(CWindow* pWindow) {
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+    windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor
+        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get()) || forceFull) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
             m->addDamage(&fixedDamageBox);

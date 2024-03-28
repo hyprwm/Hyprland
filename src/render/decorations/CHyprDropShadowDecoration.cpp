@@ -105,6 +105,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
     // scale the box in relation to the center of the box
     fullBox.scaleFromCenter(SHADOWSCALE).translate(*PSHADOWOFFSET);
 
+    m_vLastWindowPos  = m_pWindow->m_vRealPosition.value();
+    m_vLastWindowSize = m_pWindow->m_vRealSize.value();
     m_vLastWindowPos += WORKSPACEOFFSET;
     m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
                    {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
@@ -131,6 +133,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         // get window box
         windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
         withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
+
+        windowBox.translate(offset);
+        withDecos.translate(offset);
 
         auto scaledExtentss = withDecos.extentsFrom(windowBox);
         scaledExtentss      = scaledExtentss * pMonitor->scale;

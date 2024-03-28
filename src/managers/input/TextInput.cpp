@@ -88,10 +88,10 @@ void CTextInput::onDisabled() {
     }
 
     if (!focusedSurface())
-	return;
+        return;
 
     if (!isV3())
-	leave();
+        leave();
 
     hyprListener_surfaceDestroyed.removeCallback();
     hyprListener_surfaceUnmapped.removeCallback();

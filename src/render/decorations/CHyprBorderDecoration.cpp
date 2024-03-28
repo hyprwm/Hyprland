@@ -98,6 +98,7 @@ void CHyprBorderDecoration::damageEntire() {
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated())
         windowBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+    windowBox.translate(m_pWindow->m_vFloatingOffset);
 
     std::vector<CBox> borderBoxes;
     borderBoxes.push_back({windowBox.x - BORDERSIZE, windowBox.y - BORDERSIZE, windowBox.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE});                      // top

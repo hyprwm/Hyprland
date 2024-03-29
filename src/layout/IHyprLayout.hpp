@@ -187,7 +187,13 @@ class IHyprLayout {
         Called to predict the size of a newly opened window to send it a configure.
         Return 0,0 if unpredictable
     */
-    virtual Vector2D predictSizeForNewWindow();
+    virtual Vector2D predictSizeForNewWindowTiled() = 0;
+
+    /*
+        Prefer not overriding, use predictSizeForNewWindowTiled.
+    */
+    virtual Vector2D predictSizeForNewWindow(CWindow* pWindow);
+    virtual Vector2D predictSizeForNewWindowFloating(CWindow* pWindow);
 
   private:
     int         m_iMouseMoveEventCount;

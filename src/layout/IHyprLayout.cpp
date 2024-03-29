@@ -644,8 +644,61 @@ void IHyprLayout::requestFocusForWindow(CWindow* pWindow) {
     g_pCompositor->warpCursorTo(pWindow->middle());
 }
 
-Vector2D IHyprLayout::predictSizeForNewWindow() {
-    return Vector2D{};
+Vector2D IHyprLayout::predictSizeForNewWindowFloating(CWindow* pWindow) { // get all rules, see if we have any size overrides.
+    Vector2D sizeOverride = {};
+    if (g_pCompositor->m_pLastMonitor) {
+        for (auto& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
+            if (r.szRule.starts_with("size")) {
+                try {
+                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+
+                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);
+
+                    const auto SIZEX = SIZEXSTR == "max" ?
+                        std::clamp(MAXSIZE.x, 20.0, g_pCompositor->m_pLastMonitor->vecSize.x) :
+                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * g_pCompositor->m_pLastMonitor->vecSize.x);
+                    const auto SIZEY = SIZEYSTR == "max" ?
+                        std::clamp(MAXSIZE.y, 20.0, g_pCompositor->m_pLastMonitor->vecSize.y) :
+                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * g_pCompositor->m_pLastMonitor->vecSize.y);
+
+                    sizeOverride = {SIZEX, SIZEY};
+
+                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
+                break;
+            }
+        }
+    }
+
+    return sizeOverride;
+}
+
+Vector2D IHyprLayout::predictSizeForNewWindow(CWindow* pWindow) {
+    bool shouldBeFloated = g_pXWaylandManager->shouldBeFloated(pWindow, true);
+
+    if (!shouldBeFloated) {
+        for (auto& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
+            if (r.szRule.starts_with("float")) {
+                shouldBeFloated = true;
+                break;
+            }
+        }
+    }
+
+    Vector2D sizePredicted = {};
+
+    if (!shouldBeFloated)
+        sizePredicted = predictSizeForNewWindowTiled();
+    else
+        sizePredicted = predictSizeForNewWindowFloating(pWindow);
+
+    Vector2D maxSize = Vector2D{pWindow->m_uSurface.xdg->toplevel->pending.max_width, pWindow->m_uSurface.xdg->toplevel->pending.max_height};
+
+    if ((maxSize.x > 0 && maxSize.x < sizePredicted.x) || (maxSize.y > 0 && maxSize.y < sizePredicted.y))
+        sizePredicted = {};
+
+    return sizePredicted;
 }
 
 IHyprLayout::~IHyprLayout() {}

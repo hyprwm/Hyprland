@@ -6,14 +6,14 @@
 #include "../config/ConfigValue.hpp"
 
 CWindow::CWindow() {
-    m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
-    m_vRealSize.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), (void*)this, AVARDAMAGE_ENTIRE);
-    m_fBorderFadeAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("border"), (void*)this, AVARDAMAGE_BORDER);
-    m_fBorderAngleAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("borderangle"), (void*)this, AVARDAMAGE_BORDER);
-    m_fAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeIn"), (void*)this, AVARDAMAGE_ENTIRE);
-    m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), (void*)this, AVARDAMAGE_ENTIRE);
-    m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), (void*)this, AVARDAMAGE_SHADOW);
-    m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), (void*)this, AVARDAMAGE_ENTIRE);
+    m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), this, AVARDAMAGE_ENTIRE);
+    m_vRealSize.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), this, AVARDAMAGE_ENTIRE);
+    m_fBorderFadeAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("border"), this, AVARDAMAGE_BORDER);
+    m_fBorderAngleAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("borderangle"), this, AVARDAMAGE_BORDER);
+    m_fAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeIn"), this, AVARDAMAGE_ENTIRE);
+    m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), this, AVARDAMAGE_ENTIRE);
+    m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), this, AVARDAMAGE_SHADOW);
+    m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), this, AVARDAMAGE_ENTIRE);
 
     addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(this));
     addWindowDeco(std::make_unique<CHyprBorderDecoration>(this));

@@ -3,12 +3,9 @@
 #include "../Compositor.hpp"
 
 SLayerSurface::SLayerSurface() {
-    alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), nullptr, AVARDAMAGE_ENTIRE);
-    realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
-    realSize.create(g_pConfigManager->getAnimationPropertyConfig("layers"), nullptr, AVARDAMAGE_ENTIRE);
-    alpha.m_pLayer        = this;
-    realPosition.m_pLayer = this;
-    realSize.m_pLayer     = this;
+    alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), this, AVARDAMAGE_ENTIRE);
+    realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layers"), this, AVARDAMAGE_ENTIRE);
+    realSize.create(g_pConfigManager->getAnimationPropertyConfig("layers"), this, AVARDAMAGE_ENTIRE);
     alpha.registerVar();
     realPosition.registerVar();
     realSize.registerVar();

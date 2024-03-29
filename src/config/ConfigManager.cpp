@@ -490,6 +490,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("binds:focus_preferred_method", Hyprlang::INT{0});
     m_pConfig->addConfigValue("binds:ignore_group_lock", Hyprlang::INT{0});
     m_pConfig->addConfigValue("binds:movefocus_cycles_fullscreen", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("binds:disable_keybind_grabbing", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("gestures:workspace_swipe", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_fingers", Hyprlang::INT{3});

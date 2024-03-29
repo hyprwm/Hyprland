@@ -1156,8 +1156,14 @@ void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
     Vector2D   offset;
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
-    const auto PWSMON     = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-    const auto WINBB      = getFullWindowBoundingBox();
+    if (!PWORKSPACE)
+        return;
+
+    const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+    if (!PWSMON)
+        return;
+
+    const auto WINBB = getFullWindowBoundingBox();
     if (PWORKSPACE->m_vRenderOffset.value().x != 0) {
         const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
 

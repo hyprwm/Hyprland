@@ -65,7 +65,7 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual void                     alterSplitRatio(CWindow*, float, bool);
     virtual std::string              getLayoutName();
     virtual void                     replaceWindowDataWith(CWindow* from, CWindow* to);
-    virtual Vector2D                 predictSizeForNewWindow();
+    virtual Vector2D                 predictSizeForNewWindowTiled();
 
     virtual void                     onEnable();
     virtual void                     onDisable();

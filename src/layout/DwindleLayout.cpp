@@ -1116,7 +1116,7 @@ void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
 }
 
-Vector2D CHyprDwindleLayout::predictSizeForNewWindow() {
+Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
     if (!g_pCompositor->m_pLastMonitor)
         return {};
 

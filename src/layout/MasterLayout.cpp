@@ -1435,7 +1435,7 @@ void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {
     applyNodeDataToWindow(PNODE);
 }
 
-Vector2D CHyprMasterLayout::predictSizeForNewWindow() {
+Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     static auto PNEWISMASTER = CConfigValue<Hyprlang::INT>("master:new_is_master");
 
     if (!g_pCompositor->m_pLastMonitor)

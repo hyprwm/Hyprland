@@ -546,14 +546,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
             }
 
             for (auto& wd : pWindow->m_dWindowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
             }
         }
 
@@ -578,7 +578,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
             }
         }
 
@@ -639,7 +639,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha);
             }
         }
     }

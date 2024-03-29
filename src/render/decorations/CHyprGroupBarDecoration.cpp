@@ -87,7 +87,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(&box);
 }
 
-void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     // get how many bars we will draw
     int         barsToDraw = m_dwGroupMembers.size();
 
@@ -111,8 +111,9 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
     int xoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
-        CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x,
-                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + offset.y, m_fBarWidth, BAR_INDICATOR_HEIGHT};
+        CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
+                     BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -136,7 +137,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& 
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
-        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + offset.x, ASSIGNEDBOX.y - pMonitor->vecPosition.y + offset.y + BAR_PADDING_OUTER_VERT, m_fBarWidth,
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+                ASSIGNEDBOX.y - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y + BAR_PADDING_OUTER_VERT, m_fBarWidth,
                 ASSIGNEDBOX.h - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT * 2};
         rect.scale(pMonitor->scale);
 

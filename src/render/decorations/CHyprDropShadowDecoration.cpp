@@ -82,7 +82,7 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
-void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
     if (!g_pCompositor->windowValidMapped(m_pWindow))
         return;
@@ -132,7 +132,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
                    {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
                     fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
 
-    fullBox.translate(offset);
+    fullBox.translate(m_pWindow->m_vFloatingOffset);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return; // don't draw invisible shadows
@@ -154,8 +154,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a, const Vector2D
         windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
         withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
 
-        windowBox.translate(offset);
-        withDecos.translate(offset);
+        windowBox.translate(m_pWindow->m_vFloatingOffset);
+        withDecos.translate(m_pWindow->m_vFloatingOffset);
 
         auto scaledExtentss = withDecos.extentsFrom(windowBox);
         scaledExtentss      = scaledExtentss * pMonitor->scale;

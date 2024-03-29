@@ -693,6 +693,8 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     if (windowExists(pWindow) && !pWindow->m_bFadingOut)
         std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
+
+    std::erase_if(m_vWindowsFadingOut, [&](CWindow* el) { return el == pWindow; });
 }
 
 bool CCompositor::windowExists(CWindow* pWindow) {

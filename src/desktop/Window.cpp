@@ -1154,6 +1154,11 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
+    if (!m_bIsFloating || m_bPinned || m_bIsFullscreen) {
+        m_vFloatingOffset = Vector2D(0, 0);
+        return;
+    }
+
     Vector2D   offset;
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
     if (!PWORKSPACE)

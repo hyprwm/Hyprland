@@ -237,6 +237,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     if (pWindow->m_iMonitorID == pMonitor->ID)
         return true;
 
+    if (!g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) && pWindow->m_iMonitorID != pMonitor->ID)
+        return false;
+
     // if not, check if it maybe is active on a different monitor.
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID) && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
         return !pWindow->m_bIsFullscreen; // Do not draw fullscreen windows on other monitors

@@ -124,7 +124,7 @@ void CAnimationManager::tick() {
 
             // damage any workspace window that is on any monitor
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (w->m_iWorkspaceID != PWORKSPACE->m_iID || !g_pCompositor->windowValidMapped(w.get()) || w->m_bPinned)
+                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
                     continue;
 
                 g_pHyprRenderer->damageWindow(w.get());

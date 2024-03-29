@@ -49,8 +49,13 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
     // set floating windows offset callbacks
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned && !w->m_bIsFullscreen)
+        if (!g_pCompositor->windowValidMapped(w.get()))
+            continue;
+
+        if (w->m_bIsFloating && !w->m_bPinned && !w->m_bIsFullscreen)
             m_vRenderOffset.setUpdateCallback([&](void*) { w->onWorkspaceAnimUpdate(); });
+        else
+            w->m_vFloatingOffset = Vector2D(0, 0);
     }
 
     if (ANIMSTYLE.starts_with("slidefade")) {

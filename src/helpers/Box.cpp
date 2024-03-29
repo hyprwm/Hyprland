@@ -115,6 +115,11 @@ CBox& CBox::shrink(const double& value) {
     w -= value * 2.0;
     h -= value * 2.0;
 
+    if (w <= 0 || h <= 0) {
+        w = 0;
+        h = 0;
+    }
+
     return *this;
 }
 

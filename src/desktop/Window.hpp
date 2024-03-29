@@ -424,6 +424,7 @@ class CWindow {
     void                     updateGroupOutputs();
     void                     switchWithWindowInGroup(CWindow* pWindow);
     void                     setAnimationsToMove();
+    void                     onWorkspaceAnimUpdate();
 
   private:
     // For hidden windows and stuff

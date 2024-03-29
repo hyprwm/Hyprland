@@ -1152,6 +1152,35 @@ void CWindow::setAnimationsToMove() {
     m_bAnimatingIn = false;
 }
 
+void CWindow::onWorkspaceAnimUpdate() {
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_iWorkspaceID);
+    // clip box for animated offsets
+    Vector2D offset;
+    if (PWORKSPACE->m_vRenderOffset.value().x != 0) {
+        const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
+        const auto WINBB    = getFullWindowBoundingBox();
+
+        if (WINBB.x < PWSMON->vecPosition.x) {
+            offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
+        } else if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
+            offset.x = (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
+        }
+    } else if (PWORKSPACE->m_vRenderOffset.value().y != 0) {
+        const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().y / PWSMON->vecSize.y;
+        const auto WINBB    = getFullWindowBoundingBox();
+
+        if (WINBB.y < PWSMON->vecPosition.y) {
+            offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
+        } else if (WINBB.y + WINBB.height > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
+            offset.y = (WINBB.y + WINBB.height - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
+        }
+    }
+
+    m_vFloatingOffset = offset;
+}
+
 int CWindow::popupsCount() {
     if (m_bIsX11)
         return 1;

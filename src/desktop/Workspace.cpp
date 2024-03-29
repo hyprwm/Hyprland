@@ -133,6 +133,12 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         }
     }
 
+    // set floating windows offset
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned && !w->m_bIsFullscreen)
+            m_vRenderOffset.setUpdateCallback([&](void*) { w->onWorkspaceAnimUpdate(); });
+    }
+
     if (instant) {
         m_vRenderOffset.warp();
         m_fAlpha.warp();

@@ -518,41 +518,13 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
         g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
     }
 
-    // clip box for animated offsets
-    const Vector2D PREOFFSETPOS = {renderdata.x, renderdata.y};
-    Vector2D       offset;
-    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bPinned && !pWindow->m_bIsFullscreen) {
-
-        if (PWORKSPACE->m_vRenderOffset.value().x != 0) {
-            const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-            const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
-            const auto WINBB    = pWindow->getFullWindowBoundingBox();
-
-            if (WINBB.x < PWSMON->vecPosition.x) {
-                offset.x = (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
-            } else if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x) {
-                offset.x = (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
-            }
-        } else if (PWORKSPACE->m_vRenderOffset.value().y != 0) {
-            const auto PWSMON   = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
-            const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().y / PWSMON->vecSize.y;
-            const auto WINBB    = pWindow->getFullWindowBoundingBox();
-
-            if (WINBB.y < PWSMON->vecPosition.y) {
-                offset.y = (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
-            } else if (WINBB.y + WINBB.height > PWSMON->vecPosition.y + PWSMON->vecSize.y) {
-                offset.y = (WINBB.y + WINBB.height - PWSMON->vecPosition.y - PWSMON->vecSize.y) * PROGRESS;
-            }
-        }
-
-        renderdata.x += offset.x;
-        renderdata.y += offset.y;
-        pWindow->m_vFloatingOffset = offset;
-    }
+    renderdata.x += pWindow->m_vFloatingOffset.x;
+    renderdata.y += pWindow->m_vFloatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
     if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned) {
-        CRegion rg = pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value() + offset).scale(pMonitor->scale);
+        CRegion rg =
+            pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value() + pWindow->m_vFloatingOffset).scale(pMonitor->scale);
         g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
     }
 
@@ -574,14 +546,14 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
             }
 
             for (auto& wd : pWindow->m_dWindowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, offset);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
             }
         }
 
@@ -606,7 +578,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
             }
         }
 
@@ -667,7 +639,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
                     continue;
 
-                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, Vector2D{renderdata.x, renderdata.y} - PREOFFSETPOS);
+                wd->draw(pMonitor, renderdata.alpha * renderdata.fadeAlpha, pWindow->m_vFloatingOffset);
             }
         }
     }

@@ -501,7 +501,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
-    if (!m_lShortcutInhibitors.empty()) {
+    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+
+    if (!*PDISABLEINHIBIT && !m_lShortcutInhibitors.empty()) {
         for (auto& i : m_lShortcutInhibitors) {
             if (i.pWlrInhibitor->surface == g_pCompositor->m_pLastFocus) {
                 Debug::log(LOG, "Keybind handling is disabled due to an inhibitor for surface {:x}", (uintptr_t)i.pWlrInhibitor->surface);

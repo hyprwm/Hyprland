@@ -47,6 +47,15 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
+    // set floating windows offset callbacks
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned && !w->m_bIsFullscreen) {
+            m_vRenderOffset.setCallbackOnBegin([&](void*) { w->m_vFloatingOffset = Vector2D(0, 0); });
+            m_vRenderOffset.setUpdateCallback([&](void*) { w->onWorkspaceAnimUpdate(); });
+            m_vRenderOffset.setCallbackOnEnd([&](void*) { w->m_vFloatingOffset = Vector2D(0, 0); });
+        }
+    }
+
     if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;
@@ -131,12 +140,6 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
             m_fAlpha.setValueAndWarp(1.f);
             m_fAlpha = 0.f;
         }
-    }
-
-    // set floating windows offset
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned && !w->m_bIsFullscreen)
-            m_vRenderOffset.setUpdateCallback([&](void*) { w->onWorkspaceAnimUpdate(); });
     }
 
     if (instant) {

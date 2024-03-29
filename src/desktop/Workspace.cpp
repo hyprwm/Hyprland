@@ -15,12 +15,10 @@ CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
 
-    m_vRenderOffset.m_pWorkspace = this;
-    m_vRenderOffset.create(special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), nullptr,
+    m_vRenderOffset.create(special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), this,
                            AVARDAMAGE_ENTIRE);
-    m_fAlpha.m_pWorkspace = this;
-    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
-                    nullptr, AVARDAMAGE_ENTIRE);
+    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), this,
+                    AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(1.f);
 
     m_vRenderOffset.registerVar();

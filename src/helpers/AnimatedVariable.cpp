@@ -6,10 +6,33 @@ CBaseAnimatedVariable::CBaseAnimatedVariable(ANIMATEDVARTYPE type) : m_Type(type
     ; // dummy var
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pWindow       = pWindow;
+
+    m_bDummy = false;
+}
+
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy) {
+    m_eDamagePolicy = policy;
+    m_pConfig       = pAnimConfig;
+    m_pLayer        = pLayer;
+
+    m_bDummy = false;
+}
+
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy) {
+    m_eDamagePolicy = policy;
+    m_pConfig       = pAnimConfig;
+    m_pWorkspace    = pWorkspace;
+
+    m_bDummy = false;
+}
+
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy) {
+    m_eDamagePolicy = policy;
+    m_pConfig       = pAnimConfig;
 
     m_bDummy = false;
 }

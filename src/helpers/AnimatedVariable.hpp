@@ -67,7 +67,10 @@ concept Animable = OneOf<T, Vector2D, float, CColor>;
 class CBaseAnimatedVariable {
   public:
     CBaseAnimatedVariable(ANIMATEDVARTYPE type);
-    void create(SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy);
 
     CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
     CBaseAnimatedVariable(CBaseAnimatedVariable&&)                 = delete;
@@ -204,8 +207,23 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
     CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
 
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, void* pWindow, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pWindow, policy);
+        m_Value = value;
+        m_Goal  = value;
+    }
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy) {
+        create(pAnimConfig, pLayer, policy);
+        m_Value = value;
+        m_Goal  = value;
+    }
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy) {
+        create(pAnimConfig, pWorkspace, policy);
+        m_Value = value;
+        m_Goal  = value;
+    }
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy) {
+        create(pAnimConfig, policy);
         m_Value = value;
         m_Goal  = value;
     }
@@ -261,9 +279,15 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
     }
 
     void warp(bool endCallback = true) override {
+        if (m_Value == m_Goal)
+            return;
+
         m_Value = m_Goal;
 
         m_bIsBeingAnimated = false;
+
+        if (m_fUpdateCallback)
+            m_fUpdateCallback(this);
 
         if (endCallback)
             onAnimationEnd();

@@ -75,6 +75,7 @@ pluginenv:
 installheaders:
 	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
+	rm -fr ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/include/hyprland/wlroots

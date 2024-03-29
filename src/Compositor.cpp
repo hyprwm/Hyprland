@@ -2523,7 +2523,7 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
 
 // returns a delta
 Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {
-    if (!args.contains(' '))
+    if (!args.contains(' ') && !args.contains('\t'))
         return relativeTo;
 
     const auto  PMONITOR = m_pLastMonitor;

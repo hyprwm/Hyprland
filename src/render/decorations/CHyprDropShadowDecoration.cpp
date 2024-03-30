@@ -60,7 +60,7 @@ void CHyprDropShadowDecoration::damageEntire() {
         if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
             surfaceBox.translate(PWORKSPACE->m_vRenderOffset.value());
         surfaceBox.translate(m_pWindow->m_vFloatingOffset);
-        surfaceBox.shrink(ROUNDINGSIZE);
+        surfaceBox.expand(-ROUNDINGSIZE);
         shadowRegion.subtract(CRegion(surfaceBox));
     }
 

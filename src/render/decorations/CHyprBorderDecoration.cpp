@@ -103,7 +103,7 @@ void CHyprBorderDecoration::damageEntire() {
     CBox surfaceBoxExpandedBorder = surfaceBox;
     surfaceBoxExpandedBorder.expand(BORDERSIZE);
     CBox surfaceBoxShrunkRounding = surfaceBox;
-    surfaceBoxShrunkRounding.shrink(ROUNDINGSIZE);
+    surfaceBoxShrunkRounding.expand(-ROUNDINGSIZE);
 
     CRegion borderRegion(surfaceBoxExpandedBorder);
     borderRegion.subtract(surfaceBoxShrunkRounding);

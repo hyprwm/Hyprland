@@ -170,7 +170,11 @@ void CTextInput::enter(wlr_surface* pSurface) {
     }
 
     enterLocks++;
-    RASSERT(enterLocks == 1, "TextInput had != 1 lock in enter");
+    if (enterLocks != 1) {
+        Debug::log(ERR, "BUG THIS: TextInput has != 1 locks in enter");
+        leave();
+        enterLocks = 1;
+    }
 
     if (pWlrInput)
         wlr_text_input_v3_send_enter(pWlrInput, pSurface);
@@ -187,7 +191,10 @@ void CTextInput::leave() {
         return;
 
     enterLocks--;
-    RASSERT(enterLocks == 0, "TextInput had != 0 locks in leave");
+    if (enterLocks != 1) {
+        Debug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
+        enterLocks = 0;
+    }
 
     if (pWlrInput && pWlrInput->focused_surface)
         wlr_text_input_v3_send_leave(pWlrInput);

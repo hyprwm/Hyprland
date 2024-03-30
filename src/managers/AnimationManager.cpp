@@ -112,14 +112,20 @@ void CAnimationManager::tick() {
 
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
-                // still doing the full damage hack for floating because sometimes when the window
-                // goes through multiple monitors the last rendered frame is missing damage somehow??
-                if (g_pCompositor->windowValidMapped(w.get()) && w->m_bIsFloating && !w->m_bPinned) {
+                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                    continue;
+
+                if (w->m_bIsFloating && !w->m_bPinned) {
+                    // still doing the full damage hack for floating because sometimes when the window
+                    // goes through multiple monitors the last rendered frame is missing damage somehow??
                     const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
                     const CBox monitorBox        = {PMONITOR->vecPosition, PMONITOR->vecSize};
                     if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
                         g_pHyprRenderer->damageWindow(w.get(), true);
                 }
+
+                if (PWORKSPACE->m_bIsSpecialWorkspace)
+                    g_pHyprRenderer->damageWindow(w.get(), true); // hack for special too because it can cross multiple monitors
             }
 
             // damage any workspace window that is on any monitor

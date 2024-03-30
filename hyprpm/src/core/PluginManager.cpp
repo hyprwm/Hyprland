@@ -333,7 +333,12 @@ eHeadersErrors CPluginManager::headersValid() {
     std::string verHeaderContent((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
     ifs.close();
 
-    std::string hash = verHeaderContent.substr(verHeaderContent.find("#define GIT_COMMIT_HASH") + 23);
+    const auto HASHPOS = verHeaderContent.find("#define GIT_COMMIT_HASH");
+
+    if (HASHPOS == std::string::npos || HASHPOS + 23 >= verHeaderContent.length())
+        return HEADERS_CORRUPTED;
+
+    std::string hash = verHeaderContent.substr(HASHPOS + 23);
     hash             = hash.substr(0, hash.find_first_of('\n'));
     hash             = hash.substr(hash.find_first_of('"') + 1);
     hash             = hash.substr(0, hash.find_first_of('"'));

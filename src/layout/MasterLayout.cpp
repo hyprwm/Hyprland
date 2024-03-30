@@ -41,14 +41,17 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     }
 
     //create on the fly if it doesn't exist yet
-    const auto PWORKSPACEDATA    = &m_lMasterWorkspacesData.emplace_back();
-    PWORKSPACEDATA->workspaceID  = ws;
-    static auto PORIENTATION     = CConfigValue<std::string>("master:orientation");
-    const auto  layoutoptsForWs  = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
+    const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
+    PWORKSPACEDATA->workspaceID = ws;
+    static auto PORIENTATION    = CConfigValue<std::string>("master:orientation");
+    const auto  WORKSPACERULES  = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(ws));
+
     std::string orientationForWs = *PORIENTATION;
 
-    if (layoutoptsForWs.contains("orientation"))
-        orientationForWs = layoutoptsForWs.at("orientation");
+    for (auto& wsRule : WORKSPACERULES) {
+        if (wsRule.layoutopts.contains("orientation"))
+            orientationForWs = wsRule.layoutopts.at("orientation");
+    }
 
     if (orientationForWs == "top") {
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
@@ -626,7 +629,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+    const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
 
     if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
@@ -640,8 +643,14 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto*       PGAPSIN         = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
     auto*       PGAPSOUT        = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
-    auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
-    auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
+    auto        gapsIn  = *PGAPSIN;
+    auto        gapsOut = *PGAPSOUT;
+    for (auto& wsRule : WORKSPACERULES) {
+        if (wsRule.gapsIn.has_value())
+            gapsIn = wsRule.gapsIn.value();
+        if (wsRule.gapsOut.has_value())
+            gapsOut = wsRule.gapsOut.value();
+    }
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
@@ -655,10 +664,17 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 ||
          (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
-        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
-        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
+        PWINDOW->m_sSpecialRenderData.border   = (*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = true;
+
+        for (auto& wsRule : WORKSPACERULES) {
+            if (wsRule.border.has_value())
+                PWINDOW->m_sSpecialRenderData.border = wsRule.border.value();
+            if (wsRule.decorate.has_value())
+                PWINDOW->m_sSpecialRenderData.decorate = wsRule.decorate.value();
+        }
 
         PWINDOW->updateWindowDecos();
 

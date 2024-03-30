@@ -50,7 +50,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (!g_pCompositor->windowValidMapped(w.get()))
+            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != m_iID)
                 continue;
 
             w->onWorkspaceAnimUpdate();

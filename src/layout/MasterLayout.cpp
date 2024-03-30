@@ -339,6 +339,23 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     if (!PMASTERNODE)
         return;
 
+    // dynamic workspace rules
+    const auto layoutoptsForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
+    if (layoutoptsForWs.contains("orientation")) {
+        const std::string orientationForWs = layoutoptsForWs.at("orientation");
+        if (orientationForWs == "top") {
+            PWORKSPACEDATA->orientation = ORIENTATION_TOP;
+        } else if (orientationForWs == "right") {
+            PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
+        } else if (orientationForWs == "bottom") {
+            PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
+        } else if (orientationForWs == "center") {
+            PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
+        } else if (orientationForWs == "left") {
+            PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
+        }
+    }
+
     eOrientation orientation        = PWORKSPACEDATA->orientation;
     bool         centerMasterWindow = false;
     static auto  ALWAYSCENTER       = CConfigValue<Hyprlang::INT>("master:always_center_master");

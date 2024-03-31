@@ -194,7 +194,7 @@ void CTextInput::leave() {
         return;
 
     enterLocks--;
-    if (enterLocks != 1) {
+    if (enterLocks != 0) {
         Debug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
         enterLocks = 0;
     }

@@ -956,11 +956,13 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
-SWorkspaceRule CConfigManager::getWorkspaceRuleFor(CWorkspace* pWorkspace) {
-    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return pWorkspace->matchesStaticSelector(other.workspaceString); });
-    if (IT == m_dWorkspaceRules.end())
-        return SWorkspaceRule{};
-    return *IT;
+std::vector<SWorkspaceRule> CConfigManager::getWorkspaceRulesFor(CWorkspace* pWorkspace) {
+    std::vector<SWorkspaceRule> results;
+    for (auto& rule : m_dWorkspaceRules) {
+        if (pWorkspace->matchesStaticSelector(rule.workspaceString))
+            results.push_back(rule);
+    }
+    return results;
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic, bool shadowExec) {

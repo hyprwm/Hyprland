@@ -340,20 +340,24 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         return;
 
     // dynamic workspace rules
-    const auto layoutoptsForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
-    if (layoutoptsForWs.contains("orientation")) {
-        const std::string orientationForWs = layoutoptsForWs.at("orientation");
-        if (orientationForWs == "top") {
-            PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-        } else if (orientationForWs == "right") {
-            PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-        } else if (orientationForWs == "bottom") {
-            PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-        } else if (orientationForWs == "center") {
-            PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-        } else if (orientationForWs == "left") {
-            PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-        }
+    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(ws));
+    std::string orientationForWs;
+
+    for (auto& wsRule : WORKSPACERULES) {
+        if (wsRule.layoutopts.contains("orientation"))
+            orientationForWs = wsRule.layoutopts.at("orientation");
+    }
+
+    if (orientationForWs == "top") {
+        PWORKSPACEDATA->orientation = ORIENTATION_TOP;
+    } else if (orientationForWs == "right") {
+        PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
+    } else if (orientationForWs == "bottom") {
+        PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
+    } else if (orientationForWs == "center") {
+        PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
+    } else if (orientationForWs == "left") {
+        PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
     }
 
     eOrientation orientation        = PWORKSPACEDATA->orientation;

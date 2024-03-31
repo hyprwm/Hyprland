@@ -96,6 +96,9 @@ void CTextInput::onDisabled() {
     hyprListener_surfaceDestroyed.removeCallback();
     hyprListener_surfaceUnmapped.removeCallback();
 
+    if (!g_pInputManager->m_sIMERelay.m_pWLRIME->active)
+        return;
+
     wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
     g_pInputManager->m_sIMERelay.commitIMEState(this);
 }
@@ -204,6 +207,12 @@ void CTextInput::leave() {
     }
 
     setFocusedSurface(nullptr);
+
+    if (!g_pInputManager->m_sIMERelay.m_pWLRIME->active)
+        return;
+
+    wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
+    g_pInputManager->m_sIMERelay.commitIMEState(this);
 }
 
 wlr_surface* CTextInput::focusedSurface() {

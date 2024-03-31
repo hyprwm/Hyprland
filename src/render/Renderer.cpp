@@ -856,8 +856,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace*
     }
 
     // Render IME popups
-    for (auto& imep : g_pInputManager->m_sIMERelay.m_vIMEPopups) {
-        renderIMEPopup(imep.get(), pMonitor, time);
+    if (g_pInputManager->m_sIMERelay.m_pWLRIME && g_pInputManager->m_sIMERelay.m_pWLRIME->active) {
+        for (auto& imep : g_pInputManager->m_sIMERelay.m_vIMEPopups) {
+            renderIMEPopup(imep.get(), pMonitor, time);
+        }
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {

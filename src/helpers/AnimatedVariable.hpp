@@ -274,7 +274,8 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
 
     // Sets the actual value and goal
     void setValueAndWarp(const VarType& v) {
-        m_Goal = v;
+        m_Goal             = v;
+        m_bIsBeingAnimated = true;
         warp();
     }
 
@@ -289,7 +290,8 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
         if (m_fUpdateCallback)
             m_fUpdateCallback(this);
 
-        onAnimationEnd();
+        if (endCallback)
+            onAnimationEnd();
     }
 
   private:

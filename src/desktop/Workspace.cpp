@@ -49,6 +49,16 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
+    // set floating windows offset callbacks
+    m_vRenderOffset.setUpdateCallback([&](void*) {
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != m_iID)
+                continue;
+
+            w->onWorkspaceAnimUpdate();
+        };
+    });
+
     if (ANIMSTYLE.starts_with("slidefade")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;

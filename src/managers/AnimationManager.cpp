@@ -87,11 +87,15 @@ void CAnimationManager::tick() {
 
         CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
-            CBox       bb               = PWINDOW->getFullWindowBoundingBox();
-            const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-            if (PWINDOWWORKSPACE)
-                bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-            WLRBOXPREV = bb;
+            if (av->m_eDamagePolicy == AVARDAMAGE_ENTIRE) {
+                g_pHyprRenderer->damageWindow(PWINDOW);
+            } else if (av->m_eDamagePolicy == AVARDAMAGE_BORDER) {
+                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
+                PDECO->damageEntire();
+            } else if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW) {
+                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
+                PDECO->damageEntire();
+            }
 
             PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             if (!PMONITOR)
@@ -101,25 +105,35 @@ void CAnimationManager::tick() {
             PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             if (!PMONITOR)
                 continue;
-            WLRBOXPREV = {PMONITOR->vecPosition, PMONITOR->vecSize};
+
+            // dont damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
+            if (PWORKSPACE->m_bIsSpecialWorkspace)
+                g_pHyprRenderer->damageMonitor(PMONITOR);
 
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (!w->isHidden() && w->m_bIsMapped && w->m_bIsFloating)
-                    g_pHyprRenderer->damageWindow(w.get());
+                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                    continue;
+
+                if (w->m_bIsFloating && !w->m_bPinned) {
+                    // still doing the full damage hack for floating because sometimes when the window
+                    // goes through multiple monitors the last rendered frame is missing damage somehow??
+                    const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
+                    const CBox monitorBox        = {PMONITOR->vecPosition, PMONITOR->vecSize};
+                    if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
+                        g_pHyprRenderer->damageWindow(w.get(), true);
+                }
+
+                if (PWORKSPACE->m_bIsSpecialWorkspace)
+                    g_pHyprRenderer->damageWindow(w.get(), true); // hack for special too because it can cross multiple monitors
             }
 
-            // if a special workspace window is on any monitor, damage it
+            // damage any workspace window that is on any monitor
             for (auto& w : g_pCompositor->m_vWindows) {
-                for (auto& m : g_pCompositor->m_vMonitors) {
-                    if (w->m_iWorkspaceID == PWORKSPACE->m_iID && PWORKSPACE->m_bIsSpecialWorkspace && g_pCompositor->windowValidMapped(w.get()) &&
-                        g_pHyprRenderer->shouldRenderWindow(w.get(), m.get(), PWORKSPACE)) {
-                        CBox bb = w->getFullWindowBoundingBox();
-                        bb.translate(PWORKSPACE->m_vRenderOffset.value());
-                        bb.intersection({m->vecPosition, m->vecSize});
-                        g_pHyprRenderer->damageBox(&bb);
-                    }
-                }
+                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
+                    continue;
+
+                g_pHyprRenderer->damageWindow(w.get());
             }
         } else if (PLAYER) {
             WLRBOXPREV = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
@@ -194,26 +208,13 @@ void CAnimationManager::tick() {
 
                 if (PWINDOW) {
                     PWINDOW->updateWindowDecos();
-                    auto       bb               = PWINDOW->getFullWindowBoundingBox();
-                    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-                    if (PWINDOWWORKSPACE)
-                        bb.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-                    g_pHyprRenderer->damageBox(&bb);
+                    g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
-                        if (!w->m_bIsMapped || w->isHidden())
-                            continue;
-
-                        if (w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                        if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
                             continue;
 
                         w->updateWindowDecos();
-
-                        if (w->m_bIsFloating) {
-                            auto bb = w->getFullWindowBoundingBox();
-                            bb.translate(PWORKSPACE->m_vRenderOffset.value());
-                            g_pHyprRenderer->damageBox(&bb);
-                        }
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
@@ -229,31 +230,8 @@ void CAnimationManager::tick() {
             case AVARDAMAGE_BORDER: {
                 RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
 
-                // TODO: move this to the border class
-
-                // damage only the border.
-                const auto ROUNDING     = PWINDOW->rounding();
-                const auto ROUNDINGSIZE = ROUNDING + 1;
-                const auto BORDERSIZE   = PWINDOW->getRealBorderSize();
-
-                // damage for old box
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, WLRBOXPREV.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x - BORDERSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXPREV.height + 2 * BORDERSIZE); // left
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x + WLRBOXPREV.width - ROUNDINGSIZE, WLRBOXPREV.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
-                                           WLRBOXPREV.height + 2 * BORDERSIZE); // right
-                g_pHyprRenderer->damageBox(WLRBOXPREV.x, WLRBOXPREV.y + WLRBOXPREV.height - ROUNDINGSIZE, WLRBOXPREV.width + 2 * BORDERSIZE,
-                                           BORDERSIZE + ROUNDINGSIZE); // bottom
-
-                // damage for new box
-                CBox       WLRBOXNEW        = {PWINDOW->m_vRealPosition.value(), PWINDOW->m_vRealSize.value()};
-                const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
-                if (PWINDOWWORKSPACE)
-                    WLRBOXNEW.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE);  // top
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x - BORDERSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE, WLRBOXNEW.height + 2 * BORDERSIZE); // left
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x + WLRBOXNEW.width - ROUNDINGSIZE, WLRBOXNEW.y - BORDERSIZE, BORDERSIZE + ROUNDINGSIZE,
-                                           WLRBOXNEW.height + 2 * BORDERSIZE);                                                                                       // right
-                g_pHyprRenderer->damageBox(WLRBOXNEW.x, WLRBOXNEW.y + WLRBOXNEW.height - ROUNDINGSIZE, WLRBOXNEW.width + 2 * BORDERSIZE, BORDERSIZE + ROUNDINGSIZE); // bottom
+                const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
+                PDECO->damageEntire();
 
                 break;
             }

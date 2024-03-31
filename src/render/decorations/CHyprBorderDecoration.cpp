@@ -45,14 +45,14 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a, const Vector2D& offset) {
+void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a) {
     if (doesntWantBorders())
         return;
 
     if (m_bAssignedGeometry.width < m_seExtents.topLeft.x + 1 || m_bAssignedGeometry.height < m_seExtents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + offset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
+    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->vecPosition + m_pWindow->m_vFloatingOffset).expand(-m_pWindow->getRealBorderSize()).scale(pMonitor->scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;
@@ -87,7 +87,35 @@ void CHyprBorderDecoration::updateWindow(CWindow*) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    ; // ignored, done in animationManager. todo, move.
+    if (!g_pCompositor->windowValidMapped(m_pWindow))
+        return;
+
+    auto       surfaceBox   = m_pWindow->getWindowMainSurfaceBox();
+    const auto ROUNDING     = m_pWindow->rounding();
+    const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
+    const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
+
+    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+        surfaceBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+    surfaceBox.translate(m_pWindow->m_vFloatingOffset);
+
+    CBox surfaceBoxExpandedBorder = surfaceBox;
+    surfaceBoxExpandedBorder.expand(BORDERSIZE);
+    CBox surfaceBoxShrunkRounding = surfaceBox;
+    surfaceBoxShrunkRounding.expand(-ROUNDINGSIZE);
+
+    CRegion borderRegion(surfaceBoxExpandedBorder);
+    borderRegion.subtract(surfaceBoxShrunkRounding);
+
+    for (auto& m : g_pCompositor->m_vMonitors) {
+        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+            const CRegion monitorRegion({m->vecPosition, m->vecSize});
+            borderRegion.subtract(monitorRegion);
+        }
+    }
+
+    g_pHyprRenderer->damageRegion(borderRegion);
 }
 
 eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {

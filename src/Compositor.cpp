@@ -10,6 +10,7 @@
 #include <systemd/sd-daemon.h> // for sd_notify
 #endif
 #include <ranges>
+#include "helpers/VarList.hpp"
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -2545,7 +2546,7 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
 
 // returns a delta
 Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {
-    if (!args.contains(' '))
+    if (!args.contains(' ') && !args.contains('\t'))
         return relativeTo;
 
     const auto  PMONITOR = m_pLastMonitor;
@@ -2554,12 +2555,13 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     bool        yIsPercent = false;
     bool        isExact    = false;
 
-    std::string x = args.substr(0, args.find_first_of(' '));
-    std::string y = args.substr(args.find_last_of(' ') + 1);
+    CVarList    varList(args, 0, 's', true);
+    std::string x = varList[0];
+    std::string y = varList[1];
 
     if (x == "exact") {
-        x       = y.substr(0, y.find_first_of(' '));
-        y       = y.substr(y.find_first_of(' ') + 1);
+        x       = varList[1];
+        y       = varList[2];
         isExact = true;
     }
 

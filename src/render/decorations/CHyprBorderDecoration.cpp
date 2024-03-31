@@ -92,8 +92,8 @@ void CHyprBorderDecoration::damageEntire() {
 
     auto       surfaceBox   = m_pWindow->getWindowMainSurfaceBox();
     const auto ROUNDING     = m_pWindow->rounding();
-    const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
-    const auto BORDERSIZE   = m_pWindow->getRealBorderSize();
+    const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 2;
+    const auto BORDERSIZE   = m_pWindow->getRealBorderSize() + 1;
 
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)

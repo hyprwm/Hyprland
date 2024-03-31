@@ -279,7 +279,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
     }
 
     void warp(bool endCallback = true) override {
-        if (m_Value == m_Goal)
+        if (!m_bIsBeingAnimated)
             return;
 
         m_Value = m_Goal;
@@ -289,8 +289,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
         if (m_fUpdateCallback)
             m_fUpdateCallback(this);
 
-        if (endCallback)
-            onAnimationEnd();
+        onAnimationEnd();
     }
 
   private:

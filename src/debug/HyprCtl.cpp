@@ -1449,7 +1449,10 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
 
         g_pPluginSystem->unloadPlugin(PLUGIN);
     } else if (OPERATION == "list") {
-        const auto  PLUGINS = g_pPluginSystem->getAllPlugins();
+        const auto PLUGINS = g_pPluginSystem->getAllPlugins();
+
+        if (PLUGINS.size() == 0)
+            return "no plugins loaded";
 
         std::string list = "";
         for (auto& p : PLUGINS) {

@@ -237,6 +237,9 @@ class CWindow {
     Vector2D m_vLastFloatingSize;
     Vector2D m_vLastFloatingPosition;
 
+    // for floating window offset in workspace animations
+    Vector2D m_vFloatingOffset = Vector2D(0, 0);
+
     // this is used for pseudotiling
     bool        m_bIsPseudotiled = false;
     Vector2D    m_vPseudoSize    = Vector2D(0, 0);
@@ -421,6 +424,7 @@ class CWindow {
     void                     updateGroupOutputs();
     void                     switchWithWindowInGroup(CWindow* pWindow);
     void                     setAnimationsToMove();
+    void                     onWorkspaceAnimUpdate();
 
   private:
     // For hidden windows and stuff

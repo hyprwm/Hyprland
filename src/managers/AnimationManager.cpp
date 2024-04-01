@@ -111,7 +111,7 @@ void CAnimationManager::tick() {
 
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                if (!w->m_bIsMapped || w->isHidden() || w->m_iWorkspaceID != PWORKSPACE->m_iID)
                     continue;
 
                 if (w->m_bIsFloating && !w->m_bPinned) {

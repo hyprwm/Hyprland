@@ -53,17 +53,16 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
             orientationForWs = wsRule.layoutopts.at("orientation");
     }
 
-    if (orientationForWs == "top") {
+    if (orientationForWs == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    } else if (orientationForWs == "right") {
+    else if (orientationForWs == "right")
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    } else if (orientationForWs == "bottom") {
+    else if (orientationForWs == "bottom")
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    } else if (orientationForWs == "center") {
+    else if (orientationForWs == "center")
         PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-    } else {
+    else
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-    }
 
     return PWORKSPACEDATA;
 }
@@ -348,17 +347,16 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             orientationForWs = wsRule.layoutopts.at("orientation");
     }
 
-    if (orientationForWs == "top") {
+    if (orientationForWs == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    } else if (orientationForWs == "right") {
+    else if (orientationForWs == "right")
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    } else if (orientationForWs == "bottom") {
+    else if (orientationForWs == "bottom")
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    } else if (orientationForWs == "center") {
+    else if (orientationForWs == "center")
         PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-    } else if (orientationForWs == "left") {
+    else if (orientationForWs == "left")
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-    }
 
     eOrientation orientation        = PWORKSPACEDATA->orientation;
     bool         centerMasterWindow = false;

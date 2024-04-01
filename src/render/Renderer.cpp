@@ -225,13 +225,16 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
 
     const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_iMonitorID == pMonitor->ID) {
-        if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering) {
+        if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering)
             return true;
-        } else {
-            if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bIsFloating && !pWindow->m_bCreatedOverFullscreen &&
-                pWindow->m_fAlpha.value() == 0)
-                return false;
-        }
+
+        // if hidden behind fullscreen
+        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
+            pWindow->m_fAlpha.value() == 0)
+            return false;
+
+        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
+            return false;
     }
 
     if (pWindow->m_iMonitorID == pMonitor->ID)

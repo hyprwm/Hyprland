@@ -77,10 +77,8 @@ void CInputPopup::damageEntire() {
         return;
     }
 
-    Vector2D pos    = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos();
-    CBox     global = lastBoxLocal.copy().translate(pos);
-
-    g_pHyprRenderer->damageBox(&global);
+    Vector2D pos = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos() + lastBoxLocal.pos();
+    g_pHyprRenderer->damageBox(pos.x, pos.y, surface.wlr()->current.width, surface.wlr()->current.height);
 }
 
 void CInputPopup::damageSurface() {

@@ -228,7 +228,8 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
         if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering)
             return true;
 
-        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && !pWindow->m_bIsFloating && !pWindow->m_bCreatedOverFullscreen &&
+        // if hidden behind fullscreen
+        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
             pWindow->m_fAlpha.value() == 0)
             return false;
 

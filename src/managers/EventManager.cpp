@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 
 #include <string>
+#include <algorithm>
 
 CEventManager::CEventManager() {}
 
@@ -139,7 +140,9 @@ void CEventManager::postEvent(const SHyprIPCEvent event) {
     }
 
     std::thread(
-        [&](const SHyprIPCEvent ev) {
+        [this](SHyprIPCEvent ev) {
+            std::replace(ev.data.begin(), ev.data.end(), '\n', ' ');
+
             eventQueueMutex.lock();
             m_dQueuedEvents.push_back(ev);
             eventQueueMutex.unlock();

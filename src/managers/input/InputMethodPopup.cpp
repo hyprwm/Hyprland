@@ -77,10 +77,8 @@ void CInputPopup::damageEntire() {
         return;
     }
 
-    Vector2D pos    = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos();
-    CBox     global = lastBoxLocal.copy().translate(pos);
-
-    g_pHyprRenderer->damageBox(&global);
+    Vector2D pos = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos() + lastBoxLocal.pos();
+    g_pHyprRenderer->damageBox(pos.x, pos.y, surface.wlr()->current.width, surface.wlr()->current.height);
 }
 
 void CInputPopup::damageSurface() {
@@ -127,7 +125,9 @@ void CInputPopup::updateBox() {
     CMonitor* pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 
     if (cursorBoxLocal.y + parentBox.y + surface.wlr()->current.height + cursorBoxLocal.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
-        cursorBoxLocal.y -= surface.wlr()->current.height + cursorBoxLocal.height;
+        cursorBoxLocal.y -= surface.wlr()->current.height;
+    else
+        cursorBoxLocal.y += cursorBoxLocal.height;
 
     if (cursorBoxLocal.x + parentBox.x + surface.wlr()->current.width > pMonitor->vecPosition.x + pMonitor->vecSize.x)
         cursorBoxLocal.x -= (cursorBoxLocal.x + parentBox.x + surface.wlr()->current.width) - (pMonitor->vecPosition.x + pMonitor->vecSize.x);

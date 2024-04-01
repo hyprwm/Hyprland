@@ -232,7 +232,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
             pWindow->m_fAlpha.value() == 0)
             return false;
 
-        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
+        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->m_iWorkspaceID))
             return false;
     }
 

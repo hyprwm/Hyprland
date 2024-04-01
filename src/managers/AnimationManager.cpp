@@ -218,12 +218,8 @@ void CAnimationManager::tick() {
                         w->updateWindowDecos();
 
                         // damage any workspace window that is on any monitor
-                        for (auto& w : g_pCompositor->m_vWindows) {
-                            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
-                                continue;
-
+                        if (!w->m_bPinned)
                             g_pHyprRenderer->damageWindow(w.get());
-                        }
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)

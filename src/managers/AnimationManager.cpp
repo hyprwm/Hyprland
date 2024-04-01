@@ -85,7 +85,6 @@ void CAnimationManager::tick() {
         CMonitor*  PMONITOR           = nullptr;
         bool       animationsDisabled = animGlobalDisabled;
 
-        CBox       WLRBOXPREV = {0, 0, 0, 0};
         if (PWINDOW) {
             if (av->m_eDamagePolicy == AVARDAMAGE_ENTIRE) {
                 g_pHyprRenderer->damageWindow(PWINDOW);
@@ -136,8 +135,12 @@ void CAnimationManager::tick() {
                 g_pHyprRenderer->damageWindow(w.get());
             }
         } else if (PLAYER) {
-            WLRBOXPREV = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
-            PMONITOR   = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            // "some fucking layers miss 1 pixel???" -- vaxry
+            CBox expandBox = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
+            expandBox.expand(5);
+            g_pHyprRenderer->damageBox(&expandBox);
+
+            PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
             if (!PMONITOR)
                 continue;
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
@@ -204,8 +207,6 @@ void CAnimationManager::tick() {
 
         switch (av->m_eDamagePolicy) {
             case AVARDAMAGE_ENTIRE: {
-                g_pHyprRenderer->damageBox(&WLRBOXPREV);
-
                 if (PWINDOW) {
                     PWINDOW->updateWindowDecos();
                     g_pHyprRenderer->damageWindow(PWINDOW);
@@ -215,13 +216,21 @@ void CAnimationManager::tick() {
                             continue;
 
                         w->updateWindowDecos();
+
+                        // damage any workspace window that is on any monitor
+                        for (auto& w : g_pCompositor->m_vWindows) {
+                            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
+                                continue;
+
+                            g_pHyprRenderer->damageWindow(w.get());
+                        }
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
 
                     // some fucking layers miss 1 pixel???
-                    CBox expandBox = WLRBOXPREV;
+                    CBox expandBox = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
                     expandBox.expand(5);
                     g_pHyprRenderer->damageBox(&expandBox);
                 }

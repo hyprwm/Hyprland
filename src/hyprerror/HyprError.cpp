@@ -58,7 +58,7 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto   LINECOUNT = 1 + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
+    const auto   LINECOUNT = Hyprlang::INT{1} + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
     static auto  LINELIMIT = CConfigValue<Hyprlang::INT>("debug:error_limit");
 
     const auto   VISLINECOUNT = std::min(LINECOUNT, *LINELIMIT);

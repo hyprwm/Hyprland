@@ -508,7 +508,7 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
     const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
 
-    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+    if (PWORKSPACE && !m_pWindow->m_bPinned)
         box.translate(PWORKSPACE->m_vRenderOffset.value());
 
     return box;

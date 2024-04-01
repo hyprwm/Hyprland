@@ -53,17 +53,16 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
             orientationForWs = wsRule.layoutopts.at("orientation");
     }
 
-    if (orientationForWs == "top") {
+    if (orientationForWs == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    } else if (orientationForWs == "right") {
+    else if (orientationForWs == "right")
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    } else if (orientationForWs == "bottom") {
+    else if (orientationForWs == "bottom")
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    } else if (orientationForWs == "center") {
+    else if (orientationForWs == "center")
         PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-    } else {
+    else
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-    }
 
     return PWORKSPACEDATA;
 }
@@ -338,6 +337,26 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
 
     if (!PMASTERNODE)
         return;
+
+    // dynamic workspace rules
+    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(ws));
+    std::string orientationForWs;
+
+    for (auto& wsRule : WORKSPACERULES) {
+        if (wsRule.layoutopts.contains("orientation"))
+            orientationForWs = wsRule.layoutopts.at("orientation");
+    }
+
+    if (orientationForWs == "top")
+        PWORKSPACEDATA->orientation = ORIENTATION_TOP;
+    else if (orientationForWs == "right")
+        PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
+    else if (orientationForWs == "bottom")
+        PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
+    else if (orientationForWs == "center")
+        PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
+    else if (orientationForWs == "left")
+        PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
 
     eOrientation orientation        = PWORKSPACEDATA->orientation;
     bool         centerMasterWindow = false;
@@ -753,7 +772,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     const auto   PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    const auto   PWORKSPACEDATA = getMasterWorkspaceData(PMONITOR->activeWorkspace);
+    const auto   PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
     static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 

@@ -189,7 +189,7 @@ void IHyprLayout::onBeginDragWindow() {
         g_pCompositor->setWindowFullscreen(DRAGGINGWINDOW, false, FULLSCREEN_FULL);
     }
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(DRAGGINGWINDOW->m_iWorkspaceID);
+    const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
         Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
@@ -329,7 +329,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
 
-    const auto  SPECIAL = g_pCompositor->isWorkspaceSpecial(DRAGGINGWINDOW->m_iWorkspaceID);
+    const auto  SPECIAL = DRAGGINGWINDOW->onSpecialWorkspace();
 
     const auto  DELTA     = Vector2D(mousePos.x - m_vBeginDragXY.x, mousePos.y - m_vBeginDragXY.y);
     const auto  TICKDELTA = Vector2D(mousePos.x - m_vLastDragXY.x, mousePos.y - m_vLastDragXY.y);
@@ -479,10 +479,10 @@ void IHyprLayout::changeWindowFloatingMode(CWindow* pWindow) {
     if (!TILED) {
         const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.value() + pWindow->m_vRealSize.value() / 2.f);
         pWindow->m_iMonitorID = PNEWMON->ID;
-        pWindow->moveToWorkspace(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
+        pWindow->moveToWorkspace(PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace);
         pWindow->updateGroupOutputs();
 
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PNEWMON->specialWorkspaceID != 0 ? PNEWMON->specialWorkspaceID : PNEWMON->activeWorkspace);
+        const auto PWORKSPACE = PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace;
 
         if (PWORKSPACE->m_bHasFullscreenWindow)
             g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false);
@@ -569,17 +569,17 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     if (!pWindow)
         return nullptr;
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     // first of all, if this is a fullscreen workspace,
     if (PWORKSPACE->m_bHasFullscreenWindow)
-        return g_pCompositor->getFullscreenWindowOnWorkspace(pWindow->m_iWorkspaceID);
+        return g_pCompositor->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
 
     if (pWindow->m_bIsFloating) {
 
         // find whether there is a floating window below this one
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sAdditionalConfigData.noFocus && w.get() != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
@@ -589,7 +589,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
         }
 
         // let's try the last tiled window.
-        if (m_pLastTiledWindow && m_pLastTiledWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID)
+        if (m_pLastTiledWindow && m_pLastTiledWindow->m_pWorkspace == pWindow->m_pWorkspace)
             return m_pLastTiledWindow;
 
         // if we don't, let's try to find any window that is in the middle
@@ -599,7 +599,7 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
 
         // if not, floating window
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_iWorkspaceID == pWindow->m_iWorkspaceID && !w->m_bX11ShouldntFocus &&
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sAdditionalConfigData.noFocus && w.get() != pWindow)
                 return w.get();
         }
@@ -612,10 +612,10 @@ CWindow* IHyprLayout::getNextWindowCandidate(CWindow* pWindow) {
     auto pWindowCandidate = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
     if (!pWindowCandidate)
-        pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->m_iWorkspaceID);
+        pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->workspaceID());
 
     if (!pWindowCandidate)
-        pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->m_iWorkspaceID);
+        pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
         pWindowCandidate->m_iX11Type == 2 || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)

@@ -3,6 +3,7 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
 #include "../defines.hpp"
+#include "DesktopTypes.hpp"
 
 enum eFullscreenMode : int8_t {
     FULLSCREEN_INVALID = -1,
@@ -14,6 +15,8 @@ class CWindow;
 
 class CWorkspace {
   public:
+    static PHLWORKSPACE create(int id, int monitorID, std::string name, bool special = false);
+    // use create() don't use this
     CWorkspace(int id, int monitorID, std::string name, bool special = false);
     ~CWorkspace();
 
@@ -53,7 +56,10 @@ class CWorkspace {
     std::string m_szLastMonitor = "";
 
     // Whether the user configured command for on-created-empty has been executed, if any
-    bool        m_bOnCreatedEmptyExecuted = false;
+    bool m_bOnCreatedEmptyExecuted = false;
+
+    // Inert: destroyed and invalid. If this is true, release the ptr you have.
+    bool        inert();
 
     void        startAnim(bool in, bool left, bool instant = false);
     void        setActive(bool on);
@@ -61,12 +67,25 @@ class CWorkspace {
     void        moveToMonitor(const int&);
 
     CWindow*    getLastFocusedWindow();
-    void        rememberPrevWorkspace(const CWorkspace* prevWorkspace);
+    void        rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
 
     std::string getConfigName();
 
     bool        matchesStaticSelector(const std::string& selector);
 
+    void        markInert();
+
   private:
-    HOOK_CALLBACK_FN* m_pFocusedWindowHook = nullptr;
+    void                      init(PHLWORKSPACE self);
+
+    HOOK_CALLBACK_FN*         m_pFocusedWindowHook = nullptr;
+    bool                      m_bInert             = true;
+    std::weak_ptr<CWorkspace> m_pSelf;
 };
+
+inline bool valid(const PHLWORKSPACE& ref) {
+    if (!ref)
+        return false;
+
+    return !ref->inert();
+}

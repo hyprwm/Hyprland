@@ -280,16 +280,16 @@ struct SIdleInhibitor {
 };
 
 struct SSwipeGesture {
-    CWorkspace* pWorkspaceBegin = nullptr;
+    PHLWORKSPACE pWorkspaceBegin = nullptr;
 
-    double      delta = 0;
+    double       delta = 0;
 
-    int         initialDirection = 0;
-    float       avgSpeed         = 0;
-    int         speedPoints      = 0;
-    int         touch_id         = 0;
+    int          initialDirection = 0;
+    float        avgSpeed         = 0;
+    int          speedPoints      = 0;
+    int          touch_id         = 0;
 
-    CMonitor*   pMonitor = nullptr;
+    CMonitor*    pMonitor = nullptr;
 };
 
 struct SIMEKbGrab {

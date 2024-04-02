@@ -2,6 +2,12 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
+PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special) {
+    PHLWORKSPACE workspace = std::make_shared<CWorkspace>(id, monitorID, name, special);
+    workspace->init(workspace);
+    return workspace;
+}
+
 CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
@@ -14,17 +20,22 @@ CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
     m_iID                 = id;
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
+}
 
-    m_vRenderOffset.create(special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), this,
-                           AVARDAMAGE_ENTIRE);
-    m_fAlpha.create(AVARTYPE_FLOAT, special ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), this,
+void CWorkspace::init(PHLWORKSPACE self) {
+    m_pSelf = self;
+
+    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
+                           self, AVARDAMAGE_ENTIRE);
+    m_fAlpha.create(AVARTYPE_FLOAT,
+                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), self,
                     AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(1.f);
 
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
 
-    const auto RULESFORTHIS = g_pConfigManager->getWorkspaceRulesFor(this);
+    const auto RULESFORTHIS = g_pConfigManager->getWorkspaceRulesFor(self);
     for (auto& rule : RULESFORTHIS) {
         if (rule.defaultName.has_value())
             m_szName = rule.defaultName.value();
@@ -36,6 +47,8 @@ CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
         if (PWINDOW == m_pLastFocusedWindow)
             m_pLastFocusedWindow = nullptr;
     });
+
+    m_bInert = false;
 
     g_pEventManager->postEvent({"createworkspace", m_szName});
     g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});
@@ -61,7 +74,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != m_iID)
+            if (!g_pCompositor->windowValidMapped(w.get()) || w->workspaceID() != m_iID)
                 continue;
 
             w->onWorkspaceAnimUpdate();
@@ -169,13 +182,13 @@ void CWorkspace::moveToMonitor(const int& id) {
 }
 
 CWindow* CWorkspace::getLastFocusedWindow() {
-    if (!g_pCompositor->windowValidMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->m_iWorkspaceID != m_iID)
+    if (!g_pCompositor->windowValidMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->workspaceID() != m_iID)
         return nullptr;
 
     return m_pLastFocusedWindow;
 }
 
-void CWorkspace::rememberPrevWorkspace(const CWorkspace* prev) {
+void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
     if (!prev) {
         m_sPrevWorkspace.iID  = -1;
         m_sPrevWorkspace.name = "";
@@ -404,4 +417,13 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
     UNREACHABLE();
     return false;
+}
+
+void CWorkspace::markInert() {
+    m_bInert = true;
+    m_iID    = WORKSPACE_INVALID;
+}
+
+bool CWorkspace::inert() {
+    return m_bInert;
 }

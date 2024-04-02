@@ -92,7 +92,7 @@ class CCompositor {
     std::vector<std::shared_ptr<CMonitor>>    m_vMonitors;
     std::vector<std::shared_ptr<CMonitor>>    m_vRealMonitors; // for all monitors, even those turned off
     std::vector<std::unique_ptr<CWindow>>     m_vWindows;
-    std::vector<std::unique_ptr<CWorkspace>>  m_vWorkspaces;
+    std::vector<PHLWORKSPACE>                 m_vWorkspaces;
     std::vector<CWindow*>                     m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
@@ -145,9 +145,9 @@ class CCompositor {
     CWindow*       getWindowFromHandle(uint32_t);
     CWindow*       getWindowFromZWLRHandle(wl_resource*);
     bool           isWorkspaceVisible(const int&);
-    CWorkspace*    getWorkspaceByID(const int&);
-    CWorkspace*    getWorkspaceByName(const std::string&);
-    CWorkspace*    getWorkspaceByString(const std::string&);
+    PHLWORKSPACE   getWorkspaceByID(const int&);
+    PHLWORKSPACE   getWorkspaceByName(const std::string&);
+    PHLWORKSPACE   getWorkspaceByString(const std::string&);
     void           sanityCheckWorkspaces();
     void           updateWorkspaceWindowDecos(const int&);
     int            getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTiled = {});
@@ -172,12 +172,12 @@ class CCompositor {
     void           updateWorkspaceWindows(const int64_t& id);
     void           updateWindowAnimatedDecorationValues(CWindow*);
     int            getNextAvailableMonitorID(std::string const& name);
-    void           moveWorkspaceToMonitor(CWorkspace*, CMonitor*, bool noWarpCursor = false);
+    void           moveWorkspaceToMonitor(PHLWORKSPACE, CMonitor*, bool noWarpCursor = false);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int64_t&);
     void           setWindowFullscreen(CWindow*, bool, eFullscreenMode mode = FULLSCREEN_INVALID);
-    void           updateFullscreenFadeOnWorkspace(CWorkspace*);
+    void           updateFullscreenFadeOnWorkspace(PHLWORKSPACE);
     CWindow*       getX11Parent(CWindow*);
     void           scheduleFrameForMonitor(CMonitor*);
     void           addToFadingOutSafe(SLayerSurface*);
@@ -189,13 +189,13 @@ class CCompositor {
     void           closeWindow(CWindow*);
     Vector2D       parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void           forceReportSizesToWindowsOnWorkspace(const int&);
-    CWorkspace*    createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    PHLWORKSPACE   createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
     void           renameWorkspace(const int&, const std::string& name = "");
     void           setActiveMonitor(CMonitor*);
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
     void           performUserChecks();
-    void           moveWindowToWorkspaceSafe(CWindow* pWindow, CWorkspace* pWorkspace);
+    void           moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWorkspace);
     CWindow*       getForceFocus();
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);

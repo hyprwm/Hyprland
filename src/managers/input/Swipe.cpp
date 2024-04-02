@@ -24,7 +24,7 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
 }
 
 void CInputManager::beginWorkspaceSwipe() {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    const auto PWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
     Debug::log(LOG, "Starting a swipe from {}", PWORKSPACE->m_szName);
 
@@ -80,14 +80,14 @@ void CInputManager::endWorkspaceSwipe() {
         workspaceIDRight = maxWorkspace + 1;
     }
 
-    auto        PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
-    auto        PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
+    auto         PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto         PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
 
-    const auto  RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.value();
-    const auto  XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
-    const auto  YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
+    const auto   RENDEROFFSETMIDDLE = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.value();
+    const auto   XDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
+    const auto   YDISTANCE          = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
 
-    CWorkspace* pSwitchedTo = nullptr;
+    PHLWORKSPACE pSwitchedTo = nullptr;
 
     if ((abs(m_sActiveSwipe.delta) < *PSWIPEDIST * *PSWIPEPERC && (*PSWIPEFORC == 0 || (*PSWIPEFORC != 0 && m_sActiveSwipe.avgSpeed < *PSWIPEFORC))) ||
         abs(m_sActiveSwipe.delta) < 2) {

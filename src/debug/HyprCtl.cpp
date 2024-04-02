@@ -24,15 +24,6 @@ static void trimTrailingComma(std::string& str) {
         str.pop_back();
 }
 
-static std::string getWorkspaceNameFromSpecialID(const int workspaceID) {
-    if (workspaceID == 0)
-        return "";
-    const auto* workspace = g_pCompositor->getWorkspaceByID(workspaceID);
-    if (!workspace)
-        return "";
-    return workspace->m_szName;
-}
-
 static std::string formatToString(uint32_t drmFormat) {
     switch (drmFormat) {
         case DRM_FORMAT_XRGB2101010: return "XRGB2101010";
@@ -116,8 +107,8 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
 }},)#",
                 m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
                 (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
-                m->activeWorkspace, (m->activeWorkspace == -1 ? "" : escapeJSONStrings(g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName)), m->specialWorkspaceID,
-                escapeJSONStrings(getWorkspaceNameFromSpecialID(m->specialWorkspaceID)), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+                m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
+                escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
                 m->tearingState.activelyTearing ? "true" : "false", formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
@@ -131,18 +122,17 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (!m->output || m->ID == -1ull)
                 continue;
 
-            result +=
-                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
-                            "workspace: {} ({})\n\treserved: {} "
-                            "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                            "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
-                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                            (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspace,
-                            (m->activeWorkspace == -1 ? "" : g_pCompositor->getWorkspaceByID(m->activeWorkspace)->m_szName), m->specialWorkspaceID,
-                            getWorkspaceNameFromSpecialID(m->specialWorkspaceID), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x,
-                            (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus,
-                            (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED), m->tearingState.activelyTearing, formatToString(m->drmFormat),
-                            availableModesForOutput(m.get(), format));
+            result += std::format(
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
+                "workspace: {} ({})\n\treserved: {} "
+                "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
+                "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspaceID(),
+                (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
+                (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+                (m.get() == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED),
+                m->tearingState.activelyTearing, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
     }
 
@@ -211,30 +201,23 @@ static std::string getWindowData(CWindow* w, eHyprCtlOutputFormat format) {
     "focusHistoryID": {}
 }},)#",
             (uintptr_t)w, (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
-            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_iWorkspaceID,
-            escapeJSONStrings(w->m_iWorkspaceID == -1                                ? "" :
-                                  g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
-                                                                                       std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))),
-            ((int)w->m_bIsFloating == 1 ? "true" : "false"), (int64_t)w->m_iMonitorID, escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w)),
-            escapeJSONStrings(g_pXWaylandManager->getTitle(w)), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
-            ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
-            (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? (int)g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
+            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
+            escapeJSONStrings(!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), ((int)w->m_bIsFloating == 1 ? "true" : "false"), (int64_t)w->m_iMonitorID,
+            escapeJSONStrings(g_pXWaylandManager->getAppIDClass(w)), escapeJSONStrings(g_pXWaylandManager->getTitle(w)), escapeJSONStrings(w->m_szInitialClass),
+            escapeJSONStrings(w->m_szInitialTitle), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
+            (w->m_bIsFullscreen ? "true" : "false"), (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
             w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     } else {
-        return std::format(
-            "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
-            "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
-            "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
-            (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y, (int)w->m_vRealSize.goal().x,
-            (int)w->m_vRealSize.goal().y, w->m_iWorkspaceID,
-            (w->m_iWorkspaceID == -1                                ? "" :
-                 g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_szName :
-                                                                      std::string("Invalid workspace " + std::to_string(w->m_iWorkspaceID))),
-            (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w), g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle,
-            w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
-            (w->m_bIsFullscreen ? (g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID) ? g_pCompositor->getWorkspaceByID(w->m_iWorkspaceID)->m_efFullscreenMode : 0) : 0),
-            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
+        return std::format("Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
+                           "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
+                           "{}\n\txwayland: {}\n\tpinned: "
+                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+                           (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
+                           (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
+                           (!w->m_pWorkspace ? "" : std::to_string(w->workspaceID())), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w),
+                           g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
+                           (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
+                           (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));
     }
 }
 
@@ -264,7 +247,7 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
     return result;
 }
 
-static std::string getWorkspaceData(CWorkspace* w, eHyprCtlOutputFormat format) {
+static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
     const auto PLASTW   = w->getLastFocusedWindow();
     const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -339,9 +322,9 @@ std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string requ
         return "unsafe state";
 
     std::string result = "";
-    auto        w      = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    auto        w      = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
-    if (!w)
+    if (!valid(w))
         return "internal error";
 
     return getWorkspaceData(w, format);
@@ -353,7 +336,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            result += getWorkspaceData(w.get(), format);
+            result += getWorkspaceData(w, format);
             result += ",";
         }
 
@@ -361,7 +344,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            result += getWorkspaceData(w.get(), format);
+            result += getWorkspaceData(w, format);
         }
     }
 

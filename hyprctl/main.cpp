@@ -290,7 +290,7 @@ int main(int argc, char** argv) {
 
                 overrideInstance = ARGS[i];
             } else if (ARGS[i] == "--help") {
-                const std::string &cmd = ARGS[0];
+                const std::string& cmd = ARGS[0];
 
                 if (cmd == "hyprpaper") {
                     std::cout << HYPRPAPER_HELP << std::endl;

@@ -30,6 +30,13 @@ CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
             m_szName = rule.defaultName.value();
     }
 
+    m_pFocusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
+        const auto PWINDOW = std::any_cast<CWindow*>(param);
+
+        if (PWINDOW == m_pLastFocusedWindow)
+            m_pLastFocusedWindow = nullptr;
+    });
+
     g_pEventManager->postEvent({"createworkspace", m_szName});
     g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});
     EMIT_HOOK_EVENT("createWorkspace", this);
@@ -39,6 +46,8 @@ CWorkspace::~CWorkspace() {
     m_vRenderOffset.unregister();
 
     Debug::log(LOG, "Destroying workspace ID {}", m_iID);
+
+    g_pHookSystem->unhook(m_pFocusedWindowHook);
 
     g_pEventManager->postEvent({"destroyworkspace", m_szName});
     g_pEventManager->postEvent({"destroyworkspacev2", std::format("{},{}", m_iID, m_szName)});

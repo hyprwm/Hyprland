@@ -66,4 +66,7 @@ class CWorkspace {
     std::string getConfigName();
 
     bool        matchesStaticSelector(const std::string& selector);
+
+  private:
+    HOOK_CALLBACK_FN* m_pFocusedWindowHook = nullptr;
 };

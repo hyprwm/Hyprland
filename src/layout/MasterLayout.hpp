@@ -84,7 +84,7 @@ class CHyprMasterLayout : public IHyprLayout {
     SMasterNodeData*                  getNodeFromWindow(CWindow*);
     SMasterNodeData*                  getMasterNodeOnWorkspace(const int&);
     SMasterWorkspaceData*             getMasterWorkspaceData(const int&);
-    void                              calculateWorkspace(const int&);
+    void                              calculateWorkspace(PHLWORKSPACE);
     CWindow*                          getNextWindow(CWindow*, bool);
     int                               getMastersOnWorkspace(const int&);
 

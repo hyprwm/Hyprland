@@ -956,7 +956,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
-std::vector<SWorkspaceRule> CConfigManager::getWorkspaceRulesFor(CWorkspace* pWorkspace) {
+std::vector<SWorkspaceRule> CConfigManager::getWorkspaceRulesFor(PHLWORKSPACE pWorkspace) {
     std::vector<SWorkspaceRule> results;
     for (auto& rule : m_dWorkspaceRules) {
         if (pWorkspace->matchesStaticSelector(rule.workspaceString))
@@ -1056,13 +1056,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
                 }
 
                 if (!rule.szOnWorkspace.empty()) {
-                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+                    const auto PWORKSPACE = pWindow->m_pWorkspace;
                     if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule.szOnWorkspace))
                         continue;
                 }
 
                 if (!rule.szWorkspace.empty()) {
-                    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+                    const auto PWORKSPACE = pWindow->m_pWorkspace;
 
                     if (!PWORKSPACE)
                         continue;
@@ -1287,7 +1287,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             /* fullscreen */
             m->vrrActive = true;
 
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m->activeWorkspace);
+            const auto PWORKSPACE = m->activeWorkspace;
 
             if (!PWORKSPACE)
                 return; // ???

@@ -11,6 +11,7 @@
 #include "Popup.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "DesktopTypes.hpp"
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -254,7 +255,7 @@ class CWindow {
     std::string m_szTitle             = "";
     std::string m_szInitialTitle      = "";
     std::string m_szInitialClass      = "";
-    int         m_iWorkspaceID        = -1;
+    PHLWORKSPACE         m_pWorkspace;
 
     bool        m_bIsMapped = false;
 
@@ -384,7 +385,7 @@ class CWindow {
     void                     destroyToplevelHandle();
     void                     updateToplevel();
     void                     updateSurfaceScaleTransformDetails();
-    void                     moveToWorkspace(int);
+    void                     moveToWorkspace(PHLWORKSPACE);
     CWindow*                 X11TransientFor();
     void                     onUnmap();
     void                     onMap();
@@ -400,6 +401,8 @@ class CWindow {
     bool                     shouldSendFullscreenState();
     void                     setSuspended(bool suspend);
     bool                     visibleOnMonitor(CMonitor* pMonitor);
+    int workspaceID();
+    bool onSpecialWorkspace();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -430,6 +433,7 @@ class CWindow {
     // For hidden windows and stuff
     bool m_bHidden    = false;
     bool m_bSuspended = false;
+    int m_iLastWorkspace = WORKSPACE_INVALID;
 };
 
 /**
@@ -464,7 +468,7 @@ struct std::formatter<CWindow*, CharT> : std::formatter<CharT> {
         std::format_to(out, "[");
         std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w, w->m_szTitle);
         if (formatWorkspace)
-            std::format_to(out, ", workspace: {}", w->m_iWorkspaceID);
+            std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
         if (formatMonitor)
             std::format_to(out, ", monitor: {}", w->m_iMonitorID);
         if (formatClass)

@@ -57,10 +57,11 @@ class CMonitor {
 
     bool            primary = false;
 
-    uint64_t        ID              = -1;
-    int             activeWorkspace = -1;
-    float           setScale        = 1; // scale set by cfg
-    float           scale           = 1; // real scale
+    uint64_t        ID                     = -1;
+    PHLWORKSPACE    activeWorkspace        = nullptr;
+    PHLWORKSPACE    activeSpecialWorkspace = nullptr;
+    float           setScale               = 1; // scale set by cfg
+    float           scale                  = 1; // real scale
 
     std::string     szName             = "";
     std::string     szDescription      = "";
@@ -119,9 +120,6 @@ class CMonitor {
         bool frameScheduledWhileBusy = false;
     } tearingState;
 
-    // for the special workspace. 0 means not open.
-    int                                                        specialWorkspaceID = 0;
-
     std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4> m_aLayerSurfaceLayers;
 
     DYNLISTENER(monitorFrame);
@@ -142,13 +140,15 @@ class CMonitor {
     bool     isMirror();
     bool     matchesStaticSelector(const std::string& selector) const;
     float    getDefaultScale();
-    void     changeWorkspace(CWorkspace* const pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void     changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
     void     changeWorkspace(const int& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void     setSpecialWorkspace(CWorkspace* const pWorkspace);
+    void     setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
     void     setSpecialWorkspace(const int& id);
     void     moveTo(const Vector2D& pos);
     Vector2D middle();
     void     updateMatrix();
+    int64_t activeWorkspaceID();
+    int64_t activeSpecialWorkspaceID();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

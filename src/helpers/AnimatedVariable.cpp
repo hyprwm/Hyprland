@@ -22,7 +22,7 @@ void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, SLayer
     m_bDummy = false;
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pWorkspace    = pWorkspace;

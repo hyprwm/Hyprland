@@ -224,7 +224,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         if (w->popupsCount() > 0 && *PBLURPOPUPS)
             return true;
 
-        if (!w->m_bIsFloating && *POPTIM && !g_pCompositor->isWorkspaceSpecial(w->m_iWorkspaceID))
+        if (!w->m_bIsFloating && *POPTIM && !w->onSpecialWorkspace())
             continue;
 
         if (w->m_sAdditionalConfigData.forceNoBlur.toUnderlying() == true || w->m_sAdditionalConfigData.xray.toUnderlying() == true)
@@ -1342,7 +1342,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
 
         const auto  PSURFACE = pWindow->m_pWLSurface.wlr();
 
-        const auto  PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+        const auto  PWORKSPACE = pWindow->m_pWorkspace;
         const float A          = pWindow->m_fAlpha.value() * pWindow->m_fActiveInactiveAlpha.value() * PWORKSPACE->m_fAlpha.value();
 
         if (A >= 1.f) {
@@ -1364,7 +1364,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
 
     bool hasWindows = false;
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iWorkspaceID == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
+        if (w->m_pWorkspace == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
 
             // check if window is valid
             if (!windowShouldBeBlurred(w.get()))
@@ -1456,7 +1456,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWind
     if (pLayer && pLayer->xray == 0)
         return false;
 
-    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !g_pCompositor->isWorkspaceSpecial(pWindow->m_iWorkspaceID)) || *PBLURXRAY)
+    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
         return true;
 
     if ((pLayer && pLayer->xray == 1) || (pWindow && pWindow->m_sAdditionalConfigData.xray.toUnderlying() == 1))

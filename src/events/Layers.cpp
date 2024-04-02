@@ -163,7 +163,7 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
     CBox geomFixed = {layersurface->geometry.x + PMONITOR->vecPosition.x, layersurface->geometry.y + PMONITOR->vecPosition.y, layersurface->geometry.width,
                       layersurface->geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
-    const auto WORKSPACE  = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const auto WORKSPACE  = PMONITOR->activeWorkspace;
     const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
 
     layersurface->startAnimation(!(layersurface->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
@@ -237,7 +237,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
             foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                                &surfaceCoords, &pFoundLayerSurface);
 
-        if (!foundSurface && g_pCompositor->m_pLastWindow && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_iWorkspaceID)) {
+        if (!foundSurface && g_pCompositor->m_pLastWindow && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->workspaceID())) {
             // if there isn't any, focus the last window
             const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
             g_pCompositor->focusWindow(nullptr);

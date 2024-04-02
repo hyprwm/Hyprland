@@ -57,9 +57,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = g_pCompositor->m_pLastMonitor;
     }
-    auto PWORKSPACE = PMONITOR->specialWorkspaceID ? g_pCompositor->getWorkspaceByID(PMONITOR->specialWorkspaceID) : g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    auto PWORKSPACE = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
-    PWINDOW->m_iWorkspaceID   = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
+    PWINDOW->m_pWorkspace   = PWORKSPACE;
     PWINDOW->m_bIsMapped      = true;
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut     = false;
@@ -153,7 +153,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->m_iMonitorID));
                     PMONITOR = PMONITORFROMID;
                 }
-                PWINDOW->m_iWorkspaceID = PMONITOR->specialWorkspaceID ? PMONITOR->specialWorkspaceID : PMONITOR->activeWorkspace;
+                PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
 
                 Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
             } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r.szRule, r.szValue, e.what()); }
@@ -287,16 +287,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
             PWORKSPACE = pWorkspace;
 
-            PWINDOW->m_iWorkspaceID = pWorkspace->m_iID;
+            PWINDOW->m_pWorkspace = pWorkspace;
             PWINDOW->m_iMonitorID   = pWorkspace->m_iMonitorID;
 
-            if (g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->specialWorkspaceID && !pWorkspace->m_bIsSpecialWorkspace)
+            if (g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeSpecialWorkspace && !pWorkspace->m_bIsSpecialWorkspace)
                 workspaceSilent = true;
 
             if (!workspaceSilent) {
                 if (pWorkspace->m_bIsSpecialWorkspace)
                     g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID)->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspace != REQUESTEDWORKSPACEID)
+                else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
                 PMONITOR = g_pCompositor->m_pLastMonitor;
@@ -632,7 +632,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // fix some xwayland apps that don't behave nicely
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 
-    g_pCompositor->updateWorkspaceWindows(PWINDOW->m_iWorkspaceID);
+    g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
 
     if (PMONITOR && PWINDOW->m_iX11Type == 2)
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
@@ -704,7 +704,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     }
 
     // remove the fullscreen window status from workspace if we closed it
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+    const auto PWORKSPACE = PWINDOW->m_pWorkspace;
 
     if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->m_bIsFullscreen)
         PWORKSPACE->m_bHasFullscreenWindow = false;
@@ -723,7 +723,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow && PWINDOWCANDIDATE)
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
 
-        if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->m_iWorkspaceID) == 0)
+        if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();
@@ -758,7 +758,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pInputManager->recheckIdleInhibitorStatus();
 
     // force report all sizes (QT sometimes has an issue with this)
-    g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->m_iWorkspaceID);
+    g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->workspaceID());
 
     // update lastwindow after focus
     PWINDOW->onUnmap();
@@ -934,7 +934,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
         const auto REQUESTED = &PWINDOW->m_uSurface.xdg->toplevel->requested;
 
         if (REQUESTED->fullscreen && PWINDOW->m_bIsFullscreen) {
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID);
+            const auto PWORKSPACE = PWINDOW->m_pWorkspace;
             if (PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL) {
                 // Store that we were maximized
                 PWINDOW->m_bWasMaximized = true;
@@ -1094,10 +1094,10 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     PWINDOW->updateWindowDecos();
 
-    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->m_iWorkspaceID))
+    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->workspaceID()))
         return; // further things are only for visible windows
 
-    PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;
+    PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(PWINDOW, true);
 
@@ -1155,7 +1155,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goal();
         PWINDOW->m_vSize     = PWINDOW->m_vRealSize.goal();
 
-        PWINDOW->m_iWorkspaceID = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;
+        PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;
 
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();

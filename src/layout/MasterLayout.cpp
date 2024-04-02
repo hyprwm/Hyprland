@@ -90,7 +90,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     const auto  PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
 
-    PNODE->workspaceID = pWindow->m_iWorkspaceID;
+    PNODE->workspaceID = pWindow->workspaceID();
     PNODE->pWindow     = pWindow;
 
     static auto PNEWISMASTER = CConfigValue<Hyprlang::INT>("master:new_is_master");
@@ -99,9 +99,9 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     static auto PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
     float       lastSplitPercent   = *PMFACT;
 
-    auto        OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_iWorkspaceID == pWindow->m_iWorkspaceID ?
+    auto        OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
                getNodeFromWindow(g_pCompositor->m_pLastWindow) :
-               getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+               getMasterNodeOnWorkspace(pWindow->workspaceID());
 
     const auto  MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
@@ -133,7 +133,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     pWindow->applyGroupRules();
 
     static auto  PDROPATCURSOR  = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
-    const auto   PWORKSPACEDATA = getMasterWorkspaceData(pWindow->m_iWorkspaceID);
+    const auto   PWORKSPACEDATA = getMasterWorkspaceData(pWindow->workspaceID());
     eOrientation orientation    = PWORKSPACEDATA->orientation;
     const auto   NODEIT         = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
 
@@ -142,7 +142,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
     if (*PDROPATCURSOR && g_pInputManager->dragMode == MBIND_MOVE) {
         if (WINDOWSONWORKSPACE > 2) {
             for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
-                if (it->workspaceID != pWindow->m_iWorkspaceID)
+                if (it->workspaceID != pWindow->workspaceID())
                     continue;
                 const CBox box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
                 if (box.containsPoint(MOUSECOORDS)) {
@@ -286,41 +286,36 @@ void CHyprMasterLayout::onWindowRemovedTiling(CWindow* pWindow) {
 void CHyprMasterLayout::recalculateMonitor(const int& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
 
-    if (!PMONITOR)
+    if (!PMONITOR || !PMONITOR->activeWorkspace)
         return;
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (PMONITOR->specialWorkspaceID)
-        calculateWorkspace(PMONITOR->specialWorkspaceID);
+    if (PMONITOR->activeSpecialWorkspace)
+        calculateWorkspace(PMONITOR->activeSpecialWorkspace);
 
     calculateWorkspace(PMONITOR->activeWorkspace);
 }
 
-void CHyprMasterLayout::calculateWorkspace(const int& ws) {
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(ws);
-
-    if (!PWORKSPACE)
-        return;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 
     if (!PMONITOR)
         return;
 
-    if (PWORKSPACE->m_bHasFullscreenWindow) {
+    if (pWorkspace->m_bHasFullscreenWindow) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
 
-        if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
+        if (pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL) {
             PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
             PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
-        } else if (PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
+        } else if (pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             SMasterNodeData fakeNode;
             fakeNode.pWindow                = PFULLWINDOW;
             fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
             fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID            = PWORKSPACE->m_iID;
+            fakeNode.workspaceID            = pWorkspace->m_iID;
             PFULLWINDOW->m_vPosition        = fakeNode.position;
             PFULLWINDOW->m_vSize            = fakeNode.size;
             fakeNode.ignoreFullscreenChecks = true;
@@ -332,14 +327,14 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         return;
     }
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(ws);
-    const auto PMASTERNODE    = getMasterNodeOnWorkspace(PWORKSPACE->m_iID);
+    const auto PWORKSPACEDATA = getMasterWorkspaceData(pWorkspace->m_iID);
+    const auto PMASTERNODE    = getMasterNodeOnWorkspace(pWorkspace->m_iID);
 
     if (!PMASTERNODE)
         return;
 
     // dynamic workspace rules
-    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(ws));
+    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(pWorkspace);
     std::string orientationForWs;
 
     for (auto& wsRule : WORKSPACERULES) {
@@ -363,8 +358,8 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
     static auto  ALWAYSCENTER       = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING     = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
-    const auto   MASTERS      = getMastersOnWorkspace(PWORKSPACE->m_iID);
-    const auto   WINDOWS      = getNodesOnWorkspace(PWORKSPACE->m_iID);
+    const auto   MASTERS      = getMastersOnWorkspace(pWorkspace->m_iID);
+    const auto   WINDOWS      = getNodesOnWorkspace(pWorkspace->m_iID);
     const auto   STACKWINDOWS = WINDOWS - MASTERS;
     const auto   WSSIZE       = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
     const auto   WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
@@ -387,7 +382,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         // check the total width and height so that later
         // if larger/smaller than screen size them down/up
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID == PWORKSPACE->m_iID) {
+            if (nd.workspaceID == pWorkspace->m_iID) {
                 if (nd.isMaster)
                     masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
                 else
@@ -414,7 +409,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             nextY = WSSIZE.y - HEIGHT;
 
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || !nd.isMaster)
+            if (nd.workspaceID != pWorkspace->m_iID || !nd.isMaster)
                 continue;
 
             float WIDTH = mastersLeft > 1 ? widthLeft / mastersLeft * nd.percSize : widthLeft;
@@ -451,7 +446,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         }
 
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || !nd.isMaster)
+            if (nd.workspaceID != pWorkspace->m_iID || !nd.isMaster)
                 continue;
 
             float HEIGHT = mastersLeft > 1 ? heightLeft / mastersLeft * nd.percSize : heightLeft;
@@ -488,7 +483,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             nextY = PMASTERNODE->size.y;
 
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+            if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
             float WIDTH = slavesLeft > 1 ? widthLeft / slavesLeft * nd.percSize : widthLeft;
@@ -518,7 +513,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
             nextX = PMASTERNODE->size.x;
 
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+            if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
             float HEIGHT = slavesLeft > 1 ? heightLeft / slavesLeft * nd.percSize : heightLeft;
@@ -558,7 +553,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         float       slaveAccumulatedHeightR = 0;
         if (*PSMARTRESIZING) {
             for (auto& nd : m_lMasterNodesData) {
-                if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+                if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                     continue;
 
                 if (onRight) {
@@ -572,7 +567,7 @@ void CHyprMasterLayout::calculateWorkspace(const int& ws) {
         }
 
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID != PWORKSPACE->m_iID || nd.isMaster)
+            if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                 continue;
 
             if (onRight) {
@@ -625,7 +620,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            if (m->specialWorkspaceID == pNode->workspaceID) {
+            if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
                 PMONITOR = m.get();
                 break;
             }
@@ -648,7 +643,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID));
+    const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(PWINDOW->m_pWorkspace);
 
     if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
@@ -679,9 +674,9 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
 
-    if (*PNOGAPSWHENONLY && !g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) &&
-        (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 ||
-         (PWINDOW->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(PWINDOW->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
+    if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() &&
+        (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 ||
+         (PWINDOW->m_bIsFullscreen && PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
@@ -721,7 +716,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     calcPos             = calcPos + RESERVED.topLeft;
     calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
 
-    if (g_pCompositor->isWorkspaceSpecial(PWINDOW->m_iWorkspaceID) && !PWINDOW->m_bIsFullscreen) {
+    if (PWINDOW->onSpecialWorkspace() && !PWINDOW->m_bIsFullscreen) {
         static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("master:special_scale_factor");
 
         CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
@@ -772,7 +767,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     const auto   PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    const auto   PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+    const auto   PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
     static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
@@ -793,7 +788,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const auto   WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);
     const auto   STACKWINDOWS = WINDOWS - MASTERS;
 
-    if (getNodesOnWorkspace(PWINDOW->m_iWorkspaceID) == 1 && !centered)
+    if (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 && !centered)
         return;
 
     m_bForceWarps = true;
@@ -815,7 +810,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         default: UNREACHABLE();
     }
 
-    const auto workspaceIdForResizing = PMONITOR->specialWorkspaceID == 0 ? PMONITOR->activeWorkspace : PMONITOR->specialWorkspaceID;
+    const auto workspaceIdForResizing = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeWorkspaceID() : PMONITOR->activeSpecialWorkspaceID();
     for (auto& n : m_lMasterNodesData) {
         if (n.isMaster && n.workspaceID == workspaceIdForResizing)
             n.percMaster = std::clamp(n.percMaster + delta, 0.05, 0.95);
@@ -908,7 +903,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
         return; // ignore
 
     const auto PMONITOR   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = pWindow->m_pWorkspace;
 
     if (PWORKSPACE->m_bHasFullscreenWindow && on) {
         // if the window wants to be fullscreen but there already is one,
@@ -964,7 +959,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(CWindow* pWindow, eFullscreen
             fakeNode.pWindow                = pWindow;
             fakeNode.position               = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
             fakeNode.size                   = PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight;
-            fakeNode.workspaceID            = pWindow->m_iWorkspaceID;
+            fakeNode.workspaceID            = pWindow->workspaceID();
             pWindow->m_vPosition            = fakeNode.position;
             pWindow->m_vSize                = fakeNode.size;
             fakeNode.ignoreFullscreenChecks = true;
@@ -1007,10 +1002,10 @@ void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
 
     pWindow->setAnimationsToMove();
 
-    if (pWindow->m_iWorkspaceID != PWINDOW2->m_iWorkspaceID) {
+    if (pWindow->m_pWorkspace != PWINDOW2->m_pWorkspace) {
         // if different monitors, send to monitor
         onWindowRemovedTiling(pWindow);
-        pWindow->moveToWorkspace(PWINDOW2->m_iWorkspaceID);
+        pWindow->moveToWorkspace(PWINDOW2->m_pWorkspace);
         pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
         const auto pMonitor   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
         g_pCompositor->setActiveMonitor(pMonitor);
@@ -1032,7 +1027,7 @@ void CHyprMasterLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {
 
     if (PNODE->workspaceID != PNODE2->workspaceID) {
         std::swap(pWindow2->m_iMonitorID, pWindow->m_iMonitorID);
-        std::swap(pWindow2->m_iWorkspaceID, pWindow->m_iWorkspaceID);
+        std::swap(pWindow2->m_pWorkspace, pWindow->m_pWorkspace);
     }
 
     // massive hack: just swap window pointers, lol
@@ -1058,7 +1053,7 @@ void CHyprMasterLayout::alterSplitRatio(CWindow* pWindow, float ratio, bool exac
     if (!PNODE)
         return;
 
-    const auto PMASTER = getMasterNodeOnWorkspace(pWindow->m_iWorkspaceID);
+    const auto PMASTER = getMasterNodeOnWorkspace(pWindow->workspaceID());
 
     float      newRatio = exact ? ratio : PMASTER->percMaster + ratio;
     PMASTER->percMaster = std::clamp(newRatio, 0.05f, 0.95f);
@@ -1094,7 +1089,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return;
 
         if (header.pWindow->m_bIsFullscreen) {
-            const auto  PWORKSPACE        = g_pCompositor->getWorkspaceByID(header.pWindow->m_iWorkspaceID);
+            const auto  PWORKSPACE        = header.pWindow->m_pWorkspace;
             const auto  FSMODE            = PWORKSPACE->m_efFullscreenMode;
             static auto INHERITFULLSCREEN = CConfigValue<Hyprlang::INT>("master:inherit_fullscreen");
             g_pCompositor->setWindowFullscreen(header.pWindow, false, FULLSCREEN_FULL);
@@ -1134,7 +1129,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!isWindowTiled(PWINDOW))
             return 0;
 
-        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->workspaceID());
 
         if (!PMASTER)
             return 0;
@@ -1172,7 +1167,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PWINDOW)
             return 0;
 
-        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->m_iWorkspaceID);
+        const auto PMASTER = getMasterNodeOnWorkspace(PWINDOW->workspaceID());
 
         if (!PMASTER)
             return 0;
@@ -1249,8 +1244,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto  PNODE = getNodeFromWindow(header.pWindow);
 
-        const auto  WINDOWS    = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
-        const auto  MASTERS    = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto  WINDOWS    = getNodesOnWorkspace(header.pWindow->workspaceID());
+        const auto  MASTERS    = getMastersOnWorkspace(header.pWindow->workspaceID());
         static auto SMALLSPLIT = CConfigValue<Hyprlang::INT>("master:allow_small_split");
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
@@ -1260,7 +1255,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
             for (auto& n : m_lMasterNodesData) {
-                if (n.workspaceID == header.pWindow->m_iWorkspaceID && !n.isMaster) {
+                if (n.workspaceID == header.pWindow->workspaceID() && !n.isMaster) {
                     n.isMaster = true;
                     break;
                 }
@@ -1281,8 +1276,8 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         const auto PNODE = getNodeFromWindow(header.pWindow);
 
-        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->m_iWorkspaceID);
-        const auto MASTERS = getMastersOnWorkspace(header.pWindow->m_iWorkspaceID);
+        const auto WINDOWS = getNodesOnWorkspace(header.pWindow->workspaceID());
+        const auto MASTERS = getMastersOnWorkspace(header.pWindow->workspaceID());
 
         if (WINDOWS < 2 || MASTERS < 2)
             return 0;
@@ -1292,7 +1287,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
             for (auto& nd : m_lMasterNodesData | std::views::reverse) {
-                if (nd.workspaceID == header.pWindow->m_iWorkspaceID && nd.isMaster) {
+                if (nd.workspaceID == header.pWindow->workspaceID() && nd.isMaster) {
                     nd.isMaster = false;
                     break;
                 }
@@ -1310,7 +1305,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
-        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+        const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 
         if (command == "orientationleft")
             PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
@@ -1418,7 +1413,7 @@ void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarLi
 
     g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->m_iWorkspaceID);
+    const auto PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
 
     int        nextOrPrev = 0;
     for (size_t i = 0; i < cycle.size(); ++i) {
@@ -1476,19 +1471,19 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     if (!g_pCompositor->m_pLastMonitor)
         return {};
 
-    const int NODES = getNodesOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    const int NODES = getNodesOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
 
     if (NODES <= 0)
         return g_pCompositor->m_pLastMonitor->vecSize;
 
-    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+    const auto MASTER = getMasterNodeOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
     if (!MASTER) // wtf
         return {};
 
     if (*PNEWISMASTER) {
         return MASTER->size;
     } else {
-        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace);
+        const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
 
         // TODO: make this better
         return {g_pCompositor->m_pLastMonitor->vecSize.x - MASTER->size.x, g_pCompositor->m_pLastMonitor->vecSize.y / (SLAVES + 1)};

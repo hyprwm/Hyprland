@@ -8,6 +8,7 @@
 #include "Color.hpp"
 #include "../macros.hpp"
 #include "../debug/Log.hpp"
+#include "../desktop/DesktopTypes.hpp"
 
 enum ANIMATEDVARTYPE {
     AVARTYPE_INVALID = -1,
@@ -48,11 +49,11 @@ enum AVARDAMAGEPOLICY {
 };
 
 class CAnimationManager;
-class CWorkspace;
 struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
 class CWindow;
+class CWorkspace;
 
 // Utility to define a concept as a list of possible type
 template <class T, class... U>
@@ -69,7 +70,7 @@ class CBaseAnimatedVariable {
     CBaseAnimatedVariable(ANIMATEDVARTYPE type);
     void create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy);
-    void create(SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy);
 
     CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
@@ -144,9 +145,9 @@ class CBaseAnimatedVariable {
     }
 
   protected:
-    void*                                 m_pWindow    = nullptr;
-    void*                                 m_pWorkspace = nullptr;
-    void*                                 m_pLayer     = nullptr;
+    void*                                 m_pWindow = nullptr;
+    std::weak_ptr<CWorkspace>             m_pWorkspace;
+    void*                                 m_pLayer = nullptr;
 
     SAnimationPropertyConfig*             m_pConfig = nullptr;
 
@@ -217,7 +218,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
         m_Value = value;
         m_Goal  = value;
     }
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, CWorkspace* pWorkspace, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pWorkspace, policy);
         m_Value = value;
         m_Goal  = value;

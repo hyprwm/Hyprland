@@ -36,7 +36,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedGeometry;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow));
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = m_pWindow->m_pWorkspace;
 
     if (!PWORKSPACE)
         return box;
@@ -95,7 +95,7 @@ void CHyprBorderDecoration::damageEntire() {
     const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 2;
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize() + 1;
 
-    const auto PWINDOWWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWINDOWWORKSPACE = m_pWindow->m_pWorkspace;
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
         surfaceBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
     surfaceBox.translate(m_pWindow->m_vFloatingOffset);

@@ -230,7 +230,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 
     // then, we check if the workspace doesnt have a fullscreen window
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+    const auto PWORKSPACE = PMONITOR->activeWorkspace;
     if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
@@ -244,7 +244,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         if (PWINDOWIDEAL &&
             ((PWINDOWIDEAL->m_bIsFloating && PWINDOWIDEAL->m_bCreatedOverFullscreen) /* floating over fullscreen */
-             || (PMONITOR->specialWorkspaceID == PWINDOWIDEAL->m_iWorkspaceID) /* on an open special workspace */))
+             || (PMONITOR->activeSpecialWorkspace == PWINDOWIDEAL->m_pWorkspace) /* on an open special workspace */))
             pFoundWindow = PWINDOWIDEAL;
 
         if (!pFoundWindow->m_bIsX11) {
@@ -260,10 +260,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!foundSurface) {
         if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
 
-            if (PMONITOR->specialWorkspaceID) {
+            if (PMONITOR->activeSpecialWorkspace) {
                 pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-                if (pFoundWindow && !g_pCompositor->isWorkspaceSpecial(pFoundWindow->m_iWorkspaceID)) {
+                if (pFoundWindow && !pFoundWindow->onSpecialWorkspace()) {
                     pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
                 }
             } else {

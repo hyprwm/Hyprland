@@ -147,8 +147,8 @@ class CMonitor {
     void     moveTo(const Vector2D& pos);
     Vector2D middle();
     void     updateMatrix();
-    int64_t activeWorkspaceID();
-    int64_t activeSpecialWorkspaceID();
+    int64_t  activeWorkspaceID();
+    int64_t  activeSpecialWorkspaceID();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

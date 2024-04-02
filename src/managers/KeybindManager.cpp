@@ -2029,7 +2029,7 @@ void CKeybindManager::pinActive(std::string args) {
     if (!PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
         return;
 
-    PWINDOW->m_bPinned      = !PWINDOW->m_bPinned;
+    PWINDOW->m_bPinned    = !PWINDOW->m_bPinned;
     PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeWorkspace;
 
     PWINDOW->updateDynamicRules();

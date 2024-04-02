@@ -347,7 +347,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             std::sort(namedWSes.begin(), namedWSes.end());
 
             // Just take a blind guess at where we'll probably end up
-            int activeWSID = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+            int  activeWSID    = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
             int  predictedWSID = activeWSID + remains;
             int  remainingWSes = 0;
             char walkDir       = in[1];
@@ -474,7 +474,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
             // get the current item
-            int activeWSID = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+            int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
             int currentItem = -1;
             for (size_t i = 0; i < validWSes.size(); i++) {
                 if (validWSes[i] == activeWSID) {

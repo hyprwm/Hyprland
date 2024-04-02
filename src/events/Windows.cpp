@@ -57,9 +57,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = g_pCompositor->m_pLastMonitor;
     }
-    auto PWORKSPACE = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
+    auto PWORKSPACE           = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
-    PWINDOW->m_pWorkspace   = PWORKSPACE;
+    PWINDOW->m_pWorkspace     = PWORKSPACE;
     PWINDOW->m_bIsMapped      = true;
     PWINDOW->m_bReadyToDelete = false;
     PWINDOW->m_bFadingOut     = false;
@@ -288,7 +288,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWORKSPACE = pWorkspace;
 
             PWINDOW->m_pWorkspace = pWorkspace;
-            PWINDOW->m_iMonitorID   = pWorkspace->m_iMonitorID;
+            PWINDOW->m_iMonitorID = pWorkspace->m_iMonitorID;
 
             if (g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID)->activeSpecialWorkspace && !pWorkspace->m_bIsSpecialWorkspace)
                 workspaceSilent = true;

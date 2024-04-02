@@ -599,7 +599,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     g_pCompositor->updateSuspendedStates();
 
     if (activeSpecialWorkspace)
-            g_pCompositor->updateFullscreenFadeOnWorkspace(activeSpecialWorkspace);
+        g_pCompositor->updateFullscreenFadeOnWorkspace(activeSpecialWorkspace);
 }
 
 void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -652,7 +652,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     // open special
     pWorkspace->m_iMonitorID = ID;
-    activeSpecialWorkspace       = pWorkspace;
+    activeSpecialWorkspace   = pWorkspace;
     if (animate)
         pWorkspace->startAnim(true, true);
 
@@ -722,12 +722,12 @@ void CMonitor::updateMatrix() {
     }
 }
 
-    int64_t CMonitor::activeWorkspaceID() {
-        return activeWorkspace ? activeWorkspace->m_iID : 0;
-    }
-    int64_t CMonitor::activeSpecialWorkspaceID() {
-        return activeSpecialWorkspace ? activeSpecialWorkspace->m_iID : 0;
-    }
+int64_t CMonitor::activeWorkspaceID() {
+    return activeWorkspace ? activeWorkspace->m_iID : 0;
+}
+int64_t CMonitor::activeSpecialWorkspaceID() {
+    return activeSpecialWorkspace ? activeSpecialWorkspace->m_iID : 0;
+}
 
 CMonitorState::CMonitorState(CMonitor* owner) {
     m_pOwner = owner;

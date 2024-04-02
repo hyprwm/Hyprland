@@ -384,7 +384,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
-    const auto   OLDWORKSPACE = m_pWorkspace;
+    const auto  OLDWORKSPACE = m_pWorkspace;
 
     m_pWorkspace = pWorkspace;
 
@@ -407,8 +407,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     g_pXWaylandManager->setWindowSize(this, m_vRealSize.value());
 
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE->m_iID) == 0 && *PCLOSEONLASTSPECIAL) {
-            if (const auto PMONITOR = g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID); PMONITOR)
-                PMONITOR->setSpecialWorkspace(nullptr);
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID); PMONITOR)
+            PMONITOR->setSpecialWorkspace(nullptr);
     }
 }
 
@@ -1032,7 +1032,7 @@ void CWindow::updateGroupOutputs() {
     if (!m_sGroupData.pNextWindow)
         return;
 
-    CWindow* curr = m_sGroupData.pNextWindow;
+    CWindow*   curr = m_sGroupData.pNextWindow;
 
     const auto WS = m_pWorkspace;
 

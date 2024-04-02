@@ -242,24 +242,24 @@ class CWindow {
     Vector2D m_vFloatingOffset = Vector2D(0, 0);
 
     // this is used for pseudotiling
-    bool        m_bIsPseudotiled = false;
-    Vector2D    m_vPseudoSize    = Vector2D(0, 0);
+    bool         m_bIsPseudotiled = false;
+    Vector2D     m_vPseudoSize    = Vector2D(0, 0);
 
-    bool        m_bFirstMap           = false; // for layouts
-    bool        m_bIsFloating         = false;
-    bool        m_bDraggingTiled      = false; // for dragging around tiled windows
-    bool        m_bIsFullscreen       = false;
-    bool        m_bDontSendFullscreen = false;
-    bool        m_bWasMaximized       = false;
-    uint64_t    m_iMonitorID          = -1;
-    std::string m_szTitle             = "";
-    std::string m_szInitialTitle      = "";
-    std::string m_szInitialClass      = "";
-    PHLWORKSPACE         m_pWorkspace;
+    bool         m_bFirstMap           = false; // for layouts
+    bool         m_bIsFloating         = false;
+    bool         m_bDraggingTiled      = false; // for dragging around tiled windows
+    bool         m_bIsFullscreen       = false;
+    bool         m_bDontSendFullscreen = false;
+    bool         m_bWasMaximized       = false;
+    uint64_t     m_iMonitorID          = -1;
+    std::string  m_szTitle             = "";
+    std::string  m_szInitialTitle      = "";
+    std::string  m_szInitialClass      = "";
+    PHLWORKSPACE m_pWorkspace;
 
-    bool        m_bIsMapped = false;
+    bool         m_bIsMapped = false;
 
-    bool        m_bRequestsFloat = false;
+    bool         m_bRequestsFloat = false;
 
     // This is for fullscreen apps
     bool m_bCreatedOverFullscreen = false;
@@ -401,8 +401,8 @@ class CWindow {
     bool                     shouldSendFullscreenState();
     void                     setSuspended(bool suspend);
     bool                     visibleOnMonitor(CMonitor* pMonitor);
-    int workspaceID();
-    bool onSpecialWorkspace();
+    int                      workspaceID();
+    bool                     onSpecialWorkspace();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -431,9 +431,9 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden    = false;
-    bool m_bSuspended = false;
-    int m_iLastWorkspace = WORKSPACE_INVALID;
+    bool m_bHidden        = false;
+    bool m_bSuspended     = false;
+    int  m_iLastWorkspace = WORKSPACE_INVALID;
 };
 
 /**

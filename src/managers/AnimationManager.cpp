@@ -79,11 +79,11 @@ void CAnimationManager::tick() {
         const float SPENT = av->getPercent();
 
         // window stuff
-        const auto         PWINDOW            = (CWindow*)av->m_pWindow;
-        PHLWORKSPACE PWORKSPACE = av->m_pWorkspace.lock();
-        const auto         PLAYER             = (SLayerSurface*)av->m_pLayer;
-        CMonitor*          PMONITOR           = nullptr;
-        bool               animationsDisabled = animGlobalDisabled;
+        const auto   PWINDOW            = (CWindow*)av->m_pWindow;
+        PHLWORKSPACE PWORKSPACE         = av->m_pWorkspace.lock();
+        const auto   PLAYER             = (SLayerSurface*)av->m_pLayer;
+        CMonitor*    PMONITOR           = nullptr;
+        bool         animationsDisabled = animGlobalDisabled;
 
         if (PWINDOW) {
             if (av->m_eDamagePolicy == AVARDAMAGE_ENTIRE) {

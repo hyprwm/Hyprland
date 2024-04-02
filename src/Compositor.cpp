@@ -801,7 +801,7 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
         if (properties & FLOATING_ONLY)
             return floating(false);
 
-        const int64_t WORKSPACEID = special ? PMONITOR->activeSpecialWorkspaceID(): PMONITOR->activeWorkspaceID();
+        const int64_t WORKSPACEID = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto    PWORKSPACE  = getWorkspaceByID(WORKSPACEID);
 
         if (PWORKSPACE->m_bHasFullscreenWindow)
@@ -2701,7 +2701,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWork
     if (!pWindow->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
         pWindow->m_pWorkspace = pWorkspace;
-        pWindow->m_iMonitorID   = pWorkspace->m_iMonitorID;
+        pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
     } else {
         const auto PWINDOWMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
@@ -2710,7 +2710,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWork
         const auto PWORKSPACEMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 
         pWindow->m_pWorkspace = pWorkspace;
-        pWindow->m_iMonitorID   = pWorkspace->m_iMonitorID;
+        pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
 
         pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
     }

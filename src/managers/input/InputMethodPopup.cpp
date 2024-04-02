@@ -57,6 +57,13 @@ void CInputPopup::onMap() {
 
     updateBox();
     damageEntire();
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromVector(globalBox().middle());
+
+    if (!PMONITOR)
+        return;
+
+    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surface.wlr(), PMONITOR->scale);
 }
 
 void CInputPopup::onUnmap() {
@@ -121,7 +128,7 @@ void CInputPopup::updateBox() {
         cursorBoxLocal  = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D currentPopupSize = {surface.wlr()->current.width, surface.wlr()->current.height};
+    Vector2D currentPopupSize = surface.getViewporterCorrectedSize();
 
     if (cursorBoxLocal != lastBoxLocal || currentPopupSize != lastPopupSize)
         damageEntire();

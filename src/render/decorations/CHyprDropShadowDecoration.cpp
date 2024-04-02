@@ -45,7 +45,7 @@ void CHyprDropShadowDecoration::damageEntire() {
                             m_pWindow->m_vRealSize.value().x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
                             m_pWindow->m_vRealSize.value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = m_pWindow->m_pWorkspace;
     if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
         shadowBox.translate(PWORKSPACE->m_vRenderOffset.value());
     shadowBox.translate(m_pWindow->m_vFloatingOffset);
@@ -110,7 +110,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
     const auto ROUNDINGBASE    = m_pWindow->rounding();
     const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + m_pWindow->getRealBorderSize() : 0;
-    const auto PWORKSPACE      = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
     const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     // draw the shadow

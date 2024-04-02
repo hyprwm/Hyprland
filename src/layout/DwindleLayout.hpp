@@ -78,7 +78,7 @@ class CHyprDwindleLayout : public IHyprLayout {
 
     int                     getNodesOnWorkspace(const int&);
     void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
-    void                    calculateWorkspace(const int& ws);
+    void                    calculateWorkspace(const PHLWORKSPACE& pWorkspace);
     SDwindleNodeData*       getNodeFromWindow(CWindow*);
     SDwindleNodeData*       getFirstNodeOnWorkspace(const int&);
     SDwindleNodeData*       getClosestNodeOnWorkspace(const int&, const Vector2D&);

@@ -423,7 +423,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, CWindow
 }
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
-    if (m_pWindow->m_bIsFullscreen && g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID)->m_efFullscreenMode == FULLSCREEN_FULL)
+    if (m_pWindow->m_bIsFullscreen && m_pWindow->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
@@ -506,7 +506,7 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedBox;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_pWindow));
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(m_pWindow->m_iWorkspaceID);
+    const auto PWORKSPACE = m_pWindow->m_pWorkspace;
 
     if (PWORKSPACE && !m_pWindow->m_bPinned)
         box.translate(PWORKSPACE->m_vRenderOffset.value());

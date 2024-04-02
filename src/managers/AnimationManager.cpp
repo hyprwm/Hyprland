@@ -79,11 +79,11 @@ void CAnimationManager::tick() {
         const float SPENT = av->getPercent();
 
         // window stuff
-        const auto PWINDOW            = (CWindow*)av->m_pWindow;
-        const auto PWORKSPACE         = (CWorkspace*)av->m_pWorkspace;
-        const auto PLAYER             = (SLayerSurface*)av->m_pLayer;
-        CMonitor*  PMONITOR           = nullptr;
-        bool       animationsDisabled = animGlobalDisabled;
+        const auto   PWINDOW            = (CWindow*)av->m_pWindow;
+        PHLWORKSPACE PWORKSPACE         = av->m_pWorkspace.lock();
+        const auto   PLAYER             = (SLayerSurface*)av->m_pLayer;
+        CMonitor*    PMONITOR           = nullptr;
+        bool         animationsDisabled = animGlobalDisabled;
 
         if (PWINDOW) {
             if (av->m_eDamagePolicy == AVARDAMAGE_ENTIRE) {
@@ -111,7 +111,7 @@ void CAnimationManager::tick() {
 
             // TODO: just make this into a damn callback already vax...
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (!w->m_bIsMapped || w->isHidden() || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                if (!w->m_bIsMapped || w->isHidden() || w->m_pWorkspace != PWORKSPACE)
                     continue;
 
                 if (w->m_bIsFloating && !w->m_bPinned) {
@@ -129,7 +129,7 @@ void CAnimationManager::tick() {
 
             // damage any workspace window that is on any monitor
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID || w->m_bPinned)
+                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_pWorkspace != PWORKSPACE || w->m_bPinned)
                     continue;
 
                 g_pHyprRenderer->damageWindow(w.get());
@@ -146,7 +146,7 @@ void CAnimationManager::tick() {
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
         }
 
-        const bool VISIBLE = PWINDOW ? g_pCompositor->isWorkspaceVisible(PWINDOW->m_iWorkspaceID) : true;
+        const bool VISIBLE = PWINDOW && PWINDOW->m_pWorkspace ? g_pCompositor->isWorkspaceVisible(PWINDOW->workspaceID()) : true;
 
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
@@ -212,7 +212,7 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
-                        if (!g_pCompositor->windowValidMapped(w.get()) || w->m_iWorkspaceID != PWORKSPACE->m_iID)
+                        if (!g_pCompositor->windowValidMapped(w.get()) || w->m_pWorkspace != PWORKSPACE)
                             continue;
 
                         w->updateWindowDecos();

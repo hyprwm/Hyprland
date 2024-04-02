@@ -74,7 +74,7 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
     }
 
     if (!pWindow->m_bPinned)
-        g_pCompositor->getWorkspaceByID(pWindow->m_iWorkspaceID)->m_pLastFocusedWindow = pWindow;
+        pWindow->m_pWorkspace->m_pLastFocusedWindow = pWindow;
 }
 
 void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {

@@ -37,7 +37,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
         return;
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (!m_pFoundLSToFocus || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(PMONITOR->activeWorkspace);
+        const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
         // TODO: support no_gaps_when_only?

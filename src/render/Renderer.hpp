@@ -61,8 +61,8 @@ class CHyprRenderer {
     void                            calculateUVForSurface(CWindow*, wlr_surface*, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry);
-    void                            setOccludedForBackLayers(CRegion& region, CWorkspace* pWorkspace);
-    void                            setOccludedForMainWorkspace(CRegion& region, CWorkspace* pWorkspace); // TODO: merge occlusion methods
+    void                            setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace);
+    void                            setOccludedForMainWorkspace(CRegion& region, PHLWORKSPACE pWorkspace); // TODO: merge occlusion methods
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
     void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
     void                            setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force = false);
@@ -111,15 +111,15 @@ class CHyprRenderer {
 
   private:
     void           arrangeLayerArray(CMonitor*, const std::vector<std::unique_ptr<SLayerSurface>>&, bool, CBox*);
-    void           renderWorkspaceWindowsFullscreen(CMonitor*, CWorkspace*, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
-    void           renderWorkspaceWindows(CMonitor*, CWorkspace*, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+    void           renderWorkspaceWindowsFullscreen(CMonitor*, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+    void           renderWorkspaceWindows(CMonitor*, PHLWORKSPACE, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void           renderWindow(CWindow*, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
     void           renderLayer(SLayerSurface*, CMonitor*, timespec*, bool popups = false);
     void           renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
     void           renderDragIcon(CMonitor*, timespec*);
     void           renderIMEPopup(CInputPopup*, CMonitor*, timespec*);
-    void           renderWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const CBox& geometry);
-    void           renderAllClientsForWorkspace(CMonitor* pMonitor, CWorkspace* pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void           renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
+    void           renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool           m_bCursorHidden        = false;
     bool           m_bCursorHasSurface    = false;

@@ -289,9 +289,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         if (!g_pCompositor->m_pLastMonitor)
             return WORKSPACE_INVALID;
 
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(g_pCompositor->m_pLastMonitor->activeWorkspace);
+        const auto PWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
-        if (!PWORKSPACE)
+        if (!valid(PWORKSPACE))
             return WORKSPACE_INVALID;
 
         const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.iID);
@@ -347,7 +347,8 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             std::sort(namedWSes.begin(), namedWSes.end());
 
             // Just take a blind guess at where we'll probably end up
-            int  predictedWSID = g_pCompositor->m_pLastMonitor->activeWorkspace + remains;
+            int  activeWSID    = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+            int  predictedWSID = activeWSID + remains;
             int  remainingWSes = 0;
             char walkDir       = in[1];
 
@@ -355,20 +356,20 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             predictedWSID = std::max(predictedWSID, 0);
 
             // Count how many invalidWSes are in between (how bad the prediction was)
-            int  beginID = in[1] == '+' ? g_pCompositor->m_pLastMonitor->activeWorkspace + 1 : predictedWSID;
-            int  endID   = in[1] == '+' ? predictedWSID : g_pCompositor->m_pLastMonitor->activeWorkspace;
+            int  beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
+            int  endID   = in[1] == '+' ? predictedWSID : activeWSID;
             auto begin   = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
             for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
                 remainingWSes++;
             }
 
             // Handle named workspaces. They are treated like always before other workspaces
-            if (g_pCompositor->m_pLastMonitor->activeWorkspace < 0) {
+            if (activeWSID < 0) {
                 // Behaviour similar to 'm'
                 // Find current
                 int currentItem = -1;
                 for (size_t i = 0; i < namedWSes.size(); i++) {
-                    if (namedWSes[i] == g_pCompositor->m_pLastMonitor->activeWorkspace) {
+                    if (namedWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
                     }
@@ -473,9 +474,10 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
             // get the current item
+            int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
             int currentItem = -1;
             for (size_t i = 0; i < validWSes.size(); i++) {
-                if (validWSes[i] == g_pCompositor->m_pLastMonitor->activeWorkspace) {
+                if (validWSes[i] == activeWSID) {
                     currentItem = i;
                     break;
                 }
@@ -496,7 +498,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         } else {
             if (in[0] == '+' || in[0] == '-') {
                 if (g_pCompositor->m_pLastMonitor) {
-                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspace);
+                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspaceID());
                     if (!PLUSMINUSRESULT.has_value())
                         return WORKSPACE_INVALID;
 

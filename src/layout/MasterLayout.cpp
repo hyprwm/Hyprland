@@ -1005,6 +1005,9 @@ void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
 
     const auto PWINDOW2 = g_pCompositor->getWindowInDirection(pWindow, dir[0]);
 
+    if (!PWINDOW2)
+        return;
+
     pWindow->setAnimationsToMove();
 
     if (pWindow->m_iWorkspaceID != PWINDOW2->m_iWorkspaceID) {

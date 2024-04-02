@@ -32,6 +32,7 @@ class CInputPopup {
     wlr_input_popup_surface_v2* pWlr = nullptr;
     CWLSurface                  surface;
     CBox                        lastBoxLocal;
+    Vector2D                    lastPopupSize;
     uint64_t                    lastMonitor = -1;
 
     DYNLISTENER(mapPopup);

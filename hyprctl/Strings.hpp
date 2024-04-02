@@ -1,6 +1,6 @@
 #pragma once
 
-const std::string_view USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args|--help]
+const std::string_view USAGE = R"#(usage: hyprctl [flags] <command> [args...|--help]
 
 commands:
     activewindow        → Gets the active window name and its properties
@@ -12,17 +12,17 @@ commands:
     configerrors        → Lists all current config parsing errors
     cursorpos           → Gets the current cursor position in global layout
                           coordinates
-    decorations [window_regex] → Lists all decorations and their info
+    decorations <window_regex> → Lists all decorations and their info
     devices             → Lists all connected keyboards and mice
-    dismissnotify [(opt)amount] → Dismisses all or up to AMOUNT notifications
-    dispatch [dispatcher] [args] → Issue a dispatch to call a keybind
+    dismissnotify [amount] → Dismisses all or up to AMOUNT notifications
+    dispatch <dispatcher> [args] → Issue a dispatch to call a keybind
                           dispatcher with arguments
-    getoption [option]  → Gets the config option status (values)
+    getoption <option>  → Gets the config option status (values)
     globalshortcuts     → Lists all global shortcuts
     hyprpaper ...       → Issue a hyprpaper request
     instances           → Lists all running instances of Hyprland with
                           their info
-    keyword [name] [value] → Issue a keyword to call a config keyword
+    keyword <name> <value> → Issue a keyword to call a config keyword
                           dynamically
     kill                → Issue a kill to get into a kill mode, where you can
                           kill an app by clicking on it. You can exit it
@@ -36,12 +36,12 @@ commands:
     output ...          → Allows you to add and remove fake outputs to your
                           preferred backend
     plugin ...          → Issue a plugin request
-    reload [(opt)config-only] → Issue a reload to force reload the config. Pass
+    reload [config-only] → Issue a reload to force reload the config. Pass
                           'config-only' to disable monitor reload
     rollinglog          → Prints tail of the log
-    setcursor [theme] [size] → Sets the cursor theme and reloads the cursor
+    setcursor <theme> <size> → Sets the cursor theme and reloads the cursor
                           manager
-    seterror [color] [message...] → Sets the hyprctl error string. Color has
+    seterror <color> <message...> → Sets the hyprctl error string. Color has
                           the same format as in colors in config. Will reset
                           when Hyprland's config is reloaded
     setprop ...         → Sets a window property
@@ -65,19 +65,19 @@ flags:
     Can be used to print command's arguments that did not fit into this page
     (three dots))#";
 
-const std::string_view HYPRPAPER_HELP = R"#(usage: hyprctl [(opt)flags] hyprpaper [request]
+const std::string_view HYPRPAPER_HELP = R"#(usage: hyprctl [flags] hyprpaper <request>
 
 requests:
     listactive      → Lists all active images
     listloaded      → Lists all loaded images
-    preload [path]  → Preloads image
-    unload [path]   → Unloads image. Pass 'all' as path to unload all images
+    preload <path>  → Preloads image
+    unload <path>   → Unloads image. Pass 'all' as path to unload all images
     wallpaper       → Issue a wallpaper to call a config wallpaper dynamically
 
 flags:
     See 'hyprctl --help')#";
 
-const std::string_view NOTIFY_HELP = R"#(usage: hyprctl [(opt)flags] notify [icon] [time_ms] [color] [message...]
+const std::string_view NOTIFY_HELP = R"#(usage: hyprctl [flags] notify <icon> <time_ms> <color> <message...>
 
 icon:
     Integer of value:
@@ -102,30 +102,30 @@ message:
 flags:
     See 'hyprctl --help')#";
 
-const std::string_view OUTPUT_HELP = R"#(usage: hyprctl [(opt)flags] output [create [backend]|remove [name]]
+const std::string_view OUTPUT_HELP = R"#(usage: hyprctl [flags] output <create <backend> | remove <name>>
 
-create [backend]:
+create <backend>:
     Creates new virtual output. Possible values for backend: wayland, x11,
     headless or auto.
 
-remove [name]:
+remove <name>:
     Removes virtual output. Pass the output's name, as found in
     'hyprctl monitors'
     
 flags:
     See 'hyprctl --help')#";
 
-const std::string_view PLUGIN_HELP = R"#(usage: hyprctl [(opt)flags] plugin [request]
+const std::string_view PLUGIN_HELP = R"#(usage: hyprctl [flags] plugin <request>
 
 requests:
-    load [path]     → Loads a plugin. Path must be absolute
-    unload [path]   → Unloads a plugin. Path must be absolute
+    load <path>     → Loads a plugin. Path must be absolute
+    unload <path>   → Unloads a plugin. Path must be absolute
     list            → Lists all loaded plugins
 
 flags:
     See 'hyprctl --help')#";
 
-const std::string_view SETPROP_HELP = R"#(usage: hyprctl [(opt)flags] setprop [regex] [property] [value] [(opt)lock]
+const std::string_view SETPROP_HELP = R"#(usage: hyprctl [flags] setprop <regex> <property> <value> [lock]
 
 regex:
     Regular expression by which a window will be searched
@@ -144,7 +144,7 @@ lock:
 flags:
     See 'hyprctl --help')#";
 
-const std::string_view SWITCHXKBLAYOUT_HELP = R"#(usage: [(opt)flags] switchxkblayout [device] [cmd]
+const std::string_view SWITCHXKBLAYOUT_HELP = R"#(usage: [flags] switchxkblayout <device> <cmd>
 
 device:
     You can find the device using 'hyprctl devices' command

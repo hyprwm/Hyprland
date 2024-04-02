@@ -704,6 +704,11 @@ bool CCompositor::windowExists(CWindow* pWindow) {
             return true;
     }
 
+    // FIXME: this is here only temporarily,
+    // remove this func altogether if no reports
+    // of this being hit.
+    RASSERT(!pWindow, "windowExists: attempted UAF");
+
     return false;
 }
 
@@ -1388,7 +1393,7 @@ bool CCompositor::isWindowActive(CWindow* pWindow) {
     if (!m_pLastWindow && !m_pLastFocus)
         return false;
 
-    if (!windowValidMapped(pWindow))
+    if (!pWindow->m_bIsMapped)
         return false;
 
     const auto PSURFACE = pWindow->m_pWLSurface.wlr();

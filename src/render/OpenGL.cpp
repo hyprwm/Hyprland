@@ -1549,7 +1549,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, CBox* pBox, flo
     // render our great blurred FB
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
     setMonitorTransformEnabled(true);
+    if (!USENEWOPTIMIZE)
+        setRenderModifEnabled(false);
     renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? blurA : a * blurA, &texDamage, 0, false, false, false);
+    if (!USENEWOPTIMIZE)
+        setRenderModifEnabled(true);
     setMonitorTransformEnabled(false);
 
     // render the window, but clear stencil

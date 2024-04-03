@@ -36,15 +36,19 @@ install:
 
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
+	mkdir -p ${PREFIX}/share/hyprland
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
+	cp -f ./hyprctl/completion-bash.sh ${PREFIX}/share/hyprctl-completion.sh
+	echo "source ${PREFIX}/share/hyprctl-completion.sh" >> ~/.bashrc
+	cp -f ./hyprpm/completion-fish.fish ${PREFIX}/share/hyprpm-completion.fish
+	echo "source ${PREFIX}/share/hyprpm-completion.fish" >> ~/.config/fish/config.fish
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm
 	cd ${PREFIX}/bin && ln -sf Hyprland hyprland
 	if [ ! -f ${PREFIX}/share/wayland-sessions/hyprland.desktop ]; then cp ./example/hyprland.desktop ${PREFIX}/share/wayland-sessions; fi
-	mkdir -p ${PREFIX}/share/hyprland
 	cp ./assets/wall* ${PREFIX}/share/hyprland
 	mkdir -p ${PREFIX}/share/xdg-desktop-portal
 	cp ./assets/hyprland-portals.conf ${PREFIX}/share/xdg-desktop-portal

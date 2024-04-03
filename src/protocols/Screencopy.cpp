@@ -502,6 +502,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
         return false;
     }
 
+    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -547,6 +548,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
+    g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     wlr_texture_destroy(sourceTex);

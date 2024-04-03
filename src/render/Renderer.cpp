@@ -760,13 +760,35 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     // g_pHyprOpenGL->setMatrixScaleTranslate(translate, scale);
     g_pHyprOpenGL->m_RenderData.renderModif = RENDERMODIFDATA;
 
+    if (!pWorkspace) {
+        // allow rendering without a workspace. In this case, just render layers.
+        g_pHyprOpenGL->blend(true);
+
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
+        for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+            renderLayer(ls.get(), pMonitor, time);
+        }
+
+        g_pHyprOpenGL->m_RenderData.renderModif = {};
+
+        return;
+    }
+
     // for storing damage when we optimize for occlusion
     CRegion preOccludedDamage{g_pHyprOpenGL->m_RenderData.damage};
 
     // Render layer surfaces below windows for monitor
     // if we have a fullscreen, opaque window that convers the screen, we can skip this.
     // TODO: check better with solitary after MR for tearing.
-    const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
+    const auto PFULLWINDOW = pWorkspace ? g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID) : nullptr;
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.value() != Vector2D{}) {
 
@@ -803,8 +825,6 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
-
-    g_pHyprOpenGL->m_RenderData.renderModif = {};
 
     // and then special
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
@@ -2450,6 +2470,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWork
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
         box.scale(PMONITOR->scale);
+        g_pHyprOpenGL->m_RenderData.renderModif.applyToBox(box);
 
         rg.add(box);
     }

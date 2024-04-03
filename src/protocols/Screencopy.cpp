@@ -485,7 +485,9 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecTransformedSize.x, frame->pMonitor->vecTransformedSize.y}.translate({-frame->box.x, -frame->box.y});
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
 #ifndef GLES2
@@ -544,7 +546,9 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
                       .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(wlr_output_transform_invert(frame->pMonitor->output->transform), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
+    g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(sourceTex, &monbox, 1);
+    g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
     g_pHyprRenderer->endRender();

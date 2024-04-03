@@ -1241,7 +1241,7 @@ CWindow* CCompositor::getFullscreenWindowOnWorkspace(const int& ID) {
 }
 
 bool CCompositor::isWorkspaceVisible(PHLWORKSPACE w) {
-    return w.get() && w->m_bVisible;
+    return w && w->m_bVisible;
 }
 
 PHLWORKSPACE CCompositor::getWorkspaceByID(const int& id) {

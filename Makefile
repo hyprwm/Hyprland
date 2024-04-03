@@ -40,12 +40,9 @@ install:
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
-	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/hyprctl-completion.bash
-	if grep -qF "source ${PREFIX}/share/hyprctl-completion.bash" ~/.bashrc; then; else echo "source ${PREFIX}/share/hyprctl-completion.bash" >> ~/.bashrc; fi
-	cp -f ./hyprpm/hyprctl.fish ${PREFIX}/share/hyprctl-completion.fish
-	if grep -qF "source ${PREFIX}/share/hyprctl-completion.fish" ~/.config/fish/config.fish; then; else echo "source ${PREFIX}/share/hyprctl-completion.fish" >> ~/.config/fish/config.fish; fi
-	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/hyprctl-completion.zsh
-	if grep -qF "source ${PREFIX}/share/hyprctl-completion.zsh" ~/.zshrc; then; else echo "source ${PREFIX}/share/hyprctl-completion.zsh" >> ~/.zshrc; fi
+	cp -f ./hyprctl/hyprctl.bash /etc/bash_completion.d/hyprctl
+	cp -f ./hyprctl/hyprctl.fish /etc/fish/completions/hyprctl.fish
+	cp -f ./hyprctl/hyprctl.zsh /etc/zsh/site-functions/_hyprctl
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm
@@ -62,6 +59,7 @@ install:
 	cp ./subprojects/wlroots/build/libwlroots.so.13032 ${PREFIX}/lib/
 
 	$(MAKE) installheaders
+	@echo "${USER}"
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

@@ -416,6 +416,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     activeWorkspace = PNEWWORKSPACE;
 
     PNEWWORKSPACE->setActive(true);
+    PNEWWORKSPACE->m_bVisible      = true;
     PNEWWORKSPACE->m_szLastMonitor = "";
 }
 
@@ -547,7 +548,9 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace == activeWorkspace)
         return;
 
-    const auto POLDWORKSPACE = activeWorkspace;
+    const auto POLDWORKSPACE  = activeWorkspace;
+    POLDWORKSPACE->m_bVisible = false;
+    pWorkspace->m_bVisible    = true;
 
     activeWorkspace = pWorkspace;
 
@@ -612,6 +615,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (!pWorkspace) {
         // remove special if exists
         if (activeSpecialWorkspace) {
+            activeSpecialWorkspace->m_bVisible = false;
             activeSpecialWorkspace->startAnim(false, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + szName});
         }
@@ -633,8 +637,10 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         return;
     }
 
-    if (activeSpecialWorkspace)
+    if (activeSpecialWorkspace) {
+        activeSpecialWorkspace->m_bVisible = false;
         activeSpecialWorkspace->startAnim(false, false);
+    }
 
     bool animate = true;
     //close if open elsewhere
@@ -651,8 +657,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     }
 
     // open special
-    pWorkspace->m_iMonitorID = ID;
-    activeSpecialWorkspace   = pWorkspace;
+    pWorkspace->m_iMonitorID           = ID;
+    activeSpecialWorkspace             = pWorkspace;
+    activeSpecialWorkspace->m_bVisible = true;
     if (animate)
         pWorkspace->startAnim(true, true);
 

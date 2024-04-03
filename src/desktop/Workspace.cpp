@@ -9,13 +9,6 @@ PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool sp
 }
 
 CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Attempted a creation of CWorkspace with an invalid monitor?");
-        return;
-    }
-
     m_iMonitorID          = monitorID;
     m_iID                 = id;
     m_szName              = name;

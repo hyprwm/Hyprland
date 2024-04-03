@@ -510,7 +510,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         if (!repo.rev.empty()) {
             progress.printMessageAbove(std::string{Colors::RESET} + " → Plugin has revision set, resetting: " + repo.rev);
 
-            std::string ret = execAndGet("git -C /tmp/hyprpm reset --hard --recurse-submodules " + repo.rev);
+            std::string ret = execAndGet("git -C /tmp/hyprpm/update reset --hard --recurse-submodules " + repo.rev);
             if (ret.compare(0, 6, "fatal:") == 0) {
                 std::cout << "\n" << std::string{Colors::RED} + "✖" + Colors::RESET + " could not check out revision " + repo.rev + ": shell returned:\n" + ret;
                 return false;

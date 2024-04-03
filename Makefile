@@ -41,11 +41,11 @@ install:
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
 	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/hyprctl-completion.bash
-	echo "source ${PREFIX}/share/hyprctl-completion.bash" >> ~/.bashrc
+	if grep -qF "source ${PREFIX}/share/hyprctl-completion.bash" ~/.bashrc; then; else echo "source ${PREFIX}/share/hyprctl-completion.bash" >> ~/.bashrc; fi
 	cp -f ./hyprpm/hyprctl.fish ${PREFIX}/share/hyprctl-completion.fish
-	echo "source ${PREFIX}/share/hyprctl-completion.fish" >> ~/.config/fish/config.fish
+	if grep -qF "source ${PREFIX}/share/hyprctl-completion.fish" ~/.config/fish/config.fish; then; else echo "source ${PREFIX}/share/hyprctl-completion.fish" >> ~/.config/fish/config.fish; fi
 	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/hyprctl-completion.zsh
-	echo "source ${PREFIX}/share/hyprctl-completion.zsh" >> ~/.zshrc
+	if grep -qF "source ${PREFIX}/share/hyprctl-completion.zsh" ~/.zshrc; then; else echo "source ${PREFIX}/share/hyprctl-completion.zsh" >> ~/.zshrc; fi
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm

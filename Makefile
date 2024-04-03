@@ -59,7 +59,6 @@ install:
 	cp ./subprojects/wlroots/build/libwlroots.so.13032 ${PREFIX}/lib/
 
 	$(MAKE) installheaders
-	@echo "${USER}"
 
 uninstall:
 	rm -f ${PREFIX}/share/wayland-sessions/hyprland.desktop

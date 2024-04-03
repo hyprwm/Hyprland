@@ -365,7 +365,7 @@ void CHyprOpenGLImpl::end() {
         }
 
         m_bEndFrame         = true;
-        m_bApplyFinalShader = true;
+        m_bApplyFinalShader = !m_RenderData.blockScreenShader;
         if (m_RenderData.mouseZoomUseMouse)
             m_RenderData.useNearestNeighbor = true;
 
@@ -388,6 +388,7 @@ void CHyprOpenGLImpl::end() {
     m_RenderData.mouseZoomFactor    = 1.f;
     m_RenderData.mouseZoomUseMouse  = true;
     m_RenderData.forceIntrospection = false;
+    m_RenderData.blockScreenShader  = false;
     m_RenderData.currentFB          = nullptr;
     m_RenderData.mainFB             = nullptr;
     m_RenderData.outFB              = nullptr;

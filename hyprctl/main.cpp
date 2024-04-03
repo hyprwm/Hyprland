@@ -24,49 +24,7 @@
 #include <stdarg.h>
 #include <regex>
 
-const std::string USAGE = R"#(usage: hyprctl [(opt)flags] [command] [(opt)args]
-
-commands:
-    activewindow
-    activeworkspace
-    binds
-    clients
-    configerrors
-    cursorpos
-    decorations
-    devices
-    dismissnotify
-    dispatch
-    getoption
-    globalshortcuts
-    hyprpaper
-    instances
-    keyword
-    kill
-    layers
-    layouts
-    monitors
-    notify
-    output
-    plugin
-    reload
-    rollinglog
-    setcursor
-    seterror
-    setprop
-    splash
-    switchxkblayout
-    systeminfo
-    version
-    workspacerules
-    workspaces
-
-flags:
-    -j -> output in JSON
-    -r -> refresh state after issuing command (e.g. for updating variables)
-    --batch -> execute a batch of commands, separated by ';'
-    --instance (-i) -> use a specific instance. Can be either signature or index in hyprctl instances (0, 1, etc)
-)#";
+#include "Strings.hpp"
 
 #define PAD
 
@@ -295,7 +253,7 @@ int main(int argc, char** argv) {
     bool parseArgs = true;
 
     if (argc < 2) {
-        printf("%s\n", USAGE.c_str());
+        std::cout << USAGE << std::endl;
         return 1;
     }
 
@@ -326,13 +284,33 @@ int main(int argc, char** argv) {
                 ++i;
 
                 if (i >= ARGS.size()) {
-                    printf("%s\n", USAGE.c_str());
+                    std::cout << USAGE << std::endl;
                     return 1;
                 }
 
                 overrideInstance = ARGS[i];
+            } else if (ARGS[i] == "--help") {
+                const std::string& cmd = ARGS[0];
+
+                if (cmd == "hyprpaper") {
+                    std::cout << HYPRPAPER_HELP << std::endl;
+                } else if (cmd == "notify") {
+                    std::cout << NOTIFY_HELP << std::endl;
+                } else if (cmd == "output") {
+                    std::cout << OUTPUT_HELP << std::endl;
+                } else if (cmd == "plugin") {
+                    std::cout << PLUGIN_HELP << std::endl;
+                } else if (cmd == "setprop") {
+                    std::cout << SETPROP_HELP << std::endl;
+                } else if (cmd == "switchxkblayout") {
+                    std::cout << SWITCHXKBLAYOUT_HELP << std::endl;
+                } else {
+                    std::cout << USAGE << std::endl;
+                }
+
+                return 1;
             } else {
-                printf("%s\n", USAGE.c_str());
+                std::cout << USAGE << std::endl;
                 return 1;
             }
 
@@ -343,7 +321,7 @@ int main(int argc, char** argv) {
     }
 
     if (fullRequest.empty()) {
-        printf("%s\n", USAGE.c_str());
+        std::cout << USAGE << std::endl;
         return 1;
     }
 
@@ -415,11 +393,11 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/decorations"))
         request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
-        printf("%s", USAGE.c_str());
+        std::cout << USAGE << std::endl;
     else {
         request(fullRequest);
     }
 
-    printf("\n");
+    std::cout << std::endl;
     return exitStatus;
 }

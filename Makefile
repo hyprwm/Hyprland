@@ -40,9 +40,9 @@ install:
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
-	cp -f ./hyprctl/hyprctl.bash /etc/bash_completion.d/hyprctl
-	cp -f ./hyprctl/hyprctl.fish /etc/fish/completions/hyprctl.fish
-	cp -f ./hyprctl/hyprctl.zsh /etc/zsh/site-functions/_hyprctl
+	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/bash_completion.d/hyprctl
+	cp -f ./hyprctl/hyprctl.fish ${PREFIX}/share/fish/completions/hyprctl.fish
+	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/zsh/site-functions/_hyprctl
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm

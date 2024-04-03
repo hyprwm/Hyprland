@@ -40,10 +40,12 @@ install:
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
-	cp -f ./hyprctl/completion-bash.sh ${PREFIX}/share/hyprctl-completion.sh
-	echo "source ${PREFIX}/share/hyprctl-completion.sh" >> ~/.bashrc
-	cp -f ./hyprpm/completion-fish.fish ${PREFIX}/share/hyprctl-completion.fish
+	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/hyprctl-completion.bash
+	echo "source ${PREFIX}/share/hyprctl-completion.bash" >> ~/.bashrc
+	cp -f ./hyprpm/hyprctl.fish ${PREFIX}/share/hyprctl-completion.fish
 	echo "source ${PREFIX}/share/hyprctl-completion.fish" >> ~/.config/fish/config.fish
+	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/hyprctl-completion.zsh
+	echo "source ${PREFIX}/share/hyprctl-completion.zsh" >> ~/.zshrc
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm

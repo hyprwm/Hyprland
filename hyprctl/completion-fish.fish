@@ -1,2 +1,0 @@
-complete -c hyprctl -f # Remove files
-complete -c hyprctl -a "--help -j -r --batch --instance activewindow activeworkspace binds clients configerrors cursorpos decorations devices dismissnotify dispatch getoption globalshortcuts hyprpaper instances keyword kill layers layouts monitors notify output plugin reload rollinglog setcursor seterror setprop splash switchxkblayout systeminfo version workspacerules workspaces"

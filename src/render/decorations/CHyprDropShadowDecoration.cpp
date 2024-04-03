@@ -171,6 +171,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
         g_pHyprOpenGL->m_RenderData.damage = fullBox;
         g_pHyprOpenGL->m_RenderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->scale)).intersect(saveDamage);
+        g_pHyprOpenGL->m_RenderData.renderModif.applyToRegion(g_pHyprOpenGL->m_RenderData.damage);
 
         alphaFB.bind();
 
@@ -194,7 +195,9 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
         CBox monbox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
+        g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.m_cTex, &monbox, alphaFB);
+        g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
         g_pHyprOpenGL->m_RenderData.damage = saveDamage;

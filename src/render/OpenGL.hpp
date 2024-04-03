@@ -47,6 +47,10 @@ struct SRenderModifData {
     std::vector<std::pair<eRenderModifType, std::any>> modifs;
 
     void                                               applyToBox(CBox& box);
+    void                                               applyToRegion(CRegion& rg);
+    float                                              combinedScale();
+
+    bool                                               enabled = true;
 };
 
 struct SGLPixelFormat {
@@ -138,6 +142,7 @@ class CHyprOpenGLImpl {
     void                  renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte);
 
     void                  setMonitorTransformEnabled(bool enabled);
+    void                  setRenderModifEnabled(bool enabled);
 
     void                  saveMatrix();
     void                  setMatrixScaleTranslate(const Vector2D& translate, const float& scale);

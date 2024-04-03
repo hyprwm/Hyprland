@@ -795,6 +795,8 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
     }
 
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shQUAD.posAttrib);
+
+    scissor((CBox*)nullptr);
 }
 
 void CHyprOpenGLImpl::renderTexture(wlr_texture* tex, CBox* pBox, float alpha, int round, bool allowCustomUV) {
@@ -1480,6 +1482,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, CBox* pBox, flo
     if (texDamage.empty())
         return;
 
+    m_RenderData.renderModif.applyToRegion(texDamage);
+
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) ||
         (m_pCurrentWindow && (m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur || m_pCurrentWindow->m_sAdditionalConfigData.forceRGBX))) {
         renderTexture(tex, pBox, a, round, false, true);
@@ -1509,7 +1513,9 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, CBox* pBox, flo
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
-        inverseOpaque.translate({pBox->x, pBox->y}).intersect(texDamage);
+        inverseOpaque.translate({pBox->x, pBox->y});
+        m_RenderData.renderModif.applyToRegion(inverseOpaque);
+        inverseOpaque.intersect(texDamage);
 
         POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
     } else {
@@ -1542,12 +1548,11 @@ void CHyprOpenGLImpl::renderTextureWithBlur(const CTexture& tex, CBox* pBox, flo
     CBox MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     // render our great blurred FB
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
-    m_bEndFrame                    = true; // fix transformed
-    const auto SAVEDRENDERMODIF    = m_RenderData.renderModif;
-    m_RenderData.renderModif       = {}; // fix shit
+    setMonitorTransformEnabled(true);
+    setRenderModifEnabled(false);
     renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? blurA : a * blurA, &texDamage, 0, false, false, false);
-    m_bEndFrame              = false;
-    m_RenderData.renderModif = SAVEDRENDERMODIF;
+    setMonitorTransformEnabled(false);
+    setRenderModifEnabled(true);
 
     // render the window, but clear stencil
     glClearStencil(0);
@@ -1587,6 +1592,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
         return;
 
     int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale);
+    scaledBorderSize     = std::round(scaledBorderSize * m_RenderData.renderModif.combinedScale());
 
     // adjust box
     box->x -= scaledBorderSize;
@@ -2223,6 +2229,10 @@ void CHyprOpenGLImpl::setMonitorTransformEnabled(bool enabled) {
     m_bEndFrame = enabled;
 }
 
+void CHyprOpenGLImpl::setRenderModifEnabled(bool enabled) {
+    m_RenderData.renderModif.enabled = enabled;
+}
+
 inline const SGLPixelFormat GLES2_FORMATS[] = {
     {
         .drmFormat = DRM_FORMAT_ARGB8888,
@@ -2358,6 +2368,9 @@ const SGLPixelFormat* CHyprOpenGLImpl::getPixelFormatFromDRM(uint32_t drmFormat)
 }
 
 void SRenderModifData::applyToBox(CBox& box) {
+    if (!enabled)
+        return;
+
     for (auto& [type, val] : modifs) {
         try {
             switch (type) {
@@ -2377,4 +2390,40 @@ void SRenderModifData::applyToBox(CBox& box) {
             }
         } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToBox!"); }
     }
+}
+
+void SRenderModifData::applyToRegion(CRegion& rg) {
+    if (!enabled)
+        return;
+
+    for (auto& [type, val] : modifs) {
+        try {
+            switch (type) {
+                case RMOD_TYPE_SCALE: rg.scale(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_SCALECENTER: rg.scale(std::any_cast<float>(val)); break;
+                case RMOD_TYPE_TRANSLATE: rg.translate(std::any_cast<Vector2D>(val)); break;
+                case RMOD_TYPE_ROTATE: /* TODO */
+                case RMOD_TYPE_ROTATECENTER: break;
+            }
+        } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToRegion!"); }
+    }
+}
+
+float SRenderModifData::combinedScale() {
+    if (!enabled)
+        return 1;
+
+    float scale = 1.f;
+    for (auto& [type, val] : modifs) {
+        try {
+            switch (type) {
+                case RMOD_TYPE_SCALE: scale *= std::any_cast<float>(val); break;
+                case RMOD_TYPE_SCALECENTER:
+                case RMOD_TYPE_TRANSLATE:
+                case RMOD_TYPE_ROTATE:
+                case RMOD_TYPE_ROTATECENTER: break;
+            }
+        } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::combinedScale!"); }
+    }
+    return scale;
 }

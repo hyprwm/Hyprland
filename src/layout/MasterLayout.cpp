@@ -799,7 +799,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         case ORIENTATION_TOP: delta = pixResize.y / PMONITOR->vecSize.y; break;
         case ORIENTATION_CENTER:
             delta = pixResize.x / PMONITOR->vecSize.x;
-            if (WINDOWS > 2) {
+            if (WINDOWS > 2 || *ALWAYSCENTER) {
                 if (!NONE || !PNODE->isMaster)
                     delta *= 2;
                 if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && *PSMARTRESIZING))

@@ -1,4 +1,5 @@
 #include "Popup.hpp"
+#include "../config/ConfigValue.hpp"
 #include "../Compositor.hpp"
 
 CPopup::CPopup(CWindow* pOwner) : m_pWindowOwner(pOwner) {
@@ -142,6 +143,15 @@ void CPopup::onUnmap() {
 void CPopup::onCommit(bool ignoreSiblings) {
     if (m_pWLR->base->initial_commit) {
         wlr_xdg_surface_schedule_configure(m_pWLR->base);
+        return;
+    }
+
+    if (m_pWindowOwner && (!m_pWindowOwner->m_bIsMapped || !m_pWindowOwner->m_pWorkspace->m_bVisible)) {
+        m_vLastSize = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
+
+        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        if (*PLOGDAMAGE)
+            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner);
         return;
     }
 

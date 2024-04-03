@@ -144,7 +144,7 @@ class CCompositor {
     CWindow*       getWindowFromSurface(wlr_surface*);
     CWindow*       getWindowFromHandle(uint32_t);
     CWindow*       getWindowFromZWLRHandle(wl_resource*);
-    bool           isWorkspaceVisible(const int&);
+    bool           isWorkspaceVisible(PHLWORKSPACE);
     PHLWORKSPACE   getWorkspaceByID(const int&);
     PHLWORKSPACE   getWorkspaceByName(const std::string&);
     PHLWORKSPACE   getWorkspaceByString(const std::string&);

@@ -764,7 +764,7 @@ CWindow* CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t propert
                     continue;
 
                 CBox box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-                if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->workspaceID()) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
+                if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_pWorkspace) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
                     w.get() != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent
                     if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
@@ -1001,7 +1001,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
     const auto PMONITOR = getMonitorFromID(pWindow->m_iMonitorID);
 
-    if (!isWorkspaceVisible(pWindow->workspaceID())) {
+    if (!isWorkspaceVisible(pWindow->m_pWorkspace)) {
         const auto PWORKSPACE = pWindow->m_pWorkspace;
         // This is to fix incorrect feedback on the focus history.
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
@@ -1240,16 +1240,8 @@ CWindow* CCompositor::getFullscreenWindowOnWorkspace(const int& ID) {
     return nullptr;
 }
 
-bool CCompositor::isWorkspaceVisible(const int& w) {
-    for (auto& m : m_vMonitors) {
-        if (m->activeWorkspaceID() == w)
-            return true;
-
-        if (m->activeSpecialWorkspaceID() == w)
-            return true;
-    }
-
-    return false;
+bool CCompositor::isWorkspaceVisible(PHLWORKSPACE w) {
+    return w->m_bVisible;
 }
 
 PHLWORKSPACE CCompositor::getWorkspaceByID(const int& id) {
@@ -1280,7 +1272,7 @@ void CCompositor::sanityCheckWorkspaces() {
         const auto  WINDOWSONWORKSPACE = getWindowsOnWorkspace(WORKSPACE->m_iID);
 
         if (WINDOWSONWORKSPACE == 0) {
-            if (!isWorkspaceVisible(WORKSPACE->m_iID)) {
+            if (!isWorkspaceVisible(WORKSPACE)) {
 
                 if (WORKSPACE->m_bIsSpecialWorkspace) {
                     if (WORKSPACE->m_fAlpha.value() > 0.f /* don't abruptly end the fadeout */) {
@@ -1584,7 +1576,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
 
         // for tiled windows, we calc edges
         for (auto& w : m_vWindows) {
-            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || (!w->m_bIsFullscreen && w->m_bIsFloating) || !isWorkspaceVisible(w->workspaceID()))
+            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || (!w->m_bIsFullscreen && w->m_bIsFloating) || !isWorkspaceVisible(w->m_pWorkspace))
                 continue;
 
             if (pWindow->m_iMonitorID == w->m_iMonitorID && pWindow->m_pWorkspace != w->m_pWorkspace)
@@ -1673,7 +1665,7 @@ CWindow* CCompositor::getWindowInDirection(CWindow* pWindow, char dir) {
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto& w : m_vWindows) {
-            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || (!w->m_bIsFullscreen && !w->m_bIsFloating) || !isWorkspaceVisible(w->workspaceID()))
+            if (w.get() == pWindow || !w->m_bIsMapped || w->isHidden() || (!w->m_bIsFullscreen && !w->m_bIsFloating) || !isWorkspaceVisible(w->m_pWorkspace))
                 continue;
 
             if (pWindow->m_iMonitorID == w->m_iMonitorID && pWindow->m_pWorkspace != w->m_pWorkspace)
@@ -2737,7 +2729,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWork
 
 CWindow* CCompositor::getForceFocus() {
     for (auto& w : m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden() || !isWorkspaceVisible(w->workspaceID()))
+        if (!w->m_bIsMapped || w->isHidden() || !isWorkspaceVisible(w->m_pWorkspace))
             continue;
 
         if (!w->m_bStayFocused)
@@ -2886,6 +2878,6 @@ void CCompositor::updateSuspendedStates() {
         if (!w->m_bIsMapped)
             continue;
 
-        w->setSuspended(w->isHidden() || !isWorkspaceVisible(w->workspaceID()));
+        w->setSuspended(w->isHidden() || !isWorkspaceVisible(w->m_pWorkspace));
     }
 }

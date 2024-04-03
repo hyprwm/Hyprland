@@ -800,6 +800,35 @@ void Events::listener_commitWindow(void* owner, void* data) {
         PWINDOW->m_pPendingSizeAck.reset();
     }
 
+    if (!PWINDOW->m_bIsX11 && !PWINDOW->m_bIsFullscreen && PWINDOW->m_bIsFloating) {
+        const auto MINSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.min_width, PWINDOW->m_uSurface.xdg->toplevel->current.min_height};
+        const auto MAXSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
+
+        if (MAXSIZE > Vector2D{1, 1}) {
+            const auto REALSIZE = PWINDOW->m_vRealSize.goal();
+            Vector2D   newSize  = REALSIZE;
+
+            if (MAXSIZE.x < newSize.x)
+                newSize.x = MAXSIZE.x;
+            if (MAXSIZE.y < newSize.y)
+                newSize.y = MAXSIZE.y;
+            if (MINSIZE.x > newSize.x)
+                newSize.x = MINSIZE.x;
+            if (MINSIZE.y > newSize.y)
+                newSize.y = MINSIZE.y;
+
+            const Vector2D DELTA = REALSIZE - newSize;
+
+            PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + DELTA / 2.0;
+            PWINDOW->m_vRealSize     = newSize;
+            g_pXWaylandManager->setWindowSize(PWINDOW, newSize, true);
+            g_pHyprRenderer->damageWindow(PWINDOW);
+        }
+    }
+
+    if (!PWINDOW->m_pWorkspace->m_bVisible)
+        return;
+
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
@@ -823,34 +852,6 @@ void Events::listener_commitWindow(void* owner, void* data) {
             }
         }
     }
-
-    if (PWINDOW->m_bIsX11 || !PWINDOW->m_bIsFloating || PWINDOW->m_bIsFullscreen)
-        return;
-
-    const auto MINSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.min_width, PWINDOW->m_uSurface.xdg->toplevel->current.min_height};
-    const auto MAXSIZE = Vector2D{PWINDOW->m_uSurface.xdg->toplevel->current.max_width, PWINDOW->m_uSurface.xdg->toplevel->current.max_height};
-
-    if (MAXSIZE < Vector2D{1, 1})
-        return;
-
-    const auto REALSIZE = PWINDOW->m_vRealSize.goal();
-    Vector2D   newSize  = REALSIZE;
-
-    if (MAXSIZE.x < newSize.x)
-        newSize.x = MAXSIZE.x;
-    if (MAXSIZE.y < newSize.y)
-        newSize.y = MAXSIZE.y;
-    if (MINSIZE.x > newSize.x)
-        newSize.x = MINSIZE.x;
-    if (MINSIZE.y > newSize.y)
-        newSize.y = MINSIZE.y;
-
-    const Vector2D DELTA = REALSIZE - newSize;
-
-    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + DELTA / 2.0;
-    PWINDOW->m_vRealSize     = newSize;
-    g_pXWaylandManager->setWindowSize(PWINDOW, newSize, true);
-    g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {
@@ -1094,7 +1095,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 
     PWINDOW->updateWindowDecos();
 
-    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->workspaceID()))
+    if (!g_pCompositor->isWorkspaceVisible(PWINDOW->m_pWorkspace))
         return; // further things are only for visible windows
 
     PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;

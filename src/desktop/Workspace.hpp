@@ -42,6 +42,9 @@ class CWorkspace {
     CAnimatedVariable<float>    m_fAlpha;
     bool                        m_bForceRendering = false;
 
+    // allows damage to propagate.
+    bool m_bVisible = false;
+
     // "scratchpad"
     bool m_bIsSpecialWorkspace = false;
 

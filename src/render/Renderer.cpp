@@ -233,18 +233,18 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
             pWindow->m_fAlpha.value() == 0)
             return false;
 
-        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->workspaceID()))
+        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
             return false;
     }
 
     if (pWindow->m_iMonitorID == pMonitor->ID)
         return true;
 
-    if (!g_pCompositor->isWorkspaceVisible(pWindow->workspaceID()) && pWindow->m_iMonitorID != pMonitor->ID)
+    if (!g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace) && pWindow->m_iMonitorID != pMonitor->ID)
         return false;
 
     // if not, check if it maybe is active on a different monitor.
-    if (g_pCompositor->isWorkspaceVisible(pWindow->workspaceID()) && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace) && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
         return !pWindow->m_bIsFullscreen; // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->activeSpecialWorkspace == pWindow->m_pWorkspace)
@@ -285,7 +285,7 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
     if (pWindow->m_bPinned || PWORKSPACE->m_bForceRendering)
         return true;
 
-    if (g_pCompositor->isWorkspaceVisible(pWindow->workspaceID()))
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
         return true;
 
     for (auto& m : g_pCompositor->m_vMonitors) {

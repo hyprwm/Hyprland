@@ -43,7 +43,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 #endif
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {})", status);
+        RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {}, GL Error: 0x{:x})", status, (int)glGetError());
 
         Debug::log(LOG, "Framebuffer created, status {}", status);
     }

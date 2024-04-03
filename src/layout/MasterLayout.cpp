@@ -809,7 +809,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         default: UNREACHABLE();
     }
 
-    const auto workspaceIdForResizing = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeWorkspaceID() : PMONITOR->activeSpecialWorkspaceID();
+    const auto workspaceIdForResizing = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
     for (auto& n : m_lMasterNodesData) {
         if (n.isMaster && n.workspaceID == workspaceIdForResizing)
             n.percMaster = std::clamp(n.percMaster + delta, 0.05, 0.95);

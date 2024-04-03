@@ -220,6 +220,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     if (!pWindow->m_pWorkspace && !pWindow->m_bFadingOut)
         return false;
 
+    if (!pWindow->m_pWorkspace && pWindow->m_bFadingOut)
+        return pWindow->workspaceID() == pMonitor->activeWorkspaceID();
+
     if (pWindow->m_bPinned)
         return true;
 
@@ -1760,7 +1763,7 @@ void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (g_pHyprRenderer->shouldRenderWindow(pWindow, m.get()) || forceFull) { // only damage if window is rendered on monitor
+        if (forceFull || g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
             m->addDamage(&fixedDamageBox);

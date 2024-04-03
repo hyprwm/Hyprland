@@ -7,6 +7,8 @@ void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
     static auto PSWIPEFINGERS = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_fingers");
     static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
+
     if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
         return;
 
@@ -42,6 +44,8 @@ void CInputManager::beginWorkspaceSwipe() {
 }
 
 void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeEnd", e);
+
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return; // no valid swipe
     endWorkspaceSwipe();
@@ -195,6 +199,8 @@ void CInputManager::endWorkspaceSwipe() {
 }
 
 void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
+    EMIT_HOOK_EVENT_CANCELLABLE("swipeUpdate", e);
+
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return;
     static auto PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");

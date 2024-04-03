@@ -171,26 +171,26 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     updateDragIcon();
 
     if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus && m_pLastMouseSurface) {
-        if (m_bLastFocusOnLS) {
-            foundSurface       = m_pLastMouseSurface;
-            pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
-            if (pFoundLayerSurface) {
-                surfacePos              = g_pCompositor->getLayerSurfaceFromSurface(foundSurface)->position;
-                m_bFocusHeldByButtons   = true;
-                m_bRefocusHeldByButtons = refocus;
-            } else {
-                // ?
-                foundSurface       = nullptr;
-                pFoundLayerSurface = nullptr;
-            }
-        } else if (g_pCompositor->m_pLastWindow) {
-            foundSurface = m_pLastMouseSurface;
-            pFoundWindow = g_pCompositor->m_pLastWindow;
-
-            surfaceCoords = g_pCompositor->vectorToSurfaceLocal(mouseCoords, pFoundWindow, foundSurface);
-
+        foundSurface       = m_pLastMouseSurface;
+        pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
+        if (pFoundLayerSurface) {
+            surfacePos              = pFoundLayerSurface->position;
             m_bFocusHeldByButtons   = true;
             m_bRefocusHeldByButtons = refocus;
+        } else {
+            CInputPopup* foundPopup = m_sIMERelay.popupFromSurface(foundSurface);
+            if (foundPopup) {
+                surfacePos              = foundPopup->globalBox().pos();
+                m_bFocusHeldByButtons   = true;
+                m_bRefocusHeldByButtons = refocus;
+            } else if (g_pCompositor->m_pLastWindow) {
+                foundSurface = m_pLastMouseSurface;
+                pFoundWindow = g_pCompositor->m_pLastWindow;
+
+                surfaceCoords           = g_pCompositor->vectorToSurfaceLocal(mouseCoords, pFoundWindow, foundSurface);
+                m_bFocusHeldByButtons   = true;
+                m_bRefocusHeldByButtons = refocus;
+            }
         }
     }
 

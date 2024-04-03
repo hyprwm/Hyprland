@@ -192,3 +192,12 @@ CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
 
     return nullptr;
 }
+
+CInputPopup* CInputMethodRelay::popupFromSurface(const wlr_surface* surface) {
+    for (auto& p : m_vIMEPopups) {
+        if (p->getWlrSurface() == surface)
+            return p.get();
+    }
+
+    return nullptr;
+}

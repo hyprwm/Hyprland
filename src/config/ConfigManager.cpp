@@ -646,6 +646,10 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("windowsOut");
         INITANIMCFG("windowsMove");
 
+        // layers
+        INITANIMCFG("layersIn");
+        INITANIMCFG("layersOut");
+
         // fade
         INITANIMCFG("fadeIn");
         INITANIMCFG("fadeOut");
@@ -669,6 +673,9 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("borderangle", "global");
     CREATEANIMCFG("workspaces", "global");
 
+    CREATEANIMCFG("layersIn", "layers");
+    CREATEANIMCFG("layersOut", "layers");
+
     CREATEANIMCFG("windowsIn", "windows");
     CREATEANIMCFG("windowsOut", "windows");
     CREATEANIMCFG("windowsMove", "windows");
@@ -679,6 +686,8 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeShadow", "fade");
     CREATEANIMCFG("fadeDim", "fade");
     CREATEANIMCFG("fadeLayers", "fade");
+    CREATEANIMCFG("fadeLayersIn", "fadeLayers");
+    CREATEANIMCFG("fadeLayersOut", "fadeLayers");
 
     CREATEANIMCFG("specialWorkspace", "workspaces");
 }

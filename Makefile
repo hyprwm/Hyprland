@@ -76,6 +76,12 @@ uninstall:
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprctl
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprpm
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprpm.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprpm
 
 pluginenv:
 	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include "../desktop/DesktopTypes.hpp"
 
 #include <list>
 #include <deque>

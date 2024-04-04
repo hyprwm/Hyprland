@@ -167,11 +167,13 @@ void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource*
         Debug::log(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)PTI);
         return;
     }
+    PTI->active = true;
     PTI->pTextInput->onEnabled(wlr_surface_from_resource(surface));
 }
 
 void CTextInputV1ProtocolManager::handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {
     const auto PTI = tiFromResource(resource);
+    PTI->active    = false;
     PTI->pTextInput->onDisabled();
 }
 

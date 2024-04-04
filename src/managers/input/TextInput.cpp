@@ -37,12 +37,7 @@ void CTextInput::initCallbacks() {
     hyprListener_textInputDestroy.initCallback(
         isV3() ? &pWlrInput->events.destroy : &pV1Input->sDestroy,
         [this](void* owner, void* data) {
-            if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
-                //  Debug::log(WARN, "Disabling TextInput on no IME!");
-                return;
-            }
-
-            if (pWlrInput && pWlrInput->current_enabled) {
+            if (pWlrInput && pWlrInput->current_enabled && g_pInputManager->m_sIMERelay.m_pWLRIME) {
                 wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
 
                 g_pInputManager->m_sIMERelay.commitIMEState(this);
@@ -71,10 +66,10 @@ void CTextInput::onEnabled(wlr_surface* surfV1) {
     // v1 only, map surface to PTI
     if (!isV3()) {
         wlr_surface* pSurface = surfV1;
-        if (g_pCompositor->m_pLastFocus == pSurface)
-            enter(pSurface);
-        else
-            setFocusedSurface(pSurface);
+        if (g_pCompositor->m_pLastFocus != pSurface || !pV1Input->active)
+            return;
+
+        enter(pSurface);
     }
 
     wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);
@@ -207,6 +202,9 @@ void CTextInput::leave() {
     }
 
     setFocusedSurface(nullptr);
+
+    if (!g_pInputManager->m_sIMERelay.m_pWLRIME)
+        return;
 
     if (!g_pInputManager->m_sIMERelay.m_pWLRIME->active)
         return;

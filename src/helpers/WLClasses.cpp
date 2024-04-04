@@ -3,9 +3,9 @@
 #include "../Compositor.hpp"
 
 SLayerSurface::SLayerSurface() {
-    alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayers"), this, AVARDAMAGE_ENTIRE);
-    realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layers"), this, AVARDAMAGE_ENTIRE);
-    realSize.create(g_pConfigManager->getAnimationPropertyConfig("layers"), this, AVARDAMAGE_ENTIRE);
+    alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), this, AVARDAMAGE_ENTIRE);
+    realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layersIn"), this, AVARDAMAGE_ENTIRE);
+    realSize.create(g_pConfigManager->getAnimationPropertyConfig("layersIn"), this, AVARDAMAGE_ENTIRE);
     alpha.registerVar();
     realPosition.registerVar();
     realSize.registerVar();
@@ -61,6 +61,15 @@ void SLayerSurface::applyRules() {
 
 void SLayerSurface::startAnimation(bool in, bool instant) {
     const auto ANIMSTYLE = animationStyle.value_or(realPosition.m_pConfig->pValues->internalStyle);
+    if (in) {
+        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersIn");
+        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersIn");
+        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn");
+    } else {
+        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersOut");
+        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersOut");
+        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut");
+    }
 
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge

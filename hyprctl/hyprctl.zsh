@@ -1,146 +1,144 @@
-#compdef hyprctl
-
-_hyprctl_cmd_3 () {
+_hyprctl_cmd_2 () {
     hyprctl monitors | grep Monitor | awk '{ print $2 }'
 }
 
-_hyprctl_cmd_2 () {
+_hyprctl_cmd_1 () {
     hyprpm list | grep "Plugin" | awk '{print $4}'
 }
 
 _hyprctl_cmd_0 () {
-    hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}'
-}
-
-_hyprctl_cmd_1 () {
     hyprctl clients | grep class | awk '{print $2}'
 }
 
+_hyprctl_cmd_3 () {
+    hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}'
+}
+
 _hyprctl () {
-    local -a literals=("focusmonitor" "exit" "global" "forceallowsinput" "::=" "movecursortocorner" "movewindowpixel" "activeworkspace" "monitors" "movecurrentworkspacetomonitor" "togglespecialworkspace" "all" "animationstyle" "closewindow" "setprop" "clients" "denywindowfromgroup" "create" "moveoutofgroup" "headless" "activebordercolor" "rollinglog" "wayland" "movewindoworgroup" "setcursor" "fakefullscreen" "moveactive" "prev" "hyprpaper" "alpha" "inactivebordercolor" "-i" "--instance" "togglefloating" "settiled" "swapwindow" "dimaround" "setignoregrouplock" "layouts" "0" "forcenoborder" "notify" "binds" "focuswindow" "seterror" "1" "systeminfo" "exec" "cyclenext" "nomaxsize" "reload" "rounding" "layers" "setfloating" "5" "lockactivegroup" "movetoworkspace" "swapactiveworkspaces" "changegroupactive" "forcenodim" "0" "configerrors" "4" "forceopaque" "forcenoshadow" "workspaces" "1" "swapnext" "minsize" "alphaoverride" "toggleopaque" "decorations" "alterzorder" "bordersize" "-1" "focuscurrentorlast" "workspacerules" "splitratio" "remove" "renameworkspace" "movetoworkspacesilent" "killactive" "pass" "getoption" "switchxkblayout" "2" "auto" "pin" "version" "nofocus" "togglegroup" "workspace" "lockgroups" "-r" "movewindow" "cursorpos" "focusworkspaceoncurrentmonitor" "execr" "windowdancecompat" "globalshortcuts" "3" "keyword" "movefocus" "movecursor" "instances" "dpms" "x11" "moveintogroup" "resizewindowpixel" "kill" "moveworkspacetomonitor" "forceopaqueoverriden" "dispatch" "-j" "forcenoblur" "devices" "disable" "-b" "activewindow" "fullscreen" "keepaspectratio" "output" "plugin" "alphainactiveoverride" "alphainactive" "resizeactive" "centerwindow" "splash" "focusurgentorlast" "submap" "next" "movegroupwindow" "forcenoanims" "forcerendererreload" "maxsize" "dismissnotify")
+    local -a literals=("cyclenext" "globalshortcuts" "cursorpos" "bordersize" "renameworkspace" "animationstyle" "focuswindow" "0" "auto" "swapnext" "forceallowsinput" "moveactive" "activebordercolor" "wayland" "layers" "minsize" "monitors" "1" "3" "settiled" "kill" "focusmonitor" "swapwindow" "moveoutofgroup" "notify" "movecursor" "setcursor" "seterror" "4" "movecurrentworkspacetomonitor" "nomaxsize" "forcenoanims" "setprop" "-i" "togglefloating" "workspacerules" "movetoworkspace" "disable" "setignoregrouplock" "workspaces" "0" "closewindow" "movegroupwindow" "binds" "movewindow" "splitratio" "alpha" "denywindowfromgroup" "workspace" "configerrors" "togglegroup" "getoption" "forceopaque" "keepaspectratio" "--instance" "killactive" "pass" "decorations" "devices" "focuscurrentorlast" "submap" "global" "headless" "forcerendererreload" "movewindowpixel" "version" "dpms" "resizeactive" "moveintogroup" "5" "alphaoverride" "setfloating" "rollinglog" "::=" "rounding" "layouts" "moveworkspacetomonitor" "exec" "alphainactiveoverride" "alterzorder" "fakefullscreen" "nofocus" "keyword" "forcenoborder" "forcenodim" "pin" "output" "forcenoblur" "togglespecialworkspace" "fullscreen" "toggleopaque" "focusworkspaceoncurrentmonitor" "next" "changegroupactive" "-j" "instances" "execr" "exit" "clients" "all" "--batch" "dismissnotify" "inactivebordercolor" "switchxkblayout" "movetoworkspacesilent" "movewindoworgroup" "-r" "movefocus" "focusurgentorlast" "remove" "activeworkspace" "dispatch" "create" "centerwindow" "2" "hyprpaper" "-1" "reload" "alphainactive" "systeminfo" "plugin" "dimaround" "activewindow" "swapactiveworkspaces" "splash" "maxsize" "lockactivegroup" "windowdancecompat" "forceopaqueoverriden" "lockgroups" "movecursortocorner" "x11" "prev" "1" "resizewindowpixel" "forcenoshadow")
 
     local -A descriptions
-    descriptions[1]="focuses a monitor"
-    descriptions[2]="exits the compositor with no questions asked"
-    descriptions[3]="Executes a Global Shortcut using the GlobalShortcuts portal"
-    descriptions[6]="moves the cursor to the corner of the active window"
-    descriptions[7]="moves a selected window	resizeparams"
-    descriptions[8]="Gets the active workspace name and its properties"
-    descriptions[9]="lists active outputs with their properties"
-    descriptions[10]="Moves the active workspace to a monitor"
-    descriptions[11]="toggles a special workspace on/off"
-    descriptions[14]="closes a specified window"
-    descriptions[15]="Sets a property of a window"
-    descriptions[16]="Lists all windows with their properties"
-    descriptions[17]="Prohibit the active window from becoming or being inserted into group"
-    descriptions[19]="Moves the active window out of a group"
-    descriptions[22]="Prints tail of the log"
-    descriptions[24]="Behaves as moveintogroup"
-    descriptions[25]="Sets the cursor theme and reloads the cursor manager"
-    descriptions[26]="toggles the focused window’s internal fullscreen state"
-    descriptions[27]="moves the active window	resizeparams"
-    descriptions[29]="Interact with hyprpaper if present"
-    descriptions[32]="Specify the Hyprland instalnce"
-    descriptions[33]="Specify the Hyprland instalnce"
-    descriptions[34]="toggles the current window’s floating state"
-    descriptions[35]="sets the current window’s floating state to false"
-    descriptions[36]="swaps the active window with another window"
-    descriptions[38]="Temporarily enable or disable binds:ignore_group_lock"
-    descriptions[39]="lists all layouts available (including plugin'd ones)"
-    descriptions[42]="Sends a notification using the built-in Hyprland notification system"
-    descriptions[43]="Lists all registered binds"
-    descriptions[44]="focuses the first window matching"
-    descriptions[45]="Sets the hyprctl error string"
-    descriptions[47]="Prints system info"
-    descriptions[48]="executes a shell command"
-    descriptions[49]="focuses the next window on a workspace"
-    descriptions[51]="Force reloads the config"
-    descriptions[53]="List the layers"
-    descriptions[54]="sets the current window’s floating state to true"
-    descriptions[55]="OK"
-    descriptions[56]="Lock the focused group"
-    descriptions[57]="moves the focused window to a workspace"
-    descriptions[58]="Swaps the active workspaces between two monitors"
-    descriptions[59]="switches to the next window in a group"
-    descriptions[61]="WARNING"
-    descriptions[62]="Lists all current config parsing errors"
-    descriptions[63]="CONFISED"
-    descriptions[66]="Lists all workspaces with their properties"
-    descriptions[67]="INFOROR"
-    descriptions[68]="swaps the focused window with the next window"
-    descriptions[71]="toggles the current window to always be opaque"
-    descriptions[72]="Lists all decorations and their info"
-    descriptions[73]="Modify the window stack order of the active or specified window"
-    descriptions[75]="No Icon"
-    descriptions[76]="Switch focus from current to previously focused window"
-    descriptions[77]="Gets the list of defined workspace rules"
-    descriptions[78]="changes the split ratio"
-    descriptions[80]="rename a workspace"
-    descriptions[81]="move window doesnt switch to the workspace"
-    descriptions[82]="closes the active window"
-    descriptions[83]="passes the key to a specified window"
-    descriptions[84]="Gets the config option status (values)"
-    descriptions[85]="Sets the xkb layout index for a keyboard"
-    descriptions[86]="HINT"
-    descriptions[88]="pins a window"
-    descriptions[89]="Prints the Hyprland version, meaning flags, commit and branch of build"
-    descriptions[91]="toggles the current active window into a group"
-    descriptions[92]="changes the workspace"
-    descriptions[93]="Locks the groups"
-    descriptions[94]="Refresh state befor issuing the command"
-    descriptions[95]="moves the active window in a direction or to a monitor"
-    descriptions[96]="Gets the current cursor pos in global layout coordinates"
-    descriptions[97]="Focuses the requested workspace"
-    descriptions[98]="executes a raw shell command"
-    descriptions[101]="ERROR"
-    descriptions[102]="Issue a keyword to call a config keyword dynamically"
-    descriptions[103]="moves the focus in a direction"
-    descriptions[104]="moves the cursor to a specified position"
-    descriptions[105]="Lists all running instances of Hyprland with thir info"
-    descriptions[106]="sets all monitors’ DPMS status"
-    descriptions[108]="Moves the active window into a group"
-    descriptions[109]="resizes a selected window"
-    descriptions[110]="Get into a kill mode, where you can kill an app by clicking on it"
-    descriptions[111]="Moves a workspace to a monitor"
-    descriptions[113]="Issue a dispatch to call a keybind dispatcher with an arg"
-    descriptions[114]="Output in JSON format"
-    descriptions[116]="Lists all connected keyboards and mice"
-    descriptions[118]="Execute a batch of commands separated by ;"
-    descriptions[119]="Gets the active window name and its properties"
-    descriptions[120]="toggles the focused window’s fullscreen state"
-    descriptions[122]="Allows you to add and remove fake outputs to your preferred backend"
-    descriptions[123]="Interact with a plugin"
-    descriptions[126]="resizes the active window"
-    descriptions[127]="center the active window"
-    descriptions[128]="Prints the current random splash"
-    descriptions[129]="Focuses the urgent window or the last window"
-    descriptions[130]="Change the current mapping group"
-    descriptions[132]="Swaps the active window with the next or previous in a group"
-    descriptions[134]="forces the renderer to reload all resources and outputs"
-    descriptions[136]="Dismisses all or up to amount of notifications"
+    descriptions[1]="Focus the next window on a workspace"
+    descriptions[3]="Get the current cursor pos in global layout coordinates"
+    descriptions[5]="Rename a workspace"
+    descriptions[7]="Focus the first window matching"
+    descriptions[10]="Swap the focused window with the next window"
+    descriptions[12]="Move the active window"
+    descriptions[15]="List the layers"
+    descriptions[17]="List active outputs with their properties"
+    descriptions[19]="ERROR"
+    descriptions[20]="Set the current window's floating state to false"
+    descriptions[21]="Get into a kill mode, where you can kill an app by clicking on it"
+    descriptions[22]="Focus a monitor"
+    descriptions[23]="Swap the active window with another window"
+    descriptions[24]="Move the active window out of a group"
+    descriptions[25]="Send a notification using the built-in Hyprland notification system"
+    descriptions[26]="Move the cursor to a specified position"
+    descriptions[27]="Set the cursor theme and reloads the cursor manager"
+    descriptions[28]="Set the hyprctl error string"
+    descriptions[29]="CONFUSED"
+    descriptions[30]="Move the active workspace to a monitor"
+    descriptions[33]="Set a property of a window"
+    descriptions[34]="Specify the Hyprland instance"
+    descriptions[35]="Toggle the current window's floating state"
+    descriptions[36]="Get the list of defined workspace rules"
+    descriptions[37]="Move the focused window to a workspace"
+    descriptions[39]="Temporarily enable or disable binds:ignore_group_lock"
+    descriptions[40]="List all workspaces with their properties"
+    descriptions[41]="WARNING"
+    descriptions[42]="Close a specified window"
+    descriptions[43]="Swap the active window with the next or previous in a group"
+    descriptions[44]="List all registered binds"
+    descriptions[45]="Move the active window in a direction or to a monitor"
+    descriptions[46]="Change the split ratio"
+    descriptions[48]="Prohibit the active window from becoming or being inserted into group"
+    descriptions[49]="Change the workspace"
+    descriptions[50]="List all current config parsing errors"
+    descriptions[51]="Toggle the current active window into a group"
+    descriptions[52]="Get the config option status (values)"
+    descriptions[55]="Specify the Hyprland instance"
+    descriptions[56]="Close the active window"
+    descriptions[57]="Pass the key to a specified window"
+    descriptions[58]="List all decorations and their info"
+    descriptions[59]="List all connected keyboards and mice"
+    descriptions[60]="Switch focus from current to previously focused window"
+    descriptions[61]="Change the current mapping group"
+    descriptions[62]="Execute a Global Shortcut using the GlobalShortcuts portal"
+    descriptions[64]="Force the renderer to reload all resources and outputs"
+    descriptions[65]="Move a selected window"
+    descriptions[66]="Print the Hyprland version: flags, commit and branch of build"
+    descriptions[67]="Set all monitors' DPMS status"
+    descriptions[68]="Resize the active window"
+    descriptions[69]="Move the active window into a group"
+    descriptions[70]="OK"
+    descriptions[72]="Set the current window's floating state to true"
+    descriptions[73]="Print tail of the log"
+    descriptions[76]="List all layouts available (including plugin ones)"
+    descriptions[77]="Move a workspace to a monitor"
+    descriptions[78]="Execute a shell command"
+    descriptions[80]="Modify the window stack order of the active or specified window"
+    descriptions[81]="Toggle the focused window's internal fullscreen state"
+    descriptions[83]="Issue a keyword to call a config keyword dynamically"
+    descriptions[86]="Pin a window"
+    descriptions[87]="Allows adding/removing fake outputs to a specific backend"
+    descriptions[89]="Toggle a special workspace on/off"
+    descriptions[90]="Toggle the focused window's fullscreen state"
+    descriptions[91]="Toggle the current window to always be opaque"
+    descriptions[92]="Focus the requested workspace"
+    descriptions[94]="Switch to the next window in a group"
+    descriptions[95]="Output in JSON format"
+    descriptions[96]="List all running Hyprland instances and their info"
+    descriptions[97]="Execute a raw shell command"
+    descriptions[98]="Exit the compositor with no questions asked"
+    descriptions[99]="List all windows with their properties"
+    descriptions[101]="Execute a batch of commands separated by ;"
+    descriptions[102]="Dismiss all or up to amount of notifications"
+    descriptions[104]="Set the xkb layout index for a keyboard"
+    descriptions[105]="Move window doesnt switch to the workspace"
+    descriptions[106]="Behave as moveintogroup"
+    descriptions[107]="Refresh state after issuing the command"
+    descriptions[108]="Move the focus in a direction"
+    descriptions[109]="Focus the urgent window or the last window"
+    descriptions[111]="Get the active workspace name and its properties"
+    descriptions[112]="Issue a dispatch to call a keybind dispatcher with an arg"
+    descriptions[114]="Center the active window"
+    descriptions[115]="HINT"
+    descriptions[116]="Interact with hyprpaper if present"
+    descriptions[117]="No Icon"
+    descriptions[118]="Force reload the config"
+    descriptions[120]="Print system info"
+    descriptions[121]="Interact with a plugin"
+    descriptions[123]="Get the active window name and its properties"
+    descriptions[124]="Swap the active workspaces between two monitors"
+    descriptions[125]="Print the current random splash"
+    descriptions[127]="Lock the focused group"
+    descriptions[130]="Lock the groups"
+    descriptions[131]="Move the cursor to the corner of the active window"
+    descriptions[134]="INFO"
+    descriptions[135]="Resize a selected window"
 
     local -A literal_transitions
-    literal_transitions[1]="([45]=32 [116]=4 [47]=4 [85]=22 [84]=4 [118]=12 [51]=4 [53]=4 [119]=4 [8]=4 [9]=29 [122]=26 [15]=8 [89]=4 [16]=4 [123]=25 [62]=4 [94]=12 [22]=4 [25]=4 [66]=4 [96]=4 [29]=4 [100]=4 [128]=4 [102]=31 [72]=19 [105]=4 [39]=4 [110]=4 [77]=4 [114]=12 [113]=28 [42]=2 [43]=4 [136]=3)"
-    literal_transitions[7]="([87]=4 [20]=4 [107]=4 [23]=4)"
-    literal_transitions[8]="([125]=4 [64]=9 [65]=9 [50]=9 [99]=9 [31]=4 [30]=4 [52]=3 [4]=9 [69]=4 [70]=9 [121]=9 [13]=4 [74]=3 [37]=9 [133]=9 [90]=9 [60]=9 [112]=9 [41]=9 [21]=4 [124]=9 [135]=4 [115]=9)"
-    literal_transitions[9]="([40]=4 [46]=4)"
-    literal_transitions[10]="([5]=11)"
-    literal_transitions[11]="([33]=12 [32]=12)"
-    literal_transitions[13]="([28]=4 [131]=4)"
-    literal_transitions[16]="([5]=5)"
-    literal_transitions[17]="([5]=18)"
-    literal_transitions[18]="([61]=4)"
-    literal_transitions[19]="([63]=4 [86]=4 [101]=4 [67]=4 [75]=4 [55]=4)"
-    literal_transitions[21]="([5]=14)"
-    literal_transitions[26]="([18]=7 [79]=27)"
-    literal_transitions[28]="([1]=4 [2]=4 [48]=4 [49]=4 [3]=4 [81]=4 [82]=4 [83]=4 [6]=4 [7]=4 [54]=4 [56]=4 [11]=4 [10]=4 [57]=4 [120]=4 [14]=4 [88]=4 [17]=4 [58]=4 [19]=4 [59]=4 [91]=4 [95]=4 [97]=4 [92]=4 [24]=4 [93]=4 [26]=4 [27]=4 [68]=4 [98]=4 [126]=4 [127]=4 [34]=4 [71]=4 [103]=4 [35]=4 [104]=4 [73]=4 [36]=4 [129]=4 [130]=4 [76]=4 [38]=4 [106]=4 [108]=4 [109]=4 [78]=4 [111]=4 [132]=4 [44]=4 [134]=4 [80]=4)"
-    literal_transitions[29]="([12]=4)"
-    literal_transitions[30]="([43]=4 [116]=4 [45]=32 [51]=4 [84]=4 [85]=22 [53]=4 [119]=4 [8]=4 [9]=29 [122]=26 [15]=8 [89]=4 [16]=4 [123]=25 [62]=4 [22]=4 [25]=4 [66]=4 [96]=4 [29]=4 [100]=4 [128]=4 [102]=31 [72]=19 [105]=4 [39]=4 [110]=4 [77]=4 [113]=28 [42]=2 [47]=4 [136]=3)"
-    literal_transitions[32]="([117]=4)"
-    literal_transitions[33]="([5]=23)"
+    literal_transitions[1]="([102]=2 [73]=3 [33]=4 [2]=3 [3]=3 [76]=3 [104]=5 [36]=3 [107]=6 [40]=3 [44]=3 [111]=3 [83]=7 [112]=9 [50]=3 [52]=3 [87]=10 [116]=3 [118]=3 [120]=3 [15]=3 [58]=11 [59]=3 [17]=12 [121]=13 [21]=3 [123]=3 [125]=3 [25]=14 [66]=3 [95]=6 [96]=3 [27]=3 [28]=15 [99]=3 [101]=6)"
+    literal_transitions[4]="([71]=27 [32]=27 [53]=27 [54]=27 [88]=27 [103]=3 [119]=3 [75]=2 [16]=3 [122]=27 [4]=2 [6]=3 [126]=3 [128]=27 [79]=27 [129]=27 [82]=27 [31]=27 [47]=3 [13]=3 [84]=27 [11]=27 [85]=27 [136]=27)"
+    literal_transitions[8]="([102]=2 [73]=3 [33]=4 [2]=3 [3]=3 [76]=3 [104]=5 [36]=3 [40]=3 [44]=3 [111]=3 [83]=7 [112]=9 [50]=3 [52]=3 [87]=10 [116]=3 [118]=3 [120]=3 [15]=3 [58]=11 [59]=3 [17]=12 [121]=13 [21]=3 [123]=3 [125]=3 [25]=14 [66]=3 [96]=3 [27]=3 [28]=15 [99]=3)"
+    literal_transitions[9]="([127]=3 [130]=3 [1]=3 [72]=3 [35]=3 [105]=3 [37]=3 [106]=3 [5]=3 [77]=3 [39]=3 [78]=3 [109]=3 [7]=3 [43]=3 [42]=3 [80]=3 [81]=3 [45]=3 [46]=3 [10]=3 [108]=3 [49]=3 [51]=3 [12]=3 [114]=3 [86]=3 [48]=3 [56]=3 [89]=3 [57]=3 [90]=3 [91]=3 [60]=3 [61]=3 [124]=3 [92]=3 [62]=3 [20]=3 [94]=3 [22]=3 [23]=3 [64]=3 [65]=3 [24]=3 [131]=3 [26]=3 [67]=3 [97]=3 [68]=3 [30]=3 [135]=3 [69]=3 [98]=3)"
+    literal_transitions[10]="([113]=18 [110]=21)"
+    literal_transitions[11]="([19]=3 [115]=3 [29]=3 [134]=3 [70]=3 [117]=3)"
+    literal_transitions[12]="([100]=3)"
+    literal_transitions[15]="([38]=3)"
+    literal_transitions[16]="([74]=17)"
+    literal_transitions[18]="([9]=3 [63]=3 [14]=3 [132]=3)"
+    literal_transitions[19]="([74]=20)"
+    literal_transitions[23]="([74]=24)"
+    literal_transitions[24]="([41]=3)"
+    literal_transitions[25]="([34]=6 [55]=6)"
+    literal_transitions[26]="([74]=25)"
+    literal_transitions[27]="([18]=3 [8]=3)"
+    literal_transitions[28]="([133]=3 [93]=3)"
+    literal_transitions[30]="([74]=33)"
 
     local -A match_anything_transitions
-    match_anything_transitions=([1]=30 [5]=6 [24]=16 [3]=4 [19]=20 [29]=10 [32]=10 [25]=4 [30]=30 [14]=15 [15]=33 [2]=3 [23]=24 [20]=21 [6]=17 [13]=4 [31]=4 [4]=10 [22]=13 [27]=4)
+    match_anything_transitions=([2]=3 [28]=3 [11]=32 [31]=23 [15]=26 [8]=8 [3]=26 [29]=30 [17]=22 [13]=3 [32]=16 [1]=8 [20]=29 [21]=3 [7]=3 [33]=31 [14]=2 [12]=26 [22]=19 [5]=28)
 
     declare -A subword_transitions
 
@@ -200,7 +198,7 @@ _hyprctl () {
             fi
         done
     fi
-    local -A commands=([5]=0 [14]=2 [23]=3 [19]=1)
+    local -A commands=([33]=3 [17]=1 [20]=2 [11]=0)
 
     if [[ -v "commands[$state]" ]]; then
         local command_id=${commands[$state]}
@@ -253,8 +251,4 @@ _hyprctl () {
     return 0
 }
 
-if [[ $ZSH_EVAL_CONTEXT =~ :file$ ]]; then
-    compdef _hyprctl hyprctl
-else
-    _hyprctl
-fi
+compdef _hyprctl hyprctl

@@ -181,6 +181,4 @@ class CKeybindManager {
     friend class CConfigManager;
 };
 
-static void                             toggleActiveFloatingCore(std::string args, std::optional<bool> floatState);
-
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

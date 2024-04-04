@@ -831,19 +831,7 @@ void CKeybindManager::clearKeybinds() {
     m_lKeybinds.clear();
 }
 
-void CKeybindManager::toggleActiveFloating(std::string args) {
-    return toggleActiveFloatingCore(args, std::nullopt);
-}
-
-void CKeybindManager::setActiveFloating(std::string args) {
-    return toggleActiveFloatingCore(args, true);
-}
-
-void CKeybindManager::setActiveTiled(std::string args) {
-    return toggleActiveFloatingCore(args, false);
-}
-
-void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
+static void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
     CWindow* PWINDOW = nullptr;
 
     if (args != "active" && args.length() > 1)
@@ -882,6 +870,18 @@ void toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) 
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
+}
+
+void CKeybindManager::toggleActiveFloating(std::string args) {
+    return toggleActiveFloatingCore(args, std::nullopt);
+}
+
+void CKeybindManager::setActiveFloating(std::string args) {
+    return toggleActiveFloatingCore(args, true);
+}
+
+void CKeybindManager::setActiveTiled(std::string args) {
+    return toggleActiveFloatingCore(args, false);
 }
 
 void CKeybindManager::centerWindow(std::string args) {

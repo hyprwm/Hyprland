@@ -49,6 +49,7 @@ struct SVersionInfo {
     bool        dirty = false;
     std::string branch;
     std::string message;
+    std::string commits;
 };
 
 #define APICALL extern "C"

@@ -19,6 +19,7 @@ class CManifest {
         std::vector<std::string> authors;
         std::vector<std::string> buildSteps;
         std::string              output;
+        int                      since  = 0;
         bool                     failed = false;
     };
 

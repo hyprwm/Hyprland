@@ -75,6 +75,7 @@ CManifest::CManifest(const eManifestType type, const std::string& path) {
         for (auto& plugin : m_vPlugins) {
             plugin.description = manifest[plugin.name]["description"].value_or("?");
             plugin.output      = manifest[plugin.name]["output"].value_or("?");
+            plugin.since       = manifest[plugin.name]["since_hyprland"].value_or(0);
             auto authors       = manifest[plugin.name]["authors"].as_array();
             if (authors) {
                 for (auto&& a : *authors) {

@@ -364,7 +364,7 @@ APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
     if (!PLUGIN)
         return {};
 
-    return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE};
+    return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE, GIT_COMMITS};
 }
 
 APICALL std::shared_ptr<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd) {

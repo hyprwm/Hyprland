@@ -46,6 +46,9 @@ install:
 	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/bash-completion/hyprctl
 	cp -f ./hyprctl/hyprctl.fish ${PREFIX}/share/fish/completions/hyprctl.fish
 	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/zsh/site-functions/_hyprctl
+	cp -f ./hyprpm/hyprpm.bash ${PREFIX}/share/bash-completion/hyprpm
+	cp -f ./hyprpm/hyprpm.fish ${PREFIX}/share/fish/completions/hyprpm.fish
+	cp -f ./hyprpm/hyprpm.zsh ${PREFIX}/share/zsh/site-functions/_hyprpm
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm

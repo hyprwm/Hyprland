@@ -1088,33 +1088,20 @@ float CWindow::rounding() {
 }
 
 void CWindow::updateSpecialRenderData() {
-    const auto  PWORKSPACE     = m_pWorkspace;
-    const auto  WORKSPACERULES = PWORKSPACE ? g_pConfigManager->getWorkspaceRulesFor(PWORKSPACE) : std::vector<SWorkspaceRule>{};
-    bool        border         = true;
+    const auto  PWORKSPACE    = m_pWorkspace;
+    const auto  WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+    bool        border        = true;
 
     static auto PNOBORDERONFLOATING = CConfigValue<Hyprlang::INT>("general:no_border_on_floating");
 
     if (m_bIsFloating && *PNOBORDERONFLOATING == 1)
         border = false;
 
-    m_sSpecialRenderData.border     = border;
-    m_sSpecialRenderData.borderSize = -1;
-    m_sSpecialRenderData.decorate   = true;
-    m_sSpecialRenderData.rounding   = true;
-    m_sSpecialRenderData.shadow     = true;
-
-    for (auto& wsRule : WORKSPACERULES) {
-        if (wsRule.border.has_value())
-            m_sSpecialRenderData.border = wsRule.border.value();
-        if (wsRule.borderSize.has_value())
-            m_sSpecialRenderData.borderSize = wsRule.borderSize.value();
-        if (wsRule.decorate.has_value())
-            m_sSpecialRenderData.decorate = wsRule.decorate.value();
-        if (wsRule.rounding.has_value())
-            m_sSpecialRenderData.rounding = wsRule.rounding.value();
-        if (wsRule.shadow.has_value())
-            m_sSpecialRenderData.shadow = wsRule.shadow.value();
-    }
+    m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(border);
+    m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
+    m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
+    m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
+    m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
 }
 
 int CWindow::getRealBorderSize() {

@@ -28,11 +28,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
 
-    const auto RULESFORTHIS = g_pConfigManager->getWorkspaceRulesFor(self);
-    for (auto& rule : RULESFORTHIS) {
-        if (rule.defaultName.has_value())
-            m_szName = rule.defaultName.value();
-    }
+    const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
+    if (RULEFORTHIS.defaultName.has_value())
+        m_szName = RULEFORTHIS.defaultName.value();
 
     m_pFocusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
         const auto PWINDOW = std::any_cast<CWindow*>(param);

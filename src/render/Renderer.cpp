@@ -661,7 +661,8 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
 void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
     if (pLayer->fadingOut) {
-        g_pHyprOpenGL->renderSnapshot(&pLayer);
+        if (!popups)
+            g_pHyprOpenGL->renderSnapshot(&pLayer);
         return;
     }
 

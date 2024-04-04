@@ -49,7 +49,7 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
             Debug::log(LOG, "IME Destroy");
 
             if (PTI)
-                PTI->enter(PTI->focusedSurface());
+                PTI->leave();
         },
         this, "IMERelay");
 
@@ -92,8 +92,18 @@ void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
         },
         this, "IMERelay");
 
-    if (const auto PTI = getFocusedTextInput(); PTI)
-        PTI->enter(PTI->focusedSurface());
+    if (!g_pCompositor->m_pLastFocus)
+        return;
+
+    for (auto& ti : m_vTextInputs) {
+        if (ti->client() != wl_resource_get_client(g_pCompositor->m_pLastFocus->resource))
+            continue;
+
+        if (ti->isV3())
+            ti->enter(g_pCompositor->m_pLastFocus);
+        else
+            ti->onEnabled(g_pCompositor->m_pLastFocus);
+    }
 }
 
 void CInputMethodRelay::setIMEPopupFocus(CInputPopup* pPopup, wlr_surface* pSurface) {

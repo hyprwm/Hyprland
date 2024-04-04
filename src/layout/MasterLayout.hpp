@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "../config/ConfigManager.hpp"
 #include <vector>
 #include <list>

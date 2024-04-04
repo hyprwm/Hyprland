@@ -1,0 +1,146 @@
+# This is a file feeded to complgen to generate bash/fish/zsh completions
+# Repo: https://github.com/adaszko/complgen
+# Generate completion scripts: "complgen aot --bash-script hyprctl.bash --fish-script hyprctl.fish --zsh-script hyprctl.zsh ./hyprctl.usage"
+
+hyprctl [<OPTIONS>]... <ARGUMENTS>           
+
+<OPTIONS>  ::=  (-i | --instance)                                     "Specify the Hyprland instalnce"
+            |   (-j)                                                  "Output in JSON format"
+            |   (-r)                                                  "Refresh state befor issuing the command"
+            |   (-b)                                                  "Execute a batch of commands separated by ;"                   
+            ;                                                  
+
+<WINDOWS> ::= {{{ hyprctl clients | grep class | awk '{print $2}' }}}
+
+<AVIABLE_PLUGINS> ::= {{{ hyprpm list | grep "Plugin" | awk '{print $4}' }}}
+
+<MONITORS> ::= {{{ hyprctl monitors | grep Monitor | awk '{ print $2 }' }}}
+
+<KEYWORDS> ::= {{{ hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}' }}}
+
+<NOTIFICATION_TYPES> ::=  (0)   "WARNING"
+                      |   (1)   "INFOROR"
+                      |   (2)   "HINT"
+                      |   (3)   "ERROR"
+                      |   (4)   "CONFISED"
+                      |   (5)   "OK"
+                      |   (-1)  "No Icon"
+                      ;
+
+<PROPS> ::=  (animationstyle)
+         |   (rounding <NUM>)
+         |   (bordersize <NUM>)
+         |   (forcenoblur (0 | 1))
+         |   (forceopaque (0 | 1))
+         |   (forceopaqueoverriden (0 | 1))
+         |   (forceallowsinput (0 | 1))
+         |   (forcenoanims (0 | 1))
+         |   (forcenoborder (0 | 1))
+         |   (forcenodim (0 | 1))
+         |   (forcenoshadow (0 | 1))
+         |   (nofocus (0 | 1))
+         |   (windowdancecompat (0 | 1))
+         |   (nomaxsize (0 | 1))
+         |   (minsize)
+         |   (maxsize)
+         |   (dimaround (0 | 1))
+         |   (keepaspectratio (0 | 1))
+         |   (alphaoverride (0 | 1))
+         |   (alpha)
+         |   (alphainactiveoverride (0 | 1))
+         |   (alphainactive)
+         |   (activebordercolor)
+         |   (inactivebordercolor)
+         ;
+
+
+<ARGUMENTS> ::=  (activewindow)                                       "Gets the active window name and its properties"
+            |   (activeworkspace)                                     "Gets the active workspace name and its properties"
+            |   (binds)                                               "Lists all registered binds"
+            |   (clients)                                             "Lists all windows with their properties"
+            |   (configerrors)                                        "Lists all current config parsing errors"
+            |   (cursorpos)                                           "Gets the current cursor pos in global layout coordinates"
+            |   (decorations <WINDOWS>)                               "Lists all decorations and their info"
+            |   (devices)                                             "Lists all connected keyboards and mice"          
+            |   (dismissnotify <NUM>)                                 "Dismisses all or up to amount of notifications"
+            |   (dispatch <DISPATCHERS>)                              "Issue a dispatch to call a keybind dispatcher with an arg"
+            |   (getoption)                                           "Gets the config option status (values)"
+            |   (globalshortcuts)                                     ""
+            |   (hyprpaper)                                           "Interact with hyprpaper if present"
+            |   (instances)                                           "Lists all running instances of Hyprland with thir info"
+            |   (keyword <KEYWORDS>)                                  "Issue a keyword to call a config keyword dynamically"
+            |   (kill)                                                "Get into a kill mode, where you can kill an app by clicking on it"
+            |   (layers)                                              "List the layers"
+            |   (layouts)                                             "lists all layouts available (including plugin'd ones)"
+            |   (monitors [all])                                      "lists active outputs with their properties"
+            |   (notify <NOTIFICATION_TYPES> <NUM>)                   "Sends a notification using the built-in Hyprland notification system"
+            |   (output (create (wayland | x11 | headless | auto) | remove <MONITORS>)) "Allows you to add and remove fake outputs to your preferred backend"
+            |   (plugin <AVIABLE_PLUGINS>)                            "Interact with a plugin"
+            |   (reload)                                              "Force reloads the config"
+            |   (rollinglog)                                          "Prints tail of the log"
+            |   (setcursor)                                           "Sets the cursor theme and reloads the cursor manager"
+            |   (seterror [disable])                                  "Sets the hyprctl error string"          
+            |   (setprop <PROPS>)                                     "Sets a property of a window"  
+            |   (splash)                                              "Prints the current random splash"
+            |   (switchxkblayout <KEYBOARDS> (next | prev | <NUM>))   "Sets the xkb layout index for a keyboard"  
+            |   (systeminfo)                                          "Prints system info"
+            |   (version)                                             "Prints the Hyprland version, meaning flags, commit and branch of build"
+            |   (workspacerules)                                      "Gets the list of defined workspace rules"
+            |   (workspaces)                                          "Lists all workspaces with their properties"  
+            ;
+
+<DISPATCHERS> ::=  (exec)         	                                  "executes a shell command"
+                |  (execr)           	                              "executes a raw shell command"
+                |  (pass)            	                              "passes the key to a specified window"
+                |  (killactive)          	                          "closes the active window"
+                |  (closewindow)         	                          "closes a specified window"
+                |  (workspace)           	                          "changes the workspace"
+                |  (movetoworkspace)         	                      "moves the focused window to a workspace"
+                |  (movetoworkspacesilent)           	              "move window doesnt switch to the workspace"
+                |  (togglefloating)          	                      "toggles the current window’s floating state"
+                |  (setfloating)         	                          "sets the current window’s floating state to true"
+                |  (settiled)            	                          "sets the current window’s floating state to false"
+                |  (fullscreen)          	                          "toggles the focused window’s fullscreen state"
+                |  (fakefullscreen)          	                      "toggles the focused window’s internal fullscreen state"
+                |  (dpms)            	                              "sets all monitors’ DPMS status"
+                |  (pin)         	                                  "pins a window"
+                |  (movefocus)           	                          "moves the focus in a direction"
+                |  (movewindow)          	                          "moves the active window in a direction or to a monitor"
+                |  (swapwindow)          	                          "swaps the active window with another window"
+                |  (centerwindow)            	                      "center the active window"
+                |  (resizeactive)            	                      "resizes the active window"
+                |  (moveactive)          	                          "moves the active window	resizeparams"
+                |  (resizewindowpixel)           	                  "resizes a selected window"
+                |  (movewindowpixel)         	                      "moves a selected window	resizeparams"
+                |  (cyclenext)           	                          "focuses the next window on a workspace"
+                |  (swapnext)            	                          "swaps the focused window with the next window"
+                |  (focuswindow)         	                          "focuses the first window matching"
+                |  (focusmonitor)            	                      "focuses a monitor"
+                |  (splitratio)          	                          "changes the split ratio"
+                |  (toggleopaque)            	                      "toggles the current window to always be opaque"
+                |  (movecursortocorner)          	                  "moves the cursor to the corner of the active window"
+                |  (movecursor)          	                          "moves the cursor to a specified position"
+                |  (renameworkspace)         	                      "rename a workspace"
+                |  (exit)            	                              "exits the compositor with no questions asked"
+                |  (forcerendererreload)         	                  "forces the renderer to reload all resources and outputs"
+                |  (movecurrentworkspacetomonitor)           	      "Moves the active workspace to a monitor"
+                |  (focusworkspaceoncurrentmonitor)          	      "Focuses the requested workspace"
+                |  (moveworkspacetomonitor)          	              "Moves a workspace to a monitor"
+                |  (swapactiveworkspaces)            	              "Swaps the active workspaces between two monitors"
+                |  (alterzorder)         	                          "Modify the window stack order of the active or specified window"
+                |  (togglespecialworkspace)          	              "toggles a special workspace on/off"
+                |  (focusurgentorlast)           	                  "Focuses the urgent window or the last window"
+                |  (togglegroup)         	                          "toggles the current active window into a group"
+                |  (changegroupactive)           	                  "switches to the next window in a group"
+                |  (focuscurrentorlast)          	                  "Switch focus from current to previously focused window"
+                |  (lockgroups)          	                          "Locks the groups"
+                |  (lockactivegroup)         	                      "Lock the focused group"
+                |  (moveintogroup)           	                      "Moves the active window into a group"
+                |  (moveoutofgroup)          	                      "Moves the active window out of a group"
+                |  (movewindoworgroup)           	                  "Behaves as moveintogroup"
+                |  (movegroupwindow)         	                      "Swaps the active window with the next or previous in a group"
+                |  (denywindowfromgroup)         	                  "Prohibit the active window from becoming or being inserted into group"
+                |  (setignoregrouplock)          	                  "Temporarily enable or disable binds:ignore_group_lock"
+                |  (global)          	                              "Executes a Global Shortcut using the GlobalShortcuts portal"
+                |  (submap)          	                              "Change the current mapping group"
+                ;

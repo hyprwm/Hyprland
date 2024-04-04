@@ -5,3 +5,4 @@
 #define GIT_COMMIT_DATE    "@DATE@"
 #define GIT_DIRTY          "@DIRTY@"
 #define GIT_TAG            "@TAG@"
+#define GIT_COMMITS        "@COMMITS@"

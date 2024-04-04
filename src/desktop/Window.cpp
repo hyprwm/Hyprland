@@ -450,7 +450,7 @@ void CWindow::onUnmap() {
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
 
-    m_iLastWorkspace = onSpecialWorkspace();
+    m_iLastWorkspace = m_pWorkspace->m_iID;
 
     m_vRealPosition.setCallbackOnEnd(unregisterVar);
     m_vRealSize.setCallbackOnEnd(unregisterVar);

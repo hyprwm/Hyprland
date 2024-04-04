@@ -225,7 +225,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
 
         if (!std::filesystem::exists("/tmp/hyprpm/new/" + p.output)) {
-            progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Plugin " + p.name + " failed to build.\n");
+            progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Plugin " + p.name + " failed to build.\n" << "  This likely means that the plugin is either outdated, not yet available for your version, or broken.\n  Try re-running with -v to see more verbose output.\n");
 
             p.failed = true;
 
@@ -591,7 +591,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                 std::cout << Colors::BLUE << "[v] " << Colors::RESET << "shell returned: " << out << "\n";
 
             if (!std::filesystem::exists("/tmp/hyprpm/update/" + p.output)) {
-                std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n";
+                std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Plugin " << p.name << " failed to build.\n" << "  This likely means that the plugin is either outdated, not yet available for your version, or broken.\n  Try re-running with -v to see more verbose output.\n";
                 failed = true;
                 break;
             }

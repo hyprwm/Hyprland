@@ -2250,14 +2250,17 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
     if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_pLastMonitor) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_iID);
 
-        if (valid(pMonitor->activeWorkspace))
+        if (valid(pMonitor->activeWorkspace)) {
+            pMonitor->activeWorkspace->m_bVisible = false;
             pMonitor->activeWorkspace->startAnim(false, false);
+        }
 
         setActiveMonitor(pMonitor);
         pMonitor->activeWorkspace = pWorkspace;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
         pWorkspace->startAnim(true, true, true);
+        pWorkspace->m_bVisible = true;
 
         if (!noWarpCursor)
             wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);

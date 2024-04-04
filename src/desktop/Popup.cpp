@@ -155,6 +155,9 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
+    if (!m_pWLR->base->surface->mapped)
+        return;
+
     const auto COORDS      = coordsGlobal();
     const auto COORDSLOCAL = coordsRelativeToParent();
 
@@ -168,7 +171,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         m_vLastPos = COORDSLOCAL;
     }
 
-    if (!ignoreSiblings)
+    if (!ignoreSiblings && m_pSubsurfaceHead)
         m_pSubsurfaceHead->recheckDamageForSubsurfaces();
 
     g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);

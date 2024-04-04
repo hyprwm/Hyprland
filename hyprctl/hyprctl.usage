@@ -10,13 +10,13 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
             |   (--batch)                                             "Execute a batch of commands separated by ;"
             ;
 
-<WINDOWS> ::= {{{ hyprctl clients | grep class | awk '{print $2}' }}}
+<WINDOWS> ::= {{{ hyprctl clients | grep class | awk '{print $2}' }}};
 
-<AVAILABLE_PLUGINS> ::= {{{ hyprpm list | grep "Plugin" | awk '{print $4}' }}}
+<AVIABLE_PLUGINS> ::= {{{ hyprpm list | grep "Plugin" | awk '{print $4}' }}};
 
-<MONITORS> ::= {{{ hyprctl monitors | grep Monitor | awk '{ print $2 }' }}}
+<MONITORS> ::= {{{ hyprctl monitors | grep Monitor | awk '{ print $2 }' }}};
 
-<KEYBOARDS> ::= {{{ hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}' }}}
+<KEYBOARDS> ::= {{{ hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}' }}};
 
 <NOTIFICATION_TYPES> ::=  (0)   "WARNING"
                       |   (1)   "INFO"

@@ -226,7 +226,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     for (auto& p : pManifest->m_vPlugins) {
         std::string out;
 
-        if (p.since > HLVER.commits) {
+        if (p.since > HLVER.commits && HLVER.commits >= 1 /* for --depth 1 clones, we can't check this. */) {
             progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Not building " + p.name + ": your Hyprland version is too old.\n");
             p.failed = true;
             continue;
@@ -599,7 +599,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         for (auto& p : pManifest->m_vPlugins) {
             std::string out;
 
-            if (p.since > HLVER.commits) {
+            if (p.since > HLVER.commits && HLVER.commits >= 1 /* for --depth 1 clones, we can't check this. */) {
                 progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Not building " + p.name + ": your Hyprland version is too old.\n");
                 p.failed = true;
                 continue;

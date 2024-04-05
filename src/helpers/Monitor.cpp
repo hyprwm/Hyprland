@@ -169,6 +169,9 @@ void CMonitor::onConnect(bool noRule) {
     setupDefaultWS(monitorRule);
 
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        if (!valid(ws))
+            continue;
+
         if (ws->m_szLastMonitor == szName || g_pCompositor->m_vMonitors.size() == 1 /* avoid lost workspaces on recover */) {
             g_pCompositor->moveWorkspaceToMonitor(ws, this);
             ws->startAnim(true, true, true);

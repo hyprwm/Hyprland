@@ -29,7 +29,6 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <functional>
 #include <string>
 
-typedef std::function<void(void*, SCallbackInfo&, std::any)> HOOK_CALLBACK_FN;
 typedef struct {
     std::string name;
     std::string description;

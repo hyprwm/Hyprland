@@ -5,6 +5,7 @@
 #include <hyprlang.hpp>
 #include "../debug/Log.hpp"
 #include "../macros.hpp"
+#include "ConfigManager.hpp"
 
 template <typename T>
 class CConfigValue {

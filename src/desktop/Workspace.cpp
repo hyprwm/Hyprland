@@ -411,8 +411,10 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 }
 
 void CWorkspace::markInert() {
-    m_bInert = true;
-    m_iID    = WORKSPACE_INVALID;
+    m_bInert     = true;
+    m_iID        = WORKSPACE_INVALID;
+    m_iMonitorID = -1;
+    m_bVisible   = false;
 }
 
 bool CWorkspace::inert() {

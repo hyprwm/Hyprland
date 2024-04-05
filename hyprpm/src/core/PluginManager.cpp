@@ -73,7 +73,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     std::string hlcommits;
 
     if (HLVERCALL.contains("commits:")) {
-        hlcommits = HLVERCALL.substr(HLVERCALL.find("commits:") + 10);
+        hlcommits = HLVERCALL.substr(HLVERCALL.find("commits:") + 9);
         hlcommits = hlcommits.substr(0, hlcommits.find(" "));
     }
 
@@ -83,7 +83,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     } catch (...) { ; }
 
     if (m_bVerbose)
-        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << "\n";
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << ", commits " << commits << "\n";
 
     ver = SHyprlandVersion{hlbranch, hlcommit, commits};
     return ver;

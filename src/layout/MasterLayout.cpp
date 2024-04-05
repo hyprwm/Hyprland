@@ -44,14 +44,12 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
     static auto PORIENTATION    = CConfigValue<std::string>("master:orientation");
-    const auto  WORKSPACERULES  = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(ws));
+    const auto  layoutoptsForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
 
     std::string orientationForWs = *PORIENTATION;
 
-    for (auto& wsRule : WORKSPACERULES) {
-        if (wsRule.layoutopts.contains("orientation"))
-            orientationForWs = wsRule.layoutopts.at("orientation");
-    }
+    if (layoutoptsForWs.contains("orientation"))
+        orientationForWs = layoutoptsForWs.at("orientation");
 
     if (orientationForWs == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
@@ -334,13 +332,11 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         return;
 
     // dynamic workspace rules
-    const auto  WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(pWorkspace);
+    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
     std::string orientationForWs;
 
-    for (auto& wsRule : WORKSPACERULES) {
-        if (wsRule.layoutopts.contains("orientation"))
-            orientationForWs = wsRule.layoutopts.at("orientation");
-    }
+    if (WORKSPACERULE.layoutopts.contains("orientation"))
+        orientationForWs = WORKSPACERULE.layoutopts.at("orientation");
 
     if (orientationForWs == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
@@ -643,7 +639,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(PWINDOW->m_pWorkspace);
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWINDOW->m_pWorkspace);
 
     if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
@@ -657,14 +653,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto*       PGAPSIN         = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
     auto*       PGAPSOUT        = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
-    auto        gapsIn  = *PGAPSIN;
-    auto        gapsOut = *PGAPSOUT;
-    for (auto& wsRule : WORKSPACERULES) {
-        if (wsRule.gapsIn.has_value())
-            gapsIn = wsRule.gapsIn.value();
-        if (wsRule.gapsOut.has_value())
-            gapsOut = wsRule.gapsOut.value();
-    }
+    auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
 
     if (!g_pCompositor->windowValidMapped(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
@@ -677,17 +667,10 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() &&
         (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 || (PWINDOW->m_bIsFullscreen && PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
-        PWINDOW->m_sSpecialRenderData.border   = (*PNOGAPSWHENONLY == 2);
-        PWINDOW->m_sSpecialRenderData.decorate = true;
-
-        for (auto& wsRule : WORKSPACERULES) {
-            if (wsRule.border.has_value())
-                PWINDOW->m_sSpecialRenderData.border = wsRule.border.value();
-            if (wsRule.decorate.has_value())
-                PWINDOW->m_sSpecialRenderData.decorate = wsRule.decorate.value();
-        }
 
         PWINDOW->updateWindowDecos();
 

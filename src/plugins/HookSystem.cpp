@@ -336,7 +336,7 @@ static uintptr_t seekNewPageAddr() {
 uint64_t CHookSystem::getAddressForTrampo() {
     // yes, technically this creates a memory leak of 64B every hook creation. But I don't care.
     // tracking all the users of the memory would be painful.
-    // Nobody will hook 100k times, and even if, that's only 640kB. Nothing.
+    // Nobody will hook 100k times, and even if, that's only 6.4 MB. Nothing.
 
     SAllocatedPage* page = nullptr;
     for (auto& p : pages) {

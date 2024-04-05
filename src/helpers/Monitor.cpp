@@ -302,6 +302,7 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pCompositor->m_pLastMonitor = nullptr;
     }
 
+    activeWorkspace->m_bVisible = false;
     activeWorkspace.reset();
 
     if (!destroy)

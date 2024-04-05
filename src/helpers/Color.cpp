@@ -21,6 +21,6 @@ CColor::CColor(uint64_t hex) {
     this->a = ALPHA(hex);
 }
 
-uint64_t CColor::getAsHex() {
-    return ((int)a) * 0x1000000 + ((int)r) * 0x10000 + ((int)g) * 0x100 + ((int)b) * 0x1;
+uint32_t CColor::getAsHex() {
+    return (uint32_t)(a * 255.f) * 0x1000000 + (uint32_t)(r * 255.f) * 0x10000 + (uint32_t)(g * 255.f) * 0x100 + (uint32_t)(b * 255.f) * 0x1;
 }

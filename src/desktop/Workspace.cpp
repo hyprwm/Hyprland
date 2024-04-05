@@ -41,6 +41,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     m_bInert = false;
 
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
+    m_bPersistent            = WORKSPACERULE.isPersistent;
+
     g_pEventManager->postEvent({"createworkspace", m_szName});
     g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});
     EMIT_HOOK_EVENT("createWorkspace", this);

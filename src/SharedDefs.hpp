@@ -70,3 +70,5 @@ struct SHyprCtlCommand {
     bool                                                          exact = true;
     std::function<std::string(eHyprCtlOutputFormat, std::string)> fn;
 };
+
+typedef std::function<void(void*, SCallbackInfo&, std::any)> HOOK_CALLBACK_FN;

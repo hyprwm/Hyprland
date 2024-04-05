@@ -1257,13 +1257,8 @@ void CCompositor::sanityCheckWorkspaces() {
     auto it = m_vWorkspaces.begin();
     while (it != m_vWorkspaces.end()) {
 
-        const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(*it);
-        bool       isPersistent   = false;
-        for (auto& wsRule : WORKSPACERULES) {
-            if (wsRule.isPersistent)
-                isPersistent = true;
-        }
-        if (isPersistent) {
+        const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(*it);
+        if (WORKSPACERULE.isPersistent) {
             ++it;
             continue;
         }
@@ -1291,10 +1286,8 @@ void CCompositor::sanityCheckWorkspaces() {
                 continue;
             }
             if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
-                for (auto& wsRule : WORKSPACERULES) {
-                    if (auto cmd = wsRule.onCreatedEmptyRunCmd)
-                        g_pKeybindManager->spawn(*cmd);
-                }
+                if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
+                    g_pKeybindManager->spawn(*cmd);
 
                 WORKSPACE->m_bOnCreatedEmptyExecuted = true;
             }

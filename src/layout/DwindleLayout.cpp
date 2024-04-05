@@ -128,7 +128,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     const auto PWINDOW = pNode->pWindow;
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULES = g_pConfigManager->getWorkspaceRulesFor(g_pCompositor->getWorkspaceByID(pNode->workspaceID));
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(pNode->workspaceID));
 
     if (!g_pCompositor->windowExists(PWINDOW)) {
         Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
@@ -147,16 +147,9 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     auto* const PGAPSIN         = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
     auto* const PGAPSOUT        = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
-    auto        gapsIn  = *PGAPSIN;
-    auto        gapsOut = *PGAPSOUT;
-    for (auto& wsRule : WORKSPACERULES) {
-        if (wsRule.gapsIn.has_value())
-            gapsIn = wsRule.gapsIn.value();
-        if (wsRule.gapsOut.has_value())
-            gapsOut = wsRule.gapsOut.value();
-    }
-
-    CBox nodeBox = pNode->box;
+    auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
+    CBox        nodeBox = pNode->box;
     nodeBox.round();
 
     PWINDOW->m_vSize     = nodeBox.size();
@@ -167,17 +160,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() &&
         (NODESONWORKSPACE == 1 || (PWINDOW->m_bIsFullscreen && PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
+        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
+        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
         PWINDOW->m_sSpecialRenderData.rounding = false;
         PWINDOW->m_sSpecialRenderData.shadow   = false;
-        PWINDOW->m_sSpecialRenderData.border   = (*PNOGAPSWHENONLY == 2);
-        PWINDOW->m_sSpecialRenderData.decorate = true;
-
-        for (auto& wsRule : WORKSPACERULES) {
-            if (wsRule.border.has_value())
-                PWINDOW->m_sSpecialRenderData.border = wsRule.border.value();
-            if (wsRule.decorate.has_value())
-                PWINDOW->m_sSpecialRenderData.decorate = wsRule.decorate.value();
-        }
 
         PWINDOW->updateWindowDecos();
 

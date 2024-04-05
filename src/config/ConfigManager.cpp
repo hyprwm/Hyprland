@@ -965,13 +965,43 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
-std::vector<SWorkspaceRule> CConfigManager::getWorkspaceRulesFor(PHLWORKSPACE pWorkspace) {
-    std::vector<SWorkspaceRule> results;
+SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
+    SWorkspaceRule mergedRule{};
     for (auto& rule : m_dWorkspaceRules) {
-        if (pWorkspace->matchesStaticSelector(rule.workspaceString))
-            results.push_back(rule);
+        if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
+            continue;
+
+        if (rule.isDefault)
+            mergedRule.isDefault = true;
+        if (rule.isPersistent)
+            mergedRule.isPersistent = true;
+        if (rule.gapsIn.has_value())
+            mergedRule.gapsIn = rule.gapsIn;
+        if (rule.gapsOut.has_value())
+            mergedRule.gapsOut = rule.gapsOut;
+        if (rule.borderSize.has_value())
+            mergedRule.borderSize = rule.borderSize;
+        if (rule.border.has_value())
+            mergedRule.border = rule.border;
+        if (rule.rounding.has_value())
+            mergedRule.rounding = rule.rounding;
+        if (rule.decorate.has_value())
+            mergedRule.decorate = rule.decorate;
+        if (rule.shadow.has_value())
+            mergedRule.shadow = rule.shadow;
+        if (rule.onCreatedEmptyRunCmd.has_value())
+            mergedRule.onCreatedEmptyRunCmd = rule.onCreatedEmptyRunCmd;
+        if (rule.defaultName.has_value())
+            mergedRule.defaultName = rule.defaultName;
+
+        if (!rule.layoutopts.empty()) {
+            for (const auto& layoutopt : rule.layoutopts) {
+                mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
+            }
+        }
     }
-    return results;
+
+    return mergedRule;
 }
 
 std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic, bool shadowExec) {

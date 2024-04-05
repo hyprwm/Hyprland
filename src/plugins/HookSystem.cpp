@@ -356,7 +356,7 @@ uint64_t CHookSystem::getAddressForTrampo() {
         const uint64_t PAGESIZE_VAR = sysconf(_SC_PAGE_SIZE);
         const auto     BASEPAGEADDR = seekNewPageAddr();
         for (int attempt = 0; attempt < 2; ++attempt) {
-            for (int i = 2; i >= 0; --i) {
+            for (int i = 0; i <= 2; ++i) {
                 const auto PAGEADDR = BASEPAGEADDR + i * PAGESIZE_VAR;
 
                 page->addr = (uint64_t)mmap((void*)PAGEADDR, PAGESIZE_VAR, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);

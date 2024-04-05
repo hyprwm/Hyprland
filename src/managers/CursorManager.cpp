@@ -198,8 +198,10 @@ void CCursorManager::updateTheme() {
     float highestScale = 1.0;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (m->scale > highestScale)
+        if (m->scale > highestScale) {
             highestScale = m->scale;
+            wlr_xcursor_manager_load(m_pWLRXCursorMgr, m->scale);
+        }
     }
 
     if (highestScale * m_iSize == m_sCurrentStyleInfo.size)

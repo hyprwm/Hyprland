@@ -44,20 +44,14 @@ SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
     const auto PWORKSPACEDATA   = &m_lMasterWorkspacesData.emplace_back();
     PWORKSPACEDATA->workspaceID = ws;
     static auto PORIENTATION    = CConfigValue<std::string>("master:orientation");
-    const auto  layoutoptsForWs = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(ws)).layoutopts;
 
-    std::string orientationForWs = *PORIENTATION;
-
-    if (layoutoptsForWs.contains("orientation"))
-        orientationForWs = layoutoptsForWs.at("orientation");
-
-    if (orientationForWs == "top")
+    if (*PORIENTATION == "top")
         PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    else if (orientationForWs == "right")
+    else if (*PORIENTATION == "right")
         PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    else if (orientationForWs == "bottom")
+    else if (*PORIENTATION == "bottom")
         PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    else if (orientationForWs == "center")
+    else if (*PORIENTATION == "center")
         PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
     else
         PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
@@ -130,10 +124,9 @@ void CHyprMasterLayout::onWindowCreatedTiling(CWindow* pWindow, eDirection direc
 
     pWindow->applyGroupRules();
 
-    static auto  PDROPATCURSOR  = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
-    const auto   PWORKSPACEDATA = getMasterWorkspaceData(pWindow->workspaceID());
-    eOrientation orientation    = PWORKSPACEDATA->orientation;
-    const auto   NODEIT         = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
+    static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
+    eOrientation orientation   = getDynamicOrientation(pWindow->m_pWorkspace);
+    const auto   NODEIT        = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
@@ -325,31 +318,12 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         return;
     }
 
-    const auto PWORKSPACEDATA = getMasterWorkspaceData(pWorkspace->m_iID);
-    const auto PMASTERNODE    = getMasterNodeOnWorkspace(pWorkspace->m_iID);
+    const auto PMASTERNODE = getMasterNodeOnWorkspace(pWorkspace->m_iID);
 
     if (!PMASTERNODE)
         return;
 
-    // dynamic workspace rules
-    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
-    std::string orientationForWs;
-
-    if (WORKSPACERULE.layoutopts.contains("orientation"))
-        orientationForWs = WORKSPACERULE.layoutopts.at("orientation");
-
-    if (orientationForWs == "top")
-        PWORKSPACEDATA->orientation = ORIENTATION_TOP;
-    else if (orientationForWs == "right")
-        PWORKSPACEDATA->orientation = ORIENTATION_RIGHT;
-    else if (orientationForWs == "bottom")
-        PWORKSPACEDATA->orientation = ORIENTATION_BOTTOM;
-    else if (orientationForWs == "center")
-        PWORKSPACEDATA->orientation = ORIENTATION_CENTER;
-    else if (orientationForWs == "left")
-        PWORKSPACEDATA->orientation = ORIENTATION_LEFT;
-
-    eOrientation orientation        = PWORKSPACEDATA->orientation;
+    eOrientation orientation        = getDynamicOrientation(pWorkspace);
     bool         centerMasterWindow = false;
     static auto  ALWAYSCENTER       = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING     = CConfigValue<Hyprlang::INT>("master:smart_resizing");
@@ -749,11 +723,10 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     }
 
     const auto   PMONITOR       = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    const auto   PWORKSPACEDATA = getMasterWorkspaceData(PWINDOW->workspaceID());
     static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
-    eOrientation orientation = PWORKSPACEDATA->orientation;
+    eOrientation orientation = getDynamicOrientation(pWindow->m_pWorkspace);
     bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
     double       delta       = 0;
 
@@ -1437,6 +1410,30 @@ void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrienta
             cycle.push_back(ORIENTATION_CENTER);
         }
     }
+}
+
+eOrientation CHyprMasterLayout::getDynamicOrientation(PHLWORKSPACE pWorkspace) {
+    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(pWorkspace);
+    std::string orientationString;
+    if (WORKSPACERULE.layoutopts.contains("orientation"))
+        orientationString = WORKSPACERULE.layoutopts.at("orientation");
+
+    eOrientation orientation = getMasterWorkspaceData(pWorkspace->m_iID)->orientation;
+    // override if workspace rule is set
+    if (!orientationString.empty()) {
+        if (orientationString == "top")
+            orientation = ORIENTATION_TOP;
+        else if (orientationString == "right")
+            orientation = ORIENTATION_RIGHT;
+        else if (orientationString == "bottom")
+            orientation = ORIENTATION_BOTTOM;
+        else if (orientationString == "center")
+            orientation = ORIENTATION_CENTER;
+        else
+            orientation = ORIENTATION_LEFT;
+    }
+
+    return orientation;
 }
 
 void CHyprMasterLayout::replaceWindowDataWith(CWindow* from, CWindow* to) {

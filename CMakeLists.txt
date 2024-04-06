@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.27)
 include(CheckIncludeFile)
 
 # Get version
@@ -100,7 +100,14 @@ message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-find_package(OpenGL REQUIRED)
+
+if(LEGACY_RENDERER)
+    set(GLES_VERSION "GLES2")
+else()
+    set(GLES_VERSION "GLES3")
+endif()
+find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
+
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm xkbcommon libinput pango pangocairo pixman-1 hyprlang>=0.3.2 hyprcursor) # we do not check for wlroots, as we provide it ourselves
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")

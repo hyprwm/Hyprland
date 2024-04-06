@@ -2237,8 +2237,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     //     rules                  = value.substr(WORKSPACE_DELIM + 1);
     // }
 
-    const static std::string ruleOnCreatedEmtpy    = "on-created-empty:";
-    const static int         ruleOnCreatedEmtpyLen = ruleOnCreatedEmtpy.length();
+    const static std::string ruleOnCreatedEmpty    = "on-created-empty:";
+    const static int         ruleOnCreatedEmptyLen = ruleOnCreatedEmpty.length();
 
     auto                     assignRule = [&](std::string rule) -> std::optional<std::string> {
         size_t delim = std::string::npos;
@@ -2274,8 +2274,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
         else if ((delim = rule.find("defaultName:")) != std::string::npos)
             wsRule.defaultName = rule.substr(delim + 12);
-        else if ((delim = rule.find(ruleOnCreatedEmtpy)) != std::string::npos)
-            wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmtpyLen));
+        else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos)
+            wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmptyLen));
         else if ((delim = rule.find("layoutopt:")) != std::string::npos) {
             std::string opt = rule.substr(delim + 10);
             if (!opt.contains(":")) {

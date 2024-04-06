@@ -624,7 +624,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
     }
 
     switch (e->state) {
-        case WLR_BUTTON_PRESSED:
+        case WL_POINTER_BUTTON_STATE_PRESSED:
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
@@ -646,7 +646,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
                 g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow, true);
 
             break;
-        case WLR_BUTTON_RELEASED: break;
+        case WL_POINTER_BUTTON_STATE_RELEASED: break;
     }
 
     // notify app if we didnt handle it
@@ -659,7 +659,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
 
 void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
     switch (e->state) {
-        case WLR_BUTTON_PRESSED: {
+        case WL_POINTER_BUTTON_STATE_PRESSED: {
             const auto PWINDOW = g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
             if (!PWINDOW) {
@@ -671,7 +671,7 @@ void CInputManager::processMouseDownKill(wlr_pointer_button_event* e) {
             kill(PWINDOW->getPID(), SIGKILL);
             break;
         }
-        case WLR_BUTTON_RELEASED: break;
+        case WL_POINTER_BUTTON_STATE_RELEASED: break;
         default: break;
     }
 

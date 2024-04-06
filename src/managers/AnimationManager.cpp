@@ -16,7 +16,7 @@ int wlTick(std::shared_ptr<CEventLoopTimer> self, void* data) {
         EMIT_HOOK_EVENT("tick", nullptr);
     }
 
-    if (g_pAnimationManager) // && g_pAnimationManager->shouldTickForNext()
+    if (g_pAnimationManager && g_pAnimationManager->shouldTickForNext())
         g_pAnimationManager->scheduleTick();
 
     return 0;

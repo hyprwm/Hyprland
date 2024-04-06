@@ -160,6 +160,25 @@ void CInputMethodRelay::updateAllPopups() {
     }
 }
 
+void CInputMethodRelay::activateIME(CTextInput* pInput) {
+    if (!m_pWLRIME)
+        return;
+
+    wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);
+    commitIMEState(pInput);
+}
+
+void CInputMethodRelay::deactivateIME(CTextInput* pInput) {
+    if (!m_pWLRIME)
+        return;
+
+    if (!m_pWLRIME->active)
+        return;
+
+    wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
+    commitIMEState(pInput);
+}
+
 void CInputMethodRelay::commitIMEState(CTextInput* pInput) {
     if (!m_pWLRIME)
         return;

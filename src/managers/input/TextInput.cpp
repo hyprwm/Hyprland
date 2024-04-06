@@ -37,11 +37,8 @@ void CTextInput::initCallbacks() {
     hyprListener_textInputDestroy.initCallback(
         isV3() ? &pWlrInput->events.destroy : &pV1Input->sDestroy,
         [this](void* owner, void* data) {
-            if (pWlrInput && pWlrInput->current_enabled && g_pInputManager->m_sIMERelay.m_pWLRIME) {
-                wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
-
-                g_pInputManager->m_sIMERelay.commitIMEState(this);
-            }
+            if (pWlrInput && pWlrInput->current_enabled && focusedSurface())
+                g_pInputManager->m_sIMERelay.deactivateIME(this);
 
             hyprListener_textInputCommit.removeCallback();
             hyprListener_textInputDestroy.removeCallback();
@@ -72,8 +69,7 @@ void CTextInput::onEnabled(wlr_surface* surfV1) {
         enter(pSurface);
     }
 
-    wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);
-    g_pInputManager->m_sIMERelay.commitIMEState(this);
+    g_pInputManager->m_sIMERelay.activateIME(this);
 }
 
 void CTextInput::onDisabled() {
@@ -91,11 +87,7 @@ void CTextInput::onDisabled() {
     hyprListener_surfaceDestroyed.removeCallback();
     hyprListener_surfaceUnmapped.removeCallback();
 
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME->active)
-        return;
-
-    wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
-    g_pInputManager->m_sIMERelay.commitIMEState(this);
+    g_pInputManager->m_sIMERelay.deactivateIME(this);
 }
 
 void CTextInput::onCommit() {
@@ -203,14 +195,7 @@ void CTextInput::leave() {
 
     setFocusedSurface(nullptr);
 
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME)
-        return;
-
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME->active)
-        return;
-
-    wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
-    g_pInputManager->m_sIMERelay.commitIMEState(this);
+    g_pInputManager->m_sIMERelay.deactivateIME(this);
 }
 
 wlr_surface* CTextInput::focusedSurface() {

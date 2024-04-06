@@ -20,6 +20,8 @@ class CInputMethodRelay {
 
     wlr_input_method_v2* m_pWLRIME = nullptr;
 
+    void                 activateIME(CTextInput* pInput);
+    void                 deactivateIME(CTextInput* pInput);
     void                 commitIMEState(CTextInput* pInput);
     void                 removeTextInput(CTextInput* pInput);
 

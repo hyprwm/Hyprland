@@ -1256,7 +1256,7 @@ PHLWORKSPACE CCompositor::getWorkspaceByID(const int& id) {
 void CCompositor::sanityCheckWorkspaces() {
     auto it = m_vWorkspaces.begin();
     while (it != m_vWorkspaces.end()) {
-        const auto& WORKSPACE          = *it;
+        const auto& WORKSPACE = *it;
 
         // If ref == 1, only the compositor holds a ref, which means it's inactive and has no mapped windows.
         if (!WORKSPACE->m_bPersistent && WORKSPACE.use_count() == 1) {
@@ -1267,8 +1267,8 @@ void CCompositor::sanityCheckWorkspaces() {
         const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(*it);
 
         if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
-             if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-                 g_pKeybindManager->spawn(*cmd);
+            if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
+                g_pKeybindManager->spawn(*cmd);
 
             WORKSPACE->m_bOnCreatedEmptyExecuted = true;
         }

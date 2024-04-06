@@ -1459,19 +1459,14 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (w->m_iMonitorID != (long unsigned int)monid)
             continue;
 
-        bool valid = windowExists(w);
+        if (!w->m_bFadingOut || w->m_fAlpha.value() == 0.f) {
 
-        if (!valid || !w->m_bFadingOut || w->m_fAlpha.value() == 0.f) {
-            if (valid) {
-                w->m_bFadingOut = false;
+            w->m_bFadingOut = false;
 
-                if (!w->m_bReadyToDelete)
-                    continue;
+            if (!w->m_bReadyToDelete)
+                continue;
 
-                removeWindowFromVectorSafe(w);
-            }
-
-            std::erase(m_vWindowsFadingOut, w);
+            removeWindowFromVectorSafe(w);
 
             Debug::log(LOG, "Cleanup: destroyed a window");
             return;

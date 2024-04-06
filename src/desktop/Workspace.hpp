@@ -58,9 +58,6 @@ class CWorkspace {
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
 
-    // Whether the user configured command for on-created-empty has been executed, if any
-    bool m_bOnCreatedEmptyExecuted = false;
-
     bool m_bPersistent = false;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.

@@ -1264,15 +1264,6 @@ void CCompositor::sanityCheckWorkspaces() {
             continue;
         }
 
-        const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(*it);
-
-        if (!WORKSPACE->m_bOnCreatedEmptyExecuted) {
-            if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-                g_pKeybindManager->spawn(*cmd);
-
-            WORKSPACE->m_bOnCreatedEmptyExecuted = true;
-        }
-
         ++it;
     }
 }

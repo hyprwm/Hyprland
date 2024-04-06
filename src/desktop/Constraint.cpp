@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 
 CConstraint::CConstraint(wlr_pointer_constraint_v1* constraint, CWLSurface* owner) : m_pOwner(owner), m_pConstraint(constraint) {
+    RASSERT(!constraint->data, "CConstraint: attempted to duplicate ownership");
+
+    constraint->data = this;
     initSignals();
 
     m_vCursorPosOnActivate = g_pInputManager->getMouseCoordsInternal();
@@ -97,13 +100,13 @@ void CConstraint::deactivate() {
 
     m_bActive = false;
 
-    wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
-
     if (isLocked())
         g_pCompositor->warpCursorTo(logicPositionHint(), true);
 
     if (m_pConstraint->lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT)
         m_bDead = true;
+
+    wlr_pointer_constraint_v1_send_deactivated(m_pConstraint);
 }
 
 void CConstraint::activate() {

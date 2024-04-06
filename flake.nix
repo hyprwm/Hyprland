@@ -20,6 +20,7 @@
       url = "github:hyprwm/hyprcursor";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
+      inputs.hyprlang.follows = "hyprlang";
     };
 
     hyprland-protocols = {

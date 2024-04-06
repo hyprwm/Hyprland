@@ -54,6 +54,6 @@ class CSubsurface {
     bool                                      m_bInert = false;
 
     void                                      initSignals();
-    void                                      initExistingSubsurfaces();
+    void                                      initExistingSubsurfaces(wlr_surface* pSurface);
     void                                      checkSiblingDamage();
 };

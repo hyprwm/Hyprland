@@ -58,7 +58,7 @@ class CWorkspace {
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
 
-    bool m_bPersistent = false;
+    bool        m_bPersistent = false;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool        inert();

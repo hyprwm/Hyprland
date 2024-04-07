@@ -6,6 +6,7 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/BezierCurve.hpp"
 #include "../helpers/Timer.hpp"
+#include "eventLoop/EventLoopTimer.hpp"
 
 class CWindow;
 
@@ -32,7 +33,7 @@ class CAnimationManager {
     std::vector<CBaseAnimatedVariable*>           m_vAnimatedVariables;
     std::vector<CBaseAnimatedVariable*>           m_vActiveAnimatedVariables;
 
-    wl_event_source*                              m_pAnimationTick;
+    std::shared_ptr<CEventLoopTimer>              m_pAnimationTimer;
 
     float                                         m_fLastTickTime; // in ms
 

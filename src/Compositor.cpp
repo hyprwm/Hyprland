@@ -2,6 +2,7 @@
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "managers/CursorManager.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include <random>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
@@ -453,6 +454,9 @@ void CCompositor::cleanup() {
 void CCompositor::initManagers(eManagersInitStage stage) {
     switch (stage) {
         case STAGE_PRIORITY: {
+            Debug::log(LOG, "Creating the EventLoopManager!");
+            g_pEventLoopManager = std::make_unique<CEventLoopManager>();
+
             Debug::log(LOG, "Creating the HookSystem!");
             g_pHookSystem = std::make_unique<CHookSystemManager>();
 
@@ -628,7 +632,7 @@ void CCompositor::startCompositor() {
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
-    wl_display_run(m_sWLDisplay);
+    g_pEventLoopManager->enterLoop(m_sWLDisplay, m_sWLEventLoop);
 }
 
 CMonitor* CCompositor::getMonitorFromID(const int& id) {

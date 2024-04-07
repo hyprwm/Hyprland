@@ -83,11 +83,8 @@ void CInputPopup::damageEntire() {
         Debug::log(ERR, "BUG THIS: No owner in imepopup::damageentire");
         return;
     }
-
-    Vector2D pos    = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos() + lastBoxLocal.pos();
-    CBox     global = {pos, lastPopupSize};
-
-    g_pHyprRenderer->damageBox(&global);
+    CBox box = globalBox();
+    g_pHyprRenderer->damageBox(&box);
 }
 
 void CInputPopup::damageSurface() {
@@ -98,7 +95,7 @@ void CInputPopup::damageSurface() {
         return;
     }
 
-    Vector2D pos = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos() + lastBoxLocal.pos();
+    Vector2D pos = globalBox().pos();
     g_pHyprRenderer->damageSurface(surface.wlr(), pos.x, pos.y);
 }
 
@@ -112,8 +109,8 @@ void CInputPopup::updateBox() {
     if (!PFOCUSEDTI)
         return;
 
-    bool cursorRect     = PFOCUSEDTI->hasCursorRectangle();
-    CBox cursorBoxLocal = PFOCUSEDTI->cursorBox();
+    bool cursorRect      = PFOCUSEDTI->hasCursorRectangle();
+    CBox cursorBoxParent = PFOCUSEDTI->cursorBox();
 
     CBox parentBox;
 
@@ -125,29 +122,32 @@ void CInputPopup::updateBox() {
     if (!cursorRect) {
         Vector2D coords = OWNER ? OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500}).pos() : Vector2D{0, 0};
         parentBox       = {coords, {500, 500}};
-        cursorBoxLocal  = {0, 0, (int)parentBox.w, (int)parentBox.h};
+        cursorBoxParent = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D currentPopupSize = surface.getViewporterCorrectedSize();
-
-    if (cursorBoxLocal != lastBoxLocal || currentPopupSize != lastPopupSize)
-        damageEntire();
+    Vector2D  currentPopupSize = surface.getViewporterCorrectedSize();
 
     CMonitor* pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 
-    if (cursorBoxLocal.y + parentBox.y + currentPopupSize.y + cursorBoxLocal.height > pMonitor->vecPosition.y + pMonitor->vecSize.y)
-        cursorBoxLocal.y -= currentPopupSize.y;
+    Vector2D  popupOffset(0, 0);
+
+    if (parentBox.y + cursorBoxParent.y + cursorBoxParent.height + currentPopupSize.y > pMonitor->vecPosition.y + pMonitor->vecSize.y)
+        popupOffset.y = -currentPopupSize.y;
     else
-        cursorBoxLocal.y += cursorBoxLocal.height;
+        popupOffset.y = cursorBoxParent.height;
 
-    if (cursorBoxLocal.x + parentBox.x + currentPopupSize.x > pMonitor->vecPosition.x + pMonitor->vecSize.x)
-        cursorBoxLocal.x -= (cursorBoxLocal.x + parentBox.x + currentPopupSize.x) - (pMonitor->vecPosition.x + pMonitor->vecSize.x);
+    double popupOverflow = parentBox.x + cursorBoxParent.x + currentPopupSize.x - (pMonitor->vecPosition.x + pMonitor->vecSize.x);
+    if (popupOverflow > 0)
+        popupOffset.x -= popupOverflow;
 
-    lastBoxLocal  = cursorBoxLocal;
-    lastPopupSize = currentPopupSize;
-
+    CBox cursorBoxLocal({-popupOffset.x, -popupOffset.y}, cursorBoxParent.size());
     wlr_input_popup_surface_v2_send_text_input_rectangle(pWlr, cursorBoxLocal.pWlr());
 
+    CBox popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
+    if (popupBoxParent != lastBoxLocal) {
+        damageEntire();
+        lastBoxLocal = popupBoxParent;
+    }
     damageSurface();
 
     if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->ID != lastMonitor) {
@@ -169,8 +169,9 @@ CBox CInputPopup::globalBox() {
         Debug::log(ERR, "BUG THIS: No owner in imepopup::globalbox");
         return {};
     }
+    CBox parentBox = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500});
 
-    return lastBoxLocal.copy().translate(OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 0, 0}).pos());
+    return lastBoxLocal.copy().translate(parentBox.pos());
 }
 
 bool CInputPopup::isVecInPopup(const Vector2D& point) {

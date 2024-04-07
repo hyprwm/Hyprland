@@ -1,0 +1,19 @@
+hyprpm [<FLAGS>]... <ARGUMENT>
+
+
+<FLAGS> ::= (--notify | -n)             "Send a hyprland notification for important events (e.g. load fail)"
+        |   (--help | -h)               "Show help menu"
+        |   (--verbose | -v)            "Enable too much loggin"
+        |   (--force | -f)              "Force an operation ignoring checks (e.g. update -f)"
+        ;
+
+<ARGUMENT> ::= (add)                    "Install a new plugin repository from git"
+        |   (remove)                    "Remove a plugin repository"
+        |   (update)                    "Check and update all plugins if needed"
+        |   (list)                      "List all installed plugins"
+        |   (enable <PLUGINS>)          "Load a plugin"
+        |   (disable <PLUGINS>)         "Unload a plugin"
+        |   (reload)                    "Reload all plugins"
+        ;
+
+<PLUGINS> ::= {{{ hyprpm list | grep Plugin | awk '{print $4}' }}};

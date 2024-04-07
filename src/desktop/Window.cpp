@@ -604,19 +604,26 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                 if (r == "override") {
                     if (opacityIDX == 1) {
-                        m_sSpecialRenderData.alphaOverride         = true;
-                        m_sSpecialRenderData.alphaInactiveOverride = true;
+                        m_sSpecialRenderData.alphaOverride           = true;
+                        m_sSpecialRenderData.alphaInactiveOverride   = true;
+                        m_sSpecialRenderData.alphaFullscreenOverride = true;
                     } else if (opacityIDX == 2)
                         m_sSpecialRenderData.alphaInactiveOverride = true;
+                    else if (opacityIDX == 3)
+                        m_sSpecialRenderData.alphaFullscreenOverride = true;
                 } else {
                     if (opacityIDX == 0) {
-                        m_sSpecialRenderData.alpha         = std::stof(r);
-                        m_sSpecialRenderData.alphaInactive = std::stof(r);
+                        m_sSpecialRenderData.alpha           = std::stof(r);
+                        m_sSpecialRenderData.alphaInactive   = std::stof(r);
+                        m_sSpecialRenderData.alphaFullscreen = std::stof(r);
                     } else if (opacityIDX == 1) {
                         m_sSpecialRenderData.alphaInactive         = std::stof(r);
                         m_sSpecialRenderData.alphaInactiveOverride = false;
+                    } else if (opacityIDX == 2) {
+                        m_sSpecialRenderData.alphaFullscreen         = std::stof(r);
+                        m_sSpecialRenderData.alphaFullscreenOverride = false;
                     } else {
-                        throw std::runtime_error("more than 2 alpha values");
+                        throw std::runtime_error("more than 3 alpha values");
                     }
 
                     opacityIDX++;

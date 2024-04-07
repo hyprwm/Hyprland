@@ -1209,6 +1209,10 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
+        } else if (PROP == "alphafullscreenoverride") {
+            PWINDOW->m_sSpecialRenderData.alphaFullscreenOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (PROP == "alphafullscreen") {
+            PWINDOW->m_sSpecialRenderData.alphaFullscreen.forceSetIgnoreLocked(std::stof(VAL), lock);
         } else if (PROP == "activebordercolor") {
             PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
         } else if (PROP == "inactivebordercolor") {

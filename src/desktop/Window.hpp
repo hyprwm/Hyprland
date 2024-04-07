@@ -126,10 +126,12 @@ class CWindowOverridableVar {
 };
 
 struct SWindowSpecialRenderData {
-    CWindowOverridableVar<bool>               alphaOverride         = false;
-    CWindowOverridableVar<float>              alpha                 = 1.f;
-    CWindowOverridableVar<bool>               alphaInactiveOverride = false;
-    CWindowOverridableVar<float>              alphaInactive         = -1.f; // -1 means unset
+    CWindowOverridableVar<bool>               alphaOverride           = false;
+    CWindowOverridableVar<float>              alpha                   = 1.f;
+    CWindowOverridableVar<bool>               alphaInactiveOverride   = false;
+    CWindowOverridableVar<float>              alphaInactive           = -1.f; // -1 means unset
+    CWindowOverridableVar<bool>               alphaFullscreenOverride = false;
+    CWindowOverridableVar<float>              alphaFullscreen         = -1.f; // -1 means unset
 
     CWindowOverridableVar<CGradientValueData> activeBorderColor   = CGradientValueData(); // empty color vector means unset
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor = CGradientValueData(); // empty color vector means unset

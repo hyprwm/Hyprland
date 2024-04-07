@@ -37,15 +37,18 @@ install:
 	mkdir -p ${PREFIX}/share/wayland-sessions
 	mkdir -p ${PREFIX}/bin
 	mkdir -p ${PREFIX}/share/hyprland
-	mkdir -p ${PREFIX}/share/bash-completion
-	mkdir -p ${PREFIX}/share/fish/completions
+	mkdir -p ${PREFIX}/share/bash-completion/completions
+	mkdir -p ${PREFIX}/share/fish/vendor_completions.d
 	mkdir -p ${PREFIX}/share/zsh/site-functions
 	cp -f ./build/Hyprland ${PREFIX}/bin
 	cp -f ./build/hyprctl/hyprctl ${PREFIX}/bin
 	cp -f ./build/hyprpm/hyprpm ${PREFIX}/bin
-	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/bash-completion/hyprctl
-	cp -f ./hyprctl/hyprctl.fish ${PREFIX}/share/fish/completions/hyprctl.fish
+	cp -f ./hyprctl/hyprctl.bash ${PREFIX}/share/bash-completion/completions/hyprctl
+	cp -f ./hyprctl/hyprctl.fish ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
 	cp -f ./hyprctl/hyprctl.zsh ${PREFIX}/share/zsh/site-functions/_hyprctl
+	cp -f ./hyprpm/hyprpm.bash ${PREFIX}/share/bash-completion/completions/hyprpm
+	cp -f ./hyprpm/hyprpm.fish ${PREFIX}/share/fish/vendor_completions.d/hyprpm.fish
+	cp -f ./hyprpm/hyprpm.zsh ${PREFIX}/share/zsh/site-functions/_hyprpm
 	chmod 755 ${PREFIX}/bin/Hyprland
 	chmod 755 ${PREFIX}/bin/hyprctl
 	chmod 755 ${PREFIX}/bin/hyprpm
@@ -73,6 +76,12 @@ uninstall:
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprctl
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprctl.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprctl
+	rm -f ${PREFIX}/share/bash-completion/completions/hyprpm
+	rm -f ${PREFIX}/share/fish/vendor_completions.d/hyprpm.fish
+	rm -f ${PREFIX}/share/zsh/site-functions/_hyprpm
 
 pluginenv:
 	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"

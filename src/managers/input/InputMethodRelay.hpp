@@ -35,6 +35,7 @@ class CInputMethodRelay {
     void                 removePopup(CInputPopup*);
 
     CInputPopup*         popupFromCoords(const Vector2D& point);
+    CInputPopup*         popupFromSurface(const wlr_surface* surface);
 
     void                 updateAllPopups();
 

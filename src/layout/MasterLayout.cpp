@@ -726,7 +726,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
     static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
-    eOrientation orientation = getDynamicOrientation(pWindow->m_pWorkspace);
+    eOrientation orientation = getDynamicOrientation(PWINDOW->m_pWorkspace);
     bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
     double       delta       = 0;
 

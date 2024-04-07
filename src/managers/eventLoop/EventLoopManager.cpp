@@ -2,139 +2,82 @@
 #include "../../debug/Log.hpp"
 
 #include <algorithm>
+#include <limits>
 
 #include <sys/poll.h>
+#include <sys/timerfd.h>
+#include <time.h>
+
+#define TIMESPEC_NSEC_PER_SEC 1000000000L
+
+CEventLoopManager::CEventLoopManager() {
+    m_sTimers.timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+}
+
+static int timerWrite(int fd, uint32_t mask, void* data) {
+    g_pEventLoopManager->onTimerFire();
+    return 1;
+}
 
 void CEventLoopManager::enterLoop(wl_display* display, wl_event_loop* wlEventLoop) {
     m_sWayland.loop    = wlEventLoop;
     m_sWayland.display = display;
 
-    pollfd pollfds[] = {
-        {
-            .fd     = wl_event_loop_get_fd(wlEventLoop),
-            .events = POLLIN,
-        },
-    };
+    wl_event_loop_add_fd(wlEventLoop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
 
-    std::thread pollThr([this, &pollfds]() {
-        while (!m_bTerminate) {
-            int ret = poll(pollfds, 1, 5000 /* 5 seconds, reasonable. Just in case we need to terminate and the signal fails */);
-
-            if (ret < 0) {
-                if (errno == EINTR)
-                    continue;
-
-                Debug::log(CRIT, "Polling fds failed with {}", errno);
-                m_bTerminate = true;
-                return;
-            }
-
-            for (size_t i = 0; i < 1; ++i) {
-                if (pollfds[i].revents & POLLHUP) {
-                    Debug::log(CRIT, "Disconnected from pollfd id {}", i);
-                    m_bTerminate = true;
-                    return;
-                }
-            }
-
-            if (ret != 0) {
-                {
-                    std::lock_guard<std::mutex> lg2(m_sLoopState.eventRequestMutex);
-                    std::lock_guard<std::mutex> lg(m_sLoopState.loopMutex);
-                    m_sLoopState.event = true;
-                }
-                m_sLoopState.cv.notify_all();
-            }
-        }
-    });
-
-    std::thread timersThr([this]() {
-        while (!m_bTerminate) {
-            // calc nearest thing
-
-            m_sTimers.timersMutex.lock();
-            float least = 1000 * 1000 * 10; // 10s in µs
-            for (auto& t : m_sTimers.timers) {
-                const auto TIME = std::clamp(t->leftUs(), 0.f, INFINITY);
-                if (TIME < least)
-                    least = TIME;
-            }
-            m_sTimers.timersMutex.unlock();
-
-            if (least > 0) {
-                std::unique_lock lk(m_sTimers.timersRqMutex);
-                m_sTimers.cv.wait_for(lk, std::chrono::microseconds((int)least + 1), [this] { return m_sTimers.event; });
-                m_sTimers.event = false;
-            }
-
-            // notify main
-            {
-                std::lock_guard<std::mutex> lg2(m_sLoopState.eventRequestMutex);
-                std::lock_guard<std::mutex> lg(m_sLoopState.loopMutex);
-                m_sLoopState.event = true;
-            }
-
-            m_sLoopState.cv.notify_all();
-        }
-    });
-
-    m_sLoopState.event = true; // let it process once
-
-    while (1) {
-        std::unique_lock lk(m_sLoopState.eventRequestMutex);
-        m_sLoopState.cv.wait_for(lk, std::chrono::milliseconds(5000), [this] { return m_sLoopState.event; });
-
-        if (m_bTerminate)
-            break;
-
-        std::lock_guard<std::mutex> lg(m_sLoopState.loopMutex);
-
-        m_sLoopState.event = false;
-
-        if (pollfds[0].revents & POLLIN /* wl event loop */) {
-            wl_display_flush_clients(m_sWayland.display);
-            if (wl_event_loop_dispatch(m_sWayland.loop, -1) < 0) {
-                m_bTerminate = true;
-                break;
-            }
-        }
-
-        // TODO: don't check timers without the timer thread requesting it
-        // I tried but it didnt work :/
-
-        m_sTimers.timersMutex.lock();
-        auto timerscpy = m_sTimers.timers;
-        m_sTimers.timersMutex.unlock();
-
-        for (auto& t : timerscpy) {
-            if (t->passed() && !t->cancelled())
-                t->call(t);
-        }
-
-        if (m_bTerminate)
-            break;
-    }
+    wl_display_run(display);
 
     Debug::log(LOG, "Kicked off the event loop! :(");
+}
 
-    m_sTimers.event = true;
-    m_sTimers.cv.notify_all();
+void CEventLoopManager::onTimerFire() {
+    for (auto& t : m_sTimers.timers) {
+        if (t->passed() && !t->cancelled())
+            t->call(t);
+    }
+
+    nudgeTimers();
 }
 
 void CEventLoopManager::addTimer(std::shared_ptr<CEventLoopTimer> timer) {
-    m_sTimers.timersMutex.lock();
     m_sTimers.timers.push_back(timer);
-    m_sTimers.timersMutex.unlock();
     nudgeTimers();
 }
 
 void CEventLoopManager::removeTimer(std::shared_ptr<CEventLoopTimer> timer) {
-    m_sTimers.timersMutex.lock();
     std::erase_if(m_sTimers.timers, [timer](const auto& t) { return timer == t; });
-    m_sTimers.timersMutex.unlock();
+    nudgeTimers();
+}
+
+static void timespecAddNs(timespec* pTimespec, int64_t delta) {
+    int delta_ns_low = delta % TIMESPEC_NSEC_PER_SEC;
+    int delta_s_high = delta / TIMESPEC_NSEC_PER_SEC;
+
+    pTimespec->tv_sec += delta_s_high;
+
+    pTimespec->tv_nsec += (long)delta_ns_low;
+    if (pTimespec->tv_nsec >= TIMESPEC_NSEC_PER_SEC) {
+        pTimespec->tv_nsec -= TIMESPEC_NSEC_PER_SEC;
+        ++pTimespec->tv_sec;
+    }
 }
 
 void CEventLoopManager::nudgeTimers() {
-    m_sTimers.event = true;
-    m_sTimers.cv.notify_all();
+
+    long nextTimerUs = 10 * 1000 * 1000; // 10s
+
+    for (auto& t : m_sTimers.timers) {
+        if (const auto µs = t->leftUs(); µs < nextTimerUs)
+            nextTimerUs = µs;
+    }
+
+    nextTimerUs = std::clamp(nextTimerUs + 1, 1L, std::numeric_limits<long>::max());
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    timespecAddNs(&now, nextTimerUs * 1000L);
+
+    itimerspec ts = {.it_value = now};
+
+    timerfd_settime(m_sTimers.timerfd, TFD_TIMER_ABSTIME, &ts, nullptr);
 }

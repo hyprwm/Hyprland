@@ -4,8 +4,9 @@
 #include "macros.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 
-int wlTick(void* data) {
+int wlTick(std::shared_ptr<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
         g_pAnimationManager->onTicked();
 
@@ -25,8 +26,8 @@ CAnimationManager::CAnimationManager() {
     std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
 
-    m_pAnimationTick = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, &wlTick, nullptr);
-    wl_event_source_timer_update(m_pAnimationTick, 1);
+    m_pAnimationTimer = std::make_unique<CEventLoopTimer>(std::chrono::microseconds(500), wlTick, nullptr);
+    g_pEventLoopManager->addTimer(m_pAnimationTimer);
 }
 
 void CAnimationManager::removeAllBeziers() {
@@ -545,7 +546,7 @@ void CAnimationManager::scheduleTick() {
     const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
 
     if (!PMOSTHZ) {
-        wl_event_source_timer_update(m_pAnimationTick, 16);
+        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(16));
         return;
     }
 
@@ -555,5 +556,5 @@ void CAnimationManager::scheduleTick() {
 
     const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
 
-    wl_event_source_timer_update(m_pAnimationTick, std::floor(TOPRES));
+    m_pAnimationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
 }

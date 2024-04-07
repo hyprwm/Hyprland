@@ -49,6 +49,8 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
          |   (alpha)
          |   (alphainactiveoverride (0 | 1))
          |   (alphainactive)
+         |   (alphafullscreenoverride (0 | 1))
+         |   (alphafullscreen)
          |   (activebordercolor)
          |   (inactivebordercolor)
          ;

@@ -1922,7 +1922,10 @@ void CCompositor::updateWindowAnimatedDecorationValues(CWindow* pWindow) {
     // opacity
     const auto PWORKSPACE = pWindow->m_pWorkspace;
     if (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
-        pWindow->m_fActiveInactiveAlpha = *PFULLSCREENALPHA;
+        pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaFullscreen.toUnderlying() != -1 ?
+            (pWindow->m_sSpecialRenderData.alphaFullscreenOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alphaFullscreen.toUnderlying() :
+                                                                                    pWindow->m_sSpecialRenderData.alphaFullscreen.toUnderlying() * *PFULLSCREENALPHA) :
+            *PFULLSCREENALPHA;
     } else {
         if (pWindow == m_pLastWindow)
             pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alpha.toUnderlying() :

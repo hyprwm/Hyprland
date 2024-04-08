@@ -57,11 +57,15 @@ CWorkspace::~CWorkspace() {
 
     Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
-    g_pHookSystem->unhook(m_pFocusedWindowHook);
+    // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
+    if (g_pHookSystem)
+        g_pHookSystem->unhook(m_pFocusedWindowHook);
 
-    g_pEventManager->postEvent({"destroyworkspace", m_szName});
-    g_pEventManager->postEvent({"destroyworkspacev2", std::format("{},{}", m_iID, m_szName)});
-    EMIT_HOOK_EVENT("destroyWorkspace", this);
+    if (g_pEventManager) {
+        g_pEventManager->postEvent({"destroyworkspace", m_szName});
+        g_pEventManager->postEvent({"destroyworkspacev2", std::format("{},{}", m_iID, m_szName)});
+        EMIT_HOOK_EVENT("destroyWorkspace", this);
+    }
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {

@@ -2084,7 +2084,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
 
         result = removeBeginEndSpacesTabs(result);
 
-        if (result.back() == ',')
+        if (!result.empty() && result.back() == ',')
             result.pop_back();
 
         return result;

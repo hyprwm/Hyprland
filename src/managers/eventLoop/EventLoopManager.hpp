@@ -11,7 +11,7 @@
 class CEventLoopManager {
   public:
     CEventLoopManager();
-    
+
     void enterLoop(wl_display* display, wl_event_loop* wlEventLoop);
     void addTimer(std::shared_ptr<CEventLoopTimer> timer);
     void removeTimer(std::shared_ptr<CEventLoopTimer> timer);

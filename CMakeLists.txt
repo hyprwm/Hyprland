@@ -69,7 +69,7 @@ ExternalProject_Add(
 find_program(WaylandScanner NAMES wayland-scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 execute_process(
-    COMMAND pkg-config --variable=pkgdatadir wayland-protocols
+    COMMAND pkgconf --variable=pkgdatadir wayland-protocols
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE)

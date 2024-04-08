@@ -317,7 +317,7 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_MISSING;
 
     // find headers commit
-    std::string cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkg-config --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    std::string cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
     auto        headers = execAndGet(cmd.c_str());
 
     if (!headers.contains("-I/"))

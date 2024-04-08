@@ -419,12 +419,10 @@ void CCompositor::cleanup() {
         g_pXWaylandManager->m_sWLRXWayland = nullptr;
     }
 
+    wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
     removeAllSignals();
 
     g_pInputManager.reset();
-
-    wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
-
     g_pDecorationPositioner.reset();
     g_pCursorManager.reset();
     g_pPluginSystem.reset();

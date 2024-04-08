@@ -1715,7 +1715,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         wlr_surface_get_effective_damage(pSurface, damageBox.pixman());
     }
-    
+
     if (scale != 1.0)
         damageBox.scale(scale);
 

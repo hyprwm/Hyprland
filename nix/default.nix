@@ -3,6 +3,7 @@
   stdenv,
   pkg-config,
   pkgconf,
+  installShellFiles,
   makeWrapper,
   meson,
   ninja,
@@ -86,6 +87,7 @@ in
     '';
 
     nativeBuildInputs = [
+      installShellFiles
       jq
       makeWrapper
       meson
@@ -149,6 +151,16 @@ in
           pkgconf
         ]}
       ''}
+
+      installShellCompletion --cmd hyprctl \
+        --bash $src/hyprctl/hyprctl.bash   \
+        --fish $src/hyprctl/hyprctl.fish   \
+        --zsh  $src/hyprctl/hyprctl.zsh
+
+      installShellCompletion --cmd hyprpm \
+        --bash $src/hyprpm/hyprpm.bash    \
+        --fish $src/hyprpm/hyprpm.fish    \
+        --zsh  $src/hyprpm/hyprpm.zsh
     '';
 
     passthru.providedSessions = ["hyprland"];

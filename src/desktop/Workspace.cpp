@@ -245,7 +245,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // s - special: s[true]
             // n - named: n[true] or n[s:string] or n[e:string]
             // m - monitor: m[monitor_selector]
-            // w - windowCount: w[0-4] or w[1], optional flag t or f for tiled or floating, e.g. w[t0-1]
+            // w - windowCount: w[1-4] or w[1], optional flag t or f for tiled or floating, e.g. w[t1-2]
+            // g - groupCount: g[1-4] or g[1], optional flag t or f for tiled or floating, e.g. g[t1-2]
 
             const auto  NEXTSPACE = selector.find_first_of(' ', i);
             std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
@@ -341,9 +342,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 continue;
             }
 
-            if (cur == 'w') {
+            if (cur == 'w' || cur == 'g') {
                 int from = 0, to = 0;
-                if (!prop.starts_with("w[") || !prop.ends_with("]")) {
+                if ((!prop.starts_with("w[") && !prop.starts_with("g[")) || !prop.ends_with("]")) {
                     Debug::log(LOG, "Invalid selector {}", selector);
                     return false;
                 }
@@ -375,7 +376,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         return false;
                     }
 
-                    return g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled)) == from;
+                    int count = -1;
+                    if (cur == 'w')
+                        count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                    else if (cur == 'g')
+                        count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+
+                    if (count != from)
+                        return false;
+                    continue;
                 }
 
                 const auto DASHPOS = prop.find("-");
@@ -399,8 +408,13 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     return false;
                 }
 
-                const auto WINDOWSONWORKSPACE = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
-                if (std::clamp(WINDOWSONWORKSPACE, from, to) != WINDOWSONWORKSPACE)
+                int count = -1;
+                if (cur == 'w')
+                    count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                else if (cur == 'g')
+                    count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+
+                if (std::clamp(count, from, to) != count)
                     return false;
                 continue;
             }

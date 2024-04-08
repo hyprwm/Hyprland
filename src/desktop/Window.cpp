@@ -852,6 +852,7 @@ void CWindow::destroyGroup() {
             return;
         }
         m_sGroupData.pNextWindow = nullptr;
+        m_sGroupData.head        = false;
         updateWindowDecos();
         return;
     }

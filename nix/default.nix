@@ -2,6 +2,7 @@
   lib,
   stdenv,
   pkg-config,
+  pkgconf,
   makeWrapper,
   meson,
   ninja,
@@ -145,6 +146,7 @@ in
           stdenv.cc
           binutils
           pciutils
+          pkgconf
         ]}
       ''}
     '';

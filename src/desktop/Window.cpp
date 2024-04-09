@@ -603,19 +603,16 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                     continue;
 
                 if (r == "override") {
-                    if (opacityIDX == 1) {
-                        m_sSpecialRenderData.alphaOverride           = true;
-                        m_sSpecialRenderData.alphaInactiveOverride   = true;
-                        m_sSpecialRenderData.alphaFullscreenOverride = true;
-                    } else if (opacityIDX == 2)
+                    if (opacityIDX == 1)
+                        m_sSpecialRenderData.alphaOverride = true;
+                    else if (opacityIDX == 2)
                         m_sSpecialRenderData.alphaInactiveOverride = true;
                     else if (opacityIDX == 3)
                         m_sSpecialRenderData.alphaFullscreenOverride = true;
                 } else {
                     if (opacityIDX == 0) {
-                        m_sSpecialRenderData.alpha           = std::stof(r);
-                        m_sSpecialRenderData.alphaInactive   = std::stof(r);
-                        m_sSpecialRenderData.alphaFullscreen = std::stof(r);
+                        m_sSpecialRenderData.alpha         = std::stof(r);
+                        m_sSpecialRenderData.alphaOverride = false;
                     } else if (opacityIDX == 1) {
                         m_sSpecialRenderData.alphaInactive         = std::stof(r);
                         m_sSpecialRenderData.alphaInactiveOverride = false;
@@ -628,6 +625,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                     opacityIDX++;
                 }
+            }
+
+            if (opacityIDX == 1) {
+                m_sSpecialRenderData.alphaInactiveOverride   = m_sSpecialRenderData.alphaOverride;
+                m_sSpecialRenderData.alphaInactive           = m_sSpecialRenderData.alpha;
+                m_sSpecialRenderData.alphaFullscreenOverride = m_sSpecialRenderData.alphaOverride;
+                m_sSpecialRenderData.alphaFullscreen         = m_sSpecialRenderData.alpha;
             }
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule == "noanim") {

@@ -8,3 +8,7 @@ executable('hyprpm', src,
   ],
   install : true
 )
+
+install_data('../hyprpm.bash', install_dir: join_paths(get_option('datadir'), 'bash-completions'), install_tag: 'runtime', rename: 'hyprpm')
+install_data('../hyprpm.fish', install_dir: join_paths(get_option('datadir'), 'fish/vendor_completions.d'), install_tag: 'runtime')
+install_data('../hyprpm.zsh', install_dir: join_paths(get_option('datadir'), 'zsh/site-functions'), install_tag: 'runtime', rename: '_hyprpm')

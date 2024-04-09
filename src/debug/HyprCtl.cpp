@@ -15,6 +15,7 @@
 #include <string>
 #include <typeindex>
 
+#include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../hyprerror/HyprError.hpp"
@@ -1213,10 +1214,23 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sSpecialRenderData.alphaFullscreenOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphafullscreen") {
             PWINDOW->m_sSpecialRenderData.alphaFullscreen.forceSetIgnoreLocked(std::stof(VAL), lock);
-        } else if (PROP == "activebordercolor") {
-            PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
-        } else if (PROP == "inactivebordercolor") {
-            PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(CGradientValueData(CColor(configStringToInt(VAL))), lock);
+        } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
+            CGradientValueData colorData = {};
+            if (vars.size() > 4) {
+                for (int i = 3; i < static_cast<int>(lock ? vars.size() - 1 : vars.size()); ++i) {
+                    const auto TOKEN = vars[i];
+                    if (TOKEN.ends_with("deg"))
+                        colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
+                    else
+                        colorData.m_vColors.push_back(configStringToInt(TOKEN));
+                }
+            } else if (VAL != "-1")
+                colorData.m_vColors.push_back(configStringToInt(VAL));
+
+            if (PROP == "activebordercolor")
+                PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(colorData, lock);
+            else
+                PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(colorData, lock);
         } else if (PROP == "forcergbx") {
             PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "bordersize") {

@@ -445,10 +445,6 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
 
-    // progress.printMessageAbove(
-    //     std::string{Colors::YELLOW} + "!" + Colors::RESET +
-    //     " in order to install the sources, you will need to input your password.\n  If nothing pops up, make sure you have polkit and an authentication daemon running.");
-
     std::string cmd = std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" /tmp/hyprpm/hyprland/Makefile && cd /tmp/hyprpm/hyprland && make installheaders",
                                   DataState::getHeadersPath());
     if (m_bVerbose)

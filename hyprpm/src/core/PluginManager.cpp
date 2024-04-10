@@ -70,6 +70,9 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
     hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
 
+    std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
+    hldate = hldate.substr(0, hldate.find("\n"));
+
     std::string hlcommits;
 
     if (HLVERCALL.contains("commits:")) {
@@ -83,9 +86,9 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     } catch (...) { ; }
 
     if (m_bVerbose)
-        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << ", commits " << commits << "\n";
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << " on " << hldate << ", commits " << commits << "\n";
 
-    ver = SHyprlandVersion{hlbranch, hlcommit, commits};
+    ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
     return ver;
 }
 
@@ -398,7 +401,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " Cloning https://github.com/hyprwm/hyprland, this might take a moment.");
 
-    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland");
+    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland --shallow-since='" + HLVER.date + "'");
 
     if (!std::filesystem::exists("/tmp/hyprpm/hyprland")) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the hyprland repository. shell returned:\n" << ret << "\n";

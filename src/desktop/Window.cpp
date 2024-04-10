@@ -390,7 +390,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     setAnimationsToMove();
 
-    updateSpecialRenderData();
+    g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
+    g_pCompositor->updateWorkspaceSpecialRenderData(OLDWORKSPACE->m_iID);
+    g_pCompositor->updateWorkspaceWindows(workspaceID());
+    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
         g_pEventManager->postEvent(SHyprIPCEvent{"movewindow", std::format("{:x},{}", (uintptr_t)this, pWorkspace->m_szName)});
@@ -479,6 +483,8 @@ void CWindow::onUnmap() {
         PMONITOR->solitaryClient = nullptr;
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
+    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (m_bIsX11)
         return;
@@ -845,6 +851,8 @@ void CWindow::createGroup() {
         addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(this));
 
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
+        g_pCompositor->updateWorkspaceWindows(workspaceID());
+        g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
     }
 }
@@ -858,6 +866,9 @@ void CWindow::destroyGroup() {
         m_sGroupData.pNextWindow = nullptr;
         m_sGroupData.head        = false;
         updateWindowDecos();
+        g_pCompositor->updateWorkspaceWindows(workspaceID());
+        g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
         return;
     }
 
@@ -884,6 +895,10 @@ void CWindow::destroyGroup() {
         w->updateWindowDecos();
     }
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
+
+    g_pCompositor->updateWorkspaceWindows(workspaceID());
+    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
 
 CWindow* CWindow::getGroupHead() {
@@ -1100,20 +1115,23 @@ float CWindow::rounding() {
 }
 
 void CWindow::updateSpecialRenderData() {
-    const auto  PWORKSPACE    = m_pWorkspace;
-    const auto  WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
-    bool        border        = true;
+    const auto PWORKSPACE    = m_pWorkspace;
+    const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+    updateSpecialRenderData(WORKSPACERULE);
+}
 
+void CWindow::updateSpecialRenderData(const SWorkspaceRule& workspaceRule) {
     static auto PNOBORDERONFLOATING = CConfigValue<Hyprlang::INT>("general:no_border_on_floating");
 
+    bool        border = true;
     if (m_bIsFloating && *PNOBORDERONFLOATING == 1)
         border = false;
 
-    m_sSpecialRenderData.border     = WORKSPACERULE.border.value_or(border);
-    m_sSpecialRenderData.borderSize = WORKSPACERULE.borderSize.value_or(-1);
-    m_sSpecialRenderData.decorate   = WORKSPACERULE.decorate.value_or(true);
-    m_sSpecialRenderData.rounding   = WORKSPACERULE.rounding.value_or(true);
-    m_sSpecialRenderData.shadow     = WORKSPACERULE.shadow.value_or(true);
+    m_sSpecialRenderData.border     = workspaceRule.border.value_or(border);
+    m_sSpecialRenderData.borderSize = workspaceRule.borderSize.value_or(-1);
+    m_sSpecialRenderData.decorate   = workspaceRule.decorate.value_or(true);
+    m_sSpecialRenderData.rounding   = workspaceRule.rounding.value_or(true);
+    m_sSpecialRenderData.shadow     = workspaceRule.shadow.value_or(true);
 }
 
 int CWindow::getRealBorderSize() {

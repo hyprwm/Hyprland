@@ -122,6 +122,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
 
         if (m_sCurrentCursorShapeData.images.size() < 1) {
             Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
+            wlr_cursor_set_xcursor(g_pCompositor->m_sWLRCursor, m_pWLRXCursorMgr, name.c_str());
             return;
         }
     }

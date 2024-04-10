@@ -70,6 +70,9 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
     hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
 
+    std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
+    hldate             = hldate.substr(0, hldate.find("\n"));
+
     std::string hlcommits;
 
     if (HLVERCALL.contains("commits:")) {
@@ -83,9 +86,9 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     } catch (...) { ; }
 
     if (m_bVerbose)
-        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << ", commits " << commits << "\n";
+        std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << " on " << hldate << ", commits " << commits << "\n";
 
-    ver = SHyprlandVersion{hlbranch, hlcommit, commits};
+    ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
     return ver;
 }
 
@@ -398,7 +401,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " Cloning https://github.com/hyprwm/hyprland, this might take a moment.");
 
-    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland");
+    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland --shallow-since='" + HLVER.date + "'");
 
     if (!std::filesystem::exists("/tmp/hyprpm/hyprland")) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the hyprland repository. shell returned:\n" << ret << "\n";
@@ -410,8 +413,8 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret =
-        execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch + " 2>&1 && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
+    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch +
+                     " 2>&1 && git rm subprojects/tracy && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
 
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned: " + ret);
@@ -441,10 +444,6 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_iSteps           = 4;
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
-
-    // progress.printMessageAbove(
-    //     std::string{Colors::YELLOW} + "!" + Colors::RESET +
-    //     " in order to install the sources, you will need to input your password.\n  If nothing pops up, make sure you have polkit and an authentication daemon running.");
 
     std::string cmd = std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" /tmp/hyprpm/hyprland/Makefile && cd /tmp/hyprpm/hyprland && make installheaders",
                                   DataState::getHeadersPath());

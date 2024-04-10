@@ -792,12 +792,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         refreshGroupBarGradients();
 
     // Updates dynamic window and workspace rules
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped)
+    for (auto& w : g_pCompositor->m_vWorkspaces) {
+        if (w->inert())
             continue;
-
-        w->updateDynamicRules();
-        w->updateSpecialRenderData();
+        g_pCompositor->updateWorkspaceWindows(w->m_iID);
+        g_pCompositor->updateWorkspaceSpecialRenderData(w->m_iID);
     }
 
     // Update window border colors

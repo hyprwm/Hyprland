@@ -1282,8 +1282,6 @@ void CKeybindManager::toggleGroup(std::string args) {
         PWINDOW->createGroup();
     else
         PWINDOW->destroyGroup();
-
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
 
 void CKeybindManager::changeGroupActive(std::string args) {

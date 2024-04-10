@@ -2375,6 +2375,18 @@ void CCompositor::updateWorkspaceWindowDecos(const int& id) {
     }
 }
 
+void CCompositor::updateWorkspaceSpecialRenderData(const int& id) {
+    const auto PWORKSPACE    = getWorkspaceByID(id);
+    const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
+
+    for (auto& w : m_vWindows) {
+        if (w->workspaceID() != id)
+            continue;
+
+        w->updateSpecialRenderData(WORKSPACERULE);
+    }
+}
+
 void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if ((m_sWLRSession && !m_sWLRSession->active) || !m_bSessionActive)
         return;

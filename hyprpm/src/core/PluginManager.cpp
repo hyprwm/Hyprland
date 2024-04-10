@@ -71,7 +71,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
 
     std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
-    hldate = hldate.substr(0, hldate.find("\n"));
+    hldate             = hldate.substr(0, hldate.find("\n"));
 
     std::string hlcommits;
 
@@ -413,8 +413,8 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret =
-        execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch + " 2>&1 && git rm subprojects/tracy && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
+    ret = execAndGet("cd /tmp/hyprpm/hyprland && git checkout " + HLVER.branch +
+                     " 2>&1 && git rm subprojects/tracy && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
 
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned: " + ret);

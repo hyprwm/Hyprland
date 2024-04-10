@@ -857,19 +857,16 @@ static void toggleActiveFloatingCore(std::string args, std::optional<bool> float
         CWindow* curr = PCURRENT->m_sGroupData.pNextWindow;
         while (curr != PCURRENT) {
             curr->m_bIsFloating = PCURRENT->m_bIsFloating;
-            curr->updateDynamicRules();
-            curr->updateSpecialRenderData();
-            curr = curr->m_sGroupData.pNextWindow;
+            curr                = curr->m_sGroupData.pNextWindow;
         }
-
-        g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
     } else {
         PWINDOW->m_bIsFloating = !PWINDOW->m_bIsFloating;
 
-        g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
-
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
+    g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
+    g_pCompositor->updateWorkspaceSpecialRenderData(PWINDOW->workspaceID());
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
 
 void CKeybindManager::toggleActiveFloating(std::string args) {

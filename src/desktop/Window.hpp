@@ -5,6 +5,7 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include "../config/ConfigManager.hpp"
 #include "../config/ConfigDataValues.hpp"
 #include "../helpers/Vector2D.hpp"
 #include "WLSurface.hpp"
@@ -408,6 +409,7 @@ class CWindow {
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
+    void                     updateSpecialRenderData(const struct SWorkspaceRule&);
 
     void                     onBorderAngleAnimEnd(void* ptr);
     bool                     isInCurvedCorner(double x, double y);

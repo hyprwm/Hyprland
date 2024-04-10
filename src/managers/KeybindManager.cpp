@@ -202,10 +202,16 @@ bool CKeybindManager::ensureMouseBindState() {
         return false;
 
     if (g_pInputManager->currentlyDraggedWindow) {
+        CWindow* lastDraggedWindow = g_pInputManager->currentlyDraggedWindow;
+
         m_bIsMouseBindActive = false;
         g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
         g_pInputManager->currentlyDraggedWindow = nullptr;
         g_pInputManager->dragMode               = MBIND_INVALID;
+
+        g_pCompositor->updateWorkspaceWindows(lastDraggedWindow->workspaceID());
+        g_pCompositor->updateWorkspaceSpecialRenderData(lastDraggedWindow->workspaceID());
+        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         return true;
     }

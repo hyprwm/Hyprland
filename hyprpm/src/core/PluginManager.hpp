@@ -32,6 +32,7 @@ enum ePluginLoadStateReturn {
 struct SHyprlandVersion {
     std::string branch;
     std::string hash;
+    std::string date;
     int         commits = 0;
 };
 

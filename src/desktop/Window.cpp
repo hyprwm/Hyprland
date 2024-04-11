@@ -450,8 +450,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 
     if (const auto SWALLOWED = m_pSwallowed.lock()) {
-        SWALLOWED->moveToWorkspace(pWorkspace);
-        SWALLOWED->m_pMonitor = m_pMonitor;
+        if (SWALLOWED->m_bCurrentlySwallowed) {
+            SWALLOWED->moveToWorkspace(pWorkspace);
+            SWALLOWED->m_pMonitor = m_pMonitor;
+        }
     }
 
     // update xwayland coords

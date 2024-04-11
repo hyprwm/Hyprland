@@ -56,7 +56,6 @@ void CInputManager::endWorkspaceSwipe() {
     static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
     static auto PSWIPEFORC    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_min_speed_to_force");
     static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
-    static auto PSWIPENUMBER  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_numbered");
     static auto PSWIPEUSER    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
     const bool  VERTANIMS     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
@@ -64,8 +63,8 @@ void CInputManager::endWorkspaceSwipe() {
 
     // commit
     std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
+    auto        workspaceIDLeft  = getWorkspaceIDFromString((*PSWIPEUSER ? "r-1" : "m-1"), wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString((*PSWIPEUSER ? "r+1" : "m+1"), wsname);
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
@@ -217,7 +216,6 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     static auto PSWIPEDIRLOCK          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock");
     static auto PSWIPEDIRLOCKTHRESHOLD = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock_threshold");
     static auto PSWIPEFOREVER          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_forever");
-    static auto PSWIPENUMBER           = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_numbered");
     static auto PSWIPEUSER             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP          = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
@@ -232,8 +230,8 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     m_sActiveSwipe.speedPoints++;
 
     std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString(*PSWIPENUMBER ? "-1" : (*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString(*PSWIPENUMBER ? "+1" : (*PSWIPEUSER ? "r+1" : "m+1"), wsname);
+    auto        workspaceIDLeft  = getWorkspaceIDFromString((*PSWIPEUSER ? "r-1" : "m-1"), wsname);
+    auto        workspaceIDRight = getWorkspaceIDFromString((*PSWIPEUSER ? "r+1" : "m+1"), wsname);
 
     if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe
@@ -264,7 +262,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
 
         if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
-            if (*PSWIPENEW || *PSWIPENUMBER) {
+            if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
                 if (VERTANIMS)
@@ -304,7 +302,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
-            if (*PSWIPENEW || *PSWIPENUMBER) {
+            if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
 
                 if (VERTANIMS)

@@ -369,7 +369,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         applyNodeDataToWindow(PMASTERNODE);
         return;
     } else if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
-        const float HEIGHT      = WSSIZE.y * PMASTERNODE->percMaster;
+        const float HEIGHT      = STACKWINDOWS != 0 ? WSSIZE.y * PMASTERNODE->percMaster : WSSIZE.y;
         float       widthLeft   = WSSIZE.x;
         int         mastersLeft = MASTERS;
         float       nextX       = 0;

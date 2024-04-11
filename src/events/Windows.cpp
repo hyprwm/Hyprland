@@ -687,7 +687,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
 
     // swallowing
-    if (PWINDOW->m_pSwallowed && g_pCompositor->windowExists(PWINDOW->m_pSwallowed)) {
+    if (PWINDOW->m_pSwallowed && g_pCompositor->windowExists(PWINDOW->m_pSwallowed) && !PWINDOW->m_pSwallowed->m_bReadyToDelete) {
         PWINDOW->m_pSwallowed->setHidden(false);
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed);
         PWINDOW->m_pSwallowed = nullptr;

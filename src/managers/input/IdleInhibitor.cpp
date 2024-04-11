@@ -10,6 +10,16 @@ void Events::listener_newIdleInhibitor(wl_listener* listener, void* data) {
     g_pInputManager->newIdleInhibitor(WLRIDLEINHIBITOR);
 }
 
+static void destroyInhibitor(SIdleInhibitor* inhibitor) {
+    g_pHookSystem->unhook(inhibitor->onWindowDestroy);
+
+    g_pInputManager->m_lIdleInhibitors.remove(*inhibitor);
+
+    Debug::log(LOG, "Destroyed an idleinhibitor");
+
+    g_pInputManager->recheckIdleInhibitorStatus();
+}
+
 void CInputManager::newIdleInhibitor(wlr_idle_inhibitor_v1* pInhibitor) {
     const auto PINHIBIT = &m_lIdleInhibitors.emplace_back();
 
@@ -17,16 +27,17 @@ void CInputManager::newIdleInhibitor(wlr_idle_inhibitor_v1* pInhibitor) {
 
     PINHIBIT->pWlrInhibitor = pInhibitor;
 
+    PINHIBIT->onWindowDestroy = g_pHookSystem->hookDynamic("closeWindow", [PINHIBIT](void* self, SCallbackInfo& info, std::any data) {
+        if (PINHIBIT->pWindow == std::any_cast<CWindow*>(data))
+            destroyInhibitor(PINHIBIT);
+    });
+
     PINHIBIT->hyprListener_Destroy.initCallback(
         &pInhibitor->events.destroy,
         [](void* owner, void* data) {
             const auto PINH = (SIdleInhibitor*)owner;
 
-            g_pInputManager->m_lIdleInhibitors.remove(*PINH);
-
-            Debug::log(LOG, "Destroyed an idleinhibitor");
-
-            g_pInputManager->recheckIdleInhibitorStatus();
+            destroyInhibitor(PINH);
         },
         PINHIBIT, "IdleInhibitor");
 

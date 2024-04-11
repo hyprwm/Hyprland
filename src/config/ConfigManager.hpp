@@ -16,6 +16,7 @@
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/VarList.hpp"
+#include "../desktop/Window.hpp"
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"

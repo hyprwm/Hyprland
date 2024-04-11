@@ -5,7 +5,6 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
-#include "../config/ConfigManager.hpp"
 #include "../config/ConfigDataValues.hpp"
 #include "../helpers/Vector2D.hpp"
 #include "WLSurface.hpp"

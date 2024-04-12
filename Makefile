@@ -61,9 +61,6 @@ install:
 	mkdir -p ${PREFIX}/share/man/man1
 	install -m644 ./docs/*.1 ${PREFIX}/share/man/man1
 
-	mkdir -p ${PREFIX}/lib/
-	cp ./subprojects/wlroots/build/libwlroots.so.13032 ${PREFIX}/lib/
-
 	$(MAKE) installheaders
 
 uninstall:
@@ -72,7 +69,6 @@ uninstall:
 	rm -f ${PREFIX}/bin/hyprland
 	rm -f ${PREFIX}/bin/hyprctl
 	rm -f ${PREFIX}/bin/hyprpm
-	rm -f ${PREFIX}/lib/libwlroots.so.13032
 	rm -rf ${PREFIX}/share/hyprland
 	rm -f ${PREFIX}/share/man/man1/Hyprland.1
 	rm -f ${PREFIX}/share/man/man1/hyprctl.1

@@ -28,7 +28,7 @@
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots,
+  wlroots-hyprland,
   xcbutilwm,
   xwayland,
   debug ? false,
@@ -47,7 +47,7 @@
 assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
 assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
 assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland"; let
-  wlr = wlroots.override {inherit enableXWayland;};
+  wlr = wlroots-hyprland.override {inherit enableXWayland;};
 in
   stdenv.mkDerivation {
     pname = "hyprland${lib.optionalString debug "-debug"}";
@@ -101,7 +101,8 @@ in
     ];
 
     buildInputs =
-      [
+      wlr.buildInputs
+      ++ [
         cairo
         git
         hyprcursor.dev

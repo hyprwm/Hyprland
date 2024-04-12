@@ -8,10 +8,9 @@
     systems.url = "github:nix-systems/default-linux";
 
     wlroots = {
-      type = "gitlab";
-      host = "gitlab.freedesktop.org";
-      owner = "wlroots";
-      repo = "wlroots";
+      type = "github";
+      owner = "hyprwm";
+      repo = "wlroots-hyprland";
       rev = "62eeffbe233d199f520a5755c344e85f8eab7940";
       flake = false;
     };

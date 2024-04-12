@@ -34,8 +34,8 @@ in {
         stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
-        wlroots = final.wlroots-hyprland; # explicit override until decided on breaking change of the name
         udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
+        inherit (final) wlroots-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};

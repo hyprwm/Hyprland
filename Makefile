@@ -23,7 +23,7 @@ debug:
 clear:
 	rm -rf build
 	rm -f ./protocols/*-protocol.h ./protocols/*-protocol.c
-	rm -rf ./subprojects/wlroots/build
+	rm -rf ./subprojects/wlroots-hyprland/build
 
 all:
 	@if [[ "$EUID" = 0 ]]; then echo -en "Avoid running $(MAKE) all as sudo.\n"; fi
@@ -89,12 +89,12 @@ installheaders:
 	rm -fr ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
-	mkdir -p ${PREFIX}/include/hyprland/wlroots
+	mkdir -p ${PREFIX}/include/hyprland/wlroots-hyprland
 	mkdir -p ${PREFIX}/share/pkgconfig
 	
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cd subprojects/wlroots/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../..
-	cd subprojects/wlroots/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots && cd ../../../..
+	cd subprojects/wlroots-hyprland/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../..
+	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../../..
 	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi

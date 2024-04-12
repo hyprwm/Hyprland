@@ -1006,7 +1006,10 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         // This is to fix incorrect feedback on the focus history.
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
         PWORKSPACE->rememberPrevWorkspace(m_pLastMonitor->activeWorkspace);
-        PMONITOR->changeWorkspace(PWORKSPACE, false, true);
+        if (PWORKSPACE->m_bIsSpecialWorkspace)
+            g_pCompositor->m_pLastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, move it to current monitor
+        else
+            PMONITOR->changeWorkspace(PWORKSPACE, false, true);
         // changeworkspace already calls focusWindow
         return;
     }

@@ -53,6 +53,8 @@ runs:
           xcb-util-errors \
           xcb-util-renderutil \
           xcb-util-wm \
+          xcb-util \
+          xcb-util-image \
           libzip \
           librsvg
 

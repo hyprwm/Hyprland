@@ -463,6 +463,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sAdditionalConfigData.forceNoDim ? 0.f : *PDIMSTRENGTH);
     } else {
+        if (g_pCompositor->m_pLastWindow == nullptr)
+          g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }

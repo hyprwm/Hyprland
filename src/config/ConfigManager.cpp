@@ -350,6 +350,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:enable_hyprcursor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:hide_cursor_on_key_press", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:focus_noinitial_if_no_window", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});

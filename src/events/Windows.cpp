@@ -44,13 +44,14 @@ void setAnimToMove(void* data) {
 void Events::listener_mapWindow(void* owner, void* data) {
     CWindow*    PWINDOW = (CWindow*)owner;
 
-    static auto PINACTIVEALPHA  = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA    = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PDIMSTRENGTH    = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
-    static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
-    static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
-    static auto PNEWTAKESOVERFS = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
+    static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
+    static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
+    static auto PSWALLOW           = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
+    static auto PSWALLOWREGEX      = CConfigValue<std::string>("misc:swallow_regex");
+    static auto PSWALLOWEXREGEX    = CConfigValue<std::string>("misc:swallow_exception_regex");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PFALLBACKNOINITIAL = CConfigValue<Hyprlang::INT>("misc:focus_noinitial_if_no_window");
 
     auto        PMONITOR = g_pCompositor->m_pLastMonitor;
     if (!g_pCompositor->m_pLastMonitor) {
@@ -463,8 +464,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sAdditionalConfigData.forceNoDim ? 0.f : *PDIMSTRENGTH);
     } else {
-        if (g_pCompositor->m_pLastWindow == nullptr)
-          g_pCompositor->focusWindow(PWINDOW);
+        if (g_pCompositor->m_pLastWindow == nullptr && *PFALLBACKNOINITIAL == 1)
+            g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }

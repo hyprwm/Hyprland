@@ -338,7 +338,7 @@ eHeadersErrors CPluginManager::headersValid() {
         else
             headers = "";
 
-        if (PATH.ends_with("protocols") || PATH.ends_with("wlroots"))
+        if (PATH.ends_with("protocols") || PATH.ends_with("wlroots-hyprland"))
             continue;
 
         verHeader = removeBeginEndSpacesTabs(PATH.substr(2)) + "/hyprland/src/version.h";
@@ -436,7 +436,7 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
 
     // le hack. Wlroots has to generate its build/include
-    ret = execAndGet("cd /tmp/hyprpm/hyprland/subprojects/wlroots && meson setup -Drenderers=gles2 -Dexamples=false build");
+    ret = execAndGet("cd /tmp/hyprpm/hyprland/subprojects/wlroots-hyprland && meson setup -Drenderers=gles2 -Dexamples=false build");
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "meson returned: " + ret);
 

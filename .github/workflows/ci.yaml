@@ -32,7 +32,6 @@ jobs:
           cp build/Hyprland hyprland/
           cp build/hyprctl/hyprctl hyprland/
           cp build/hyprpm/hyprpm hyprland/
-          cp subprojects/wlroots/build/libwlroots.so.13032 hyprland/
           cp build/Hyprland hyprland/
           cp -r example/ hyprland/
           cp -r assets/ hyprland/

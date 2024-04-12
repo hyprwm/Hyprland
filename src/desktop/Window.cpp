@@ -486,12 +486,13 @@ void CWindow::onUnmap() {
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
+    m_pWorkspace.reset();
+
     if (m_bIsX11)
         return;
 
     m_pSubsurfaceHead.reset();
     m_pPopupHead.reset();
-    m_pWorkspace.reset();
 }
 
 void CWindow::onMap() {

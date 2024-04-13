@@ -1,17 +1,16 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 71766a8c..bd8cdc0e 100755
+index 1190876d..0e7573f9 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -101,7 +101,7 @@ message(STATUS "Checking deps...")
- find_package(Threads REQUIRED)
- find_package(PkgConfig REQUIRED)
- find_package(OpenGL REQUIRED)
--pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm xkbcommon libinput pango pangocairo pixman-1 hyprlang>=0.3.2 hyprcursor) # we do not check for wlroots, as we provide it ourselves
-+pkg_check_modules(deps REQUIRED IMPORTED_TARGET wayland-server wayland-client wayland-cursor wayland-protocols cairo libdrm xkbcommon libinput pango pangocairo pixman-1 hyprlang>=0.3.2 hyprcursor libffi) # we do not check for wlroots, as we provide it ourselves
+@@ -110,6 +110,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
+     cairo pango pangocairo pixman-1
+     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
+     hyprlang>=0.3.2 hyprcursor
++    libffi
+ )
  
  file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
- 
-@@ -121,6 +121,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+@@ -130,6 +131,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
          message(STATUS "Enabling ASan")
  
          target_link_libraries(Hyprland asan)

@@ -65,13 +65,11 @@ ExternalProject_Add(
     INSTALL_COMMAND echo "wlroots-hyprland: install not needed"
 )
 
-find_program(WaylandScanner NAMES wayland-scanner)
+find_package(PkgConfig REQUIRED)
+
+pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
-execute_process(
-    COMMAND pkgconf --variable=pkgdatadir wayland-protocols
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
@@ -98,7 +96,6 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
 
 if(LEGACY_RENDERER)
     set(GLES_VERSION "GLES2")

@@ -65,13 +65,11 @@ ExternalProject_Add(
     INSTALL_COMMAND echo "wlroots-hyprland: install not needed"
 )
 
-find_program(WaylandScanner NAMES wayland-scanner)
+find_package(PkgConfig REQUIRED)
+
+pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
-execute_process(
-    COMMAND pkgconf --variable=pkgdatadir wayland-protocols
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
@@ -92,13 +90,12 @@ include_directories(
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
-add_link_options(-rdynamic)
-set(CMAKE_ENABLE_EXPORTS TRUE)
+
+set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 
 message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
 
 if(LEGACY_RENDERER)
     set(GLES_VERSION "GLES2")
@@ -177,8 +174,12 @@ if(NO_XWAYLAND)
     add_compile_definitions(NO_XWAYLAND)
 else()
     message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-    pkg_check_modules(xdeps REQUIRED IMPORTED_TARGET xcb xwayland xcb-util xcb-render xcb-image xcb-xfixes xcb-errors xcb-icccm xcb-composite xcb-res xcb-ewmh)
+    pkg_check_modules(xdeps REQUIRED IMPORTED_TARGET xcb xwayland xcb-util xcb-render xcb-image xcb-xfixes xcb-icccm xcb-composite xcb-res xcb-ewmh)
+    pkg_check_modules(xcb_errors IMPORTED_TARGET xcb-errors)
     target_link_libraries(Hyprland PkgConfig::xdeps)
+    if(xcb_errors_FOUND)
+        target_link_libraries(Hyprland PkgConfig::xcb_errors)
+    endif()
 endif()
 
 if(NO_SYSTEMD)

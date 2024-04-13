@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <limits>
 
-#include <sys/poll.h>
 #include <sys/timerfd.h>
 #include <time.h>
 

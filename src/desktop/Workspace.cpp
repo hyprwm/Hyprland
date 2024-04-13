@@ -334,10 +334,10 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                if (prop.starts_with("s:"))
-                    return m_szName.starts_with(prop.substr(2));
-                if (prop.starts_with("e:"))
-                    return m_szName.ends_with(prop.substr(2));
+                if (prop.starts_with("s:") && !m_szName.starts_with(prop.substr(2)))
+                    return false;
+                if (prop.starts_with("e:") && !m_szName.ends_with(prop.substr(2)))
+                    return false;
 
                 const auto WANTSNAMED = configStringToInt(prop);
 

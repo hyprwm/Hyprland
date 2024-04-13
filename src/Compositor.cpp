@@ -1007,7 +1007,7 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
         PWORKSPACE->rememberPrevWorkspace(m_pLastMonitor->activeWorkspace);
         if (PWORKSPACE->m_bIsSpecialWorkspace)
-            g_pCompositor->m_pLastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, move it to current monitor
+            m_pLastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
         else
             PMONITOR->changeWorkspace(PWORKSPACE, false, true);
         // changeworkspace already calls focusWindow

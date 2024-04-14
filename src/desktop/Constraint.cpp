@@ -65,10 +65,16 @@ void CConstraint::onCommit() {
     if (COMMITTED & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
         static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-        m_bHintSet       = true;
-        const auto ISXWL = m_pOwner->getWindow()->m_bIsX11;
-        const auto SCALE = ISXWL && *PXWLFORCESCALEZERO ? m_pOwner->m_fLastScale : 1;
-        m_vPositionHint  = {m_pConstraint->current.cursor_hint.x / SCALE, m_pConstraint->current.cursor_hint.y / SCALE};
+        m_bHintSet = true;
+
+        auto SCALE = 1.f;
+        const auto window = m_pOwner->getWindow();
+        if (window) {
+            const auto ISXWL = window->m_bIsX11;
+            SCALE = ISXWL && *PXWLFORCESCALEZERO ? m_pOwner->m_fLastScale : 1.f;
+        }
+
+        m_vPositionHint = {m_pConstraint->current.cursor_hint.x / SCALE, m_pConstraint->current.cursor_hint.y / SCALE};
         g_pInputManager->simulateMouseMovement();
     }
 

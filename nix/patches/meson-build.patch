@@ -53,7 +53,6 @@ index 45701f5f..3505cefe 100644
 -    xcb_dep,
 +    dependency('xcb', required: get_option('xwayland')),
      backtrace_dep,
-     systemd_dep,
 -    udis86,
 +    dependency('udis86'),
  

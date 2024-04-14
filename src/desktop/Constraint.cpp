@@ -1,6 +1,7 @@
 #include "Constraint.hpp"
 #include "WLSurface.hpp"
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 
 CConstraint::CConstraint(wlr_pointer_constraint_v1* constraint, CWLSurface* owner) : m_pOwner(owner), m_pConstraint(constraint) {
     RASSERT(!constraint->data, "CConstraint: attempted to duplicate ownership");
@@ -62,8 +63,18 @@ void CConstraint::onCommit() {
     const auto COMMITTED = m_pConstraint->current.committed;
 
     if (COMMITTED & WLR_POINTER_CONSTRAINT_V1_STATE_CURSOR_HINT) {
-        m_bHintSet      = true;
-        m_vPositionHint = {m_pConstraint->current.cursor_hint.x, m_pConstraint->current.cursor_hint.y};
+        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+        m_bHintSet = true;
+
+        float      scale   = 1.f;
+        const auto PWINDOW = m_pOwner->getWindow();
+        if (PWINDOW) {
+            const auto ISXWL = PWINDOW->m_bIsX11;
+            scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_fX11SurfaceScaledBy : 1.f;
+        }
+
+        m_vPositionHint = {m_pConstraint->current.cursor_hint.x / scale, m_pConstraint->current.cursor_hint.y / scale};
         g_pInputManager->simulateMouseMovement();
     }
 

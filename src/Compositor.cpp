@@ -8,7 +8,7 @@
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
-#include <systemd/sd-daemon.h> // for sd_notify
+#include <helpers/SdDaemon.hpp> // for sd_notify
 #endif
 #include <ranges>
 #include "helpers/VarList.hpp"

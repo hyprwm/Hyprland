@@ -999,7 +999,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (BISWORKSPACECURRENT) {
         if (*PALLOWWORKSPACECYCLES)
             pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
-        else if (!EXPLICITPREVIOUS)
+        else if (!EXPLICITPREVIOUS && !*PBACKANDFORTH)
             pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
     } else
         pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);

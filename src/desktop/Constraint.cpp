@@ -71,7 +71,7 @@ void CConstraint::onCommit() {
         const auto window = m_pOwner->getWindow();
         if (window) {
             const auto ISXWL = window->m_bIsX11;
-            SCALE = ISXWL && *PXWLFORCESCALEZERO ? m_pOwner->m_fLastScale : 1.f;
+            SCALE = ISXWL && *PXWLFORCESCALEZERO ? window->m_fX11SurfaceScaledBy : 1.f;
         }
 
         m_vPositionHint = {m_pConstraint->current.cursor_hint.x / SCALE, m_pConstraint->current.cursor_hint.y / SCALE};

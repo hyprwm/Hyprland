@@ -18,6 +18,7 @@ jobs:
       - name: Generate version
         id: genversion
         run: |
+          git fetch --unshallow || echo "failed unshallowing"
           bash -c scripts/generateVersion.sh
           mv scripts/generateVersion.sh scripts/generateVersion.sh.bak
 

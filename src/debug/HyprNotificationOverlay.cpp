@@ -76,7 +76,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
 
     const auto            SCALE = pMonitor->scale;
 
-    const auto            MONSIZE = pMonitor->vecPixelSize;
+    const auto            MONSIZE = pMonitor->vecTransformedSize;
 
     cairo_text_extents_t  cairoExtents;
     int                   iconW = 0, iconH = 0;
@@ -185,16 +185,19 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
 
 void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
 
-    if (m_pLastMonitor != pMonitor || !m_pCairo || !m_pCairoSurface) {
+    const auto MONSIZE = pMonitor->vecTransformedSize;
+
+    if (m_pLastMonitor != pMonitor || m_vecLastSize != MONSIZE || !m_pCairo || !m_pCairoSurface) {
 
         if (m_pCairo && m_pCairoSurface) {
             cairo_destroy(m_pCairo);
             cairo_surface_destroy(m_pCairoSurface);
         }
 
-        m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+        m_pCairoSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, MONSIZE.x, MONSIZE.y);
         m_pCairo        = cairo_create(m_pCairoSurface);
         m_pLastMonitor  = pMonitor;
+        m_vecLastSize   = MONSIZE;
     }
 
     // Draw the notifications
@@ -232,9 +235,9 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 #endif
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MONSIZE.x, MONSIZE.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    CBox pMonBox = {0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y};
+    CBox pMonBox = {0, 0, MONSIZE.x, MONSIZE.y};
     g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
 }
 

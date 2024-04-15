@@ -55,6 +55,7 @@ class CHyprNotificationOverlay {
     cairo_t*                                   m_pCairo        = nullptr;
 
     CMonitor*                                  m_pLastMonitor = nullptr;
+    Vector2D                                   m_vecLastSize  = Vector2D(-1, -1);
 
     CTexture                                   m_tTexture;
 

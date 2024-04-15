@@ -404,6 +404,11 @@ bool CPluginManager::updateHeaders(bool force) {
     std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland --shallow-since='" + HLVER.date + "'");
 
     if (!std::filesystem::exists("/tmp/hyprpm/hyprland")) {
+        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Clone failed. Retrying without shallow.");
+        ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland");
+    }
+
+    if (!std::filesystem::exists("/tmp/hyprpm/hyprland")) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the hyprland repository. shell returned:\n" << ret << "\n";
         return false;
     }
@@ -598,7 +603,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         for (auto& p : pManifest->m_vPlugins) {
             std::string out;
 
-            if (p.since > HLVER.commits && HLVER.commits >= 1 /* for --depth 1 clones, we can't check this. */) {
+            if (p.since > HLVER.commits && HLVER.commits >= 1000 /* for shallow clones, we can't check this. 1000 is an arbitrary number I chose. */) {
                 progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Not building " + p.name + ": your Hyprland version is too old.\n");
                 p.failed = true;
                 continue;

@@ -164,6 +164,12 @@ if(HAVE_LIBEXECINFO)
     target_link_libraries(Hyprland execinfo)
 endif()
 
+check_include_file("sys/timerfd.h" HAS_TIMERFD)
+pkg_check_modules(epoll IMPORTED_TARGET epoll-shim)
+if(NOT HAS_TIMERFD AND epoll_FOUND)
+    target_link_libraries(Hyprland PkgConfig::epoll)
+endif()
+
 if(LEGACY_RENDERER)
     message(STATUS "Using the legacy GLES2 renderer!")
     add_compile_definitions(LEGACY_RENDERER)

@@ -19,6 +19,7 @@ executable('Hyprland', src,
     dependency('libinput'),
     xcb_dep,
     backtrace_dep,
+    epoll_dep,
     systemd_dep,
     udis86,
 

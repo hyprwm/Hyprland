@@ -51,6 +51,7 @@ if not have_xwayland
 endif
 
 backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
+epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
 systemd_dep = dependency('libsystemd', required: get_option('systemd'))
 
 if get_option('systemd').enabled()

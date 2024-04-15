@@ -1216,15 +1216,20 @@ void CKeybindManager::swapActive(std::string args) {
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {
-    char arg = args[0];
+    char arg    = args[0];
+    bool silent = args.ends_with(" silent");
+    if (silent)
+        args = args.substr(0, args.length() - 7);
 
     if (args.starts_with("mon:")) {
         const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(args.substr(4));
         if (!PNEWMONITOR)
             return;
 
-        moveActiveToWorkspace(PNEWMONITOR->activeWorkspace->getConfigName());
-        return;
+        if (silent)
+            moveActiveToWorkspaceSilent(PNEWMONITOR->activeWorkspace->getConfigName());
+        else
+            moveActiveToWorkspace(PNEWMONITOR->activeWorkspace->getConfigName());
     }
 
     if (!isDirection(args)) {
@@ -1258,8 +1263,9 @@ void CKeybindManager::moveActiveTo(std::string args) {
     // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
     if (PWINDOWTOCHANGETO) {
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args);
-        g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
+        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args, silent);
+        if (!silent)
+            g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
         return;
     }
 
@@ -1269,8 +1275,10 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     const auto PWORKSPACE = PMONITORTOCHANGETO->activeWorkspace;
-
-    moveActiveToWorkspace(PWORKSPACE->getConfigName());
+    if (silent)
+        moveActiveToWorkspaceSilent(PWORKSPACE->getConfigName());
+    else
+        moveActiveToWorkspace(PWORKSPACE->getConfigName());
 }
 
 void CKeybindManager::toggleGroup(std::string args) {

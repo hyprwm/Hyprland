@@ -12,8 +12,15 @@ static int cursorAnimTimer(void* data) {
     return 1;
 }
 
+static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
+    if (level == HC_LOG_TRACE)
+        return;
+
+    Debug::log(NONE, "[hc] {}", message);
+}
+
 CCursorManager::CCursorManager() {
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str());
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), hcLogger);
 
     if (!m_pHyprcursor->valid())
         Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", m_szTheme);
@@ -224,7 +231,7 @@ void CCursorManager::updateTheme() {
 }
 
 void CCursorManager::changeTheme(const std::string& name, const int size) {
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str());
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), hcLogger);
     m_szTheme     = name;
     m_iSize       = size;
 

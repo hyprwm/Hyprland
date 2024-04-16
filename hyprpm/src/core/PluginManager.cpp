@@ -95,6 +95,11 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
 bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string& rev) {
     const auto HLVER = getHyprlandVersion();
 
+    if (!hasDeps()) {
+        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio\n";
+        return false;
+    }
+
     if (DataState::pluginRepoExists(url)) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not clone the plugin repository. Repository already installed.\n";
         return false;
@@ -377,6 +382,11 @@ bool CPluginManager::updateHeaders(bool force) {
     DataState::ensureStateStoreExists();
 
     const auto HLVER = getHyprlandVersion();
+
+    if (!hasDeps()) {
+        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not update. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio\n";
+        return false;
+    }
 
     if (!std::filesystem::exists("/tmp/hyprpm")) {
         std::filesystem::create_directory("/tmp/hyprpm");
@@ -832,4 +842,14 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
     }
 
     return std::string{Colors::RED} + "✖" + Colors::RESET + " Unknown header error. Please run hyprpm update to fix those.\n";
+}
+
+bool CPluginManager::hasDeps() {
+    std::vector<std::string> deps = {"meson", "cpio", "cmake"};
+    for (auto& d : deps) {
+        if (!execAndGet("which " + d + " 2>&1").contains("/"))
+            return false;
+    }
+
+    return true;
 }

@@ -401,7 +401,14 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " Cloning https://github.com/hyprwm/hyprland, this might take a moment.");
 
-    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland --shallow-since='" + HLVER.date + "'");
+    // let us give a bit of leg-room for shallowing
+    // due to timezones, etc.
+    const std::string SHALLOW_DATE = removeBeginEndSpacesTabs(HLVER.date).empty() ? "" : execAndGet("date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
+
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "will shallow since: " + SHALLOW_DATE);
+
+    std::string ret = execAndGet("cd /tmp/hyprpm && git clone --recursive https://github.com/hyprwm/hyprland hyprland --shallow-since='" + SHALLOW_DATE + "'");
 
     if (!std::filesystem::exists("/tmp/hyprpm/hyprland")) {
         progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " Clone failed. Retrying without shallow.");

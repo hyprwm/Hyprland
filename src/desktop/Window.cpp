@@ -453,6 +453,8 @@ void CWindow::onUnmap() {
 
     if (g_pCompositor->m_pLastWindow == this)
         g_pCompositor->m_pLastWindow = nullptr;
+    if (g_pInputManager->currentlyDraggedWindow == this)
+        g_pInputManager->currentlyDraggedWindow = nullptr;
 
     m_iLastWorkspace = m_pWorkspace->m_iID;
 

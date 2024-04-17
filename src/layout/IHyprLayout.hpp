@@ -136,7 +136,7 @@ class IHyprLayout {
         Called when the user requests a window move in a direction.
         The layout is free to ignore.
     */
-    virtual void moveWindowTo(CWindow*, const std::string& direction) = 0;
+    virtual void moveWindowTo(CWindow*, const std::string& direction, bool silent = false) = 0;
 
     /*
         Called when the user requests to change the splitratio by or to X

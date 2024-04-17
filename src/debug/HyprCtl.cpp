@@ -216,7 +216,7 @@ static std::string getWindowData(CWindow* w, eHyprCtlOutputFormat format) {
                            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
                            (uintptr_t)w, w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
                            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
-                           (!w->m_pWorkspace ? "" : std::to_string(w->workspaceID())), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w),
+                           (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, g_pXWaylandManager->getAppIDClass(w),
                            g_pXWaylandManager->getTitle(w), w->m_szInitialClass, w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
                            (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
                            (uintptr_t)w->m_pSwallowed, getFocusHistoryID(w));

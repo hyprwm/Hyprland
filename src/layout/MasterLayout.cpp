@@ -949,7 +949,7 @@ SWindowRenderLayoutHints CHyprMasterLayout::requestRenderHints(CWindow* pWindow)
     return hints; // master doesnt have any hints
 }
 
-void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir, bool silent) {
     if (!isDirection(dir))
         return;
 
@@ -965,12 +965,16 @@ void CHyprMasterLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
         onWindowRemovedTiling(pWindow);
         pWindow->moveToWorkspace(PWINDOW2->m_pWorkspace);
         pWindow->m_iMonitorID = PWINDOW2->m_iMonitorID;
-        const auto pMonitor   = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-        g_pCompositor->setActiveMonitor(pMonitor);
+        if (!silent) {
+            const auto pMonitor = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+            g_pCompositor->setActiveMonitor(pMonitor);
+        }
         onWindowCreatedTiling(pWindow);
     } else {
         // if same monitor, switch windows
         switchWindows(pWindow, PWINDOW2);
+        if (silent)
+            g_pCompositor->focusWindow(PWINDOW2);
     }
 }
 

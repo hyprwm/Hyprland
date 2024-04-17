@@ -897,11 +897,13 @@ SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(CWindow* pWindow
     return hints;
 }
 
-void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) {
+void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir, bool silent) {
     if (!isDirection(dir))
         return;
 
-    const auto PNODE = getNodeFromWindow(pWindow);
+    const auto     PNODE               = getNodeFromWindow(pWindow);
+    const int      originalWorkspaceID = pWindow->workspaceID();
+    const Vector2D originalPos         = pWindow->middle();
 
     if (!PNODE)
         return;
@@ -934,6 +936,13 @@ void CHyprDwindleLayout::moveWindowTo(CWindow* pWindow, const std::string& dir) 
     onWindowCreatedTiling(pWindow);
 
     m_vOverrideFocalPoint.reset();
+
+    // restore focus to the previous position
+    if (silent) {
+        const auto PNODETOFOCUS = getClosestNodeOnWorkspace(originalWorkspaceID, originalPos);
+        if (PNODETOFOCUS && PNODETOFOCUS->pWindow)
+            g_pCompositor->focusWindow(PNODETOFOCUS->pWindow);
+    }
 }
 
 void CHyprDwindleLayout::switchWindows(CWindow* pWindow, CWindow* pWindow2) {

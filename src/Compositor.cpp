@@ -1285,7 +1285,7 @@ int CCompositor::getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTi
     return no;
 }
 
-int CCompositor::getGroupsOnWorkspace(const int& id, std::optional<bool> onlyTiled) {
+int CCompositor::getGroupsOnWorkspace(const int& id, std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
     int no = 0;
     for (auto& w : m_vWindows) {
         if (w->workspaceID() == id && w->m_bIsMapped && !(onlyTiled.has_value() && !w->m_bIsFloating != onlyTiled.value()) && w->m_sGroupData.head) {

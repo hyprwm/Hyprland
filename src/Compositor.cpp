@@ -1276,10 +1276,13 @@ void CCompositor::sanityCheckWorkspaces() {
 int CCompositor::getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
     int no = 0;
     for (auto& w : m_vWindows) {
-        if (w->workspaceID() == id && w->m_bIsMapped && !(onlyTiled.has_value() && !w->m_bIsFloating != onlyTiled.value())) {
-            if (!(onlyVisible.has_value() && w->isHidden() == onlyVisible.value()))
-                no++;
-        }
+        if (w->workspaceID() != id || !w->m_bIsMapped)
+            continue;
+        if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+            continue;
+        no++;
     }
 
     return no;
@@ -1288,12 +1291,16 @@ int CCompositor::getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTi
 int CCompositor::getGroupsOnWorkspace(const int& id, std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
     int no = 0;
     for (auto& w : m_vWindows) {
-        if (w->workspaceID() == id && w->m_bIsMapped && !(onlyTiled.has_value() && !w->m_bIsFloating != onlyTiled.value()) && w->m_sGroupData.head) {
-            if (!(onlyVisible.has_value() && w->isHidden() == onlyVisible.value()))
-                no++;
-        }
+        if (w->workspaceID() != id || !w->m_bIsMapped)
+            continue;
+        if (!w->m_sGroupData.head)
+            continue;
+        if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+            continue;
+        no++;
     }
-
     return no;
 }
 

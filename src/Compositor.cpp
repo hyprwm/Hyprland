@@ -253,8 +253,6 @@ void CCompositor::initServer() {
 
     m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
 
-    m_sWLRTearingControlMgr = wlr_tearing_control_manager_v1_create(m_sWLDisplay, 1);
-
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
@@ -311,7 +309,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
     addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
-    addWLSignal(&m_sWLRTearingControlMgr->events.new_object, &Events::listen_newTearingHint, m_sWLRTearingControlMgr, "TearingControlMgr");
     addWLSignal(&m_sWLRKbShInhibitMgr->events.new_inhibitor, &Events::listen_newShortcutInhibitor, m_sWLRKbShInhibitMgr, "ShortcutInhibitMgr");
 
     if (m_sWRLDRMLeaseMgr)
@@ -365,7 +362,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newSessionLock);
     removeWLSignal(&Events::listen_setGamma);
     removeWLSignal(&Events::listen_setCursorShape);
-    removeWLSignal(&Events::listen_newTearingHint);
     removeWLSignal(&Events::listen_newShortcutInhibitor);
 
     if (m_sWRLDRMLeaseMgr)
@@ -695,6 +691,8 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 
 void CCompositor::removeWindowFromVectorSafe(CWindow* pWindow) {
     if (windowExists(pWindow) && !pWindow->m_bFadingOut) {
+        EMIT_HOOK_EVENT("destroyWindow", pWindow);
+
         std::erase_if(m_vWindows, [&](std::unique_ptr<CWindow>& el) { return el.get() == pWindow; });
         std::erase_if(m_vWindowsFadingOut, [&](CWindow* el) { return el == pWindow; });
     }

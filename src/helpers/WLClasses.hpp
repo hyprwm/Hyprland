@@ -329,17 +329,6 @@ struct SSwitchDevice {
     }
 };
 
-struct STearingController {
-    wlr_tearing_control_v1* pWlrHint = nullptr;
-
-    DYNLISTENER(set);
-    DYNLISTENER(destroy);
-
-    bool operator==(const STearingController& other) const {
-        return pWlrHint == other.pWlrHint;
-    }
-};
-
 struct SShortcutInhibitor {
     wlr_keyboard_shortcuts_inhibitor_v1* pWlrInhibitor = nullptr;
 

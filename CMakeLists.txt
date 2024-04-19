@@ -263,6 +263,7 @@ protocol("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1
 protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 protocol("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
+protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

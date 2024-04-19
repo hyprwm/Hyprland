@@ -13,5 +13,5 @@ CProtocolManager::CProtocolManager() {
     m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
 
     m_pXDGOutputProtocol = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
-    PROTO::tearing = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
+    PROTO::tearing       = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
 }

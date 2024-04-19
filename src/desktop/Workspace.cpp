@@ -251,6 +251,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // m - monitor: m[monitor_selector]
             // w - windowCount: w[1-4] or w[1], optional flag t or f for tiled or floating and
             //                  flag g to count groups instead of windows, e.g. w[t1-2], w[fg4]
+            //                  flag v will count only visible windows
 
             const auto  NEXTSPACE = selector.find_first_of(' ', i);
             std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
@@ -355,8 +356,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                int  wantsOnlyTiled  = -1;
-                bool wantsCountGroup = false;
+                int  wantsOnlyTiled    = -1;
+                bool wantsCountGroup   = false;
+                bool wantsCountVisible = false;
 
                 int  flagCount = 0;
                 for (auto& flag : prop) {
@@ -368,6 +370,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         flagCount++;
                     } else if (flag == 'g' && !wantsCountGroup) {
                         wantsCountGroup = true;
+                        flagCount++;
+                    } else if (flag == 'v' && !wantsCountVisible) {
+                        wantsCountVisible = true;
                         flagCount++;
                     } else {
                         break;
@@ -392,9 +397,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                     int count;
                     if (wantsCountGroup)
-                        count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                        count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                                                    wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                        count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                                                     wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
                         return false;
@@ -424,9 +431,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 int count;
                 if (wantsCountGroup)
-                    count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                    count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                                                wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled));
+                    count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                                                 wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
                     return false;

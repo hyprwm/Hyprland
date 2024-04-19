@@ -205,6 +205,7 @@ class CConfigManager {
     std::optional<std::string> verifyConfigExists();
     void                       postConfigReload(const Hyprlang::CParseResult& result);
     void                       reload();
+    SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

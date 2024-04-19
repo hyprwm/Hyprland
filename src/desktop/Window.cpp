@@ -535,14 +535,6 @@ void CWindow::onMap() {
     m_vReportedSize = m_vPendingReportedSize;
     m_bAnimatingIn  = true;
 
-    for (const auto& ctrl : g_pHyprRenderer->m_vTearingControllers) {
-        if (ctrl->pWlrHint->surface != m_pWLSurface.wlr())
-            continue;
-
-        m_bTearingHint = ctrl->pWlrHint->current;
-        break;
-    }
-
     if (m_bIsX11)
         return;
 

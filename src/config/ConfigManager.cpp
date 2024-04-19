@@ -1780,6 +1780,12 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     PANIM->second.overridden = true;
     PANIM->second.pValues    = &PANIM->second;
 
+    if (ARGS[1] == "on" || ARGS[1] == "true")
+	ARGS[1] = "1";
+
+    if (ARGS[1] == "off" || ARGS[1] == "false")
+	ARGS[1] = "0";
+
     // on/off
     PANIM->second.internalEnabled = ARGS[1] == "1";
 

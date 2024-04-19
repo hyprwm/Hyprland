@@ -245,37 +245,6 @@ void Events::listener_setCursorShape(wl_listener* listener, void* data) {
     g_pInputManager->processMouseRequest(E);
 }
 
-void Events::listener_newTearingHint(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New tearing hint at {:x}", (uintptr_t)data);
-
-    const auto NEWCTRL = g_pHyprRenderer->m_vTearingControllers.emplace_back(std::make_unique<STearingController>()).get();
-    NEWCTRL->pWlrHint  = (wlr_tearing_control_v1*)data;
-
-    NEWCTRL->hyprListener_destroy.initCallback(
-        &NEWCTRL->pWlrHint->events.destroy,
-        [&](void* owner, void* data) {
-            Debug::log(LOG, "Destroyed {:x} tearing hint", (uintptr_t)((STearingController*)owner)->pWlrHint);
-
-            std::erase_if(g_pHyprRenderer->m_vTearingControllers, [&](const auto& other) { return other.get() == owner; });
-        },
-        NEWCTRL, "TearingController");
-
-    NEWCTRL->hyprListener_set.initCallback(
-        &NEWCTRL->pWlrHint->events.set_hint,
-        [&](void* owner, void* data) {
-            const auto TEARINGHINT = (STearingController*)owner;
-
-            const auto PWINDOW = g_pCompositor->getWindowFromSurface(TEARINGHINT->pWlrHint->surface);
-
-            if (PWINDOW) {
-                PWINDOW->m_bTearingHint = (bool)TEARINGHINT->pWlrHint->current;
-
-                Debug::log(LOG, "Hint {:x} (window {}) set tearing hint to {}", (uintptr_t)TEARINGHINT->pWlrHint, PWINDOW, (uint32_t)TEARINGHINT->pWlrHint->current);
-            }
-        },
-        NEWCTRL, "TearingController");
-}
-
 void Events::listener_newShortcutInhibitor(wl_listener* listener, void* data) {
     const auto INHIBITOR = (wlr_keyboard_shortcuts_inhibitor_v1*)data;
 

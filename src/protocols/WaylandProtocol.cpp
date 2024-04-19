@@ -31,7 +31,14 @@ void CWaylandResource::markDefunct() {
 
     Debug::log(TRACE, "[wl res {:x}] now defunct", (uintptr_t)m_pWLResource);
     m_bDefunct = true;
+
     wl_resource_set_user_data(m_pWLResource, nullptr);
+
+    // we call it here because we need defunct to be set to true.
+    // if this function destroys us, we can't call wl_resource_set_user_data or
+    // destroy the resource.
+    if (m_fOnDestroyHandler)
+        m_fOnDestroyHandler(this);
 }
 
 CWaylandResource::~CWaylandResource() {
@@ -78,6 +85,10 @@ void CWaylandResource::setData(void* data) {
 
 void* CWaylandResource::data() {
     return m_pData;
+}
+
+void CWaylandResource::setOnDestroyHandler(std::function<void(CWaylandResource* res)> fn) {
+    m_fOnDestroyHandler = fn;
 }
 
 static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uint32_t id) {

@@ -89,18 +89,16 @@ class CHyprRenderer {
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);
 
-    bool                                             attemptDirectScanout(CMonitor*);
-    void                                             setWindowScanoutMode(CWindow*);
-    void                                             initiateManualCrash();
+    bool             attemptDirectScanout(CMonitor*);
+    void             setWindowScanoutMode(CWindow*);
+    void             initiateManualCrash();
 
-    bool                                             m_bCrashingInProgress = false;
-    float                                            m_fCrashingDistort    = 0.5f;
-    wl_event_source*                                 m_pCrashingLoop       = nullptr;
-    wl_event_source*                                 m_pCursorTicker       = nullptr;
+    bool             m_bCrashingInProgress = false;
+    float            m_fCrashingDistort    = 0.5f;
+    wl_event_source* m_pCrashingLoop       = nullptr;
+    wl_event_source* m_pCursorTicker       = nullptr;
 
-    std::vector<std::unique_ptr<STearingController>> m_vTearingControllers;
-
-    CTimer                                           m_tRenderTimer;
+    CTimer           m_tRenderTimer;
 
     struct {
         int                         hotspotX;

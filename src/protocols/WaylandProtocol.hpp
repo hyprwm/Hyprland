@@ -2,10 +2,17 @@
 
 #include "../defines.hpp"
 
+#include <functional>
+
 #define RESOURCE_OR_BAIL(resname)                                                                                                                                                  \
     const auto resname = (CWaylandResource*)wl_resource_get_user_data(resource);                                                                                                   \
     if (!resname)                                                                                                                                                                  \
         return;
+
+#define SP std::shared_ptr
+#define UP std::unique_ptr
+
+#define PROTO NProtocols
 
 class CWaylandResource {
   public:
@@ -24,12 +31,15 @@ class CWaylandResource {
     void*        data();
     void         setData(void* data);
 
+    void         setOnDestroyHandler(std::function<void(CWaylandResource* res)> fn);
+
   private:
-    bool         m_bImplementationSet = false;
-    bool         m_bDefunct           = false; // m_liResourceDestroy fired
-    wl_client*   m_pWLClient          = nullptr;
-    wl_resource* m_pWLResource        = nullptr;
-    void*        m_pData              = nullptr;
+    bool                                       m_bImplementationSet = false;
+    bool                                       m_bDefunct           = false; // m_liResourceDestroy fired
+    wl_client*                                 m_pWLClient          = nullptr;
+    wl_resource*                               m_pWLResource        = nullptr;
+    void*                                      m_pData              = nullptr;
+    std::function<void(CWaylandResource* res)> m_fOnDestroyHandler;
 };
 
 class IWaylandProtocol {

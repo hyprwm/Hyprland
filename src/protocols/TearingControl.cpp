@@ -86,7 +86,12 @@ CTearingControl::CTearingControl(SP<CWaylandResource> resource_, wlr_surface* su
     resource->setData(this);
     resource->setOnDestroyHandler([](CWaylandResource* res) { PROTO::tearing->onControllerDestroy(reinterpret_cast<CTearingControl*>(res->data())); });
 
-    pWindow = g_pCompositor->getWindowFromSurface(surf_);
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWLSurface.wlr() == surf_) {
+            pWindow = w.get();
+            break;
+        }
+    }
 }
 
 void CTearingControl::onHint(uint32_t hint_) {

@@ -392,8 +392,12 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
     g_pCompositor->updateWorkspaceSpecialRenderData(OLDWORKSPACE->m_iID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->m_iMonitorID);
+
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
@@ -486,6 +490,7 @@ void CWindow::onUnmap() {
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_pWorkspace.reset();
@@ -853,9 +858,9 @@ void CWindow::createGroup() {
 
         addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(this));
 
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(this);
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
     }
 }
@@ -871,6 +876,7 @@ void CWindow::destroyGroup() {
         updateWindowDecos();
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
         return;
     }
@@ -901,6 +907,7 @@ void CWindow::destroyGroup() {
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
 

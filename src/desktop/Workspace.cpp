@@ -450,8 +450,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     return false;
                 }
 
-                prop               = prop.substr(2, prop.length() - 3);
-                const auto FSSTATE = configStringToInt(prop);
+                prop        = prop.substr(2, prop.length() - 3);
+                int FSSTATE = -1;
+                try {
+                    FSSTATE = std::stoi(prop);
+                } catch (std::exception& e) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
                 switch (FSSTATE) {
                     case -1: // no fullscreen
                         if (m_bHasFullscreenWindow)

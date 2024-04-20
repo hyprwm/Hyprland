@@ -242,7 +242,7 @@ endfunction()
 function(protocolNew protoPath protoName external)
     if (external)
         execute_process(
-            COMMAND hyprwayland-scanner ${WAYLAND_PROTOCOLS_DIR}/${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
+            COMMAND hyprwayland-scanner ${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
     else()

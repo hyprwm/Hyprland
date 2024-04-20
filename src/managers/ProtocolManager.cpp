@@ -3,7 +3,7 @@
 #include "../protocols/TearingControl.hpp"
 
 #include "xdg-output-unstable-v1-protocol.h"
-#include "tearing-control-v1-protocol.h"
+#include "tearing-control-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
     m_pToplevelExportProtocolManager  = std::make_unique<CToplevelExportProtocolManager>();

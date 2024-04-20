@@ -1,5 +1,4 @@
 #include "TearingControl.hpp"
-#include "tearing-control-v1-protocol.h"
 #include "../managers/ProtocolManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../Compositor.hpp"
@@ -22,10 +21,8 @@ void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CTearingControlProtocol::onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf) {
-    const auto CONTROLLER = m_vTearingControllers
-                                .emplace_back(std::make_unique<CTearingControl>(
-                                    std::make_shared<CWpTearingControlV1>(client, wl_resource_get_version(resource), id), surf))
-                                .get();
+    const auto CONTROLLER =
+        m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, wl_resource_get_version(resource), id), surf)).get();
 
     if (!CONTROLLER->good()) {
         m_vTearingControllers.pop_back();
@@ -50,7 +47,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface*
     resource->setData(this);
     resource->setOnDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     resource->setDestroy([this](wl_client* c, wl_resource* res) { PROTO::tearing->onControllerDestroy(this); });
-    resource->setSetPresentationHint([this](wl_client* c, wl_resource* res, uint32_t hint) { this->onHint(hint); });
+    resource->setSetPresentationHint([this](wl_client* c, wl_resource* res, tearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_pWLSurface.wlr() == surf_) {
@@ -60,8 +57,8 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface*
     }
 }
 
-void CTearingControl::onHint(uint32_t hint_) {
-    hint = hint_ == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC ? TEARING_VSYNC : TEARING_ASYNC;
+void CTearingControl::onHint(tearingControlV1PresentationHint hint_) {
+    hint = hint_;
     updateWindow();
 }
 
@@ -69,7 +66,7 @@ void CTearingControl::updateWindow() {
     if (!pWindow)
         return;
 
-    pWindow->m_bTearingHint = hint == TEARING_ASYNC;
+    pWindow->m_bTearingHint = hint == PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {

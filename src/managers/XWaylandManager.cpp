@@ -1,7 +1,6 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
-#include "xdg-output-unstable-v1-protocol.h"
 #include "../config/ConfigValue.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3

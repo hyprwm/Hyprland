@@ -1780,16 +1780,14 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     PANIM->second.overridden = true;
     PANIM->second.pValues    = &PANIM->second;
 
-    if (ARGS[1] == "on" || ARGS[1] == "true")
-	ARGS[1] = "1";
-
-    if (ARGS[1] == "off" || ARGS[1] == "false")
-	ARGS[1] = "0";
-
-    // on/off
-    PANIM->second.internalEnabled = ARGS[1] == "1";
-
-    if (ARGS[1] != "0" && ARGS[1] != "1")
+    // If user specifies on/off as "on", "true", or "1" then the animation is enabled.
+    // If user specifies on/off as "off", "false", or "0", then the animation is disabled.
+    // Otherwise, we will let the user know that they specified an invalid on/off state.
+    if (ARGS[1] == "on" || ARGS[1] == "true" || ARGS[1] == "1")
+        PANIM->second.internalEnabled = true;
+    else if (ARGS[1] == "off" || ARGS[1] == "false" || ARGS[1] == "0")
+        PANIM->second.internalEnabled = false;
+    else
         return "invalid animation on/off state";
 
     if (PANIM->second.internalEnabled) {

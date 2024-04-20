@@ -1,4 +1,6 @@
 #pragma once
 
-int sd_booted(void);
-int sd_notify(int unset_environment, const char* state);
+namespace Systemd {
+    int SdBooted(void);
+    int SdNotify(int unset_environment, const char* state);
+}

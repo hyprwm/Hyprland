@@ -47,7 +47,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface*
     resource->setData(this);
     resource->setOnDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     resource->setDestroy([this](wl_client* c, wl_resource* res) { PROTO::tearing->onControllerDestroy(this); });
-    resource->setSetPresentationHint([this](wl_client* c, wl_resource* res, tearingControlV1PresentationHint hint) { this->onHint(hint); });
+    resource->setSetPresentationHint([this](wl_client* c, wl_resource* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_pWLSurface.wlr() == surf_) {
@@ -57,7 +57,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface*
     }
 }
 
-void CTearingControl::onHint(tearingControlV1PresentationHint hint_) {
+void CTearingControl::onHint(wpTearingControlV1PresentationHint hint_) {
     hint = hint_;
     updateWindow();
 }

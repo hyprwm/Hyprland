@@ -11,7 +11,7 @@ class CTearingControl {
   public:
     CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_);
 
-    void onHint(tearingControlV1PresentationHint hint_);
+    void onHint(wpTearingControlV1PresentationHint hint_);
 
     bool good();
 
@@ -24,11 +24,11 @@ class CTearingControl {
     }
 
   private:
-    void                             updateWindow();
+    void                               updateWindow();
 
-    SP<CWpTearingControlV1>          resource;
-    CWindow*                         pWindow = nullptr;
-    tearingControlV1PresentationHint hint    = PRESENTATION_HINT_VSYNC;
+    SP<CWpTearingControlV1>            resource;
+    CWindow*                           pWindow = nullptr;
+    wpTearingControlV1PresentationHint hint    = PRESENTATION_HINT_VSYNC;
 
     friend class CTearingControlProtocol;
 };

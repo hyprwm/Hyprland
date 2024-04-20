@@ -18,39 +18,39 @@ namespace Systemd {
         return -errno;
     }
 
-    int SdNotify(int unset_environment, const char* state) {
+    int SdNotify(int unsetEnvironment, const char* state) {
         int fd = socket(AF_UNIX, SOCK_DGRAM, 0);
         if (fd == -1)
             return -errno;
 
-        constexpr char env_var[] = "NOTIFY_SOCKET";
+        constexpr char envVar[] = "NOTIFY_SOCKET";
 
-        auto           cleanup = [unset_environment, env_var](int* fd) {
-            if (unset_environment)
-                unsetenv(env_var);
+        auto           cleanup = [unsetEnvironment, envVar](int* fd) {
+            if (unsetEnvironment)
+                unsetenv(envVar);
             close(*fd);
         };
-        std::unique_ptr<int, decltype(cleanup)> fd_cleanup(&fd, cleanup);
+        std::unique_ptr<int, decltype(cleanup)> fdCleaup(&fd, cleanup);
 
-        const char*                             addr = getenv(env_var);
+        const char*                             addr = getenv(envVar);
         if (!addr)
             return 0;
 
         // address length must be at most this; see man 7 unix
-        size_t             addr_len = strnlen(addr, 107);
+        size_t             addrLen = strnlen(addr, 107);
 
-        struct sockaddr_un unix_addr;
-        unix_addr.sun_family = AF_UNIX;
-        strncpy(unix_addr.sun_path, addr, addr_len);
-        if (unix_addr.sun_path[0] == '@')
-            unix_addr.sun_path[0] = '\0';
+        struct sockaddr_un unixAddr;
+        unixAddr.sun_family = AF_UNIX;
+        strncpy(unixAddr.sun_path, addr, addrLen);
+        if (unixAddr.sun_path[0] == '@')
+            unixAddr.sun_path[0] = '\0';
 
-        if (!connect(fd, (const sockaddr*)&unix_addr, sizeof(struct sockaddr_un)))
+        if (!connect(fd, (const sockaddr*)&unixAddr, sizeof(struct sockaddr_un)))
             return 1;
 
         // arbitrary value which seems to be enough for s-d messages
-        size_t state_len = strnlen(state, 128);
-        if (write(fd, state, state_len) >= 0)
+        size_t stateLen = strnlen(state, 128);
+        if (write(fd, state, stateLen) >= 0)
             return 1;
 
         return -errno;

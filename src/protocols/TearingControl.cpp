@@ -12,8 +12,9 @@ void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_
     RESOURCE->setOnDestroy([this](CWpTearingControlManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpTearingControlManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
-    RESOURCE->setGetTearingControl(
-        [this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetController(wl_resource_get_client(pMgr->resource()), pMgr->resource(), id, wlr_surface_from_resource(surface)); });
+    RESOURCE->setGetTearingControl([this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) {
+        this->onGetController(wl_resource_get_client(pMgr->resource()), pMgr->resource(), id, wlr_surface_from_resource(surface));
+    });
 }
 
 void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {

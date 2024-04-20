@@ -1786,11 +1786,14 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     PANIM->second.overridden = true;
     PANIM->second.pValues    = &PANIM->second;
 
-    // on/off
-    PANIM->second.internalEnabled = ARGS[1] == "1";
+    // This helper casts strings like "1", "true", "off", "yes"... to int.
+    int64_t enabledInt = configStringToInt(ARGS[1]) == 1;
 
-    if (ARGS[1] != "0" && ARGS[1] != "1")
+    // Checking that the int is 1 or 0 because the helper can return integers out of range.
+    if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
+
+    PANIM->second.internalEnabled = configStringToInt(ARGS[1]) == 1;
 
     if (PANIM->second.internalEnabled) {
         // speed

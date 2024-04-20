@@ -2,21 +2,16 @@
 
 #include <memory>
 #include "WaylandProtocol.hpp"
+#include "tearing-control-v1.hpp"
 
 class CWindow;
-
-enum eTearingPresentationHint {
-    TEARING_VSYNC = 0,
-    TEARING_ASYNC,
-};
-
 class CTearingControlProtocol;
 
 class CTearingControl {
   public:
-    CTearingControl(SP<CWaylandResource> resource_, wlr_surface* surf_);
+    CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_);
 
-    void onHint(uint32_t hint_);
+    void onHint(wpTearingControlV1PresentationHint hint_);
 
     bool good();
 
@@ -29,11 +24,11 @@ class CTearingControl {
     }
 
   private:
-    void                     updateWindow();
+    void                               updateWindow();
 
-    SP<CWaylandResource>     resource;
-    CWindow*                 pWindow = nullptr;
-    eTearingPresentationHint hint    = TEARING_VSYNC;
+    SP<CWpTearingControlV1>            resource;
+    CWindow*                           pWindow = nullptr;
+    wpTearingControlV1PresentationHint hint    = PRESENTATION_HINT_VSYNC;
 
     friend class CTearingControlProtocol;
 };
@@ -49,10 +44,10 @@ class CTearingControlProtocol : public IWaylandProtocol {
     void         onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf);
 
   private:
-    void                              onWindowDestroy(CWindow* pWindow);
+    void                                        onWindowDestroy(CWindow* pWindow);
 
-    std::vector<UP<CWaylandResource>> m_vManagers;
-    std::vector<UP<CTearingControl>>  m_vTearingControllers;
+    std::vector<UP<CWpTearingControlManagerV1>> m_vManagers;
+    std::vector<UP<CTearingControl>>            m_vTearingControllers;
 };
 
 namespace PROTO {

@@ -50,7 +50,7 @@ CCursorManager::CCursorManager() {
 
     updateTheme();
 
-    g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
+    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {

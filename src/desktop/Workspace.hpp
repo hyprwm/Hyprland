@@ -78,11 +78,11 @@ class CWorkspace {
     void        markInert();
 
   private:
-    void                      init(PHLWORKSPACE self);
+    void                              init(PHLWORKSPACE self);
 
-    HOOK_CALLBACK_FN*         m_pFocusedWindowHook = nullptr;
-    bool                      m_bInert             = true;
-    std::weak_ptr<CWorkspace> m_pSelf;
+    std::shared_ptr<HOOK_CALLBACK_FN> m_pFocusedWindowHook;
+    bool                              m_bInert = true;
+    std::weak_ptr<CWorkspace>         m_pSelf;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

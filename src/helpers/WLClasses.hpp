@@ -270,9 +270,9 @@ struct STabletPad {
 };
 
 struct SIdleInhibitor {
-    wlr_idle_inhibitor_v1* pWlrInhibitor   = nullptr;
-    CWindow*               pWindow         = nullptr;
-    HOOK_CALLBACK_FN*      onWindowDestroy = nullptr;
+    wlr_idle_inhibitor_v1*            pWlrInhibitor = nullptr;
+    CWindow*                          pWindow       = nullptr;
+    std::shared_ptr<HOOK_CALLBACK_FN> onWindowDestroy;
 
     DYNLISTENER(Destroy);
 

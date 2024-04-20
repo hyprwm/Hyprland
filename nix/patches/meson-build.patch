@@ -1,5 +1,5 @@
 diff --git a/meson.build b/meson.build
-index 1d2c7f9f..c5ef4e67 100644
+index 40883073..d8f2e536 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -33,20 +33,7 @@ if cpp_compiler.check_header('execinfo.h')
@@ -24,7 +24,7 @@ index 1d2c7f9f..c5ef4e67 100644
    add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
  endif
  
-@@ -69,8 +56,6 @@ if get_option('buildtype') == 'debug'
+@@ -65,8 +52,6 @@ if get_option('buildtype') == 'debug'
    add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
  endif
  
@@ -34,7 +34,7 @@ index 1d2c7f9f..c5ef4e67 100644
  headers = globber.stdout().strip().split('\n')
  foreach file : headers
 diff --git a/src/meson.build b/src/meson.build
-index 45701f5f..3505cefe 100644
+index 15c69552..327aa4fb 100644
 --- a/src/meson.build
 +++ b/src/meson.build
 @@ -9,7 +9,7 @@ executable('Hyprland', src,
@@ -46,7 +46,7 @@ index 45701f5f..3505cefe 100644
      dependency('cairo'),
      dependency('hyprcursor'),
      dependency('hyprlang', version: '>= 0.3.2'),
-@@ -17,11 +17,11 @@ executable('Hyprland', src,
+@@ -17,10 +17,10 @@ executable('Hyprland', src,
      dependency('egl'),
      dependency('xkbcommon'),
      dependency('libinput'),
@@ -54,7 +54,6 @@ index 45701f5f..3505cefe 100644
 +    dependency('xcb', required: get_option('xwayland')),
      backtrace_dep,
      epoll_dep,
-     systemd_dep,
 -    udis86,
 +    dependency('udis86'),
  

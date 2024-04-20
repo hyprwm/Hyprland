@@ -28,7 +28,6 @@ protocols = [
   [wl_protocol_dir, 'unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/xdg-output/xdg-output-unstable-v1.xml'],
-  [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
   [wl_protocol_dir, 'staging/cursor-shape/cursor-shape-v1.xml'],
   ['wlr-foreign-toplevel-management-unstable-v1.xml'],
   ['wlr-layer-shell-unstable-v1.xml'],
@@ -43,6 +42,7 @@ protocols = [
 
 new_protocols = [
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
+  [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
 ]
 
 wl_protos_src = []

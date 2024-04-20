@@ -72,6 +72,29 @@
         "type": "github"
       }
     },
+    "hyprwayland-scanner": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "systems": [
+          "systems"
+        ]
+      },
+      "locked": {
+        "lastModified": 1713612394,
+        "narHash": "sha256-uWA8iPYzrdpCT9d8I9YHrxkjBdooqOZIH6ZOHoQiOUc=",
+        "owner": "hyprwm",
+        "repo": "hyprwayland-scanner",
+        "rev": "f58a3f56e89857dc7ab7166cff2f971345026634",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hyprwm",
+        "repo": "hyprwayland-scanner",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1712963716,
@@ -93,6 +116,7 @@
         "hyprcursor": "hyprcursor",
         "hyprland-protocols": "hyprland-protocols",
         "hyprlang": "hyprlang",
+        "hyprwayland-scanner": "hyprwayland-scanner",
         "nixpkgs": "nixpkgs",
         "systems": "systems",
         "wlroots": "wlroots",

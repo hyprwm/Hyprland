@@ -1,40 +1,20 @@
 #include "TearingControl.hpp"
-#include "tearing-control-v1-protocol.h"
 #include "../managers/ProtocolManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../Compositor.hpp"
-
-static void destroyManager(wl_client* client, wl_resource* resource) {
-    RESOURCE_OR_BAIL(PRESOURCE);
-    reinterpret_cast<CTearingControlProtocol*>(PRESOURCE->data())->onManagerResourceDestroy(resource);
-}
-
-static void getTearingControl(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface) {
-    RESOURCE_OR_BAIL(PRESOURCE);
-    reinterpret_cast<CTearingControlProtocol*>(PRESOURCE->data())->onGetController(client, resource, id, wlr_surface_from_resource(surface));
-}
-
-//
 
 CTearingControlProtocol::CTearingControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     g_pHookSystem->hookDynamic("destroyWindow", [this](void* self, SCallbackInfo& info, std::any param) { this->onWindowDestroy(std::any_cast<CWindow*>(param)); });
 }
 
-static const struct wp_tearing_control_manager_v1_interface MANAGER_IMPL = {
-    .destroy             = ::destroyManager,
-    .get_tearing_control = ::getTearingControl,
-};
-
 void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWaylandResource>(client, &wp_tearing_control_manager_v1_interface, ver, id)).get();
+    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWpTearingControlManagerV1>(client, ver, id)).get();
+    RESOURCE->setOnDestroy([this](CWpTearingControlManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
-    if (!RESOURCE->good()) {
-        Debug::log(LOG, "Couldn't bind TearingControlMgr");
-        return;
-    }
-
-    RESOURCE->setImplementation(&MANAGER_IMPL, nullptr);
-    RESOURCE->setData(this);
+    RESOURCE->setDestroy([this](CWpTearingControlManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
+    RESOURCE->setGetTearingControl([this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) {
+        this->onGetController(wl_resource_get_client(pMgr->resource()), pMgr->resource(), id, wlr_surface_from_resource(surface));
+    });
 }
 
 void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
@@ -42,10 +22,8 @@ void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CTearingControlProtocol::onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf) {
-    const auto CONTROLLER = m_vTearingControllers
-                                .emplace_back(std::make_unique<CTearingControl>(
-                                    std::make_shared<CWaylandResource>(client, &wp_tearing_control_v1_interface, wl_resource_get_version(resource), id), surf))
-                                .get();
+    const auto CONTROLLER =
+        m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, wl_resource_get_version(resource), id), surf)).get();
 
     if (!CONTROLLER->good()) {
         m_vTearingControllers.pop_back();
@@ -66,25 +44,11 @@ void CTearingControlProtocol::onWindowDestroy(CWindow* pWindow) {
 
 //
 
-static void destroyController(wl_client* client, wl_resource* resource) {
-    RESOURCE_OR_BAIL(PRESOURCE);
-    PROTO::tearing->onControllerDestroy(reinterpret_cast<CTearingControl*>(PRESOURCE->data()));
-}
-
-static void setPresentationHint(wl_client* client, wl_resource* resource, uint32_t hint) {
-    RESOURCE_OR_BAIL(PRESOURCE);
-    reinterpret_cast<CTearingControl*>(PRESOURCE->data())->onHint(hint);
-}
-
-static const struct wp_tearing_control_v1_interface CONTROLLER_IMPL = {
-    .set_presentation_hint = ::setPresentationHint,
-    .destroy               = ::destroyController,
-};
-
-CTearingControl::CTearingControl(SP<CWaylandResource> resource_, wlr_surface* surf_) : resource(resource_) {
-    resource->setImplementation(&CONTROLLER_IMPL, nullptr);
+CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_) : resource(resource_) {
     resource->setData(this);
-    resource->setOnDestroyHandler([](CWaylandResource* res) { PROTO::tearing->onControllerDestroy(reinterpret_cast<CTearingControl*>(res->data())); });
+    resource->setOnDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
+    resource->setDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
+    resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_pWLSurface.wlr() == surf_) {
@@ -94,8 +58,8 @@ CTearingControl::CTearingControl(SP<CWaylandResource> resource_, wlr_surface* su
     }
 }
 
-void CTearingControl::onHint(uint32_t hint_) {
-    hint = hint_ == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC ? TEARING_VSYNC : TEARING_ASYNC;
+void CTearingControl::onHint(wpTearingControlV1PresentationHint hint_) {
+    hint = hint_;
     updateWindow();
 }
 
@@ -103,9 +67,9 @@ void CTearingControl::updateWindow() {
     if (!pWindow)
         return;
 
-    pWindow->m_bTearingHint = hint == TEARING_ASYNC;
+    pWindow->m_bTearingHint = hint == PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {
-    return resource->good();
+    return resource->resource();
 }

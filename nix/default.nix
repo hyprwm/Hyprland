@@ -12,6 +12,7 @@
   hyprcursor,
   hyprland-protocols,
   hyprlang,
+  hyprwayland-scanner,
   jq,
   libGL,
   libdrm,
@@ -86,6 +87,7 @@ in
     '';
 
     nativeBuildInputs = [
+      hyprwayland-scanner
       jq
       makeWrapper
       meson

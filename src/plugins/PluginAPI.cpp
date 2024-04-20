@@ -13,30 +13,18 @@ APICALL const char* __hyprland_api_get_hash() {
     return GIT_COMMIT_HASH;
 }
 
-APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    g_pHookSystem->hookStatic(event, fn, handle);
-    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, fn));
-
-    return true;
-}
-
-APICALL HOOK_CALLBACK_FN* HyprlandAPI::registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn) {
+APICALL std::shared_ptr<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return nullptr;
 
-    auto* const PFN = g_pHookSystem->hookDynamic(event, fn, handle);
+    auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
     PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, PFN));
     return PFN;
 }
 
-APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn) {
+APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, std::shared_ptr<HOOK_CALLBACK_FN> fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)

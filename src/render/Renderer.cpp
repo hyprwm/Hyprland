@@ -60,7 +60,7 @@ CHyprRenderer::CHyprRenderer() {
 
     // cursor hiding stuff
 
-    g_pHookSystem->hookDynamic("keyPress", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = g_pHookSystem->hookDynamic("keyPress", [&](void* self, SCallbackInfo& info, std::any param) {
         if (m_sCursorHiddenConditions.hiddenOnKeyboard)
             return;
 
@@ -68,7 +68,7 @@ CHyprRenderer::CHyprRenderer() {
         ensureCursorRenderingMode();
     });
 
-    g_pHookSystem->hookDynamic("mouseMove", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P2 = g_pHookSystem->hookDynamic("mouseMove", [&](void* self, SCallbackInfo& info, std::any param) {
         if (!m_sCursorHiddenConditions.hiddenOnKeyboard && m_sCursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_bLastInputTouch &&
             !m_sCursorHiddenConditions.hiddenOnTimeout)
             return;

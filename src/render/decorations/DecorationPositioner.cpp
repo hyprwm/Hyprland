@@ -2,12 +2,12 @@
 #include "../../Compositor.hpp"
 
 CDecorationPositioner::CDecorationPositioner() {
-    g_pHookSystem->hookDynamic("closeWindow", [this](void* call, SCallbackInfo& info, std::any data) {
+    static auto P = g_pHookSystem->hookDynamic("closeWindow", [this](void* call, SCallbackInfo& info, std::any data) {
         auto* const PWINDOW = std::any_cast<CWindow*>(data);
         this->onWindowUnmap(PWINDOW);
     });
 
-    g_pHookSystem->hookDynamic("openWindow", [this](void* call, SCallbackInfo& info, std::any data) {
+    static auto P2 = g_pHookSystem->hookDynamic("openWindow", [this](void* call, SCallbackInfo& info, std::any data) {
         auto* const PWINDOW = std::any_cast<CWindow*>(data);
         this->onWindowMap(PWINDOW);
     });

@@ -17,8 +17,8 @@ result*
 .cache
 
 *.o
-*-protocol.c
-*-protocol.h
+protocols/*.c*
+protocols/*.h*
 .ccls-cache
 *.so
 

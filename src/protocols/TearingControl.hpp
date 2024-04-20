@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "WaylandProtocol.hpp"
+#include "tearing-control-v1.hpp"
 
 class CWindow;
 
@@ -14,7 +15,7 @@ class CTearingControlProtocol;
 
 class CTearingControl {
   public:
-    CTearingControl(SP<CWaylandResource> resource_, wlr_surface* surf_);
+    CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_);
 
     void onHint(uint32_t hint_);
 
@@ -31,7 +32,7 @@ class CTearingControl {
   private:
     void                     updateWindow();
 
-    SP<CWaylandResource>     resource;
+    SP<CWpTearingControlV1>     resource;
     CWindow*                 pWindow = nullptr;
     eTearingPresentationHint hint    = TEARING_VSYNC;
 
@@ -51,7 +52,7 @@ class CTearingControlProtocol : public IWaylandProtocol {
   private:
     void                              onWindowDestroy(CWindow* pWindow);
 
-    std::vector<UP<CWaylandResource>> m_vManagers;
+    std::vector<UP<CWpTearingControlManagerV1>> m_vManagers;
     std::vector<UP<CTearingControl>>  m_vTearingControllers;
 };
 

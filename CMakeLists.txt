@@ -71,6 +71,7 @@ pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
+find_program(HYPRWAYLAND_SCANNER NAMES hyprwayland-scanner REQUIRED)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -238,6 +239,19 @@ function(protocol protoPath protoName external)
         target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     endif()
 endfunction()
+function(protocolNew protoPath protoName external)
+    if (external)
+        execute_process(
+            COMMAND hyprwayland-scanner ${WAYLAND_PROTOCOLS_DIR}/${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+    else()
+        execute_process(
+            COMMAND hyprwayland-scanner ${WAYLAND_PROTOCOLS_DIR}/${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+    endif()
+endfunction()
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland/build/libwlroots.a
@@ -263,7 +277,7 @@ protocol("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1
 protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 protocol("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
-protocol("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
+protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

@@ -970,36 +970,42 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
         if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
             continue;
 
-        if (rule.isDefault)
-            mergedRule.isDefault = true;
-        if (rule.isPersistent)
-            mergedRule.isPersistent = true;
-        if (rule.gapsIn.has_value())
-            mergedRule.gapsIn = rule.gapsIn;
-        if (rule.gapsOut.has_value())
-            mergedRule.gapsOut = rule.gapsOut;
-        if (rule.borderSize.has_value())
-            mergedRule.borderSize = rule.borderSize;
-        if (rule.border.has_value())
-            mergedRule.border = rule.border;
-        if (rule.rounding.has_value())
-            mergedRule.rounding = rule.rounding;
-        if (rule.decorate.has_value())
-            mergedRule.decorate = rule.decorate;
-        if (rule.shadow.has_value())
-            mergedRule.shadow = rule.shadow;
-        if (rule.onCreatedEmptyRunCmd.has_value())
-            mergedRule.onCreatedEmptyRunCmd = rule.onCreatedEmptyRunCmd;
-        if (rule.defaultName.has_value())
-            mergedRule.defaultName = rule.defaultName;
-
-        if (!rule.layoutopts.empty()) {
-            for (const auto& layoutopt : rule.layoutopts) {
-                mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
-            }
-        }
+        mergedRule = mergeWorkspaceRules(mergedRule, rule);
     }
 
+    return mergedRule;
+}
+
+SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, const SWorkspaceRule& rule2) {
+    SWorkspaceRule mergedRule = rule1;
+
+    if (rule2.isDefault)
+        mergedRule.isDefault = true;
+    if (rule2.isPersistent)
+        mergedRule.isPersistent = true;
+    if (rule2.gapsIn.has_value())
+        mergedRule.gapsIn = rule2.gapsIn;
+    if (rule2.gapsOut.has_value())
+        mergedRule.gapsOut = rule2.gapsOut;
+    if (rule2.borderSize.has_value())
+        mergedRule.borderSize = rule2.borderSize;
+    if (rule2.border.has_value())
+        mergedRule.border = rule2.border;
+    if (rule2.rounding.has_value())
+        mergedRule.rounding = rule2.rounding;
+    if (rule2.decorate.has_value())
+        mergedRule.decorate = rule2.decorate;
+    if (rule2.shadow.has_value())
+        mergedRule.shadow = rule2.shadow;
+    if (rule2.onCreatedEmptyRunCmd.has_value())
+        mergedRule.onCreatedEmptyRunCmd = rule2.onCreatedEmptyRunCmd;
+    if (rule2.defaultName.has_value())
+        mergedRule.defaultName = rule2.defaultName;
+    if (!rule2.layoutopts.empty()) {
+        for (const auto& layoutopt : rule2.layoutopts) {
+            mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
+        }
+    }
     return mergedRule;
 }
 
@@ -2307,7 +2313,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     if (IT == m_dWorkspaceRules.end())
         m_dWorkspaceRules.emplace_back(wsRule);
     else
-        *IT = wsRule;
+        *IT = mergeWorkspaceRules(*IT, wsRule);
 
     return {};
 }

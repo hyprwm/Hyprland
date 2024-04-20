@@ -1,6 +1,7 @@
 #include "InputMethodPopup.hpp"
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../protocols/FractionalScale.hpp"
 
 CInputPopup::CInputPopup(wlr_input_popup_surface_v2* surf) : pWlr(surf) {
     surface.assign(surf->surface);
@@ -63,7 +64,7 @@ void CInputPopup::onMap() {
     if (!PMONITOR)
         return;
 
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(surface.wlr(), PMONITOR->scale);
+    PROTO::fractional->sendScale(surface.wlr(), PMONITOR->scale);
 }
 
 void CInputPopup::onUnmap() {

@@ -12,6 +12,7 @@
 #endif
 #include <ranges>
 #include "helpers/VarList.hpp"
+#include "protocols/FractionalScale.hpp"
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -2849,7 +2850,7 @@ void CCompositor::leaveUnsafeState() {
 }
 
 void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(pSurface, scale);
+    PROTO::fractional->sendScale(pSurface, scale);
     wlr_surface_set_preferred_buffer_scale(pSurface, static_cast<int32_t>(std::ceil(scale)));
 
     const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);

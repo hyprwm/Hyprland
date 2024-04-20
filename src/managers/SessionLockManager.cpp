@@ -1,6 +1,7 @@
 #include "SessionLockManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../protocols/FractionalScale.hpp"
 
 static void handleSurfaceMap(void* owner, void* data) {
     const auto PSURFACE = (SSessionLockSurface*)owner;
@@ -74,7 +75,7 @@ void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
             PSURFACE->pWlrLockSurface = PWLRSURFACE;
             PSURFACE->iMonitorID      = PMONITOR->ID;
 
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PSURFACE->pWlrLockSurface->surface, PMONITOR->scale);
+            PROTO::fractional->sendScale(PSURFACE->pWlrLockSurface->surface, PMONITOR->scale);
 
             wlr_session_lock_surface_v1_configure(PWLRSURFACE, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
 

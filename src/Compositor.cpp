@@ -8,7 +8,7 @@
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
 #ifdef USES_SYSTEMD
-#include <helpers/SdDaemon.hpp> // for sd_notify
+#include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
 #include <ranges>
 #include "helpers/VarList.hpp"
@@ -384,8 +384,8 @@ void CCompositor::cleanup() {
     Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (sd_booted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-        sd_notify(0, "STOPPING=1");
+    if (Systemd::SdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+        Systemd::SdNotify(0, "STOPPING=1");
 #endif
 
     // unload all remaining plugins while the compositor is
@@ -614,10 +614,10 @@ void CCompositor::startCompositor() {
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
-    if (sd_booted() > 0) {
+    if (Systemd::SdBooted() > 0) {
         // tell systemd that we are ready so it can start other bond, following, related units
         if (!envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-            sd_notify(0, "READY=1");
+            Systemd::SdNotify(0, "READY=1");
     } else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif

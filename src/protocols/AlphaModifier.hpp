@@ -19,7 +19,7 @@ class CAlphaModifier {
     SP<CWpAlphaModifierSurfaceV1> resource;
     wlr_surface*                  pSurface = nullptr;
 
-    void setSurfaceAlpha(float a);
+    void                          setSurfaceAlpha(float a);
 
     DYNLISTENER(surfaceDestroy);
 };

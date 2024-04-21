@@ -6,6 +6,7 @@
 #include "../../desktop/Window.hpp"
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
+#include "../../protocols/RelativePointer.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -54,11 +55,9 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     const auto  DELTA = *PNOACCEL == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
     if (*PSENSTORAW == 1)
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS,
-                                                             DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA * *PSENS, Vector2D{e->unaccel_dx, e->unaccel_dy} * *PSENS);
     else
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y,
-                                                             e->unaccel_dx, e->unaccel_dy);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA, Vector2D{e->unaccel_dx, e->unaccel_dy});
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 
@@ -188,7 +187,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, CLOSEST.x, CLOSEST.y);
                 wlr_seat_pointer_send_motion(g_pCompositor->m_sSeat.seat, time, CLOSESTLOCAL.x, CLOSESTLOCAL.y);
-                wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)time * 1000, 0, 0, 0, 0);
+                PROTO::relativePointer->sendRelativeMotion((uint64_t)time * 1000, {}, {});
             }
 
             return;

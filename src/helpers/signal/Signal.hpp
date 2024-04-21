@@ -9,7 +9,7 @@
 
 class CSignal {
   public:
-    void emit(std::any data);
+    void emit(std::any data = {});
 
     //
     [[nodiscard("Listener is unregistered when the ptr is lost")]] CHyprSignalListener registerListener(std::function<void(std::any)> handler);

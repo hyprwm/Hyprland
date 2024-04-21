@@ -59,8 +59,8 @@ runs:
           xcb-util \
           xcb-util-image \
           libzip \
-          librsvg
-        pip3 install meson
+          librsvg \
+          hyprland
 
     - name: Get hyprwayland-scanner-git
       shell: bash

@@ -2781,33 +2781,46 @@ void CCompositor::arrangeMonitors() {
         ++it;
     }
 
-    // auto left
+    // Variables to store the max and min values of monitors on each axis.
     int maxXOffsetRight = 0;
-    int maxXOffsetLeft = 0;
-    int maxYOffsetUp = 0;
-    int maxYOffsetDown = 0;
+    int maxXOffsetLeft  = 0;
+    int maxYOffsetUp    = 0;
+    int maxYOffsetDown  = 0;
+
+    // Finds the max and min values of explicitely placed monitors.
     for (auto& m : arranged) {
         if (m->vecPosition.x + m->vecSize.x > maxXOffsetRight)
             maxXOffsetRight = m->vecPosition.x + m->vecSize.x;
+        if (m->vecPosition.x < maxXOffsetLeft)
+            maxXOffsetLeft = m->vecPosition.x;
+        if (m->vecPosition.y + m->vecSize.y > maxYOffsetDown)
+            maxYOffsetDown = m->vecPosition.y + m->vecSize.y;
+        if (m->vecPosition.y < maxYOffsetUp)
+            maxYOffsetUp = m->vecPosition.y;
     }
 
+    // Iterates through all non-explicitly placed monitors.
     for (auto& m : toArrange) {
         Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
-	if (m->activeMonitorRule.autoDir == AutoDirs::auto_up) {
-	    m->moveTo({0, maxYOffsetUp - m->vecSize.y});
-	    maxYOffsetUp = m->vecPosition.y;
-	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_down) {
-	    m->moveTo({0, maxYOffsetDown});
-	    maxYOffsetDown += m->vecSize.y;
-	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_left) {
-	    m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});
-	    maxXOffsetLeft = m->vecPosition.x;
-	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_right) {
-	    m->moveTo({maxXOffsetRight, 0});
-	    maxXOffsetRight += m->vecSize.x;
-	} else {
-	    Debug::log(WARN, "Invalid auto direction. Valid options are 'auto', 'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
-	}
+        // Moves the monitor to their appropriate position on the x/y axis and
+        // increments/decrements the corresponding max offset.
+        if (m->activeMonitorRule.autoDir == AutoDirs::auto_up) {
+            m->moveTo({0, maxYOffsetUp - m->vecSize.y});
+            maxYOffsetUp = m->vecPosition.y;
+        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_down) {
+            m->moveTo({0, maxYOffsetDown});
+            maxYOffsetDown += m->vecSize.y;
+        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_left) {
+            m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});
+            maxXOffsetLeft = m->vecPosition.x;
+        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_right) {
+            m->moveTo({maxXOffsetRight, 0});
+            maxXOffsetRight += m->vecSize.x;
+        } else {
+            Debug::log(WARN,
+                       "Invalid auto direction. Valid options are 'auto',"
+                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+        }
     }
 
     // reset maxXOffsetRight (reuse)

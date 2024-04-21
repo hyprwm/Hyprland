@@ -2783,15 +2783,20 @@ void CCompositor::arrangeMonitors() {
 
     // auto left
     int maxOffset = 0;
+    // Iterate through every monitor in arranged.
     for (auto& m : arranged) {
+	// If the monitors position + size is more than 0
         if (m->vecPosition.x + m->vecSize.x > maxOffset)
+	    // Change the maxOffset to the position + size of the monitor
             maxOffset = m->vecPosition.x + m->vecSize.x;
     }
 
+    int prevXPosition = 0;
     for (auto& m : toArrange) {
-        Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxOffset, 0.f);
-        m->moveTo({maxOffset, 0});
-        maxOffset += m->vecSize.x;
+        Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]\nvecSize.x: {}", m->szName, maxOffset, 0.f, m->vecSize.x);
+        m->moveTo({prevXPosition - m->vecSize.x, 0});
+	prevXPosition = m->vecPosition.x;
+        maxOffset -= m->vecSize.x;
     }
 
     // reset maxOffset (reuse)
@@ -2800,7 +2805,7 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : m_vMonitors) {
         Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {:.2f}]", m->szName, maxOffset, 0.f);
         m->vecXWaylandPosition = {maxOffset, 0};
-        maxOffset += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
+        maxOffset -= (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
 
         if (*PXWLFORCESCALEZERO)
             m->xwaylandScale = m->scale;

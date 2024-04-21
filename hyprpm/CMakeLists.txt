@@ -14,3 +14,16 @@ pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 add_executable(hyprpm ${SRCFILES})
 
 target_link_libraries(hyprpm PUBLIC PkgConfig::tomlplusplus)
+
+# binary
+install(TARGETS hyprpm)
+
+# shell completions
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hyprpm.bash
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/bash-completion/completions
+        RENAME hyprpm)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hyprpm.fish
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/fish/vendor_completions.d)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hyprpm.zsh
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/zsh/site-functions
+        RENAME _hyprpm)

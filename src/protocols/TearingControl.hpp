@@ -28,7 +28,7 @@ class CTearingControl {
 
     SP<CWpTearingControlV1>            resource;
     CWindow*                           pWindow = nullptr;
-    wpTearingControlV1PresentationHint hint    = PRESENTATION_HINT_VSYNC;
+    wpTearingControlV1PresentationHint hint    = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
 
     friend class CTearingControlProtocol;
 };

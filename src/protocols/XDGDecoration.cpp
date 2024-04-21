@@ -11,19 +11,19 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
     resource->setSetMode([this](CZxdgToplevelDecorationV1*, zxdgToplevelDecorationV1Mode mode) {
         std::string modeString;
         switch (mode) {
-            case zxdgToplevelDecorationV1Mode::MODE_CLIENT_SIDE: modeString = "MODE_CLIENT_SIDE"; break;
-            case zxdgToplevelDecorationV1Mode::MODE_SERVER_SIDE: modeString = "MODE_SERVER_SIDE"; break;
+            case ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE: modeString = "MODE_CLIENT_SIDE"; break;
+            case ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE: modeString = "MODE_SERVER_SIDE"; break;
             default: modeString = "INVALID"; break;
         }
 
         Debug::log(LOG, "[xdgDecoration] setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString,
-                   (mode == zxdgToplevelDecorationV1Mode::MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
-        resource->sendConfigure(zxdgToplevelDecorationV1Mode::MODE_SERVER_SIDE);
+                   (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
+        resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     });
 
     resource->setUnsetMode([this](CZxdgToplevelDecorationV1*) {
         Debug::log(LOG, "[xdgDecoration] unsetMode. Sending MODE_SERVER_SIDE.");
-        resource->sendConfigure(zxdgToplevelDecorationV1Mode::MODE_SERVER_SIDE);
+        resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     });
 }
 
@@ -57,7 +57,7 @@ void CXDGDecorationProtocol::destroyDecoration(CXDGDecoration* decoration) {
 
 void CXDGDecorationProtocol::onGetDecoration(CZxdgDecorationManagerV1* pMgr, uint32_t id, wl_resource* xdgToplevel) {
     if (m_mDecorations.contains(xdgToplevel)) {
-        wl_resource_post_error(pMgr->resource(), zxdgToplevelDecorationV1Error::ERROR_ALREADY_CONSTRUCTED, "Decoration object already exists");
+        wl_resource_post_error(pMgr->resource(), ZXDG_TOPLEVEL_DECORATION_V1_ERROR_ALREADY_CONSTRUCTED, "Decoration object already exists");
         return;
     }
 

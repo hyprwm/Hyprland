@@ -86,7 +86,7 @@ void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr
 
 void CCursorShapeProtocol::onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t serial, wpCursorShapeDeviceV1Shape shape) {
     if ((uint32_t)shape == 0 || (uint32_t)shape > sizeof(SHAPE_NAMES)) {
-        wl_resource_post_error(pMgr->resource(), ERROR_INVALID_SHAPE, "The shape is invalid");
+        wl_resource_post_error(pMgr->resource(), WP_CURSOR_SHAPE_DEVICE_V1_ERROR_INVALID_SHAPE, "The shape is invalid");
         return;
     }
 

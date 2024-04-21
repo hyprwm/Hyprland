@@ -2410,13 +2410,24 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
 }
 
 CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
+    if (regexp.starts_with("active"))
+        return m_pLastWindow;
+
     eFocusWindowMode mode = MODE_CLASS_REGEX;
 
     std::regex       regexCheck(regexp);
     std::string      matchCheck;
-    if (regexp.starts_with("title:")) {
+    if (regexp.starts_with("class:")) {
+        regexCheck = std::regex(regexp.substr(6));
+    } else if (regexp.starts_with("initialclass:")) {
+        mode       = MODE_INITIAL_CLASS_REGEX;
+        regexCheck = std::regex(regexp.substr(13));
+    } else if (regexp.starts_with("title:")) {
         mode       = MODE_TITLE_REGEX;
         regexCheck = std::regex(regexp.substr(6));
+    } else if (regexp.starts_with("initialtitle:")) {
+        mode       = MODE_INITIAL_TITLE_REGEX;
+        regexCheck = std::regex(regexp.substr(13));
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2447,13 +2458,25 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
         switch (mode) {
             case MODE_CLASS_REGEX: {
                 const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-                if (!std::regex_search(g_pXWaylandManager->getAppIDClass(w.get()), regexCheck))
+                if (!std::regex_search(windowClass, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_CLASS_REGEX: {
+                const auto initialWindowClass = w->m_szInitialClass;
+                if (!std::regex_search(initialWindowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_TITLE_REGEX: {
                 const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
                 if (!std::regex_search(windowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_TITLE_REGEX: {
+                const auto initialWindowTitle = w->m_szInitialTitle;
+                if (!std::regex_search(initialWindowTitle, regexCheck))
                     continue;
                 break;
             }

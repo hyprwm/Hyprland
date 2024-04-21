@@ -5,6 +5,7 @@
 #include "../../helpers/WLClasses.hpp"
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
+#include "../../helpers/signal/Listener.hpp"
 
 class CConstraint;
 class CWindow;
@@ -63,6 +64,7 @@ class CKeybindManager;
 
 class CInputManager {
   public:
+    CInputManager();
     ~CInputManager();
 
     void               onMouseMoved(wlr_pointer_motion_event*);
@@ -102,7 +104,6 @@ class CInputManager {
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
     void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
-    void               processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e);
 
     void               onTouchDown(wlr_touch_down_event*);
     void               onTouchUp(wlr_touch_up_event*);
@@ -197,6 +198,11 @@ class CInputManager {
     bool m_bEmptyFocusCursorSet = false;
 
   private:
+    // Listeners
+    struct {
+        CHyprSignalListener setCursorShape;
+    } m_sListeners;
+
     bool                 m_bCursorImageOverridden = false;
     eBorderIconDirection m_eBorderIconDirection   = BORDERICON_NONE;
 

@@ -252,8 +252,6 @@ void CCompositor::initServer() {
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
 
-    m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
-
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
@@ -309,7 +307,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
     addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
-    addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
     addWLSignal(&m_sWLRKbShInhibitMgr->events.new_inhibitor, &Events::listen_newShortcutInhibitor, m_sWLRKbShInhibitMgr, "ShortcutInhibitMgr");
 
     if (m_sWRLDRMLeaseMgr)
@@ -362,7 +359,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_activateXDG);
     removeWLSignal(&Events::listen_newSessionLock);
     removeWLSignal(&Events::listen_setGamma);
-    removeWLSignal(&Events::listen_setCursorShape);
     removeWLSignal(&Events::listen_newShortcutInhibitor);
 
     if (m_sWRLDRMLeaseMgr)
@@ -455,6 +451,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the HookSystem!");
             g_pHookSystem = std::make_unique<CHookSystemManager>();
 
+            Debug::log(LOG, "Creating the ProtocolManager!");
+            g_pProtocolManager = std::make_unique<CProtocolManager>();
+
             Debug::log(LOG, "Creating the KeybindManager!");
             g_pKeybindManager = std::make_unique<CKeybindManager>();
 
@@ -491,9 +490,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the XWaylandManager!");
             g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
-
-            Debug::log(LOG, "Creating the ProtocolManager!");
-            g_pProtocolManager = std::make_unique<CProtocolManager>();
 
             Debug::log(LOG, "Creating the SessionLockManager!");
             g_pSessionLockManager = std::make_unique<CSessionLockManager>();

@@ -4,6 +4,29 @@
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../protocols/CursorShape.hpp"
+
+CInputManager::CInputManager() {
+    m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+        if (!cursorImageUnlocked())
+            return;
+
+        auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
+
+        if (wl_resource_get_client(event.pMgr->resource()) != g_pCompositor->m_sSeat.seat->pointer_state.focused_client->client)
+            return;
+
+        Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
+
+        m_sCursorSurfaceInfo.wlSurface.unassign();
+        m_sCursorSurfaceInfo.vHotspot = {};
+        m_sCursorSurfaceInfo.name     = event.shapeName;
+        m_sCursorSurfaceInfo.hidden   = false;
+
+        m_sCursorSurfaceInfo.inUse = true;
+        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+    });
+}
 
 CInputManager::~CInputManager() {
     m_vConstraints.clear();
@@ -506,23 +529,6 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 
         m_sCursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorSurface(e->surface, e->hotspot_x, e->hotspot_y);
-    }
-}
-
-void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
-    if (!cursorImageUnlocked())
-        return;
-
-    Debug::log(LOG, "cursorImage request: shape {}", (uint32_t)e->shape);
-
-    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
-        m_sCursorSurfaceInfo.wlSurface.unassign();
-        m_sCursorSurfaceInfo.vHotspot = {};
-        m_sCursorSurfaceInfo.name     = wlr_cursor_shape_v1_name(e->shape);
-        m_sCursorSurfaceInfo.hidden   = false;
-
-        m_sCursorSurfaceInfo.inUse = true;
-        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     }
 }
 

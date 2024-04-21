@@ -81,7 +81,6 @@ class CCompositor {
     wlr_backend*                               m_sWLRHeadlessBackend;
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
     wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
-    wlr_cursor_shape_manager_v1*               m_sWLRCursorShapeMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";

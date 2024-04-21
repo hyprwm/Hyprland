@@ -81,6 +81,9 @@ class CWLSurface {
         return (CWLSurface*)pSurface->data;
     }
 
+    // used by the alpha-modifier protocol
+    float m_pAlphaModifier = 1.F;
+
   private:
     bool           m_bInert = true;
 

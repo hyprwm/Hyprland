@@ -7,6 +7,7 @@
 #include "../protocols/IdleInhibit.hpp"
 #include "../protocols/RelativePointer.hpp"
 #include "../protocols/XDGDecoration.hpp"
+#include "../protocols/AlphaModifier.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -15,6 +16,7 @@
 #include "idle-inhibit-unstable-v1.hpp"
 #include "relative-pointer-unstable-v1.hpp"
 #include "xdg-decoration-unstable-v1.hpp"
+#include "alpha-modifier-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -25,6 +27,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::idleInhibit     = std::make_unique<CIdleInhibitProtocol>(&zwp_idle_inhibit_manager_v1_interface, 1, "IdleInhibit");
     PROTO::relativePointer = std::make_unique<CRelativePointerProtocol>(&zwp_relative_pointer_manager_v1_interface, 1, "RelativePointer");
     PROTO::xdgDecoration   = std::make_unique<CXDGDecorationProtocol>(&zxdg_decoration_manager_v1_interface, 1, "XDGDecoration");
+    PROTO::alphaModifier   = std::make_unique<CAlphaModifierProtocol>(&wp_alpha_modifier_v1_interface, 1, "AlphaModifier");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

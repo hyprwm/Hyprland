@@ -2792,8 +2792,8 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : toArrange) {
         Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
 	if (m->activeMonitorRule.autoDir == AutoDirs::auto_left) {
-	    maxXOffsetLeft -= m->vecPosition.x;
 	    m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});
+	    maxXOffsetLeft = m->vecPosition.x;
 	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_right) {
 	    m->moveTo({maxXOffsetRight, 0});
 	    maxXOffsetRight += m->vecSize.x;

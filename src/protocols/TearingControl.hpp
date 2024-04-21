@@ -39,15 +39,17 @@ class CTearingControlProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onManagerResourceDestroy(wl_resource* res);
-    void         onControllerDestroy(CTearingControl* control);
-    void         onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf);
-
   private:
-    void                                        onWindowDestroy(CWindow* pWindow);
+    void onManagerResourceDestroy(wl_resource* res);
+    void onControllerDestroy(CTearingControl* control);
+    void onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf);
+    void onWindowDestroy(CWindow* pWindow);
 
+    //
     std::vector<UP<CWpTearingControlManagerV1>> m_vManagers;
     std::vector<UP<CTearingControl>>            m_vTearingControllers;
+
+    friend class CTearingControl;
 };
 
 namespace PROTO {

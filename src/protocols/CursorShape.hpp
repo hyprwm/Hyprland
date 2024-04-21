@@ -12,14 +12,6 @@ class CCursorShapeProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onManagerResourceDestroy(wl_resource* res);
-    void         onDeviceResourceDestroy(wl_resource* res);
-
-    void         onGetPointer(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* pointer);
-    void         onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* tablet);
-
-    void         onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t serial, wpCursorShapeDeviceV1Shape shape);
-
     struct SSetShapeEvent {
         CWpCursorShapeDeviceV1*    pMgr = nullptr;
         wpCursorShapeDeviceV1Shape shape;
@@ -31,8 +23,16 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     } events;
 
   private:
-    void                                                         createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource);
+    void onManagerResourceDestroy(wl_resource* res);
+    void onDeviceResourceDestroy(wl_resource* res);
 
+    void onGetPointer(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* pointer);
+    void onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* tablet);
+
+    void onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t serial, wpCursorShapeDeviceV1Shape shape);
+    void createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource);
+
+    //
     std::unordered_map<wl_resource*, SP<CWpCursorShapeDeviceV1>> m_mDevices;
     std::vector<UP<CWpCursorShapeManagerV1>>                     m_vManagers;
 };

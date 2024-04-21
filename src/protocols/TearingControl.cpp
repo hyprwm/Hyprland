@@ -26,6 +26,7 @@ void CTearingControlProtocol::onGetController(wl_client* client, wl_resource* re
         m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, wl_resource_get_version(resource), id), surf)).get();
 
     if (!CONTROLLER->good()) {
+        wl_resource_post_no_memory(resource);
         m_vTearingControllers.pop_back();
         return;
     }

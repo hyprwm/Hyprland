@@ -45,7 +45,6 @@ runs:
           pixman \
           pkgconf \
           pugixml \
-          python-pip \
           scdoc \
           seatd \
           systemd \
@@ -58,8 +57,7 @@ runs:
           xcb-util \
           xcb-util-image \
           libzip \
-          librsvg \
-          hyprland
+          librsvg
 
     - name: Get hyprwayland-scanner-git
       shell: bash

@@ -68,7 +68,7 @@ void CTearingControl::updateWindow() {
     if (!pWindow)
         return;
 
-    pWindow->m_bTearingHint = hint == PRESENTATION_HINT_ASYNC;
+    pWindow->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {

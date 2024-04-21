@@ -45,22 +45,23 @@ class CFractionalScaleProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onManagerResourceDestroy(wl_resource* res);
-    void         onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface);
-
-    void         sendScale(wlr_surface* surf, const float& scale);
     void         onSurfaceDestroy(wlr_surface* surf);
-
-    void         removeAddon(CFractionalScaleAddon*);
+    void         sendScale(wlr_surface* surf, const float& scale);
 
   private:
-    void                                                        registerSurface(wlr_surface*);
+    void removeAddon(CFractionalScaleAddon*);
+    void registerSurface(wlr_surface*);
+    void onManagerResourceDestroy(wl_resource* res);
+    void onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface);
 
+    //
     std::unordered_map<wlr_surface*, SSurfaceListener>          m_mSurfaceDestroyListeners;
 
     std::unordered_map<wlr_surface*, float>                     m_mSurfaceScales;
     std::unordered_map<wlr_surface*, UP<CFractionalScaleAddon>> m_mAddons;
     std::vector<UP<CWpFractionalScaleManagerV1>>                m_vManagers;
+
+    friend class CFractionalScaleAddon;
 };
 
 namespace PROTO {

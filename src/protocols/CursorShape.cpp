@@ -1,4 +1,5 @@
 #include "CursorShape.hpp"
+#include <algorithm>
 
 // clang-format off
 constexpr const char* SHAPE_NAMES[] = {

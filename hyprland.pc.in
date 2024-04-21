@@ -1,8 +1,8 @@
-prefix="@PREFIX@"
-includedir="${prefix}/include"
+prefix=@PREFIX@
+includedir=@INCLUDEDIR@
 
 Name: Hyprland
 URL: https://github.com/hyprwm/Hyprland
 Description: Hyprland header files
 Version: @HYPRLAND_VERSION@
-Cflags: -I"${includedir}/hyprland/protocols" -I"${includedir}/hyprland/wlroots-hyprland" -I"${includedir}"
+Cflags: -I${includedir} -I${includedir}/hyprland/protocols -I${includedir}/hyprland

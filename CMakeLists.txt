@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.27)
+
 include(CheckIncludeFile)
+include(ExternalProject)
+include(GNUInstallDirs)
 
 # Get version
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
@@ -12,6 +15,7 @@ project(Hyprland
 
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
+set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
 configure_file(hyprland.pc.in hyprland.pc @ONLY) 
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
@@ -23,16 +27,12 @@ message(STATUS "Gathering git info")
 execute_process(
     COMMAND ./scripts/generateVersion.sh
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-#
-#
 
 # udis
 add_subdirectory("subprojects/udis86")
 
 # wlroots
 message(STATUS "Setting up wlroots")
-
-include(ExternalProject)
 
 if(CMAKE_BUILD_TYPE)
     string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
@@ -112,7 +112,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     hyprwayland-scanner>=0.3.4 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
-file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
 set(TRACY_CPP_FILES "")
 if(USE_TRACY)
@@ -287,3 +287,64 @@ protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock
 # tools
 add_subdirectory(hyprctl)
 add_subdirectory(hyprpm)
+
+# binary and symlink
+install(TARGETS Hyprland)
+
+install(CODE "execute_process( \
+        COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        ${CMAKE_INSTALL_BINDIR}/Hyprland \
+        ${CMAKE_INSTALL_BINDIR}/hyprland
+        )"
+)
+
+# session file
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions)
+
+# wallpapers
+file(GLOB_RECURSE WALLPAPERS "assets/wall*")
+install(FILES ${WALLPAPERS}
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+
+# default config
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+
+# portal config
+install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/xdg-desktop-portal)
+
+# man pages
+file(GLOB_RECURSE MANPAGES "docs/*.1")
+install(FILES ${MANPAGES}
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+
+# pkgconfig entry
+install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+
+# wlroots headers
+set(HEADERS_WLR "${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wlroots-hyprland/include/wlr")
+install(DIRECTORY ${HEADERS_WLR}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
+        FILES_MATCHING PATTERN "*.h")
+
+# config.h and version.h
+set(HEADERS_WLR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wlroots-hyprland/build/include/wlr")
+install(DIRECTORY ${HEADERS_WLR_ROOT}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/wlr
+        FILES_MATCHING PATTERN "*.h")
+
+# protocol headers
+set(HEADERS_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/protocols")
+install(DIRECTORY ${HEADERS_PROTO}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
+        FILES_MATCHING PATTERN "*.h*")
+
+# hyprland headers
+set(HEADERS_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+install(DIRECTORY ${HEADERS_SRC}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
+        FILES_MATCHING PATTERN "*.h*")

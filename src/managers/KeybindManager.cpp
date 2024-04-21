@@ -335,14 +335,14 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
         .submapAtPress      = m_szCurrentSelectedSubmap,
     };
 
+    if (m_pActiveKeybindEventSource) {
+        wl_event_source_remove(m_pActiveKeybindEventSource);
+        m_pActiveKeybindEventSource = nullptr;
+        m_pActiveKeybind            = nullptr;
+    }
+
     bool suppressEvent = false;
     if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-        // clean repeat
-        if (m_pActiveKeybindEventSource) {
-            wl_event_source_remove(m_pActiveKeybindEventSource);
-            m_pActiveKeybindEventSource = nullptr;
-            m_pActiveKeybind            = nullptr;
-        }
 
         m_dPressedKeys.push_back(KEY);
 
@@ -353,12 +353,6 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
 
         m_dPressedKeys.back().sent = !suppressEvent;
     } else { // key release
-        // clean repeat
-        if (m_pActiveKeybindEventSource) {
-            wl_event_source_remove(m_pActiveKeybindEventSource);
-            m_pActiveKeybindEventSource = nullptr;
-            m_pActiveKeybind            = nullptr;
-        }
 
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
@@ -396,6 +390,12 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
 
     m_tScrollTimer.reset();
 
+    if (m_pActiveKeybindEventSource) {
+        wl_event_source_remove(m_pActiveKeybindEventSource);
+        m_pActiveKeybindEventSource = nullptr;
+        m_pActiveKeybind            = nullptr;
+    }
+
     bool found = false;
     if (e->source == WL_POINTER_AXIS_SOURCE_WHEEL && e->orientation == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         if (e->delta < 0)
@@ -432,6 +432,12 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         .keyName            = KEY_NAME,
         .modmaskAtPressTime = MODS,
     };
+
+    if (m_pActiveKeybindEventSource) {
+        wl_event_source_remove(m_pActiveKeybindEventSource);
+        m_pActiveKeybindEventSource = nullptr;
+        m_pActiveKeybind            = nullptr;
+    }
 
     if (e->state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_dPressedKeys.push_back(KEY);

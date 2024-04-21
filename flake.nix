@@ -11,7 +11,7 @@
       type = "github";
       owner = "hyprwm";
       repo = "wlroots-hyprland";
-      rev = "b9063af512a2326d5c519edc6a759da875deab21";
+      rev = "5c1d51c5a2793480f5b6c4341ad0797052aec2ea";
       flake = false;
     };
 

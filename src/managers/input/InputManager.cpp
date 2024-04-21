@@ -13,6 +13,9 @@ CInputManager::CInputManager() {
 
         auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
 
+        if (!g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+            return;
+
         if (wl_resource_get_client(event.pMgr->resource()) != g_pCompositor->m_sSeat.seat->pointer_state.focused_client->client)
             return;
 

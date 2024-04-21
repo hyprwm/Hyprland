@@ -22,12 +22,11 @@ in {
   hyprland-packages = lib.composeManyExtensions [
     # Dependencies
     inputs.hyprcursor.overlays.default
-    inputs.hyprland-protocols.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprwayland-scanner.overlays.default
-    self.overlays.wlroots-hyprland
-    self.overlays.udis86
     self.overlays.wayland-protocols
+    self.overlays.xwayland
+
     # Hyprland packages themselves
     (final: prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
@@ -36,19 +35,20 @@ in {
         stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
-        udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
-        inherit (final) wlroots-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};
       hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
+
+      # deprecated packages
       hyprland-nvidia =
         builtins.trace ''
           hyprland-nvidia was removed. Please use the hyprland package.
           Nvidia patches are no longer needed.
         ''
         final.hyprland;
+
       hyprland-hidpi =
         builtins.trace ''
           hyprland-hidpi was removed. Please use the hyprland package.
@@ -64,18 +64,14 @@ in {
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
   ];
 
-  udis86 = final: prev: {
-    udis86-hyprland = final.callPackage ./udis86.nix {};
-  };
-
-  # Patched version of wlroots for Hyprland.
-  # It is under a new package name so as to not conflict with
-  # the standard version in nixpkgs.
-  wlroots-hyprland = final: prev: {
-    wlroots-hyprland = final.callPackage ./wlroots.nix {
-      version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
-      src = inputs.wlroots;
-    };
+  # Patches XWayland's pkgconfig file to not include Cflags or includedir
+  # The above two variables trip up CMake and the build fails
+  xwayland = final: prev: {
+    xwayland = prev.xwayland.overrideAttrs (old: {
+      postInstall = ''
+        sed -i '/includedir/d' $out/lib/pkgconfig/xwayland.pc
+      '';
+    });
   };
 
   wayland-protocols = final: prev: {

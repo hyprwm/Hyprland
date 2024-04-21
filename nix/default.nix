@@ -4,10 +4,12 @@
   pkg-config,
   pkgconf,
   makeWrapper,
+  cmake,
   meson,
   ninja,
   binutils,
   cairo,
+  expat,
   git,
   hyprcursor,
   hyprland-protocols,
@@ -19,19 +21,19 @@
   libexecinfo,
   libinput,
   libuuid,
-  libxcb,
   libxkbcommon,
   mesa,
   pango,
   pciutils,
+  python3,
   systemd,
   tomlplusplus,
   udis86,
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots-hyprland,
-  xcbutilwm,
+  wlroots,
+  xorg,
   xwayland,
   debug ? false,
   enableXWayland ? true,
@@ -48,9 +50,7 @@
 }:
 assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
 assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
-assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland"; let
-  wlr = wlroots-hyprland.override {inherit enableXWayland;};
-in
+assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
   stdenv.mkDerivation {
     pname = "hyprland${lib.optionalString debug "-debug"}";
     inherit version;
@@ -62,11 +62,6 @@ in
         ! (lib.hasSuffix ".nix" baseName);
       src = lib.cleanSource ../.;
     };
-
-    patches = [
-      # make meson use the provided wlroots instead of the git submodule
-      ./patches/meson-build.patch
-    ];
 
     postPatch = ''
       # Fix hardcoded paths to /usr installation
@@ -91,9 +86,11 @@ in
       hyprwayland-scanner
       jq
       makeWrapper
+      cmake
       meson
       ninja
       pkg-config
+      python3
       wayland-scanner
     ];
 
@@ -103,10 +100,12 @@ in
       "dev"
     ];
 
-    buildInputs =
-      wlr.buildInputs
-      ++ [
+    buildInputs = lib.concatLists [
+      wlroots.buildInputs
+      udis86.buildInputs
+      [
         cairo
+        expat
         git
         hyprcursor.dev
         hyprland-protocols
@@ -120,31 +119,32 @@ in
         pango
         pciutils
         tomlplusplus
-        udis86
         wayland
         wayland-protocols
-        wlr
       ]
-      ++ lib.optionals stdenv.hostPlatform.isMusl [libexecinfo]
-      ++ lib.optionals enableXWayland [libxcb xcbutilwm xwayland]
-      ++ lib.optionals withSystemd [systemd];
+      (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
+      (lib.optionals enableXWayland [
+        xorg.libxcb
+        xorg.libXdmcp
+        xorg.xcbutil
+        xorg.xcbutilwm
+        xwayland
+      ])
+      (lib.optionals withSystemd [systemd])
+    ];
 
-    mesonBuildType =
+    cmakeBuildType =
       if debug
-      then "debug"
-      else "release";
+      then "Debug"
+      else "RelWithDebInfo";
 
-    mesonAutoFeatures = "disabled";
-
-    mesonFlags = [
-      (lib.mesonEnable "xwayland" enableXWayland)
-      (lib.mesonEnable "legacy_renderer" legacyRenderer)
-      (lib.mesonEnable "systemd" withSystemd)
+    cmakeFlags = [
+      (lib.cmakeBool "NO_XWAYLAND" (!enableXWayland))
+      (lib.cmakeBool "LEGACY_RENDERER" legacyRenderer)
+      (lib.cmakeBool "NO_SYSTEMD" (!withSystemd))
     ];
 
     postInstall = ''
-      ln -s ${wlr}/include/wlr $dev/include/hyprland/wlroots
-
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
           --suffix PATH : ${lib.makeBinPath [
@@ -161,7 +161,7 @@ in
       homepage = "https://github.com/hyprwm/Hyprland";
       description = "A dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
       license = licenses.bsd3;
-      platforms = wlr.meta.platforms;
+      platforms = wlroots.meta.platforms;
       mainProgram = "Hyprland";
     };
   }

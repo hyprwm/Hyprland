@@ -44,10 +44,20 @@ class CMonitorState {
     CMonitor*        m_pOwner;
 };
 
+// Enum for the different types of auto directions, e.g. auto-left, auto-up.
+enum class AutoDirs {
+    auto_up,
+    auto_down,
+    auto_left,
+    auto_right
+};
+
 class CMonitor {
   public:
     CMonitor();
     ~CMonitor();
+
+    AutoDirs        autoDir;
 
     Vector2D        vecPosition         = Vector2D(-1, -1); // means unset
     Vector2D        vecXWaylandPosition = Vector2D(-1, -1); // means unset

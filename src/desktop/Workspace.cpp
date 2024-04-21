@@ -252,6 +252,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // w - windowCount: w[1-4] or w[1], optional flag t or f for tiled or floating and
             //                  flag g to count groups instead of windows, e.g. w[t1-2], w[fg4]
             //                  flag v will count only visible windows
+            // f - fullscreen state : f[-1], f[0], f[1], or f[2] for different fullscreen states
+            //                        -1: no fullscreen, 0: fullscreen, 1: maximized, 2: fullscreen without sending fs state to window
 
             const auto  NEXTSPACE = selector.find_first_of(' ', i);
             std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
@@ -439,6 +441,44 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 if (std::clamp(count, from, to) != count)
                     return false;
+                continue;
+            }
+
+            if (cur == 'f') {
+                if (!prop.starts_with("f[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop        = prop.substr(2, prop.length() - 3);
+                int FSSTATE = -1;
+                try {
+                    FSSTATE = std::stoi(prop);
+                } catch (std::exception& e) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                switch (FSSTATE) {
+                    case -1: // no fullscreen
+                        if (m_bHasFullscreenWindow)
+                            return false;
+                        break;
+                    case 0: // fullscreen full
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL)
+                            return false;
+                        break;
+                    case 1: // maximized
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_MAXIMIZED)
+                            return false;
+                        break;
+                    case 2: // fullscreen without sending fullscreen state to window
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL || !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID) ||
+                            !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID)->m_bDontSendFullscreen)
+                            return false;
+                        break;
+                    default: break;
+                }
                 continue;
             }
 

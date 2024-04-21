@@ -27,6 +27,7 @@ in {
     inputs.hyprwayland-scanner.overlays.default
     self.overlays.wlroots-hyprland
     self.overlays.udis86
+    self.overlays.wayland-protocols
     # Hyprland packages themselves
     (final: prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
@@ -75,5 +76,15 @@ in {
       version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
       src = inputs.wlroots;
     };
+  };
+
+  wayland-protocols = final: prev: {
+    wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
+      version = "1.35";
+      src = prev.fetchurl {
+        url = "https://gitlab.freedesktop.org/wayland/${super.pname}/-/releases/${self.version}/downloads/${super.pname}-${self.version}.tar.xz";
+        hash = "sha256-N6JxaigTPcgZNBxWiinSHoy3ITDlwSah/PyfQsI9las=";
+      };
+    });
   };
 }

@@ -46,6 +46,7 @@ runs:
           pixman \
           pkgconf \
           pugixml \
+          python-pip \
           scdoc \
           seatd \
           systemd \
@@ -59,6 +60,7 @@ runs:
           xcb-util-image \
           libzip \
           librsvg
+        pip3 install meson
 
     - name: Get hyprwayland-scanner-git
       shell: bash

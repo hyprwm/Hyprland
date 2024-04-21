@@ -1641,6 +1641,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+	if (ARGS[2] == "auto-right") {
+	    newrule.autoDir = AutoDirs::auto_right;
+	}
     } else {
         if (!ARGS[2].contains("x")) {
             error += "invalid offset ";

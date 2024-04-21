@@ -11,7 +11,16 @@
 #include "Region.hpp"
 #include <optional>
 
+// Enum for the different types of auto directions, e.g. auto-left, auto-up.
+enum class AutoDirs {
+    auto_up,
+    auto_down,
+    auto_left,
+    auto_right
+};
+
 struct SMonitorRule {
+    AutoDirs            autoDir;
     std::string         name        = "";
     Vector2D            resolution  = Vector2D(1280, 720);
     Vector2D            offset      = Vector2D(0, 0);
@@ -44,20 +53,10 @@ class CMonitorState {
     CMonitor*        m_pOwner;
 };
 
-// Enum for the different types of auto directions, e.g. auto-left, auto-up.
-enum class AutoDirs {
-    auto_up,
-    auto_down,
-    auto_left,
-    auto_right
-};
-
 class CMonitor {
   public:
     CMonitor();
     ~CMonitor();
-
-    AutoDirs        autoDir;
 
     Vector2D        vecPosition         = Vector2D(-1, -1); // means unset
     Vector2D        vecXWaylandPosition = Vector2D(-1, -1); // means unset

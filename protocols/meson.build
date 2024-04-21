@@ -44,6 +44,7 @@ new_protocols = [
   [wl_protocol_dir, 'unstable/xdg-output/xdg-output-unstable-v1.xml'],
   [wl_protocol_dir, 'staging/cursor-shape/cursor-shape-v1.xml'],
   [wl_protocol_dir, 'unstable/idle-inhibit/idle-inhibit-unstable-v1.xml'],
+  [wl_protocol_dir, 'unstable/relative-pointer/relative-pointer-unstable-v1.xml'],
 ]
 
 wl_protos_src = []

@@ -2410,9 +2410,8 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
 }
 
 CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
-    if (regexp == "activewindow") {
+    if (regexp.starts_with("active"))
         return m_pLastWindow;
-    }
 
     eFocusWindowMode mode = MODE_CLASS_REGEX;
 
@@ -2464,7 +2463,7 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_INITIAL_CLASS_REGEX: {
-                const auto initialWindowClass = w.get()->m_szInitialClass;
+                const auto initialWindowClass = w->m_szInitialClass;
                 if (!std::regex_search(initialWindowClass, regexCheck))
                     continue;
                 break;
@@ -2476,7 +2475,7 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_INITIAL_TITLE_REGEX: {
-                const auto initialWindowTitle = w.get()->m_szInitialTitle;
+                const auto initialWindowTitle = w->m_szInitialTitle;
                 if (!std::regex_search(initialWindowTitle, regexCheck))
                     continue;
                 break;

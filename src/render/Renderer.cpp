@@ -98,14 +98,14 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
 
-    const float ALPHA = RDATA->alpha * RDATA->fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F); 
+    const float ALPHA = RDATA->alpha * RDATA->fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
 
-    CBox windowBox;
+    CBox        windowBox;
     if (RDATA->surface && surface == RDATA->surface) {
         windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
 
         // however, if surface buffer w / h < box, we need to adjust them
-        const auto  PWINDOW  = PSURFACE ? PSURFACE->getWindow() : nullptr;
+        const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
 
         if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT = PSURFACE->correctSmallVec();

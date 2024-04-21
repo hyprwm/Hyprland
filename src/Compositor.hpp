@@ -71,7 +71,6 @@ class CCompositor {
     wlr_foreign_toplevel_manager_v1*           m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*                     m_sWLRTabletManager;
     wlr_xdg_foreign_registry*                  m_sWLRForeignRegistry;
-    wlr_idle_inhibit_manager_v1*               m_sWLRIdleInhibitMgr;
     wlr_pointer_gestures_v1*                   m_sWLRPointerGestures;
     wlr_output_power_manager_v1*               m_sWLROutputPowerMgr;
     wlr_input_method_manager_v2*               m_sWLRIMEMgr;

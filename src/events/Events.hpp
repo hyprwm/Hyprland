@@ -105,8 +105,6 @@ namespace Events {
     // Renderer destroy
     LISTENER(RendererDestroy);
 
-    LISTENER(newIdleInhibitor);
-
     // session
     LISTENER(sessionActive);
 

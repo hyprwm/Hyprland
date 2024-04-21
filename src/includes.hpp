@@ -72,7 +72,6 @@ extern "C" {
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
-#include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 #include <wlr/util/edges.h>

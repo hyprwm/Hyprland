@@ -3,16 +3,19 @@
 #include "../protocols/TearingControl.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/XDGOutput.hpp"
+#include "../protocols/CursorShape.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
 #include "xdg-output-unstable-v1.hpp"
+#include "cursor-shape-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
-    PROTO::tearing    = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
-    PROTO::fractional = std::make_unique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
-    PROTO::xdgOutput  = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
+    PROTO::tearing     = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
+    PROTO::fractional  = std::make_unique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
+    PROTO::xdgOutput   = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
+    PROTO::cursorShape = std::make_unique<CCursorShapeProtocol>(&wp_cursor_shape_manager_v1_interface, 1, "CursorShape");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

@@ -239,12 +239,6 @@ void Events::listener_setGamma(wl_listener* listener, void* data) {
     g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 }
 
-void Events::listener_setCursorShape(wl_listener* listener, void* data) {
-    const auto E = (wlr_cursor_shape_manager_v1_request_set_shape_event*)data;
-
-    g_pInputManager->processMouseRequest(E);
-}
-
 void Events::listener_newShortcutInhibitor(wl_listener* listener, void* data) {
     const auto INHIBITOR = (wlr_keyboard_shortcuts_inhibitor_v1*)data;
 

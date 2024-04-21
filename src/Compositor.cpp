@@ -2794,10 +2794,10 @@ void CCompositor::arrangeMonitors() {
     for (auto& m : toArrange) {
         Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
 	if (m->activeMonitorRule.autoDir == AutoDirs::auto_up) {
-	    m->moveTo({maxYOffsetUp - m->vecSize.y, 0});
+	    m->moveTo({0, maxYOffsetUp - m->vecSize.y});
 	    maxYOffsetUp = m->vecPosition.y;
 	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_down) {
-	    m->moveTo({maxYOffsetDown, 0});
+	    m->moveTo({0, maxYOffsetDown});
 	    maxYOffsetDown += m->vecSize.y;
 	} else if (m->activeMonitorRule.autoDir == AutoDirs::auto_left) {
 	    m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});

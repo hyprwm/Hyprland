@@ -235,8 +235,6 @@ void CCompositor::initServer() {
 
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
 
-    m_sWLRIdleInhibitMgr = wlr_idle_inhibit_v1_create(m_sWLDisplay);
-
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
@@ -300,7 +298,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newVirtualKeyboard, m_sWLRVKeyboardMgr, "VKeyboardMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
-    addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
@@ -352,7 +349,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newVirtPtr);
     removeWLSignal(&Events::listen_newVirtualKeyboard);
     removeWLSignal(&Events::listen_RendererDestroy);
-    removeWLSignal(&Events::listen_newIdleInhibitor);
     removeWLSignal(&Events::listen_powerMgrSetMode);
     removeWLSignal(&Events::listen_newIME);
     removeWLSignal(&Events::listen_newTextInput);

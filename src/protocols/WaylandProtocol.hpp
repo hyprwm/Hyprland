@@ -11,6 +11,7 @@
 
 #define SP std::shared_ptr
 #define UP std::unique_ptr
+#define WP std::weak_ptr
 
 #define PROTO NProtocols
 

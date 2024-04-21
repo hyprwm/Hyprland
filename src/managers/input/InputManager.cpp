@@ -5,6 +5,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
 #include "../../protocols/CursorShape.hpp"
+#include "../../protocols/IdleInhibit.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -29,6 +30,8 @@ CInputManager::CInputManager() {
         m_sCursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     });
+
+    m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
 }
 
 CInputManager::~CInputManager() {
@@ -38,7 +41,7 @@ CInputManager::~CInputManager() {
     m_lTablets.clear();
     m_lTabletTools.clear();
     m_lTabletPads.clear();
-    m_lIdleInhibitors.clear();
+    m_vIdleInhibitors.clear();
     m_lTouchDevices.clear();
     m_lSwitches.clear();
 }

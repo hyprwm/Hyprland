@@ -12,6 +12,7 @@
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "DesktopTypes.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -215,6 +216,10 @@ class CWindow {
     // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface m_pWLSurface;
+
+    struct {
+        CSignal destroy;
+    } events;
 
     union {
         wlr_xdg_surface*      xdg;

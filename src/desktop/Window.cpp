@@ -26,6 +26,8 @@ CWindow::~CWindow() {
         g_pCompositor->m_pLastWindow = nullptr;
     }
 
+    events.destroy.emit();
+
     if (!g_pHyprOpenGL)
         return;
 

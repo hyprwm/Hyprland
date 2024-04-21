@@ -158,7 +158,7 @@ void CCompositor::initServer() {
 
     wlr_renderer_init_wl_shm(m_sWLRRenderer, m_sWLDisplay);
 
-    if (wlr_renderer_get_dmabuf_texture_formats(m_sWLRRenderer)) {
+    if (wlr_renderer_get_texture_formats(m_sWLRRenderer, WLR_BUFFER_CAP_DMABUF)) {
         if (wlr_renderer_get_drm_fd(m_sWLRRenderer) >= 0)
             wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
 

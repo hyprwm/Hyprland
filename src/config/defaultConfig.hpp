@@ -73,7 +73,6 @@ env = HYPRCURSOR_SIZE,24
 
 # https://wiki.hyprland.org/Configuring/Variables/#general
 general { 
-    
     gaps_in = 5
     gaps_out = 20
 
@@ -94,7 +93,6 @@ general {
 
 # https://wiki.hyprland.org/Configuring/Variables/#decoration
 decoration {
-    
     rounding = 10
 
     # Change transparency of focused and unfocused windows
@@ -118,7 +116,6 @@ decoration {
 
 # https://wiki.hyprland.org/Configuring/Variables/#animations
 animations {
-    
     enabled = true
 
     # Default animations, see https://wiki.hyprland.org/Configuring/Animations/ for more
@@ -157,7 +154,6 @@ misc {
 
 # https://wiki.hyprland.org/Configuring/Variables/#input
 input {
-   
     kb_layout = us
     kb_variant =
     kb_model =

@@ -267,6 +267,7 @@ protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstabl
 protocolNew("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
 protocolNew("unstable/idle-inhibit/idle-inhibit-unstable-v1.xml" "idle-inhibit-unstable-v1" false)
 protocolNew("unstable/relative-pointer/relative-pointer-unstable-v1.xml" "relative-pointer-unstable-v1" false)
+protocolNew("unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" "xdg-decoration-unstable-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

@@ -99,9 +99,6 @@ namespace Events {
     DYNLISTENFUNC(destroyDragIcon);
     DYNLISTENFUNC(commitDragIcon);
 
-    // Deco XDG
-    LISTENER(NewXDGDeco);
-
     // Renderer destroy
     LISTENER(RendererDestroy);
 

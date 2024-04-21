@@ -1641,15 +1641,14 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
-        if (ARGS[2] == "auto-right" || ARGS[2] == "auto") {
-            newrule.autoDir = AutoDirs::auto_right;
-        } else if (ARGS[2] == "auto-left") {
-            newrule.autoDir = AutoDirs::auto_left;
-        } else if (ARGS[2] == "auto-up") {
-            newrule.autoDir = AutoDirs::auto_up;
-        } else if (ARGS[2] == "auto-down") {
-            newrule.autoDir = AutoDirs::auto_down;
-        }
+        if (ARGS[2] == "auto-right" || ARGS[2] == "auto")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
+        else if (ARGS[2] == "auto-left")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_LEFT;
+        else if (ARGS[2] == "auto-up")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
+        else if (ARGS[2] == "auto-down")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
 
     } else {
         if (!ARGS[2].contains("x")) {

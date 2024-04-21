@@ -12,15 +12,15 @@
 #include <optional>
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
-enum class AutoDirs {
-    auto_up,
-    auto_down,
-    auto_left,
-    auto_right
+enum class eAutoDirs {
+    DIR_AUTO_UP,
+    DIR_AUTO_DOWN,
+    DIR_AUTO_LEFT,
+    DIR_AUTO_RIGHT
 };
 
 struct SMonitorRule {
-    AutoDirs            autoDir;
+    eAutoDirs           autoDir;
     std::string         name        = "";
     Vector2D            resolution  = Vector2D(1280, 720);
     Vector2D            offset      = Vector2D(0, 0);

@@ -2804,16 +2804,16 @@ void CCompositor::arrangeMonitors() {
         Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
-        if (m->activeMonitorRule.autoDir == AutoDirs::auto_up) {
+        if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_UP) {
             m->moveTo({0, maxYOffsetUp - m->vecSize.y});
             maxYOffsetUp = m->vecPosition.y;
-        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_down) {
+        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_DOWN) {
             m->moveTo({0, maxYOffsetDown});
             maxYOffsetDown += m->vecSize.y;
-        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_left) {
+        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_LEFT) {
             m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});
             maxXOffsetLeft = m->vecPosition.x;
-        } else if (m->activeMonitorRule.autoDir == AutoDirs::auto_right) {
+        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_RIGHT) {
             m->moveTo({maxXOffsetRight, 0});
             maxXOffsetRight += m->vecSize.x;
         } else {

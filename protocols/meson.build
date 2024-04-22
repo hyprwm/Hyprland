@@ -39,6 +39,7 @@ protocols = [
 ]
 
 new_protocols = [
+  ['wlr-gamma-control-unstable-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
   [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
   [wl_protocol_dir, 'unstable/xdg-output/xdg-output-unstable-v1.xml'],

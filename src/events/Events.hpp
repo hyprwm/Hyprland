@@ -133,9 +133,6 @@ namespace Events {
     // Session Lock
     LISTENER(newSessionLock);
 
-    // Gamma control
-    LISTENER(setGamma);
-
     // Shortcut inhibitor
     LISTENER(newShortcutInhibitor);
 };

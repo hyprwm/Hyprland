@@ -256,3 +256,4 @@ bindm = $mainMod, mouse:273, resizewindow
 # windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
 
 windowrulev2 = suppressevent maximize, class:.* # You'll probably like this.
+)#";

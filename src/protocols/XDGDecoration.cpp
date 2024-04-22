@@ -1,6 +1,8 @@
 #include "XDGDecoration.hpp"
 #include <algorithm>
 
+#define LOGM PROTO::xdgDecoration->protoLog
+
 CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel) : resource(resource_), pToplevelResource(toplevel) {
     if (!resource->resource())
         return;
@@ -16,13 +18,12 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
             default: modeString = "INVALID"; break;
         }
 
-        Debug::log(LOG, "[xdgDecoration] setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString,
-                   (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
+        LOGM(LOG, "setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString, (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
         resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     });
 
     resource->setUnsetMode([this](CZxdgToplevelDecorationV1*) {
-        Debug::log(LOG, "[xdgDecoration] unsetMode. Sending MODE_SERVER_SIDE.");
+        LOGM(LOG, "unsetMode. Sending MODE_SERVER_SIDE.");
         resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     });
 }

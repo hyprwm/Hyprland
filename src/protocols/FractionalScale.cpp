@@ -1,5 +1,7 @@
 #include "FractionalScale.hpp"
 
+#define LOGM PROTO::fractional->protoLog
+
 static void onWlrSurfaceDestroy(void* owner, void* data) {
     const auto SURF = (wlr_surface*)owner;
 
@@ -28,6 +30,12 @@ void CFractionalScaleProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface) {
+    if (m_mAddons.contains(surface)) {
+        LOGM(ERR, "Surface {:x} already has a fractionalScale addon", (uintptr_t)surface);
+        wl_resource_post_error(pMgr->resource(), WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale already exists");
+        return;
+    }
+
     const auto PADDON = m_mAddons
                             .emplace(surface,
                                      std::make_unique<CFractionalScaleAddon>(

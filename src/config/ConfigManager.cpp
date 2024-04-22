@@ -1641,7 +1641,8 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
-        if (ARGS[2] == "auto-right" || ARGS[2] == "auto")
+		// If this is the first monitor rule needs to be on the right.
+        if (ARGS[2] == "auto-right" || ARGS[2] == "auto" || m_dMonitorRules.empty())
             newrule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
         else if (ARGS[2] == "auto-left")
             newrule.autoDir = eAutoDirs::DIR_AUTO_LEFT;

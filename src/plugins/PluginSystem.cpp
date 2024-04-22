@@ -121,7 +121,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     // save these two for dlclose and a log,
     // as erase_if will kill the pointer
-    const auto PLNAME = plugin->name;
+    const auto PLNAME   = plugin->name;
     const auto PLHANDLE = plugin->m_pHandle;
 
     std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == PLHANDLE; });

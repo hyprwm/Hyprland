@@ -24,7 +24,13 @@ class IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
 
+    template <typename... Args>
+    void protoLog(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
+        Debug::log(level, std::format("[{}] ", m_szName) + std::vformat(fmt.get(), std::make_format_args(args...)));
+    };
+
   private:
+    std::string m_szName;
     wl_global*  m_pGlobal = nullptr;
     wl_listener m_liDisplayDestroy;
 };

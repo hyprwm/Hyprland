@@ -10,6 +10,8 @@
 
 //
 
+#define LOGM PROTO::xdgOutput->protoLog
+
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagerResources, [&](const auto& other) { return other->resource() == res; });
 }
@@ -22,7 +24,7 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
     const auto RESOURCE = m_vManagerResources.emplace_back(std::make_unique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
     if (!RESOURCE->resource()) {
-        Debug::log(LOG, "Couldn't bind XDGOutputMgr");
+        LOGM(LOG, "Couldn't bind XDGOutputMgr");
         wl_client_post_no_memory(client);
         return;
     }

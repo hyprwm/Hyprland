@@ -26,4 +26,4 @@ jobs:
           name: hyprland
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      - run: nix build .#${{ matrix.package }} -L
+      - run: nix build .#${{ matrix.package }} --extra-substituters "https://hyprland.cachix.org" -L

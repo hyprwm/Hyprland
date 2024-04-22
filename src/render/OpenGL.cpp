@@ -1967,11 +1967,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
 void CHyprOpenGLImpl::renderMirrored() {
 
-    auto monitor = m_RenderData.pMonitor;
-    auto mirrored = monitor->pMirrorOf;
+    auto   monitor  = m_RenderData.pMonitor;
+    auto   mirrored = monitor->pMirrorOf;
 
-    double scale = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
-    CBox monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
+    double scale  = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
+    CBox   monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
 
     // transform box as it will be drawn on a transformed projection
     monbox.transform(mirrored->transform, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale);

@@ -20,7 +20,7 @@ APICALL std::shared_ptr<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(H
         return nullptr;
 
     auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, PFN));
+    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, std::weak_ptr<HOOK_CALLBACK_FN>(PFN)));
     return PFN;
 }
 
@@ -31,7 +31,7 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, std::shared_ptr<HOOK
         return false;
 
     g_pHookSystem->unhook(fn);
-    std::erase_if(PLUGIN->registeredCallbacks, [&](const auto& other) { return other.second == fn; });
+    std::erase_if(PLUGIN->registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
 
     return true;
 }

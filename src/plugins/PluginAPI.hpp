@@ -137,15 +137,19 @@ namespace HyprlandAPI {
         Pointer will be free'd by Hyprland on unregisterCallback().
 
         returns: a pointer to the newly allocated function. nullptr on fail.
+
+        WARNING: Losing this pointer will unregister the callback!
     */
-    APICALL std::shared_ptr<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
+    APICALL [[nodiscard]] std::shared_ptr<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
 
     /*
         Unregisters a callback. If the callback was dynamic, frees the memory.
 
         returns: true on success, false on fail
+
+        Deprecated: just reset the pointer you received with registerCallbackDynamic
     */
-    APICALL bool unregisterCallback(HANDLE handle, std::shared_ptr<HOOK_CALLBACK_FN> fn);
+    APICALL [[deprecated]] bool unregisterCallback(HANDLE handle, std::shared_ptr<HOOK_CALLBACK_FN> fn);
 
     /*
         Calls a hyprctl command.

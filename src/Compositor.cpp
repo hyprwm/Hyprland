@@ -134,7 +134,7 @@ void CCompositor::initServer() {
     wlr_multi_for_each_backend(
         m_sWLRBackend,
         [](wlr_backend* backend, void* isHeadlessOnly) {
-            if (!wlr_backend_is_headless(backend))
+            if (!wlr_backend_is_headless(backend) && !wlr_backend_is_libinput(backend))
                 *(bool*)isHeadlessOnly = false;
         },
         &isHeadlessOnly);

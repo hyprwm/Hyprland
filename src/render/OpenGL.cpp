@@ -290,9 +290,6 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebu
         m_RenderData.pCurrentMonData->offMainFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->drmFormat);
     }
 
-    if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
-        m_RenderData.pCurrentMonData->monitorMirrorFB.release();
-
     m_RenderData.damage.set(damage_);
     m_RenderData.finalDamage.set(finalDamage.value_or(damage_));
 
@@ -335,9 +332,6 @@ void CHyprOpenGLImpl::end() {
     static auto PZOOMRIGID = CConfigValue<Hyprlang::INT>("misc:cursor_zoom_rigid");
 
     TRACY_GPU_ZONE("RenderEnd");
-
-    if (!m_RenderData.pMonitor->mirrors.empty() && !m_bFakeFrame)
-        saveBufferForMirror(); // save with original damage region
 
     // end the render, copy the data to the WLR framebuffer
     if (m_bOffloadedFramebuffer) {
@@ -1971,57 +1965,28 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 }
 
-void CHyprOpenGLImpl::saveBufferForMirror() {
-
-    // reallocate different buffer when transform changes on target monitor
-    if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && (m_RenderData.pMonitor->vecTransformedSize.x != m_RenderData.pCurrentMonData->monitorMirrorFB.m_vSize.x || m_RenderData.pMonitor->vecTransformedSize.y != m_RenderData.pCurrentMonData->monitorMirrorFB.m_vSize.y))
-        m_RenderData.pCurrentMonData->monitorMirrorFB.release();
-
-    if (!m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated())
-        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y, m_RenderData.pMonitor->drmFormat);
-
-    m_RenderData.pCurrentMonData->monitorMirrorFB.bind();
-    // manually set viewport to transformed size
-    glViewport(0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
-
-    blend(false);
-
-    auto transform = m_RenderData.pMonitor->transform;
-
-    // draw the buffer with the inverted transform to "undo" the transform of the current framebuffer
-    auto inverted = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
-
-    CBox monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
-
-    monbox.transform(inverted, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
-    m_RenderData.damage.transform(inverted, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
-
-    // temporarily change the transform of the monitor for render method, otherwise we'd have to change tons of stuff in there
-    m_RenderData.pMonitor->transform = inverted;
-    m_RenderData.pMonitor->updateMatrix();
-
-    renderTexture(m_RenderData.currentFB->m_cTex, &monbox, 1.f, 0, false, false);
-
-    m_RenderData.pMonitor->transform = transform;
-    m_RenderData.pMonitor->updateMatrix();
-
-    m_RenderData.damage.transform(transform, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
-
-    blend(true);
-
-    m_RenderData.currentFB->bind();
-}
-
 void CHyprOpenGLImpl::renderMirrored() {
 
-    // fit and center monitor whilst preserving aspect ratio
-    double scale = std::min(m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y / m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.y);
+    auto monitor = m_RenderData.pMonitor;
+    auto mirrored = monitor->pMirrorOf;
 
-    CBox monbox = {0, 0, m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.x * scale, m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.y * scale};
-    monbox.x = (m_RenderData.pMonitor->vecTransformedSize.x - monbox.w) / 2;
-    monbox.y = (m_RenderData.pMonitor->vecTransformedSize.y - monbox.h) / 2;
+    double scale = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
+    CBox monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
 
-    const auto PFB = &m_mMonitorRenderResources[m_RenderData.pMonitor->pMirrorOf].monitorMirrorFB;
+    // transform box as it will be drawn on a transformed projection
+    monbox.transform(mirrored->transform, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale);
+
+    monbox.x = (monitor->vecTransformedSize.x - monbox.w) / 2;
+    monbox.y = (monitor->vecTransformedSize.y - monbox.h) / 2;
+
+    // replace monitor projection to undo the mirrored monitor's projection
+    wlr_matrix_identity(monitor->projMatrix.data());
+    wlr_matrix_translate(monitor->projMatrix.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
+    wlr_matrix_transform(monitor->projMatrix.data(), monitor->transform);
+    wlr_matrix_transform(monitor->projMatrix.data(), wlr_output_transform_invert(mirrored->transform));
+    wlr_matrix_translate(monitor->projMatrix.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
+
+    const auto PFB = &m_mMonitorRenderResources[mirrored].offloadFB;
 
     if (!PFB->isAllocated() || PFB->m_cTex.m_iTexID <= 0)
         return;
@@ -2030,6 +1995,9 @@ void CHyprOpenGLImpl::renderMirrored() {
     clear(CColor(0, 0, 0, 0));
 
     renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
+
+    // reset matrix for further drawing
+    monitor->updateMatrix();
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
@@ -2215,7 +2183,6 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
         RESIT->second.mirrorFB.release();
         RESIT->second.offloadFB.release();
         RESIT->second.mirrorSwapFB.release();
-        RESIT->second.monitorMirrorFB.release();
         RESIT->second.blurFB.release();
         RESIT->second.offMainFB.release();
         RESIT->second.stencilTex.destroyTexture();

@@ -13,18 +13,18 @@ void IWaylandProtocol::onDisplayDestroy() {
     wl_global_destroy(m_pGlobal);
 }
 
-IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) {
+IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) : m_szName(name) {
     m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal);
 
     if (!m_pGlobal) {
-        Debug::log(ERR, "[proto {}] could not create a global", name);
+        protoLog(ERR, "could not create a global");
         return;
     }
 
     m_liDisplayDestroy.notify = displayDestroyInternal;
     wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
 
-    Debug::log(LOG, "[proto {}] started", name);
+    protoLog(LOG, "Registered global");
 }
 
 IWaylandProtocol::~IWaylandProtocol() {

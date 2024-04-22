@@ -1,6 +1,8 @@
 #include "CursorShape.hpp"
 #include <algorithm>
 
+#define LOGM PROTO::cursorShape->protoLog
+
 // clang-format off
 constexpr const char* SHAPE_NAMES[] = {
     "invalid",
@@ -72,6 +74,7 @@ void CCursorShapeProtocol::onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint
 
 void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource) {
     if (m_mDevices.contains(resource)) {
+        LOGM(ERR, "CursorShape device already exists for {:x}", (uintptr_t)resource);
         wl_resource_post_error(resource, 0, "Device already exists");
         return;
     }

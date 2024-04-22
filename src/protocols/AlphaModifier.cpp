@@ -3,6 +3,8 @@
 #include "../desktop/WLSurface.hpp"
 #include "../render/Renderer.hpp"
 
+#define LOGM PROTO::alphaModifier->protoLog
+
 CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surface* surface_) : resource(resource_), pSurface(surface_) {
     if (!resource->resource())
         return;
@@ -21,6 +23,7 @@ CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surf
 
     resource->setSetMultiplier([this](CWpAlphaModifierSurfaceV1* mod, uint32_t alpha) {
         if (!pSurface) {
+            LOGM(ERR, "Resource {:x} tried to setMultiplier but surface is gone", (uintptr_t)mod->resource());
             wl_resource_post_error(mod->resource(), WP_ALPHA_MODIFIER_SURFACE_V1_ERROR_NO_SURFACE, "Surface is gone");
             return;
         }
@@ -47,7 +50,7 @@ void CAlphaModifier::setSurfaceAlpha(float a) {
     CWLSurface* surf = CWLSurface::surfaceFromWlr(pSurface);
 
     if (!surf) {
-        Debug::log(ERR, "Error in CAlphaModifier::setSurfaceAlpha: No CWLSurface for given surface??");
+        LOGM(ERR, "CAlphaModifier::setSurfaceAlpha: No CWLSurface for given surface??");
         return;
     }
 
@@ -93,7 +96,7 @@ void CAlphaModifierProtocol::destroyModifier(CAlphaModifier* modifier) {
         }
 
         if (!deadptr) {
-            Debug::log(ERR, "CAlphaModifierProtocol::destroyModifier: dead resource but no deadptr???");
+            LOGM(ERR, "CAlphaModifierProtocol::destroyModifier: dead resource but no deadptr???");
             return;
         }
 
@@ -103,6 +106,7 @@ void CAlphaModifierProtocol::destroyModifier(CAlphaModifier* modifier) {
 
 void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, wlr_surface* surface) {
     if (m_mAlphaModifiers.contains(surface)) {
+        LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface);
         wl_resource_post_error(pMgr->resource(), WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
         return;
     }

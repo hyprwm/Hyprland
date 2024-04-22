@@ -4,6 +4,8 @@
 #include "../helpers/Monitor.hpp"
 #include "../Compositor.hpp"
 
+#define LOGM PROTO::gamma->protoLog
+
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if (!resource_->resource())
         return;
@@ -11,7 +13,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     wlr_output* wlrOutput = wlr_output_from_resource(output);
 
     if (!wlrOutput) {
-        Debug::log(ERR, "[gamma] No wlr_output");
+        LOGM(ERR, "No wlr_output in CGammaControl");
         resource->sendFailed();
         return;
     }
@@ -19,7 +21,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     pMonitor = g_pCompositor->getRealMonitorFromOutput(wlrOutput);
 
     if (!pMonitor) {
-        Debug::log(ERR, "[gamma] No CMonitor");
+        LOGM(ERR, "No CMonitor");
         resource->sendFailed();
         return;
     }
@@ -34,7 +36,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     gammaSize = wlr_output_get_gamma_size(wlrOutput);
 
     if (gammaSize <= 0) {
-        Debug::log(ERR, "[gamma] Output {} doesn't support gamma", pMonitor->szName);
+        LOGM(ERR, "Output {} doesn't support gamma", pMonitor->szName);
         resource->sendFailed();
         return;
     }
@@ -45,18 +47,18 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->setOnDestroy([this](CZwlrGammaControlV1* gamma) { PROTO::gamma->destroyGammaControl(this); });
 
     resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
-        Debug::log(LOG, "[gamma] setGamma for {}", pMonitor->szName);
+        LOGM(LOG, "setGamma for {}", pMonitor->szName);
 
         int fdFlags = fcntl(fd, F_GETFL, 0);
         if (fdFlags < 0) {
-            Debug::log(ERR, "[gamma] Failed to get fd flags");
+            LOGM(ERR, "Failed to get fd flags");
             resource->sendFailed();
             close(fd);
             return;
         }
 
         if (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
-            Debug::log(ERR, "[gamma] Failed to set fd flags");
+            LOGM(ERR, "Failed to set fd flags");
             resource->sendFailed();
             close(fd);
             return;
@@ -64,7 +66,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
         ssize_t readBytes = pread(fd, gammaTable.data(), gammaTable.size() * sizeof(uint16_t), 0);
         if (readBytes < 0 || (size_t)readBytes != gammaTable.size() * sizeof(uint16_t)) {
-            Debug::log(ERR, "[gamma] Failed to read bytes");
+            LOGM(ERR, "Failed to read bytes");
             close(fd);
 
             if ((size_t)readBytes != gammaTable.size() * sizeof(uint16_t)) {
@@ -103,7 +105,7 @@ void CGammaControl::applyToMonitor() {
     if (!pMonitor)
         return; // ??
 
-    Debug::log(LOG, "[gamma] setting to monitor {}", pMonitor->szName);
+    LOGM(LOG, "setting to monitor {}", pMonitor->szName);
 
     if (!gammaTableSet) {
         wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
@@ -117,7 +119,7 @@ void CGammaControl::applyToMonitor() {
     wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), gammaSize, red, green, blue);
 
     if (!pMonitor->state.test()) {
-        Debug::log(LOG, "[gamma] setting to monitor {} failed", pMonitor->szName);
+        LOGM(LOG, "setting to monitor {} failed", pMonitor->szName);
         wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
     }
 

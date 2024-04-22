@@ -1973,16 +1973,39 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
 void CHyprOpenGLImpl::saveBufferForMirror() {
 
+    // reallocate different buffer when transform changes on target monitor
+    if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && (m_RenderData.pMonitor->vecTransformedSize.x != m_RenderData.pCurrentMonData->monitorMirrorFB.m_vSize.x || m_RenderData.pMonitor->vecTransformedSize.y != m_RenderData.pCurrentMonData->monitorMirrorFB.m_vSize.y))
+        m_RenderData.pCurrentMonData->monitorMirrorFB.release();
+
     if (!m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated())
-        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y, m_RenderData.pMonitor->drmFormat);
+        m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y, m_RenderData.pMonitor->drmFormat);
 
     m_RenderData.pCurrentMonData->monitorMirrorFB.bind();
-
-    CBox monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+    // manually set viewport to transformed size
+    glViewport(0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
 
     blend(false);
 
+    auto transform = m_RenderData.pMonitor->transform;
+
+    // draw the buffer with the inverted transform to "undo" the transform of the current framebuffer
+    auto inverted = wlr_output_transform_invert(m_RenderData.pMonitor->transform);
+
+    CBox monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+
+    monbox.transform(inverted, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
+    m_RenderData.damage.transform(inverted, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
+
+    // temporarily change the transform of the monitor for render method, otherwise we'd have to change tons of stuff in there
+    m_RenderData.pMonitor->transform = inverted;
+    m_RenderData.pMonitor->updateMatrix();
+
     renderTexture(m_RenderData.currentFB->m_cTex, &monbox, 1.f, 0, false, false);
+
+    m_RenderData.pMonitor->transform = transform;
+    m_RenderData.pMonitor->updateMatrix();
+
+    m_RenderData.damage.transform(transform, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y);
 
     blend(true);
 
@@ -1990,12 +2013,21 @@ void CHyprOpenGLImpl::saveBufferForMirror() {
 }
 
 void CHyprOpenGLImpl::renderMirrored() {
-    CBox       monbox = {0, 0, m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y};
+
+    // fit and center monitor whilst preserving aspect ratio
+    double scale = std::min(m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y / m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.y);
+
+    CBox monbox = {0, 0, m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.x * scale, m_RenderData.pMonitor->pMirrorOf->vecTransformedSize.y * scale};
+    monbox.x = (m_RenderData.pMonitor->vecTransformedSize.x - monbox.w) / 2;
+    monbox.y = (m_RenderData.pMonitor->vecTransformedSize.y - monbox.h) / 2;
 
     const auto PFB = &m_mMonitorRenderResources[m_RenderData.pMonitor->pMirrorOf].monitorMirrorFB;
 
     if (!PFB->isAllocated() || PFB->m_cTex.m_iTexID <= 0)
         return;
+
+    // clear stuff outside of mirrored area (e.g. when changing to mirrored)
+    clear(CColor(0, 0, 0, 0));
 
     renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
 }

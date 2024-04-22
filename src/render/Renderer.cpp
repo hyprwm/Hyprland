@@ -1151,25 +1151,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
     }
 
-    // gamma stuff
-    if (pMonitor->gammaChanged) {
-        pMonitor->gammaChanged = false;
-
-        const auto PGAMMACTRL = wlr_gamma_control_manager_v1_get_control(g_pCompositor->m_sWLRGammaCtrlMgr, pMonitor->output);
-
-        if (!wlr_gamma_control_v1_apply(PGAMMACTRL, pMonitor->state.wlr())) {
-            Debug::log(ERR, "Could not apply gamma control to {}", pMonitor->szName);
-            return;
-        }
-
-        if (!wlr_output_test_state(pMonitor->output, pMonitor->state.wlr())) {
-            Debug::log(ERR, "Output test failed for setting gamma to {}", pMonitor->szName);
-            // aka rollback
-            wlr_gamma_control_v1_apply(nullptr, pMonitor->state.wlr());
-            wlr_gamma_control_v1_send_failed_and_destroy(PGAMMACTRL);
-        }
-    }
-
     // tearing and DS first
     bool shouldTear = false;
     if (pMonitor->tearingState.nextRenderTorn) {

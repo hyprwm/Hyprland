@@ -188,8 +188,6 @@ void CCompositor::initServer() {
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
 
-    m_sWLRGammaCtrlMgr = wlr_gamma_control_manager_v1_create(m_sWLDisplay);
-
     m_sWLROutputLayout = wlr_output_layout_create(m_sWLDisplay);
 
     m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
@@ -299,7 +297,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
-    addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
     addWLSignal(&m_sWLRKbShInhibitMgr->events.new_inhibitor, &Events::listen_newShortcutInhibitor, m_sWLRKbShInhibitMgr, "ShortcutInhibitMgr");
 
     if (m_sWRLDRMLeaseMgr)
@@ -349,7 +346,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newTextInput);
     removeWLSignal(&Events::listen_activateXDG);
     removeWLSignal(&Events::listen_newSessionLock);
-    removeWLSignal(&Events::listen_setGamma);
     removeWLSignal(&Events::listen_newShortcutInhibitor);
 
     if (m_sWRLDRMLeaseMgr)

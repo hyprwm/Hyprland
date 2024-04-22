@@ -269,6 +269,7 @@ protocolNew("unstable/idle-inhibit/idle-inhibit-unstable-v1.xml" "idle-inhibit-u
 protocolNew("unstable/relative-pointer/relative-pointer-unstable-v1.xml" "relative-pointer-unstable-v1" false)
 protocolNew("unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" "xdg-decoration-unstable-v1" false)
 protocolNew("staging/alpha-modifier/alpha-modifier-v1.xml" "alpha-modifier-v1" false)
+protocolNew("protocols/wlr-gamma-control-unstable-v1.xml" "wlr-gamma-control-unstable-v1" true)
 
 # tools
 add_subdirectory(hyprctl)

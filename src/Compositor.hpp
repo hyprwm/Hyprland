@@ -77,7 +77,6 @@ class CCompositor {
     wlr_linux_dmabuf_v1*                       m_sWLRLinuxDMABuf;
     wlr_backend*                               m_sWLRHeadlessBackend;
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
-    wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";

@@ -1,10 +1,8 @@
 #include "Monitor.hpp"
-
 #include "MiscFunctions.hpp"
-
 #include "../Compositor.hpp"
-
 #include "../config/ConfigValue.hpp"
+#include "../protocols/GammaControl.hpp"
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -26,6 +24,8 @@ CMonitor::~CMonitor() {
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();
     hyprListener_monitorBind.removeCallback();
+
+    events.destroy.emit();
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -214,6 +214,10 @@ void CMonitor::onConnect(bool noRule) {
     renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 
     g_pCompositor->scheduleFrameForMonitor(this);
+
+    PROTO::gamma->applyGammaToState(this);
+
+    events.connect.emit();
 }
 
 void CMonitor::onDisconnect(bool destroy) {
@@ -227,6 +231,8 @@ void CMonitor::onDisconnect(bool destroy) {
         return;
 
     Debug::log(LOG, "onDisconnect called for {}", output->name);
+
+    events.disconnect.emit();
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;

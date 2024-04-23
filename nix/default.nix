@@ -18,6 +18,7 @@
   libdrm,
   libexecinfo,
   libinput,
+  libuuid,
   libxcb,
   libxkbcommon,
   mesa,
@@ -113,6 +114,7 @@ in
         libdrm
         libGL
         libinput
+        libuuid
         libxkbcommon
         mesa
         pango

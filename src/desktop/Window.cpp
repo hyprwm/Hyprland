@@ -5,6 +5,7 @@
 #include "../render/decorations/CHyprBorderDecoration.hpp"
 #include "../config/ConfigValue.hpp"
 #include <any>
+#include "../managers/TokenManager.hpp"
 
 CWindow::CWindow() {
     m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), this, AVARDAMAGE_ENTIRE);
@@ -383,6 +384,11 @@ void CWindow::updateSurfaceScaleTransformDetails() {
 void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (m_pWorkspace == pWorkspace)
         return;
+
+    if (!m_szInitialWorkspaceToken.empty()) {
+        g_pTokenManager->removeToken(g_pTokenManager->getToken(m_szInitialWorkspaceToken));
+        m_szInitialWorkspaceToken = "";
+    }
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
@@ -1240,4 +1246,43 @@ int CWindow::workspaceID() {
 
 bool CWindow::onSpecialWorkspace() {
     return m_pWorkspace ? m_pWorkspace->m_bIsSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_iLastWorkspace);
+}
+
+std::unordered_map<std::string, std::string> CWindow::getEnv() {
+
+    const auto PID = getPID();
+
+    if (PID <= 1)
+        return {};
+
+    std::unordered_map<std::string, std::string> results;
+
+    //
+    std::string       environFile = "/proc/" + std::to_string(PID) + "/environ";
+    std::ifstream     ifs(environFile, std::ios::binary);
+
+    if (!ifs.good())
+        return {};
+
+    std::vector<char> buffer;
+    size_t            needle = 0;
+    buffer.resize(512, '\0');
+    while (ifs.read(buffer.data() + needle, 512)) {
+        buffer.resize(buffer.size() + 512, '\0');
+        needle += 512;
+    }
+
+    std::replace(buffer.begin(), buffer.end() - 1, '\0', '\n');
+
+    CVarList envs(std::string{buffer.data(), needle - 1}, 0, '\n', true);
+
+    for (auto& e : envs) {
+        if (!e.contains('='))
+            continue;
+
+        const auto EQ            = e.find_first_of('=');
+        results[e.substr(0, EQ)] = e.substr(EQ + 1);
+    }
+
+    return results;
 }

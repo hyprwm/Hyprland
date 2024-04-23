@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/TokenManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigValue.hpp"
 
@@ -44,13 +45,14 @@ void setAnimToMove(void* data) {
 void Events::listener_mapWindow(void* owner, void* data) {
     CWindow*    PWINDOW = (CWindow*)owner;
 
-    static auto PINACTIVEALPHA  = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA    = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PDIMSTRENGTH    = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
-    static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
-    static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
-    static auto PNEWTAKESOVERFS = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
+    static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
+    static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
+    static auto PSWALLOW           = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
+    static auto PSWALLOWREGEX      = CConfigValue<std::string>("misc:swallow_regex");
+    static auto PSWALLOWEXREGEX    = CConfigValue<std::string>("misc:swallow_exception_regex");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
+    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     auto        PMONITOR = g_pCompositor->m_pLastMonitor;
     if (!g_pCompositor->m_pLastMonitor) {
@@ -66,6 +68,28 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szTitle        = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_iX11Type       = PWINDOW->m_bIsX11 ? (PWINDOW->m_uSurface.xwayland->override_redirect ? 2 : 1) : 1;
     PWINDOW->m_bFirstMap      = true;
+
+    // check for token
+    std::string requestedWorkspace = "";
+    bool        workspaceSilent    = false;
+
+    if (*PINITIALWSTRACKING) {
+        const auto WINDOWENV = PWINDOW->getEnv();
+        if (WINDOWENV.contains("HL_INITIAL_WORKSPACE_TOKEN")) {
+            const auto SZTOKEN = WINDOWENV.at("HL_INITIAL_WORKSPACE_TOKEN");
+            Debug::log(LOG, "New window contains HL_INITIAL_WORKSPACE_TOKEN: {}", SZTOKEN);
+            const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
+            if (TOKEN) {
+                // find workspace and use it
+                std::string WS = std::any_cast<std::string>(TOKEN->data);
+
+                Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS);
+
+                requestedWorkspace = WS;
+                workspaceSilent    = true;
+            }
+        }
+    }
 
     if (g_pInputManager->m_bLastFocusOnLS) // waybar fix
         g_pInputManager->releaseAllMouseButtons();
@@ -108,10 +132,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // window rules
-    const auto  WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW, false);
-    std::string requestedWorkspace = "";
-    bool        workspaceSilent    = false;
-    bool        requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
+    const auto WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW, false);
+    bool       requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
         (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) ||
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
     bool requestsFakeFullscreen = false;

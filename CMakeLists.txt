@@ -247,6 +247,7 @@ target_link_libraries(Hyprland
         OpenGL::GL
         Threads::Threads
         libudis86
+        uuid
 )
 
 protocol("protocols/idle.xml" "idle" true)

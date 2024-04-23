@@ -85,8 +85,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS);
 
-                requestedWorkspace = WS;
-                workspaceSilent    = true;
+                if (g_pCompositor->getWorkspaceByString(WS) != PWINDOW->m_pWorkspace) {
+                    requestedWorkspace = WS;
+                    workspaceSilent    = true;
+                }
             }
         }
     }

@@ -26,7 +26,8 @@ executable('Hyprland', src,
     dependency('gl', 'opengl'),
     dependency('threads'),
     dependency('pango'),
-    dependency('pangocairo')
+    dependency('pangocairo'),
+    dependency('uuid'),
   ],
   install : true
 )

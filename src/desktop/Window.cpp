@@ -1258,8 +1258,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     std::unordered_map<std::string, std::string> results;
 
     //
-    std::string       environFile = "/proc/" + std::to_string(PID) + "/environ";
-    std::ifstream     ifs(environFile, std::ios::binary);
+    std::string   environFile = "/proc/" + std::to_string(PID) + "/environ";
+    std::ifstream ifs(environFile, std::ios::binary);
 
     if (!ifs.good())
         return {};

@@ -63,6 +63,25 @@ jobs:
       - name: Compile
         run: ninja -C build
 
+  no-pch:
+    name: "Build Hyprland without precompiled headers (Arch)"
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux
+    steps:
+      - name: Checkout repository actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Setup base
+        uses: ./.github/actions/setup_base
+        with:
+          INSTALL_XORG_PKGS: true
+
+      - name: Compile
+        run: make nopch
+
   noxwayland:
     name: "Build Hyprland in pure Wayland (Arch)"
     runs-on: ubuntu-latest

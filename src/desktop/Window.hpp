@@ -357,6 +357,9 @@ class CWindow {
     // for idle inhibiting windows
     eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
+    // initial token. Will be unregistered on workspace change or timeout of 2 minutes
+    std::string m_szInitialWorkspaceToken = "";
+
     // for groups
     struct SGroupData {
         CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
@@ -436,6 +439,9 @@ class CWindow {
     void                     switchWithWindowInGroup(CWindow* pWindow);
     void                     setAnimationsToMove();
     void                     onWorkspaceAnimUpdate();
+
+    //
+    std::unordered_map<std::string, std::string> getEnv();
 
   private:
     // For hidden windows and stuff

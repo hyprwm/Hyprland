@@ -3,8 +3,10 @@
 #include "debug/Log.hpp"
 #include "helpers/VarList.hpp"
 #include "../config/ConfigValue.hpp"
+#include "TokenManager.hpp"
 
 #include <regex>
+#include <tuple>
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -16,6 +18,23 @@
 #elif defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/consio.h>
 #endif
+
+static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
+    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+
+    if (!*PINITIALWSTRACKING)
+        return {};
+
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+    if (!PMONITOR || !PMONITOR->activeWorkspace)
+        return {};
+
+    std::vector<std::pair<std::string, std::string>> result;
+
+    result.push_back(std::make_pair<>("HL_INITIAL_WORKSPACE_TOKEN", g_pTokenManager->registerNewToken(PMONITOR->activeWorkspace->getConfigName(), std::chrono::minutes(2))));
+
+    return result;
+}
 
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
@@ -774,7 +793,9 @@ void CKeybindManager::spawn(std::string args) {
 uint64_t CKeybindManager::spawnRaw(std::string args) {
     Debug::log(LOG, "Executing {}", args);
 
-    int socket[2];
+    const auto HLENV = getHyprlandLaunchEnv();
+
+    int        socket[2];
     if (pipe(socket) != 0) {
         Debug::log(LOG, "Unable to create pipe for fork");
     }
@@ -797,6 +818,9 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
         grandchild = fork();
         if (grandchild == 0) {
             // run in grandchild
+            for (auto& e : HLENV) {
+                setenv(e.first.c_str(), e.second.c_str(), 1);
+            }
             close(socket[0]);
             close(socket[1]);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);

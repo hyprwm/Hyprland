@@ -2700,11 +2700,9 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWork
     if (FULLSCREEN)
         setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
-    pWindow->moveToWorkspace(pWorkspace);
-
     if (!pWindow->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
-        pWindow->m_pWorkspace = pWorkspace;
+        pWindow->moveToWorkspace(pWorkspace);
         pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
     } else {
@@ -2713,7 +2711,7 @@ void CCompositor::moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWork
 
         const auto PWORKSPACEMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 
-        pWindow->m_pWorkspace = pWorkspace;
+        pWindow->moveToWorkspace(pWorkspace);
         pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
 
         pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;

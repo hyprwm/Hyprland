@@ -1162,7 +1162,6 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
         m_pActiveKeyboard = nullptr;
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, nullptr);
     }
-
 }
 
 void CInputManager::destroyMouse(wlr_input_device* mouse) {

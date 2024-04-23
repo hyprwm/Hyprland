@@ -2,6 +2,7 @@
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "managers/CursorManager.hpp"
+#include "managers/TokenManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <random>
 #include <unordered_set>
@@ -455,6 +456,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the LayoutManager!");
             g_pLayoutManager = std::make_unique<CLayoutManager>();
+
+            Debug::log(LOG, "Creating the TokenManager!");
+            g_pTokenManager = std::make_unique<CTokenManager>();
 
             g_pConfigManager->init();
             g_pWatchdog = std::make_unique<CWatchdog>(); // requires config

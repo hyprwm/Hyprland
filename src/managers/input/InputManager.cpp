@@ -1152,17 +1152,17 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
 
     xkb_state_unref(pKeyboard->xkbTranslationState);
 
-    if (pKeyboard->active) {
-        m_lKeyboards.remove(*pKeyboard);
+    m_lKeyboards.remove(*pKeyboard);
 
-        if (m_lKeyboards.size() > 0) {
-            m_pActiveKeyboard         = &m_lKeyboards.back();
-            m_pActiveKeyboard->active = true;
-        } else {
-            m_pActiveKeyboard = nullptr;
-        }
-    } else
-        m_lKeyboards.remove(*pKeyboard);
+    if (m_lKeyboards.size() > 0) {
+        m_pActiveKeyboard         = &m_lKeyboards.back();
+        m_pActiveKeyboard->active = true;
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(m_pActiveKeyboard->keyboard));
+    } else {
+        m_pActiveKeyboard = nullptr;
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, nullptr);
+    }
+
 }
 
 void CInputManager::destroyMouse(wlr_input_device* mouse) {

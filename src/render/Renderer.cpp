@@ -1322,9 +1322,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                         damageBlinkCleanup = 0;
                 }
             }
-        } else {
+        } else
             g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
-        }
+    } else {
+        sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
+        if (pMonitor->activeSpecialWorkspace)
+            sendFrameEventsToWorkspace(pMonitor, pMonitor->activeSpecialWorkspace, &now);
     }
 
     renderCursor = renderCursor && shouldRenderCursor();
@@ -1418,6 +1421,26 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace,
     g_pHyprOpenGL->m_RenderData.pWorkspace = pWorkspace;
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
     g_pHyprOpenGL->m_RenderData.pWorkspace = nullptr;
+}
+
+void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
+    for (auto& w : g_pCompositor->m_vWindows) {
+        if (w->isHidden() && !w->m_bIsMapped && !w->m_bFadingOut)
+            continue;
+
+        if (!shouldRenderWindow(w.get(), pMonitor))
+            continue;
+
+        wlr_surface_for_each_surface(
+            w->m_pWLSurface.wlr(), [](wlr_surface* s, int x, int y, void* data) { wlr_surface_send_frame_done(s, (timespec*)data); }, now);
+    }
+
+    for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
+        for (auto& ls : lsl) {
+            wlr_surface_for_each_surface(
+                ls->surface.wlr(), [](wlr_surface* s, int x, int y, void* data) { wlr_surface_send_frame_done(s, (timespec*)data); }, now);
+        }
+    }
 }
 
 void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {

@@ -117,6 +117,7 @@ class CHyprRenderer {
     void           renderDragIcon(CMonitor*, timespec*);
     void           renderIMEPopup(CInputPopup*, CMonitor*, timespec*);
     void           renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
+    void           sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
     void           renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
     bool           m_bCursorHidden        = false;

@@ -1286,43 +1286,45 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     bool renderCursor = true;
 
-    if (!pMonitor->solitaryClient) {
-        if (pMonitor->isMirror()) {
-            g_pHyprOpenGL->blend(false);
-            g_pHyprOpenGL->renderMirrored();
-            g_pHyprOpenGL->blend(true);
-            EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
-            renderCursor = false;
+    if (!finalDamage.empty()) {
+        if (!pMonitor->solitaryClient) {
+            if (pMonitor->isMirror()) {
+                g_pHyprOpenGL->blend(false);
+                g_pHyprOpenGL->renderMirrored();
+                g_pHyprOpenGL->blend(true);
+                EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
+                renderCursor = false;
+            } else {
+                CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
+                renderWorkspace(pMonitor, pMonitor->activeWorkspace, &now, renderBox);
+
+                renderLockscreen(pMonitor, &now, renderBox);
+
+                if (pMonitor == g_pCompositor->m_pLastMonitor) {
+                    g_pHyprNotificationOverlay->draw(pMonitor);
+                    g_pHyprError->draw();
+                }
+
+                // for drawing the debug overlay
+                if (pMonitor == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
+                    renderStartOverlay = std::chrono::high_resolution_clock::now();
+                    g_pDebugOverlay->draw();
+                    endRenderOverlay = std::chrono::high_resolution_clock::now();
+                }
+
+                if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+                    CBox monrect = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+                    g_pHyprOpenGL->renderRect(&monrect, CColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
+                    damageBlinkCleanup = 1;
+                } else if (*PDAMAGEBLINK) {
+                    damageBlinkCleanup++;
+                    if (damageBlinkCleanup > 3)
+                        damageBlinkCleanup = 0;
+                }
+            }
         } else {
-            CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
-            renderWorkspace(pMonitor, pMonitor->activeWorkspace, &now, renderBox);
-
-            renderLockscreen(pMonitor, &now, renderBox);
-
-            if (pMonitor == g_pCompositor->m_pLastMonitor) {
-                g_pHyprNotificationOverlay->draw(pMonitor);
-                g_pHyprError->draw();
-            }
-
-            // for drawing the debug overlay
-            if (pMonitor == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
-                renderStartOverlay = std::chrono::high_resolution_clock::now();
-                g_pDebugOverlay->draw();
-                endRenderOverlay = std::chrono::high_resolution_clock::now();
-            }
-
-            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                CBox monrect = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-                g_pHyprOpenGL->renderRect(&monrect, CColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
-                damageBlinkCleanup = 1;
-            } else if (*PDAMAGEBLINK) {
-                damageBlinkCleanup++;
-                if (damageBlinkCleanup > 3)
-                    damageBlinkCleanup = 0;
-            }
+            g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
         }
-    } else {
-        g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
     }
 
     renderCursor = renderCursor && shouldRenderCursor();

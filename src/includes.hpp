@@ -64,7 +64,6 @@ extern "C" {
 #include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_xdg_activation_v1.h>
-#include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_subcompositor.h>
@@ -72,7 +71,6 @@ extern "C" {
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
-#include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 #include <wlr/util/edges.h>
@@ -84,7 +82,6 @@ extern "C" {
 #include <wlr/render/gles2.h>
 #include <wlr/render/wlr_texture.h>
 #include <wlr/types/wlr_pointer_constraints_v1.h>
-#include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/types/wlr_xdg_foreign_registry.h>
 #include <wlr/types/wlr_xdg_foreign_v1.h>
@@ -102,7 +99,6 @@ extern "C" {
 #include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
-#include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/util/box.h>
 #include <wlr/util/transform.h>
 #include <wlr/render/swapchain.h>

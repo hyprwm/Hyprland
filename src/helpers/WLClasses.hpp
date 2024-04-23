@@ -269,18 +269,6 @@ struct STabletPad {
     }
 };
 
-struct SIdleInhibitor {
-    wlr_idle_inhibitor_v1*            pWlrInhibitor = nullptr;
-    CWindow*                          pWindow       = nullptr;
-    std::shared_ptr<HOOK_CALLBACK_FN> onWindowDestroy;
-
-    DYNLISTENER(Destroy);
-
-    bool operator==(const SIdleInhibitor& b) const {
-        return pWlrInhibitor == b.pWlrInhibitor;
-    }
-};
-
 struct SSwipeGesture {
     PHLWORKSPACE pWorkspaceBegin = nullptr;
 

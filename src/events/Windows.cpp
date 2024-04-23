@@ -1232,11 +1232,6 @@ void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
     PNEWWINDOW->m_pWLSurface.assign(g_pXWaylandManager->getWindowSurface(PNEWWINDOW), PNEWWINDOW);
 }
 
-void Events::listener_NewXDGDeco(wl_listener* listener, void* data) {
-    const auto WLRDECO = (wlr_xdg_toplevel_decoration_v1*)data;
-    wlr_xdg_toplevel_decoration_v1_set_mode(WLRDECO, WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-}
-
 void Events::listener_requestMaximize(void* owner, void* data) {
     const auto PWINDOW = (CWindow*)owner;
 

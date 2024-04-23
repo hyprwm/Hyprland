@@ -64,14 +64,11 @@ class CCompositor {
     wlr_egl*                                   m_sWLREGL;
     int                                        m_iDRMFD;
     wlr_pointer_constraints_v1*                m_sWLRPointerConstraints;
-    wlr_relative_pointer_manager_v1*           m_sWLRRelPointerMgr;
     wlr_server_decoration_manager*             m_sWLRServerDecoMgr;
-    wlr_xdg_decoration_manager_v1*             m_sWLRXDGDecoMgr;
     wlr_virtual_pointer_manager_v1*            m_sWLRVirtPtrMgr;
     wlr_foreign_toplevel_manager_v1*           m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*                     m_sWLRTabletManager;
     wlr_xdg_foreign_registry*                  m_sWLRForeignRegistry;
-    wlr_idle_inhibit_manager_v1*               m_sWLRIdleInhibitMgr;
     wlr_pointer_gestures_v1*                   m_sWLRPointerGestures;
     wlr_output_power_manager_v1*               m_sWLROutputPowerMgr;
     wlr_input_method_manager_v2*               m_sWLRIMEMgr;
@@ -80,8 +77,6 @@ class CCompositor {
     wlr_linux_dmabuf_v1*                       m_sWLRLinuxDMABuf;
     wlr_backend*                               m_sWLRHeadlessBackend;
     wlr_session_lock_manager_v1*               m_sWLRSessionLockMgr;
-    wlr_gamma_control_manager_v1*              m_sWLRGammaCtrlMgr;
-    wlr_cursor_shape_manager_v1*               m_sWLRCursorShapeMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szWLDisplaySocket   = "";

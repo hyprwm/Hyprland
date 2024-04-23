@@ -222,29 +222,6 @@ void Events::listener_newSessionLock(wl_listener* listener, void* data) {
     g_pSessionLockManager->onNewSessionLock((wlr_session_lock_v1*)data);
 }
 
-void Events::listener_setGamma(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New Gamma event at {:x}", (uintptr_t)data);
-
-    const auto E = (wlr_gamma_control_manager_v1_set_gamma_event*)data;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(E->output);
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Gamma event object references non-existent output {:x} ?", (uintptr_t)E->output);
-        return;
-    }
-
-    PMONITOR->gammaChanged = true;
-
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
-}
-
-void Events::listener_setCursorShape(wl_listener* listener, void* data) {
-    const auto E = (wlr_cursor_shape_manager_v1_request_set_shape_event*)data;
-
-    g_pInputManager->processMouseRequest(E);
-}
-
 void Events::listener_newShortcutInhibitor(wl_listener* listener, void* data) {
     const auto INHIBITOR = (wlr_keyboard_shortcuts_inhibitor_v1*)data;
 

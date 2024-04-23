@@ -261,10 +261,15 @@ protocol("subprojects/hyprland-protocols/protocols/hyprland-toplevel-export-v1.x
 protocol("stable/xdg-shell/xdg-shell.xml" "xdg-shell" false)
 protocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml" "linux-dmabuf-unstable-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
-protocol("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
 protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)
 protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstable-v1" false)
+protocolNew("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
+protocolNew("unstable/idle-inhibit/idle-inhibit-unstable-v1.xml" "idle-inhibit-unstable-v1" false)
+protocolNew("unstable/relative-pointer/relative-pointer-unstable-v1.xml" "relative-pointer-unstable-v1" false)
+protocolNew("unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" "xdg-decoration-unstable-v1" false)
+protocolNew("staging/alpha-modifier/alpha-modifier-v1.xml" "alpha-modifier-v1" false)
+protocolNew("protocols/wlr-gamma-control-unstable-v1.xml" "wlr-gamma-control-unstable-v1" true)
 
 # tools
 add_subdirectory(hyprctl)

@@ -4,6 +4,36 @@
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../protocols/CursorShape.hpp"
+#include "../../protocols/IdleInhibit.hpp"
+#include "../../protocols/RelativePointer.hpp"
+
+CInputManager::CInputManager() {
+    m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+        if (!cursorImageUnlocked())
+            return;
+
+        auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
+
+        if (!g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+            return;
+
+        if (wl_resource_get_client(event.pMgr->resource()) != g_pCompositor->m_sSeat.seat->pointer_state.focused_client->client)
+            return;
+
+        Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
+
+        m_sCursorSurfaceInfo.wlSurface.unassign();
+        m_sCursorSurfaceInfo.vHotspot = {};
+        m_sCursorSurfaceInfo.name     = event.shapeName;
+        m_sCursorSurfaceInfo.hidden   = false;
+
+        m_sCursorSurfaceInfo.inUse = true;
+        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+    });
+
+    m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+}
 
 CInputManager::~CInputManager() {
     m_vConstraints.clear();
@@ -12,7 +42,7 @@ CInputManager::~CInputManager() {
     m_lTablets.clear();
     m_lTabletTools.clear();
     m_lTabletPads.clear();
-    m_lIdleInhibitors.clear();
+    m_vIdleInhibitors.clear();
     m_lTouchDevices.clear();
     m_lSwitches.clear();
 }
@@ -25,11 +55,9 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     const auto  DELTA = *PNOACCEL == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
     if (*PSENSTORAW == 1)
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS,
-                                                             DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA * *PSENS, Vector2D{e->unaccel_dx, e->unaccel_dy} * *PSENS);
     else
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y,
-                                                             e->unaccel_dx, e->unaccel_dy);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA, Vector2D{e->unaccel_dx, e->unaccel_dy});
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 
@@ -159,7 +187,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, CLOSEST.x, CLOSEST.y);
                 wlr_seat_pointer_send_motion(g_pCompositor->m_sSeat.seat, time, CLOSESTLOCAL.x, CLOSESTLOCAL.y);
-                wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)time * 1000, 0, 0, 0, 0);
+                PROTO::relativePointer->sendRelativeMotion((uint64_t)time * 1000, {}, {});
             }
 
             return;
@@ -506,23 +534,6 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 
         m_sCursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorSurface(e->surface, e->hotspot_x, e->hotspot_y);
-    }
-}
-
-void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
-    if (!cursorImageUnlocked())
-        return;
-
-    Debug::log(LOG, "cursorImage request: shape {}", (uint32_t)e->shape);
-
-    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
-        m_sCursorSurfaceInfo.wlSurface.unassign();
-        m_sCursorSurfaceInfo.vHotspot = {};
-        m_sCursorSurfaceInfo.name     = wlr_cursor_shape_v1_name(e->shape);
-        m_sCursorSurfaceInfo.hidden   = false;
-
-        m_sCursorSurfaceInfo.inUse = true;
-        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     }
 }
 

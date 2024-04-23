@@ -96,8 +96,10 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             exitFunc();
     }
 
-    for (auto& [k, v] : plugin->registeredCallbacks)
-        g_pHookSystem->unhook(v);
+    for (auto& [k, v] : plugin->registeredCallbacks) {
+        if (const auto SP = v.lock())
+            g_pHookSystem->unhook(SP);
+    }
 
     const auto ls = plugin->registeredLayouts;
     for (auto& l : ls)
@@ -119,11 +121,16 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     g_pConfigManager->removePluginConfig(plugin->m_pHandle);
 
-    dlclose(plugin->m_pHandle);
+    // save these two for dlclose and a log,
+    // as erase_if will kill the pointer
+    const auto PLNAME   = plugin->name;
+    const auto PLHANDLE = plugin->m_pHandle;
 
-    Debug::log(LOG, " [PluginSystem] Plugin {} unloaded.", plugin->name);
+    std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == PLHANDLE; });
 
-    std::erase_if(m_vLoadedPlugins, [&](const auto& other) { return other->m_pHandle == plugin->m_pHandle; });
+    dlclose(PLHANDLE);
+
+    Debug::log(LOG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
 
     // reload config to fix some stuf like e.g. unloadedPluginVars
     g_pConfigManager->m_bForceReload = true;

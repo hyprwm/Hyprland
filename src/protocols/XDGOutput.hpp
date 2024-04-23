@@ -31,15 +31,17 @@ class CXDGOutputProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onManagerResourceDestroy(wl_resource* res);
-    void         onOutputResourceDestroy(wl_resource* res);
-    void         onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource);
-
   private:
-    void                                  updateAllOutputs();
+    void onManagerResourceDestroy(wl_resource* res);
+    void onOutputResourceDestroy(wl_resource* res);
+    void onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource);
+    void updateAllOutputs();
 
+    //
     std::vector<UP<CZxdgOutputManagerV1>> m_vManagerResources;
     std::vector<UP<CXDGOutput>>           m_vXDGOutputs;
+
+    friend class CXDGOutput;
 };
 
 namespace PROTO {

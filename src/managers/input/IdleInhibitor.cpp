@@ -1,61 +1,39 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../protocols/IdleInhibit.hpp"
 
-void Events::listener_newIdleInhibitor(wl_listener* listener, void* data) {
-    const auto WLRIDLEINHIBITOR = (wlr_idle_inhibitor_v1*)data;
+void CInputManager::newIdleInhibitor(std::any inhibitor) {
+    const auto PINHIBIT = m_vIdleInhibitors.emplace_back(std::make_unique<SIdleInhibitor>()).get();
+    PINHIBIT->inhibitor = std::any_cast<std::shared_ptr<CIdleInhibitor>>(inhibitor);
 
-    if (!WLRIDLEINHIBITOR)
+    Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface);
+
+    PINHIBIT->inhibitor->listeners.destroy = PINHIBIT->inhibitor->resource.lock()->events.destroy.registerListener(
+        [this, PINHIBIT](std::any data) { std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
+
+    const auto PWINDOW = g_pCompositor->getWindowFromSurface(PINHIBIT->inhibitor->surface);
+
+    if (!PWINDOW) {
+        Debug::log(WARN, "Inhibitor is for no window?");
         return;
+    }
 
-    g_pInputManager->newIdleInhibitor(WLRIDLEINHIBITOR);
-}
-
-static void destroyInhibitor(SIdleInhibitor* inhibitor) {
-    g_pHookSystem->unhook(inhibitor->onWindowDestroy);
-
-    g_pInputManager->m_lIdleInhibitors.remove(*inhibitor);
-
-    Debug::log(LOG, "Destroyed an idleinhibitor");
-
-    g_pInputManager->recheckIdleInhibitorStatus();
-}
-
-void CInputManager::newIdleInhibitor(wlr_idle_inhibitor_v1* pInhibitor) {
-    const auto PINHIBIT = &m_lIdleInhibitors.emplace_back();
-
-    Debug::log(LOG, "New idle inhibitor registered");
-
-    PINHIBIT->pWlrInhibitor = pInhibitor;
-
-    PINHIBIT->onWindowDestroy = g_pHookSystem->hookDynamic("closeWindow", [PINHIBIT](void* self, SCallbackInfo& info, std::any data) {
-        if (PINHIBIT->pWindow == std::any_cast<CWindow*>(data))
-            destroyInhibitor(PINHIBIT);
+    PINHIBIT->pWindow               = PWINDOW;
+    PINHIBIT->windowDestroyListener = PWINDOW->events.destroy.registerListener([PINHIBIT](std::any data) {
+        Debug::log(WARN, "Inhibitor got its window destroyed before its inhibitor resource.");
+        PINHIBIT->pWindow = nullptr;
     });
-
-    PINHIBIT->hyprListener_Destroy.initCallback(
-        &pInhibitor->events.destroy,
-        [](void* owner, void* data) {
-            const auto PINH = (SIdleInhibitor*)owner;
-
-            destroyInhibitor(PINH);
-        },
-        PINHIBIT, "IdleInhibitor");
-
-    PINHIBIT->pWindow = g_pCompositor->getWindowFromSurface(pInhibitor->surface);
-
-    if (PINHIBIT->pWindow)
-        Debug::log(LOG, "IdleInhibitor got window {}", PINHIBIT->pWindow);
 
     recheckIdleInhibitorStatus();
 }
 
 void CInputManager::recheckIdleInhibitorStatus() {
 
-    for (auto& ii : m_lIdleInhibitors) {
-        if (!ii.pWindow) {
+    for (auto& ii : m_vIdleInhibitors) {
+        if (!ii->pWindow) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
-        } else if (g_pHyprRenderer->shouldRenderWindow(ii.pWindow)) {
+        } else if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow)) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
         }

@@ -134,7 +134,7 @@ void CCompositor::initServer() {
     wlr_multi_for_each_backend(
         m_sWLRBackend,
         [](wlr_backend* backend, void* isHeadlessOnly) {
-            if (!wlr_backend_is_headless(backend))
+            if (!wlr_backend_is_headless(backend) && !wlr_backend_is_libinput(backend))
                 *(bool*)isHeadlessOnly = false;
         },
         &isHeadlessOnly);
@@ -188,8 +188,6 @@ void CCompositor::initServer() {
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
 
-    m_sWLRGammaCtrlMgr = wlr_gamma_control_manager_v1_create(m_sWLDisplay);
-
     m_sWLROutputLayout = wlr_output_layout_create(m_sWLDisplay);
 
     m_sWLROutputPowerMgr = wlr_output_power_manager_v1_create(m_sWLDisplay);
@@ -208,7 +206,6 @@ void CCompositor::initServer() {
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
 
     m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
-    m_sWLRXDGDecoMgr    = wlr_xdg_decoration_manager_v1_create(m_sWLDisplay);
     wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
     m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
@@ -216,8 +213,6 @@ void CCompositor::initServer() {
     m_sWLRKbShInhibitMgr = wlr_keyboard_shortcuts_inhibit_v1_create(m_sWLDisplay);
 
     m_sWLRPointerConstraints = wlr_pointer_constraints_v1_create(m_sWLDisplay);
-
-    m_sWLRRelPointerMgr = wlr_relative_pointer_manager_v1_create(m_sWLDisplay);
 
     m_sWLRVKeyboardMgr = wlr_virtual_keyboard_manager_v1_create(m_sWLDisplay);
 
@@ -235,8 +230,6 @@ void CCompositor::initServer() {
 
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
 
-    m_sWLRIdleInhibitMgr = wlr_idle_inhibit_v1_create(m_sWLDisplay);
-
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
@@ -251,8 +244,6 @@ void CCompositor::initServer() {
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
-
-    m_sWLRCursorShapeMgr = wlr_cursor_shape_manager_v1_create(m_sWLDisplay, 1);
 
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
@@ -298,18 +289,14 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply, m_sWLROutputMgr, "OutputMgr");
     addWLSignal(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest, m_sWLROutputMgr, "OutputMgr");
     addWLSignal(&m_sWLRPointerConstraints->events.new_constraint, &Events::listen_newConstraint, m_sWLRPointerConstraints, "PointerConstraints");
-    addWLSignal(&m_sWLRXDGDecoMgr->events.new_toplevel_decoration, &Events::listen_NewXDGDeco, m_sWLRXDGDecoMgr, "XDGDecoMgr");
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newVirtualKeyboard, m_sWLRVKeyboardMgr, "VKeyboardMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
-    addWLSignal(&m_sWLRIdleInhibitMgr->events.new_inhibitor, &Events::listen_newIdleInhibitor, m_sWLRIdleInhibitMgr, "WLRIdleInhibitMgr");
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
     addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
-    addWLSignal(&m_sWLRGammaCtrlMgr->events.set_gamma, &Events::listen_setGamma, m_sWLRGammaCtrlMgr, "GammaCtrlMgr");
-    addWLSignal(&m_sWLRCursorShapeMgr->events.request_set_shape, &Events::listen_setCursorShape, m_sWLRCursorShapeMgr, "CursorShapeMgr");
     addWLSignal(&m_sWLRKbShInhibitMgr->events.new_inhibitor, &Events::listen_newShortcutInhibitor, m_sWLRKbShInhibitMgr, "ShortcutInhibitMgr");
 
     if (m_sWRLDRMLeaseMgr)
@@ -351,18 +338,14 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_outputMgrApply);
     removeWLSignal(&Events::listen_outputMgrTest);
     removeWLSignal(&Events::listen_newConstraint);
-    removeWLSignal(&Events::listen_NewXDGDeco);
     removeWLSignal(&Events::listen_newVirtPtr);
     removeWLSignal(&Events::listen_newVirtualKeyboard);
     removeWLSignal(&Events::listen_RendererDestroy);
-    removeWLSignal(&Events::listen_newIdleInhibitor);
     removeWLSignal(&Events::listen_powerMgrSetMode);
     removeWLSignal(&Events::listen_newIME);
     removeWLSignal(&Events::listen_newTextInput);
     removeWLSignal(&Events::listen_activateXDG);
     removeWLSignal(&Events::listen_newSessionLock);
-    removeWLSignal(&Events::listen_setGamma);
-    removeWLSignal(&Events::listen_setCursorShape);
     removeWLSignal(&Events::listen_newShortcutInhibitor);
 
     if (m_sWRLDRMLeaseMgr)
@@ -455,6 +438,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the HookSystem!");
             g_pHookSystem = std::make_unique<CHookSystemManager>();
 
+            Debug::log(LOG, "Creating the ProtocolManager!");
+            g_pProtocolManager = std::make_unique<CProtocolManager>();
+
             Debug::log(LOG, "Creating the KeybindManager!");
             g_pKeybindManager = std::make_unique<CKeybindManager>();
 
@@ -491,9 +477,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the XWaylandManager!");
             g_pXWaylandManager = std::make_unique<CHyprXWaylandManager>();
-
-            Debug::log(LOG, "Creating the ProtocolManager!");
-            g_pProtocolManager = std::make_unique<CProtocolManager>();
 
             Debug::log(LOG, "Creating the SessionLockManager!");
             g_pSessionLockManager = std::make_unique<CSessionLockManager>();
@@ -2414,13 +2397,24 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
 }
 
 CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
+    if (regexp.starts_with("active"))
+        return m_pLastWindow;
+
     eFocusWindowMode mode = MODE_CLASS_REGEX;
 
     std::regex       regexCheck(regexp);
     std::string      matchCheck;
-    if (regexp.starts_with("title:")) {
+    if (regexp.starts_with("class:")) {
+        regexCheck = std::regex(regexp.substr(6));
+    } else if (regexp.starts_with("initialclass:")) {
+        mode       = MODE_INITIAL_CLASS_REGEX;
+        regexCheck = std::regex(regexp.substr(13));
+    } else if (regexp.starts_with("title:")) {
         mode       = MODE_TITLE_REGEX;
         regexCheck = std::regex(regexp.substr(6));
+    } else if (regexp.starts_with("initialtitle:")) {
+        mode       = MODE_INITIAL_TITLE_REGEX;
+        regexCheck = std::regex(regexp.substr(13));
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2451,13 +2445,25 @@ CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {
         switch (mode) {
             case MODE_CLASS_REGEX: {
                 const auto windowClass = g_pXWaylandManager->getAppIDClass(w.get());
-                if (!std::regex_search(g_pXWaylandManager->getAppIDClass(w.get()), regexCheck))
+                if (!std::regex_search(windowClass, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_CLASS_REGEX: {
+                const auto initialWindowClass = w->m_szInitialClass;
+                if (!std::regex_search(initialWindowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_TITLE_REGEX: {
                 const auto windowTitle = g_pXWaylandManager->getTitle(w.get());
                 if (!std::regex_search(windowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_TITLE_REGEX: {
+                const auto initialWindowTitle = w->m_szInitialTitle;
+                if (!std::regex_search(initialWindowTitle, regexCheck))
                     continue;
                 break;
             }

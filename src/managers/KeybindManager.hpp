@@ -32,9 +32,12 @@ struct SKeybind {
 
 enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
+    MODE_INITIAL_CLASS_REGEX,
     MODE_TITLE_REGEX,
+    MODE_INITIAL_TITLE_REGEX,
     MODE_ADDRESS,
-    MODE_PID
+    MODE_PID,
+    MODE_ACTIVE_WINDOW
 };
 
 struct SPressedKeyWithMods {

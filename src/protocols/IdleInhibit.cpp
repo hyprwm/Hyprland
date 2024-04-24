@@ -6,7 +6,14 @@ CIdleInhibitor::CIdleInhibitor(SP<CIdleInhibitorResource> resource_, wlr_surface
 
 CIdleInhibitorResource::CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_, wlr_surface* surface_) : resource(resource_), surface(surface_) {
     hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy, [this](void* owner, void* data) { PROTO::idleInhibit->removeInhibitor(this); }, this, "CIdleInhibitorResource");
+        &surface->events.destroy,
+        [this](void* owner, void* data) {
+            surface = nullptr;
+            hyprListener_surfaceDestroy.removeCallback();
+            destroySent = true;
+            events.destroy.emit();
+        },
+        this, "CIdleInhibitorResource");
 
     resource->setOnDestroy([this](CZwpIdleInhibitorV1* p) { PROTO::idleInhibit->removeInhibitor(this); });
     resource->setDestroy([this](CZwpIdleInhibitorV1* p) { PROTO::idleInhibit->removeInhibitor(this); });
@@ -14,7 +21,8 @@ CIdleInhibitorResource::CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_
 
 CIdleInhibitorResource::~CIdleInhibitorResource() {
     hyprListener_surfaceDestroy.removeCallback();
-    events.destroy.emit();
+    if (!destroySent)
+        events.destroy.emit();
 }
 
 CIdleInhibitProtocol::CIdleInhibitProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

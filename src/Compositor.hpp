@@ -66,7 +66,6 @@ class CCompositor {
     wlr_pointer_constraints_v1*                m_sWLRPointerConstraints;
     wlr_server_decoration_manager*             m_sWLRServerDecoMgr;
     wlr_virtual_pointer_manager_v1*            m_sWLRVirtPtrMgr;
-    wlr_foreign_toplevel_manager_v1*           m_sWLRToplevelMgr;
     wlr_tablet_manager_v2*                     m_sWLRTabletManager;
     wlr_xdg_foreign_registry*                  m_sWLRForeignRegistry;
     wlr_output_power_manager_v1*               m_sWLROutputPowerMgr;
@@ -136,7 +135,6 @@ class CCompositor {
     CMonitor*      getRealMonitorFromOutput(wlr_output*);
     CWindow*       getWindowFromSurface(wlr_surface*);
     CWindow*       getWindowFromHandle(uint32_t);
-    CWindow*       getWindowFromZWLRHandle(wl_resource*);
     bool           isWorkspaceVisible(PHLWORKSPACE);
     PHLWORKSPACE   getWorkspaceByID(const int&);
     PHLWORKSPACE   getWorkspaceByName(const std::string&);

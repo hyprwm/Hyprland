@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "wlr-foreign-toplevel-management-unstable-v1-protocol.h"
 #include "hyprland-toplevel-export-v1-protocol.h"
 #include "Screencopy.hpp"
 

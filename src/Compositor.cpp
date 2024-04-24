@@ -219,8 +219,6 @@ void CCompositor::initServer() {
 
     m_sWLRVirtPtrMgr = wlr_virtual_pointer_manager_v1_create(m_sWLDisplay);
 
-    m_sWLRToplevelMgr = wlr_foreign_toplevel_manager_v1_create(m_sWLDisplay);
-
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
         Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");
@@ -954,9 +952,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
             updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
-
-            if (PLASTWINDOW->m_phForeignToplevel)
-                wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);
         }
 
         wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
@@ -1016,9 +1011,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
 
         if (!pWindow->m_bIsX11 || pWindow->m_iX11Type == 1)
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
-
-        if (PLASTWINDOW->m_phForeignToplevel)
-            wlr_foreign_toplevel_handle_v1_set_activated(PLASTWINDOW->m_phForeignToplevel, false);
     }
 
     m_pLastWindow = PLASTWINDOW;
@@ -1043,17 +1035,6 @@ void CCompositor::focusWindow(CWindow* pWindow, wlr_surface* pSurface) {
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
-
-    // TODO: implement this better
-    if (!PLASTWINDOW && pWindow->m_sGroupData.pNextWindow) {
-        for (auto curr = pWindow->m_sGroupData.pNextWindow; curr != pWindow; curr = curr->m_sGroupData.pNextWindow) {
-            if (curr->m_phForeignToplevel)
-                wlr_foreign_toplevel_handle_v1_set_activated(curr->m_phForeignToplevel, false);
-        }
-    }
-
-    if (pWindow->m_phForeignToplevel)
-        wlr_foreign_toplevel_handle_v1_set_activated(pWindow->m_phForeignToplevel, true);
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
@@ -1197,23 +1178,6 @@ CWindow* CCompositor::getWindowFromHandle(uint32_t handle) {
     for (auto& w : m_vWindows) {
         if ((uint32_t)(((uint64_t)w.get()) & 0xFFFFFFFF) == handle) {
             return w.get();
-        }
-    }
-
-    return nullptr;
-}
-
-CWindow* CCompositor::getWindowFromZWLRHandle(wl_resource* handle) {
-    for (auto& w : m_vWindows) {
-        if (!w->m_bIsMapped || w->isHidden() || !w->m_phForeignToplevel)
-            continue;
-
-        wl_resource* current;
-
-        wl_list_for_each(current, &w->m_phForeignToplevel->resources, link) {
-            if (current == handle) {
-                return w.get();
-            }
         }
     }
 

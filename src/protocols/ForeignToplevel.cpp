@@ -62,6 +62,8 @@ void CForeignToplevelList::onMap(CWindow* pWindow) {
     NEWHANDLE->resource->sendAppId(pWindow->m_szInitialClass.c_str());
     NEWHANDLE->resource->sendTitle(pWindow->m_szInitialTitle.c_str());
     NEWHANDLE->resource->sendDone();
+
+    handles.push_back(NEWHANDLE);
 }
 
 SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(CWindow* pWindow) {

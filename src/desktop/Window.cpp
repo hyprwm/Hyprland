@@ -274,66 +274,8 @@ IHyprWindowDecoration* CWindow::getDecorationByType(eDecorationType type) {
     return nullptr;
 }
 
-void CWindow::createToplevelHandle() {
-    if (m_bIsX11 && (m_bX11DoesntWantBorders || m_iX11Type == 2))
-        return; // don't create a toplevel
-
-    m_phForeignToplevel = wlr_foreign_toplevel_handle_v1_create(g_pCompositor->m_sWLRToplevelMgr);
-
-    wlr_foreign_toplevel_handle_v1_set_app_id(m_phForeignToplevel, g_pXWaylandManager->getAppIDClass(this).c_str());
-    wlr_foreign_toplevel_handle_v1_output_enter(m_phForeignToplevel, g_pCompositor->getMonitorFromID(m_iMonitorID)->output);
-    wlr_foreign_toplevel_handle_v1_set_title(m_phForeignToplevel, m_szTitle.c_str());
-    wlr_foreign_toplevel_handle_v1_set_maximized(m_phForeignToplevel, false);
-    wlr_foreign_toplevel_handle_v1_set_minimized(m_phForeignToplevel, false);
-    wlr_foreign_toplevel_handle_v1_set_fullscreen(m_phForeignToplevel, false);
-
-    // handle events
-    hyprListener_toplevelActivate.initCallback(
-        &m_phForeignToplevel->events.request_activate, [&](void* owner, void* data) { g_pLayoutManager->getCurrentLayout()->requestFocusForWindow(this); }, this, "Toplevel");
-
-    hyprListener_toplevelFullscreen.initCallback(
-        &m_phForeignToplevel->events.request_fullscreen,
-        [&](void* owner, void* data) {
-            const auto EV = (wlr_foreign_toplevel_handle_v1_fullscreen_event*)data;
-
-            g_pCompositor->setWindowFullscreen(this, EV->fullscreen, FULLSCREEN_FULL);
-        },
-        this, "Toplevel");
-
-    hyprListener_toplevelClose.initCallback(
-        &m_phForeignToplevel->events.request_close, [&](void* owner, void* data) { g_pCompositor->closeWindow(this); }, this, "Toplevel");
-
-    m_iLastToplevelMonitorID = m_iMonitorID;
-}
-
-void CWindow::destroyToplevelHandle() {
-    if (!m_phForeignToplevel)
-        return;
-
-    hyprListener_toplevelActivate.removeCallback();
-    hyprListener_toplevelClose.removeCallback();
-    hyprListener_toplevelFullscreen.removeCallback();
-
-    wlr_foreign_toplevel_handle_v1_destroy(m_phForeignToplevel);
-    m_phForeignToplevel = nullptr;
-}
-
 void CWindow::updateToplevel() {
     updateSurfaceScaleTransformDetails();
-
-    if (!m_phForeignToplevel)
-        return;
-
-    wlr_foreign_toplevel_handle_v1_set_title(m_phForeignToplevel, m_szTitle.c_str());
-    wlr_foreign_toplevel_handle_v1_set_fullscreen(m_phForeignToplevel, m_bIsFullscreen);
-
-    if (m_iLastToplevelMonitorID != m_iMonitorID) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iLastToplevelMonitorID); PMONITOR && PMONITOR->m_bEnabled)
-            wlr_foreign_toplevel_handle_v1_output_leave(m_phForeignToplevel, PMONITOR->output);
-        wlr_foreign_toplevel_handle_v1_output_enter(m_phForeignToplevel, g_pCompositor->getMonitorFromID(m_iMonitorID)->output);
-
-        m_iLastToplevelMonitorID = m_iMonitorID;
-    }
 }
 
 void sendEnterIter(wlr_surface* pSurface, int x, int y, void* data) {
@@ -1310,4 +1252,22 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     }
 
     return results;
+}
+
+void CWindow::activate() {
+    static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
+    EMIT_HOOK_EVENT("urgent", this);
+
+    m_bIsUrgent = true;
+
+    if (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
+        return;
+
+    if (m_bIsFloating)
+        g_pCompositor->changeWindowZOrder(this, true);
+
+    g_pCompositor->focusWindow(this);
+    g_pCompositor->warpCursorTo(middle());
 }

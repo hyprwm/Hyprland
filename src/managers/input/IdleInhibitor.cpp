@@ -8,22 +8,21 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 
     Debug::log(LOG, "New idle inhibitor registered for surface {:x}", (uintptr_t)PINHIBIT->inhibitor->surface);
 
-    PINHIBIT->inhibitor->listeners.destroy = PINHIBIT->inhibitor->resource.lock()->events.destroy.registerListener(
-        [this, PINHIBIT](std::any data) { std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
+    PINHIBIT->inhibitor->listeners.destroy = PINHIBIT->inhibitor->resource.lock()->events.destroy.registerListener([this, PINHIBIT](std::any data) {
+        std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; });
+        recheckIdleInhibitorStatus();
+    });
 
     const auto PWINDOW = g_pCompositor->getWindowFromSurface(PINHIBIT->inhibitor->surface);
 
-    if (!PWINDOW) {
+    if (PWINDOW) {
+        PINHIBIT->pWindow               = PWINDOW;
+        PINHIBIT->windowDestroyListener = PWINDOW->events.destroy.registerListener([PINHIBIT](std::any data) {
+            Debug::log(WARN, "Inhibitor got its window destroyed before its inhibitor resource.");
+            PINHIBIT->pWindow = nullptr;
+        });
+    } else
         Debug::log(WARN, "Inhibitor is for no window?");
-        return;
-    }
-
-    PINHIBIT->pWindow               = PWINDOW;
-    PINHIBIT->windowDestroyListener = PWINDOW->events.destroy.registerListener([PINHIBIT](std::any data) {
-        Debug::log(WARN, "Inhibitor got its window destroyed before its inhibitor resource.");
-        PINHIBIT->pWindow = nullptr;
-    });
-
     recheckIdleInhibitorStatus();
 }
 

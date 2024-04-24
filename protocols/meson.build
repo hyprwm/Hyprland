@@ -48,6 +48,7 @@ new_protocols = [
   [wl_protocol_dir, 'unstable/relative-pointer/relative-pointer-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml'],
   [wl_protocol_dir, 'staging/alpha-modifier/alpha-modifier-v1.xml'],
+  [wl_protocol_dir, 'staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml'],
 ]
 
 wl_protos_src = []

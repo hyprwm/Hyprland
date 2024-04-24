@@ -95,7 +95,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (*PINITIALWSTRACKING == 2) { // persistent
                     if (!WS.primaryOwner) {
                         WS.primaryOwner = PWINDOW;
-                        TOKEN->data = WS;
+                        TOKEN->data     = WS;
                     }
 
                     PWINDOW->m_szInitialWorkspaceToken = SZTOKEN;

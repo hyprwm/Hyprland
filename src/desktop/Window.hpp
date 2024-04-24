@@ -191,7 +191,7 @@ struct SWindowRule {
 };
 
 struct SInitialWorkspaceToken {
-    CWindow* primaryOwner = nullptr;
+    CWindow*    primaryOwner = nullptr;
     std::string workspace;
 };
 

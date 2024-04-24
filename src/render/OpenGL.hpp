@@ -172,7 +172,7 @@ class CHyprOpenGLImpl {
     bool                  preBlurQueued();
     void                  preRender(CMonitor*);
 
-    void                  saveBufferForMirror();
+    void                  saveBufferForMirror(CBox*);
     void                  renderMirrored();
 
     void                  applyScreenShader(const std::string& path);

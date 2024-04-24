@@ -157,7 +157,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     if (pMonitor->isMirror())
         return false;
 
-    // monitors that are mirrored however must be offloaded so the buffer can be copied
+    // monitors that are mirrored however must be offloaded because we cannot copy from output FBs
     if (!pMonitor->mirrors.empty())
         return true;
 
@@ -347,13 +347,6 @@ void CHyprOpenGLImpl::end() {
         m_RenderData.damage = m_RenderData.finalDamage;
         m_bEndFrame         = true;
 
-        // copy the damaged areas into the mirror buffer
-        // we can't use the offloadFB for mirroring, as it contains artifacts from blurring
-        if (!m_RenderData.pMonitor->mirrors.empty() && !m_bFakeFrame)
-            saveBufferForMirror();
-
-        m_RenderData.outFB->bind();
-
         CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
 
         if (m_RenderData.mouseZoomFactor != 1.f) {
@@ -377,6 +370,12 @@ void CHyprOpenGLImpl::end() {
         if (m_RenderData.mouseZoomUseMouse)
             m_RenderData.useNearestNeighbor = true;
 
+        // copy the damaged areas into the mirror buffer
+        // we can't use the offloadFB for mirroring, as it contains artifacts from blurring
+        if (!m_RenderData.pMonitor->mirrors.empty() && !m_bFakeFrame)
+            saveBufferForMirror(&monbox);
+
+        m_RenderData.outFB->bind();
         blend(false);
 
         if (m_sFinalScreenShader.program < 1 && !g_pHyprRenderer->m_bCrashingInProgress)
@@ -1979,18 +1978,16 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shSHADOW.texAttrib);
 }
 
-void CHyprOpenGLImpl::saveBufferForMirror() {
+void CHyprOpenGLImpl::saveBufferForMirror(CBox* box) {
 
     if (!m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated())
         m_RenderData.pCurrentMonData->monitorMirrorFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y, m_RenderData.pMonitor->drmFormat);
 
     m_RenderData.pCurrentMonData->monitorMirrorFB.bind();
 
-    CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-
     blend(false);
 
-    renderTexture(m_RenderData.currentFB->m_cTex, &monbox, 1.f, 0, false, false);
+    renderTexture(m_RenderData.currentFB->m_cTex, box, 1.f, 0, false, false);
 
     blend(true);
 
@@ -2011,17 +2008,16 @@ void CHyprOpenGLImpl::renderMirrored() {
     monbox.x = (monitor->vecTransformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
+    const auto PFB = &m_mMonitorRenderResources[mirrored].monitorMirrorFB;
+    if (!PFB->isAllocated() || PFB->m_cTex.m_iTexID <= 0)
+        return;
+
     // replace monitor projection to undo the mirrored monitor's projection
     wlr_matrix_identity(monitor->projMatrix.data());
     wlr_matrix_translate(monitor->projMatrix.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
     wlr_matrix_transform(monitor->projMatrix.data(), monitor->transform);
     wlr_matrix_transform(monitor->projMatrix.data(), wlr_output_transform_invert(mirrored->transform));
     wlr_matrix_translate(monitor->projMatrix.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
-
-    const auto PFB = &m_mMonitorRenderResources[mirrored].monitorMirrorFB;
-
-    if (!PFB->isAllocated() || PFB->m_cTex.m_iTexID <= 0)
-        return;
 
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
     clear(CColor(0, 0, 0, 0));

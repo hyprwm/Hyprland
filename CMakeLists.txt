@@ -109,7 +109,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprwayland-scanner>=0.3.0 hyprlang>=0.3.2 hyprcursor>=0.1.7
+    hyprwayland-scanner>=0.3.1 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
@@ -272,6 +272,7 @@ protocolNew("unstable/relative-pointer/relative-pointer-unstable-v1.xml" "relati
 protocolNew("unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" "xdg-decoration-unstable-v1" false)
 protocolNew("staging/alpha-modifier/alpha-modifier-v1.xml" "alpha-modifier-v1" false)
 protocolNew("staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml" "ext-foreign-toplevel-list-v1" false)
+protocolNew("unstable/pointer-gestures/pointer-gestures-unstable-v1.xml" "pointer-gestures-unstable-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

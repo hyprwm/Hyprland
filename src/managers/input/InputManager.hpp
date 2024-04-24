@@ -111,9 +111,6 @@ class CInputManager {
     void               onTouchUp(wlr_touch_up_event*);
     void               onTouchMove(wlr_touch_motion_event*);
 
-    void               onPointerHoldBegin(wlr_pointer_hold_begin_event*);
-    void               onPointerHoldEnd(wlr_pointer_hold_end_event*);
-
     STouchData         m_sTouchData;
 
     // for dragging floating windows

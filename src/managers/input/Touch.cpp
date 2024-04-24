@@ -147,11 +147,3 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
         // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
     }
 }
-
-void CInputManager::onPointerHoldBegin(wlr_pointer_hold_begin_event* e) {
-    wlr_pointer_gestures_v1_send_hold_begin(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, e->time_msec, e->fingers);
-}
-
-void CInputManager::onPointerHoldEnd(wlr_pointer_hold_end_event* e) {
-    wlr_pointer_gestures_v1_send_hold_end(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, e->time_msec, e->cancelled);
-}

@@ -210,13 +210,15 @@ void CCursorManager::updateTheme() {
             highestScale = m->scale;
     }
 
-    if (highestScale * m_iSize == m_sCurrentStyleInfo.size)
+    highestScale = std::ceil(highestScale);
+
+    if (std::round(highestScale * m_iSize) == m_sCurrentStyleInfo.size)
         return;
 
     if (m_sCurrentStyleInfo.size && m_pHyprcursor->valid())
         m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
 
-    m_sCurrentStyleInfo.size = m_iSize * highestScale;
+    m_sCurrentStyleInfo.size = std::round(m_iSize * highestScale);
     m_fCursorScale           = highestScale;
 
     if (m_pHyprcursor->valid())

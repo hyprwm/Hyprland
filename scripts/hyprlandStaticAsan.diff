@@ -1,20 +1,13 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 1190876d..0e7573f9 100755
+index f54cdf5d..ad7c3e73 100755
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -110,6 +110,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
-     cairo pango pangocairo pixman-1
-     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-     hyprlang>=0.3.2 hyprcursor
-+    libffi
- )
- 
- file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
-@@ -130,6 +131,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+@@ -130,6 +130,8 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
          message(STATUS "Enabling ASan")
  
          target_link_libraries(Hyprland asan)
-+        target_link_libraries(Hyprland ${CMAKE_SOURCE_DIR}/libwayland-server.a)
++        pkg_check_modules(ffidep REQUIRED IMPORTED_TARGET libffi)
++        target_link_libraries(Hyprland ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
          target_compile_options(Hyprland PUBLIC -fsanitize=address)
      endif()
  

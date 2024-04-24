@@ -256,7 +256,7 @@ bool isDirection(const char& arg) {
 int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     int result = WORKSPACE_INVALID;
     if (in.starts_with("special")) {
-        outName = "special";
+        outName = "special:special";
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);

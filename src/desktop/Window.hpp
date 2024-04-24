@@ -14,6 +14,8 @@
 #include "DesktopTypes.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+class CWindow;
+
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
@@ -186,6 +188,11 @@ struct SWindowRule {
     int         bFocus        = -1;
     std::string szOnWorkspace = ""; // empty means any
     std::string szWorkspace   = ""; // empty means any
+};
+
+struct SInitialWorkspaceToken {
+    CWindow* primaryOwner = nullptr;
+    std::string workspace;
 };
 
 class CWindow {

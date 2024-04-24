@@ -328,9 +328,6 @@ class CWindow {
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
     CWindow* m_pLastCycledWindow = nullptr;
 
-    // Foreign Toplevel proto
-    wlr_foreign_toplevel_handle_v1* m_phForeignToplevel = nullptr;
-
     // Window decorations
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
@@ -398,8 +395,6 @@ class CWindow {
     pid_t                    getPID();
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);
     void                     removeDecorationByType(eDecorationType);
-    void                     createToplevelHandle();
-    void                     destroyToplevelHandle();
     void                     updateToplevel();
     void                     updateSurfaceScaleTransformDetails();
     void                     moveToWorkspace(PHLWORKSPACE);
@@ -420,6 +415,7 @@ class CWindow {
     bool                     visibleOnMonitor(CMonitor* pMonitor);
     int                      workspaceID();
     bool                     onSpecialWorkspace();
+    void                     activate();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

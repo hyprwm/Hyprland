@@ -110,9 +110,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // Set all windows tiled regardless of anything
     g_pXWaylandManager->setWindowStyleTiled(PWINDOW, WLR_EDGE_LEFT | WLR_EDGE_RIGHT | WLR_EDGE_TOP | WLR_EDGE_BOTTOM);
 
-    // Foreign Toplevel
-    PWINDOW->createToplevelHandle();
-
     // checks if the window wants borders and sets the appropriate flag
     g_pXWaylandManager->checkBorders(PWINDOW);
 
@@ -786,9 +783,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
     PWINDOW->m_fAlpha = 0.f;
 
-    // Destroy Foreign Toplevel
-    PWINDOW->destroyToplevelHandle();
-
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
@@ -1013,9 +1007,7 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
 }
 
 void Events::listener_activateXDG(wl_listener* listener, void* data) {
-    const auto  E = (wlr_xdg_activation_v1_request_activate_event*)data;
-
-    static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
+    const auto E = (wlr_xdg_activation_v1_request_activate_event*)data;
 
     Debug::log(LOG, "Activate request for surface at {:x}", (uintptr_t)E->surface);
 
@@ -1027,25 +1019,11 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
     if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
-    EMIT_HOOK_EVENT("urgent", PWINDOW);
-
-    PWINDOW->m_bIsUrgent = true;
-
-    if (!*PFOCUSONACTIVATE || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
-        return;
-
-    if (PWINDOW->m_bIsFloating)
-        g_pCompositor->changeWindowZOrder(PWINDOW, true);
-
-    g_pCompositor->focusWindow(PWINDOW);
-    g_pCompositor->warpCursorTo(PWINDOW->middle());
+    PWINDOW->activate();
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
-    const auto  PWINDOW = (CWindow*)owner;
-
-    static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
+    const auto PWINDOW = (CWindow*)owner;
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
@@ -1066,17 +1044,7 @@ void Events::listener_activateX11(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)PWINDOW)});
-    EMIT_HOOK_EVENT("urgent", PWINDOW);
-
-    if (!*PFOCUSONACTIVATE || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
-        return;
-
-    if (PWINDOW->m_bIsFloating)
-        g_pCompositor->changeWindowZOrder(PWINDOW, true);
-
-    g_pCompositor->focusWindow(PWINDOW);
-    g_pCompositor->warpCursorTo(PWINDOW->middle());
+    PWINDOW->activate();
 }
 
 void Events::listener_configureX11(void* owner, void* data) {
@@ -1275,9 +1243,8 @@ void Events::listener_requestMaximize(void* owner, void* data) {
 
     Debug::log(LOG, "Maximize request for {}", PWINDOW);
     if (!PWINDOW->m_bIsX11) {
-        const auto EV = (wlr_foreign_toplevel_handle_v1_maximized_event*)data;
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, EV ? EV->maximized : !PWINDOW->m_bIsFullscreen,
+        g_pCompositor->setWindowFullscreen(PWINDOW, !PWINDOW->m_bIsFullscreen,
                                            FULLSCREEN_MAXIMIZED); // this will be rejected if there already is a fullscreen window
 
         wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
@@ -1305,9 +1272,8 @@ void Events::listener_requestMinimize(void* owner, void* data) {
 
         wlr_xwayland_surface_set_minimized(PWINDOW->m_uSurface.xwayland, E->minimize && g_pCompositor->m_pLastWindow != PWINDOW); // fucking DXVK
     } else {
-        const auto E = (wlr_foreign_toplevel_handle_v1_minimized_event*)data;
-        g_pEventManager->postEvent({"minimize", std::format("{:x},{}", (uintptr_t)PWINDOW, E ? (int)E->minimized : 1)});
-        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(E ? (uint64_t)E->minimized : 1)}));
+        g_pEventManager->postEvent({"minimize", std::format("{:x},{}", (uintptr_t)PWINDOW, 1)});
+        EMIT_HOOK_EVENT("minimize", (std::vector<void*>{PWINDOW, (void*)(1)}));
     }
 }
 

@@ -1,5 +1,6 @@
 #include "ToplevelExport.hpp"
 #include "../Compositor.hpp"
+#include "ForeignToplevelWlr.hpp"
 
 #include <algorithm>
 
@@ -39,17 +40,12 @@ CToplevelExportProtocolManager::CToplevelExportProtocolManager() {
     Debug::log(LOG, "ToplevelExportManager started successfully!");
 }
 
-wlr_foreign_toplevel_handle_v1* zwlrHandleFromResource(wl_resource* resource) {
-    // we can't assert here, but it doesnt matter.
-    return (wlr_foreign_toplevel_handle_v1*)wl_resource_get_user_data(resource);
-}
-
 static void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
     g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromHandle(handle));
 }
 
 static void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
-    g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromZWLRHandle(handle));
+    g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, PROTO::foreignToplevelWlr->windowFromHandleResource(handle));
 }
 
 static void handleDestroy(wl_client* client, wl_resource* resource) {

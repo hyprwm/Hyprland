@@ -207,7 +207,7 @@ void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
 
 std::string CWorkspace::getConfigName() {
     if (m_bIsSpecialWorkspace) {
-        return "special:" + m_szName;
+        return m_szName;
     }
 
     if (m_iID > 0)

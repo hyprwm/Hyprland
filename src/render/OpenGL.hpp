@@ -67,7 +67,7 @@ struct SMonitorRenderData {
     CFramebuffer mirrorSwapFB; // etc
     CFramebuffer offMainFB;
 
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
 
     CTexture     stencilTex;
 
@@ -172,7 +172,7 @@ class CHyprOpenGLImpl {
     bool                  preBlurQueued();
     void                  preRender(CMonitor*);
 
-    void                  saveBufferForMirror();
+    void                  saveBufferForMirror(CBox*);
     void                  renderMirrored();
 
     void                  applyScreenShader(const std::string& path);

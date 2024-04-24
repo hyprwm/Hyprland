@@ -826,6 +826,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
+
+        // also force mirrors, as the aspect ratio could've changed
+        for (auto& mirror : m->mirrors)
+            mirror->forceFullFrames = 3;
     }
 
     // Reset no monitor reload

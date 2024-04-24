@@ -33,7 +33,8 @@ class CIdleInhibitorResource {
 
   private:
     SP<CZwpIdleInhibitorV1> resource;
-    wlr_surface*            surface = nullptr;
+    wlr_surface*            surface     = nullptr;
+    bool                    destroySent = false;
 
     DYNLISTENER(surfaceDestroy);
 };

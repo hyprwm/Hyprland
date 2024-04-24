@@ -81,13 +81,24 @@ void Events::listener_mapWindow(void* owner, void* data) {
             const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
             if (TOKEN) {
                 // find workspace and use it
-                std::string WS = std::any_cast<std::string>(TOKEN->data);
+                SInitialWorkspaceToken WS = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
 
-                Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS);
+                Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
-                if (g_pCompositor->getWorkspaceByString(WS) != PWINDOW->m_pWorkspace) {
-                    requestedWorkspace = WS;
+                if (g_pCompositor->getWorkspaceByString(WS.workspace) != PWINDOW->m_pWorkspace) {
+                    requestedWorkspace = WS.workspace;
                     workspaceSilent    = true;
+                }
+
+                if (*PINITIALWSTRACKING == 1) // one-shot token
+                    g_pTokenManager->removeToken(TOKEN);
+                else if (*PINITIALWSTRACKING == 2) { // persistent
+                    if (!WS.primaryOwner) {
+                        WS.primaryOwner = PWINDOW;
+                        TOKEN->data = WS;
+                    }
+
+                    PWINDOW->m_szInitialWorkspaceToken = SZTOKEN;
                 }
             }
         }

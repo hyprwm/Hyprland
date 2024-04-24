@@ -385,9 +385,20 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (m_pWorkspace == pWorkspace)
         return;
 
+    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+
     if (!m_szInitialWorkspaceToken.empty()) {
-        g_pTokenManager->removeToken(g_pTokenManager->getToken(m_szInitialWorkspaceToken));
-        m_szInitialWorkspaceToken = "";
+        const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);
+        if (TOKEN) {
+            if (*PINITIALWSTRACKING == 2) {
+                // persistent
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                if (token.primaryOwner == this) {
+                    token.workspace = pWorkspace->getConfigName();
+                    TOKEN->data     = token;
+                }
+            }
+        }
     }
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
@@ -467,6 +478,20 @@ void CWindow::onUnmap() {
         g_pCompositor->m_pLastWindow = nullptr;
     if (g_pInputManager->currentlyDraggedWindow == this)
         g_pInputManager->currentlyDraggedWindow = nullptr;
+
+    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+
+    if (!m_szInitialWorkspaceToken.empty()) {
+        const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);
+        if (TOKEN) {
+            if (*PINITIALWSTRACKING == 2) {
+                // persistent token, but the first window got removed so the token is gone
+                SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->data);
+                if (token.primaryOwner == this)
+                    g_pTokenManager->removeToken(TOKEN);
+            }
+        }
+    }
 
     m_iLastWorkspace = m_pWorkspace->m_iID;
 

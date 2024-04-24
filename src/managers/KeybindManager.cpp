@@ -33,8 +33,9 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
 
     result.push_back(std::make_pair<>(
         "HL_INITIAL_WORKSPACE_TOKEN",
-        g_pTokenManager->registerNewToken(PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace->getConfigName() : PMONITOR->activeWorkspace->getConfigName(),
-                                          std::chrono::minutes(2))));
+        g_pTokenManager->registerNewToken(
+            SInitialWorkspaceToken{nullptr, PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace->getConfigName() : PMONITOR->activeWorkspace->getConfigName()},
+            std::chrono::months(1337))));
 
     return result;
 }

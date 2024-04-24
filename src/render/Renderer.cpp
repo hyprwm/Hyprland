@@ -1265,9 +1265,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0 ||
-        pMonitor->isMirror() /* why??? */) {
-
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0) {
         damage      = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
         finalDamage = damage;
     } else {
@@ -1829,11 +1827,24 @@ void CHyprRenderer::damageRegion(const CRegion& rg) {
 
 void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion) {
     for (auto& mirror : pMonitor->mirrors) {
-        Vector2D scale = {mirror->vecSize.x / pMonitor->vecSize.x, mirror->vecSize.y / pMonitor->vecSize.y};
 
-        CRegion  rg{pRegion};
-        wlr_region_scale_xy(rg.pixman(), rg.pixman(), scale.x, scale.y);
-        pMonitor->addDamage(&rg);
+        // transform the damage here, so it won't get clipped by the monitor damage ring
+        auto    monitor  = mirror;
+        auto    mirrored = pMonitor;
+
+        CRegion transformed{pRegion};
+
+        // we want to transform to the same box as in CHyprOpenGLImpl::renderMirrored
+        double scale  = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
+        CBox   monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
+        monbox.x      = (monitor->vecTransformedSize.x - monbox.w) / 2;
+        monbox.y      = (monitor->vecTransformedSize.y - monbox.h) / 2;
+
+        wlr_region_scale(transformed.pixman(), transformed.pixman(), scale);
+        transformed.transform(mirrored->transform, mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
+        transformed.translate(Vector2D(monbox.x, monbox.y));
+
+        mirror->addDamage(&transformed);
 
         g_pCompositor->scheduleFrameForMonitor(mirror);
     }

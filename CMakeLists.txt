@@ -71,7 +71,6 @@ pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
-find_program(HYPRWAYLAND_SCANNER NAMES hyprwayland-scanner REQUIRED)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -110,7 +109,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprlang>=0.3.2 hyprcursor>=0.1.7
+    hyprwayland-scanner>=0.3.0 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")

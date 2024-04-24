@@ -234,8 +234,6 @@ void CCompositor::initServer() {
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
-    m_sWLRPointerGestures = wlr_pointer_gestures_v1_create(m_sWLDisplay);
-
     m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
 
     m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);

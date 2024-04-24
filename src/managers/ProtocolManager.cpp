@@ -10,6 +10,7 @@
 #include "../protocols/AlphaModifier.hpp"
 #include "../protocols/GammaControl.hpp"
 #include "../protocols/ForeignToplevel.hpp"
+#include "../protocols/PointerGestures.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -21,6 +22,7 @@
 #include "alpha-modifier-v1.hpp"
 #include "wlr-gamma-control-unstable-v1.hpp"
 #include "ext-foreign-toplevel-list-v1.hpp"
+#include "pointer-gestures-unstable-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -34,6 +36,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::alphaModifier   = std::make_unique<CAlphaModifierProtocol>(&wp_alpha_modifier_v1_interface, 1, "AlphaModifier");
     PROTO::gamma           = std::make_unique<CGammaControlProtocol>(&zwlr_gamma_control_manager_v1_interface, 1, "GammaControl");
     PROTO::foreignToplevel = std::make_unique<CForeignToplevelProtocol>(&ext_foreign_toplevel_list_v1_interface, 1, "ForeignToplevel");
+    PROTO::pointerGestures = std::make_unique<CPointerGesturesProtocol>(&zwp_pointer_gestures_v1_interface, 3, "PointerGestures");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

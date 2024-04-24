@@ -6,6 +6,8 @@
 #include "WaylandProtocol.hpp"
 #include "ext-foreign-toplevel-list-v1.hpp"
 
+class CWindow;
+
 class CForeignToplevelHandle {
   public:
     CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, CWindow* pWindow);

@@ -132,7 +132,4 @@ namespace Events {
 
     // Session Lock
     LISTENER(newSessionLock);
-
-    // Shortcut inhibitor
-    LISTENER(newShortcutInhibitor);
 };

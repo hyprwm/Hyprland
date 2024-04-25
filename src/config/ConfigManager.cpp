@@ -966,7 +966,11 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
+                        .name       = "",
+                        .resolution = Vector2D(0, 0),
+                        .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
+                        .scale      = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
@@ -1655,7 +1659,12 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
         else if (ARGS[2] == "auto-down")
             newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
-
+        else {
+            Debug::log(WARN,
+                       "Invalid auto direction. Valid options are 'auto',"
+                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+            error += "invalid auto direction ";
+        }
     } else {
         if (!ARGS[2].contains("x")) {
             error += "invalid offset ";

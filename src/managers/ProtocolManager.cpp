@@ -12,6 +12,7 @@
 #include "../protocols/ForeignToplevel.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/ForeignToplevelWlr.hpp"
+#include "../protocols/ShortcutsInhibit.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -25,6 +26,7 @@
 #include "ext-foreign-toplevel-list-v1.hpp"
 #include "pointer-gestures-unstable-v1.hpp"
 #include "wlr-foreign-toplevel-management-unstable-v1.hpp"
+#include "keyboard-shortcuts-inhibit-unstable-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -40,6 +42,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::foreignToplevel    = std::make_unique<CForeignToplevelProtocol>(&ext_foreign_toplevel_list_v1_interface, 1, "ForeignToplevel");
     PROTO::pointerGestures    = std::make_unique<CPointerGesturesProtocol>(&zwp_pointer_gestures_v1_interface, 3, "PointerGestures");
     PROTO::foreignToplevelWlr = std::make_unique<CForeignToplevelWlrProtocol>(&zwlr_foreign_toplevel_manager_v1_interface, 3, "ForeignToplevelWlr");
+    PROTO::shortcutsInhibit   = std::make_unique<CKeyboardShortcutsInhibitProtocol>(&zwp_keyboard_shortcuts_inhibit_manager_v1_interface, 1, "ShortcutsInhibit");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

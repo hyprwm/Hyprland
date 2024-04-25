@@ -4,6 +4,7 @@
 #include "helpers/VarList.hpp"
 #include "../config/ConfigValue.hpp"
 #include "TokenManager.hpp"
+#include "../protocols/ShortcutsInhibit.hpp"
 
 #include <regex>
 #include <tuple>
@@ -539,13 +540,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
     static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
 
-    if (!*PDISABLEINHIBIT && !m_lShortcutInhibitors.empty()) {
-        for (auto& i : m_lShortcutInhibitors) {
-            if (i.pWlrInhibitor->surface == g_pCompositor->m_pLastFocus) {
-                Debug::log(LOG, "Keybind handling is disabled due to an inhibitor for surface {:x}", (uintptr_t)i.pWlrInhibitor->surface);
-                return false;
-            }
-        }
+    if (!*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited()) {
+        Debug::log(LOG, "Keybind handling is disabled due to an inhibitor");
+        return false;
     }
 
     for (auto& k : m_lKeybinds) {

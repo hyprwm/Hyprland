@@ -309,7 +309,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
     });
 
     static auto P4 = g_pHookSystem->hookDynamic("moveWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        const auto PWINDOW = std::any_cast<CWindow*>(data);
+        const auto PWINDOW = std::any_cast<CWindow*>(std::any_cast<std::vector<std::any>>(data).at(0));
         for (auto& m : m_vManagers) {
             m->onMoveMonitor(PWINDOW);
         }

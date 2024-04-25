@@ -274,6 +274,7 @@ protocolNew("staging/alpha-modifier/alpha-modifier-v1.xml" "alpha-modifier-v1" f
 protocolNew("staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml" "ext-foreign-toplevel-list-v1" false)
 protocolNew("unstable/pointer-gestures/pointer-gestures-unstable-v1.xml" "pointer-gestures-unstable-v1" false)
 protocolNew("unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unstable-v1.xml" "keyboard-shortcuts-inhibit-unstable-v1" false)
+protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstable-v3" false)
 
 # tools
 add_subdirectory(hyprctl)

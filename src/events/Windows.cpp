@@ -68,6 +68,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_szTitle        = g_pXWaylandManager->getTitle(PWINDOW);
     PWINDOW->m_iX11Type       = PWINDOW->m_bIsX11 ? (PWINDOW->m_uSurface.xwayland->override_redirect ? 2 : 1) : 1;
     PWINDOW->m_bFirstMap      = true;
+    PWINDOW->m_szInitialTitle = PWINDOW->m_szTitle;
+    PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
 
     // check for token
     std::string requestedWorkspace = "";
@@ -150,9 +152,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool requestsMaximize       = false;
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
-
-    PWINDOW->m_szInitialTitle = g_pXWaylandManager->getTitle(PWINDOW);
-    PWINDOW->m_szInitialClass = g_pXWaylandManager->getAppIDClass(PWINDOW);
 
     for (auto& r : WINDOWRULES) {
         if (r.szRule.starts_with("monitor")) {

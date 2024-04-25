@@ -2260,7 +2260,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     int x, y;
     wlr_output_transformed_resolution(pMonitor->output, &x, &y);
-    pMonitor->vecSize            = (Vector2D(x, y) / pMonitor->scale).floor();
+    pMonitor->vecSize            = (Vector2D(x, y) / pMonitor->scale).round();
     pMonitor->vecTransformedSize = Vector2D(x, y);
 
     if (pMonitor->createdByUser) {

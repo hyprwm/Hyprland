@@ -118,7 +118,6 @@ namespace Events {
 
     // IME
     LISTENER(newIME);
-    LISTENER(newTextInput);
     LISTENER(newVirtualKeyboard);
 
     // Touch

@@ -87,7 +87,6 @@ extern "C" {
 #include <wlr/types/wlr_xdg_foreign_v2.h>
 #include <wlr/types/wlr_output_power_management_v1.h>
 #include <wlr/types/wlr_input_method_v2.h>
-#include <wlr/types/wlr_text_input_v3.h>
 #include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_switch.h>
 #include <wlr/config.h>

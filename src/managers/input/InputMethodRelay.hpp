@@ -3,8 +3,10 @@
 #include <list>
 #include "../../defines.hpp"
 #include "../../helpers/WLClasses.hpp"
+#include "../../helpers/signal/Listener.hpp"
 #include "TextInput.hpp"
 #include "InputMethodPopup.hpp"
+#include <any>
 
 class CInputManager;
 class CHyprRenderer;
@@ -15,7 +17,7 @@ class CInputMethodRelay {
     CInputMethodRelay();
 
     void                 onNewIME(wlr_input_method_v2*);
-    void                 onNewTextInput(wlr_text_input_v3*);
+    void                 onNewTextInput(std::any tiv3);
     void                 onNewTextInput(STextInputV1* pTIV1);
 
     wlr_input_method_v2* m_pWLRIME = nullptr;
@@ -46,6 +48,10 @@ class CInputMethodRelay {
     std::vector<std::unique_ptr<CInputPopup>> m_vIMEPopups;
 
     wlr_surface*                              m_pLastKbFocus = nullptr;
+
+    struct {
+        CHyprSignalListener newTIV3;
+    } listeners;
 
     DYNLISTENER(textInputNew);
     DYNLISTENER(IMECommit);

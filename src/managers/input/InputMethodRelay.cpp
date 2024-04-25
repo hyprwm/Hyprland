@@ -1,9 +1,12 @@
 #include "InputMethodRelay.hpp"
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../protocols/TextInputV3.hpp"
 
 CInputMethodRelay::CInputMethodRelay() {
     static auto P = g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<wlr_surface*>(param)); });
+
+    listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(ti); });
 }
 
 void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
@@ -142,8 +145,8 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
     return nullptr;
 }
 
-void CInputMethodRelay::onNewTextInput(wlr_text_input_v3* pInput) {
-    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(pInput));
+void CInputMethodRelay::onNewTextInput(std::any tiv3) {
+    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(std::any_cast<std::weak_ptr<CTextInputV3>>(tiv3)));
 }
 
 void CInputMethodRelay::onNewTextInput(STextInputV1* pTIV1) {

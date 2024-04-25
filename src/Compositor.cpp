@@ -230,8 +230,6 @@ void CCompositor::initServer() {
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
-    m_sWLRTextInputMgr = wlr_text_input_manager_v3_create(m_sWLDisplay);
-
     m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
 
     m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
@@ -289,7 +287,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLROutputPowerMgr->events.set_mode, &Events::listen_powerMgrSetMode, m_sWLROutputPowerMgr, "PowerMgr");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
-    addWLSignal(&m_sWLRTextInputMgr->events.text_input, &Events::listen_newTextInput, m_sWLRTextInputMgr, "TextInputMgr");
     addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
 
@@ -337,7 +334,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_RendererDestroy);
     removeWLSignal(&Events::listen_powerMgrSetMode);
     removeWLSignal(&Events::listen_newIME);
-    removeWLSignal(&Events::listen_newTextInput);
     removeWLSignal(&Events::listen_activateXDG);
     removeWLSignal(&Events::listen_newSessionLock);
 

@@ -1659,7 +1659,12 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
         else if (ARGS[2] == "auto-down")
             newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
-
+        else {
+            Debug::log(WARN,
+                       "Invalid auto direction. Valid options are 'auto',"
+                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+            error += "invalid auto direction ";
+        }
     } else {
         if (!ARGS[2].contains("x")) {
             error += "invalid offset ";

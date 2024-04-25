@@ -2736,7 +2736,7 @@ void CCompositor::arrangeMonitors() {
 
         if (m->activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
-            Debug::log(LOG, "arrangeMonitors: {} explicit {:j2}", m->szName, m->activeMonitorRule.offset);
+            Debug::log(LOG, "arrangeMonitors: {} explicit {:j}", m->szName, m->activeMonitorRule.offset);
 
             m->moveTo(m->activeMonitorRule.offset);
             arranged.push_back(m);
@@ -2771,33 +2771,37 @@ void CCompositor::arrangeMonitors() {
 
     // Iterates through all non-explicitly placed monitors.
     for (auto& m : toArrange) {
-        Debug::log(LOG, "arrangeMonitors: {} auto [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
-        if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_UP) {
-            m->moveTo({0, maxYOffsetUp - m->vecSize.y});
-            maxYOffsetUp = m->vecPosition.y;
-        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_DOWN) {
-            m->moveTo({0, maxYOffsetDown});
-            maxYOffsetDown += m->vecSize.y;
-        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_LEFT) {
-            m->moveTo({maxXOffsetLeft - m->vecSize.x, 0});
-            maxXOffsetLeft = m->vecPosition.x;
-        } else if (m->activeMonitorRule.autoDir == eAutoDirs::DIR_AUTO_RIGHT) {
-            m->moveTo({maxXOffsetRight, 0});
-            maxXOffsetRight += m->vecSize.x;
-        } else {
-            Debug::log(WARN,
-                       "Invalid auto direction. Valid options are 'auto',"
-                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+        Vector2D newPosition = {0, 0};
+        switch (m->activeMonitorRule.autoDir) {
+            case eAutoDirs::DIR_AUTO_UP:
+                newPosition.y = maxYOffsetUp - m->vecSize.y;
+                maxYOffsetUp  = newPosition.y;
+                break;
+            case eAutoDirs::DIR_AUTO_DOWN:
+                newPosition.y = maxYOffsetDown;
+                maxYOffsetDown += m->vecSize.y;
+                break;
+            case eAutoDirs::DIR_AUTO_LEFT:
+                newPosition.x  = maxXOffsetLeft - m->vecSize.x;
+                maxXOffsetLeft = newPosition.x;
+                break;
+            case eAutoDirs::DIR_AUTO_RIGHT:
+                newPosition.x = maxXOffsetRight;
+                maxXOffsetRight += m->vecSize.x;
+                break;
+            default: UNREACHABLE();
         }
+        Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->szName, m->vecPosition);
+        m->moveTo(newPosition);
     }
 
     // reset maxXOffsetRight (reuse)
     // and set xwayland positions aka auto for all
     maxXOffsetRight = 0;
     for (auto& m : m_vMonitors) {
-        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {:.2f}]", m->szName, maxXOffsetRight, 0.f);
+        Debug::log(LOG, "arrangeMonitors: {} xwayland [{}, {}]", m->szName, maxXOffsetRight, 0);
         m->vecXWaylandPosition = {maxXOffsetRight, 0};
         maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->vecTransformedSize.x : m->vecSize.x);
 

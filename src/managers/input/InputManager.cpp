@@ -7,6 +7,7 @@
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/RelativePointer.hpp"
+#include "../../protocols/PointerConstraints.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -193,7 +194,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             return;
 
         } else
-            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT);
+            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT.get());
     }
 
     // update stuff
@@ -1298,16 +1299,26 @@ void CInputManager::unconstrainMouse() {
         return;
 
     for (auto& c : m_vConstraints) {
-        if (!c->active())
+        const auto C = c.lock();
+
+        if (!C)
             continue;
 
-        c->deactivate();
+        if (!C->isActive())
+            continue;
+
+        C->deactivate();
     }
 }
 
 bool CInputManager::isConstrained() {
     for (auto& c : m_vConstraints) {
-        if (!c->active() || c->owner()->wlr() != g_pCompositor->m_pLastFocus)
+        const auto C = c.lock();
+
+        if (!C)
+            continue;
+
+        if (!C->isActive() || C->owner()->wlr() != g_pCompositor->m_pLastFocus)
             continue;
 
         return true;

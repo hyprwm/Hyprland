@@ -62,7 +62,6 @@ class CCompositor {
     wlr_presentation*                m_sWLRPresentation;
     wlr_egl*                         m_sWLREGL;
     int                              m_iDRMFD;
-    wlr_pointer_constraints_v1*      m_sWLRPointerConstraints;
     wlr_server_decoration_manager*   m_sWLRServerDecoMgr;
     wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
     wlr_tablet_manager_v2*           m_sWLRTabletManager;

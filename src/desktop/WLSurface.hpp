@@ -2,12 +2,13 @@
 
 #include "../defines.hpp"
 #include "../helpers/Region.hpp"
-#include "Constraint.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CWindow;
 struct SLayerSurface;
 class CSubsurface;
 class CPopup;
+class CPointerConstraint;
 
 class CWLSurface {
   public:
@@ -42,9 +43,9 @@ class CWLSurface {
     CSubsurface*   getSubsurface();
 
     // desktop components misc utils
-    std::optional<CBox> getSurfaceBoxGlobal();
-    void                appendConstraint(wlr_pointer_constraint_v1* constraint);
-    CConstraint*        constraint();
+    std::optional<CBox>                 getSurfaceBoxGlobal();
+    void                                appendConstraint(std::weak_ptr<CPointerConstraint> constraint);
+    std::shared_ptr<CPointerConstraint> constraint();
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;
@@ -84,6 +85,10 @@ class CWLSurface {
     // used by the alpha-modifier protocol
     float m_pAlphaModifier = 1.F;
 
+    struct {
+        CSignal destroy;
+    } events;
+
   private:
     bool           m_bInert = true;
 
@@ -95,14 +100,14 @@ class CWLSurface {
     CSubsurface*   m_pSubsurfaceOwner = nullptr;
 
     //
-    std::unique_ptr<CConstraint> m_pConstraint;
+    std::weak_ptr<CPointerConstraint> m_pConstraint;
 
-    void                         destroy();
-    void                         init();
-    bool                         desktopComponent();
+    void                              destroy();
+    void                              init();
+    bool                              desktopComponent();
 
     DYNLISTENER(destroy);
     DYNLISTENER(commit);
 
-    friend class CConstraint;
+    friend class CPointerConstraint;
 };

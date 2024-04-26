@@ -14,6 +14,7 @@
 #include "../protocols/ForeignToplevelWlr.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/TextInputV3.hpp"
+#include "../protocols/PointerConstraints.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -29,6 +30,7 @@
 #include "wlr-foreign-toplevel-management-unstable-v1.hpp"
 #include "keyboard-shortcuts-inhibit-unstable-v1.hpp"
 #include "text-input-unstable-v3.hpp"
+#include "pointer-constraints-unstable-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -46,6 +48,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::foreignToplevelWlr = std::make_unique<CForeignToplevelWlrProtocol>(&zwlr_foreign_toplevel_manager_v1_interface, 3, "ForeignToplevelWlr");
     PROTO::shortcutsInhibit   = std::make_unique<CKeyboardShortcutsInhibitProtocol>(&zwp_keyboard_shortcuts_inhibit_manager_v1_interface, 1, "ShortcutsInhibit");
     PROTO::textInputV3        = std::make_unique<CTextInputV3Protocol>(&zwp_text_input_manager_v3_interface, 1, "TextInputV3");
+    PROTO::constraints        = std::make_unique<CPointerConstraintsProtocol>(&zwp_pointer_constraints_v1_interface, 1, "PointerConstraints");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

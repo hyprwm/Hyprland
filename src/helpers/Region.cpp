@@ -8,7 +8,7 @@ CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);
 }
 
-CRegion::CRegion(pixman_region32_t* ref) {
+CRegion::CRegion(const pixman_region32_t* const ref) {
     pixman_region32_init(&m_rRegion);
     pixman_region32_copy(&m_rRegion, ref);
 }

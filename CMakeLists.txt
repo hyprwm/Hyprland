@@ -109,7 +109,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprwayland-scanner>=0.3.1 hyprlang>=0.3.2 hyprcursor>=0.1.7
+    hyprwayland-scanner>=0.3.2 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
@@ -250,7 +250,6 @@ target_link_libraries(Hyprland
 )
 
 protocol("protocols/idle.xml" "idle" true)
-protocol("protocols/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" true)
 protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)
 protocol("protocols/wlr-layer-shell-unstable-v1.xml" "wlr-layer-shell-unstable-v1" true)
 protocol("protocols/wlr-output-power-management-unstable-v1.xml" "wlr-output-power-management-unstable-v1" true)
@@ -275,6 +274,7 @@ protocolNew("staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml"
 protocolNew("unstable/pointer-gestures/pointer-gestures-unstable-v1.xml" "pointer-gestures-unstable-v1" false)
 protocolNew("unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unstable-v1.xml" "keyboard-shortcuts-inhibit-unstable-v1" false)
 protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstable-v3" false)
+protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

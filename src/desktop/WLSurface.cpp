@@ -103,6 +103,8 @@ void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;
 
+    events.destroy.emit();
+
     m_pConstraint.reset();
 
     hyprListener_destroy.removeCallback();
@@ -182,15 +184,14 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     return {};
 }
 
-void CWLSurface::appendConstraint(wlr_pointer_constraint_v1* constraint) {
-    m_pConstraint = std::make_unique<CConstraint>(constraint, this);
+void CWLSurface::appendConstraint(std::weak_ptr<CPointerConstraint> constraint) {
+    m_pConstraint = constraint;
 }
 
 void CWLSurface::onCommit() {
-    if (m_pConstraint)
-        m_pConstraint->onCommit();
+    ;
 }
 
-CConstraint* CWLSurface::constraint() {
-    return m_pConstraint.get();
+std::shared_ptr<CPointerConstraint> CWLSurface::constraint() {
+    return m_pConstraint.lock();
 }

@@ -8,7 +8,7 @@
 #include "InputMethodRelay.hpp"
 #include "../../helpers/signal/Listener.hpp"
 
-class CConstraint;
+class CPointerConstraint;
 class CWindow;
 class CIdleInhibitor;
 
@@ -141,27 +141,28 @@ class CInputManager {
     std::deque<SLayerSurface*> m_dExclusiveLSes;
 
     // constraints
-    std::vector<CConstraint*> m_vConstraints;
+    std::vector<std::weak_ptr<CPointerConstraint>> m_vConstraints;
 
-    void                      newTabletTool(wlr_input_device*);
-    void                      newTabletPad(wlr_input_device*);
-    void                      focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
-    void                      newIdleInhibitor(std::any);
-    void                      recheckIdleInhibitorStatus();
+    //
+    void              newTabletTool(wlr_input_device*);
+    void              newTabletPad(wlr_input_device*);
+    void              focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
+    void              newIdleInhibitor(std::any);
+    void              recheckIdleInhibitorStatus();
 
-    void                      onSwipeBegin(wlr_pointer_swipe_begin_event*);
-    void                      onSwipeEnd(wlr_pointer_swipe_end_event*);
-    void                      onSwipeUpdate(wlr_pointer_swipe_update_event*);
+    void              onSwipeBegin(wlr_pointer_swipe_begin_event*);
+    void              onSwipeEnd(wlr_pointer_swipe_end_event*);
+    void              onSwipeUpdate(wlr_pointer_swipe_update_event*);
 
-    SSwipeGesture             m_sActiveSwipe;
+    SSwipeGesture     m_sActiveSwipe;
 
-    SKeyboard*                m_pActiveKeyboard = nullptr;
+    SKeyboard*        m_pActiveKeyboard = nullptr;
 
-    CTimer                    m_tmrLastCursorMovement;
+    CTimer            m_tmrLastCursorMovement;
 
-    CInputMethodRelay         m_sIMERelay;
+    CInputMethodRelay m_sIMERelay;
 
-    void                      updateKeyboardsLeds(wlr_input_device* pKeyboard);
+    void              updateKeyboardsLeds(wlr_input_device* pKeyboard);
 
     // for shared mods
     uint32_t accumulateModsFromAllKBs();

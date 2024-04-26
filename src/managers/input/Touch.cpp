@@ -107,22 +107,23 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
             return;
         const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
-        static auto PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
-        static auto PSWIPEDIST = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
+        static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+        static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
+        const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
         // Handle the workspace swipe if there is one
         if (m_sActiveSwipe.initialDirection == -1) {
             if (*PSWIPEINVR)
-                // go from 0 to -PSWIPEDIST
-                updateWorkspaceSwipe(*PSWIPEDIST * ((VERTANIMS ? e->y : e->x) - 1));
+                // go from 0 to -SWIPEDISTANCE
+                updateWorkspaceSwipe(SWIPEDISTANCE * ((VERTANIMS ? e->y : e->x) - 1));
             else
-                // go from 0 to -PSWIPEDIST
-                updateWorkspaceSwipe(*PSWIPEDIST * (-1 * (VERTANIMS ? e->y : e->x)));
+                // go from 0 to -SWIPEDISTANCE
+                updateWorkspaceSwipe(SWIPEDISTANCE * (-1 * (VERTANIMS ? e->y : e->x)));
         } else if (*PSWIPEINVR)
-            // go from 0 to PSWIPEDIST
-            updateWorkspaceSwipe(*PSWIPEDIST * (VERTANIMS ? e->y : e->x));
+            // go from 0 to SWIPEDISTANCE
+            updateWorkspaceSwipe(SWIPEDISTANCE * (VERTANIMS ? e->y : e->x));
         else
-            // go from 0 to PSWIPEDIST
-            updateWorkspaceSwipe(*PSWIPEDIST * (1 - (VERTANIMS ? e->y : e->x)));
+            // go from 0 to SWIPEDISTANCE
+            updateWorkspaceSwipe(SWIPEDISTANCE * (1 - (VERTANIMS ? e->y : e->x)));
         return;
     }
     if (m_sTouchData.touchFocusWindow && g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {

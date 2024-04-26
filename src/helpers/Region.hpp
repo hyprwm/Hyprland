@@ -11,7 +11,7 @@ class CRegion {
     /* Create an empty region */
     CRegion();
     /* Create from a reference. Copies, does not own. */
-    CRegion(pixman_region32_t* ref);
+    CRegion(const pixman_region32_t* const ref);
     /* Create from a box */
     CRegion(double x, double y, double w, double h);
     /* Create from a wlr_box */

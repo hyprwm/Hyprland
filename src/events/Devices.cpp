@@ -93,21 +93,6 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     g_pInputManager->updateCapabilities();
 }
 
-void Events::listener_newConstraint(wl_listener* listener, void* data) {
-    const auto PCONSTRAINT = (wlr_pointer_constraint_v1*)data;
-
-    Debug::log(LOG, "New mouse constraint at {:x}", (uintptr_t)PCONSTRAINT);
-
-    const auto SURFACE = CWLSurface::surfaceFromWlr(PCONSTRAINT->surface);
-
-    if (!SURFACE) {
-        Debug::log(ERR, "Refusing a constraint from an unassigned wl_surface {:x}", (uintptr_t)PCONSTRAINT->surface);
-        return;
-    }
-
-    SURFACE->appendConstraint(PCONSTRAINT);
-}
-
 void Events::listener_newVirtPtr(wl_listener* listener, void* data) {
     const auto EV      = (wlr_virtual_pointer_v1_new_pointer_event*)data;
     const auto POINTER = EV->new_pointer;

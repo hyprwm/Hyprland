@@ -207,6 +207,7 @@ void CForeignToplevelWlrManager::onTitle(CWindow* pWindow) {
         return;
 
     H->resource->sendTitle(pWindow->m_szTitle.c_str());
+    H->resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onClass(CWindow* pWindow) {
@@ -218,6 +219,7 @@ void CForeignToplevelWlrManager::onClass(CWindow* pWindow) {
         return;
 
     H->resource->sendAppId(g_pXWaylandManager->getAppIDClass(pWindow).c_str());
+    H->resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onUnmap(CWindow* pWindow) {
@@ -229,6 +231,7 @@ void CForeignToplevelWlrManager::onUnmap(CWindow* pWindow) {
         return;
 
     H->resource->sendClosed();
+    H->resource->sendDone();
     H->closed = true;
 }
 
@@ -246,6 +249,7 @@ void CForeignToplevelWlrManager::onMoveMonitor(CWindow* pWindow) {
         return;
 
     H->sendMonitor(PMONITOR);
+    H->resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onFullscreen(CWindow* pWindow) {
@@ -257,14 +261,17 @@ void CForeignToplevelWlrManager::onFullscreen(CWindow* pWindow) {
         return;
 
     H->sendState();
+    H->resource->sendDone();
 }
 
 void CForeignToplevelWlrManager::onNewFocus(CWindow* pWindow) {
     if (finished)
         return;
 
-    if (const auto HOLD = handleForWindow(lastFocus); HOLD)
+    if (const auto HOLD = handleForWindow(lastFocus); HOLD) {
         HOLD->sendState();
+        HOLD->resource->sendDone();
+    }
 
     lastFocus = pWindow;
 
@@ -273,6 +280,7 @@ void CForeignToplevelWlrManager::onNewFocus(CWindow* pWindow) {
         return;
 
     H->sendState();
+    H->resource->sendDone();
 }
 
 bool CForeignToplevelWlrManager::good() {

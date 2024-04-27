@@ -35,6 +35,14 @@ void handleUnrecoverableSignal(int sig) {
         return;
     }
 
+    // Kill the program if the crash-reporter is caught in a deadlock.
+    signal(SIGALRM, [](int _) {
+        char const* msg = "\nCrashReporter exceeded timeout, forcefully exiting\n";
+        write(2, msg, strlen(msg));
+        abort();
+    });
+    alarm(15);
+
     CrashReporter::createAndSaveCrash(sig);
 
     abort();

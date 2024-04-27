@@ -29,7 +29,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 void CInputManager::recheckIdleInhibitorStatus() {
 
     for (auto& ii : m_vIdleInhibitors) {
-        if (!ii->pWindow.lock()) {
+        if (ii->pWindow.expired()) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
         } else if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow.lock())) {

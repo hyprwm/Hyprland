@@ -1060,7 +1060,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     wlr_presentation_surface_scanned_out_on_output(PSURFACE, pMonitor->output);
 
     if (pMonitor->state.commit()) {
-        if (!m_pLastScanout.lock()) {
+        if (m_pLastScanout.expired()) {
             m_pLastScanout = PCANDIDATE;
             Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
         }
@@ -1171,14 +1171,14 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             return;
         }
 
-        if (pMonitor->solitaryClient.lock())
+        if (!pMonitor->solitaryClient.expired())
             shouldTear = true;
     }
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
         if (attemptDirectScanout(pMonitor)) {
             return;
-        } else if (m_pLastScanout.lock()) {
+        } else if (!m_pLastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
             m_pLastScanout.reset();
         }
@@ -1285,7 +1285,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     bool renderCursor = true;
 
     if (!finalDamage.empty()) {
-        if (!pMonitor->solitaryClient.lock()) {
+        if (pMonitor->solitaryClient.expired()) {
             if (pMonitor->isMirror()) {
                 g_pHyprOpenGL->blend(false);
                 g_pHyprOpenGL->renderMirrored();

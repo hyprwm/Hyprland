@@ -916,7 +916,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
 
     if (!pWindow || !validMapped(pWindow)) {
 
-        if (!m_pLastWindow.lock() && !pWindow)
+        if (m_pLastWindow.expired() && !pWindow)
             return;
 
         const auto PLASTWINDOW = m_pLastWindow.lock();
@@ -1279,7 +1279,7 @@ bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
 }
 
 bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
-    if (!m_pLastWindow.lock() && !m_pLastFocus)
+    if (m_pLastWindow.expired() && !m_pLastFocus)
         return false;
 
     if (!pWindow->m_bIsMapped)
@@ -2643,7 +2643,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     pWindow->updateDynamicRules();
     pWindow->uncacheWindowDecos();
 
-    if (pWindow->m_sGroupData.pNextWindow.lock()) {
+    if (!pWindow->m_sGroupData.pNextWindow.expired()) {
         PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
         while (next != pWindow) {
             next->moveToWorkspace(pWorkspace);

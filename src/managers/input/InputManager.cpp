@@ -213,7 +213,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 surfacePos              = foundPopup->globalBox().pos();
                 m_bFocusHeldByButtons   = true;
                 m_bRefocusHeldByButtons = refocus;
-            } else if (g_pCompositor->m_pLastWindow.lock()) {
+            } else if (!g_pCompositor->m_pLastWindow.expired()) {
                 foundSurface = m_pLastMouseSurface;
                 pFoundWindow = g_pCompositor->m_pLastWindow.lock();
 
@@ -226,7 +226,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus) && !m_pForcedFocus.lock())
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -356,7 +356,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
         m_pLastMouseSurface = nullptr;
 
-        if (refocus || !g_pCompositor->m_pLastWindow.lock()) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
+        if (refocus || g_pCompositor->m_pLastWindow.expired()) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
             g_pCompositor->focusWindow(nullptr);
 
         return;
@@ -1637,7 +1637,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow.lock()))
+    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_lCurrentlyHeldButtons.empty() && currentlyDraggedWindow.expired()))
         direction = BORDERICON_NONE;
     else {
 

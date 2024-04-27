@@ -73,7 +73,7 @@ void CSubsurface::initSignals() {
         hyprListener_mapSubsurface.initCallback(&m_pSubsurface->surface->events.map, &onMapSubsurface, this, "CSubsurface");
         hyprListener_unmapSubsurface.initCallback(&m_pSubsurface->surface->events.unmap, &onUnmapSubsurface, this, "CSubsurface");
     } else {
-        if (m_pWindowParent.lock())
+        if (!m_pWindowParent.expired())
             hyprListener_newSubsurface.initCallback(&m_pWindowParent.lock()->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
         else if (m_pPopupParent)
             hyprListener_newSubsurface.initCallback(&m_pPopupParent->m_sWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
@@ -106,7 +106,7 @@ void CSubsurface::recheckDamageForSubsurfaces() {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (m_pWindowParent.lock() && (!m_pWindowParent.lock()->m_bIsMapped || !m_pWindowParent.lock()->m_pWorkspace->m_bVisible)) {
+    if (!m_pWindowParent.expired() && (!m_pWindowParent.lock()->m_bIsMapped || !m_pWindowParent.lock()->m_pWorkspace->m_bVisible)) {
         m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -121,7 +121,7 @@ void CSubsurface::onCommit() {
 
     if (m_pPopupParent)
         m_pPopupParent->recheckTree();
-    if (m_pWindowParent.lock()) // I hate you firefox why are you doing this
+    if (!m_pWindowParent.expired()) // I hate you firefox why are you doing this
         m_pWindowParent.lock()->m_pPopupHead->recheckTree();
 
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
@@ -152,7 +152,7 @@ void CSubsurface::onDestroy() {
 void CSubsurface::onNewSubsurface(wlr_subsurface* pSubsurface) {
     CSubsurface* PSUBSURFACE = nullptr;
 
-    if (m_pWindowParent.lock())
+    if (!m_pWindowParent.expired())
         PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pWindowParent.lock())).get();
     else if (m_pPopupParent)
         PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pPopupParent)).get();
@@ -169,7 +169,7 @@ void CSubsurface::onMap() {
     box.expand(4);
     g_pHyprRenderer->damageBox(&box);
 
-    if (m_pWindowParent.lock())
+    if (!m_pWindowParent.expired())
         m_pWindowParent.lock()->updateSurfaceScaleTransformDetails();
 }
 
@@ -206,7 +206,7 @@ Vector2D CSubsurface::coordsRelativeToParent() {
 Vector2D CSubsurface::coordsGlobal() {
     Vector2D coords = coordsRelativeToParent();
 
-    if (m_pWindowParent.lock())
+    if (!m_pWindowParent.expired())
         coords += m_pWindowParent.lock()->m_vRealPosition.value();
     else if (m_pPopupParent)
         coords += m_pPopupParent->coordsGlobal();

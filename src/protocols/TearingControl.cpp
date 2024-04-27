@@ -66,7 +66,7 @@ void CTearingControl::onHint(wpTearingControlV1PresentationHint hint_) {
 }
 
 void CTearingControl::updateWindow() {
-    if (!pWindow.lock())
+    if (pWindow.expired())
         return;
 
     pWindow.lock()->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;

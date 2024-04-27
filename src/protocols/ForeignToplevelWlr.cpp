@@ -207,7 +207,7 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
 }
 
 SP<CForeignToplevelHandleWlr> CForeignToplevelWlrManager::handleForWindow(PHLWINDOW pWindow) {
-    std::erase_if(handles, [](const auto& wp) { return !wp.lock(); });
+    std::erase_if(handles, [](const auto& wp) { return wp.expired(); });
     const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h.lock()->window() == pWindow; });
     return IT == handles.end() ? SP<CForeignToplevelHandleWlr>{} : IT->lock();
 }

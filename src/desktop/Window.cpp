@@ -458,7 +458,7 @@ void CWindow::onUnmap() {
 
     m_vRealSize.setCallbackOnBegin(nullptr);
 
-    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return !other.lock() || other.lock().get() == this; });
+    std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other.expired() || other.lock().get() == this; });
 
     hyprListener_unmapWindow.removeCallback();
 
@@ -827,7 +827,7 @@ void CWindow::createGroup() {
         return;
     }
 
-    if (!m_sGroupData.pNextWindow.lock()) {
+    if (m_sGroupData.pNextWindow.expired()) {
         m_sGroupData.pNextWindow = m_pSelf;
         m_sGroupData.head        = true;
         m_sGroupData.locked      = false;
@@ -1043,7 +1043,7 @@ void CWindow::switchWithWindowInGroup(PHLWINDOW pWindow) {
 }
 
 void CWindow::updateGroupOutputs() {
-    if (!m_sGroupData.pNextWindow.lock())
+    if (m_sGroupData.pNextWindow.expired())
         return;
 
     PHLWINDOW  curr = m_sGroupData.pNextWindow.lock();

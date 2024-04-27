@@ -104,7 +104,7 @@ struct std::formatter<SMasterNodeData*, CharT> : std::formatter<CharT> {
         std::format_to(out, "[Node {:x}: workspace: {}, pos: {:j2}, size: {:j2}", (uintptr_t)node, node->workspaceID, node->position, node->size);
         if (node->isMaster)
             std::format_to(out, ", master");
-        if (node->pWindow.lock())
+        if (!node->pWindow.expired())
             std::format_to(out, ", window: {:x}", node->pWindow.lock());
         return std::format_to(out, "]");
     }

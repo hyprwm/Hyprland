@@ -167,14 +167,14 @@ CSubsurface* CWLSurface::getSubsurface() {
 }
 
 bool CWLSurface::desktopComponent() {
-    return m_pLayerOwner || m_pWindowOwner.lock() || m_pSubsurfaceOwner || m_pPopupOwner;
+    return m_pLayerOwner || !m_pWindowOwner.expired() || m_pSubsurfaceOwner || m_pPopupOwner;
 }
 
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     if (!desktopComponent())
         return {};
 
-    if (m_pWindowOwner.lock())
+    if (!m_pWindowOwner.expired())
         return m_pWindowOwner.lock()->getWindowMainSurfaceBox();
     if (m_pLayerOwner)
         return m_pLayerOwner->geometry;

@@ -167,7 +167,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     if (m_RenderData.pCurrentMonData->blurFBShouldRender)
         return true;
 
-    if (pMonitor->solitaryClient.lock())
+    if (!pMonitor->solitaryClient.expired())
         return false;
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
@@ -1333,7 +1333,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         return;
 
     // ignore if solitary present, nothing to blur
-    if (pMonitor->solitaryClient.lock())
+    if (!pMonitor->solitaryClient.expired())
         return;
 
     // check if we need to update the blur fb

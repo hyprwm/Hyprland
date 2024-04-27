@@ -95,7 +95,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 if (*PINITIALWSTRACKING == 1) // one-shot token
                     g_pTokenManager->removeToken(TOKEN);
                 else if (*PINITIALWSTRACKING == 2) { // persistent
-                    if (!WS.primaryOwner.lock()) {
+                    if (WS.primaryOwner.expired()) {
                         WS.primaryOwner = PWINDOW;
                         TOKEN->data     = WS;
                     }

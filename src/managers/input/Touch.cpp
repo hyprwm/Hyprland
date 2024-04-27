@@ -64,7 +64,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     Vector2D local;
 
-    if (m_sTouchData.touchFocusWindow.lock()) {
+    if (!m_sTouchData.touchFocusWindow.expired()) {
         if (m_sTouchData.touchFocusWindow.lock()->m_bIsX11) {
             local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow.lock()->m_vRealPosition.goal()) *
                 m_sTouchData.touchFocusWindow.lock()->m_fX11SurfaceScaledBy;

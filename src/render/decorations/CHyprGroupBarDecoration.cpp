@@ -58,7 +58,7 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 //
 
 void CHyprGroupBarDecoration::updateWindow(PHLWINDOW pWindow) {
-    if (!m_pWindow.lock()->m_sGroupData.pNextWindow.lock()) {
+    if (m_pWindow.lock()->m_sGroupData.pNextWindow.expired()) {
         m_pWindow.lock()->removeWindowDeco(this);
         return;
     }
@@ -374,7 +374,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     PHLWINDOW   pWindowInsertEnd   = pWindowInsertAfter->m_sGroupData.pNextWindow.lock();
     PHLWINDOW   pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow.lock() ? pDraggedWindow->getGroupHead() : pDraggedWindow;
 
-    if (pDraggedWindow->m_sGroupData.pNextWindow.lock()) {
+    if (!pDraggedWindow->m_sGroupData.pNextWindow.expired()) {
 
         // stores group data
         std::vector<PHLWINDOW> members;
@@ -469,7 +469,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
 bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_axis_event* e) {
     static auto PGROUPBARSCROLLING = CConfigValue<Hyprlang::INT>("group:groupbar:scrolling");
 
-    if (!*PGROUPBARSCROLLING || !m_pWindow.lock()->m_sGroupData.pNextWindow.lock())
+    if (!*PGROUPBARSCROLLING || m_pWindow.lock()->m_sGroupData.pNextWindow.expired())
         return false;
 
     if (e->delta > 0)

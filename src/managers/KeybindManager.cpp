@@ -225,7 +225,7 @@ bool CKeybindManager::ensureMouseBindState() {
     if (!m_bIsMouseBindActive)
         return false;
 
-    if (g_pInputManager->currentlyDraggedWindow.lock()) {
+    if (!g_pInputManager->currentlyDraggedWindow.expired()) {
         PHLWINDOW lastDraggedWindow = g_pInputManager->currentlyDraggedWindow.lock();
 
         m_bIsMouseBindActive = false;
@@ -1322,7 +1322,7 @@ void CKeybindManager::toggleGroup(std::string args) {
 
     g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
 
-    if (!PWINDOW->m_sGroupData.pNextWindow.lock())
+    if (PWINDOW->m_sGroupData.pNextWindow.expired())
         PWINDOW->createGroup();
     else
         PWINDOW->destroyGroup();
@@ -1334,7 +1334,7 @@ void CKeybindManager::changeGroupActive(std::string args) {
     if (!PWINDOW)
         return;
 
-    if (!PWINDOW->m_sGroupData.pNextWindow.lock())
+    if (PWINDOW->m_sGroupData.pNextWindow.expired())
         return;
 
     if (PWINDOW->m_sGroupData.pNextWindow.lock() == PWINDOW)
@@ -1794,7 +1794,7 @@ void CKeybindManager::resizeWindow(std::string args) {
 
 void CKeybindManager::circleNext(std::string arg) {
 
-    if (!g_pCompositor->m_pLastWindow.lock()) {
+    if (g_pCompositor->m_pLastWindow.expired()) {
         // if we have a clear focus, find the first window and get the next focusable.
         if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID()) > 0) {
             const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID());
@@ -2015,7 +2015,7 @@ void CKeybindManager::swapnext(std::string arg) {
 
     PHLWINDOW toSwap = nullptr;
 
-    if (!g_pCompositor->m_pLastWindow.lock())
+    if (g_pCompositor->m_pLastWindow.expired())
         return;
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
@@ -2103,7 +2103,7 @@ void CKeybindManager::mouse(std::string args) {
             if (pWindow && !pWindow->m_bIsFullscreen)
                 pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
 
-            if (!g_pInputManager->currentlyDraggedWindow.lock())
+            if (g_pInputManager->currentlyDraggedWindow.expired())
                 g_pInputManager->currentlyDraggedWindow = pWindow;
 
             g_pInputManager->dragMode = MBIND_MOVE;
@@ -2111,7 +2111,7 @@ void CKeybindManager::mouse(std::string args) {
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
-            if (g_pInputManager->currentlyDraggedWindow.lock()) {
+            if (!g_pInputManager->currentlyDraggedWindow.expired()) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow.reset();
                 g_pInputManager->dragMode = MBIND_INVALID;
@@ -2135,7 +2135,7 @@ void CKeybindManager::mouse(std::string args) {
         } else {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
-            if (g_pInputManager->currentlyDraggedWindow.lock()) {
+            if (!g_pInputManager->currentlyDraggedWindow.expired()) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow.reset();
                 g_pInputManager->dragMode = MBIND_INVALID;
@@ -2175,7 +2175,7 @@ void CKeybindManager::alterZOrder(std::string args) {
 }
 
 void CKeybindManager::fakeFullscreenActive(std::string args) {
-    if (g_pCompositor->m_pLastWindow.lock()) {
+    if (!g_pCompositor->m_pLastWindow.expired()) {
         // will also set the flag
         g_pCompositor->m_pLastWindow.lock()->m_bFakeFullscreenState = !g_pCompositor->m_pLastWindow.lock()->m_bFakeFullscreenState;
         g_pXWaylandManager->setWindowFullscreen(g_pCompositor->m_pLastWindow.lock(), g_pCompositor->m_pLastWindow.lock()->shouldSendFullscreenState());

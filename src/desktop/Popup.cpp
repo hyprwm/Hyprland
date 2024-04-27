@@ -69,7 +69,7 @@ static void onRepositionPopup(void* owner, void* data) {
 void CPopup::initAllSignals() {
 
     if (!m_pWLR) {
-        if (m_pWindowOwner.lock())
+        if (!m_pWindowOwner.expired())
             hyprListener_newPopup.initCallback(&m_pWindowOwner.lock()->m_uSurface.xdg->events.new_popup, ::onNewPopup, this, "CPopup Head");
         else if (m_pLayerOwner)
             hyprListener_newPopup.initCallback(&m_pLayerOwner->layerSurface->events.new_popup, ::onNewPopup, this, "CPopup Head");
@@ -146,7 +146,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (m_pWindowOwner.lock() && (!m_pWindowOwner.lock()->m_bIsMapped || !m_pWindowOwner.lock()->m_pWorkspace->m_bVisible)) {
+    if (!m_pWindowOwner.expired() && (!m_pWindowOwner.lock()->m_bIsMapped || !m_pWindowOwner.lock()->m_pWorkspace->m_bVisible)) {
         m_vLastSize = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -230,7 +230,7 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 }
 
 Vector2D CPopup::t1ParentCoords() {
-    if (m_pWindowOwner.lock())
+    if (!m_pWindowOwner.expired())
         return m_pWindowOwner.lock()->m_vRealPosition.value();
     if (m_pLayerOwner)
         return m_pLayerOwner->realPosition.value();
@@ -260,7 +260,7 @@ Vector2D CPopup::size() {
 }
 
 void CPopup::sendScale() {
-    if (m_pWindowOwner.lock())
+    if (!m_pWindowOwner.expired())
         g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pWindowOwner.lock()->m_pWLSurface.m_fLastScale);
     else if (m_pLayerOwner)
         g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner->surface.m_fLastScale);

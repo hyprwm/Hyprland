@@ -143,7 +143,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const bool isJson = format == eHyprCtlOutputFormat::FORMAT_JSON;
-    if (!w->m_sGroupData.pNextWindow.lock())
+    if (w->m_sGroupData.pNextWindow.expired())
         return isJson ? "" : "0";
 
     std::ostringstream result;

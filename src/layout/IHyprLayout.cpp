@@ -29,7 +29,7 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
-    if (pWindow->m_sGroupData.pNextWindow.lock()) {
+    if (!pWindow->m_sGroupData.pNextWindow.expired()) {
         if (pWindow->m_sGroupData.pNextWindow.lock() == pWindow)
             pWindow->m_sGroupData.pNextWindow.reset();
         else {

@@ -339,7 +339,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock()                                  // target is group
+    if (OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock()                           // target is group
         && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
         m_lDwindleNodesData.remove(*PNODE);
 
@@ -984,13 +984,13 @@ void CHyprDwindleLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
         getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
 
     if (ACTIVE1) {
-        ACTIVE1->box                  = PNODE->box;
+        ACTIVE1->box                         = PNODE->box;
         ACTIVE1->pWindow.lock()->m_vPosition = ACTIVE1->box.pos();
         ACTIVE1->pWindow.lock()->m_vSize     = ACTIVE1->box.size();
     }
 
     if (ACTIVE2) {
-        ACTIVE2->box                  = PNODE2->box;
+        ACTIVE2->box                         = PNODE2->box;
         ACTIVE2->pWindow.lock()->m_vPosition = ACTIVE2->box.pos();
         ACTIVE2->pWindow.lock()->m_vSize     = ACTIVE2->box.size();
     }
@@ -1140,7 +1140,7 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
         if (!PNODE)
             return {};
 
-        node         = *PNODE;
+        node = *PNODE;
         node.pWindow.reset();
 
         CBox        box = PNODE->box;

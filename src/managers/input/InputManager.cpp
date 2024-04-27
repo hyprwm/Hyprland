@@ -118,13 +118,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
 
-    m_pFoundSurfaceToFocus      = nullptr;
-    m_pFoundLSToFocus           = nullptr;
+    m_pFoundSurfaceToFocus = nullptr;
+    m_pFoundLSToFocus      = nullptr;
     m_pFoundWindowToFocus.reset();
     wlr_surface*   foundSurface = nullptr;
     Vector2D       surfaceCoords;
-    Vector2D       surfacePos         = Vector2D(-1337, -1337);
-    PHLWINDOW       pFoundWindow;
+    Vector2D       surfacePos = Vector2D(-1337, -1337);
+    PHLWINDOW      pFoundWindow;
     SLayerSurface* pFoundLayerSurface = nullptr;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
@@ -419,7 +419,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock() &&
-                ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow.lock()->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
+                ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) ||
+                 (g_pCompositor->m_pLastWindow.lock()->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);

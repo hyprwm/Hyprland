@@ -29,7 +29,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     SWindowDecorationExtents m_seExtents;
     SWindowDecorationExtents m_seReportedExtents;
 
-    PHLWINDOWREF                 m_pWindow;
+    PHLWINDOWREF             m_pWindow;
 
     Vector2D                 m_vLastWindowPos;
     Vector2D                 m_vLastWindowSize;

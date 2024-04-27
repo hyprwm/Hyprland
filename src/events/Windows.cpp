@@ -505,14 +505,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_minimize, &Events::listener_requestMinimize, PWINDOW.get(),
                                                            "XDG Window Late");
         PWINDOW->hyprListener_requestMove.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_move, &Events::listener_requestMove, PWINDOW.get(), "XDG Window Late");
-        PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW.get(), "XDG Window Late");
+        PWINDOW->hyprListener_requestResize.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_resize, &Events::listener_requestResize, PWINDOW.get(),
+                                                         "XDG Window Late");
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xdg->toplevel->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW.get(),
                                                             "XDG Window Late");
         PWINDOW->hyprListener_ackConfigure.initCallback(&PWINDOW->m_uSurface.xdg->events.ack_configure, &Events::listener_ackConfigure, PWINDOW.get(), "XDG Window Late");
     } else {
         PWINDOW->hyprListener_fullscreenWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_fullscreen, &Events::listener_fullscreenWindow, PWINDOW.get(),
                                                             "XWayland Window Late");
-        PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW.get(), "XWayland Window Late");
+        PWINDOW->hyprListener_activateX11.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_activate, &Events::listener_activateX11, PWINDOW.get(),
+                                                       "XWayland Window Late");
         PWINDOW->hyprListener_setTitleWindow.initCallback(&PWINDOW->m_uSurface.xwayland->events.set_title, &Events::listener_setTitleWindow, PWINDOW.get(), "XWayland Window Late");
         PWINDOW->hyprListener_requestMinimize.initCallback(&PWINDOW->m_uSurface.xwayland->events.request_minimize, &Events::listener_requestMinimize, PWINDOW.get(),
                                                            "Xwayland Window Late");
@@ -670,7 +672,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
@@ -727,9 +729,9 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     bool wasLastWindow = false;
 
     if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
-        wasLastWindow                = true;
+        wasLastWindow = true;
         g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus  = nullptr;
+        g_pCompositor->m_pLastFocus = nullptr;
 
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -763,7 +765,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOW == g_pCompositor->m_pLastWindow.lock() || !g_pCompositor->m_pLastWindow.lock()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
-            EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW)nullptr);
+            EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
         }
     } else {
         Debug::log(LOG, "Unmapped was not focused, ignoring a refocus.");
@@ -793,7 +795,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 }
 
 void Events::listener_ackConfigure(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW  PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
     const auto E       = (wlr_xdg_surface_configure*)data;
 
     // find last matching serial
@@ -807,7 +809,7 @@ void Events::listener_ackConfigure(void* owner, void* data) {
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->initial_commit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
@@ -883,7 +885,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
@@ -892,7 +894,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
         g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus  = nullptr;
+        g_pCompositor->m_pLastFocus = nullptr;
     }
 
     PWINDOW->m_pWLSurface.unassign();
@@ -919,7 +921,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 }
 
 void Events::listener_setTitleWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!validMapped(PWINDOW))
         return;
@@ -947,7 +949,7 @@ void Events::listener_setTitleWindow(void* owner, void* data) {
 }
 
 void Events::listener_fullscreenWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsMapped) {
         PWINDOW->m_bWantsInitialFullscreen = true;
@@ -1022,7 +1024,7 @@ void Events::listener_activateXDG(wl_listener* listener, void* data) {
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
@@ -1047,7 +1049,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 }
 
 void Events::listener_configureX11(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW  PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     const auto E = (wlr_xwayland_surface_configure_event*)data;
 
@@ -1113,7 +1115,7 @@ void Events::listener_configureX11(void* owner, void* data) {
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsMapped)
         return;
@@ -1178,7 +1180,7 @@ void Events::listener_setOverrideRedirect(void* owner, void* data) {
 }
 
 void Events::listener_associateX11(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     PWINDOW->hyprListener_mapWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.map, &Events::listener_mapWindow, PWINDOW.get(), "XWayland Window");
     PWINDOW->hyprListener_commitWindow.initCallback(&PWINDOW->m_uSurface.xwayland->surface->events.commit, &Events::listener_commitWindow, PWINDOW.get(), "XWayland Window");
@@ -1187,7 +1189,7 @@ void Events::listener_associateX11(void* owner, void* data) {
 }
 
 void Events::listener_dissociateX11(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     PWINDOW->m_pWLSurface.unassign();
 
@@ -1235,7 +1237,7 @@ void Events::listener_newXDGToplevel(wl_listener* listener, void* data) {
 }
 
 void Events::listener_requestMaximize(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
         return;
@@ -1256,7 +1258,7 @@ void Events::listener_requestMaximize(void* owner, void* data) {
 }
 
 void Events::listener_requestMinimize(void* owner, void* data) {
-   PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     Debug::log(LOG, "Minimize request for {}", PWINDOW);
 
@@ -1277,14 +1279,14 @@ void Events::listener_requestMinimize(void* owner, void* data) {
 }
 
 void Events::listener_requestMove(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     // ignore
     wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);
 }
 
 void Events::listener_requestResize(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
+    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     // ignore
     wlr_xdg_surface_schedule_configure(PWINDOW->m_uSurface.xdg);

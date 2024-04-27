@@ -10,7 +10,7 @@ class CWindow;
 class IHyprWindowDecoration;
 
 typedef std::shared_ptr<CWindow> PHLWINDOW;
-typedef std::weak_ptr<CWindow> PHLWINDOWREF;
+typedef std::weak_ptr<CWindow>   PHLWINDOWREF;
 
 enum eDecorationPositioningPolicy {
     DECORATION_POSITION_ABSOLUTE = 0, /* Decoration wants absolute positioning */
@@ -90,13 +90,13 @@ class CDecorationPositioner {
         bool                     needsRecalc    = false;
     };
 
-    std::map<PHLWINDOWREF, SWindowData, std::owner_less<PHLWINDOWREF>>        m_mWindowDatas;
-    std::vector<std::unique_ptr<SWindowPositioningData>> m_vWindowPositioningDatas;
+    std::map<PHLWINDOWREF, SWindowData, std::owner_less<PHLWINDOWREF>> m_mWindowDatas;
+    std::vector<std::unique_ptr<SWindowPositioningData>>               m_vWindowPositioningDatas;
 
-    SWindowPositioningData*                              getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
-    void                                                 onWindowUnmap(PHLWINDOW pWindow);
-    void                                                 onWindowMap(PHLWINDOW pWindow);
-    void                                                 sanitizeDatas();
+    SWindowPositioningData*                                            getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
+    void                                                               onWindowUnmap(PHLWINDOW pWindow);
+    void                                                               onWindowMap(PHLWINDOW pWindow);
+    void                                                               sanitizeDatas();
 };
 
 inline std::unique_ptr<CDecorationPositioner> g_pDecorationPositioner;

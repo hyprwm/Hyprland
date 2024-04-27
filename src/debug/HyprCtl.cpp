@@ -148,8 +148,8 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
     std::ostringstream result;
 
-    PHLWINDOW           head = w->getGroupHead();
-    PHLWINDOW           curr = head;
+    PHLWINDOW          head = w->getGroupHead();
+    PHLWINDOW          curr = head;
     while (true) {
         if (isJson)
             result << std::format("\"0x{:x}\"", (uintptr_t)curr.get());

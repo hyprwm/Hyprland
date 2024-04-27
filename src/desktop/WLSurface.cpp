@@ -113,10 +113,10 @@ void CWLSurface::destroy() {
     hyprListener_commit.removeCallback();
     m_pWLRSurface->data = nullptr;
     m_pWindowOwner.reset();
-    m_pLayerOwner       = nullptr;
-    m_pPopupOwner       = nullptr;
-    m_pSubsurfaceOwner  = nullptr;
-    m_bInert            = true;
+    m_pLayerOwner      = nullptr;
+    m_pPopupOwner      = nullptr;
+    m_pSubsurfaceOwner = nullptr;
+    m_bInert           = true;
 
     if (g_pCompositor && g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;

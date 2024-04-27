@@ -283,7 +283,7 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->unsetCursorImage();
 
     g_pInputManager->currentlyDraggedWindow.reset();
-    g_pInputManager->m_bWasDraggingWindow   = true;
+    g_pInputManager->m_bWasDraggingWindow = true;
 
     if (DRAGGINGWINDOW->m_bDraggingTiled) {
         DRAGGINGWINDOW->m_bIsFloating = false;

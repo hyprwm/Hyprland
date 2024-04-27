@@ -144,7 +144,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
         if (*PGRADIENTS) {
             const auto& GRADIENTTEX = (m_dwGroupMembers[i].lock() == g_pCompositor->m_pLastWindow.lock() ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+                                                                                                           (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
             if (GRADIENTTEX.m_iTexID != 0)
                 g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
         }
@@ -370,16 +370,16 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
     const int   WINDOWINDEX  = BARRELATIVEX < 0 ? -1 : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
 
-    PHLWINDOW    pWindowInsertAfter = m_pWindow.lock()->getGroupWindowByIndex(WINDOWINDEX);
-    PHLWINDOW    pWindowInsertEnd   = pWindowInsertAfter->m_sGroupData.pNextWindow.lock();
-    PHLWINDOW    pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow.lock() ? pDraggedWindow->getGroupHead() : pDraggedWindow;
+    PHLWINDOW   pWindowInsertAfter = m_pWindow.lock()->getGroupWindowByIndex(WINDOWINDEX);
+    PHLWINDOW   pWindowInsertEnd   = pWindowInsertAfter->m_sGroupData.pNextWindow.lock();
+    PHLWINDOW   pDraggedHead       = pDraggedWindow->m_sGroupData.pNextWindow.lock() ? pDraggedWindow->getGroupHead() : pDraggedWindow;
 
     if (pDraggedWindow->m_sGroupData.pNextWindow.lock()) {
 
         // stores group data
         std::vector<PHLWINDOW> members;
         PHLWINDOW              curr      = pDraggedHead;
-        const bool            WASLOCKED = pDraggedHead->m_sGroupData.locked;
+        const bool             WASLOCKED = pDraggedHead->m_sGroupData.locked;
         do {
             members.push_back(curr);
             curr = curr->m_sGroupData.pNextWindow.lock();
@@ -388,8 +388,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
         // removes all windows
         for (PHLWINDOW w : members) {
             w->m_sGroupData.pNextWindow.reset();
-            w->m_sGroupData.head        = false;
-            w->m_sGroupData.locked      = false;
+            w->m_sGroupData.head   = false;
+            w->m_sGroupData.locked = false;
             g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
         }
 

@@ -231,7 +231,7 @@ bool CKeybindManager::ensureMouseBindState() {
         m_bIsMouseBindActive = false;
         g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
         g_pInputManager->currentlyDraggedWindow.reset();
-        g_pInputManager->dragMode               = MBIND_INVALID;
+        g_pInputManager->dragMode = MBIND_INVALID;
 
         g_pCompositor->updateWorkspaceWindows(lastDraggedWindow->workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(lastDraggedWindow->workspaceID());
@@ -1119,7 +1119,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
-    PHLWINDOW   PWINDOW = nullptr;
+    PHLWINDOW  PWINDOW = nullptr;
 
     const auto ORIGINALARGS = args;
 
@@ -1209,7 +1209,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 void CKeybindManager::focusUrgentOrLast(std::string args) {
     const auto PWINDOWURGENT = g_pCompositor->getUrgentWindow();
     const auto PWINDOWPREV   = g_pCompositor->m_pLastWindow.lock() ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1].lock()) :
-                                                              (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0].lock());
+                                                                     (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0].lock());
 
     if (!PWINDOWURGENT && !PWINDOWPREV)
         return;
@@ -1219,7 +1219,7 @@ void CKeybindManager::focusUrgentOrLast(std::string args) {
 
 void CKeybindManager::focusCurrentOrLast(std::string args) {
     const auto PWINDOWPREV = g_pCompositor->m_pLastWindow.lock() ? (g_pCompositor->m_vWindowFocusHistory.size() < 2 ? nullptr : g_pCompositor->m_vWindowFocusHistory[1].lock()) :
-                                                            (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0].lock());
+                                                                   (g_pCompositor->m_vWindowFocusHistory.empty() ? nullptr : g_pCompositor->m_vWindowFocusHistory[0].lock());
 
     if (!PWINDOWPREV)
         return;
@@ -2098,7 +2098,7 @@ void CKeybindManager::mouse(std::string args) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-            PHLWINDOW   pWindow     = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+            PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
             if (pWindow && !pWindow->m_bIsFullscreen)
                 pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
@@ -2114,7 +2114,7 @@ void CKeybindManager::mouse(std::string args) {
             if (g_pInputManager->currentlyDraggedWindow.lock()) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow.reset();
-                g_pInputManager->dragMode               = MBIND_INVALID;
+                g_pInputManager->dragMode = MBIND_INVALID;
             }
         }
     } else if (ARGS[0] == "resizewindow") {
@@ -2138,7 +2138,7 @@ void CKeybindManager::mouse(std::string args) {
             if (g_pInputManager->currentlyDraggedWindow.lock()) {
                 g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
                 g_pInputManager->currentlyDraggedWindow.reset();
-                g_pInputManager->dragMode               = MBIND_INVALID;
+                g_pInputManager->dragMode = MBIND_INVALID;
             }
         }
     }

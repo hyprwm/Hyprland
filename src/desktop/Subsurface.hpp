@@ -45,8 +45,8 @@ class CSubsurface {
     // if nullptr, means it's a dummy node
     CSubsurface*                              m_pParent = nullptr;
 
-    PHLWINDOWREF                                  m_pWindowParent;
-    CPopup*                                   m_pPopupParent  = nullptr;
+    PHLWINDOWREF                              m_pWindowParent;
+    CPopup*                                   m_pPopupParent = nullptr;
 
     std::vector<std::unique_ptr<CSubsurface>> m_vChildren;
 

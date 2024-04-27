@@ -1742,7 +1742,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesnt mess with the actual wlr damage
-    CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
+    CRegion      fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
     PHLWINDOWREF ref{pWindow};
 
@@ -1824,10 +1824,9 @@ void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
 void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
     RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
 
-    static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     PHLWINDOWREF ref{pWindow};
-
 
     if (!m_mWindowFramebuffers.contains(ref))
         return;

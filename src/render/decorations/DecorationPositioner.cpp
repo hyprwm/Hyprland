@@ -125,8 +125,8 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     }
 
     if (WINDOWDATA->lastWindowSize == pWindow->m_vRealSize.value() /* position not changed */
-        &&
-        std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(), [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
+        && std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(),
+                       [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
         /* all window datas are either not for this window or don't need a reposition */
         && !WINDOWDATA->needsRecalc /* window doesn't need recalc */
     )

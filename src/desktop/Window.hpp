@@ -370,9 +370,9 @@ class CWindow {
     // for groups
     struct SGroupData {
         PHLWINDOWREF pNextWindow; // nullptr means no grouping. Self means single group.
-        bool         head        = false;
-        bool         locked      = false; // per group lock
-        bool         deny        = false; // deny window from enter a group or made a group
+        bool         head   = false;
+        bool         locked = false; // per group lock
+        bool         deny   = false; // deny window from enter a group or made a group
     } m_sGroupData;
     uint16_t m_eGroupRules = GROUP_NONE;
 

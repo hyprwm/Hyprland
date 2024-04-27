@@ -849,7 +849,7 @@ void CWindow::destroyGroup() {
             return;
         }
         m_sGroupData.pNextWindow.reset();
-        m_sGroupData.head        = false;
+        m_sGroupData.head = false;
         updateWindowDecos();
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
@@ -861,8 +861,8 @@ void CWindow::destroyGroup() {
     PHLWINDOW              curr = m_pSelf.lock();
     std::vector<PHLWINDOW> members;
     do {
-        const auto PLASTWIN                = curr;
-        curr                               = curr->m_sGroupData.pNextWindow.lock();
+        const auto PLASTWIN = curr;
+        curr                = curr->m_sGroupData.pNextWindow.lock();
         PLASTWIN->m_sGroupData.pNextWindow.reset();
         curr->setHidden(false);
         members.push_back(curr);
@@ -920,12 +920,12 @@ int CWindow::getGroupSize() {
 }
 
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
-    return !g_pKeybindManager->m_bGroupsLocked                                          // global group lock disengaged
-        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                               // window ignore local group locks, or
-            || (!pWindow->getGroupHead()->m_sGroupData.locked                           //      target unlocked
+    return !g_pKeybindManager->m_bGroupsLocked                                                 // global group lock disengaged
+        && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                                      // window ignore local group locks, or
+            || (!pWindow->getGroupHead()->m_sGroupData.locked                                  //      target unlocked
                 && !(m_sGroupData.pNextWindow.lock() && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
-        && !m_sGroupData.deny                                                           // source is not denied entry
-        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                              // group rule doesn't prevent adding window
+        && !m_sGroupData.deny                                                                  // source is not denied entry
+        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                                     // group rule doesn't prevent adding window
 }
 
 PHLWINDOW CWindow::getGroupWindowByIndex(int index) {

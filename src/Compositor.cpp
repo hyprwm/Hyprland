@@ -362,7 +362,7 @@ void CCompositor::cleanup() {
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
 
-    m_pLastFocus  = nullptr;
+    m_pLastFocus = nullptr;
     m_pLastWindow.reset();
 
     // end threads
@@ -693,8 +693,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         for (auto& w : m_vWindows | std::views::reverse) {
             const auto BB  = w->getWindowBoxUnified(properties);
             CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
-                w != pIgnoreWindow) {
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sAdditionalConfigData.noFocus && w != pIgnoreWindow) {
                 if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y}))
                     return w;
 
@@ -734,7 +733,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         if (w->m_bIsX11 && w->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(w->m_uSurface.xwayland)) {
                             // Override Redirect
                             return g_pCompositor->m_pLastWindow.lock(); // we kinda trick everything here.
-                                                                 // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
+                                // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
                         }
 
                         return w;
@@ -934,7 +933,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
 
-        EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW)nullptr);
+        EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
@@ -1327,7 +1326,7 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
 
         std::deque<PHLWINDOW> toMove;
 
-        auto                 x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
+        auto                  x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
             if (top)
                 toMove.emplace_back(pw);
             else
@@ -1464,7 +1463,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
 
     const auto PWORKSPACE   = pWindow->m_pWorkspace;
     auto       leaderValue  = -1;
-    PHLWINDOW   leaderWindow = nullptr;
+    PHLWINDOW  leaderWindow = nullptr;
 
     if (!pWindow->m_bIsFloating) {
 
@@ -1839,8 +1838,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
             setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying().m_vColors.empty() ? *ACTIVECOLOR :
                                                                                                               pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying());
         } else {
-            const auto* const INACTIVECOLOR =
-                !pWindow->m_sGroupData.pNextWindow.lock() ? (!pWindow->m_sGroupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+            const auto* const INACTIVECOLOR = !pWindow->m_sGroupData.pNextWindow.lock() ? (!pWindow->m_sGroupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) :
+                                                                                          (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying().m_vColors.empty() ? *INACTIVECOLOR :
                                                                                                                 pWindow->m_sSpecialRenderData.inactiveBorderColor.toUnderlying());
         }

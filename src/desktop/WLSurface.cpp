@@ -7,7 +7,7 @@ void CWLSurface::assign(wlr_surface* pSurface) {
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, CWindow* pOwner) {
+void CWLSurface::assign(wlr_surface* pSurface, PHLWINDOW pOwner) {
     m_pWindowOwner = pOwner;
     m_pWLRSurface  = pSurface;
     init();
@@ -52,20 +52,22 @@ wlr_surface* CWLSurface::wlr() const {
 }
 
 bool CWLSurface::small() const {
-    if (!m_pWindowOwner || !exists())
+    if (!validMapped(m_pWindowOwner) || !exists())
         return false;
 
-    return m_pWindowOwner->m_vReportedSize.x > m_pWLRSurface->current.buffer_width + 1 || m_pWindowOwner->m_vReportedSize.y > m_pWLRSurface->current.buffer_height + 1;
+    const auto O = m_pWindowOwner.lock();
+
+    return O->m_vReportedSize.x > m_pWLRSurface->current.buffer_width + 1 || O->m_vReportedSize.y > m_pWLRSurface->current.buffer_height + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!m_pWindowOwner || !exists() || !small() || m_bFillIgnoreSmall)
+    if (!validMapped(m_pWindowOwner) || !exists() || !small() || m_bFillIgnoreSmall)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
+    const auto O    = m_pWindowOwner.lock();
 
-    return Vector2D{(m_pWindowOwner->m_vReportedSize.x - SIZE.x) / 2, (m_pWindowOwner->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) *
-        (m_pWindowOwner->m_vRealSize.value() / m_pWindowOwner->m_vReportedSize);
+    return Vector2D{(O->m_vReportedSize.x - SIZE.x) / 2, (O->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_vRealSize.value() / O->m_vReportedSize);
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
@@ -110,7 +112,7 @@ void CWLSurface::destroy() {
     hyprListener_destroy.removeCallback();
     hyprListener_commit.removeCallback();
     m_pWLRSurface->data = nullptr;
-    m_pWindowOwner      = nullptr;
+    m_pWindowOwner.reset();
     m_pLayerOwner       = nullptr;
     m_pPopupOwner       = nullptr;
     m_pSubsurfaceOwner  = nullptr;
@@ -148,8 +150,8 @@ void CWLSurface::init() {
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
 
-CWindow* CWLSurface::getWindow() {
-    return m_pWindowOwner;
+PHLWINDOW CWLSurface::getWindow() {
+    return m_pWindowOwner.lock();
 }
 
 SLayerSurface* CWLSurface::getLayer() {
@@ -165,15 +167,15 @@ CSubsurface* CWLSurface::getSubsurface() {
 }
 
 bool CWLSurface::desktopComponent() {
-    return m_pLayerOwner || m_pWindowOwner || m_pSubsurfaceOwner || m_pPopupOwner;
+    return m_pLayerOwner || m_pWindowOwner.lock() || m_pSubsurfaceOwner || m_pPopupOwner;
 }
 
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     if (!desktopComponent())
         return {};
 
-    if (m_pWindowOwner)
-        return m_pWindowOwner->getWindowMainSurfaceBox();
+    if (m_pWindowOwner.lock())
+        return m_pWindowOwner.lock()->getWindowMainSurfaceBox();
     if (m_pLayerOwner)
         return m_pLayerOwner->geometry;
     if (m_pPopupOwner)

@@ -4,7 +4,7 @@
 
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {
   public:
-    CHyprDropShadowDecoration(CWindow*);
+    CHyprDropShadowDecoration(PHLWINDOW);
     virtual ~CHyprDropShadowDecoration();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -15,7 +15,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType();
 
-    virtual void                       updateWindow(CWindow*);
+    virtual void                       updateWindow(PHLWINDOW);
 
     virtual void                       damageEntire();
 
@@ -29,7 +29,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     SWindowDecorationExtents m_seExtents;
     SWindowDecorationExtents m_seReportedExtents;
 
-    CWindow*                 m_pWindow = nullptr;
+    PHLWINDOWREF                 m_pWindow;
 
     Vector2D                 m_vLastWindowPos;
     Vector2D                 m_vLastWindowSize;

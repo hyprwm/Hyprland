@@ -32,7 +32,7 @@ class CDecorationPositioner;
 
 class IHyprWindowDecoration {
   public:
-    IHyprWindowDecoration(CWindow*);
+    IHyprWindowDecoration(PHLWINDOW);
     virtual ~IHyprWindowDecoration() = 0;
 
     virtual SDecorationPositioningInfo getPositioningInfo() = 0;
@@ -43,7 +43,7 @@ class IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType() = 0;
 
-    virtual void                       updateWindow(CWindow*) = 0;
+    virtual void                       updateWindow(PHLWINDOW) = 0;
 
     virtual void                       damageEntire() = 0; // should be ignored by non-absolute decos
 
@@ -56,7 +56,7 @@ class IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
   private:
-    CWindow* m_pWindow = nullptr;
+    PHLWINDOWREF m_pWindow;
 
     friend class CDecorationPositioner;
 };

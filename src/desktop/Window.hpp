@@ -14,8 +14,6 @@
 #include "DesktopTypes.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CWindow;
-
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
@@ -191,13 +189,18 @@ struct SWindowRule {
 };
 
 struct SInitialWorkspaceToken {
-    CWindow*    primaryOwner = nullptr;
-    std::string workspace;
+    PHLWINDOWREF primaryOwner;
+    std::string  workspace;
 };
 
 class CWindow {
   public:
+    static PHLWINDOW create();
+
+  private:
     CWindow();
+
+  public:
     ~CWindow();
 
     DYNLISTENER(commitWindow);
@@ -279,13 +282,13 @@ class CWindow {
     bool m_bCreatedOverFullscreen = false;
 
     // XWayland stuff
-    bool     m_bIsX11                = false;
-    CWindow* m_pX11Parent            = nullptr;
-    uint64_t m_iX11Type              = 0;
-    bool     m_bIsModal              = false;
-    bool     m_bX11DoesntWantBorders = false;
-    bool     m_bX11ShouldntFocus     = false;
-    float    m_fX11SurfaceScaledBy   = 1.f;
+    bool         m_bIsX11 = false;
+    PHLWINDOWREF m_pX11Parent;
+    uint64_t     m_iX11Type              = 0;
+    bool         m_bIsModal              = false;
+    bool         m_bX11DoesntWantBorders = false;
+    bool         m_bX11ShouldntFocus     = false;
+    float        m_fX11SurfaceScaledBy   = 1.f;
     //
 
     // For nofocus
@@ -326,7 +329,7 @@ class CWindow {
     bool m_bFakeFullscreenState = false;
 
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
-    CWindow* m_pLastCycledWindow = nullptr;
+    PHLWINDOWREF m_pLastCycledWindow;
 
     // Window decorations
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
@@ -349,7 +352,7 @@ class CWindow {
     CAnimatedVariable<float> m_fDimPercent;
 
     // swallowing
-    CWindow* m_pSwallowed = nullptr;
+    PHLWINDOWREF m_pSwallowed;
 
     // focus stuff
     bool m_bStayFocused = false;
@@ -366,10 +369,10 @@ class CWindow {
 
     // for groups
     struct SGroupData {
-        CWindow* pNextWindow = nullptr; // nullptr means no grouping. Self means single group.
-        bool     head        = false;
-        bool     locked      = false; // per group lock
-        bool     deny        = false; // deny window from enter a group or made a group
+        PHLWINDOWREF pNextWindow; // nullptr means no grouping. Self means single group.
+        bool         head        = false;
+        bool         locked      = false; // per group lock
+        bool         deny        = false; // deny window from enter a group or made a group
     } m_sGroupData;
     uint16_t m_eGroupRules = GROUP_NONE;
 
@@ -398,7 +401,7 @@ class CWindow {
     void                     updateToplevel();
     void                     updateSurfaceScaleTransformDetails();
     void                     moveToWorkspace(PHLWORKSPACE);
-    CWindow*                 X11TransientFor();
+    PHLWINDOW                X11TransientFor();
     void                     onUnmap();
     void                     onMap();
     void                     setHidden(bool hidden);
@@ -429,22 +432,25 @@ class CWindow {
     void                     applyGroupRules();
     void                     createGroup();
     void                     destroyGroup();
-    CWindow*                 getGroupHead();
-    CWindow*                 getGroupTail();
-    CWindow*                 getGroupCurrent();
-    CWindow*                 getGroupPrevious();
-    CWindow*                 getGroupWindowByIndex(int);
+    PHLWINDOW                getGroupHead();
+    PHLWINDOW                getGroupTail();
+    PHLWINDOW                getGroupCurrent();
+    PHLWINDOW                getGroupPrevious();
+    PHLWINDOW                getGroupWindowByIndex(int);
     int                      getGroupSize();
-    bool                     canBeGroupedInto(CWindow* pWindow);
-    void                     setGroupCurrent(CWindow* pWindow);
-    void                     insertWindowToGroup(CWindow* pWindow);
+    bool                     canBeGroupedInto(PHLWINDOW pWindow);
+    void                     setGroupCurrent(PHLWINDOW pWindow);
+    void                     insertWindowToGroup(PHLWINDOW pWindow);
     void                     updateGroupOutputs();
-    void                     switchWithWindowInGroup(CWindow* pWindow);
+    void                     switchWithWindowInGroup(PHLWINDOW pWindow);
     void                     setAnimationsToMove();
     void                     onWorkspaceAnimUpdate();
 
     //
     std::unordered_map<std::string, std::string> getEnv();
+
+    //
+    PHLWINDOWREF m_pSelf;
 
   private:
     // For hidden windows and stuff
@@ -452,6 +458,26 @@ class CWindow {
     bool m_bSuspended     = false;
     int  m_iLastWorkspace = WORKSPACE_INVALID;
 };
+
+inline bool valid(PHLWINDOW w) {
+    return w.get();
+}
+
+inline bool valid(PHLWINDOWREF w) {
+    return w.lock().get();
+}
+
+inline bool validMapped(PHLWINDOW w) {
+    if (!valid(w))
+        return false;
+    return w->m_bIsMapped;
+}
+
+inline bool validMapped(PHLWINDOWREF w) {
+    if (!valid(w))
+        return false;
+    return w.lock()->m_bIsMapped;
+}
 
 /**
     format specification
@@ -462,7 +488,7 @@ class CWindow {
 */
 
 template <typename CharT>
-struct std::formatter<CWindow*, CharT> : std::formatter<CharT> {
+struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
     bool formatAddressOnly = false;
     bool formatWorkspace   = false;
     bool formatMonitor     = false;
@@ -472,18 +498,18 @@ struct std::formatter<CWindow*, CharT> : std::formatter<CharT> {
         FORMAT_FLAG('m', formatMonitor)     //
         FORMAT_FLAG('w', formatWorkspace)   //
         FORMAT_FLAG('c', formatClass),
-        CWindow*)
+        PHLWINDOW)
 
     template <typename FormatContext>
-    auto format(CWindow* const& w, FormatContext& ctx) const {
+    auto format(PHLWINDOW const& w, FormatContext& ctx) const {
         auto&& out = ctx.out();
         if (formatAddressOnly)
-            return std::format_to(out, "{:x}", (uintptr_t)w);
+            return std::format_to(out, "{:x}", (uintptr_t)w.get());
         if (!w)
             return std::format_to(out, "[Window nullptr]");
 
         std::format_to(out, "[");
-        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w, w->m_szTitle);
+        std::format_to(out, "Window {:x}: title: \"{}\"", (uintptr_t)w.get(), w->m_szTitle);
         if (formatWorkspace)
             std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
         if (formatMonitor)

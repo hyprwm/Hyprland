@@ -4,7 +4,7 @@
 #include "../Compositor.hpp"
 
 CTearingControlProtocol::CTearingControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("destroyWindow", [this](void* self, SCallbackInfo& info, std::any param) { this->onWindowDestroy(std::any_cast<CWindow*>(param)); });
+    static auto P = g_pHookSystem->hookDynamic("destroyWindow", [this](void* self, SCallbackInfo& info, std::any param) { this->onWindowDestroy(std::any_cast<PHLWINDOW>(param)); });
 }
 
 void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -36,10 +36,10 @@ void CTearingControlProtocol::onControllerDestroy(CTearingControl* control) {
     std::erase_if(m_vTearingControllers, [control](const auto& other) { return other.get() == control; });
 }
 
-void CTearingControlProtocol::onWindowDestroy(CWindow* pWindow) {
+void CTearingControlProtocol::onWindowDestroy(PHLWINDOW pWindow) {
     for (auto& c : m_vTearingControllers) {
-        if (c->pWindow == pWindow)
-            c->pWindow = nullptr;
+        if (c->pWindow.lock() == pWindow)
+            c->pWindow.reset();
     }
 }
 
@@ -53,7 +53,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface*
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_pWLSurface.wlr() == surf_) {
-            pWindow = w.get();
+            pWindow = w;
             break;
         }
     }
@@ -65,10 +65,10 @@ void CTearingControl::onHint(wpTearingControlV1PresentationHint hint_) {
 }
 
 void CTearingControl::updateWindow() {
-    if (!pWindow)
+    if (!pWindow.lock())
         return;
 
-    pWindow->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
+    pWindow.lock()->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {

@@ -141,7 +141,7 @@ void Events::listener_destroyDrag(void* owner, void* data) {
     g_pInputManager->m_sDrag.dragIcon = nullptr;
     g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();
 
-    g_pCompositor->focusWindow(g_pCompositor->m_pLastWindow, g_pCompositor->m_pLastWindow ? g_pXWaylandManager->getWindowSurface(g_pCompositor->m_pLastWindow) : nullptr);
+    g_pCompositor->focusWindow(g_pCompositor->m_pLastWindow.lock(), g_pCompositor->m_pLastWindow.lock() ? g_pXWaylandManager->getWindowSurface(g_pCompositor->m_pLastWindow.lock()) : nullptr);
 }
 
 void Events::listener_mapDragIcon(void* owner, void* data) {

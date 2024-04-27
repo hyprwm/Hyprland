@@ -6,19 +6,17 @@
 #include "WaylandProtocol.hpp"
 #include "ext-foreign-toplevel-list-v1.hpp"
 
-class CWindow;
-
 class CForeignToplevelHandle {
   public:
-    CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, CWindow* pWindow);
+    CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow);
 
-    bool     good();
-    CWindow* window();
+    bool      good();
+    PHLWINDOW window();
 
   private:
     SP<CExtForeignToplevelHandleV1> resource;
-    CWindow*                        pWindow = nullptr;
-    bool                            closed  = false;
+    PHLWINDOWREF                    pWindow;
+    bool                            closed = false;
 
     friend class CForeignToplevelList;
 };
@@ -27,10 +25,10 @@ class CForeignToplevelList {
   public:
     CForeignToplevelList(SP<CExtForeignToplevelListV1> resource_);
 
-    void onMap(CWindow* pWindow);
-    void onTitle(CWindow* pWindow);
-    void onClass(CWindow* pWindow);
-    void onUnmap(CWindow* pWindow);
+    void onMap(PHLWINDOW pWindow);
+    void onTitle(PHLWINDOW pWindow);
+    void onClass(PHLWINDOW pWindow);
+    void onUnmap(PHLWINDOW pWindow);
 
     bool good();
 
@@ -38,7 +36,7 @@ class CForeignToplevelList {
     SP<CExtForeignToplevelListV1>           resource;
     bool                                    finished = false;
 
-    SP<CForeignToplevelHandle>              handleForWindow(CWindow* pWindow);
+    SP<CForeignToplevelHandle>              handleForWindow(PHLWINDOW pWindow);
 
     std::vector<WP<CForeignToplevelHandle>> handles;
 };

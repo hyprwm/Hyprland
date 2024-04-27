@@ -3,7 +3,7 @@
 
 #define LOGM PROTO::foreignToplevel->protoLog
 
-CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, CWindow* pWindow_) : resource(resource_), pWindow(pWindow_) {
+CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if (!resource_->resource())
         return;
 
@@ -15,8 +15,8 @@ bool CForeignToplevelHandle::good() {
     return resource->resource();
 }
 
-CWindow* CForeignToplevelHandle::window() {
-    return pWindow;
+PHLWINDOW CForeignToplevelHandle::window() {
+    return pWindow.lock();
 }
 
 CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resource_) : resource(resource_) {
@@ -36,11 +36,11 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
         if (!w->m_bIsMapped || w->m_bFadingOut)
             continue;
 
-        onMap(w.get());
+        onMap(w);
     }
 }
 
-void CForeignToplevelList::onMap(CWindow* pWindow) {
+void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
     if (finished)
         return;
 
@@ -54,7 +54,7 @@ void CForeignToplevelList::onMap(CWindow* pWindow) {
         return;
     }
 
-    const auto IDENTIFIER = std::format("{:08x}->{:016x}", static_cast<uint32_t>((uintptr_t)this & 0xFFFFFFFF), (uintptr_t)pWindow);
+    const auto IDENTIFIER = std::format("{:08x}->{:016x}", static_cast<uint32_t>((uintptr_t)this & 0xFFFFFFFF), (uintptr_t)pWindow.get());
 
     LOGM(LOG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     resource->sendToplevel(NEWHANDLE->resource.get());
@@ -66,13 +66,13 @@ void CForeignToplevelList::onMap(CWindow* pWindow) {
     handles.push_back(NEWHANDLE);
 }
 
-SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(CWindow* pWindow) {
+SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(PHLWINDOW pWindow) {
     std::erase_if(handles, [](const auto& wp) { return !wp.lock(); });
     const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h.lock()->window() == pWindow; });
     return IT == handles.end() ? SP<CForeignToplevelHandle>{} : IT->lock();
 }
 
-void CForeignToplevelList::onTitle(CWindow* pWindow) {
+void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
     if (finished)
         return;
 
@@ -83,7 +83,7 @@ void CForeignToplevelList::onTitle(CWindow* pWindow) {
     H->resource->sendTitle(pWindow->m_szTitle.c_str());
 }
 
-void CForeignToplevelList::onClass(CWindow* pWindow) {
+void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
     if (finished)
         return;
 
@@ -94,7 +94,7 @@ void CForeignToplevelList::onClass(CWindow* pWindow) {
     H->resource->sendAppId(g_pXWaylandManager->getAppIDClass(pWindow).c_str());
 }
 
-void CForeignToplevelList::onUnmap(CWindow* pWindow) {
+void CForeignToplevelList::onUnmap(PHLWINDOW pWindow) {
     if (finished)
         return;
 
@@ -113,19 +113,19 @@ bool CForeignToplevelList::good() {
 CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         for (auto& m : m_vManagers) {
-            m->onMap(std::any_cast<CWindow*>(data));
+            m->onMap(std::any_cast<PHLWINDOW>(data));
         }
     });
 
     static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         for (auto& m : m_vManagers) {
-            m->onUnmap(std::any_cast<CWindow*>(data));
+            m->onUnmap(std::any_cast<PHLWINDOW>(data));
         }
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("windowTitle", [this](void* self, SCallbackInfo& info, std::any data) {
         for (auto& m : m_vManagers) {
-            m->onTitle(std::any_cast<CWindow*>(data));
+            m->onTitle(std::any_cast<PHLWINDOW>(data));
         }
     });
 }

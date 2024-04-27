@@ -9,7 +9,7 @@ struct SLayerSurface;
 class CPopup {
   public:
     // dummy head nodes
-    CPopup(CWindow* pOwner);
+    CPopup(PHLWINDOW pOwner);
     CPopup(SLayerSurface* pOwner);
 
     // real nodes
@@ -35,8 +35,8 @@ class CPopup {
 
   private:
     // T1 owners, each popup has to have one of these
-    CWindow*       m_pWindowOwner = nullptr;
-    SLayerSurface* m_pLayerOwner  = nullptr;
+    PHLWINDOWREF   m_pWindowOwner;
+    SLayerSurface* m_pLayerOwner = nullptr;
 
     // T2 owners
     CPopup*        m_pParent = nullptr;

@@ -49,7 +49,7 @@ class CWorkspace {
     bool m_bIsSpecialWorkspace = false;
 
     // last window
-    CWindow* m_pLastFocusedWindow = nullptr;
+    PHLWINDOWREF m_pLastFocusedWindow;
 
     // user-set
     bool m_bDefaultFloating = false;
@@ -68,7 +68,7 @@ class CWorkspace {
 
     void        moveToMonitor(const int&);
 
-    CWindow*    getLastFocusedWindow();
+    PHLWINDOW   getLastFocusedWindow();
     void        rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
 
     std::string getConfigName();

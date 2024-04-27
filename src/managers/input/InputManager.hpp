@@ -38,7 +38,7 @@ enum eBorderIconDirection {
 };
 
 struct STouchData {
-    CWindow*       touchFocusWindow  = nullptr;
+    PHLWINDOWREF   touchFocusWindow;
     SLayerSurface* touchFocusLS      = nullptr;
     wlr_surface*   touchFocusSurface = nullptr;
     Vector2D       touchSurfaceOrigin;
@@ -114,12 +114,12 @@ class CInputManager {
     STouchData         m_sTouchData;
 
     // for dragging floating windows
-    CWindow*       currentlyDraggedWindow = nullptr;
-    eMouseBindMode dragMode               = MBIND_INVALID;
-    bool           m_bWasDraggingWindow   = false;
+    PHLWINDOWREF   currentlyDraggedWindow;
+    eMouseBindMode dragMode             = MBIND_INVALID;
+    bool           m_bWasDraggingWindow = false;
 
     // for refocus to be forced
-    CWindow*             m_pForcedFocus = nullptr;
+    PHLWINDOWREF         m_pForcedFocus;
 
     SDrag                m_sDrag;
 
@@ -188,7 +188,7 @@ class CInputManager {
     bool m_bLastInputTouch = false;
 
     // for tracking mouse refocus
-    CWindow*     m_pLastMouseFocus   = nullptr;
+    PHLWINDOWREF m_pLastMouseFocus;
     wlr_surface* m_pLastMouseSurface = nullptr;
 
     //
@@ -226,7 +226,7 @@ class CInputManager {
     // this will be set after a refocus()
     wlr_surface*   m_pFoundSurfaceToFocus = nullptr;
     SLayerSurface* m_pFoundLSToFocus      = nullptr;
-    CWindow*       m_pFoundWindowToFocus  = nullptr;
+    PHLWINDOWREF   m_pFoundWindowToFocus;
 
     // for holding focus on buttons held
     bool m_bFocusHeldByButtons   = false;
@@ -238,7 +238,7 @@ class CInputManager {
     // idle inhibitors
     struct SIdleInhibitor {
         std::shared_ptr<CIdleInhibitor> inhibitor;
-        CWindow*                        pWindow = nullptr;
+        PHLWINDOWREF                    pWindow;
         CHyprSignalListener             windowDestroyListener;
     };
     std::vector<std::unique_ptr<SIdleInhibitor>> m_vIdleInhibitors;
@@ -249,7 +249,7 @@ class CInputManager {
     void endWorkspaceSwipe();
 
     void setBorderCursorIcon(eBorderIconDirection);
-    void setCursorIconOnBorder(CWindow* w);
+    void setCursorIconOnBorder(PHLWINDOW w);
 
     // temporary. Obeys setUntilUnset.
     void setCursorImageOverride(const std::string& name);

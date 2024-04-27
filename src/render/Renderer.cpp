@@ -86,7 +86,7 @@ CHyprRenderer::CHyprRenderer() {
 static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
     const auto TEXTURE                     = wlr_surface_get_texture(surface);
     const auto RDATA                       = (SRenderData*)data;
-    const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
     if (!TEXTURE)
         return;
@@ -214,7 +214,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
 }
 
-bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
+bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
     CBox geometry = pWindow->getFullWindowBoundingBox();
 
     if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
@@ -278,9 +278,9 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow, CMonitor* pMonitor) {
     return false;
 }
 
-bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
+bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
 
-    if (!g_pCompositor->windowValidMapped(pWindow))
+    if (!validMapped(pWindow))
         return false;
 
     const auto PWORKSPACE = pWindow->m_pWorkspace;
@@ -306,13 +306,13 @@ bool CHyprRenderer::shouldRenderWindow(CWindow* pWindow) {
 }
 
 void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
-    CWindow* pWorkspaceWindow = nullptr;
+    PHLWINDOW pWorkspaceWindow = nullptr;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
     // loop over the tiled windows that are fading out
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         if (w->m_fAlpha.value() == 0.f)
@@ -324,12 +324,12 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // and floating ones too
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         if (w->m_fAlpha.value() == 0.f)
@@ -344,7 +344,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
             continue; // special on another are rendered as a part of the base pass
 
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     // TODO: this pass sucks
@@ -365,13 +365,13 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (shouldRenderWindow(w.get(), pMonitor))
-            renderWindow(w.get(), pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
+        if (shouldRenderWindow(w, pMonitor))
+            renderWindow(w, pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
 
         if (w->m_pWorkspace != pWorkspace)
             continue;
 
-        pWorkspaceWindow = w.get();
+        pWorkspaceWindow = w;
     }
 
     if (!pWorkspaceWindow) {
@@ -391,12 +391,12 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
             continue; // special on another are rendered as a part of the base pass
 
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 }
 
 void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
-    CWindow* lastWindow = nullptr;
+    PHLWINDOW lastWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
@@ -408,20 +408,20 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (w->m_bIsFloating)
             continue; // floating are in the second pass
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         // render active window after all others of this pass
-        if (w.get() == g_pCompositor->m_pLastWindow) {
-            lastWindow = w.get();
+        if (w == g_pCompositor->m_pLastWindow.lock()) {
+            lastWindow = w;
             continue;
         }
 
         // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_MAIN);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_MAIN);
     }
 
     if (lastWindow)
@@ -438,11 +438,11 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_POPUP);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_POPUP);
     }
 
     // floating on top
@@ -453,7 +453,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (!w->m_bIsFloating || w->m_bPinned)
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
@@ -463,17 +463,17 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
             continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 }
 
-void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
+void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
     if (pWindow->isHidden())
         return;
 
     if (pWindow->m_bFadingOut) {
         if (pMonitor->ID == pWindow->m_iMonitorID) // TODO: fix this
-            g_pHyprOpenGL->renderSnapshot(&pWindow);
+            g_pHyprOpenGL->renderSnapshot(pWindow);
         return;
     }
 
@@ -658,7 +658,7 @@ void CHyprRenderer::renderWindow(CWindow* pWindow, CMonitor* pMonitor, timespec*
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
-    g_pHyprOpenGL->m_pCurrentWindow     = nullptr;
+    g_pHyprOpenGL->m_pCurrentWindow.reset();
     g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
@@ -885,11 +885,11 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         if (!w->m_bPinned || !w->m_bIsFloating)
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         // render the bad boy
-        renderWindow(w.get(), pMonitor, time, true, RENDER_PASS_ALL);
+        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
@@ -943,7 +943,7 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
     }
 }
 
-void CHyprRenderer::calculateUVForSurface(CWindow* pWindow, wlr_surface* pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
+void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
@@ -1038,7 +1038,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!wlr_output_is_direct_scanout_allowed(pMonitor->output))
         return false;
 
-    const auto PCANDIDATE = pMonitor->solitaryClient;
+    const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 
     if (!PCANDIDATE)
         return false;
@@ -1060,12 +1060,12 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     wlr_presentation_surface_scanned_out_on_output(PSURFACE, pMonitor->output);
 
     if (pMonitor->state.commit()) {
-        if (!m_pLastScanout) {
+        if (!m_pLastScanout.lock()) {
             m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE, PCANDIDATE->m_szTitle);
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
         }
     } else {
-        m_pLastScanout = nullptr;
+        m_pLastScanout.reset();
         return false;
     }
 
@@ -1171,16 +1171,16 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             return;
         }
 
-        if (pMonitor->solitaryClient)
+        if (pMonitor->solitaryClient.lock())
             shouldTear = true;
     }
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
         if (attemptDirectScanout(pMonitor)) {
             return;
-        } else if (m_pLastScanout) {
+        } else if (m_pLastScanout.lock()) {
             Debug::log(LOG, "Left a direct scanout.");
-            m_pLastScanout = nullptr;
+            m_pLastScanout.reset();
         }
     }
 
@@ -1285,7 +1285,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     bool renderCursor = true;
 
     if (!finalDamage.empty()) {
-        if (!pMonitor->solitaryClient) {
+        if (!pMonitor->solitaryClient.lock()) {
             if (pMonitor->isMirror()) {
                 g_pHyprOpenGL->blend(false);
                 g_pHyprOpenGL->renderMirrored();
@@ -1321,7 +1321,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                 }
             }
         } else
-            g_pHyprRenderer->renderWindow(pMonitor->solitaryClient, pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
+            g_pHyprRenderer->renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
     } else {
         sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
         if (pMonitor->activeSpecialWorkspace)
@@ -1426,7 +1426,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE 
         if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface.wlr())
             continue;
 
-        if (!shouldRenderWindow(w.get(), pMonitor))
+        if (!shouldRenderWindow(w, pMonitor))
             continue;
 
         wlr_surface_for_each_surface(
@@ -1444,7 +1444,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE 
     }
 }
 
-void CHyprRenderer::setWindowScanoutMode(CWindow* pWindow) {
+void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
     if (!g_pCompositor->m_sWLRLinuxDMABuf || g_pSessionLockManager->isSessionLocked())
         return;
 
@@ -1764,7 +1764,7 @@ void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, dou
                    damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
-void CHyprRenderer::damageWindow(CWindow* pWindow, bool forceFull) {
+void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -2540,7 +2540,7 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
-    pMonitor->solitaryClient = nullptr; // reset it, if we find one it will be set.
+    pMonitor->solitaryClient.reset(); // reset it, if we find one it will be set.
 
     if (g_pHyprNotificationOverlay->hasAny())
         return;
@@ -2572,7 +2572,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w.get() == PCANDIDATE || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isHidden())
+        if (w == PCANDIDATE || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isHidden())
             continue;
 
         if (w->m_pWorkspace == PCANDIDATE->m_pWorkspace && w->m_bIsFloating && w->m_bCreatedOverFullscreen && w->visibleOnMonitor(pMonitor))

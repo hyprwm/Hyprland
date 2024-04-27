@@ -19,7 +19,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         PINHIBIT->pWindow               = PWINDOW;
         PINHIBIT->windowDestroyListener = PWINDOW->events.destroy.registerListener([PINHIBIT](std::any data) {
             Debug::log(WARN, "Inhibitor got its window destroyed before its inhibitor resource.");
-            PINHIBIT->pWindow = nullptr;
+            PINHIBIT->pWindow.reset();
         });
     } else
         Debug::log(WARN, "Inhibitor is for no window?");
@@ -29,10 +29,10 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 void CInputManager::recheckIdleInhibitorStatus() {
 
     for (auto& ii : m_vIdleInhibitors) {
-        if (!ii->pWindow) {
+        if (!ii->pWindow.lock()) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
-        } else if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow)) {
+        } else if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow.lock())) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
         }
@@ -48,7 +48,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
             return;
         }
 
-        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w.get())) {
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w)) {
             g_pCompositor->setIdleActivityInhibit(false);
             return;
         }

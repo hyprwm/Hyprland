@@ -237,9 +237,9 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
             foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                                &surfaceCoords, &pFoundLayerSurface);
 
-        if (!foundSurface && g_pCompositor->m_pLastWindow && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
+        if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow.lock()->m_pWorkspace)) {
             // if there isn't any, focus the last window
-            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
             g_pCompositor->focusWindow(nullptr);
             g_pCompositor->focusWindow(PLASTWINDOW);
         } else {

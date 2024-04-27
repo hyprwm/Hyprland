@@ -27,8 +27,8 @@ class CTearingControl {
     void                               updateWindow();
 
     SP<CWpTearingControlV1>            resource;
-    CWindow*                           pWindow = nullptr;
-    wpTearingControlV1PresentationHint hint    = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
+    PHLWINDOWREF                       pWindow;
+    wpTearingControlV1PresentationHint hint = WP_TEARING_CONTROL_V1_PRESENTATION_HINT_VSYNC;
 
     friend class CTearingControlProtocol;
 };
@@ -43,7 +43,7 @@ class CTearingControlProtocol : public IWaylandProtocol {
     void onManagerResourceDestroy(wl_resource* res);
     void onControllerDestroy(CTearingControl* control);
     void onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf);
-    void onWindowDestroy(CWindow* pWindow);
+    void onWindowDestroy(PHLWINDOW pWindow);
 
     //
     std::vector<UP<CWpTearingControlManagerV1>> m_vManagers;

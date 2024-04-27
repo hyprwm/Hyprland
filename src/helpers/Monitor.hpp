@@ -118,7 +118,7 @@ class CMonitor {
     std::vector<CMonitor*> mirrors;
 
     // for tearing
-    CWindow* solitaryClient = nullptr;
+    PHLWINDOWREF solitaryClient;
 
     struct {
         bool canTear         = false;

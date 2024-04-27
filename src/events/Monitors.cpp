@@ -146,7 +146,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     PMONITOR->tearingState.busy = false;
 
-    if (PMONITOR->tearingState.activelyTearing && PMONITOR->solitaryClient /* can be invalidated by a recheck */) {
+    if (PMONITOR->tearingState.activelyTearing && PMONITOR->solitaryClient.lock() /* can be invalidated by a recheck */) {
 
         if (!PMONITOR->tearingState.frameScheduledWhileBusy)
             return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?

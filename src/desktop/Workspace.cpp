@@ -33,10 +33,10 @@ void CWorkspace::init(PHLWORKSPACE self) {
         m_szName = RULEFORTHIS.defaultName.value();
 
     m_pFocusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<CWindow*>(param);
+        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
 
-        if (PWINDOW == m_pLastFocusedWindow)
-            m_pLastFocusedWindow = nullptr;
+        if (PWINDOW == m_pLastFocusedWindow.lock())
+            m_pLastFocusedWindow.reset();
     });
 
     m_bInert = false;
@@ -75,7 +75,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (!g_pCompositor->windowValidMapped(w.get()) || w->workspaceID() != m_iID)
+            if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
 
             w->onWorkspaceAnimUpdate();
@@ -182,11 +182,11 @@ void CWorkspace::moveToMonitor(const int& id) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
-CWindow* CWorkspace::getLastFocusedWindow() {
-    if (!g_pCompositor->windowValidMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->workspaceID() != m_iID)
+PHLWINDOW CWorkspace::getLastFocusedWindow() {
+    if (!validMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow.lock()->workspaceID() != m_iID)
         return nullptr;
 
-    return m_pLastFocusedWindow;
+    return m_pLastFocusedWindow.lock();
 }
 
 void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {

@@ -6,7 +6,7 @@ CBaseAnimatedVariable::CBaseAnimatedVariable(ANIMATEDVARTYPE type) : m_Type(type
     ; // dummy var
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pWindow       = pWindow;

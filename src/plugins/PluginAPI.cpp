@@ -99,13 +99,13 @@ APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook)
     return g_pFunctionHookSystem->removeHook(hook);
 }
 
-APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration) {
+APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
-    if (!g_pCompositor->windowValidMapped(pWindow))
+    if (!validMapped(pWindow))
         return false;
 
     PLUGIN->registeredDecorations.push_back(pDecoration.get());

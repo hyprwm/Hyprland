@@ -78,11 +78,11 @@ class CCompositor {
     std::string                               m_szInstanceSignature = "";
     std::string                               m_szCurrentSplash     = "error";
 
-    std::vector<std::shared_ptr<CMonitor>>    m_vMonitors;
-    std::vector<std::shared_ptr<CMonitor>>    m_vRealMonitors; // for all monitors, even those turned off
-    std::vector<std::unique_ptr<CWindow>>     m_vWindows;
+    std::vector<SP<CMonitor>>                 m_vMonitors;
+    std::vector<SP<CMonitor>>                 m_vRealMonitors; // for all monitors, even those turned off
+    std::vector<PHLWINDOW>                    m_vWindows;
     std::vector<PHLWORKSPACE>                 m_vWorkspaces;
-    std::vector<CWindow*>                     m_vWindowsFadingOut;
+    std::vector<PHLWINDOWREF>                 m_vWindowsFadingOut;
     std::vector<SLayerSurface*>               m_vSurfacesFadingOut;
 
     std::unordered_map<std::string, uint64_t> m_mMonitorIDMap;
@@ -93,11 +93,11 @@ class CCompositor {
     void                                      createLockFile();
     void                                      removeLockFile();
 
-    wlr_surface*                              m_pLastFocus   = nullptr;
-    CWindow*                                  m_pLastWindow  = nullptr;
+    wlr_surface*                              m_pLastFocus = nullptr;
+    PHLWINDOWREF                              m_pLastWindow;
     CMonitor*                                 m_pLastMonitor = nullptr;
 
-    std::vector<CWindow*>                     m_vWindowFocusHistory; // first element is the most recently focused.
+    std::vector<PHLWINDOWREF>                 m_vWindowFocusHistory; // first element is the most recently focused.
 
     SSeat                                     m_sSeat;
 
@@ -117,21 +117,19 @@ class CCompositor {
     CMonitor*      getMonitorFromDesc(const std::string&);
     CMonitor*      getMonitorFromCursor();
     CMonitor*      getMonitorFromVector(const Vector2D&);
-    void           removeWindowFromVectorSafe(CWindow*);
-    void           focusWindow(CWindow*, wlr_surface* pSurface = nullptr);
-    void           focusSurface(wlr_surface*, CWindow* pWindowOwner = nullptr);
-    bool           windowExists(CWindow*);
-    bool           windowValidMapped(CWindow*);
+    void           removeWindowFromVectorSafe(PHLWINDOW);
+    void           focusWindow(PHLWINDOW, wlr_surface* pSurface = nullptr);
+    void           focusSurface(wlr_surface*, PHLWINDOW pWindowOwner = nullptr);
     bool           monitorExists(CMonitor*);
-    CWindow*       vectorToWindowUnified(const Vector2D&, uint8_t properties, CWindow* pIgnoreWindow = nullptr);
+    PHLWINDOW      vectorToWindowUnified(const Vector2D&, uint8_t properties, PHLWINDOW pIgnoreWindow = nullptr);
     wlr_surface*   vectorToLayerSurface(const Vector2D&, std::vector<std::unique_ptr<SLayerSurface>>*, Vector2D*, SLayerSurface**);
     wlr_surface*   vectorToLayerPopupSurface(const Vector2D&, CMonitor* monitor, Vector2D*, SLayerSurface**);
-    wlr_surface*   vectorWindowToSurface(const Vector2D&, CWindow*, Vector2D& sl);
-    Vector2D       vectorToSurfaceLocal(const Vector2D&, CWindow*, wlr_surface*);
+    wlr_surface*   vectorWindowToSurface(const Vector2D&, PHLWINDOW, Vector2D& sl);
+    Vector2D       vectorToSurfaceLocal(const Vector2D&, PHLWINDOW, wlr_surface*);
     CMonitor*      getMonitorFromOutput(wlr_output*);
     CMonitor*      getRealMonitorFromOutput(wlr_output*);
-    CWindow*       getWindowFromSurface(wlr_surface*);
-    CWindow*       getWindowFromHandle(uint32_t);
+    PHLWINDOW      getWindowFromSurface(wlr_surface*);
+    PHLWINDOW      getWindowFromHandle(uint32_t);
     bool           isWorkspaceVisible(PHLWORKSPACE);
     PHLWORKSPACE   getWorkspaceByID(const int&);
     PHLWORKSPACE   getWorkspaceByName(const std::string&);
@@ -141,18 +139,18 @@ class CCompositor {
     void           updateWorkspaceSpecialRenderData(const int&);
     int            getWindowsOnWorkspace(const int& id, std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
     int            getGroupsOnWorkspace(const int& id, std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
-    CWindow*       getUrgentWindow();
+    PHLWINDOW      getUrgentWindow();
     bool           hasUrgentWindowOnWorkspace(const int&);
-    CWindow*       getFirstWindowOnWorkspace(const int&);
-    CWindow*       getTopLeftWindowOnWorkspace(const int&);
-    CWindow*       getFullscreenWindowOnWorkspace(const int&);
+    PHLWINDOW      getFirstWindowOnWorkspace(const int&);
+    PHLWINDOW      getTopLeftWindowOnWorkspace(const int&);
+    PHLWINDOW      getFullscreenWindowOnWorkspace(const int&);
     bool           doesSeatAcceptInput(wlr_surface*);
-    bool           isWindowActive(CWindow*);
-    void           changeWindowZOrder(CWindow*, bool);
+    bool           isWindowActive(PHLWINDOW);
+    void           changeWindowZOrder(PHLWINDOW, bool);
     void           cleanupFadingOut(const int& monid);
-    CWindow*       getWindowInDirection(CWindow*, char);
-    CWindow*       getNextWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
-    CWindow*       getPrevWindowOnWorkspace(CWindow*, bool focusableOnly = false, std::optional<bool> floating = {});
+    PHLWINDOW      getWindowInDirection(PHLWINDOW, char);
+    PHLWINDOW      getNextWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
+    PHLWINDOW      getPrevWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
     int            getNextAvailableNamedWorkspace();
     bool           isPointOnAnyMonitor(const Vector2D&);
     bool           isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);
@@ -160,23 +158,23 @@ class CCompositor {
     CMonitor*      getMonitorInDirection(CMonitor*, const char&);
     void           updateAllWindowsAnimatedDecorationValues();
     void           updateWorkspaceWindows(const int64_t& id);
-    void           updateWindowAnimatedDecorationValues(CWindow*);
+    void           updateWindowAnimatedDecorationValues(PHLWINDOW);
     int            getNextAvailableMonitorID(std::string const& name);
     void           moveWorkspaceToMonitor(PHLWORKSPACE, CMonitor*, bool noWarpCursor = false);
     void           swapActiveWorkspaces(CMonitor*, CMonitor*);
     CMonitor*      getMonitorFromString(const std::string&);
     bool           workspaceIDOutOfBounds(const int64_t&);
-    void           setWindowFullscreen(CWindow*, bool, eFullscreenMode mode = FULLSCREEN_INVALID);
+    void           setWindowFullscreen(PHLWINDOW, bool, eFullscreenMode mode = FULLSCREEN_INVALID);
     void           updateFullscreenFadeOnWorkspace(PHLWORKSPACE);
-    CWindow*       getX11Parent(CWindow*);
+    PHLWINDOW      getX11Parent(PHLWINDOW);
     void           scheduleFrameForMonitor(CMonitor*);
     void           addToFadingOutSafe(SLayerSurface*);
-    void           addToFadingOutSafe(CWindow*);
-    CWindow*       getWindowByRegex(const std::string&);
+    void           addToFadingOutSafe(PHLWINDOW);
+    PHLWINDOW      getWindowByRegex(const std::string&);
     void           warpCursorTo(const Vector2D&, bool force = false);
     SLayerSurface* getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
     SLayerSurface* getLayerSurfaceFromSurface(wlr_surface*);
-    void           closeWindow(CWindow*);
+    void           closeWindow(PHLWINDOW);
     Vector2D       parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void           forceReportSizesToWindowsOnWorkspace(const int&);
     PHLWORKSPACE   createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
@@ -185,8 +183,8 @@ class CCompositor {
     bool           isWorkspaceSpecial(const int&);
     int            getNewSpecialID();
     void           performUserChecks();
-    void           moveWindowToWorkspaceSafe(CWindow* pWindow, PHLWORKSPACE pWorkspace);
-    CWindow*       getForceFocus();
+    void           moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
+    PHLWINDOW      getForceFocus();
     void           notifyIdleActivity();
     void           setIdleActivityInhibit(bool inhibit);
     void           arrangeMonitors();
@@ -195,6 +193,7 @@ class CCompositor {
     void           setPreferredScaleForSurface(wlr_surface* pSurface, double scale);
     void           setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform);
     void           updateSuspendedStates();
+    PHLWINDOW      windowForCPointer(CWindow*);
 
     std::string    explicitConfigPath;
 

@@ -108,9 +108,9 @@ struct SRenderData {
     bool squishOversized = true;
 
     // for calculating UV
-    CWindow* pWindow = nullptr;
+    PHLWINDOW pWindow;
 
-    bool     popup = false;
+    bool      popup = false;
 };
 
 struct SExtensionFindingData {

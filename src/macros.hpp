@@ -4,6 +4,10 @@
 #include <csignal>
 #include <utility>
 
+#define SP std::shared_ptr
+#define UP std::unique_ptr
+#define WP std::weak_ptr
+
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
 #define ISDEBUG true

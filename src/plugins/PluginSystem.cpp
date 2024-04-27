@@ -97,8 +97,8 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     }
 
     for (auto& [k, v] : plugin->registeredCallbacks) {
-        if (const auto SP = v.lock())
-            g_pHookSystem->unhook(SP);
+        if (const auto SHP = v.lock())
+            g_pHookSystem->unhook(SHP);
     }
 
     const auto ls = plugin->registeredLayouts;

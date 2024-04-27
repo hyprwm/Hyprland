@@ -4,8 +4,6 @@
 #include "helpers/Color.hpp"
 #include "macros.hpp"
 
-#include <type_traits>
-
 class CWindow;
 
 /* Shared pointer to a window */

@@ -84,5 +84,5 @@ void Debug::log(LogLevel level, std::string str) {
 
     // log it to the stdout too.
     if (!disableStdout)
-        std::cout << coloredStr << "\n";
+        std::cout << (coloredLogs ? coloredStr : str) << "\n";
 }

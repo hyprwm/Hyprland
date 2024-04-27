@@ -34,7 +34,8 @@ struct SDwindleNodeData {
 
     // For list lookup
     bool operator==(const SDwindleNodeData& rhs) const {
-        return pWindow.lock() == rhs.pWindow.lock();
+        return pWindow.lock() == rhs.pWindow.lock() && workspaceID == rhs.workspaceID && box == rhs.box && pParent == rhs.pParent && children[0] == rhs.children[0] &&
+            children[1] == rhs.children[1];
     }
 
     void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);

@@ -134,7 +134,8 @@ void CPointerConstraint::activate() {
         wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, pHLSurface->wlr(), LOCAL.x, LOCAL.y);
     }
 
-    g_pCompositor->warpCursorTo(logicPositionHint(), true);
+    if (locked)
+        g_pCompositor->warpCursorTo(logicPositionHint(), true);
 
     if (locked)
         resourceL->sendLocked();

@@ -43,7 +43,7 @@ CWindow::~CWindow() {
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return other.first.lock().get() == this; });
+    std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return !other.first.lock() || other.first.lock().get() == this; });
 }
 
 SWindowDecorationExtents CWindow::getFullWindowExtents() {

@@ -61,6 +61,10 @@ class IHyprLayout;
 class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
+class CWindow;
+
+typedef std::shared_ptr<CWindow> PHLWINDOW;
+typedef std::weak_ptr<CWindow> PHLWINDOWREF;
 
 /*
     These methods are for the plugin to implement

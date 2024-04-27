@@ -3,11 +3,14 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include "../../helpers/Box.hpp"
 
 class CWindow;
 class IHyprWindowDecoration;
+
+typedef std::shared_ptr<CWindow> PHLWINDOW;
+typedef std::weak_ptr<CWindow>   PHLWINDOWREF;
 
 enum eDecorationPositioningPolicy {
     DECORATION_POSITION_ABSOLUTE = 0, /* Decoration wants absolute positioning */
@@ -59,21 +62,21 @@ class CDecorationPositioner {
   public:
     CDecorationPositioner();
 
-    Vector2D getEdgeDefinedPoint(uint32_t edges, CWindow* pWindow);
+    Vector2D getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pWindow);
 
     // called on resize, or insert/removal of a new deco
-    void                     onWindowUpdate(CWindow* pWindow);
+    void                     onWindowUpdate(PHLWINDOW pWindow);
     void                     uncacheDecoration(IHyprWindowDecoration* deco);
-    SWindowDecorationExtents getWindowDecorationReserved(CWindow* pWindow);
-    SWindowDecorationExtents getWindowDecorationExtents(CWindow* pWindow, bool inputOnly = false);
-    CBox                     getBoxWithIncludedDecos(CWindow* pWindow);
+    SWindowDecorationExtents getWindowDecorationReserved(PHLWINDOW pWindow);
+    SWindowDecorationExtents getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly = false);
+    CBox                     getBoxWithIncludedDecos(PHLWINDOW pWindow);
     void                     repositionDeco(IHyprWindowDecoration* deco);
     CBox                     getWindowDecorationBox(IHyprWindowDecoration* deco);
-    void                     forceRecalcFor(CWindow* pWindow);
+    void                     forceRecalcFor(PHLWINDOW pWindow);
 
   private:
     struct SWindowPositioningData {
-        CWindow*                    pWindow     = nullptr;
+        PHLWINDOWREF                pWindow;
         IHyprWindowDecoration*      pDecoration = nullptr;
         SDecorationPositioningInfo  positioningInfo;
         SDecorationPositioningReply lastReply;
@@ -87,13 +90,13 @@ class CDecorationPositioner {
         bool                     needsRecalc    = false;
     };
 
-    std::unordered_map<CWindow*, SWindowData>            m_mWindowDatas;
-    std::vector<std::unique_ptr<SWindowPositioningData>> m_vWindowPositioningDatas;
+    std::map<PHLWINDOWREF, SWindowData, std::owner_less<PHLWINDOWREF>> m_mWindowDatas;
+    std::vector<std::unique_ptr<SWindowPositioningData>>               m_vWindowPositioningDatas;
 
-    SWindowPositioningData*                              getDataFor(IHyprWindowDecoration* pDecoration, CWindow* pWindow);
-    void                                                 onWindowUnmap(CWindow* pWindow);
-    void                                                 onWindowMap(CWindow* pWindow);
-    void                                                 sanitizeDatas();
+    SWindowPositioningData*                                            getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
+    void                                                               onWindowUnmap(PHLWINDOW pWindow);
+    void                                                               onWindowMap(PHLWINDOW pWindow);
+    void                                                               sanitizeDatas();
 };
 
 inline std::unique_ptr<CDecorationPositioner> g_pDecorationPositioner;

@@ -21,7 +21,7 @@ class CAnimationManager {
     void                                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
     void                                          removeAllBeziers();
 
-    void                                          onWindowPostCreateClose(CWindow*, bool close = false);
+    void                                          onWindowPostCreateClose(PHLWINDOW, bool close = false);
 
     bool                                          bezierExists(const std::string&);
     CBezierCurve*                                 getBezier(const std::string&);
@@ -50,8 +50,8 @@ class CAnimationManager {
     bool                                          m_bTickScheduled = false;
 
     // Anim stuff
-    void animationPopin(CWindow*, bool close = false, float minPerc = 0.f);
-    void animationSlide(CWindow*, std::string force = "", bool close = false);
+    void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
+    void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
 };
 
 inline std::unique_ptr<CAnimationManager> g_pAnimationManager;

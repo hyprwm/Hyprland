@@ -56,7 +56,7 @@ struct SScreencopyFrame {
     wlr_buffer*        buffer = nullptr;
 
     CMonitor*          pMonitor = nullptr;
-    CWindow*           pWindow  = nullptr;
+    PHLWINDOWREF       pWindow;
 
     bool               operator==(const SScreencopyFrame& other) const {
         return resource == other.resource && client == other.client;

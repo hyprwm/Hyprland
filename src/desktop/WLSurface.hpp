@@ -17,7 +17,7 @@ class CWLSurface {
 
     // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
     void assign(wlr_surface* pSurface);
-    void assign(wlr_surface* pSurface, CWindow* pOwner);
+    void assign(wlr_surface* pSurface, PHLWINDOW pOwner);
     void assign(wlr_surface* pSurface, SLayerSurface* pOwner);
     void assign(wlr_surface* pSurface, CSubsurface* pOwner);
     void assign(wlr_surface* pSurface, CPopup* pOwner);
@@ -37,7 +37,7 @@ class CWLSurface {
     void         onCommit();
 
     // getters for owners.
-    CWindow*       getWindow();
+    PHLWINDOW      getWindow();
     SLayerSurface* getLayer();
     CPopup*        getPopup();
     CSubsurface*   getSubsurface();
@@ -94,7 +94,7 @@ class CWLSurface {
 
     wlr_surface*   m_pWLRSurface = nullptr;
 
-    CWindow*       m_pWindowOwner     = nullptr;
+    PHLWINDOWREF   m_pWindowOwner;
     SLayerSurface* m_pLayerOwner      = nullptr;
     CPopup*        m_pPopupOwner      = nullptr;
     CSubsurface*   m_pSubsurfaceOwner = nullptr;

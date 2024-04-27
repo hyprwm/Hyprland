@@ -12,7 +12,7 @@ void CSignal::emit(std::any data) {
     }
 
     if (dirty)
-        std::erase_if(m_vListeners, [](const auto& other) { return !other.lock(); });
+        std::erase_if(m_vListeners, [](const auto& other) { return other.expired(); });
 }
 
 CHyprSignalListener CSignal::registerListener(std::function<void(std::any)> handler) {

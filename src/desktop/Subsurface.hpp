@@ -4,17 +4,16 @@
 #include <vector>
 #include "WLSurface.hpp"
 
-class CWindow;
 class CPopup;
 
 class CSubsurface {
   public:
     // root dummy nodes
-    CSubsurface(CWindow* pOwner);
+    CSubsurface(PHLWINDOW pOwner);
     CSubsurface(CPopup* pOwner);
 
     // real nodes
-    CSubsurface(wlr_subsurface* pSubsurface, CWindow* pOwner);
+    CSubsurface(wlr_subsurface* pSubsurface, PHLWINDOW pOwner);
     CSubsurface(wlr_subsurface* pSubsurface, CPopup* pOwner);
 
     ~CSubsurface();
@@ -46,8 +45,8 @@ class CSubsurface {
     // if nullptr, means it's a dummy node
     CSubsurface*                              m_pParent = nullptr;
 
-    CWindow*                                  m_pWindowParent = nullptr;
-    CPopup*                                   m_pPopupParent  = nullptr;
+    PHLWINDOWREF                              m_pWindowParent;
+    CPopup*                                   m_pPopupParent = nullptr;
 
     std::vector<std::unique_ptr<CSubsurface>> m_vChildren;
 

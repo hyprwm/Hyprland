@@ -7,6 +7,7 @@
 #include "../helpers/Region.hpp"
 #include <list>
 #include <unordered_map>
+#include <map>
 
 #include <cairo/cairo.h>
 
@@ -151,12 +152,12 @@ class CHyprOpenGLImpl {
 
     void                  blend(bool enabled);
 
-    void                  makeWindowSnapshot(CWindow*);
-    void                  makeRawWindowSnapshot(CWindow*, CFramebuffer*);
+    void                  makeWindowSnapshot(PHLWINDOW);
+    void                  makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
     void                  makeLayerSnapshot(SLayerSurface*);
-    void                  renderSnapshot(CWindow**);
+    void                  renderSnapshot(PHLWINDOW);
     void                  renderSnapshot(SLayerSurface**);
-    bool                  shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow);
+    bool                  shouldUseNewBlurOptimizations(SLayerSurface* pLayer, PHLWINDOW pWindow);
 
     void                  clear(const CColor&);
     void                  clearWithTex();
@@ -192,13 +193,13 @@ class CHyprOpenGLImpl {
 
     bool                  m_bReloadScreenShader = true; // at launch it can be set
 
-    CWindow*              m_pCurrentWindow = nullptr; // hack to get the current rendered window
-    SLayerSurface*        m_pCurrentLayer  = nullptr; // hack to get the current rendered layer
+    PHLWINDOWREF          m_pCurrentWindow;          // hack to get the current rendered window
+    SLayerSurface*        m_pCurrentLayer = nullptr; // hack to get the current rendered layer
 
-    std::unordered_map<CWindow*, CFramebuffer>        m_mWindowFramebuffers;
-    std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
-    std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer, std::owner_less<PHLWINDOWREF>> m_mWindowFramebuffers;
+    std::unordered_map<SLayerSurface*, CFramebuffer>                    m_mLayerFramebuffers;
+    std::unordered_map<CMonitor*, SMonitorRenderData>                   m_mMonitorRenderResources;
+    std::unordered_map<CMonitor*, CFramebuffer>                         m_mMonitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;

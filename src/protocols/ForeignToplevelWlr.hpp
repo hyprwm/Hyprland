@@ -10,15 +10,15 @@ class CMonitor;
 
 class CForeignToplevelHandleWlr {
   public:
-    CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, CWindow* pWindow);
+    CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow);
 
     bool         good();
-    CWindow*     window();
+    PHLWINDOW    window();
     wl_resource* res();
 
   private:
     SP<CZwlrForeignToplevelHandleV1> resource;
-    CWindow*                         pWindow       = nullptr;
+    PHLWINDOWREF                     pWindow;
     bool                             closed        = false;
     int64_t                          lastMonitorID = -1;
 
@@ -32,22 +32,22 @@ class CForeignToplevelWlrManager {
   public:
     CForeignToplevelWlrManager(SP<CZwlrForeignToplevelManagerV1> resource_);
 
-    void onMap(CWindow* pWindow);
-    void onTitle(CWindow* pWindow);
-    void onClass(CWindow* pWindow);
-    void onMoveMonitor(CWindow* pWindow);
-    void onFullscreen(CWindow* pWindow);
-    void onNewFocus(CWindow* pWindow);
-    void onUnmap(CWindow* pWindow);
+    void onMap(PHLWINDOW pWindow);
+    void onTitle(PHLWINDOW pWindow);
+    void onClass(PHLWINDOW pWindow);
+    void onMoveMonitor(PHLWINDOW pWindow);
+    void onFullscreen(PHLWINDOW pWindow);
+    void onNewFocus(PHLWINDOW pWindow);
+    void onUnmap(PHLWINDOW pWindow);
 
     bool good();
 
   private:
     SP<CZwlrForeignToplevelManagerV1>          resource;
-    bool                                       finished  = false;
-    CWindow*                                   lastFocus = nullptr; // READ-ONLY
+    bool                                       finished = false;
+    PHLWINDOWREF                               lastFocus; // READ-ONLY
 
-    SP<CForeignToplevelHandleWlr>              handleForWindow(CWindow* pWindow);
+    SP<CForeignToplevelHandleWlr>              handleForWindow(PHLWINDOW pWindow);
 
     std::vector<WP<CForeignToplevelHandleWlr>> handles;
 };
@@ -58,7 +58,7 @@ class CForeignToplevelWlrProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    CWindow*     windowFromHandleResource(wl_resource* res);
+    PHLWINDOW    windowFromHandleResource(wl_resource* res);
 
   private:
     void onManagerResourceDestroy(CForeignToplevelWlrManager* mgr);

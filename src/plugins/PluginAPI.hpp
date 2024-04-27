@@ -61,6 +61,10 @@ class IHyprLayout;
 class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
+class CWindow;
+
+typedef std::shared_ptr<CWindow> PHLWINDOW;
+typedef std::weak_ptr<CWindow>   PHLWINDOWREF;
 
 /*
     These methods are for the plugin to implement
@@ -219,7 +223,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration);
+    APICALL bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration);
 
     /*
         Removes a window decoration

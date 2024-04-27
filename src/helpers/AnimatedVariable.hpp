@@ -6,7 +6,7 @@
 #include <type_traits>
 #include "Vector2D.hpp"
 #include "Color.hpp"
-#include "../macros.hpp"
+#include "../defines.hpp"
 #include "../debug/Log.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
@@ -68,7 +68,7 @@ concept Animable = OneOf<T, Vector2D, float, CColor>;
 class CBaseAnimatedVariable {
   public:
     CBaseAnimatedVariable(ANIMATEDVARTYPE type);
-    void create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy);
@@ -140,12 +140,12 @@ class CBaseAnimatedVariable {
         m_bRemoveEndAfterRan   = false;
     }
 
-    CWindow* getWindow() {
-        return (CWindow*)m_pWindow;
+    PHLWINDOW getWindow() {
+        return m_pWindow.lock();
     }
 
   protected:
-    void*                                 m_pWindow = nullptr;
+    PHLWINDOWREF                          m_pWindow;
     std::weak_ptr<CWorkspace>             m_pWorkspace;
     void*                                 m_pLayer = nullptr;
 
@@ -208,7 +208,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
     CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
 
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pWindow, policy);
         m_Value = value;
         m_Goal  = value;

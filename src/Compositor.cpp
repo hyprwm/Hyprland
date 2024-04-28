@@ -18,7 +18,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <pwd.h>
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);

@@ -109,8 +109,10 @@ class BufFileWriter {
             struct sigaction act;
             act.sa_handler = SIG_DFL;
             sigemptyset(&act.sa_mask);
-            act.sa_flags    = SA_NOCLDWAIT;
+            act.sa_flags = SA_NOCLDWAIT;
+#ifdef SA_RESTORER
             act.sa_restorer = NULL;
+#endif
             sigaction(SIGCHLD, &act, NULL);
         }
         pid_t pid = fork();

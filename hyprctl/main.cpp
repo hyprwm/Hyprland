@@ -51,7 +51,7 @@ std::vector<SInstanceData> instances() {
         data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
 
         try {
-            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1, data->id.find_last_of('_') - (data->id.find_first_of('_') + 1)));
         } catch (std::exception& e) { continue; }
 
         // read file

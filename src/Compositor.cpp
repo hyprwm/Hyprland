@@ -62,15 +62,32 @@ void handleUserSignal(int sig) {
 CCompositor::CCompositor() {
     m_iHyprlandPID = getpid();
 
-    m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL));
+    std::random_device              dev;
+    std::mt19937                    engine(dev());
+    std::uniform_int_distribution<> distribution(0, INT32_MAX);
+
+    m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL)) + "_" + std::to_string(distribution(engine));
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
     if (!std::filesystem::exists("/tmp/hypr"))
         mkdir("/tmp/hypr", S_IRWXU | S_IRWXG | S_IRWXO | S_ISVTX);
+    else if (!std::filesystem::is_directory("/tmp/hypr")) {
+        std::cout << "Bailing out, /tmp/hypr is not a directory\n";
+        return;
+    }
 
     const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
-    mkdir(INSTANCEPATH.c_str(), S_IRWXU | S_IRWXG);
+
+    if (std::filesystem::exists(INSTANCEPATH)) {
+        std::cout << "Bailing out, /tmp/hypr/$HIS exists??\n";
+        return;
+    }
+
+    if (mkdir(INSTANCEPATH.c_str(), S_IRWXU) < 0) {
+        std::cout << "Bailing out, couldn't create /tmp/hypr/$HIS\n";
+        return;
+    }
 
     Debug::init(m_szInstanceSignature);
 

@@ -63,14 +63,15 @@ void handleUserSignal(int sig) {
 CCompositor::CCompositor() {
     m_iHyprlandPID = getpid();
 
-    const auto PWUID = getpwuid(getuid());
-    if (!PWUID) {
-        std::cout << "Bailing out, getpwuid(getuid()) failed. Are you running as a proper user?\n";
+    m_szHyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
+
+    if (m_szHyprTempDataRoot.starts_with("/hypr")) {
+        std::cout << "Bailing out, XDG_RUNTIME_DIR is invalid\n";
         throw std::runtime_error("CCompositor() failed");
     }
 
-    const std::string USERID = std::to_string(PWUID->pw_uid);
-    m_szHyprTempDataRoot     = "/run/user/" + USERID + "/hypr";
+    if (!m_szHyprTempDataRoot.starts_with("/run/user"))
+        std::cout << "[!!WARNING!!] XDG_RUNTIME_DIR looks non-standard. Proceeding anyways...\n";
 
     std::random_device              dev;
     std::mt19937                    engine(dev());

@@ -668,7 +668,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PMONITOR && PWINDOW->m_iX11Type == 2)
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 
-    // Move cursor to middle of new window if enabled.
     g_pCompositor->warpCursorTo(PWINDOW->middle());
 }
 

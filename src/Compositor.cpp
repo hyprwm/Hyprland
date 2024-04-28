@@ -16,8 +16,9 @@
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
 
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -62,6 +63,15 @@ void handleUserSignal(int sig) {
 CCompositor::CCompositor() {
     m_iHyprlandPID = getpid();
 
+    const auto PWUID = getpwuid(getuid());
+    if (!PWUID) {
+        std::cout << "Bailing out, getpwuid(getuid()) failed. Are you running as a proper user?\n";
+        throw std::runtime_error("CCompositor() failed");
+    }
+
+    const std::string USERID = std::to_string(PWUID->pw_uid);
+    m_szHyprTempDataRoot     = "/run/user/" + USERID + "/hypr";
+
     std::random_device              dev;
     std::mt19937                    engine(dev());
     std::uniform_int_distribution<> distribution(0, INT32_MAX);
@@ -70,28 +80,30 @@ CCompositor::CCompositor() {
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
-    if (!std::filesystem::exists("/tmp/hypr"))
-        mkdir("/tmp/hypr", S_IRWXU | S_IRWXG | S_IRWXO | S_ISVTX);
-    else if (!std::filesystem::is_directory("/tmp/hypr")) {
-        std::cout << "Bailing out, /tmp/hypr is not a directory\n";
-        return;
+    if (!std::filesystem::exists(m_szHyprTempDataRoot))
+        mkdir(m_szHyprTempDataRoot.c_str(), S_IRWXU);
+    else if (!std::filesystem::is_directory(m_szHyprTempDataRoot)) {
+        std::cout << "Bailing out, " << m_szHyprTempDataRoot << " is not a directory\n";
+        throw std::runtime_error("CCompositor() failed");
     }
 
-    const auto INSTANCEPATH = "/tmp/hypr/" + m_szInstanceSignature;
+    m_szInstancePath = m_szHyprTempDataRoot + "/" + m_szInstanceSignature;
 
-    if (std::filesystem::exists(INSTANCEPATH)) {
-        std::cout << "Bailing out, /tmp/hypr/$HIS exists??\n";
-        return;
+    if (std::filesystem::exists(m_szInstancePath)) {
+        std::cout << "Bailing out, " << m_szInstancePath << " exists??\n";
+        throw std::runtime_error("CCompositor() failed");
     }
 
-    if (mkdir(INSTANCEPATH.c_str(), S_IRWXU) < 0) {
-        std::cout << "Bailing out, couldn't create /tmp/hypr/$HIS\n";
-        return;
+    if (mkdir(m_szInstancePath.c_str(), S_IRWXU) < 0) {
+        std::cout << "Bailing out, couldn't create " << m_szInstancePath << "\n";
+        throw std::runtime_error("CCompositor() failed");
     }
 
-    Debug::init(m_szInstanceSignature);
+    Debug::init(m_szInstancePath);
 
     Debug::log(LOG, "Instance Signature: {}", m_szInstanceSignature);
+
+    Debug::log(LOG, "Runtime directory: {}", m_szInstancePath);
 
     Debug::log(LOG, "Hyprland PID: {}", m_iHyprlandPID);
 
@@ -519,7 +531,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 }
 
 void CCompositor::createLockFile() {
-    const auto    PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+    const auto    PATH = m_szInstancePath + "/hyprland.lock";
 
     std::ofstream ofs(PATH, std::ios::trunc);
 
@@ -529,7 +541,7 @@ void CCompositor::createLockFile() {
 }
 
 void CCompositor::removeLockFile() {
-    const auto PATH = "/tmp/hypr/" + m_szInstanceSignature + ".lock";
+    const auto PATH = m_szInstancePath + "/hyprland.lock";
 
     if (std::filesystem::exists(PATH))
         std::filesystem::remove(PATH);

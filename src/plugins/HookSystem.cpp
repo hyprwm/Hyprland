@@ -140,7 +140,13 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
 
     const auto RANDOMDIR = "/tmp/hypr/" + g_pTokenManager->getRandomUUID();
 
-    mkdir(RANDOMDIR.c_str(), S_IRWXU);
+    if (std::filesystem::exists(RANDOMDIR)) {
+        Debug::log(ERR, "[hooksystem] random out dir exists??");
+        return {};
+    }
+
+    if (mkdir(RANDOMDIR.c_str(), S_IRWXU) < 0)
+        return {};
 
     if (!std::filesystem::exists(RANDOMDIR))
         return {};

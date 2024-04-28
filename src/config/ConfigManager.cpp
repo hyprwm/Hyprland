@@ -819,7 +819,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (Debug::disableStdout && isFirstLaunch)
         Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
-    Debug::coloredLogs = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("debug:colored_stdout_logs"));
+    Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty

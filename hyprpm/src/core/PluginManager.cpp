@@ -501,7 +501,7 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.print();
 
     std::string cmd =
-        std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile && cd {} && make installheaders", WORKINGDIR, WORKINGDIR, DataState::getHeadersPath());
+        std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile && cd {} && make installheaders", DataState::getHeadersPath(), WORKINGDIR, WORKINGDIR);
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "installation will run: " + cmd);
 

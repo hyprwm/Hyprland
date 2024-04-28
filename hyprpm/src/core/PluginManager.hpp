@@ -60,8 +60,13 @@ class CPluginManager {
 
     bool                   m_bVerbose = false;
 
+    // will delete recursively if exists!!
+    bool createSafeDirectory(const std::string& path);
+
   private:
     std::string headerError(const eHeadersErrors err);
+
+    std::string m_szWorkingPluginDirectory = "";
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

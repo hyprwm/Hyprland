@@ -25,6 +25,7 @@ class CUUIDToken {
 class CTokenManager {
   public:
     std::string                 registerNewToken(std::any data, std::chrono::system_clock::duration expires);
+    std::string                 getRandomUUID();
 
     std::shared_ptr<CUUIDToken> getToken(const std::string& uuid);
     void                        removeToken(std::shared_ptr<CUUIDToken> token);

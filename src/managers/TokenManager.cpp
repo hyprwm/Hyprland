@@ -10,7 +10,7 @@ std::string CUUIDToken::getUUID() {
     return uuid;
 }
 
-std::string CTokenManager::registerNewToken(std::any data, std::chrono::system_clock::duration expires) {
+std::string CTokenManager::getRandomUUID() {
     std::string uuid;
     do {
         uuid_t uuid_;
@@ -19,6 +19,12 @@ std::string CTokenManager::registerNewToken(std::any data, std::chrono::system_c
                            (uint16_t)uuid_[2], (uint16_t)uuid_[3], (uint16_t)uuid_[4], (uint16_t)uuid_[5], (uint16_t)uuid_[6], (uint16_t)uuid_[7], (uint16_t)uuid_[8],
                            (uint16_t)uuid_[9], (uint16_t)uuid_[10], (uint16_t)uuid_[11], (uint16_t)uuid_[12], (uint16_t)uuid_[13], (uint16_t)uuid_[14], (uint16_t)uuid_[15]);
     } while (m_mTokens.contains(uuid));
+
+    return uuid;
+}
+
+std::string CTokenManager::registerNewToken(std::any data, std::chrono::system_clock::duration expires) {
+    std::string uuid = getRandomUUID();
 
     m_mTokens[uuid] = std::make_shared<CUUIDToken>(uuid, data, expires);
     return uuid;

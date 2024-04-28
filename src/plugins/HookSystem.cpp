@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
     m_pSource      = source;
@@ -138,10 +140,10 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
 
     const auto RANDOMDIR = "/tmp/hypr/" + g_pTokenManager->getRandomUUID();
 
-    if (!std::filesystem::create_directory(RANDOMDIR))
-        return {};
+    mkdir(RANDOMDIR.c_str(), S_IRWXU);
 
-    std::filesystem::permissions(RANDOMDIR, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
+    if (!std::filesystem::exists(RANDOMDIR))
+        return {};
 
     std::ofstream ofs(RANDOMDIR + "/.hookcode.asm", std::ios::trunc);
     ofs << assemblyBuilder;

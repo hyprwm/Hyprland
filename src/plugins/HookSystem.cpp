@@ -2,6 +2,7 @@
 #include "../debug/Log.hpp"
 #include "../helpers/VarList.hpp"
 #include "../managers/TokenManager.hpp"
+#include "../Compositor.hpp"
 
 #define register
 #include <udis86.h>
@@ -138,7 +139,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
         currentAddress += len;
     }
 
-    const auto RANDOMDIR = "/tmp/hypr/" + g_pTokenManager->getRandomUUID();
+    const auto RANDOMDIR = g_pCompositor->m_szInstancePath + "/" + g_pTokenManager->getRandomUUID();
 
     if (std::filesystem::exists(RANDOMDIR)) {
         Debug::log(ERR, "[hooksystem] random out dir exists??");

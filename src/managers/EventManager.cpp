@@ -39,7 +39,7 @@ void CEventManager::startThread() {
     }
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-    std::string socketPath    = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket2.sock";
+    std::string socketPath    = g_pCompositor->m_szInstancePath + "/.socket2.sock";
     strncpy(SERVERADDRESS.sun_path, socketPath.c_str(), sizeof(SERVERADDRESS.sun_path) - 1);
 
     bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS));

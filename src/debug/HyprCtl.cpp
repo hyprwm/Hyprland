@@ -1746,7 +1746,7 @@ void CHyprCtl::startHyprCtlSocket() {
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-    std::string socketPath = "/tmp/hypr/" + g_pCompositor->m_szInstanceSignature + "/.socket.sock";
+    std::string socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
 
     strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
 

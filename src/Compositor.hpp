@@ -74,8 +74,11 @@ class CCompositor {
     wlr_session_lock_manager_v1*     m_sWLRSessionLockMgr;
     // ------------------------------------------------- //
 
+    std::string                               m_szHyprTempDataRoot = "";
+
     std::string                               m_szWLDisplaySocket   = "";
     std::string                               m_szInstanceSignature = "";
+    std::string                               m_szInstancePath      = "";
     std::string                               m_szCurrentSplash     = "error";
 
     std::vector<SP<CMonitor>>                 m_vMonitors;

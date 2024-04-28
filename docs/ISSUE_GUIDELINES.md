@@ -34,16 +34,16 @@ If your bug crashes Hyprland, append additionally:
 ## Obtaining the Hyprland log
 If you are in a TTY, and the hyprland session that crashed was the last one you launched, the log will be printed with
 ```
-cat /tmp/hypr/$(ls -t /tmp/hypr/ | head -n 1)/hyprland.log
+cat $XDG_RUNTIME_DIR/hypr/$(ls -t $XDG_RUNTIME_DIR/hypr | head -n 1)/hyprland.log
 ```
 feel free to send it to a file, save, copy, etc.
 
 if you are in a Hyprland session, and you want the log of the last session, use
 ```
-cat /tmp/hypr/$(ls -t /tmp/hypr/ | head -n 2 | tail -n 1)/hyprland.log
+cat $XDG_RUNTIME_DIR/hypr/$(ls -t $XDG_RUNTIME_DIR/hypr | head -n 2 | tail -n 1)/hyprland.log
 ```
 
-basically, directories in /tmp/hypr are your sessions.
+basically, directories in $XDG_RUNTIME_DIR/hypr are your sessions.
 
 ## Obtaining the Hyprland Crash Report (v0.22.0beta and up)
 

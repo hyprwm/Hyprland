@@ -42,7 +42,7 @@ struct SInstanceData {
 std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
-    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+    const std::string          USERID = std::to_string(getpwuid(getuid())->pw_uid);
 
     for (const auto& el : std::filesystem::directory_iterator("/run/user/" + USERID + "/hypr")) {
         if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
@@ -166,7 +166,7 @@ void requestHyprpaper(std::string arg) {
 
     const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
 
-    std::string socketPath = "/run/user/" + USERID + "/hypr/" + instanceSignature + "/.hyprpaper.sock";
+    std::string       socketPath = "/run/user/" + USERID + "/hypr/" + instanceSignature + "/.hyprpaper.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 

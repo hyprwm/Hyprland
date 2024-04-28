@@ -1,6 +1,7 @@
 #include "HookSystem.hpp"
 #include "../debug/Log.hpp"
 #include "../helpers/VarList.hpp"
+#include "../managers/TokenManager.hpp"
 
 #define register
 #include <udis86.h>
@@ -135,24 +136,30 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
         currentAddress += len;
     }
 
-    std::ofstream ofs("/tmp/hypr/.hookcode.asm", std::ios::trunc);
+    const auto RANDOMDIR = "/tmp/hypr/" + g_pTokenManager->getRandomUUID();
+
+    if (!std::filesystem::create_directory(RANDOMDIR))
+        return {};
+
+    std::filesystem::permissions(RANDOMDIR, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
+
+    std::ofstream ofs(RANDOMDIR + "/.hookcode.asm", std::ios::trunc);
     ofs << assemblyBuilder;
     ofs.close();
-    std::string ret = execAndGet(
-        "cc -x assembler -c /tmp/hypr/.hookcode.asm -o /tmp/hypr/.hookbinary.o 2>&1 && objcopy -O binary -j .text /tmp/hypr/.hookbinary.o /tmp/hypr/.hookbinary2.o 2>&1");
+    std::string ret = execAndGet(std::string{"cc -x assembler -c " + RANDOMDIR + "/.hookcode.asm -o " + RANDOMDIR + "/.hookbinary.o 2>&1 && objcopy -O binary -j .text " +
+                                             RANDOMDIR + "/.hookbinary.o " + RANDOMDIR + "/.hookbinary2.o 2>&1"}
+                                     .c_str());
     Debug::log(LOG, "[functionhook] assembler returned:\n{}", ret);
-    if (!std::filesystem::exists("/tmp/hypr/.hookbinary2.o")) {
-        std::filesystem::remove("/tmp/hypr/.hookcode.asm");
-        std::filesystem::remove("/tmp/hypr/.hookbinary.asm");
+    if (!std::filesystem::exists(RANDOMDIR + "/.hookbinary2.o")) {
+        std::filesystem::remove(RANDOMDIR + "/.hookcode.asm");
+        std::filesystem::remove(RANDOMDIR + "/.hookbinary.asm");
         return {};
     }
 
-    std::ifstream ifs("/tmp/hypr/.hookbinary2.o", std::ios::binary);
+    std::ifstream ifs(RANDOMDIR + "/.hookbinary2.o", std::ios::binary);
     returns = {std::vector<char>(std::istreambuf_iterator<char>(ifs), {})};
     ifs.close();
-    std::filesystem::remove("/tmp/hypr/.hookcode.asm");
-    std::filesystem::remove("/tmp/hypr/.hookbinary.o");
-    std::filesystem::remove("/tmp/hypr/.hookbinary2.o");
+    std::filesystem::remove_all(RANDOMDIR);
 
     return returns;
 }

@@ -133,6 +133,8 @@ class CMonitor {
         CSignal destroy;
         CSignal connect;
         CSignal disconnect;
+        CSignal dpmsChanged;
+        CSignal modeChanged;
     } events;
 
     std::array<std::vector<std::unique_ptr<SLayerSurface>>, 4> m_aLayerSurfaceLayers;

@@ -2006,6 +2006,8 @@ void CKeybindManager::dpms(std::string arg) {
 
         if (enable)
             g_pHyprRenderer->damageMonitor(m.get());
+
+        m->events.dpmsChanged.emit();
     }
 
     g_pCompositor->m_bDPMSStateON = enable;

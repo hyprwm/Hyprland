@@ -188,23 +188,6 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
     g_pConfigManager->m_bWantsMonitorReload = true;
 }
 
-void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
-    Debug::log(LOG, "PowerMgr set mode!");
-
-    const auto EVENT    = (wlr_output_power_v1_set_mode_event*)data;
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(EVENT->output);
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Invalid powerMgrSetMode output");
-        return;
-    }
-
-    wlr_output_state_set_enabled(PMONITOR->state.wlr(), EVENT->mode == 1);
-
-    if (!PMONITOR->state.commit())
-        Debug::log(ERR, "Couldn't set power mode");
-}
-
 void Events::listener_newIME(wl_listener* listener, void* data) {
     Debug::log(LOG, "New IME added!");
 

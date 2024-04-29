@@ -265,8 +265,6 @@ void CCompositor::initServer() {
 
     m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
 
-    m_sWLRActivation = wlr_xdg_activation_v1_create(m_sWLDisplay);
-
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
     m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
@@ -318,7 +316,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newVirtualKeyboard, m_sWLRVKeyboardMgr, "VKeyboardMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
-    addWLSignal(&m_sWLRActivation->events.request_activate, &Events::listen_activateXDG, m_sWLRActivation, "ActivationV1");
     addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
 
     if (m_sWRLDRMLeaseMgr)
@@ -363,7 +360,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newVirtualKeyboard);
     removeWLSignal(&Events::listen_RendererDestroy);
     removeWLSignal(&Events::listen_newIME);
-    removeWLSignal(&Events::listen_activateXDG);
     removeWLSignal(&Events::listen_newSessionLock);
 
     if (m_sWRLDRMLeaseMgr)

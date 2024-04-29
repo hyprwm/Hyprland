@@ -1272,7 +1272,7 @@ void CWindow::activate() {
 
     m_bIsUrgent = true;
 
-    if (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY))
+    if (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE))
         return;
 
     if (m_bIsFloating)

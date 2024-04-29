@@ -8,6 +8,7 @@
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/RelativePointer.hpp"
 #include "../../protocols/PointerConstraints.hpp"
+#include "../../protocols/IdleNotify.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -144,7 +145,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
 
     if (time)
-        g_pCompositor->notifyIdleActivity();
+        PROTO::idle->onActivity();
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -480,7 +481,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 
     m_tmrLastCursorMovement.reset();
 
@@ -705,7 +706,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 
     if (!passEvent)
         return;
@@ -1216,7 +1217,7 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
 
     bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 
     if (passEvent) {
 

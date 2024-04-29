@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/IdleInhibit.hpp"
+#include "../../protocols/IdleNotify.hpp"
 
 void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_vIdleInhibitors.emplace_back(std::make_unique<SIdleInhibitor>()).get();
@@ -29,11 +30,11 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 void CInputManager::recheckIdleInhibitorStatus() {
 
     for (auto& ii : m_vIdleInhibitors) {
-        if (ii->pWindow.expired()) {
-            g_pCompositor->setIdleActivityInhibit(false);
-            return;
-        } else if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow.lock())) {
-            g_pCompositor->setIdleActivityInhibit(false);
+        if (ii->pWindow.expired())
+            continue;
+
+        if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow.lock())) {
+            PROTO::idle->setInhibit(true);
             return;
         }
     }
@@ -44,21 +45,21 @@ void CInputManager::recheckIdleInhibitorStatus() {
             continue;
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_ALWAYS) {
-            g_pCompositor->setIdleActivityInhibit(false);
+            PROTO::idle->setInhibit(true);
             return;
         }
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w)) {
-            g_pCompositor->setIdleActivityInhibit(false);
+            PROTO::idle->setInhibit(true);
             return;
         }
 
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->m_bIsFullscreen && g_pCompositor->isWorkspaceVisible(w->m_pWorkspace)) {
-            g_pCompositor->setIdleActivityInhibit(false);
+            PROTO::idle->setInhibit(true);
             return;
         }
     }
 
-    g_pCompositor->setIdleActivityInhibit(true);
+    PROTO::idle->setInhibit(false);
     return;
 }

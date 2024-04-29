@@ -52,7 +52,6 @@ class CCompositor {
     wlr_drm*                         m_sWRLDRM;
     wlr_drm_lease_v1_manager*        m_sWRLDRMLeaseMgr;
     wlr_output_layout*               m_sWLROutputLayout;
-    wlr_idle_notifier_v1*            m_sWLRIdleNotifier;
     wlr_layer_shell_v1*              m_sWLRLayerShell;
     wlr_xdg_shell*                   m_sWLRXDGShell;
     wlr_cursor*                      m_sWLRCursor;
@@ -185,8 +184,6 @@ class CCompositor {
     void           performUserChecks();
     void           moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW      getForceFocus();
-    void           notifyIdleActivity();
-    void           setIdleActivityInhibit(bool inhibit);
     void           arrangeMonitors();
     void           enterUnsafeState();
     void           leaveUnsafeState();

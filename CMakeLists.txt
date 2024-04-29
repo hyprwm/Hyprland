@@ -249,7 +249,6 @@ target_link_libraries(Hyprland
         uuid
 )
 
-protocol("protocols/idle.xml" "idle" true)
 protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)
 protocol("protocols/wlr-layer-shell-unstable-v1.xml" "wlr-layer-shell-unstable-v1" true)
 protocol("protocols/wlr-screencopy-unstable-v1.xml" "wlr-screencopy-unstable-v1" true)
@@ -276,6 +275,7 @@ protocolNew("unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unst
 protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstable-v3" false)
 protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" false)
 protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
+protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

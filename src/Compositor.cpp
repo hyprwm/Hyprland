@@ -237,8 +237,6 @@ void CCompositor::initServer() {
 
     m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
 
-    m_sWLRIdleNotifier = wlr_idle_notifier_v1_create(m_sWLDisplay);
-
     m_sWLRLayerShell = wlr_layer_shell_v1_create(m_sWLDisplay, 4);
 
     m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
@@ -2701,13 +2699,6 @@ PHLWINDOW CCompositor::getForceFocus() {
     return nullptr;
 }
 
-void CCompositor::notifyIdleActivity() {
-    wlr_idle_notifier_v1_notify_activity(g_pCompositor->m_sWLRIdleNotifier, g_pCompositor->m_sSeat.seat);
-}
-
-void CCompositor::setIdleActivityInhibit(bool enabled) {
-    wlr_idle_notifier_v1_set_inhibited(g_pCompositor->m_sWLRIdleNotifier, !enabled);
-}
 void CCompositor::arrangeMonitors() {
     static auto* const     PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
 

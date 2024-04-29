@@ -22,8 +22,10 @@ CWatchdog::CWatchdog() {
             if (!m_bWillWatch)
                 m_cvWatchdogCondition.wait(lk, [this] { return m_bNotified; });
             else {
-                if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(*PTIMEOUT * 1000.0)), [this] { return m_bNotified; }) == false)
+                if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(*PTIMEOUT * 1000.0)), [this] { return m_bNotified; }) == false) {
+                    Debug::log(LogLevel::CRIT, "Watchdog timeout met: killing main thread!");
                     pthread_kill(m_iMainThreadPID, SIGUSR1);
+                }
             }
 
             if (m_bExitThread)

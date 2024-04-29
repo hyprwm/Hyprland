@@ -834,7 +834,7 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "commit_message": "{}",
     "commit_date": "{}",
     "tag": "{}",
-    "commits": {},
+    "commits": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS);
 

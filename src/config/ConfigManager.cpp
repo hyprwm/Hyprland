@@ -377,6 +377,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:error_limit", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:watchdog_timeout", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("decoration:rounding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
@@ -592,7 +593,7 @@ CConfigManager::CConfigManager() {
     setDefaultAnimationVars();
     resetHLConfig();
 
-    Debug::log(LOG,
+    Debug::log(INFO,
                "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
                "https://wiki.hyprland.org/Configuring/Variables/#debug");
 
@@ -817,6 +818,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     Debug::disableStdout = !std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("debug:enable_stdout_logs"));
     if (Debug::disableStdout && isFirstLaunch)
         Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
+
+    Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty

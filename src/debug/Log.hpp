@@ -27,6 +27,7 @@ namespace Debug {
     inline bool            disableStdout = false;
     inline bool            trace         = false;
     inline bool            shuttingDown  = false;
+    inline int64_t* const* coloredLogs   = nullptr;
 
     inline std::string     rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
 

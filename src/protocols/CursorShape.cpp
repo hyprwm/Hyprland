@@ -48,11 +48,11 @@ CCursorShapeProtocol::CCursorShapeProtocol(const wl_interface* iface, const int&
 }
 
 void CCursorShapeProtocol::onManagerResourceDestroy(wl_resource* res) {
-    std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
+    std::erase_if(m_vManagers, [res](const auto& other) { return other->resource() == res; });
 }
 
 void CCursorShapeProtocol::onDeviceResourceDestroy(wl_resource* res) {
-    m_mDevices.erase(res);
+    std::erase_if(m_vDevices, [res](const auto& other) { return other->resource() == res; });
 }
 
 void CCursorShapeProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -73,14 +73,8 @@ void CCursorShapeProtocol::onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint
 }
 
 void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource) {
-    if (m_mDevices.contains(resource)) {
-        LOGM(ERR, "CursorShape device already exists for {:x}", (uintptr_t)resource);
-        wl_resource_post_error(resource, 0, "Device already exists");
-        return;
-    }
-
     const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_mDevices.emplace(resource, std::make_shared<CWpCursorShapeDeviceV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id)).first->second.get();
+    const auto RESOURCE = m_vDevices.emplace_back(std::make_shared<CWpCursorShapeDeviceV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id));
     RESOURCE->setOnDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });

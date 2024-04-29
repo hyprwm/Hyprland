@@ -16,6 +16,7 @@
 #include "../protocols/TextInputV3.hpp"
 #include "../protocols/PointerConstraints.hpp"
 #include "../protocols/OutputPower.hpp"
+#include "../protocols/XDGActivation.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -33,6 +34,7 @@
 #include "text-input-unstable-v3.hpp"
 #include "pointer-constraints-unstable-v1.hpp"
 #include "wlr-output-power-management-unstable-v1.hpp"
+#include "xdg-activation-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -52,6 +54,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::textInputV3        = std::make_unique<CTextInputV3Protocol>(&zwp_text_input_manager_v3_interface, 1, "TextInputV3");
     PROTO::constraints        = std::make_unique<CPointerConstraintsProtocol>(&zwp_pointer_constraints_v1_interface, 1, "PointerConstraints");
     PROTO::outputPower        = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
+    PROTO::activation         = std::make_unique<CXDGActivationProtocol>(&xdg_activation_v1_interface, 1, "XDGActivation");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

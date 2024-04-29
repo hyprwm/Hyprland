@@ -275,6 +275,7 @@ protocolNew("unstable/pointer-gestures/pointer-gestures-unstable-v1.xml" "pointe
 protocolNew("unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unstable-v1.xml" "keyboard-shortcuts-inhibit-unstable-v1" false)
 protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstable-v3" false)
 protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" false)
+protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

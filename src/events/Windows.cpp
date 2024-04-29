@@ -1015,22 +1015,6 @@ void Events::listener_fullscreenWindow(void* owner, void* data) {
     Debug::log(LOG, "{} fullscreen to {}", PWINDOW, PWINDOW->m_bIsFullscreen);
 }
 
-void Events::listener_activateXDG(wl_listener* listener, void* data) {
-    const auto E = (wlr_xdg_activation_v1_request_activate_event*)data;
-
-    Debug::log(LOG, "Activate request for surface at {:x}", (uintptr_t)E->surface);
-
-    if (!wlr_xdg_surface_try_from_wlr_surface(E->surface))
-        return;
-
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(E->surface);
-
-    if (!PWINDOW || PWINDOW == g_pCompositor->m_pLastWindow.lock() || (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE))
-        return;
-
-    PWINDOW->activate();
-}
-
 void Events::listener_activateX11(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 

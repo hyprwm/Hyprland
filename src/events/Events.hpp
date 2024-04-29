@@ -24,7 +24,6 @@ namespace Events {
 
     // Surface XDG (window)
     LISTENER(newXDGToplevel);
-    LISTENER(activateXDG);
 
     // Window events
     DYNLISTENFUNC(commitWindow);

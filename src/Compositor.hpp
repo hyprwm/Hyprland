@@ -51,7 +51,6 @@ class CCompositor {
     wlr_data_device_manager*         m_sWLRDataDevMgr;
     wlr_drm*                         m_sWRLDRM;
     wlr_drm_lease_v1_manager*        m_sWRLDRMLeaseMgr;
-    wlr_xdg_activation_v1*           m_sWLRXDGActivation;
     wlr_output_layout*               m_sWLROutputLayout;
     wlr_idle_notifier_v1*            m_sWLRIdleNotifier;
     wlr_layer_shell_v1*              m_sWLRLayerShell;
@@ -67,7 +66,6 @@ class CCompositor {
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
     wlr_input_method_manager_v2*     m_sWLRIMEMgr;
-    wlr_xdg_activation_v1*           m_sWLRActivation;
     wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
     wlr_backend*                     m_sWLRHeadlessBackend;
     wlr_session_lock_manager_v1*     m_sWLRSessionLockMgr;

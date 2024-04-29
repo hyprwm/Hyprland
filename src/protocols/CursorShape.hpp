@@ -33,8 +33,8 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     void createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource);
 
     //
-    std::unordered_map<wl_resource*, SP<CWpCursorShapeDeviceV1>> m_mDevices;
-    std::vector<UP<CWpCursorShapeManagerV1>>                     m_vManagers;
+    std::vector<SP<CWpCursorShapeDeviceV1>>  m_vDevices;
+    std::vector<UP<CWpCursorShapeManagerV1>> m_vManagers;
 };
 
 namespace PROTO {

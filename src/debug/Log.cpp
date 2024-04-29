@@ -40,13 +40,32 @@ void Debug::log(LogLevel level, std::string str) {
     if (shuttingDown)
         return;
 
+    std::string coloredStr = str;
     switch (level) {
-        case LOG: str = "[LOG] " + str; break;
-        case WARN: str = "[WARN] " + str; break;
-        case ERR: str = "[ERR] " + str; break;
-        case CRIT: str = "[CRITICAL] " + str; break;
-        case INFO: str = "[INFO] " + str; break;
-        case TRACE: str = "[TRACE] " + str; break;
+        case LOG:
+            str        = "[LOG] " + str;
+            coloredStr = str;
+            break;
+        case WARN:
+            str        = "[WARN] " + str;
+            coloredStr = "\033[1;33m" + str + "\033[0m"; // yellow
+            break;
+        case ERR:
+            str        = "[ERR] " + str;
+            coloredStr = "\033[1;31m" + str + "\033[0m"; // red
+            break;
+        case CRIT:
+            str        = "[CRITICAL] " + str;
+            coloredStr = "\033[1;35m" + str + "\033[0m"; // magenta
+            break;
+        case INFO:
+            str        = "[INFO] " + str;
+            coloredStr = "\033[1;32m" + str + "\033[0m"; // green
+            break;
+        case TRACE:
+            str        = "[TRACE] " + str;
+            coloredStr = "\033[1;34m" + str + "\033[0m"; // blue
+            break;
         default: break;
     }
 
@@ -65,5 +84,5 @@ void Debug::log(LogLevel level, std::string str) {
 
     // log it to the stdout too.
     if (!disableStdout)
-        std::cout << str << "\n";
+        std::cout << ((coloredLogs && !**coloredLogs) ? str : coloredStr) << "\n";
 }

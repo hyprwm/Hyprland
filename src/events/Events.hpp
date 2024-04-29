@@ -111,9 +111,6 @@ namespace Events {
     LISTENER(pinchUpdate);
     LISTENER(pinchEnd);
 
-    // Power
-    LISTENER(powerMgrSetMode);
-
     // IME
     LISTENER(newIME);
     LISTENER(newVirtualKeyboard);

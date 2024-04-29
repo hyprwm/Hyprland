@@ -1904,6 +1904,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         if (pMonitor->m_bEnabled)
             pMonitor->onDisconnect();
 
+        pMonitor->events.modeChanged.emit();
+
         return true;
     }
 
@@ -2300,6 +2302,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                pMonitor->scale, (int)pMonitor->transform, pMonitor->vecPosition, (int)pMonitor->enabled10bit);
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
+
+    pMonitor->events.modeChanged.emit();
 
     Events::listener_change(nullptr, nullptr);
 

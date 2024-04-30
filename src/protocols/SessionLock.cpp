@@ -36,8 +36,10 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 
             if (committed)
                 events.commit.emit();
-            else
+            else {
+                wlr_surface_map(pSurface);
                 events.map.emit();
+            }
             committed = true;
         },
         this, "SessionLockSurface");
@@ -46,6 +48,7 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         &pSurface->events.destroy,
         [this](void* owner, void* data) {
             LOGM(WARN, "SessionLockSurface object remains but surface is being destroyed???");
+            wlr_surface_unmap(pSurface);
             hyprListener_surfaceCommit.removeCallback();
             hyprListener_surfaceDestroy.removeCallback();
             pSurface = nullptr;
@@ -58,6 +61,8 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
+    if (pSurface && pSurface->mapped)
+        wlr_surface_unmap(pSurface);
     hyprListener_surfaceCommit.removeCallback();
     hyprListener_surfaceDestroy.removeCallback();
     events.destroy.emit(); // just in case.

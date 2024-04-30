@@ -107,9 +107,10 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     "currentFormat": "{}",
     "availableModes": [{}]
 }},)#",
-                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""),
-                (m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
-                m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
+                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make ? m->output->make : ""),
+                escapeJSONStrings(m->output->model ? m->output->model : ""), escapeJSONStrings(m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,
+                (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspaceID(),
+                (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
                 escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m.get() == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
@@ -595,7 +596,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, d.name);
+                (uintptr_t)&d, escapeJSONStrings(d.name));
         }
 
         trimTrailingComma(result);
@@ -609,7 +610,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, d.pWlrDevice ? d.pWlrDevice->name : "");
+                (uintptr_t)&d, escapeJSONStrings(d.pWlrDevice ? d.pWlrDevice->name : ""));
         }
 
         trimTrailingComma(result);
@@ -694,8 +695,8 @@ std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) 
     "speed": {:.2f},
     "style": "{}"
 }},)#",
-                               ac.first, ac.second.overridden ? "true" : "false", ac.second.internalBezier, ac.second.internalEnabled ? "true" : "false", ac.second.internalSpeed,
-                               ac.second.internalStyle);
+                               ac.first, ac.second.overridden ? "true" : "false", escapeJSONStrings(ac.second.internalBezier), ac.second.internalEnabled ? "true" : "false",
+                               ac.second.internalSpeed, escapeJSONStrings(ac.second.internalStyle));
         }
 
         ret[ret.length() - 1] = ']';
@@ -707,7 +708,7 @@ std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) 
 {{
     "name": "{}"
 }},)#",
-                               bz.first);
+                               escapeJSONStrings(bz.first));
         }
 
         trimTrailingComma(ret);

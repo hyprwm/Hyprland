@@ -26,7 +26,7 @@ nopch:
 
 clear:
 	rm -rf build
-	rm -f ./protocols/*-protocol.h ./protocols/*-protocol.c
+	rm -f ./protocols/*.h ./protocols/*.c ./protocols/*.cpp ./protocols/*.hpp
 	rm -rf ./subprojects/wlroots-hyprland/build
 
 all:
@@ -99,7 +99,8 @@ installheaders:
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cd subprojects/wlroots-hyprland/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../..
 	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../../..
-	cp ./protocols/*-protocol.h ${PREFIX}/include/hyprland/protocols
+	cp ./protocols/*.h ${PREFIX}/include/hyprland/protocols
+	cp ./protocols/*.hpp ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 

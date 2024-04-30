@@ -267,6 +267,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     }
 
     WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
+    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 }
 
 void CDecorationPositioner::onWindowUnmap(PHLWINDOW pWindow) {

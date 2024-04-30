@@ -4,13 +4,11 @@
 #include <memory>
 #include "Subsurface.hpp"
 
-struct SLayerSurface;
-
 class CPopup {
   public:
     // dummy head nodes
     CPopup(PHLWINDOW pOwner);
-    CPopup(SLayerSurface* pOwner);
+    CPopup(PHLLS pOwner);
 
     // real nodes
     CPopup(wlr_xdg_popup* popup, CPopup* pOwner);
@@ -35,8 +33,8 @@ class CPopup {
 
   private:
     // T1 owners, each popup has to have one of these
-    PHLWINDOWREF   m_pWindowOwner;
-    SLayerSurface* m_pLayerOwner = nullptr;
+    PHLWINDOWREF m_pWindowOwner;
+    PHLLS        m_pLayerOwner;
 
     // T2 owners
     CPopup*        m_pParent = nullptr;

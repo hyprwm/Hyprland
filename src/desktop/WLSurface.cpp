@@ -14,7 +14,7 @@ void CWLSurface::assign(wlr_surface* pSurface, PHLWINDOW pOwner) {
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, SLayerSurface* pOwner) {
+void CWLSurface::assign(wlr_surface* pSurface, PHLLS pOwner) {
     m_pLayerOwner = pOwner;
     m_pWLRSurface = pSurface;
     init();
@@ -113,7 +113,7 @@ void CWLSurface::destroy() {
     hyprListener_commit.removeCallback();
     m_pWLRSurface->data = nullptr;
     m_pWindowOwner.reset();
-    m_pLayerOwner      = nullptr;
+    m_pLayerOwner.reset();
     m_pPopupOwner      = nullptr;
     m_pSubsurfaceOwner = nullptr;
     m_bInert           = true;
@@ -154,8 +154,8 @@ PHLWINDOW CWLSurface::getWindow() {
     return m_pWindowOwner.lock();
 }
 
-SLayerSurface* CWLSurface::getLayer() {
-    return m_pLayerOwner;
+PHLLS CWLSurface::getLayer() {
+    return m_pLayerOwner.lock();
 }
 
 CPopup* CWLSurface::getPopup() {
@@ -167,7 +167,7 @@ CSubsurface* CWLSurface::getSubsurface() {
 }
 
 bool CWLSurface::desktopComponent() {
-    return m_pLayerOwner || !m_pWindowOwner.expired() || m_pSubsurfaceOwner || m_pPopupOwner;
+    return !m_pLayerOwner.expired() || !m_pWindowOwner.expired() || m_pSubsurfaceOwner || m_pPopupOwner;
 }
 
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
@@ -176,8 +176,8 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
 
     if (!m_pWindowOwner.expired())
         return m_pWindowOwner.lock()->getWindowMainSurfaceBox();
-    if (m_pLayerOwner)
-        return m_pLayerOwner->geometry;
+    if (!m_pLayerOwner.expired())
+        return m_pLayerOwner.lock()->geometry;
     if (m_pPopupOwner)
         return CBox{m_pPopupOwner->coordsGlobal(), m_pPopupOwner->size()};
     if (m_pSubsurfaceOwner)

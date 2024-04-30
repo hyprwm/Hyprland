@@ -6,6 +6,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/LayerSurface.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -662,7 +663,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
-void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
+void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot && !popups) {
@@ -672,7 +673,7 @@ void CHyprRenderer::renderLayer(SLayerSurface* pLayer, CMonitor* pMonitor, times
 
     if (pLayer->fadingOut) {
         if (!popups)
-            g_pHyprOpenGL->renderSnapshot(&pLayer);
+            g_pHyprOpenGL->renderSnapshot(pLayer);
         return;
     }
 
@@ -786,16 +787,16 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         g_pHyprOpenGL->blend(true);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
 
         g_pHyprOpenGL->m_RenderData.renderModif = {};
@@ -826,10 +827,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         g_pHyprOpenGL->blend(true);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls.get(), pMonitor, time);
+            renderLayer(ls, pMonitor, time);
         }
 
         g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
@@ -896,7 +897,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     // Render surfaces above windows for monitor
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls.get(), pMonitor, time);
+        renderLayer(ls, pMonitor, time);
     }
 
     // Render IME popups
@@ -905,12 +906,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls.get(), pMonitor, time);
+        renderLayer(ls, pMonitor, time);
     }
 
     for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
         for (auto& ls : lsl) {
-            renderLayer(ls.get(), pMonitor, time, true);
+            renderLayer(ls, pMonitor, time, true);
         }
     }
 
@@ -1595,7 +1596,7 @@ static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusi
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<std::unique_ptr<SLayerSurface>>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
+void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLLS>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
     CBox full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {

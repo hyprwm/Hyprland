@@ -14,7 +14,7 @@ void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWIN
     m_bDummy = false;
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pLayer        = pLayer;

@@ -17,10 +17,6 @@ namespace Events {
 
     // Layer events
     LISTENER(newLayerSurface);
-    DYNLISTENFUNC(destroyLayerSurface);
-    DYNLISTENFUNC(mapLayerSurface);
-    DYNLISTENFUNC(unmapLayerSurface);
-    DYNLISTENFUNC(commitLayerSurface);
 
     // Surface XDG (window)
     LISTENER(newXDGToplevel);

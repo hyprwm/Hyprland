@@ -4,6 +4,7 @@
 #include "macros.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 
 int wlTick(std::shared_ptr<CEventLoopTimer> self, void* data) {
@@ -82,7 +83,7 @@ void CAnimationManager::tick() {
         // window stuff
         PHLWINDOW    PWINDOW            = av->m_pWindow.lock();
         PHLWORKSPACE PWORKSPACE         = av->m_pWorkspace.lock();
-        const auto   PLAYER             = (SLayerSurface*)av->m_pLayer;
+        PHLLS        PLAYER             = av->m_pLayer.lock();
         CMonitor*    PMONITOR           = nullptr;
         bool         animationsDisabled = animGlobalDisabled;
 
@@ -141,7 +142,7 @@ void CAnimationManager::tick() {
             expandBox.expand(5);
             g_pHyprRenderer->damageBox(&expandBox);
 
-            PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition.goal() + PLAYER->realSize.goal() / 2.F);
             if (!PMONITOR)
                 continue;
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;

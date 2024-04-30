@@ -15,6 +15,7 @@
 #include "helpers/VarList.hpp"
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
+#include "desktop/LayerSurface.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1105,7 +1106,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
         SURF->constraint()->activate();
 }
 
-wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, SLayerSurface** ppLayerSurfaceFound) {
+wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
         for (auto& ls : lsl | std::views::reverse) {
             if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
@@ -1117,7 +1118,7 @@ wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonito
                 if (!pixman_region32_not_empty(&SURFACEAT->input_region))
                     continue;
 
-                *ppLayerSurfaceFound = ls.get();
+                *ppLayerSurfaceFound = ls;
                 return SURFACEAT;
             }
         }
@@ -1126,8 +1127,7 @@ wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonito
     return nullptr;
 }
 
-wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<std::unique_ptr<SLayerSurface>>* layerSurfaces, Vector2D* sCoords,
-                                               SLayerSurface** ppLayerSurfaceFound) {
+wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLS>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto& ls : *layerSurfaces | std::views::reverse) {
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
@@ -1138,7 +1138,7 @@ wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<
             if (!pixman_region32_not_empty(&SURFACEAT->input_region))
                 continue;
 
-            *ppLayerSurfaceFound = ls.get();
+            *ppLayerSurfaceFound = ls;
             return SURFACEAT;
         }
     }
@@ -1395,34 +1395,12 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         }
     }
 
-    for (auto& ls : m_vSurfacesFadingOut) {
+    for (auto& lsr : m_vSurfacesFadingOut) {
 
-        // sometimes somehow fucking happens wtf
-        bool exists = false;
-        for (auto& m : m_vMonitors) {
-            for (auto& lsl : m->m_aLayerSurfaceLayers) {
-                for (auto& lsp : lsl) {
-                    if (lsp.get() == ls) {
-                        exists = true;
-                        break;
-                    }
-                }
+        auto ls = lsr.lock();
 
-                if (exists)
-                    break;
-            }
-
-            if (exists)
-                break;
-        }
-
-        if (!exists) {
-            std::erase(m_vSurfacesFadingOut, ls);
-
-            Debug::log(LOG, "Fading out a non-existent LS??");
-
-            return;
-        }
+        if (!ls)
+            continue;
 
         if (ls->monitorID != monid)
             continue;
@@ -1434,13 +1412,13 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         if (ls->fadingOut && ls->readyToDelete && ls->isFadedOut()) {
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
-                    if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; }) != lsl.end()) {
-                        std::erase_if(lsl, [&](std::unique_ptr<SLayerSurface>& other) { return other.get() == ls; });
+                    if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](auto& other) { return other == ls; }) != lsl.end()) {
+                        std::erase_if(lsl, [&](auto& other) { return other == ls; });
                     }
                 }
             }
 
-            std::erase(m_vSurfacesFadingOut, ls);
+            std::erase_if(m_vSurfacesFadingOut, [ls](const auto& el) { return el.lock() == ls; });
 
             Debug::log(LOG, "Cleanup: destroyed a layersurface");
 
@@ -1450,8 +1428,8 @@ void CCompositor::cleanupFadingOut(const int& monid) {
     }
 }
 
-void CCompositor::addToFadingOutSafe(SLayerSurface* pLS) {
-    const auto FOUND = std::find_if(m_vSurfacesFadingOut.begin(), m_vSurfacesFadingOut.end(), [&](SLayerSurface* other) { return other == pLS; });
+void CCompositor::addToFadingOutSafe(PHLLS pLS) {
+    const auto FOUND = std::find_if(m_vSurfacesFadingOut.begin(), m_vSurfacesFadingOut.end(), [&](auto& other) { return other.lock() == pLS; });
 
     if (FOUND != m_vSurfacesFadingOut.end())
         return; // if it's already added, don't add it.
@@ -2460,12 +2438,12 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
         setActiveMonitor(PMONITORNEW);
 }
 
-SLayerSurface* CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
+PHLLS CCompositor::getLayerSurfaceFromWlr(wlr_layer_surface_v1* pLS) {
     for (auto& m : m_vMonitors) {
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (ls->layerSurface == pLS)
-                    return ls.get();
+                    return ls;
             }
         }
     }
@@ -2479,14 +2457,14 @@ void CCompositor::closeWindow(PHLWINDOW pWindow) {
     }
 }
 
-SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
+PHLLS CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
     std::pair<wlr_surface*, bool> result = {pSurface, false};
 
     for (auto& m : m_vMonitors) {
         for (auto& lsl : m->m_aLayerSurfaceLayers) {
             for (auto& ls : lsl) {
                 if (ls->layerSurface && ls->layerSurface->surface == pSurface)
-                    return ls.get();
+                    return ls;
 
                 static auto iter = [](wlr_surface* surf, int x, int y, void* data) -> void {
                     if (surf == ((std::pair<wlr_surface*, bool>*)data)->first) {
@@ -2501,7 +2479,7 @@ SLayerSurface* CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
                 wlr_surface_for_each_surface(ls->layerSurface->surface, iter, &result);
 
                 if (result.second)
-                    return ls.get();
+                    return ls;
             }
         }
     }

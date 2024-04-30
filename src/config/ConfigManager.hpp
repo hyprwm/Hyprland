@@ -17,6 +17,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../helpers/VarList.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/LayerSurface.hpp"
 
 #include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
@@ -27,8 +28,6 @@
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 #define HANDLE void*
-
-class CWindow;
 
 struct SWorkspaceRule {
     std::string                        monitor         = "";
@@ -114,7 +113,7 @@ class CConfigManager {
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
 
     std::vector<SWindowRule>                                        getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
-    std::vector<SLayerRule>                                         getMatchingRules(SLayerSurface*);
+    std::vector<SLayerRule>                                         getMatchingRules(PHLLS);
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 

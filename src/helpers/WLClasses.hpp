@@ -2,76 +2,12 @@
 
 #include "../events/Events.hpp"
 #include "../defines.hpp"
-#include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "../desktop/Window.hpp"
 #include "../desktop/Subsurface.hpp"
 #include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "Region.hpp"
-
-struct SLayerRule {
-    std::string targetNamespace = "";
-    std::string rule            = "";
-};
-
-struct SLayerSurface {
-    SLayerSurface();
-    ~SLayerSurface();
-
-    void                        applyRules();
-    void                        startAnimation(bool in, bool instant = false);
-    bool                        isFadedOut();
-    int                         popupsCount();
-
-    CAnimatedVariable<Vector2D> realPosition;
-    CAnimatedVariable<Vector2D> realSize;
-
-    wlr_layer_surface_v1*       layerSurface;
-    wl_list                     link;
-
-    bool                        keyboardExclusive = false;
-
-    CWLSurface                  surface;
-
-    // desktop components
-    std::unique_ptr<CPopup> popupHead;
-
-    DYNLISTENER(destroyLayerSurface);
-    DYNLISTENER(mapLayerSurface);
-    DYNLISTENER(unmapLayerSurface);
-    DYNLISTENER(commitLayerSurface);
-
-    CBox                       geometry = {0, 0, 0, 0};
-    Vector2D                   position;
-    zwlr_layer_shell_v1_layer  layer;
-
-    bool                       mapped = false;
-
-    int                        monitorID = -1;
-
-    std::string                szNamespace = "";
-
-    CAnimatedVariable<float>   alpha;
-    bool                       fadingOut     = false;
-    bool                       readyToDelete = false;
-    bool                       noProcess     = false;
-    bool                       noAnimations  = false;
-
-    bool                       forceBlur        = false;
-    bool                       forceBlurPopups  = false;
-    int                        xray             = -1;
-    bool                       ignoreAlpha      = false;
-    float                      ignoreAlphaValue = 0.f;
-    bool                       dimAround        = false;
-
-    std::optional<std::string> animationStyle;
-
-    // For the list lookup
-    bool operator==(const SLayerSurface& rhs) const {
-        return layerSurface == rhs.layerSurface && monitorID == rhs.monitorID;
-    }
-};
 
 class CMonitor;
 

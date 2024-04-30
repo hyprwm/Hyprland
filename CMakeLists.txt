@@ -276,6 +276,7 @@ protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstabl
 protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" false)
 protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
 protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
+protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
 
 # tools
 add_subdirectory(hyprctl)

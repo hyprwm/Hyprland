@@ -193,9 +193,3 @@ void Events::listener_newIME(wl_listener* listener, void* data) {
 
     g_pInputManager->m_sIMERelay.onNewIME((wlr_input_method_v2*)data);
 }
-
-void Events::listener_newSessionLock(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New session lock!");
-
-    g_pSessionLockManager->onNewSessionLock((wlr_session_lock_v1*)data);
-}

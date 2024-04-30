@@ -9,6 +9,7 @@
 #include "../../protocols/RelativePointer.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/IdleNotify.hpp"
+#include "../../protocols/SessionLock.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -236,7 +237,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (!PSLS)
             return;
 
-        foundSurface = PSLS->pWlrLockSurface->surface;
+        foundSurface = PSLS->surface.lock()->surface();
         surfacePos   = PMONITOR->vecPosition;
     }
 

@@ -18,6 +18,7 @@
 #include "../protocols/OutputPower.hpp"
 #include "../protocols/XDGActivation.hpp"
 #include "../protocols/IdleNotify.hpp"
+#include "../protocols/SessionLock.hpp"
 
 #include "tearing-control-v1.hpp"
 #include "fractional-scale-v1.hpp"
@@ -37,6 +38,7 @@
 #include "wlr-output-power-management-unstable-v1.hpp"
 #include "xdg-activation-v1.hpp"
 #include "ext-idle-notify-v1.hpp"
+#include "ext-session-lock-v1.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -58,6 +60,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::outputPower        = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
     PROTO::activation         = std::make_unique<CXDGActivationProtocol>(&xdg_activation_v1_interface, 1, "XDGActivation");
     PROTO::idle               = std::make_unique<CIdleNotifyProtocol>(&ext_idle_notifier_v1_interface, 1, "IdleNotify");
+    PROTO::sessionLock        = std::make_unique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "SessionLock");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

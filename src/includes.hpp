@@ -90,7 +90,6 @@ extern "C" {
 #include <wlr/backend/headless.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/wayland.h>
-#include <wlr/types/wlr_session_lock_v1.h>
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/util/box.h>
 #include <wlr/util/transform.h>

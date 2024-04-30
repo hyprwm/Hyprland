@@ -67,7 +67,6 @@ class CCompositor {
     wlr_input_method_manager_v2*     m_sWLRIMEMgr;
     wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
     wlr_backend*                     m_sWLRHeadlessBackend;
-    wlr_session_lock_manager_v1*     m_sWLRSessionLockMgr;
     // ------------------------------------------------- //
 
     std::string                               m_szHyprTempDataRoot = "";

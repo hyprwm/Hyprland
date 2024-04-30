@@ -358,6 +358,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:render_titles", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:scrolling", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
+    m_pConfig->addConfigValue("group:groupbar:stacked", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("debug:int", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});

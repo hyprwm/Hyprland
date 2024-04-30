@@ -7,6 +7,7 @@
 #include "../managers/CursorManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../protocols/SessionLock.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -739,12 +740,12 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition.x, pMonitor->vecPosition.y};
 
     renderdata.blur     = false;
-    renderdata.surface  = pSurface->pWlrLockSurface->surface;
+    renderdata.surface  = pSurface->surface.lock()->surface();
     renderdata.decorate = false;
     renderdata.w        = pMonitor->vecSize.x;
     renderdata.h        = pMonitor->vecSize.y;
 
-    wlr_surface_for_each_surface(pSurface->pWlrLockSurface->surface, renderSurface, &renderdata);
+    renderSurface(renderdata.surface, 0, 0, &renderdata);
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
@@ -763,7 +764,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     if (!pMonitor)
         return;
 
-    if (!g_pCompositor->m_sSeat.exclusiveClient && g_pSessionLockManager->isSessionLocked()) {
+    if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
         // locked with no exclusive, draw only red
         CBox boxe = {0, 0, INT16_MAX, INT16_MAX};
         g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));

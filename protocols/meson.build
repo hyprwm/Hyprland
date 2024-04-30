@@ -53,6 +53,7 @@ new_protocols = [
   [wl_protocol_dir, 'unstable/pointer-constraints/pointer-constraints-unstable-v1.xml'],
   [wl_protocol_dir, 'staging/xdg-activation/xdg-activation-v1.xml'],
   [wl_protocol_dir, 'staging/ext-idle-notify/ext-idle-notify-v1.xml'],
+  [wl_protocol_dir, 'staging/ext-session-lock/ext-session-lock-v1.xml'],
 ]
 
 wl_protos_src = []

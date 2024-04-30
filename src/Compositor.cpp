@@ -266,8 +266,6 @@ void CCompositor::initServer() {
 
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
-    m_sWLRSessionLockMgr = wlr_session_lock_manager_v1_create(m_sWLDisplay);
-
     if (!m_sWLRHeadlessBackend) {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
@@ -315,7 +313,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newVirtualKeyboard, m_sWLRVKeyboardMgr, "VKeyboardMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
     addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
-    addWLSignal(&m_sWLRSessionLockMgr->events.new_lock, &Events::listen_newSessionLock, m_sWLRSessionLockMgr, "SessionLockMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -359,7 +356,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newVirtualKeyboard);
     removeWLSignal(&Events::listen_RendererDestroy);
     removeWLSignal(&Events::listen_newIME);
-    removeWLSignal(&Events::listen_newSessionLock);
 
     if (m_sWRLDRMLeaseMgr)
         removeWLSignal(&Events::listen_leaseRequest);

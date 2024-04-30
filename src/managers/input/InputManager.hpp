@@ -38,10 +38,10 @@ enum eBorderIconDirection {
 };
 
 struct STouchData {
-    PHLWINDOWREF   touchFocusWindow;
-    SLayerSurface* touchFocusLS      = nullptr;
-    wlr_surface*   touchFocusSurface = nullptr;
-    Vector2D       touchSurfaceOrigin;
+    PHLWINDOWREF touchFocusWindow;
+    PHLLSREF     touchFocusLS;
+    wlr_surface* touchFocusSurface = nullptr;
+    Vector2D     touchSurfaceOrigin;
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
@@ -138,7 +138,7 @@ class CInputManager {
     std::list<SSwitchDevice> m_lSwitches;
 
     // Exclusive layer surfaces
-    std::deque<SLayerSurface*> m_dExclusiveLSes;
+    std::deque<PHLLSREF> m_dExclusiveLSes;
 
     // constraints
     std::vector<std::weak_ptr<CPointerConstraint>> m_vConstraints;
@@ -224,9 +224,9 @@ class CInputManager {
     void               applyConfigToKeyboard(SKeyboard*);
 
     // this will be set after a refocus()
-    wlr_surface*   m_pFoundSurfaceToFocus = nullptr;
-    SLayerSurface* m_pFoundLSToFocus      = nullptr;
-    PHLWINDOWREF   m_pFoundWindowToFocus;
+    wlr_surface* m_pFoundSurfaceToFocus = nullptr;
+    PHLLSREF     m_pFoundLSToFocus;
+    PHLWINDOWREF m_pFoundWindowToFocus;
 
     // for holding focus on buttons held
     bool m_bFocusHeldByButtons   = false;

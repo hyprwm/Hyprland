@@ -4,8 +4,6 @@
 #include "../helpers/Region.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CWindow;
-struct SLayerSurface;
 class CSubsurface;
 class CPopup;
 class CPointerConstraint;
@@ -18,7 +16,7 @@ class CWLSurface {
     // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
     void assign(wlr_surface* pSurface);
     void assign(wlr_surface* pSurface, PHLWINDOW pOwner);
-    void assign(wlr_surface* pSurface, SLayerSurface* pOwner);
+    void assign(wlr_surface* pSurface, PHLLS pOwner);
     void assign(wlr_surface* pSurface, CSubsurface* pOwner);
     void assign(wlr_surface* pSurface, CPopup* pOwner);
     void unassign();
@@ -37,10 +35,10 @@ class CWLSurface {
     void         onCommit();
 
     // getters for owners.
-    PHLWINDOW      getWindow();
-    SLayerSurface* getLayer();
-    CPopup*        getPopup();
-    CSubsurface*   getSubsurface();
+    PHLWINDOW    getWindow();
+    PHLLS        getLayer();
+    CPopup*      getPopup();
+    CSubsurface* getSubsurface();
 
     // desktop components misc utils
     std::optional<CBox>                 getSurfaceBoxGlobal();
@@ -90,14 +88,14 @@ class CWLSurface {
     } events;
 
   private:
-    bool           m_bInert = true;
+    bool         m_bInert = true;
 
-    wlr_surface*   m_pWLRSurface = nullptr;
+    wlr_surface* m_pWLRSurface = nullptr;
 
-    PHLWINDOWREF   m_pWindowOwner;
-    SLayerSurface* m_pLayerOwner      = nullptr;
-    CPopup*        m_pPopupOwner      = nullptr;
-    CSubsurface*   m_pSubsurfaceOwner = nullptr;
+    PHLWINDOWREF m_pWindowOwner;
+    PHLLSREF     m_pLayerOwner;
+    CPopup*      m_pPopupOwner      = nullptr;
+    CSubsurface* m_pSubsurfaceOwner = nullptr;
 
     //
     std::weak_ptr<CPointerConstraint> m_pConstraint;

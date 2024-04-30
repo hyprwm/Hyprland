@@ -6,7 +6,7 @@ CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
     initAllSignals();
 }
 
-CPopup::CPopup(SLayerSurface* pOwner) : m_pLayerOwner(pOwner) {
+CPopup::CPopup(PHLLS pOwner) : m_pLayerOwner(pOwner) {
     initAllSignals();
 }
 

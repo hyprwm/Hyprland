@@ -5,6 +5,7 @@
 #include "Shaders.hpp"
 #include <random>
 #include "../config/ConfigValue.hpp"
+#include "../desktop/LayerSurface.hpp"
 
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
@@ -1453,7 +1454,7 @@ bool CHyprOpenGLImpl::preBlurQueued() {
     return !(!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR || !m_RenderData.pCurrentMonData->blurFBShouldRender);
 }
 
-bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(SLayerSurface* pLayer, PHLWINDOW pWindow) {
+bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
 
@@ -1781,7 +1782,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
     g_pHyprRenderer->m_bRenderingSnapshot = false;
 }
 
-void CHyprOpenGLImpl::makeLayerSnapshot(SLayerSurface* pLayer) {
+void CHyprOpenGLImpl::makeLayerSnapshot(PHLLS pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
 
@@ -1864,38 +1865,35 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
     m_bEndFrame = false;
 }
 
-void CHyprOpenGLImpl::renderSnapshot(SLayerSurface** pLayer) {
+void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
     RASSERT(m_RenderData.pMonitor, "Tried to render snapshot rect without begin()!");
-    const auto PLAYER = *pLayer;
 
-    auto       it = m_mLayerFramebuffers.begin();
-    for (; it != m_mLayerFramebuffers.end(); it++) {
-        if (it->first == PLAYER) {
-            break;
-        }
-    }
-
-    if (it == m_mLayerFramebuffers.end() || !it->second.m_cTex.m_iTexID)
+    if (!m_mLayerFramebuffers.contains(pLayer))
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PLAYER->monitorID);
+    const auto FBDATA = &m_mLayerFramebuffers.at(pLayer);
+
+    if (!FBDATA->m_cTex.m_iTexID)
+        return;
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
 
     CBox       layerBox;
     // some mafs to figure out the correct box
     // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->scale * PLAYER->realSize.value().x / (PLAYER->geometry.w * PMONITOR->scale)),
-                                (PMONITOR->scale * PLAYER->realSize.value().y / (PLAYER->geometry.h * PMONITOR->scale)));
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * pLayer->realSize.value().x / (pLayer->geometry.w * PMONITOR->scale)),
+                                (PMONITOR->scale * pLayer->realSize.value().y / (pLayer->geometry.h * PMONITOR->scale)));
 
     layerBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
     layerBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
-    layerBox.x = ((PLAYER->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((PLAYER->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
-    layerBox.y = ((PLAYER->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((PLAYER->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
+    layerBox.x = ((pLayer->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
+    layerBox.y = ((pLayer->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
 
     CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(it->second.m_cTex, &layerBox, PLAYER->alpha.value(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(FBDATA->m_cTex, &layerBox, pLayer->alpha.value(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }

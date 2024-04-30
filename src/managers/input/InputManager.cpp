@@ -120,13 +120,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
 
     m_pFoundSurfaceToFocus = nullptr;
-    m_pFoundLSToFocus      = nullptr;
+    m_pFoundLSToFocus.reset();
     m_pFoundWindowToFocus.reset();
-    wlr_surface*   foundSurface = nullptr;
-    Vector2D       surfaceCoords;
-    Vector2D       surfacePos = Vector2D(-1337, -1337);
-    PHLWINDOW      pFoundWindow;
-    SLayerSurface* pFoundLayerSurface = nullptr;
+    wlr_surface* foundSurface = nullptr;
+    Vector2D     surfaceCoords;
+    Vector2D     surfacePos = Vector2D(-1337, -1337);
+    PHLWINDOW    pFoundWindow;
+    PHLLS        pFoundLayerSurface;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;

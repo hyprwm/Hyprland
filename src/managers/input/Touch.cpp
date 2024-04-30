@@ -37,7 +37,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     if (m_sActiveSwipe.pWorkspaceBegin) {
         return;
         // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (!m_pFoundLSToFocus || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
+    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus.lock()->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
         const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
@@ -74,8 +74,8 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow.lock(), local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
         }
-    } else if (m_sTouchData.touchFocusLS) {
-        local = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_sTouchData.touchFocusLS->geometry.x, m_sTouchData.touchFocusLS->geometry.y);
+    } else if (!m_sTouchData.touchFocusLS.expired()) {
+        local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusLS.lock()->geometry.pos();
 
         m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else {
@@ -139,8 +139,8 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
 
         wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id, local.x, local.y);
         // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
-    } else if (m_sTouchData.touchFocusLS) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS->monitorID);
+    } else if (!m_sTouchData.touchFocusLS.expired()) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS.lock()->monitorID);
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
 

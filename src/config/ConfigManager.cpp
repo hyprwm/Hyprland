@@ -1177,7 +1177,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     return returns;
 }
 
-std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
+std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
     std::vector<SLayerRule> returns;
 
     if (!pLS->layerSurface || pLS->fadingOut)
@@ -1185,7 +1185,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
 
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
+            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr.targetNamespace)
                 continue;
         } else {
             std::regex NSCHECK(lr.targetNamespace);

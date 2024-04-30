@@ -154,10 +154,10 @@ class CHyprOpenGLImpl {
 
     void                  makeWindowSnapshot(PHLWINDOW);
     void                  makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
-    void                  makeLayerSnapshot(SLayerSurface*);
+    void                  makeLayerSnapshot(PHLLS);
     void                  renderSnapshot(PHLWINDOW);
-    void                  renderSnapshot(SLayerSurface**);
-    bool                  shouldUseNewBlurOptimizations(SLayerSurface* pLayer, PHLWINDOW pWindow);
+    void                  renderSnapshot(PHLLS);
+    bool                  shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
     void                  clear(const CColor&);
     void                  clearWithTex();
@@ -193,11 +193,11 @@ class CHyprOpenGLImpl {
 
     bool                  m_bReloadScreenShader = true; // at launch it can be set
 
-    PHLWINDOWREF          m_pCurrentWindow;          // hack to get the current rendered window
-    SLayerSurface*        m_pCurrentLayer = nullptr; // hack to get the current rendered layer
+    PHLWINDOWREF          m_pCurrentWindow; // hack to get the current rendered window
+    PHLLS                 m_pCurrentLayer;  // hack to get the current rendered layer
 
     std::map<PHLWINDOWREF, CFramebuffer, std::owner_less<PHLWINDOWREF>> m_mWindowFramebuffers;
-    std::unordered_map<SLayerSurface*, CFramebuffer>                    m_mLayerFramebuffers;
+    std::map<PHLLSREF, CFramebuffer, std::owner_less<PHLLSREF>>         m_mLayerFramebuffers;
     std::unordered_map<CMonitor*, SMonitorRenderData>                   m_mMonitorRenderResources;
     std::unordered_map<CMonitor*, CFramebuffer>                         m_mMonitorBGFBs;
 

@@ -165,9 +165,9 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
         return;
     }
 
-    locked = true;
-
     events.newLock.emit(RESOURCE);
+
+    locked = true;
 }
 
 void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output) {

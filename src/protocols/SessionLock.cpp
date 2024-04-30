@@ -22,7 +22,7 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
     hyprListener_surfaceCommit.initCallback(
         &pSurface->events.commit,
         [this](void* owner, void* data) {
-            if (!pSurface->current.buffer) {
+            if (pSurface->pending.buffer_width <= 0 || pSurface->pending.buffer_height <= 0) {
                 LOGM(ERR, "SessionLock attached a null buffer");
                 wl_resource_post_error(resource->resource(), EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
                 return;

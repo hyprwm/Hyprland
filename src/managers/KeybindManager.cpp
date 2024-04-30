@@ -1833,7 +1833,8 @@ void CKeybindManager::focusWindow(std::string regexp) {
         return;
     }
 
-    if (g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_pWorkspace) {
+    if (g_pCompositor->m_pLastMonitor && g_pCompositor->m_pLastMonitor->activeWorkspace != PWINDOW->m_pWorkspace &&
+        g_pCompositor->m_pLastMonitor->activeSpecialWorkspace != PWINDOW->m_pWorkspace) {
         Debug::log(LOG, "Fake executing workspace to move focus");
         changeworkspace(PWORKSPACE->getConfigName());
     }

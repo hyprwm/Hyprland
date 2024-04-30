@@ -125,7 +125,7 @@ class BufFileWriter {
         if (pid == 0) {
             close(pipefd[0]);
             dup2(pipefd[1], STDOUT_FILENO);
-            char const* const argv[] = {"/bin/sh", "-c", cmd};
+            char const* const argv[] = {"/bin/sh", "-c", cmd, NULL};
             execv("/bin/sh", (char* const*)argv);
 
             BufFileWriter<64> failmsg(pipefd[1]);

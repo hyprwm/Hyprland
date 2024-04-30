@@ -148,7 +148,6 @@ in
       ${lib.optionalString wrapRuntimeDeps ''
         wrapProgram $out/bin/Hyprland \
           --suffix PATH : ${lib.makeBinPath [
-          stdenv.cc
           binutils
           pciutils
           pkgconf

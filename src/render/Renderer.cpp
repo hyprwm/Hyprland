@@ -745,7 +745,7 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     renderdata.w        = pMonitor->vecSize.x;
     renderdata.h        = pMonitor->vecSize.y;
 
-    renderSurface(renderdata.surface, 0, 0, &renderdata);
+    wlr_surface_for_each_surface(pSurface->surface.lock()->surface(), renderSurface, &renderdata);
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {

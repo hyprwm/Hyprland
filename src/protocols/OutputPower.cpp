@@ -64,16 +64,15 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(wlr_output_from_resource(output));
 
     if (!PMONITOR) {
-        wl_resource_post_error(pMgr->resource(), 0, "Invalid output resource");
+        pMgr->error(0, "Invalid output resource");
         return;
     }
 
-    const auto CLIENT = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE =
-        m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(std::make_shared<CZwlrOutputPowerV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), PMONITOR)).get();
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(std::make_shared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), PMONITOR)).get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vOutputPowers.pop_back();
         return;
     }

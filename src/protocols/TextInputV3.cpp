@@ -115,11 +115,11 @@ void CTextInputV3Protocol::destroyTextInput(CTextInputV3* input) {
 }
 
 void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t id, wl_resource* seat) {
-    const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_vTextInputs.emplace_back(std::make_shared<CTextInputV3>(std::make_shared<CZwpTextInputV3>(CLIENT, wl_resource_get_version(pMgr->resource()), id)));
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vTextInputs.emplace_back(std::make_shared<CTextInputV3>(std::make_shared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vTextInputs.pop_back();
         LOGM(ERR, "Failed to create a tiv3 resource");
         return;

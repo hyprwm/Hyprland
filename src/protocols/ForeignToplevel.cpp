@@ -44,12 +44,12 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
     if (finished)
         return;
 
-    const auto NEWHANDLE = PROTO::foreignToplevel->m_vHandles.emplace_back(std::make_shared<CForeignToplevelHandle>(
-        std::make_shared<CExtForeignToplevelHandleV1>(wl_resource_get_client(resource->resource()), wl_resource_get_version(resource->resource()), 0), pWindow));
+    const auto NEWHANDLE = PROTO::foreignToplevel->m_vHandles.emplace_back(
+        std::make_shared<CForeignToplevelHandle>(std::make_shared<CExtForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
 
     if (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
-        wl_resource_post_no_memory(resource->resource());
+        resource->noMemory();
         PROTO::foreignToplevel->m_vHandles.pop_back();
         return;
     }

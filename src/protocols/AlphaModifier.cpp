@@ -24,7 +24,7 @@ CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surf
     resource->setSetMultiplier([this](CWpAlphaModifierSurfaceV1* mod, uint32_t alpha) {
         if (!pSurface) {
             LOGM(ERR, "Resource {:x} tried to setMultiplier but surface is gone", (uintptr_t)mod->resource());
-            wl_resource_post_error(mod->resource(), WP_ALPHA_MODIFIER_SURFACE_V1_ERROR_NO_SURFACE, "Surface is gone");
+            mod->error(WP_ALPHA_MODIFIER_SURFACE_V1_ERROR_NO_SURFACE, "Surface is gone");
             return;
         }
 
@@ -107,18 +107,16 @@ void CAlphaModifierProtocol::destroyModifier(CAlphaModifier* modifier) {
 void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, wlr_surface* surface) {
     if (m_mAlphaModifiers.contains(surface)) {
         LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface);
-        wl_resource_post_error(pMgr->resource(), WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
+        pMgr->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
         return;
     }
 
-    const auto CLIENT = wl_resource_get_client(pMgr->resource());
     const auto RESOURCE =
-        m_mAlphaModifiers
-            .emplace(surface, std::make_unique<CAlphaModifier>(std::make_shared<CWpAlphaModifierSurfaceV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), surface))
+        m_mAlphaModifiers.emplace(surface, std::make_unique<CAlphaModifier>(std::make_shared<CWpAlphaModifierSurfaceV1>(pMgr->client(), pMgr->version(), id), surface))
             .first->second.get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_mAlphaModifiers.erase(surface);
         return;
     }

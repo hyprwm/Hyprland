@@ -216,7 +216,7 @@ void CPointerConstraintsProtocol::destroyPointerConstraint(CPointerConstraint* h
 void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr) {
     if (!constraint->good()) {
         LOGM(ERR, "Couldn't create constraint??");
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vConstraints.pop_back();
         return;
     }
@@ -232,7 +232,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     if (DUPES > 1) {
         LOGM(ERR, "Constraint for surface duped");
-        wl_resource_post_error(pMgr->resource(), ZWP_POINTER_CONSTRAINTS_V1_ERROR_ALREADY_CONSTRAINED, "Surface already confined");
+        pMgr->error(ZWP_POINTER_CONSTRAINTS_V1_ERROR_ALREADY_CONSTRAINED, "Surface already confined");
         m_vConstraints.pop_back();
         return;
     }
@@ -244,18 +244,18 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
 void CPointerConstraintsProtocol::onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,
                                                 zwpPointerConstraintsV1Lifetime lifetime) {
-    const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_vConstraints.emplace_back(std::make_shared<CPointerConstraint>(
-        std::make_shared<CZwpLockedPointerV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), wlr_surface_from_resource(surface), region, lifetime));
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vConstraints.emplace_back(
+        std::make_shared<CPointerConstraint>(std::make_shared<CZwpLockedPointerV1>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surface), region, lifetime));
 
     onNewConstraint(RESOURCE, pMgr);
 }
 
 void CPointerConstraintsProtocol::onConfinePointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,
                                                    zwpPointerConstraintsV1Lifetime lifetime) {
-    const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_vConstraints.emplace_back(std::make_shared<CPointerConstraint>(
-        std::make_shared<CZwpConfinedPointerV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), wlr_surface_from_resource(surface), region, lifetime));
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vConstraints.emplace_back(
+        std::make_shared<CPointerConstraint>(std::make_shared<CZwpConfinedPointerV1>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surface), region, lifetime));
 
     onNewConstraint(RESOURCE, pMgr);
 }

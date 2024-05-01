@@ -13,21 +13,19 @@ void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_
     RESOURCE->setOnDestroy([this](CWpTearingControlManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpTearingControlManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
-    RESOURCE->setGetTearingControl([this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) {
-        this->onGetController(wl_resource_get_client(pMgr->resource()), pMgr->resource(), id, wlr_surface_from_resource(surface));
-    });
+    RESOURCE->setGetTearingControl(
+        [this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetController(pMgr->client(), pMgr, id, wlr_surface_from_resource(surface)); });
 }
 
 void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
 }
 
-void CTearingControlProtocol::onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf) {
-    const auto CONTROLLER =
-        m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, wl_resource_get_version(resource), id), surf)).get();
+void CTearingControlProtocol::onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, wlr_surface* surf) {
+    const auto CONTROLLER = m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, pMgr->version(), id), surf)).get();
 
     if (!CONTROLLER->good()) {
-        wl_resource_post_no_memory(resource);
+        pMgr->noMemory();
         m_vTearingControllers.pop_back();
         return;
     }

@@ -51,10 +51,9 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     const auto  PMONITOR = g_pCompositor->getMonitorFromOutput(OUTPUT);
 
-    const auto  CLIENT = wl_resource_get_client(mgr->resource());
+    const auto  CLIENT = mgr->client();
 
-    CXDGOutput* pXDGOutput =
-        m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(std::make_shared<CZxdgOutputV1>(CLIENT, wl_resource_get_version(mgr->resource()), id), PMONITOR)).get();
+    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(std::make_shared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
     if (g_pXWaylandManager->m_sWLRXWayland && g_pXWaylandManager->m_sWLRXWayland->server && g_pXWaylandManager->m_sWLRXWayland->server->client == CLIENT)
         pXDGOutput->isXWayland = true;
@@ -63,14 +62,14 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     if (!pXDGOutput->resource->resource()) {
         m_vXDGOutputs.pop_back();
-        wl_resource_post_no_memory(mgr->resource());
+        mgr->noMemory();
         return;
     }
 
     if (!PMONITOR)
         return;
 
-    const auto XDGVER = wl_resource_get_version(pXDGOutput->resource->resource());
+    const auto XDGVER = pXDGOutput->resource->version();
 
     if (XDGVER >= OUTPUT_NAME_SINCE_VERSION)
         pXDGOutput->resource->sendName(PMONITOR->szName.c_str());
@@ -120,6 +119,6 @@ void CXDGOutput::sendDetails() {
     else
         resource->sendLogicalSize(monitor->vecSize.x, monitor->vecSize.y);
 
-    if (wl_resource_get_version(resource->resource()) < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
+    if (resource->version() < OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
         resource->sendDone();
 }

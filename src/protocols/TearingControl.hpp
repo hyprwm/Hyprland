@@ -42,7 +42,7 @@ class CTearingControlProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(wl_resource* res);
     void onControllerDestroy(CTearingControl* control);
-    void onGetController(wl_client* client, wl_resource* resource, uint32_t id, wlr_surface* surf);
+    void onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, wlr_surface* surf);
     void onWindowDestroy(PHLWINDOW pWindow);
 
     //

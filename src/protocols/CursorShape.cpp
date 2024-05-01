@@ -73,8 +73,8 @@ void CCursorShapeProtocol::onGetTabletToolV2(CWpCursorShapeManagerV1* pMgr, uint
 }
 
 void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource) {
-    const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_vDevices.emplace_back(std::make_shared<CWpCursorShapeDeviceV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id));
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vDevices.emplace_back(std::make_shared<CWpCursorShapeDeviceV1>(CLIENT, pMgr->version(), id));
     RESOURCE->setOnDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpCursorShapeDeviceV1* p) { this->onDeviceResourceDestroy(p->resource()); });
@@ -83,7 +83,7 @@ void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr
 
 void CCursorShapeProtocol::onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t serial, wpCursorShapeDeviceV1Shape shape) {
     if ((uint32_t)shape == 0 || (uint32_t)shape > sizeof(SHAPE_NAMES)) {
-        wl_resource_post_error(pMgr->resource(), WP_CURSOR_SHAPE_DEVICE_V1_ERROR_INVALID_SHAPE, "The shape is invalid");
+        pMgr->error(WP_CURSOR_SHAPE_DEVICE_V1_ERROR_INVALID_SHAPE, "The shape is invalid");
         return;
     }
 

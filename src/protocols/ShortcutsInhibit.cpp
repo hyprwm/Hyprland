@@ -47,23 +47,21 @@ void CKeyboardShortcutsInhibitProtocol::destroyInhibitor(CKeyboardShortcutsInhib
 
 void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitManagerV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* seat) {
     wlr_surface* surf   = wlr_surface_from_resource(surface);
-    const auto   CLIENT = wl_resource_get_client(pMgr->resource());
+    const auto   CLIENT = pMgr->client();
 
     for (auto& in : m_vInhibitors) {
         if (in->surface() != surf)
             continue;
 
-        wl_resource_post_error(pMgr->resource(), ZWP_KEYBOARD_SHORTCUTS_INHIBIT_MANAGER_V1_ERROR_ALREADY_INHIBITED, "Already inhibited for surface resource");
+        pMgr->error(ZWP_KEYBOARD_SHORTCUTS_INHIBIT_MANAGER_V1_ERROR_ALREADY_INHIBITED, "Already inhibited for surface resource");
         return;
     }
 
-    const auto RESOURCE = m_vInhibitors
-                              .emplace_back(std::make_unique<CKeyboardShortcutsInhibitor>(
-                                  std::make_shared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), surf))
-                              .get();
+    const auto RESOURCE =
+        m_vInhibitors.emplace_back(std::make_unique<CKeyboardShortcutsInhibitor>(std::make_shared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, pMgr->version(), id), surf)).get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vInhibitors.pop_back();
         LOGM(ERR, "Failed to create an inhibitor resource");
         return;

@@ -772,7 +772,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
         if (PWINDOW == g_pCompositor->m_pLastWindow.lock() || !g_pCompositor->m_pLastWindow.lock()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ","});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
             EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
         }
     } else {

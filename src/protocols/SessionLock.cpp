@@ -51,6 +51,10 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
             wlr_surface_unmap(pSurface);
             hyprListener_surfaceCommit.removeCallback();
             hyprListener_surfaceDestroy.removeCallback();
+
+            if (g_pCompositor->m_pLastFocus == pSurface)
+                g_pCompositor->m_pLastFocus = nullptr;
+
             pSurface = nullptr;
         },
         this, "SessionLockSurface");

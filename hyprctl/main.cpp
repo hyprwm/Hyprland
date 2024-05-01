@@ -59,7 +59,7 @@ std::vector<SInstanceData> instances() {
 
         // read lock
         SInstanceData* data = &result.emplace_back();
-        data->id            = el.path().string();
+        data->id            = el.path().filename().string();
 
         try {
             data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1, data->id.find_last_of('_') - (data->id.find_first_of('_') + 1)));

@@ -24,13 +24,13 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         [this](void* owner, void* data) {
             if (pSurface->pending.buffer_width <= 0 || pSurface->pending.buffer_height <= 0) {
                 LOGM(ERR, "SessionLock attached a null buffer");
-                wl_resource_post_error(resource->resource(), EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
+                resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
                 return;
             }
 
             if (!ackdConfigure) {
                 LOGM(ERR, "SessionLock committed without an ack");
-                wl_resource_post_error(resource->resource(), EXT_SESSION_LOCK_SURFACE_V1_ERROR_COMMIT_BEFORE_FIRST_ACK, "Committed surface before first ack");
+                resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_COMMIT_BEFORE_FIRST_ACK, "Committed surface before first ack");
                 return;
             }
 
@@ -73,8 +73,7 @@ CSessionLockSurface::~CSessionLockSurface() {
 }
 
 void CSessionLockSurface::sendConfigure() {
-    const auto CLIENT = wl_resource_get_client(resource->resource());
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, CLIENT));
+    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
     resource->sendConfigure(SERIAL, pMonitor->vecSize.x, pMonitor->vecSize.y);
 }
 
@@ -158,11 +157,11 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
 
     LOGM(LOG, "New sessionLock with id {}", id);
 
-    const auto CLIENT   = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE = m_vLocks.emplace_back(std::make_unique<CSessionLock>(std::make_shared<CExtSessionLockV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id)));
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vLocks.emplace_back(std::make_unique<CSessionLock>(std::make_shared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vLocks.pop_back();
         return;
     }
@@ -193,12 +192,11 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
         }
     }
 
-    const auto CLIENT   = wl_resource_get_client(lock->resource());
     const auto RESOURCE = m_vLockSurfaces.emplace_back(
-        std::make_unique<CSessionLockSurface>(std::make_shared<CExtSessionLockSurfaceV1>(CLIENT, wl_resource_get_version(lock->resource()), id), PSURFACE, PMONITOR, sessionLock));
+        std::make_unique<CSessionLockSurface>(std::make_shared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(lock->resource());
+        lock->noMemory();
         m_vLockSurfaces.pop_back();
         return;
     }

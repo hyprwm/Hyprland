@@ -107,7 +107,7 @@ void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
     if (lastMonitorID == (int64_t)pMonitor->ID)
         return;
 
-    const auto          CLIENT = wl_resource_get_client(resource->resource());
+    const auto          CLIENT = resource->client();
 
     struct wl_resource* outputResource;
 
@@ -184,12 +184,12 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
     if (finished)
         return;
 
-    const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_vHandles.emplace_back(std::make_shared<CForeignToplevelHandleWlr>(
-        std::make_shared<CZwlrForeignToplevelHandleV1>(wl_resource_get_client(resource->resource()), wl_resource_get_version(resource->resource()), 0), pWindow));
+    const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_vHandles.emplace_back(
+        std::make_shared<CForeignToplevelHandleWlr>(std::make_shared<CZwlrForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
 
     if (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
-        wl_resource_post_no_memory(resource->resource());
+        resource->noMemory();
         PROTO::foreignToplevelWlr->m_vHandles.pop_back();
         return;
     }

@@ -58,18 +58,17 @@ void CXDGDecorationProtocol::destroyDecoration(CXDGDecoration* decoration) {
 
 void CXDGDecorationProtocol::onGetDecoration(CZxdgDecorationManagerV1* pMgr, uint32_t id, wl_resource* xdgToplevel) {
     if (m_mDecorations.contains(xdgToplevel)) {
-        wl_resource_post_error(pMgr->resource(), ZXDG_TOPLEVEL_DECORATION_V1_ERROR_ALREADY_CONSTRUCTED, "Decoration object already exists");
+        pMgr->error(ZXDG_TOPLEVEL_DECORATION_V1_ERROR_ALREADY_CONSTRUCTED, "Decoration object already exists");
         return;
     }
 
-    const auto CLIENT = wl_resource_get_client(pMgr->resource());
+    const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_mDecorations
-            .emplace(xdgToplevel, std::make_unique<CXDGDecoration>(std::make_shared<CZxdgToplevelDecorationV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), xdgToplevel))
+        m_mDecorations.emplace(xdgToplevel, std::make_unique<CXDGDecoration>(std::make_shared<CZxdgToplevelDecorationV1>(CLIENT, pMgr->version(), id), xdgToplevel))
             .first->second.get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_mDecorations.erase(xdgToplevel);
         return;
     }

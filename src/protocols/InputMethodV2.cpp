@@ -59,13 +59,13 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(wlr_keyboard* keyboard) {
 }
 
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, wl_resource_get_client(resource->resource())));
+    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
 
     resource->sendKey(SERIAL, time, key, (uint32_t)state);
 }
 
 void CInputMethodKeyboardGrabV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, wl_resource_get_client(resource->resource())));
+    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
 
     resource->sendModifiers(SERIAL, depressed, latched, locked, group);
 }
@@ -79,7 +79,7 @@ SP<CInputMethodV2> CInputMethodKeyboardGrabV2::getOwner() {
 }
 
 wl_client* CInputMethodKeyboardGrabV2::client() {
-    return wl_resource_get_client(resource->resource());
+    return resource->client();
 }
 
 CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, wlr_surface* wlrSurface) : resource(resource_), owner(owner_) {
@@ -192,12 +192,11 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
     });
 
     resource->setGetInputPopupSurface([this](CZwpInputMethodV2* r, uint32_t id, wl_resource* surface) {
-        const auto CLIENT   = wl_resource_get_client(r->resource());
-        const auto RESOURCE = PROTO::ime->m_vPopups.emplace_back(std::make_shared<CInputMethodPopupV2>(
-            std::make_shared<CZwpInputPopupSurfaceV2>(CLIENT, wl_resource_get_version(r->resource()), id), self.lock(), wlr_surface_from_resource(surface)));
+        const auto RESOURCE = PROTO::ime->m_vPopups.emplace_back(
+            std::make_shared<CInputMethodPopupV2>(std::make_shared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surface)));
 
         if (!RESOURCE->good()) {
-            wl_resource_post_no_memory(r->resource());
+            r->noMemory();
             PROTO::ime->m_vPopups.pop_back();
             return;
         }
@@ -210,12 +209,11 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
     });
 
     resource->setGrabKeyboard([this](CZwpInputMethodV2* r, uint32_t id) {
-        const auto CLIENT   = wl_resource_get_client(r->resource());
         const auto RESOURCE = PROTO::ime->m_vGrabs.emplace_back(
-            std::make_shared<CInputMethodKeyboardGrabV2>(std::make_shared<CZwpInputMethodKeyboardGrabV2>(CLIENT, wl_resource_get_version(r->resource()), id), self.lock()));
+            std::make_shared<CInputMethodKeyboardGrabV2>(std::make_shared<CZwpInputMethodKeyboardGrabV2>(r->client(), r->version(), id), self.lock()));
 
         if (!RESOURCE->good()) {
-            wl_resource_post_no_memory(r->resource());
+            r->noMemory();
             PROTO::ime->m_vGrabs.pop_back();
             return;
         }
@@ -334,7 +332,7 @@ void CInputMethodV2::setKeyboard(wlr_keyboard* keyboard) {
 }
 
 wl_client* CInputMethodV2::client() {
-    return wl_resource_get_client(resource->resource());
+    return resource->client();
 }
 
 CInputMethodV2Protocol::CInputMethodV2Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -366,11 +364,10 @@ void CInputMethodV2Protocol::destroyResource(CInputMethodV2* ime) {
 }
 
 void CInputMethodV2Protocol::onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id) {
-    const auto CLIENT   = wl_resource_get_client(mgr->resource());
-    const auto RESOURCE = m_vIMEs.emplace_back(std::make_shared<CInputMethodV2>(std::make_shared<CZwpInputMethodV2>(CLIENT, wl_resource_get_version(mgr->resource()), id)));
+    const auto RESOURCE = m_vIMEs.emplace_back(std::make_shared<CInputMethodV2>(std::make_shared<CZwpInputMethodV2>(mgr->client(), mgr->version(), id)));
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(mgr->resource());
+        mgr->noMemory();
         m_vIMEs.pop_back();
         return;
     }

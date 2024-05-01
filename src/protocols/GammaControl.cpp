@@ -70,7 +70,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
             close(fd);
 
             if ((size_t)readBytes != gammaTable.size() * sizeof(uint16_t)) {
-                wl_resource_post_error(gamma->resource(), ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
+                gamma->error(ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
                 return;
             }
 
@@ -156,13 +156,11 @@ void CGammaControlProtocol::destroyGammaControl(CGammaControl* gamma) {
 }
 
 void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output) {
-    const auto CLIENT = wl_resource_get_client(pMgr->resource());
-    const auto RESOURCE =
-        m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(std::make_shared<CZwlrGammaControlV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), output))
-            .get();
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(std::make_shared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vGammaControllers.pop_back();
         return;
     }

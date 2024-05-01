@@ -77,14 +77,12 @@ void CIdleNotifyProtocol::destroyNotification(CExtIdleNotification* notif) {
 }
 
 void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t id, uint32_t timeout, wl_resource* seat) {
-    const auto CLIENT = wl_resource_get_client(pMgr->resource());
+    const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_vNotifications
-            .emplace_back(std::make_unique<CExtIdleNotification>(std::make_shared<CExtIdleNotificationV1>(CLIENT, wl_resource_get_version(pMgr->resource()), id), timeout))
-            .get();
+        m_vNotifications.emplace_back(std::make_unique<CExtIdleNotification>(std::make_shared<CExtIdleNotificationV1>(CLIENT, pMgr->version(), id), timeout)).get();
 
     if (!RESOURCE->good()) {
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         m_vNotifications.pop_back();
         return;
     }

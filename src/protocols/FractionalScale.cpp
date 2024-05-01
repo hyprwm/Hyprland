@@ -32,19 +32,16 @@ void CFractionalScaleProtocol::onManagerResourceDestroy(wl_resource* res) {
 void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface) {
     if (m_mAddons.contains(surface)) {
         LOGM(ERR, "Surface {:x} already has a fractionalScale addon", (uintptr_t)surface);
-        wl_resource_post_error(pMgr->resource(), WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale already exists");
+        pMgr->error(WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale already exists");
         return;
     }
 
-    const auto PADDON = m_mAddons
-                            .emplace(surface,
-                                     std::make_unique<CFractionalScaleAddon>(
-                                         std::make_shared<CWpFractionalScaleV1>(wl_resource_get_client(pMgr->resource()), wl_resource_get_version(pMgr->resource()), id), surface))
+    const auto PADDON = m_mAddons.emplace(surface, std::make_unique<CFractionalScaleAddon>(std::make_shared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface))
                             .first->second.get();
 
     if (!PADDON->good()) {
         m_mAddons.erase(surface);
-        wl_resource_post_no_memory(pMgr->resource());
+        pMgr->noMemory();
         return;
     }
 

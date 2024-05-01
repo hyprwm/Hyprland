@@ -218,14 +218,6 @@ struct SSwipeGesture {
     CMonitor*    pMonitor = nullptr;
 };
 
-struct SIMEKbGrab {
-    wlr_input_method_keyboard_grab_v2* pWlrKbGrab = nullptr;
-
-    wlr_keyboard*                      pKeyboard = nullptr;
-
-    DYNLISTENER(grabDestroy);
-};
-
 struct STouchDevice {
     wlr_input_device* pWlrDevice = nullptr;
 

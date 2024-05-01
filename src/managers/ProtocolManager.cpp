@@ -19,26 +19,7 @@
 #include "../protocols/XDGActivation.hpp"
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/SessionLock.hpp"
-
-#include "tearing-control-v1.hpp"
-#include "fractional-scale-v1.hpp"
-#include "xdg-output-unstable-v1.hpp"
-#include "cursor-shape-v1.hpp"
-#include "idle-inhibit-unstable-v1.hpp"
-#include "relative-pointer-unstable-v1.hpp"
-#include "xdg-decoration-unstable-v1.hpp"
-#include "alpha-modifier-v1.hpp"
-#include "wlr-gamma-control-unstable-v1.hpp"
-#include "ext-foreign-toplevel-list-v1.hpp"
-#include "pointer-gestures-unstable-v1.hpp"
-#include "wlr-foreign-toplevel-management-unstable-v1.hpp"
-#include "keyboard-shortcuts-inhibit-unstable-v1.hpp"
-#include "text-input-unstable-v3.hpp"
-#include "pointer-constraints-unstable-v1.hpp"
-#include "wlr-output-power-management-unstable-v1.hpp"
-#include "xdg-activation-v1.hpp"
-#include "ext-idle-notify-v1.hpp"
-#include "ext-session-lock-v1.hpp"
+#include "../protocols/InputMethodV2.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -61,6 +42,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::activation         = std::make_unique<CXDGActivationProtocol>(&xdg_activation_v1_interface, 1, "XDGActivation");
     PROTO::idle               = std::make_unique<CIdleNotifyProtocol>(&ext_idle_notifier_v1_interface, 1, "IdleNotify");
     PROTO::sessionLock        = std::make_unique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "SessionLock");
+    PROTO::ime                = std::make_unique<CInputMethodV2Protocol>(&zwp_input_method_manager_v2_interface, 1, "IMEv2");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

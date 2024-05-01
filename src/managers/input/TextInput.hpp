@@ -11,6 +11,7 @@ struct wl_client;
 
 struct STextInputV1;
 class CTextInputV3;
+class CInputMethodV2;
 
 class CTextInput {
   public:
@@ -23,8 +24,8 @@ class CTextInput {
     void         leave();
     void         tiV1Destroyed();
     wl_client*   client();
-    void         commitStateToIME(wlr_input_method_v2* ime);
-    void         updateIMEState(wlr_input_method_v2* ime);
+    void         commitStateToIME(SP<CInputMethodV2> ime);
+    void         updateIMEState(SP<CInputMethodV2> ime);
 
     void         onEnabled(wlr_surface* surfV1 = nullptr);
     void         onDisabled();

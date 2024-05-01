@@ -2,37 +2,14 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/FractionalScale.hpp"
+#include "../../protocols/InputMethodV2.hpp"
 
-CInputPopup::CInputPopup(wlr_input_popup_surface_v2* surf) : pWlr(surf) {
-    surface.assign(surf->surface);
-    initCallbacks();
-}
-
-static void onCommit(void* owner, void* data) {
-    const auto PPOPUP = (CInputPopup*)owner;
-    PPOPUP->onCommit();
-}
-
-static void onMap(void* owner, void* data) {
-    const auto PPOPUP = (CInputPopup*)owner;
-    PPOPUP->onMap();
-}
-
-static void onUnmap(void* owner, void* data) {
-    const auto PPOPUP = (CInputPopup*)owner;
-    PPOPUP->onUnmap();
-}
-
-static void onDestroy(void* owner, void* data) {
-    const auto PPOPUP = (CInputPopup*)owner;
-    PPOPUP->onDestroy();
-}
-
-void CInputPopup::initCallbacks() {
-    hyprListener_commitPopup.initCallback(&pWlr->surface->events.commit, &::onCommit, this, "IME Popup");
-    hyprListener_mapPopup.initCallback(&pWlr->surface->events.map, &::onMap, this, "IME Popup");
-    hyprListener_unmapPopup.initCallback(&pWlr->surface->events.unmap, &::onUnmap, this, "IME Popup");
-    hyprListener_destroyPopup.initCallback(&pWlr->events.destroy, &::onDestroy, this, "IME Popup");
+CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : popup(popup_) {
+    listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
+    listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
+    listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+    surface.assign(popup_->surface());
 }
 
 CWLSurface* CInputPopup::queryOwner() {
@@ -45,11 +22,6 @@ CWLSurface* CInputPopup::queryOwner() {
 }
 
 void CInputPopup::onDestroy() {
-    hyprListener_commitPopup.removeCallback();
-    hyprListener_destroyPopup.removeCallback();
-    hyprListener_mapPopup.removeCallback();
-    hyprListener_unmapPopup.removeCallback();
-
     g_pInputManager->m_sIMERelay.removePopup(this);
 }
 
@@ -101,7 +73,7 @@ void CInputPopup::damageSurface() {
 }
 
 void CInputPopup::updateBox() {
-    if (!surface.wlr()->mapped)
+    if (!popup.lock()->mapped)
         return;
 
     const auto OWNER      = queryOwner();
@@ -142,7 +114,7 @@ void CInputPopup::updateBox() {
         popupOffset.x -= popupOverflow;
 
     CBox cursorBoxLocal({-popupOffset.x, -popupOffset.y}, cursorBoxParent.size());
-    wlr_input_popup_surface_v2_send_text_input_rectangle(pWlr, cursorBoxLocal.pWlr());
+    popup.lock()->sendInputRectangle(cursorBoxLocal);
 
     CBox popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
     if (popupBoxParent != lastBoxLocal) {

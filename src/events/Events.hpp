@@ -107,7 +107,6 @@ namespace Events {
     LISTENER(pinchEnd);
 
     // IME
-    LISTENER(newIME);
     LISTENER(newVirtualKeyboard);
 
     // Touch

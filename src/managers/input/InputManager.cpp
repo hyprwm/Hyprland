@@ -10,6 +10,7 @@
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/SessionLock.hpp"
+#include "../../protocols/InputMethodV2.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -1207,6 +1208,8 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
     if (!pKeyboard->enabled)
         return;
 
+    const bool DISALLOWACTION = pKeyboard->isVirtual && shouldIgnoreVirtualKeyboard(pKeyboard);
+
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", e}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
@@ -1216,17 +1219,16 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
         g_pKeybindManager->dpms("on");
     }
 
-    bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
+    bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(e, pKeyboard);
 
     PROTO::idle->onActivity();
 
     if (passEvent) {
+        const auto IME = m_sIMERelay.m_pIME.lock();
 
-        const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
-
-        if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
-            wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-            wlr_input_method_keyboard_grab_v2_send_key(PIMEGRAB->pWlrKbGrab, e->time_msec, e->keycode, e->state);
+        if (IME && IME->hasGrab() && !DISALLOWACTION) {
+            IME->setKeyboard(wlr_keyboard_from_input_device(pKeyboard->keyboard));
+            IME->sendKey(e->time_msec, e->keycode, e->state);
         } else {
             wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
@@ -1240,16 +1242,18 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
     if (!pKeyboard->enabled)
         return;
 
-    const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
+    const bool DISALLOWACTION = pKeyboard->isVirtual && shouldIgnoreVirtualKeyboard(pKeyboard);
 
     const auto ALLMODS = accumulateModsFromAllKBs();
 
     auto       MODS = wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers;
     MODS.depressed  = ALLMODS;
 
-    if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
-        wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-        wlr_input_method_keyboard_grab_v2_send_modifiers(PIMEGRAB->pWlrKbGrab, &MODS);
+    const auto IME = m_sIMERelay.m_pIME.lock();
+
+    if (IME && IME->hasGrab() && !DISALLOWACTION) {
+        IME->setKeyboard(wlr_keyboard_from_input_device(pKeyboard->keyboard));
+        IME->sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
     } else {
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
         wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &MODS);
@@ -1273,8 +1277,7 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 
 bool CInputManager::shouldIgnoreVirtualKeyboard(SKeyboard* pKeyboard) {
     return !pKeyboard ||
-        (m_sIMERelay.m_pKeyboardGrab &&
-         wl_resource_get_client(m_sIMERelay.m_pKeyboardGrab->pWlrKbGrab->resource) == wl_resource_get_client(wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard)->resource));
+        (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME.lock()->grabClient() == wl_resource_get_client(wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard)->resource));
 }
 
 void CInputManager::refocus() {

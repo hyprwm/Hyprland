@@ -192,7 +192,7 @@ void CWindow::updateWindowDecos() {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
                 g_pDecorationPositioner->uncacheDecoration(it->get());
-                it     = m_dWindowDecorations.erase(it);
+                it = m_dWindowDecorations.erase(it);
                 if (it == m_dWindowDecorations.end())
                     break;
             }

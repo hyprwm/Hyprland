@@ -4,6 +4,7 @@
 #include "../../protocols/TextInputV1.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/TextInputV3.hpp"
+#include "../../protocols/InputMethodV2.hpp"
 
 CTextInput::CTextInput(STextInputV1* ti) : pV1Input(ti) {
     ti->pTextInput = this;
@@ -67,7 +68,7 @@ void CTextInput::initCallbacks() {
 void CTextInput::onEnabled(wlr_surface* surfV1) {
     Debug::log(LOG, "TI ENABLE");
 
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
+    if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
         // Debug::log(WARN, "Enabling TextInput on no IME!");
         return;
     }
@@ -85,7 +86,7 @@ void CTextInput::onEnabled(wlr_surface* surfV1) {
 }
 
 void CTextInput::onDisabled() {
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
+    if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
         //  Debug::log(WARN, "Disabling TextInput on no IME!");
         return;
     }
@@ -103,7 +104,7 @@ void CTextInput::onDisabled() {
 }
 
 void CTextInput::onCommit() {
-    if (!g_pInputManager->m_sIMERelay.m_pWLRIME) {
+    if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
         //   Debug::log(WARN, "Committing TextInput on no IME!");
         return;
     }
@@ -218,67 +219,66 @@ wl_client* CTextInput::client() {
     return isV3() ? pV3Input.lock()->client() : pV1Input->client;
 }
 
-void CTextInput::commitStateToIME(wlr_input_method_v2* ime) {
+void CTextInput::commitStateToIME(SP<CInputMethodV2> ime) {
     if (isV3()) {
         const auto INPUT = pV3Input.lock();
 
         if (INPUT->current.surrounding.updated)
-            wlr_input_method_v2_send_surrounding_text(ime, INPUT->current.surrounding.text.c_str(), INPUT->current.surrounding.cursor, INPUT->current.surrounding.anchor);
+            ime->surroundingText(INPUT->current.surrounding.text, INPUT->current.surrounding.cursor, INPUT->current.surrounding.anchor);
 
-        wlr_input_method_v2_send_text_change_cause(ime, INPUT->current.cause);
+        ime->textChangeCause(INPUT->current.cause);
 
         if (INPUT->current.contentType.updated)
-            wlr_input_method_v2_send_content_type(ime, INPUT->current.contentType.hint, INPUT->current.contentType.purpose);
+            ime->textContentType(INPUT->current.contentType.hint, INPUT->current.contentType.purpose);
     } else {
         if (pV1Input->pendingSurrounding.isPending)
-            wlr_input_method_v2_send_surrounding_text(ime, pV1Input->pendingSurrounding.text.c_str(), pV1Input->pendingSurrounding.cursor, pV1Input->pendingSurrounding.anchor);
+            ime->surroundingText(pV1Input->pendingSurrounding.text, pV1Input->pendingSurrounding.cursor, pV1Input->pendingSurrounding.anchor);
 
-        wlr_input_method_v2_send_text_change_cause(ime, 0);
+        ime->textChangeCause(ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_INPUT_METHOD);
 
         if (pV1Input->pendingContentType.isPending)
-            wlr_input_method_v2_send_content_type(ime, pV1Input->pendingContentType.hint, pV1Input->pendingContentType.purpose);
+            ime->textContentType((zwpTextInputV3ContentHint)pV1Input->pendingContentType.hint, (zwpTextInputV3ContentPurpose)pV1Input->pendingContentType.purpose);
     }
 
     g_pInputManager->m_sIMERelay.updateAllPopups();
 
-    wlr_input_method_v2_send_done(ime);
+    ime->done();
 }
 
-void CTextInput::updateIMEState(wlr_input_method_v2* ime) {
+void CTextInput::updateIMEState(SP<CInputMethodV2> ime) {
     if (isV3()) {
         const auto INPUT = pV3Input.lock();
 
-        if (ime->current.preedit.text)
-            INPUT->preeditString(ime->current.preedit.text, ime->current.preedit.cursor_begin, ime->current.preedit.cursor_end);
+        if (ime->current.preeditString.committed)
+            INPUT->preeditString(ime->current.preeditString.string, ime->current.preeditString.begin, ime->current.preeditString.end);
 
-        if (ime->current.commit_text)
-            INPUT->commitString(ime->current.commit_text);
+        if (ime->current.committedString.committed)
+            INPUT->commitString(ime->current.committedString.string);
 
-        if (ime->current.delete_.before_length || ime->current.delete_.after_length)
-            INPUT->deleteSurroundingText(ime->current.delete_.before_length, ime->current.delete_.after_length);
+        if (ime->current.deleteSurrounding.committed)
+            INPUT->deleteSurroundingText(ime->current.deleteSurrounding.before, ime->current.deleteSurrounding.after);
 
         INPUT->sendDone();
     } else {
-        if (ime->current.preedit.text) {
-            zwp_text_input_v1_send_preedit_cursor(pV1Input->resourceImpl, ime->current.preedit.cursor_begin);
-            zwp_text_input_v1_send_preedit_styling(pV1Input->resourceImpl, 0, std::string(ime->current.preedit.text).length(), ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
-            zwp_text_input_v1_send_preedit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.preedit.text, "");
+        if (ime->current.preeditString.committed) {
+            zwp_text_input_v1_send_preedit_cursor(pV1Input->resourceImpl, ime->current.preeditString.begin);
+            zwp_text_input_v1_send_preedit_styling(pV1Input->resourceImpl, 0, std::string(ime->current.preeditString.string).length(), ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
+            zwp_text_input_v1_send_preedit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.preeditString.string.c_str(), "");
         } else {
-            zwp_text_input_v1_send_preedit_cursor(pV1Input->resourceImpl, ime->current.preedit.cursor_begin);
+            zwp_text_input_v1_send_preedit_cursor(pV1Input->resourceImpl, ime->current.preeditString.begin);
             zwp_text_input_v1_send_preedit_styling(pV1Input->resourceImpl, 0, 0, ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
             zwp_text_input_v1_send_preedit_string(pV1Input->resourceImpl, pV1Input->serial, "", "");
         }
 
-        if (ime->current.commit_text) {
-            zwp_text_input_v1_send_commit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.commit_text);
-        }
+        if (ime->current.committedString.committed)
+            zwp_text_input_v1_send_commit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.committedString.string.c_str());
 
-        if (ime->current.delete_.before_length || ime->current.delete_.after_length) {
-            zwp_text_input_v1_send_delete_surrounding_text(pV1Input->resourceImpl, std::string(ime->current.preedit.text).length() - ime->current.delete_.before_length,
-                                                           ime->current.delete_.after_length + ime->current.delete_.before_length);
+        if (ime->current.deleteSurrounding.committed) {
+            zwp_text_input_v1_send_delete_surrounding_text(pV1Input->resourceImpl, std::string(ime->current.preeditString.string).length() - ime->current.deleteSurrounding.before,
+                                                           ime->current.deleteSurrounding.after + ime->current.deleteSurrounding.before);
 
-            if (ime->current.preedit.text)
-                zwp_text_input_v1_send_commit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.preedit.text);
+            if (ime->current.preeditString.committed)
+                zwp_text_input_v1_send_commit_string(pV1Input->resourceImpl, pV1Input->serial, ime->current.preeditString.string.c_str());
         }
     }
 }

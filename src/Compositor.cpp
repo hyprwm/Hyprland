@@ -262,8 +262,6 @@ void CCompositor::initServer() {
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
     wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
-    m_sWLRIMEMgr = wlr_input_method_manager_v2_create(m_sWLDisplay);
-
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 
     if (!m_sWLRHeadlessBackend) {
@@ -312,7 +310,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRVirtPtrMgr->events.new_virtual_pointer, &Events::listen_newVirtPtr, m_sWLRVirtPtrMgr, "VirtPtrMgr");
     addWLSignal(&m_sWLRVKeyboardMgr->events.new_virtual_keyboard, &Events::listen_newVirtualKeyboard, m_sWLRVKeyboardMgr, "VKeyboardMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
-    addWLSignal(&m_sWLRIMEMgr->events.input_method, &Events::listen_newIME, m_sWLRIMEMgr, "IMEMgr");
 
     if (m_sWRLDRMLeaseMgr)
         addWLSignal(&m_sWRLDRMLeaseMgr->events.request, &Events::listen_leaseRequest, &m_sWRLDRMLeaseMgr, "DRM");
@@ -355,7 +352,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newVirtPtr);
     removeWLSignal(&Events::listen_newVirtualKeyboard);
     removeWLSignal(&Events::listen_RendererDestroy);
-    removeWLSignal(&Events::listen_newIME);
 
     if (m_sWRLDRMLeaseMgr)
         removeWLSignal(&Events::listen_leaseRequest);

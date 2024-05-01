@@ -2,98 +2,53 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/TextInputV3.hpp"
+#include "../../protocols/InputMethodV2.hpp"
 
 CInputMethodRelay::CInputMethodRelay() {
     static auto P = g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<wlr_surface*>(param)); });
 
     listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(ti); });
+    listeners.newIME  = PROTO::ime->events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
 }
 
-void CInputMethodRelay::onNewIME(wlr_input_method_v2* pIME) {
-    if (m_pWLRIME) {
+void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
+    if (!m_pIME.expired()) {
         Debug::log(ERR, "Cannot register 2 IMEs at once!");
 
-        wlr_input_method_v2_send_unavailable(pIME);
+        pIME->unavailable();
 
         return;
     }
 
-    m_pWLRIME = pIME;
+    m_pIME = pIME;
 
-    hyprListener_IMECommit.initCallback(
-        &m_pWLRIME->events.commit,
-        [&](void* owner, void* data) {
-            const auto PTI  = getFocusedTextInput();
-            const auto PIMR = (CInputMethodRelay*)owner;
+    listeners.commitIME = pIME->events.onCommit.registerListener([this](std::any d) {
+        const auto PTI = getFocusedTextInput();
 
-            if (!PTI) {
-                Debug::log(LOG, "No focused TextInput on IME Commit");
-                return;
-            }
+        if (!PTI) {
+            Debug::log(LOG, "No focused TextInput on IME Commit");
+            return;
+        }
 
-            PTI->updateIMEState(PIMR->m_pWLRIME);
-        },
-        this, "IMERelay");
+        PTI->updateIMEState(m_pIME.lock());
+    });
 
-    hyprListener_IMEDestroy.initCallback(
-        &m_pWLRIME->events.destroy,
-        [&](void* owner, void* data) {
-            m_pWLRIME = nullptr;
+    listeners.destroyIME = pIME->events.destroy.registerListener([this](std::any d) {
+        const auto PTI = getFocusedTextInput();
 
-            hyprListener_IMEDestroy.removeCallback();
-            hyprListener_IMECommit.removeCallback();
-            hyprListener_IMEGrab.removeCallback();
-            hyprListener_IMENewPopup.removeCallback();
+        Debug::log(LOG, "IME Destroy");
 
-            m_pKeyboardGrab.reset(nullptr);
+        if (PTI)
+            PTI->leave();
 
-            const auto PTI = getFocusedTextInput();
+        m_pIME.reset();
+    });
 
-            Debug::log(LOG, "IME Destroy");
+    listeners.newPopup = pIME->events.newPopup.registerListener([this](std::any d) {
+        m_vIMEPopups.emplace_back(std::make_unique<CInputPopup>(std::any_cast<SP<CInputMethodPopupV2>>(d)));
 
-            if (PTI)
-                PTI->leave();
-        },
-        this, "IMERelay");
-
-    hyprListener_IMEGrab.initCallback(
-        &m_pWLRIME->events.grab_keyboard,
-        [&](void* owner, void* data) {
-            Debug::log(LOG, "IME TextInput Keyboard Grab new");
-
-            m_pKeyboardGrab.reset(nullptr);
-
-            m_pKeyboardGrab = std::make_unique<SIMEKbGrab>();
-
-            m_pKeyboardGrab->pKeyboard = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-
-            const auto PKBGRAB = (wlr_input_method_keyboard_grab_v2*)data;
-
-            m_pKeyboardGrab->pWlrKbGrab = PKBGRAB;
-
-            wlr_input_method_keyboard_grab_v2_set_keyboard(m_pKeyboardGrab->pWlrKbGrab, m_pKeyboardGrab->pKeyboard);
-
-            m_pKeyboardGrab->hyprListener_grabDestroy.initCallback(
-                &PKBGRAB->events.destroy,
-                [&](void* owner, void* data) {
-                    m_pKeyboardGrab->hyprListener_grabDestroy.removeCallback();
-
-                    Debug::log(LOG, "IME TextInput Keyboard Grab destroy");
-
-                    m_pKeyboardGrab.reset(nullptr);
-                },
-                m_pKeyboardGrab.get(), "IME Keyboard Grab");
-        },
-        this, "IMERelay");
-
-    hyprListener_IMENewPopup.initCallback(
-        &m_pWLRIME->events.new_popup_surface,
-        [&](void* owner, void* data) {
-            m_vIMEPopups.emplace_back(std::make_unique<CInputPopup>((wlr_input_popup_surface_v2*)data));
-
-            Debug::log(LOG, "New input popup");
-        },
-        this, "IMERelay");
+        Debug::log(LOG, "New input popup");
+    });
 
     if (!g_pCompositor->m_pLastFocus)
         return;
@@ -115,22 +70,6 @@ void CInputMethodRelay::setIMEPopupFocus(CInputPopup* pPopup, wlr_surface* pSurf
 
 void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
     std::erase_if(m_vIMEPopups, [pPopup](const auto& other) { return other.get() == pPopup; });
-}
-
-SIMEKbGrab* CInputMethodRelay::getIMEKeyboardGrab(SKeyboard* pKeyboard) {
-
-    if (!m_pWLRIME)
-        return nullptr;
-
-    if (!m_pKeyboardGrab.get())
-        return nullptr;
-
-    const auto VIRTKB = wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard);
-
-    if (VIRTKB && (wl_resource_get_client(VIRTKB->resource) == wl_resource_get_client(m_pKeyboardGrab->pWlrKbGrab->resource)))
-        return nullptr;
-
-    return m_pKeyboardGrab.get();
 }
 
 CTextInput* CInputMethodRelay::getFocusedTextInput() {
@@ -164,33 +103,30 @@ void CInputMethodRelay::updateAllPopups() {
 }
 
 void CInputMethodRelay::activateIME(CTextInput* pInput) {
-    if (!m_pWLRIME)
+    if (m_pIME.expired())
         return;
 
-    wlr_input_method_v2_send_activate(g_pInputManager->m_sIMERelay.m_pWLRIME);
+    m_pIME.lock()->activate();
     commitIMEState(pInput);
 }
 
 void CInputMethodRelay::deactivateIME(CTextInput* pInput) {
-    if (!m_pWLRIME)
+    if (m_pIME.expired())
         return;
 
-    if (!m_pWLRIME->active)
-        return;
-
-    wlr_input_method_v2_send_deactivate(g_pInputManager->m_sIMERelay.m_pWLRIME);
+    m_pIME.lock()->deactivate();
     commitIMEState(pInput);
 }
 
 void CInputMethodRelay::commitIMEState(CTextInput* pInput) {
-    if (!m_pWLRIME)
+    if (m_pIME.expired())
         return;
 
-    pInput->commitStateToIME(m_pWLRIME);
+    pInput->commitStateToIME(m_pIME.lock());
 }
 
 void CInputMethodRelay::onKeyboardFocus(wlr_surface* pSurface) {
-    if (!m_pWLRIME)
+    if (m_pIME.expired())
         return;
 
     if (pSurface == m_pLastKbFocus)

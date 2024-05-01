@@ -64,7 +64,6 @@ class CCompositor {
     wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
     wlr_tablet_manager_v2*           m_sWLRTabletManager;
     wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
-    wlr_input_method_manager_v2*     m_sWLRIMEMgr;
     wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
     wlr_backend*                     m_sWLRHeadlessBackend;
     // ------------------------------------------------- //

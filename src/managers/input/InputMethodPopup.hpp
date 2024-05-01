@@ -4,17 +4,13 @@
 #include "../../desktop/WLSurface.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/Box.hpp"
+#include "../../helpers/signal/Listener.hpp"
 
-struct wlr_input_popup_surface_v2;
+class CInputMethodPopupV2;
 
 class CInputPopup {
   public:
-    CInputPopup(wlr_input_popup_surface_v2* surf);
-
-    void         onDestroy();
-    void         onMap();
-    void         onUnmap();
-    void         onCommit();
+    CInputPopup(SP<CInputMethodPopupV2> popup);
 
     void         damageEntire();
     void         damageSurface();
@@ -24,18 +20,25 @@ class CInputPopup {
     CBox         globalBox();
     wlr_surface* getWlrSurface();
 
+    void         onCommit();
+
   private:
-    void                        initCallbacks();
-    CWLSurface*                 queryOwner();
-    void                        updateBox();
+    CWLSurface*             queryOwner();
+    void                    updateBox();
 
-    wlr_input_popup_surface_v2* pWlr = nullptr;
-    CWLSurface                  surface;
-    CBox                        lastBoxLocal;
-    uint64_t                    lastMonitor = -1;
+    void                    onDestroy();
+    void                    onMap();
+    void                    onUnmap();
 
-    DYNLISTENER(mapPopup);
-    DYNLISTENER(unmapPopup);
-    DYNLISTENER(destroyPopup);
-    DYNLISTENER(commitPopup);
+    WP<CInputMethodPopupV2> popup;
+    CWLSurface              surface;
+    CBox                    lastBoxLocal;
+    uint64_t                lastMonitor = -1;
+
+    struct {
+        CHyprSignalListener map;
+        CHyprSignalListener unmap;
+        CHyprSignalListener destroy;
+        CHyprSignalListener commit;
+    } listeners;
 };

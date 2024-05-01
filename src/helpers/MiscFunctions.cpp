@@ -2,9 +2,12 @@
 #include "../defines.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../managers/TokenManager.hpp"
 #include <optional>
 #include <set>
 #include <sys/utsname.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <iomanip>
 #include <sstream>
 #ifdef HAS_EXECINFO
@@ -833,4 +836,36 @@ bool envEnabled(const std::string& env) {
     if (!ENV)
         return false;
     return std::string(ENV) == "1";
+}
+
+std::pair<int, std::string> openExclusiveShm() {
+    std::string name = g_pTokenManager->getRandomUUID();
+
+    for (size_t i = 0; i < 69; ++i) {
+        int fd = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
+        if (fd >= 0)
+            return {fd, name};
+    }
+
+    return {-1, ""};
+}
+
+int allocateSHMFile(size_t len) {
+    auto [fd, name] = openExclusiveShm();
+    if (fd < 0)
+        return -1;
+
+    shm_unlink(name.c_str());
+
+    int ret;
+    do {
+        ret = ftruncate(fd, len);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret < 0) {
+        close(fd);
+        return -1;
+    }
+
+    return fd;
 }

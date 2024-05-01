@@ -187,9 +187,3 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
 
     g_pConfigManager->m_bWantsMonitorReload = true;
 }
-
-void Events::listener_newIME(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New IME added!");
-
-    g_pInputManager->m_sIMERelay.onNewIME((wlr_input_method_v2*)data);
-}

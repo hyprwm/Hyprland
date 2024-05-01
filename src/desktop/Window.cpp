@@ -707,8 +707,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
                                                        std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
-            // Do not unhide grouped items unless it is the visible window.
-            if (!m_sGroupData.pNextWindow.lock() || m_sGroupData.head)
+            if (!m_sGroupData.pNextWindow.lock())
                 setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
@@ -725,8 +724,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_vRealSize                     = Vector2D(std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().x, m_vRealSize.goal().x),
                                                        std::max((double)m_sAdditionalConfigData.minSize.toUnderlying().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
-            // Do not unhide grouped items unless it is the visible window.
-            if (!m_sGroupData.pNextWindow.lock() || m_sGroupData.head)
+            if (!m_sGroupData.pNextWindow.lock())
                 setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     }

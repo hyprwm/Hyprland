@@ -184,7 +184,6 @@ SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
 }
 
 void CWindow::updateWindowDecos() {
-    bool recalc = false;
 
     if (!m_bIsMapped || isHidden())
         return;
@@ -194,7 +193,6 @@ void CWindow::updateWindowDecos() {
             if (it->get() == wd) {
                 g_pDecorationPositioner->uncacheDecoration(it->get());
                 it     = m_dWindowDecorations.erase(it);
-                recalc = true;
                 if (it == m_dWindowDecorations.end())
                     break;
             }
@@ -202,9 +200,6 @@ void CWindow::updateWindowDecos() {
     }
 
     g_pDecorationPositioner->onWindowUpdate(m_pSelf.lock());
-
-    if (recalc)
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
 
     m_vDecosToRemove.clear();
 

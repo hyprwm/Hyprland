@@ -356,7 +356,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         canSkipUpdate = std::clamp(MSMONITOR - TIMERDELTA, 0.0, MSMONITOR) > totalMs * 1.0 / m_iMouseMoveEventCount;
     }
 
-    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate && g_pInputManager->dragMode != MBIND_MOVE))
+    if ((abs(TICKDELTA.x) < 1.f && abs(TICKDELTA.y) < 1.f) || (TIMERDELTA < MSMONITOR && canSkipUpdate && (g_pInputManager->dragMode != MBIND_MOVE || *PANIMATEMOUSE)))
         return;
 
     TIMER = std::chrono::high_resolution_clock::now();

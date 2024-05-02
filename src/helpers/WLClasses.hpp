@@ -7,6 +7,7 @@
 #include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
+#include "signal/Listener.hpp"
 #include "Region.hpp"
 
 class CMonitor;
@@ -91,6 +92,10 @@ struct SKeyboard {
     bool                 resolveBindsBySym = false;
 
     void                 updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+
+    struct {
+        CHyprSignalListener destroyVKeyboard;
+    } listeners;
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) const {

@@ -144,8 +144,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // window rules
-    const auto WINDOWRULES        = g_pConfigManager->getMatchingRules(PWINDOW, false);
-    bool       requestsFullscreen = PWINDOW->m_bWantsInitialFullscreen ||
+    PWINDOW->m_vMatchedRules = g_pConfigManager->getMatchingRules(PWINDOW, false);
+    bool requestsFullscreen  = PWINDOW->m_bWantsInitialFullscreen ||
         (!PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xdg->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && PWINDOW->m_uSurface.xdg->toplevel->requested.fullscreen) ||
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
     bool requestsFakeFullscreen = false;
@@ -153,7 +153,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
 
-    for (auto& r : WINDOWRULES) {
+    for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find(' ')));
@@ -343,7 +343,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
-        for (auto& r : WINDOWRULES) {
+        for (auto& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);

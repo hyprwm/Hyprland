@@ -114,6 +114,14 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
             }
         }
     }
+
+    static auto PCURSORMONITOR = *CConfigValue<std::string>("general:default_cursor_monitor");
+
+    if (PCURSORMONITOR != STRVAL_EMPTY && PCURSORMONITOR == OUTPUT->name) {
+        const auto POS = PNEWMONITOR->middle();
+        if (g_pCompositor->m_sSeat.mouse != nullptr)
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
+    }
 }
 
 void Events::listener_monitorFrame(void* owner, void* data) {

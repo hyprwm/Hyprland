@@ -11,6 +11,7 @@
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/SessionLock.hpp"
 #include "../../protocols/InputMethodV2.hpp"
+#include "../../protocols/VirtualKeyboard.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -37,6 +38,8 @@ CInputManager::CInputManager() {
     });
 
     m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_sListeners.newVirtualKeyboard =
+        PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) { this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboard>>(data)); });
 }
 
 CInputManager::~CInputManager() {
@@ -786,23 +789,24 @@ void CInputManager::newKeyboard(wlr_input_device* keyboard) {
     Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
 }
 
-void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
+void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboard> keyboard) {
     const auto PNEWKEYBOARD = &m_lKeyboards.emplace_back();
 
-    PNEWKEYBOARD->keyboard  = keyboard;
-    PNEWKEYBOARD->isVirtual = true;
+    PNEWKEYBOARD->keyboard     = &keyboard->wlr()->base;
+    PNEWKEYBOARD->isVirtual    = true;
+    PNEWKEYBOARD->virtKeyboard = keyboard;
 
     try {
-        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->name);
+        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->wlr()->base.name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???"); // logic error
     }
 
-    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
+    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&keyboard->wlr()->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "VKeyboard");
+    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&keyboard->wlr()->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "VKeyboard");
+    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->wlr()->base.events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "VKeyboard");
     PNEWKEYBOARD->hyprListener_keyboardKeymap.initCallback(
-        &wlr_keyboard_from_input_device(keyboard)->events.keymap,
+        &keyboard->wlr()->events.keymap,
         [&](void* owner, void* data) {
             const auto PKEYBOARD = (SKeyboard*)owner;
             const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
@@ -810,7 +814,7 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
         },
-        PNEWKEYBOARD, "Keyboard");
+        PNEWKEYBOARD, "VKeyboard");
 
     disableAllKeyboards(true);
 
@@ -820,9 +824,9 @@ void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
 
     applyConfigToKeyboard(PNEWKEYBOARD);
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keyboard->wlr());
 
-    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
+    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard->wlr());
 }
 
 void CInputManager::setKeyboardLayout() {
@@ -1276,8 +1280,10 @@ void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
 }
 
 bool CInputManager::shouldIgnoreVirtualKeyboard(SKeyboard* pKeyboard) {
-    return !pKeyboard ||
-        (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME.lock()->grabClient() == wl_resource_get_client(wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard)->resource));
+    if (!pKeyboard->isVirtual)
+        return false;
+
+    return !pKeyboard || (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME.lock()->grabClient() == pKeyboard->virtKeyboard.lock()->client());
 }
 
 void CInputManager::refocus() {

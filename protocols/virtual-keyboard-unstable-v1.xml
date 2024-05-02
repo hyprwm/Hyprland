@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="virtual_keyboard_unstable_v1">
+  <copyright>
+    Copyright © 2008-2011  Kristian Høgsberg
+    Copyright © 2010-2013  Intel Corporation
+    Copyright © 2012-2013  Collabora, Ltd.
+    Copyright © 2018       Purism SPC
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice (including the next
+    paragraph) shall be included in all copies or substantial portions of the
+    Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+  </copyright>
+
+  <interface name="zwp_virtual_keyboard_v1" version="1">
+    <description summary="virtual keyboard">
+      The virtual keyboard provides an application with requests which emulate
+      the behaviour of a physical keyboard.
+
+      This interface can be used by clients on its own to provide raw input
+      events, or it can accompany the input method protocol.
+    </description>
+
+    <request name="keymap">
+      <description summary="keyboard mapping">
+        Provide a file descriptor to the compositor which can be
+        memory-mapped to provide a keyboard mapping description.
+
+        Format carries a value from the keymap_format enumeration.
+      </description>
+      <arg name="format" type="uint" summary="keymap format"/>
+      <arg name="fd" type="fd" summary="keymap file descriptor"/>
+      <arg name="size" type="uint" summary="keymap size, in bytes"/>
+    </request>
+
+    <enum name="error">
+      <entry name="no_keymap" value="0" summary="No keymap was set"/>
+    </enum>
+
+    <request name="key">
+      <description summary="key event">
+        A key was pressed or released.
+        The time argument is a timestamp with millisecond granularity, with an
+        undefined base. All requests regarding a single object must share the
+        same clock.
+
+        Keymap must be set before issuing this request.
+
+        State carries a value from the key_state enumeration.
+      </description>
+      <arg name="time" type="uint" summary="timestamp with millisecond granularity"/>
+      <arg name="key" type="uint" summary="key that produced the event"/>
+      <arg name="state" type="uint" summary="physical state of the key"/>
+    </request>
+
+    <request name="modifiers">
+      <description summary="modifier and group state">
+        Notifies the compositor that the modifier and/or group state has
+        changed, and it should update state.
+
+        The client should use wl_keyboard.modifiers event to synchronize its
+        internal state with seat state.
+
+        Keymap must be set before issuing this request.
+      </description>
+      <arg name="mods_depressed" type="uint" summary="depressed modifiers"/>
+      <arg name="mods_latched" type="uint" summary="latched modifiers"/>
+      <arg name="mods_locked" type="uint" summary="locked modifiers"/>
+      <arg name="group" type="uint" summary="keyboard layout"/>
+    </request>
+
+    <request name="destroy" type="destructor" since="1">
+      <description summary="destroy the virtual keyboard keyboard object"/>
+    </request>
+  </interface>
+
+  <interface name="zwp_virtual_keyboard_manager_v1" version="1">
+    <description summary="virtual keyboard manager">
+      A virtual keyboard manager allows an application to provide keyboard
+      input events as if they came from a physical keyboard.
+    </description>
+
+    <enum name="error">
+      <entry name="unauthorized" value="0" summary="client not authorized to use the interface"/>
+    </enum>
+
+    <request name="create_virtual_keyboard">
+      <description summary="Create a new virtual keyboard">
+        Creates a new virtual keyboard associated to a seat.
+
+        If the compositor enables a keyboard to perform arbitrary actions, it
+        should present an error when an untrusted client requests a new
+        keyboard.
+      </description>
+      <arg name="seat" type="object" interface="wl_seat"/>
+      <arg name="id" type="new_id" interface="zwp_virtual_keyboard_v1"/>
+    </request>
+  </interface>
+</protocol>

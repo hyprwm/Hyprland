@@ -11,6 +11,7 @@
 class CPointerConstraint;
 class CWindow;
 class CIdleInhibitor;
+class CVirtualKeyboard;
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
@@ -77,7 +78,7 @@ class CInputManager {
     void               onKeyboardMod(void*, SKeyboard*);
 
     void               newKeyboard(wlr_input_device*);
-    void               newVirtualKeyboard(wlr_input_device*);
+    void               newVirtualKeyboard(SP<CVirtualKeyboard>);
     void               newMouse(wlr_input_device*, bool virt = false);
     void               newTouchDevice(wlr_input_device*);
     void               newSwitch(wlr_input_device*);
@@ -199,6 +200,7 @@ class CInputManager {
     struct {
         CHyprSignalListener setCursorShape;
         CHyprSignalListener newIdleInhibitor;
+        CHyprSignalListener newVirtualKeyboard;
     } m_sListeners;
 
     bool                 m_bCursorImageOverridden = false;

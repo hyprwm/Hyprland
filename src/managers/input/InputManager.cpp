@@ -816,6 +816,9 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboard> keyboard) {
         },
         PNEWKEYBOARD, "VKeyboard");
 
+    // TODO: this pointer pass sucks.
+    PNEWKEYBOARD->listeners.destroyVKeyboard = keyboard->events.destroy.registerListener([this, PNEWKEYBOARD](std::any data) { destroyKeyboard(PNEWKEYBOARD); });
+
     disableAllKeyboards(true);
 
     m_pActiveKeyboard = PNEWKEYBOARD;

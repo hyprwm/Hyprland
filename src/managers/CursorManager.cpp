@@ -117,6 +117,14 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
     if (m_sCurrentCursorShapeData.images.size() < 1) {
+        // try with '-' first (xcursor, web, etc)
+        std::string newName = name;
+        std::replace(newName.begin(), newName.end(), '_', '-');
+
+        m_sCurrentCursorShapeData = m_pHyprcursor->getShape(newName.c_str(), m_sCurrentStyleInfo);
+    }
+
+    if (m_sCurrentCursorShapeData.images.size() < 1) {
         // fallback to a default if available
         constexpr const std::array<const char*, 2> fallbackShapes = {"default", "left_ptr"};
 

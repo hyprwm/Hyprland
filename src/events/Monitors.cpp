@@ -115,10 +115,20 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
         }
     }
 
-    static auto PCURSORMONITOR = *CConfigValue<std::string>("general:default_cursor_monitor");
+    static auto PCURSORMONITOR    = CConfigValue<std::string>("general:default_cursor_monitor");
+    static auto firstMonitorAdded = std::chrono::system_clock::now();
+    static bool cursorDefaultDone = false;
 
-    if (PCURSORMONITOR != STRVAL_EMPTY && PCURSORMONITOR == OUTPUT->name) {
-        const auto POS = PNEWMONITOR->middle();
+    if (cursorDefaultDone || *PCURSORMONITOR == STRVAL_EMPTY)
+        return;
+
+    auto timePassedSec = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - firstMonitorAdded);
+    if (timePassedSec.count() > 10)
+        cursorDefaultDone = true;
+
+    if (*PCURSORMONITOR == OUTPUT->name) {
+        cursorDefaultDone = true;
+        const auto POS    = PNEWMONITOR->middle();
         if (g_pCompositor->m_sSeat.mouse != nullptr)
             wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, POS.x, POS.y);
     }

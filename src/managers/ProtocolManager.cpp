@@ -20,6 +20,7 @@
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/InputMethodV2.hpp"
+#include "../protocols/VirtualKeyboard.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -43,6 +44,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::idle               = std::make_unique<CIdleNotifyProtocol>(&ext_idle_notifier_v1_interface, 1, "IdleNotify");
     PROTO::sessionLock        = std::make_unique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "SessionLock");
     PROTO::ime                = std::make_unique<CInputMethodV2Protocol>(&zwp_input_method_manager_v2_interface, 1, "IMEv2");
+    PROTO::virtualKeyboard    = std::make_unique<CVirtualKeyboardProtocol>(&zwp_virtual_keyboard_manager_v1_interface, 1, "VirtualKeyboard");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

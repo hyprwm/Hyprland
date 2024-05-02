@@ -10,6 +10,7 @@
 #include "Region.hpp"
 
 class CMonitor;
+class CVirtualKeyboard;
 
 struct SRenderData {
     CMonitor* pMonitor;
@@ -71,23 +72,25 @@ struct SKeyboard {
     DYNLISTENER(keyboardKeymap);
     DYNLISTENER(keyboardDestroy);
 
-    bool               isVirtual = false;
-    bool               active    = false;
-    bool               enabled   = true;
+    bool                 isVirtual = false;
+    bool                 active    = false;
+    bool                 enabled   = true;
 
-    xkb_layout_index_t activeLayout        = 0;
-    xkb_state*         xkbTranslationState = nullptr;
+    WP<CVirtualKeyboard> virtKeyboard;
 
-    std::string        name        = "";
-    std::string        xkbFilePath = "";
+    xkb_layout_index_t   activeLayout        = 0;
+    xkb_state*           xkbTranslationState = nullptr;
 
-    SStringRuleNames   currentRules;
-    int                repeatRate        = 0;
-    int                repeatDelay       = 0;
-    int                numlockOn         = -1;
-    bool               resolveBindsBySym = false;
+    std::string          name        = "";
+    std::string          xkbFilePath = "";
 
-    void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+    SStringRuleNames     currentRules;
+    int                  repeatRate        = 0;
+    int                  repeatDelay       = 0;
+    int                  numlockOn         = -1;
+    bool                 resolveBindsBySym = false;
+
+    void                 updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
 
     // For the list lookup
     bool operator==(const SKeyboard& rhs) const {

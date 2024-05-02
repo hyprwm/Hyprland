@@ -140,12 +140,6 @@ void Events::listener_pinchEnd(wl_listener* listener, void* data) {
     PROTO::pointerGestures->pinchEnd(EV->time_msec, EV->cancelled);
 }
 
-void Events::listener_newVirtualKeyboard(wl_listener* listener, void* data) {
-    const auto WLRKB = (wlr_virtual_keyboard_v1*)data;
-
-    g_pInputManager->newVirtualKeyboard(&WLRKB->keyboard.base);
-}
-
 void Events::listener_touchBegin(wl_listener* listener, void* data) {
     g_pInputManager->onTouchDown((wlr_touch_down_event*)data);
 }

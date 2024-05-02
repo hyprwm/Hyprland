@@ -40,32 +40,31 @@ class CCompositor {
     ~CCompositor();
 
     // ------------------ WLR BASICS ------------------ //
-    wl_display*                      m_sWLDisplay;
-    wl_event_loop*                   m_sWLEventLoop;
-    wlr_backend*                     m_sWLRBackend;
-    wlr_session*                     m_sWLRSession;
-    wlr_renderer*                    m_sWLRRenderer;
-    wlr_allocator*                   m_sWLRAllocator;
-    wlr_compositor*                  m_sWLRCompositor;
-    wlr_subcompositor*               m_sWLRSubCompositor;
-    wlr_data_device_manager*         m_sWLRDataDevMgr;
-    wlr_drm*                         m_sWRLDRM;
-    wlr_drm_lease_v1_manager*        m_sWRLDRMLeaseMgr;
-    wlr_output_layout*               m_sWLROutputLayout;
-    wlr_layer_shell_v1*              m_sWLRLayerShell;
-    wlr_xdg_shell*                   m_sWLRXDGShell;
-    wlr_cursor*                      m_sWLRCursor;
-    wlr_virtual_keyboard_manager_v1* m_sWLRVKeyboardMgr;
-    wlr_output_manager_v1*           m_sWLROutputMgr;
-    wlr_presentation*                m_sWLRPresentation;
-    wlr_egl*                         m_sWLREGL;
-    int                              m_iDRMFD;
-    wlr_server_decoration_manager*   m_sWLRServerDecoMgr;
-    wlr_virtual_pointer_manager_v1*  m_sWLRVirtPtrMgr;
-    wlr_tablet_manager_v2*           m_sWLRTabletManager;
-    wlr_xdg_foreign_registry*        m_sWLRForeignRegistry;
-    wlr_linux_dmabuf_v1*             m_sWLRLinuxDMABuf;
-    wlr_backend*                     m_sWLRHeadlessBackend;
+    wl_display*                     m_sWLDisplay;
+    wl_event_loop*                  m_sWLEventLoop;
+    wlr_backend*                    m_sWLRBackend;
+    wlr_session*                    m_sWLRSession;
+    wlr_renderer*                   m_sWLRRenderer;
+    wlr_allocator*                  m_sWLRAllocator;
+    wlr_compositor*                 m_sWLRCompositor;
+    wlr_subcompositor*              m_sWLRSubCompositor;
+    wlr_data_device_manager*        m_sWLRDataDevMgr;
+    wlr_drm*                        m_sWRLDRM;
+    wlr_drm_lease_v1_manager*       m_sWRLDRMLeaseMgr;
+    wlr_output_layout*              m_sWLROutputLayout;
+    wlr_layer_shell_v1*             m_sWLRLayerShell;
+    wlr_xdg_shell*                  m_sWLRXDGShell;
+    wlr_cursor*                     m_sWLRCursor;
+    wlr_output_manager_v1*          m_sWLROutputMgr;
+    wlr_presentation*               m_sWLRPresentation;
+    wlr_egl*                        m_sWLREGL;
+    int                             m_iDRMFD;
+    wlr_server_decoration_manager*  m_sWLRServerDecoMgr;
+    wlr_virtual_pointer_manager_v1* m_sWLRVirtPtrMgr;
+    wlr_tablet_manager_v2*          m_sWLRTabletManager;
+    wlr_xdg_foreign_registry*       m_sWLRForeignRegistry;
+    wlr_linux_dmabuf_v1*            m_sWLRLinuxDMABuf;
+    wlr_backend*                    m_sWLRHeadlessBackend;
     // ------------------------------------------------- //
 
     std::string                               m_szHyprTempDataRoot = "";

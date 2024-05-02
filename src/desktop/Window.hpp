@@ -378,6 +378,9 @@ class CWindow {
 
     bool     m_bTearingHint = false;
 
+    // stores the currently matched window rules
+    std::vector<SWindowRule> m_vMatchedRules;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&

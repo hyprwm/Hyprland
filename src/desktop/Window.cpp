@@ -748,10 +748,12 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.nearestNeighbor = false;
     m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
-    const auto WINDOWRULES = g_pConfigManager->getMatchingRules(m_pSelf.lock());
-    for (auto& r : WINDOWRULES) {
+    m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
+    for (auto& r : m_vMatchedRules) {
         applyDynamicRule(r);
     }
+
+    EMIT_HOOK_EVENT("windowUpdateRules", m_pSelf.lock());
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
 }

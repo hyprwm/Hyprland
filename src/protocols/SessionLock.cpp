@@ -1,5 +1,6 @@
 #include "SessionLock.hpp"
 #include "../Compositor.hpp"
+#include "FractionalScale.hpp"
 
 #define LOGM PROTO::sessionLock->protoLog
 
@@ -58,6 +59,8 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
             pSurface = nullptr;
         },
         this, "SessionLockSurface");
+
+    PROTO::fractional->sendScale(surface_, pMonitor_->scale);
 
     sendConfigure();
 

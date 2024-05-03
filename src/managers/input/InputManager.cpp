@@ -1195,6 +1195,7 @@ void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
     pKeyboard->hyprListener_keyboardKey.removeCallback();
 
     xkb_state_unref(pKeyboard->xkbTranslationState);
+    pKeyboard->xkbTranslationState = nullptr;
 
     m_lKeyboards.remove(*pKeyboard);
 

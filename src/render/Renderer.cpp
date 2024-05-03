@@ -1474,70 +1474,6 @@ void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
     Debug::log(LOG, "Scanout mode ON set for {}", pWindow);
 }
 
-void CHyprRenderer::outputMgrApplyTest(wlr_output_configuration_v1* config, bool test) {
-    wlr_output_configuration_head_v1* head;
-    bool                              ok = true;
-
-    wl_list_for_each(head, &config->heads, link) {
-
-        std::string commandForCfg = "";
-        const auto  OUTPUT        = head->state.output;
-
-        commandForCfg += std::string(OUTPUT->name) + ",";
-
-        if (!head->state.enabled) {
-            commandForCfg += "disabled";
-            if (!test)
-                g_pConfigManager->parseKeyword("monitor", commandForCfg);
-            continue;
-        }
-
-        const auto PMONITOR = g_pCompositor->getRealMonitorFromOutput(OUTPUT);
-        RASSERT(PMONITOR, "nullptr monitor in outputMgrApplyTest");
-        wlr_output_state_set_enabled(PMONITOR->state.wlr(), head->state.enabled);
-
-        if (head->state.mode)
-            commandForCfg +=
-                std::to_string(head->state.mode->width) + "x" + std::to_string(head->state.mode->height) + "@" + std::to_string(head->state.mode->refresh / 1000.f) + ",";
-        else
-            commandForCfg += std::to_string(head->state.custom_mode.width) + "x" + std::to_string(head->state.custom_mode.height) + "@" +
-                std::to_string(head->state.custom_mode.refresh / 1000.f) + ",";
-
-        commandForCfg += std::to_string(head->state.x) + "x" + std::to_string(head->state.y) + "," + std::to_string(head->state.scale) + ",transform," +
-            std::to_string((int)head->state.transform);
-
-        if (!test) {
-            g_pConfigManager->parseKeyword("monitor", commandForCfg);
-            wlr_output_state_set_adaptive_sync_enabled(PMONITOR->state.wlr(), head->state.adaptive_sync_enabled);
-        }
-
-        ok = wlr_output_test_state(OUTPUT, PMONITOR->state.wlr());
-
-        if (!ok)
-            break;
-    }
-
-    if (!test) {
-        g_pConfigManager->m_bWantsMonitorReload = true; // for monitor keywords
-        // if everything is disabled, performMonitorReload won't be called from renderMonitor
-        bool allDisabled = std::all_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(),
-                                       [](const auto m) { return !m->m_bEnabled || g_pCompositor->m_pUnsafeOutput == m.get(); });
-        if (allDisabled) {
-            Debug::log(LOG, "OutputMgr apply: All monitors disabled; performing monitor reload.");
-            g_pConfigManager->performMonitorReload();
-        }
-    }
-
-    if (ok)
-        wlr_output_configuration_v1_send_succeeded(config);
-    else
-        wlr_output_configuration_v1_send_failed(config);
-
-    wlr_output_configuration_v1_destroy(config);
-
-    Debug::log(LOG, "OutputMgr Applied/Tested.");
-}
-
 // taken from Sway.
 // this is just too much of a spaghetti for me to understand
 static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
@@ -1939,6 +1875,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     // Needed in case we are switching from a custom modeline to a standard mode
     pMonitor->customDrmMode = {};
+    pMonitor->currentMode   = nullptr;
     bool autoScale          = false;
 
     if (RULE->scale > 0.1) {
@@ -1981,6 +1918,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
                     pMonitor->refreshRate = mode->refresh / 1000.f;
                     pMonitor->vecSize     = Vector2D(mode->width, mode->height);
+                    pMonitor->currentMode = mode;
 
                     break;
                 }
@@ -2010,6 +1948,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
                     pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
                     pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
+                    pMonitor->currentMode = PREFERREDMODE;
                 } else {
                     Debug::log(LOG, "Set a custom mode {:X0}@{:2f} (mode not found in monitor modes)", RULE->resolution, (float)RULE->refreshRate);
                 }
@@ -2118,6 +2057,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
                 pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
                 pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
+                pMonitor->currentMode = PREFERREDMODE;
             } else {
 
                 Debug::log(LOG, "Monitor {}: Applying highest mode {}x{}@{:2f}.", pMonitor->output->name, (int)currentWidth, (int)currentHeight, (int)currentRefresh / 1000.f);
@@ -2148,6 +2088,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
                     pMonitor->refreshRate = mode->refresh / 1000.f;
                     pMonitor->vecSize     = Vector2D(mode->width, mode->height);
+                    pMonitor->currentMode = mode;
 
                     break;
                 }
@@ -2158,6 +2099,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
             pMonitor->vecSize     = Vector2D(PREFERREDMODE->width, PREFERREDMODE->height);
             pMonitor->refreshRate = PREFERREDMODE->refresh / 1000.f;
+            pMonitor->currentMode = PREFERREDMODE;
 
             Debug::log(LOG, "Setting preferred mode for {}", pMonitor->output->name);
         }
@@ -2306,8 +2248,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
     pMonitor->events.modeChanged.emit();
-
-    Events::listener_change(nullptr, nullptr);
 
     return true;
 }

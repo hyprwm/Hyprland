@@ -43,7 +43,6 @@ class CHyprRenderer {
     CHyprRenderer();
 
     void                            renderMonitor(CMonitor* pMonitor);
-    void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
     void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
     void                            damageWindow(PHLWINDOW, bool forceFull = false);

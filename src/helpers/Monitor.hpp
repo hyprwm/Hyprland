@@ -96,6 +96,7 @@ class CMonitor {
     float                   xwaylandScale   = 1.f;
     std::array<float, 9>    projMatrix      = {0};
     std::optional<Vector2D> forceSize;
+    wlr_output_mode*        currentMode = nullptr;
 
     bool                    dpmsStatus       = true;
     bool                    vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

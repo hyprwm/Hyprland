@@ -243,8 +243,6 @@ void CCompositor::initServer() {
     m_sWLRServerDecoMgr = wlr_server_decoration_manager_create(m_sWLDisplay);
     wlr_server_decoration_manager_set_default_mode(m_sWLRServerDecoMgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
-    m_sWLROutputMgr = wlr_output_manager_v1_create(m_sWLDisplay);
-
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
         Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");
@@ -300,9 +298,6 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel, &m_sSeat, "Seat");
     addWLSignal(&m_sWLRLayerShell->events.new_surface, &Events::listen_newLayerSurface, m_sWLRLayerShell, "LayerShell");
-    addWLSignal(&m_sWLROutputLayout->events.change, &Events::listen_change, m_sWLROutputLayout, "OutputLayout");
-    addWLSignal(&m_sWLROutputMgr->events.apply, &Events::listen_outputMgrApply, m_sWLROutputMgr, "OutputMgr");
-    addWLSignal(&m_sWLROutputMgr->events.test, &Events::listen_outputMgrTest, m_sWLROutputMgr, "OutputMgr");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
 
     if (m_sWRLDRMLeaseMgr)
@@ -340,9 +335,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_requestSetSel);
     removeWLSignal(&Events::listen_requestSetPrimarySel);
     removeWLSignal(&Events::listen_newLayerSurface);
-    removeWLSignal(&Events::listen_change);
-    removeWLSignal(&Events::listen_outputMgrApply);
-    removeWLSignal(&Events::listen_outputMgrTest);
     removeWLSignal(&Events::listen_RendererDestroy);
 
     if (m_sWRLDRMLeaseMgr)

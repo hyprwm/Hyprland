@@ -22,6 +22,7 @@
 #include "../protocols/InputMethodV2.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
 #include "../protocols/VirtualPointer.hpp"
+#include "../protocols/FocusGrab.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -47,6 +48,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::ime                = std::make_unique<CInputMethodV2Protocol>(&zwp_input_method_manager_v2_interface, 1, "IMEv2");
     PROTO::virtualKeyboard    = std::make_unique<CVirtualKeyboardProtocol>(&zwp_virtual_keyboard_manager_v1_interface, 1, "VirtualKeyboard");
     PROTO::virtualPointer     = std::make_unique<CVirtualPointerProtocol>(&zwlr_virtual_pointer_manager_v1_interface, 2, "VirtualPointer");
+    PROTO::focusGrab          = std::make_unique<CFocusGrabProtocol>(&hyprland_focus_grab_manager_v1_interface, 1, "FocusGrab");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

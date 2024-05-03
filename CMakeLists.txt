@@ -280,6 +280,7 @@ protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "
 protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
 protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
 protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
+protocolNew("subprojects/hyprland-protocols/protocols/hyprland-focus-grab-v1.xml" "hyprland-focus-grab-v1" true)
 
 # tools
 add_subdirectory(hyprctl)

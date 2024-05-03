@@ -57,6 +57,7 @@ new_protocols = [
   [wl_protocol_dir, 'staging/xdg-activation/xdg-activation-v1.xml'],
   [wl_protocol_dir, 'staging/ext-idle-notify/ext-idle-notify-v1.xml'],
   [wl_protocol_dir, 'staging/ext-session-lock/ext-session-lock-v1.xml'],
+  [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
 ]
 
 wl_protos_src = []

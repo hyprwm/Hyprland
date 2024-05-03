@@ -19,6 +19,9 @@
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../hyprerror/HyprError.hpp"
+#include "../devices/IPointer.hpp"
+#include "../devices/IKeyboard.hpp"
+#include "../devices/ITouch.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -514,23 +517,24 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "{\n";
         result += "\"mice\": [\n";
 
-        for (auto& m : g_pInputManager->m_lMice) {
+        for (auto& m : g_pInputManager->m_vPointers) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}",
         "defaultSpeed": {:.5f}
     }},)#",
-                (uintptr_t)&m, escapeJSONStrings(m.name),
-                wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f);
+                (uintptr_t)m.get(), escapeJSONStrings(m->hlName),
+                wlr_input_device_is_libinput(&m->wlr()->base) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
+                                                                0.f);
         }
 
         trimTrailingComma(result);
         result += "\n],\n";
 
         result += "\"keyboards\": [\n";
-        for (auto& k : g_pInputManager->m_lKeyboards) {
-            const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
+        for (auto& k : g_pInputManager->m_vKeyboards) {
+            const auto KM = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -543,9 +547,9 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "active_keymap": "{}",
         "main": {}
     }},)#",
-                (uintptr_t)&k, escapeJSONStrings(k.name), escapeJSONStrings(k.currentRules.rules), escapeJSONStrings(k.currentRules.model),
-                escapeJSONStrings(k.currentRules.layout), escapeJSONStrings(k.currentRules.variant), escapeJSONStrings(k.currentRules.options), escapeJSONStrings(KM),
-                (k.active ? "true" : "false"));
+                (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
+                escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
+                (k->active ? "true" : "false"));
         }
 
         trimTrailingComma(result);
@@ -590,13 +594,13 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\"touch\": [\n";
 
-        for (auto& d : g_pInputManager->m_lTouchDevices) {
+        for (auto& d : g_pInputManager->m_vTouches) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, escapeJSONStrings(d.name));
+                (uintptr_t)d.get(), escapeJSONStrings(d->hlName));
         }
 
         trimTrailingComma(result);
@@ -621,19 +625,20 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     } else {
         result += "mice:\n";
 
-        for (auto& m : g_pInputManager->m_lMice) {
-            result += std::format(
-                "\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)&m, m.name,
-                (wlr_input_device_is_libinput(m.mouse) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(m.mouse)) : 0.f));
+        for (auto& m : g_pInputManager->m_vPointers) {
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
+                                  (wlr_input_device_is_libinput(&m->wlr()->base) ?
+                                       libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
+                                       0.f));
         }
 
         result += "\n\nKeyboards:\n";
 
-        for (auto& k : g_pInputManager->m_lKeyboards) {
-            const auto KM = g_pInputManager->getActiveLayoutForKeyboard(&k);
+        for (auto& k : g_pInputManager->m_vKeyboards) {
+            const auto KM = k->getActiveLayout();
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tmain: {}\n",
-                                  (uintptr_t)&k, k.name, k.currentRules.rules, k.currentRules.model, k.currentRules.layout, k.currentRules.variant, k.currentRules.options, KM,
-                                  (k.active ? "yes" : "no"));
+                                  (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant,
+                                  k->currentRules.options, KM, (k->active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";
@@ -652,8 +657,8 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\n\nTouch:\n";
 
-        for (auto& d : g_pInputManager->m_lTouchDevices) {
-            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.name);
+        for (auto& d : g_pInputManager->m_vTouches) {
+            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)d.get(), d->hlName);
         }
 
         result += "\n\nSwitches:\n";
@@ -1069,13 +1074,13 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
     const auto CMD = vars[2];
 
     // get kb
-    const auto PKEYBOARD = std::find_if(g_pInputManager->m_lKeyboards.begin(), g_pInputManager->m_lKeyboards.end(),
-                                        [&](const SKeyboard& other) { return other.name == g_pInputManager->deviceNameToInternalString(KB); });
+    const auto PKEYBOARD = std::find_if(g_pInputManager->m_vKeyboards.begin(), g_pInputManager->m_vKeyboards.end(),
+                                        [&](const auto& other) { return other->hlName == g_pInputManager->deviceNameToInternalString(KB); });
 
-    if (PKEYBOARD == g_pInputManager->m_lKeyboards.end())
+    if (PKEYBOARD == g_pInputManager->m_vKeyboards.end())
         return "device not found";
 
-    const auto         PWLRKEYBOARD = wlr_keyboard_from_input_device(PKEYBOARD->keyboard);
+    const auto         PWLRKEYBOARD = (*PKEYBOARD)->wlr();
     const auto         LAYOUTS      = xkb_keymap_num_layouts(PWLRKEYBOARD->keymap);
     xkb_layout_index_t activeLayout = 0;
     while (activeLayout < LAYOUTS) {

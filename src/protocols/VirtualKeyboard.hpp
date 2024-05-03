@@ -7,10 +7,10 @@
 #include "virtual-keyboard-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CVirtualKeyboard {
+class CVirtualKeyboardV1Resource {
   public:
-    CVirtualKeyboard(SP<CZwpVirtualKeyboardV1> resource_);
-    ~CVirtualKeyboard();
+    CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_);
+    ~CVirtualKeyboardV1Resource();
 
     struct {
         CSignal destroy;
@@ -39,14 +39,14 @@ class CVirtualKeyboardProtocol : public IWaylandProtocol {
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CVirtualKeyboard* keeb);
+    void destroyResource(CVirtualKeyboardV1Resource* keeb);
     void onCreateKeeb(CZwpVirtualKeyboardManagerV1* pMgr, wl_resource* seat, uint32_t id);
 
     //
     std::vector<UP<CZwpVirtualKeyboardManagerV1>> m_vManagers;
-    std::vector<SP<CVirtualKeyboard>>             m_vKeyboards;
+    std::vector<SP<CVirtualKeyboardV1Resource>>   m_vKeyboards;
 
-    friend class CVirtualKeyboard;
+    friend class CVirtualKeyboardV1Resource;
 };
 
 namespace PROTO {

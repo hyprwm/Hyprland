@@ -11,8 +11,11 @@
 class CPointerConstraint;
 class CWindow;
 class CIdleInhibitor;
-class CVirtualKeyboard;
-class CVirtualPointer;
+class CVirtualKeyboardV1Resource;
+class CVirtualPointerV1Resource;
+class IPointer;
+class IKeyboard;
+class ITouch;
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
@@ -75,23 +78,22 @@ class CInputManager {
     void               onMouseWarp(wlr_pointer_motion_absolute_event*);
     void               onMouseButton(wlr_pointer_button_event*);
     void               onMouseWheel(wlr_pointer_axis_event*);
-    void               onKeyboardKey(wlr_keyboard_key_event*, SKeyboard*);
-    void               onKeyboardMod(void*, SKeyboard*);
+    void               onKeyboardKey(std::any, SP<IKeyboard>);
+    void               onKeyboardMod(SP<IKeyboard>);
 
     void               newKeyboard(wlr_input_device*);
-    void               newVirtualKeyboard(SP<CVirtualKeyboard>);
+    void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
     void               newMouse(wlr_input_device*);
-    void               newVirtualMouse(SP<CVirtualPointer>);
+    void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(wlr_input_device*);
     void               newSwitch(wlr_input_device*);
-    void               destroyTouchDevice(STouchDevice*);
-    void               destroyKeyboard(SKeyboard*);
-    void               destroyMouse(wlr_input_device*);
+    void               destroyTouchDevice(SP<ITouch>);
+    void               destroyKeyboard(SP<IKeyboard>);
+    void               destroyPointer(SP<IPointer>);
     void               destroySwitch(SSwitchDevice*);
 
     void               unconstrainMouse();
     bool               isConstrained();
-    std::string        getActiveLayoutForKeyboard(SKeyboard*);
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
@@ -100,7 +102,7 @@ class CInputManager {
 
     void               setKeyboardLayout();
     void               setPointerConfigs();
-    void               setTouchDeviceConfigs(STouchDevice* dev = nullptr);
+    void               setTouchDeviceConfigs(SP<ITouch> dev = nullptr);
     void               setTabletConfigs();
 
     void               updateDragIcon();
@@ -122,20 +124,18 @@ class CInputManager {
     bool           m_bWasDraggingWindow = false;
 
     // for refocus to be forced
-    PHLWINDOWREF         m_pForcedFocus;
+    PHLWINDOWREF               m_pForcedFocus;
 
-    SDrag                m_sDrag;
+    SDrag                      m_sDrag;
 
-    std::list<SKeyboard> m_lKeyboards;
-    std::list<SMouse>    m_lMice;
+    std::vector<SP<IKeyboard>> m_vKeyboards;
+    std::vector<SP<IPointer>>  m_vPointers;
+    std::vector<SP<ITouch>>    m_vTouches;
 
     // tablets
     std::list<STablet>     m_lTablets;
     std::list<STabletTool> m_lTabletTools;
     std::list<STabletPad>  m_lTabletPads;
-
-    // Touch devices
-    std::list<STouchDevice> m_lTouchDevices;
 
     // Switches
     std::list<SSwitchDevice> m_lSwitches;
@@ -159,19 +159,15 @@ class CInputManager {
 
     SSwipeGesture     m_sActiveSwipe;
 
-    SKeyboard*        m_pActiveKeyboard = nullptr;
-
     CTimer            m_tmrLastCursorMovement;
 
     CInputMethodRelay m_sIMERelay;
-
-    void              updateKeyboardsLeds(wlr_input_device* pKeyboard);
 
     // for shared mods
     uint32_t accumulateModsFromAllKBs();
 
     // for virtual keyboards: whether we should respect them as normal ones
-    bool shouldIgnoreVirtualKeyboard(SKeyboard*);
+    bool shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
 
     // for special cursors that we choose
     void        setCursorImageUntilUnset(std::string);
@@ -213,6 +209,9 @@ class CInputManager {
     eClickBehaviorMode m_ecbClickBehavior      = CLICKMODE_DEFAULT;
     Vector2D           m_vLastCursorPosFloored = Vector2D();
 
+    void               setupKeyboard(SP<IKeyboard> keeb);
+    void               setupMouse(SP<IPointer> mauz);
+
     void               processMouseDownNormal(wlr_pointer_button_event* e);
     void               processMouseDownKill(wlr_pointer_button_event* e);
 
@@ -226,7 +225,7 @@ class CInputManager {
 
     STabletTool*       ensureTabletToolPresent(wlr_tablet_tool*);
 
-    void               applyConfigToKeyboard(SKeyboard*);
+    void               applyConfigToKeyboard(SP<IKeyboard>);
 
     // this will be set after a refocus()
     wlr_surface* m_pFoundSurfaceToFocus = nullptr;

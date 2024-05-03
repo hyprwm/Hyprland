@@ -11,8 +11,8 @@
 #include "Region.hpp"
 
 class CMonitor;
-class CVirtualKeyboard;
-class CVirtualPointer;
+class IPointer;
+class IKeyboard;
 
 struct SRenderData {
     CMonitor* pMonitor;
@@ -58,86 +58,12 @@ struct SExtensionFindingData {
     wlr_surface** found;
 };
 
-struct SStringRuleNames {
-    std::string layout  = "";
-    std::string model   = "";
-    std::string variant = "";
-    std::string options = "";
-    std::string rules   = "";
-};
-
-struct SKeyboard {
-    wlr_input_device* keyboard;
-
-    DYNLISTENER(keyboardMod);
-    DYNLISTENER(keyboardKey);
-    DYNLISTENER(keyboardKeymap);
-    DYNLISTENER(keyboardDestroy);
-
-    bool                 isVirtual = false;
-    bool                 active    = false;
-    bool                 enabled   = true;
-
-    WP<CVirtualKeyboard> virtKeyboard;
-
-    xkb_layout_index_t   activeLayout        = 0;
-    xkb_state*           xkbTranslationState = nullptr;
-
-    std::string          name        = "";
-    std::string          xkbFilePath = "";
-
-    SStringRuleNames     currentRules;
-    int                  repeatRate        = 0;
-    int                  repeatDelay       = 0;
-    int                  numlockOn         = -1;
-    bool                 resolveBindsBySym = false;
-
-    void                 updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
-
-    struct {
-        CHyprSignalListener destroyVKeyboard;
-    } listeners;
-
-    // For the list lookup
-    bool operator==(const SKeyboard& rhs) const {
-        return keyboard == rhs.keyboard;
-    }
-
-    ~SKeyboard() {
-        if (xkbTranslationState)
-            xkb_state_unref(xkbTranslationState);
-    }
-};
-
-struct SMouse {
-    wlr_input_device*   mouse = nullptr;
-
-    std::string         name = "";
-
-    bool                virt = false;
-
-    bool                connected = false; // means connected to the cursor
-
-    WP<CVirtualPointer> virtualPointer;
-
-    struct {
-        CHyprSignalListener destroyMouse;
-    } listeners;
-
-    DYNLISTENER(destroyMouse);
-
-    bool operator==(const SMouse& b) const {
-        return mouse == b.mouse;
-    }
-};
-
-class CMonitor;
-
 struct SSeat {
-    wlr_seat*  seat            = nullptr;
-    wl_client* exclusiveClient = nullptr;
+    wlr_seat*     seat            = nullptr;
+    wl_client*    exclusiveClient = nullptr;
 
-    SMouse*    mouse = nullptr;
+    WP<IPointer>  mouse;
+    WP<IKeyboard> keyboard;
 };
 
 struct SDrag {
@@ -236,20 +162,6 @@ struct SSwipeGesture {
     int          touch_id         = 0;
 
     CMonitor*    pMonitor = nullptr;
-};
-
-struct STouchDevice {
-    wlr_input_device* pWlrDevice = nullptr;
-
-    std::string       name = "";
-
-    std::string       boundOutput = "";
-
-    DYNLISTENER(destroy);
-
-    bool operator==(const STouchDevice& other) const {
-        return pWlrDevice == other.pWlrDevice;
-    }
 };
 
 struct SSwitchDevice {

@@ -444,8 +444,9 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             else
                 outName = std::to_string(finalWSID);
 
-        } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+        } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
+            bool absolute = in[1] == '~';
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
@@ -453,7 +454,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             }
 
             // monitor relative
-            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(1), 0);
+            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(absolute ? 2 : 1), 0);
 
             if (!PLUSMINUSRESULT.has_value())
                 return WORKSPACE_INVALID;
@@ -473,27 +474,41 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
-            // get the offset
-            remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
-            // get the current item
-            int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
             int currentItem = -1;
-            for (size_t i = 0; i < validWSes.size(); i++) {
-                if (validWSes[i] == activeWSID) {
-                    currentItem = i;
-                    break;
+
+            if (absolute) {
+                // 1-index
+                currentItem = remains - 1;
+
+                // clamp
+                if (currentItem < 0) {
+                    currentItem = 0;
+                } else if (currentItem >= (int)validWSes.size()) {
+                    currentItem = validWSes.size() - 1;
                 }
-            }
+            } else {
+                // get the offset
+                remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
-            // apply
-            currentItem += remains;
+                // get the current item
+                int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+                for (size_t i = 0; i < validWSes.size(); i++) {
+                    if (validWSes[i] == activeWSID) {
+                        currentItem = i;
+                        break;
+                    }
+                }
 
-            // sanitize
-            if (currentItem >= (int)validWSes.size()) {
-                currentItem = currentItem % validWSes.size();
-            } else if (currentItem < 0) {
-                currentItem = validWSes.size() + currentItem;
+                // apply
+                currentItem += remains;
+
+                // sanitize
+                if (currentItem >= (int)validWSes.size()) {
+                    currentItem = currentItem % validWSes.size();
+                } else if (currentItem < 0) {
+                    currentItem = validWSes.size() + currentItem;
+                }
             }
 
             result  = validWSes[currentItem];

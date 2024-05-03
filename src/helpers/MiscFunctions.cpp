@@ -355,7 +355,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 remains -= 1;
 
                 // traverse valid workspaces until we reach the remains
-                if ((size_t) remains < namedWSes.size()) {
+                if ((size_t)remains < namedWSes.size()) {
                     result = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
@@ -456,7 +456,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                         finalWSID = curID;
                     }
                 }
-                result                = finalWSID;
+                result = finalWSID;
             }
 
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result);
@@ -467,7 +467,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
         } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
-            bool absolute = in[1] == '~';
+            bool absolute      = in[1] == '~';
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
@@ -495,7 +495,6 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
-
             int currentItem = -1;
 
             if (absolute) {
@@ -513,7 +512,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
                 // get the current item
-                int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+                int activeWSID = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
                 for (size_t i = 0; i < validWSes.size(); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;

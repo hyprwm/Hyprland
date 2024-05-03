@@ -6,7 +6,7 @@ static const wlr_pointer_impl pointerImpl = {
     .name = "virtual-pointer-v1",
 };
 
-CVirtualPointer::CVirtualPointer(SP<CZwlrVirtualPointerV1> resource_) : resource(resource_) {
+CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_) : resource(resource_) {
     if (!good())
         return;
 
@@ -19,7 +19,7 @@ CVirtualPointer::CVirtualPointer(SP<CZwlrVirtualPointerV1> resource_) : resource
         PROTO::virtualPointer->destroyResource(this);
     });
 
-    wlr_pointer_init(&pointer, &pointerImpl, "CVirtualPointer");
+    wlr_pointer_init(&pointer, &pointerImpl, "CVirtualPointerV1Resource");
 
     resource->setMotion([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, wl_fixed_t dx, wl_fixed_t dy) {
         wlr_pointer_motion_event event = {
@@ -108,20 +108,20 @@ CVirtualPointer::CVirtualPointer(SP<CZwlrVirtualPointerV1> resource_) : resource
     });
 }
 
-CVirtualPointer::~CVirtualPointer() {
+CVirtualPointerV1Resource::~CVirtualPointerV1Resource() {
     wlr_pointer_finish(&pointer);
     events.destroy.emit();
 }
 
-bool CVirtualPointer::good() {
+bool CVirtualPointerV1Resource::good() {
     return resource->resource();
 }
 
-wlr_pointer* CVirtualPointer::wlr() {
+wlr_pointer* CVirtualPointerV1Resource::wlr() {
     return &pointer;
 }
 
-wl_client* CVirtualPointer::client() {
+wl_client* CVirtualPointerV1Resource::client() {
     return resource->client();
 }
 
@@ -145,13 +145,13 @@ void CVirtualPointerProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
 }
 
-void CVirtualPointerProtocol::destroyResource(CVirtualPointer* pointer) {
+void CVirtualPointerProtocol::destroyResource(CVirtualPointerV1Resource* pointer) {
     std::erase_if(m_vPointers, [&](const auto& other) { return other.get() == pointer; });
 }
 
 void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id) {
 
-    const auto RESOURCE = m_vPointers.emplace_back(std::make_shared<CVirtualPointer>(std::make_shared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_vPointers.emplace_back(std::make_shared<CVirtualPointerV1Resource>(std::make_shared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

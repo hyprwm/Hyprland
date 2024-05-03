@@ -5,6 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "TokenManager.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
+#include "../devices/IKeyboard.hpp"
 
 #include <regex>
 #include <tuple>
@@ -323,7 +324,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
     }
 };
 
-bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
         m_dPressedKeys.clear();
         return true;
@@ -337,17 +338,19 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
             return true;
     }
 
-    const auto         KEYCODE = e->keycode + 8; // Because to xkbcommon it's +8 from libinput
+    auto               e = std::any_cast<IKeyboard::SKeyEvent>(event);
+
+    const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
     const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbTranslationState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(wlr_keyboard_from_input_device(pKeyboard->keyboard)->xkb_state, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->wlr()->xkb_state, KEYCODE);
 
     if (handleInternalKeybinds(internalKeysym))
         return true;
 
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
-    m_uTimeLastMs    = e->time_msec;
+    m_uTimeLastMs    = e.timeMs;
     m_uLastCode      = KEYCODE;
     m_uLastMouseCode = 0;
 
@@ -368,7 +371,7 @@ bool CKeybindManager::onKeyEvent(wlr_keyboard_key_event* e, SKeyboard* pKeyboard
     }
 
     bool suppressEvent = false;
-    if (e->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+    if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 
         m_dPressedKeys.push_back(KEY);
 
@@ -521,7 +524,7 @@ void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
 int repeatKeyHandler(void* data) {
     SKeybind** ppActiveKeybind = (SKeybind**)data;
 
-    if (!*ppActiveKeybind)
+    if (!*ppActiveKeybind || g_pCompositor->m_sSeat.keyboard.expired())
         return 0;
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find((*ppActiveKeybind)->handler);
@@ -529,7 +532,7 @@ int repeatKeyHandler(void* data) {
     Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
     DISPATCHER->second((*ppActiveKeybind)->arg);
 
-    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pInputManager->m_pActiveKeyboard->repeatRate);
+    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pCompositor->m_sSeat.keyboard.lock()->repeatRate);
 
     return 0;
 }
@@ -650,7 +653,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             m_pActiveKeybind            = &k;
             m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybind);
 
-            const auto PACTIVEKEEB = g_pInputManager->m_pActiveKeyboard;
+            const auto PACTIVEKEEB = g_pCompositor->m_sSeat.keyboard.lock();
 
             wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
         }
@@ -1440,22 +1443,20 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
     switch (CORNER) {
         case 0:
             // bottom left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x,
-                            PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
             break;
         case 1:
             // bottom right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
                             PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
             break;
         case 2:
             // top right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
-                            PWINDOW->m_vRealPosition.value().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y);
             break;
         case 3:
             // top left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y);
+            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y);
             break;
     }
 }
@@ -1485,7 +1486,7 @@ void CKeybindManager::moveCursor(std::string args) {
     x = std::stoi(x_str);
     y = std::stoi(y_str);
 
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, g_pCompositor->m_sSeat.mouse->mouse, x, y);
+    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, x, y);
 }
 
 void CKeybindManager::workspaceOpt(std::string args) {

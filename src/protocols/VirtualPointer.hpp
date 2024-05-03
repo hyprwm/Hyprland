@@ -8,10 +8,10 @@
 #include "wlr-virtual-pointer-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CVirtualPointer {
+class CVirtualPointerV1Resource {
   public:
-    CVirtualPointer(SP<CZwlrVirtualPointerV1> resource_);
-    ~CVirtualPointer();
+    CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_);
+    ~CVirtualPointerV1Resource();
 
     struct {
         CSignal destroy;
@@ -37,19 +37,19 @@ class CVirtualPointerProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     struct {
-        CSignal newPointer; // SP<CVirtualPointer>
+        CSignal newPointer; // SP<CVirtualPointerV1Resource>
     } events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
-    void destroyResource(CVirtualPointer* pointer);
+    void destroyResource(CVirtualPointerV1Resource* pointer);
     void onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id);
 
     //
     std::vector<UP<CZwlrVirtualPointerManagerV1>> m_vManagers;
-    std::vector<SP<CVirtualPointer>>              m_vPointers;
+    std::vector<SP<CVirtualPointerV1Resource>>    m_vPointers;
 
-    friend class CVirtualPointer;
+    friend class CVirtualPointerV1Resource;
 };
 
 namespace PROTO {

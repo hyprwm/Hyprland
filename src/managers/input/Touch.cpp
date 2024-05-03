@@ -2,6 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../protocols/IdleNotify.hpp"
+#include "../../devices/ITouch.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
@@ -15,10 +16,10 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     auto       PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
 
-    const auto PDEVIT = std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&](const STouchDevice& other) { return other.pWlrDevice == &e->touch->base; });
+    const auto PDEVIT = std::find_if(m_vTouches.begin(), m_vTouches.end(), [&](const auto& other) { return other->wlr() == e->touch; });
 
-    if (PDEVIT != m_lTouchDevices.end() && !PDEVIT->boundOutput.empty())
-        PMONITOR = g_pCompositor->getMonitorFromName(PDEVIT->boundOutput);
+    if (PDEVIT != m_vTouches.end() && !(*PDEVIT)->boundOutput.empty())
+        PMONITOR = g_pCompositor->getMonitorFromName((*PDEVIT)->boundOutput);
 
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
 

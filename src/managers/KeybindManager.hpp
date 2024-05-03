@@ -9,6 +9,7 @@
 class CInputManager;
 class CConfigManager;
 class CPluginSystem;
+class IKeyboard;
 
 struct SKeybind {
     std::string key          = "";
@@ -60,7 +61,7 @@ class CKeybindManager {
     CKeybindManager();
     ~CKeybindManager();
 
-    bool                                                              onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
+    bool                                                              onKeyEvent(std::any, SP<IKeyboard>);
     bool                                                              onAxisEvent(wlr_pointer_axis_event*);
     bool                                                              onMouseEvent(wlr_pointer_button_event*);
     void                                                              resizeWithBorder(wlr_pointer_button_event*);

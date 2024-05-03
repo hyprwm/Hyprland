@@ -2418,10 +2418,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
     if (*PNOWARPS && !force)
         return;
 
-    if (!m_sSeat.mouse)
-        return;
-
-    wlr_cursor_warp(m_sWLRCursor, m_sSeat.mouse->mouse, pos.x, pos.y);
+    wlr_cursor_warp(m_sWLRCursor, nullptr, pos.x, pos.y);
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
     if (PMONITORNEW != m_pLastMonitor)

@@ -707,8 +707,6 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_vRealSize                     = Vector2D(std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
                                                        std::min((double)m_sAdditionalConfigData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
-            if (m_sGroupData.pNextWindow.expired())
-                setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
         try {

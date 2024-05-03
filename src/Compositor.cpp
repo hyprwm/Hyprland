@@ -421,8 +421,22 @@ void CCompositor::cleanup() {
     g_pWatchdog.reset();
     g_pXWaylandManager.reset();
 
-    wl_display_terminate(m_sWLDisplay);
+    if (m_sWLRCursor)
+        wlr_cursor_destroy(m_sWLRCursor);
 
+    if (m_sSeat.seat)
+        wlr_seat_destroy(m_sSeat.seat);
+
+    if (m_sWLRRenderer)
+        wlr_renderer_destroy(m_sWLRRenderer);
+
+    if (m_sWLRAllocator)
+        wlr_allocator_destroy(m_sWLRAllocator);
+
+    if (m_sWLRBackend)
+        wlr_backend_destroy(m_sWLRBackend);
+
+    wl_display_terminate(m_sWLDisplay);
     m_sWLDisplay = nullptr;
 }
 

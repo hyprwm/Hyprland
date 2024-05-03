@@ -102,6 +102,11 @@ struct SKeyboard {
     bool operator==(const SKeyboard& rhs) const {
         return keyboard == rhs.keyboard;
     }
+
+    ~SKeyboard() {
+        if (xkbTranslationState)
+            xkb_state_unref(xkbTranslationState);
+    }
 };
 
 struct SMouse {

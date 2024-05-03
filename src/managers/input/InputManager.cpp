@@ -12,6 +12,7 @@
 #include "../../protocols/SessionLock.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/VirtualKeyboard.hpp"
+#include "../../protocols/VirtualPointer.hpp"
 
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
@@ -40,6 +41,8 @@ CInputManager::CInputManager() {
     m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
     m_sListeners.newVirtualKeyboard =
         PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) { this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboard>>(data)); });
+    m_sListeners.newVirtualMouse =
+        PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) { this->newVirtualMouse(std::any_cast<SP<CVirtualPointer>>(data)); });
 }
 
 CInputManager::~CInputManager() {
@@ -968,12 +971,41 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
                pKeyboard->keyboard->name);
 }
 
-void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
+void CInputManager::newVirtualMouse(SP<CVirtualPointer> mouse) {
+    const auto PMOUSE = &m_lMice.emplace_back();
+
+    PMOUSE->mouse          = &mouse->wlr()->base;
+    PMOUSE->virtualPointer = mouse;
+    PMOUSE->virt           = true;
+    try {
+        PMOUSE->name = getNameForNewDevice(mouse->wlr()->base.name);
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Mouse had no name???"); // logic error
+    }
+
+    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, &mouse->wlr()->base);
+
+    PMOUSE->connected = true;
+
+    setPointerConfigs();
+
+    PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->wlr()->base.events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
+
+    // TODO: this pointer pass sucks.
+    PMOUSE->listeners.destroyMouse = mouse->events.destroy.registerListener([this, PMOUSE](std::any data) { destroyMouse(PMOUSE->mouse); });
+
+    g_pCompositor->m_sSeat.mouse = PMOUSE;
+
+    m_tmrLastCursorMovement.reset();
+
+    Debug::log(LOG, "New virtual mouse created, pointer WLR: {:x}", (uintptr_t)mouse->wlr());
+}
+
+void CInputManager::newMouse(wlr_input_device* mouse) {
     m_lMice.emplace_back();
     const auto PMOUSE = &m_lMice.back();
 
     PMOUSE->mouse = mouse;
-    PMOUSE->virt  = virt;
     try {
         PMOUSE->name = getNameForNewDevice(mouse->name);
     } catch (std::exception& e) {

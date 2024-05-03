@@ -305,13 +305,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         outName = PLASTWORKSPACE->m_szName;
         return PLASTWORKSPACE->m_iID;
     } else {
-        if (in[0] == 'r' && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+        if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
+            bool absolute = in[1] == '~';
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
                 return WORKSPACE_INVALID;
             }
 
-            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(1), 0);
+            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(absolute ? 2 : 1), 0);
 
             if (!PLUSMINUSRESULT.has_value())
                 return WORKSPACE_INVALID;
@@ -349,103 +350,124 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             }
             std::sort(namedWSes.begin(), namedWSes.end());
 
-            // Just take a blind guess at where we'll probably end up
-            int  activeWSID    = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
-            int  predictedWSID = activeWSID + remains;
-            int  remainingWSes = 0;
-            char walkDir       = in[1];
+            if (absolute) {
+                // 1-index
+                remains -= 1;
 
-            // sanitize. 0 means invalid oob in -
-            predictedWSID = std::max(predictedWSID, 0);
-
-            // Count how many invalidWSes are in between (how bad the prediction was)
-            int  beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
-            int  endID   = in[1] == '+' ? predictedWSID : activeWSID;
-            auto begin   = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
-            for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
-                remainingWSes++;
-            }
-
-            // Handle named workspaces. They are treated like always before other workspaces
-            if (activeWSID < 0) {
-                // Behaviour similar to 'm'
-                // Find current
-                int currentItem = -1;
-                for (size_t i = 0; i < namedWSes.size(); i++) {
-                    if (namedWSes[i] == activeWSID) {
-                        currentItem = i;
-                        break;
-                    }
-                }
-
-                currentItem += remains;
-                currentItem = std::max(currentItem, 0);
-                if (currentItem >= (int)namedWSes.size()) {
-                    // At the seam between namedWSes and normal WSes. Behave like r+[diff] at imaginary ws 0
-                    int diff      = currentItem - (namedWSes.size() - 1);
-                    predictedWSID = diff;
-                    int  beginID  = 1;
-                    int  endID    = predictedWSID;
-                    auto begin    = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
-                    for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
-                        remainingWSes++;
-                    }
-                    walkDir = '+';
+                // traverse valid workspaces until we reach the remains
+                if ((size_t)remains < namedWSes.size()) {
+                    result = namedWSes[remains];
                 } else {
-                    // We found our final ws.
-                    remainingWSes = 0;
-                    predictedWSID = namedWSes[currentItem];
-                }
-            }
-
-            // Go in the search direction for remainingWSes
-            // The performance impact is directly proportional to the number of open and bound workspaces
-            int finalWSID = predictedWSID;
-            if (walkDir == '-') {
-                int beginID = finalWSID;
-                int curID   = finalWSID;
-                while (--curID > 0 && remainingWSes > 0) {
-                    if (!invalidWSes.contains(curID)) {
-                        remainingWSes--;
+                    remains -= namedWSes.size();
+                    result = 0;
+                    while (remains >= 0) {
+                        result++;
+                        if (!invalidWSes.contains(result)) {
+                            remains--;
+                        }
                     }
-                    finalWSID = curID;
                 }
-                if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
-                    if (namedWSes.size()) {
-                        // Go to the named workspaces
-                        // Need remainingWSes more
-                        int namedWSIdx = namedWSes.size() - remainingWSes;
-                        // Sanitze
-                        namedWSIdx = std::clamp(namedWSIdx, 0, (int)namedWSes.size() - 1);
-                        finalWSID  = namedWSes[namedWSIdx];
-                    } else {
-                        // Couldn't find valid workspace in negative direction, search last first one back up positive direction
+            } else {
+
+                // Just take a blind guess at where we'll probably end up
+                int  activeWSID    = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+                int  predictedWSID = activeWSID + remains;
+                int  remainingWSes = 0;
+                char walkDir       = in[1];
+
+                // sanitize. 0 means invalid oob in -
+                predictedWSID = std::max(predictedWSID, 0);
+
+                // Count how many invalidWSes are in between (how bad the prediction was)
+                int  beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
+                int  endID   = in[1] == '+' ? predictedWSID : activeWSID;
+                auto begin   = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
+                for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
+                    remainingWSes++;
+                }
+
+                // Handle named workspaces. They are treated like always before other workspaces
+                if (activeWSID < 0) {
+                    // Behaviour similar to 'm'
+                    // Find current
+                    int currentItem = -1;
+                    for (size_t i = 0; i < namedWSes.size(); i++) {
+                        if (namedWSes[i] == activeWSID) {
+                            currentItem = i;
+                            break;
+                        }
+                    }
+
+                    currentItem += remains;
+                    currentItem = std::max(currentItem, 0);
+                    if (currentItem >= (int)namedWSes.size()) {
+                        // At the seam between namedWSes and normal WSes. Behave like r+[diff] at imaginary ws 0
+                        int diff      = currentItem - (namedWSes.size() - 1);
+                        predictedWSID = diff;
+                        int  beginID  = 1;
+                        int  endID    = predictedWSID;
+                        auto begin    = invalidWSes.upper_bound(beginID - 1); // upper_bound is >, we want >=
+                        for (auto it = begin; *it <= endID && it != invalidWSes.end(); it++) {
+                            remainingWSes++;
+                        }
                         walkDir = '+';
-                        // We know, that everything less than beginID is invalid, so don't bother with that
-                        finalWSID     = beginID;
-                        remainingWSes = 1;
+                    } else {
+                        // We found our final ws.
+                        remainingWSes = 0;
+                        predictedWSID = namedWSes[currentItem];
                     }
                 }
-            }
-            if (walkDir == '+') {
-                int curID = finalWSID;
-                while (++curID < INT32_MAX && remainingWSes > 0) {
-                    if (!invalidWSes.contains(curID)) {
-                        remainingWSes--;
+
+                // Go in the search direction for remainingWSes
+                // The performance impact is directly proportional to the number of open and bound workspaces
+                int finalWSID = predictedWSID;
+                if (walkDir == '-') {
+                    int beginID = finalWSID;
+                    int curID   = finalWSID;
+                    while (--curID > 0 && remainingWSes > 0) {
+                        if (!invalidWSes.contains(curID)) {
+                            remainingWSes--;
+                        }
+                        finalWSID = curID;
                     }
-                    finalWSID = curID;
+                    if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
+                        if (namedWSes.size()) {
+                            // Go to the named workspaces
+                            // Need remainingWSes more
+                            int namedWSIdx = namedWSes.size() - remainingWSes;
+                            // Sanitze
+                            namedWSIdx = std::clamp(namedWSIdx, 0, (int)namedWSes.size() - 1);
+                            finalWSID  = namedWSes[namedWSIdx];
+                        } else {
+                            // Couldn't find valid workspace in negative direction, search last first one back up positive direction
+                            walkDir = '+';
+                            // We know, that everything less than beginID is invalid, so don't bother with that
+                            finalWSID     = beginID;
+                            remainingWSes = 1;
+                        }
+                    }
                 }
+                if (walkDir == '+') {
+                    int curID = finalWSID;
+                    while (++curID < INT32_MAX && remainingWSes > 0) {
+                        if (!invalidWSes.contains(curID)) {
+                            remainingWSes--;
+                        }
+                        finalWSID = curID;
+                    }
+                }
+                result = finalWSID;
             }
 
-            result                = finalWSID;
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result);
             if (PWORKSPACE)
                 outName = g_pCompositor->getWorkspaceByID(result)->m_szName;
             else
-                outName = std::to_string(finalWSID);
+                outName = std::to_string(result);
 
-        } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+') && isNumber(in.substr(2))) {
+        } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
+            bool absolute      = in[1] == '~';
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
@@ -453,7 +475,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
             }
 
             // monitor relative
-            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(1), 0);
+            const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(absolute ? 2 : 1), 0);
 
             if (!PLUSMINUSRESULT.has_value())
                 return WORKSPACE_INVALID;
@@ -473,27 +495,40 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
-            // get the offset
-            remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
-
-            // get the current item
-            int activeWSID  = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
             int currentItem = -1;
-            for (size_t i = 0; i < validWSes.size(); i++) {
-                if (validWSes[i] == activeWSID) {
-                    currentItem = i;
-                    break;
+
+            if (absolute) {
+                // 1-index
+                currentItem = remains - 1;
+
+                // clamp
+                if (currentItem < 0) {
+                    currentItem = 0;
+                } else if (currentItem >= (int)validWSes.size()) {
+                    currentItem = validWSes.size() - 1;
                 }
-            }
+            } else {
+                // get the offset
+                remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
-            // apply
-            currentItem += remains;
+                // get the current item
+                int activeWSID = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
+                for (size_t i = 0; i < validWSes.size(); i++) {
+                    if (validWSes[i] == activeWSID) {
+                        currentItem = i;
+                        break;
+                    }
+                }
 
-            // sanitize
-            if (currentItem >= (int)validWSes.size()) {
-                currentItem = currentItem % validWSes.size();
-            } else if (currentItem < 0) {
-                currentItem = validWSes.size() + currentItem;
+                // apply
+                currentItem += remains;
+
+                // sanitize
+                if (currentItem >= (int)validWSes.size()) {
+                    currentItem = currentItem % validWSes.size();
+                } else if (currentItem < 0) {
+                    currentItem = validWSes.size() + currentItem;
+                }
             }
 
             result  = validWSes[currentItem];

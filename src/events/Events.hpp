@@ -65,10 +65,6 @@ namespace Events {
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
 
-    // outputMgr
-    LISTENER(outputMgrApply);
-    LISTENER(outputMgrTest);
-
     // Monitor part 2 the sequel
     DYNLISTENFUNC(monitorFrame);
     DYNLISTENFUNC(monitorDestroy);

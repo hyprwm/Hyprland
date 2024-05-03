@@ -127,6 +127,7 @@ class CConfigManager {
     void                      dispatchExecOnce();
 
     void                      performMonitorReload();
+    void                      appendMonitorRule(const SMonitorRule&);
     bool                      m_bWantsMonitorReload = false;
     bool                      m_bForceReload        = false;
     bool                      m_bNoMonitorReload    = false;

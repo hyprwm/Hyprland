@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 
 extern "C" char**             environ;
 
@@ -954,7 +955,7 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
-    for (auto& r : m_dMonitorRules) {
+    for (auto& r : m_dMonitorRules | std::views::reverse) {
         if (PMONITOR.matchesStaticSelector(r.name)) {
             return r;
         }
@@ -1234,6 +1235,10 @@ void CConfigManager::dispatchExecOnce() {
 
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
+}
+
+void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
+    m_dMonitorRules.emplace_back(r);
 }
 
 void CConfigManager::performMonitorReload() {

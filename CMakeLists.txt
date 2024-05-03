@@ -109,7 +109,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprwayland-scanner>=0.3.3 hyprlang>=0.3.2 hyprcursor>=0.1.7
+    hyprwayland-scanner>=0.3.4 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
@@ -264,6 +264,7 @@ protocolNew("protocols/wlr-output-power-management-unstable-v1.xml" "wlr-output-
 protocolNew("protocols/virtual-keyboard-unstable-v1.xml" "virtual-keyboard-unstable-v1" true)
 protocolNew("protocols/wlr-virtual-pointer-unstable-v1.xml" "wlr-virtual-pointer-unstable-v1" true)
 protocolNew("protocols/input-method-unstable-v2.xml" "input-method-unstable-v2" true)
+protocolNew("protocols/wlr-output-management-unstable-v1.xml" "wlr-output-management-unstable-v1" true)
 protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)
 protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstable-v1" false)

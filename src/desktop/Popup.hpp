@@ -15,21 +15,23 @@ class CPopup {
 
     ~CPopup();
 
-    Vector2D   coordsRelativeToParent();
-    Vector2D   coordsGlobal();
+    wlr_xdg_popup*                       wlr();
+    Vector2D                             coordsRelativeToParent();
+    Vector2D                             coordsGlobal();
 
-    Vector2D   size();
+    Vector2D                             size();
 
-    void       onNewPopup(wlr_xdg_popup* popup);
-    void       onDestroy();
-    void       onMap();
-    void       onUnmap();
-    void       onCommit(bool ignoreSiblings = false);
-    void       onReposition();
+    void                                 onNewPopup(wlr_xdg_popup* popup);
+    void                                 onDestroy();
+    void                                 onMap();
+    void                                 onUnmap();
+    void                                 onCommit(bool ignoreSiblings = false);
+    void                                 onReposition();
 
-    void       recheckTree();
+    void                                 recheckTree();
 
-    CWLSurface m_sWLSurface;
+    CWLSurface                           m_sWLSurface;
+    std::vector<std::unique_ptr<CPopup>> m_vChildren;
 
   private:
     // T1 owners, each popup has to have one of these
@@ -37,20 +39,18 @@ class CPopup {
     PHLLS        m_pLayerOwner;
 
     // T2 owners
-    CPopup*        m_pParent = nullptr;
+    CPopup*                      m_pParent = nullptr;
 
-    wlr_xdg_popup* m_pWLR = nullptr;
+    wlr_xdg_popup*               m_pWLR = nullptr;
 
-    Vector2D       m_vLastSize = {};
-    Vector2D       m_vLastPos  = {};
+    Vector2D                     m_vLastSize = {};
+    Vector2D                     m_vLastPos  = {};
 
-    bool           m_bRequestedReposition = false;
+    bool                         m_bRequestedReposition = false;
 
-    bool           m_bInert = false;
+    bool                         m_bInert = false;
 
-    //
-    std::vector<std::unique_ptr<CPopup>> m_vChildren;
-    std::unique_ptr<CSubsurface>         m_pSubsurfaceHead;
+    std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
 
     // signals
     DYNLISTENER(newPopup);

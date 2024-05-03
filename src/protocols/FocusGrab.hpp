@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WaylandProtocol.hpp"
+#include "desktop/Popup.hpp"
 #include "hyprland-focus-grab-v1.hpp"
 #include "macros.hpp"
 #include <cstdint>
@@ -39,6 +40,9 @@ class CFocusGrab {
     void                                                         addSurface(wlr_surface* surface);
     void                                                         removeSurface(wlr_surface* surface);
     void                                                         eraseSurface(wlr_surface* surface);
+    void                                                         refocusKeyboard();
+    bool                                                         refocusKeyboardTestSurface(wlr_surface* surface);
+    bool                                                         refocusKeyboardTestPopupTree(UP<CPopup>& popup);
     void                                                         commit();
 
     SP<CHyprlandFocusGrabV1>                                     resource;

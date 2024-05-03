@@ -12,6 +12,7 @@
 
 class CMonitor;
 class CVirtualKeyboard;
+class CVirtualPointer;
 
 struct SRenderData {
     CMonitor* pMonitor;
@@ -104,13 +105,19 @@ struct SKeyboard {
 };
 
 struct SMouse {
-    wlr_input_device* mouse = nullptr;
+    wlr_input_device*   mouse = nullptr;
 
-    std::string       name = "";
+    std::string         name = "";
 
-    bool              virt = false;
+    bool                virt = false;
 
-    bool              connected = false; // means connected to the cursor
+    bool                connected = false; // means connected to the cursor
+
+    WP<CVirtualPointer> virtualPointer;
+
+    struct {
+        CHyprSignalListener destroyMouse;
+    } listeners;
 
     DYNLISTENER(destroyMouse);
 

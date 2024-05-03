@@ -262,6 +262,7 @@ protocolNew("protocols/wlr-gamma-control-unstable-v1.xml" "wlr-gamma-control-uns
 protocolNew("protocols/wlr-foreign-toplevel-management-unstable-v1.xml" "wlr-foreign-toplevel-management-unstable-v1" true)
 protocolNew("protocols/wlr-output-power-management-unstable-v1.xml" "wlr-output-power-management-unstable-v1" true)
 protocolNew("protocols/virtual-keyboard-unstable-v1.xml" "virtual-keyboard-unstable-v1" true)
+protocolNew("protocols/wlr-virtual-pointer-unstable-v1.xml" "wlr-virtual-pointer-unstable-v1" true)
 protocolNew("protocols/input-method-unstable-v2.xml" "input-method-unstable-v2" true)
 protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)

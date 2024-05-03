@@ -67,7 +67,6 @@ extern "C" {
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_damage_ring.h>
 #include <wlr/types/wlr_keyboard_shortcuts_inhibit_v1.h>
-#include <wlr/types/wlr_virtual_pointer_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 #include <wlr/util/edges.h>
@@ -79,6 +78,7 @@ extern "C" {
 #include <wlr/render/gles2.h>
 #include <wlr/render/wlr_texture.h>
 #include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/interfaces/wlr_pointer.h>
 #include <wlr/types/wlr_xdg_foreign_registry.h>
 #include <wlr/types/wlr_xdg_foreign_v1.h>
 #include <wlr/types/wlr_xdg_foreign_v2.h>

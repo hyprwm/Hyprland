@@ -93,14 +93,6 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     g_pInputManager->updateCapabilities();
 }
 
-void Events::listener_newVirtPtr(wl_listener* listener, void* data) {
-    const auto EV      = (wlr_virtual_pointer_v1_new_pointer_event*)data;
-    const auto POINTER = EV->new_pointer;
-    const auto DEVICE  = &POINTER->pointer.base;
-
-    g_pInputManager->newMouse(DEVICE, true);
-}
-
 void Events::listener_destroyMouse(void* owner, void* data) {
     const auto PMOUSE = (SMouse*)owner;
 

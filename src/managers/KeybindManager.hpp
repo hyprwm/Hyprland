@@ -58,6 +58,7 @@ struct SParsedKey {
 class CKeybindManager {
   public:
     CKeybindManager();
+    ~CKeybindManager();
 
     bool                                                              onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
     bool                                                              onAxisEvent(wlr_pointer_axis_event*);

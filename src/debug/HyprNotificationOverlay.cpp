@@ -36,6 +36,13 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
     m_szIconFontName = fonts.substr(COLON + 2, LASTCHAR - (COLON + 2));
 }
 
+CHyprNotificationOverlay::~CHyprNotificationOverlay() {
+    if (m_pCairo)
+        cairo_destroy(m_pCairo);
+    if (m_pCairoSurface)
+        cairo_surface_destroy(m_pCairoSurface);
+}
+
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon, const float fontSize) {
     const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
 

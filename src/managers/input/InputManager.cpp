@@ -785,6 +785,10 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     keeb->events.destroy.registerStaticListener(
         [this](void* owner, std::any data) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
+
+            if (!PKEEB)
+                return;
+
             destroyKeyboard(PKEEB);
             Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)owner);
         },
@@ -995,6 +999,10 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
     mauz->events.destroy.registerStaticListener(
         [this](void* mouse, std::any data) {
             const auto PMOUSE = (IPointer*)mouse;
+
+            if (!PMOUSE)
+                return;
+
             destroyPointer(PMOUSE->self.lock());
         },
         mauz.get());
@@ -1384,6 +1392,10 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     PNEWDEV->events.destroy.registerStaticListener(
         [this](void* owner, std::any data) {
             auto PDEV = ((ITouch*)owner)->self.lock();
+
+            if (!PDEV)
+                return;
+
             destroyTouchDevice(PDEV);
         },
         PNEWDEV.get());

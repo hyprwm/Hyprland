@@ -183,6 +183,12 @@ void CFocusGrab::start() {
 
         hyprListener_touchGrabStarted.initCallback(
             &g_pCompositor->m_sSeat.seat->events.touch_grab_begin, [this](void*, void*) { this->finish(true); }, this, "CFocusGrab");
+
+        // If the current keyboard focus surface isn't whitelisted, kick it out.
+        auto focusedSurface = g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface;
+        if (focusedSurface != nullptr && !isSurfaceComitted(focusedSurface)) {
+            wlr_seat_keyboard_clear_focus(g_pCompositor->m_sSeat.seat);
+        }
     }
 
     // Ensure new surfaces are focused if under the mouse when comitted.

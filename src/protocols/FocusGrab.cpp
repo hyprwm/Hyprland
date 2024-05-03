@@ -7,11 +7,10 @@
 #include <wayland-server.h>
 
 static void focus_grab_pointer_enter(wlr_seat_pointer_grab* grab, wlr_surface* surface, double sx, double sy) {
-    if (static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(surface)) {
+    if (static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(surface))
         wlr_seat_pointer_enter(grab->seat, surface, sx, sy);
-    } else {
+    else
         wlr_seat_pointer_clear_focus(grab->seat);
-    }
 }
 
 static void focus_grab_pointer_clear_focus(wlr_seat_pointer_grab* grab) {
@@ -25,9 +24,9 @@ static void focus_grab_pointer_motion(wlr_seat_pointer_grab* grab, uint32_t time
 static uint32_t focus_grab_pointer_button(wlr_seat_pointer_grab* grab, uint32_t time, uint32_t button, wl_pointer_button_state state) {
     uint32_t serial = wlr_seat_pointer_send_button(grab->seat, time, button, state);
 
-    if (serial) {
+    if (serial)
         return serial;
-    } else {
+    else {
         static_cast<CFocusGrab*>(grab->data)->finish(true);
         return 0;
     }
@@ -57,11 +56,10 @@ static const wlr_pointer_grab_interface focus_grab_pointer_impl = {
 };
 
 static void focus_grab_keyboard_enter(wlr_seat_keyboard_grab* grab, wlr_surface* surface, const uint32_t keycodes[], size_t num_keycodes, const wlr_keyboard_modifiers* modifiers) {
-    if (static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(surface)) {
+    if (static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(surface))
         wlr_seat_keyboard_enter(grab->seat, surface, keycodes, num_keycodes, modifiers);
-    } else {
-        // the last grabbed window should retain keybaord focus.
-    }
+
+		// otherwise the last grabbed window should retain keyboard focus.
 }
 
 static void focus_grab_keyboard_clear_focus(wlr_seat_keyboard_grab* grab) {
@@ -89,9 +87,8 @@ static const wlr_keyboard_grab_interface focus_grab_keyboard_impl = {
 };
 
 static uint32_t focus_grab_touch_down(wlr_seat_touch_grab* grab, uint32_t time, wlr_touch_point* point) {
-    if (!static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(point->surface)) {
+    if (!static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(point->surface))
         return 0;
-    }
 
     return wlr_seat_touch_send_down(grab->seat, point->surface, time, point->touch_id, point->sx, point->sy);
 }
@@ -114,12 +111,14 @@ static void focus_grab_touch_cancel(wlr_seat_touch_grab* grab) {
     static_cast<CFocusGrab*>(grab->data)->finish(true);
 }
 
-static const wlr_touch_grab_interface focus_grab_touch_impl = {.down   = focus_grab_touch_down,
-                                                               .up     = focus_grab_touch_up,
-                                                               .motion = focus_grab_touch_motion,
-                                                               .enter  = focus_grab_touch_enter,
-                                                               .frame  = focus_grab_touch_frame,
-                                                               .cancel = focus_grab_touch_cancel};
+static const wlr_touch_grab_interface focus_grab_touch_impl = {
+    .down   = focus_grab_touch_down,
+    .up     = focus_grab_touch_up,
+    .motion = focus_grab_touch_motion,
+    .enter  = focus_grab_touch_enter,
+    .frame  = focus_grab_touch_frame,
+    .cancel = focus_grab_touch_cancel,
+};
 
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, wlr_surface* surface) {
     hyprListener_surfaceDestroy.initCallback(
@@ -223,14 +222,12 @@ void CFocusGrab::finish(bool sendCleared) {
 
         m_mSurfaces.clear();
 
-        if (sendCleared) {
+        if (sendCleared)
             resource->sendCleared();
-        }
 
         // Ensure surfaces under the mouse when the grab ends get focus.
-        if (hadGrab) {
+        if (hadGrab)
             g_pInputManager->refocus();
-        }
     }
 }
 
@@ -244,11 +241,10 @@ void CFocusGrab::addSurface(wlr_surface* surface) {
 void CFocusGrab::removeSurface(wlr_surface* surface) {
     auto iter = m_mSurfaces.find(surface);
     if (iter != m_mSurfaces.end()) {
-        if (iter->second->state == CFocusGrabSurfaceState::PendingAddition) {
+        if (iter->second->state == CFocusGrabSurfaceState::PendingAddition)
             m_mSurfaces.erase(iter);
-        } else {
+        else
             iter->second->state = CFocusGrabSurfaceState::PendingRemoval;
-        }
     }
 }
 
@@ -276,11 +272,10 @@ void CFocusGrab::commit() {
     }
 
     if (surfacesChanged) {
-        if (!m_mSurfaces.empty()) {
+        if (!m_mSurfaces.empty())
             start();
-        } else {
+        else
             finish(false);
-        }
     }
 }
 

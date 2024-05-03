@@ -181,7 +181,6 @@ uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
 
 void CKeybindManager::updateXKBTranslationState() {
     if (m_pXKBTranslationState) {
-        xkb_keymap_unref(xkb_state_get_keymap(m_pXKBTranslationState));
         xkb_state_unref(m_pXKBTranslationState);
 
         m_pXKBTranslationState = nullptr;

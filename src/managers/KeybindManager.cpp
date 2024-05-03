@@ -116,6 +116,11 @@ CKeybindManager::CKeybindManager() {
     });
 }
 
+CKeybindManager::~CKeybindManager() {
+    if (m_pXKBTranslationState)
+        xkb_state_unref(m_pXKBTranslationState);
+}
+
 void CKeybindManager::addKeybind(SKeybind kb) {
     m_lKeybinds.push_back(kb);
 
@@ -219,6 +224,7 @@ void CKeybindManager::updateXKBTranslationState() {
 
     xkb_context_unref(PCONTEXT);
     m_pXKBTranslationState = xkb_state_new(PKEYMAP);
+    xkb_keymap_unref(PKEYMAP);
 }
 
 bool CKeybindManager::ensureMouseBindState() {

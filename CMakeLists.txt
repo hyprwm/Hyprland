@@ -150,7 +150,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         endif()
     endif()
 
-    add_compile_options(-pg -no-pie -fno-builtin)
+    add_compile_options(-pg -fno-builtin)
     add_link_options(-pg -no-pie -fno-builtin)
 endif()
 

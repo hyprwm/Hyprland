@@ -14,7 +14,7 @@
 class IWaylandProtocol {
   public:
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
-    ~IWaylandProtocol();
+    virtual ~IWaylandProtocol();
 
     virtual void onDisplayDestroy();
 

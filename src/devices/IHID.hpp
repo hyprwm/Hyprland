@@ -16,6 +16,7 @@ enum eHIDCapabilityType : uint32_t {
 */
 class IHID {
   public:
+    virtual ~IHID() = default;
     virtual uint32_t getCapabilities() = 0;
 
     struct {

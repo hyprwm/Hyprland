@@ -18,9 +18,9 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : keybo
 
     // clang-format off
     hyprListener_destroy.initCallback(&keeb->base.events.destroy, [this] (void* owner, void* data) {
-        events.destroy.emit();
         disconnectCallbacks();
         keyboard.reset();
+	events.destroy.emit();
     }, this, "CVirtualKeyboard");
 
     hyprListener_key.initCallback(&keeb->events.key, [this] (void* owner, void* data) {

@@ -481,7 +481,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keyName == KEY_NAME) {
-                suppressEvent      = handleKeybinds(MODS, *it, false);
+                handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);

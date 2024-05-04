@@ -242,8 +242,8 @@ class CInputManager {
     // idle inhibitors
     struct SIdleInhibitor {
         std::shared_ptr<CIdleInhibitor> inhibitor;
-        PHLWINDOWREF                    pWindow;
-        CHyprSignalListener             windowDestroyListener;
+        bool                            inert = false;
+        CHyprSignalListener             surfaceDestroyListener;
     };
     std::vector<std::unique_ptr<SIdleInhibitor>> m_vIdleInhibitors;
 

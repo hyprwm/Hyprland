@@ -90,7 +90,7 @@ PHLLS CLayerSurface::create(wlr_layer_surface_v1* pWLRLS) {
 
     pLS->alpha.setValueAndWarp(0.f);
 
-    pLS->surface.assign(pWLRLS->surface);
+    pLS->surface.assign(pWLRLS->surface, pLS);
 
     return pLS;
 }

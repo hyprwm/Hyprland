@@ -29,6 +29,8 @@ class CSubsurface {
     void     onMap();
     void     onUnmap();
 
+    bool     visible();
+
     void     recheckDamageForSubsurfaces();
 
   private:

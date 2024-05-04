@@ -197,3 +197,15 @@ void CWLSurface::onCommit() {
 std::shared_ptr<CPointerConstraint> CWLSurface::constraint() {
     return m_pConstraint.lock();
 }
+
+bool CWLSurface::visible() {
+    if (!m_pWindowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_pWindowOwner.lock());
+    if (!m_pLayerOwner.expired())
+        return true;
+    if (m_pPopupOwner)
+        return m_pPopupOwner->visible();
+    if (m_pSubsurfaceOwner)
+        return m_pSubsurfaceOwner->visible();
+    return true; // non-desktop, we don't know much.
+}

@@ -14,26 +14,33 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         recheckIdleInhibitorStatus();
     });
 
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(PINHIBIT->inhibitor->surface);
+    auto WLSurface = CWLSurface::surfaceFromWlr(PINHIBIT->inhibitor->surface);
 
-    if (PWINDOW) {
-        PINHIBIT->pWindow               = PWINDOW;
-        PINHIBIT->windowDestroyListener = PWINDOW->events.destroy.registerListener([PINHIBIT](std::any data) {
-            Debug::log(WARN, "Inhibitor got its window destroyed before its inhibitor resource.");
-            PINHIBIT->pWindow.reset();
-        });
-    } else
-        Debug::log(WARN, "Inhibitor is for no window?");
+    if (!WLSurface) {
+        Debug::log(LOG, "Inhibitor has no HL Surface attached to it, likely meaning it's a non-desktop element. Ignoring.");
+        PINHIBIT->inert = true;
+        recheckIdleInhibitorStatus();
+        return;
+    }
+
+    PINHIBIT->surfaceDestroyListener = WLSurface->events.destroy.registerListener(
+        [this, PINHIBIT](std::any data) { std::erase_if(m_vIdleInhibitors, [PINHIBIT](const auto& other) { return other.get() == PINHIBIT; }); });
+
     recheckIdleInhibitorStatus();
 }
 
 void CInputManager::recheckIdleInhibitorStatus() {
 
     for (auto& ii : m_vIdleInhibitors) {
-        if (ii->pWindow.expired())
+        if (ii->inert)
             continue;
 
-        if (g_pHyprRenderer->shouldRenderWindow(ii->pWindow.lock())) {
+        auto WLSurface = CWLSurface::surfaceFromWlr(ii->inhibitor->surface);
+
+        if (!WLSurface)
+            continue;
+
+        if (WLSurface->visible()) {
             PROTO::idle->setInhibit(true);
             return;
         }

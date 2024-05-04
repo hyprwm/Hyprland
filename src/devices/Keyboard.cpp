@@ -23,9 +23,9 @@ CKeyboard::CKeyboard(wlr_keyboard* keeb) : keyboard(keeb) {
 
     // clang-format off
     hyprListener_destroy.initCallback(&keeb->base.events.destroy, [this] (void* owner, void* data) {
-        events.destroy.emit();
         disconnectCallbacks();
         keyboard = nullptr;
+	events.destroy.emit();
     }, this, "CKeyboard");
 
     hyprListener_key.initCallback(&keeb->events.key, [this] (void* owner, void* data) {

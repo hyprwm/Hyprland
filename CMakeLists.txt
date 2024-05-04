@@ -209,6 +209,13 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland rt PkgConfig::deps)
 
+# Note: The use of offsetof below is technically undefined until C++17
+# because protocol classes are not standard layout type. However, all compilers
+# currently provide well-defined behavior as an extension. 
+# However, GCC and Clang also warn about this use of offsetof,
+# which must be suppressed.
+set(WARNING_FLAGS -Wno-invalid-offsetof)
+
 function(protocol protoPath protoName external)
     if (external)
         execute_process(
@@ -217,7 +224,6 @@ function(protocol protoPath protoName external)
         execute_process(
             COMMAND ${WaylandScanner} private-code ${protoPath} protocols/${protoName}-protocol.c
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
-        target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     else()
         execute_process(
             COMMAND ${WaylandScanner} server-header ${WAYLAND_PROTOCOLS_DIR}/${protoPath} protocols/${protoName}-protocol.h
@@ -225,21 +231,22 @@ function(protocol protoPath protoName external)
         execute_process(
             COMMAND ${WaylandScanner} private-code ${WAYLAND_PROTOCOLS_DIR}/${protoPath} protocols/${protoName}-protocol.c
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
-        target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
     endif()
+    target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
+    set_source_files_properties(protocols/${protoName}-protocol.c PROPERTIES COMPILE_FLAGS ${WARNING_FLAGS})
 endfunction()
 function(protocolNew protoPath protoName external)
     if (external)
         execute_process(
             COMMAND hyprwayland-scanner ${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
     else()
         execute_process(
             COMMAND hyprwayland-scanner ${WAYLAND_PROTOCOLS_DIR}/${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
     endif()
+    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+    set_source_files_properties(protocols/${protoName}.cpp PROPERTIES COMPILE_FLAGS ${WARNING_FLAGS})
 endfunction()
 
 target_link_libraries(Hyprland

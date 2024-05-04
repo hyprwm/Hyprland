@@ -28,5 +28,5 @@ IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, co
 }
 
 IWaylandProtocol::~IWaylandProtocol() {
-    onDisplayDestroy();
+    IWaylandProtocol::onDisplayDestroy();
 }

@@ -1754,7 +1754,8 @@ void CHyprCtl::startHyprCtlSocket() {
 
     std::string socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
 
-    strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
+    strncpy(SERVERADDRESS.sun_path, socketPath.c_str(), sizeof(SERVERADDRESS.sun_path) / sizeof(char));
+    SERVERADDRESS.sun_path[sizeof(SERVERADDRESS.sun_path) / sizeof(char) - 1] = '\0';
 
     if (bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");

@@ -455,7 +455,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             return "";
         } else if (style.starts_with("popin")) {
             // try parsing
-            float minPerc = 0.f;
+            [[maybe_unused]] float minPerc = 0.f;
             if (style.find("%") != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
@@ -464,8 +464,6 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
 
                 return "";
             }
-
-            minPerc; // fix warning
 
             return "";
         }
@@ -476,7 +474,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             return "";
         else if (style.starts_with("slidefade")) {
             // try parsing
-            float movePerc = 0.f;
+            [[maybe_unused]] float movePerc = 0.f;
             if (style.find("%") != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' ') + 1);
@@ -485,8 +483,6 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
 
                 return "";
             }
-
-            movePerc; // fix warning
 
             return "";
         }
@@ -501,7 +497,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             return "";
         else if (style.starts_with("popin")) {
             // try parsing
-            float minPerc = 0.f;
+            [[maybe_unused]] float minPerc = 0.f;
             if (style.find("%") != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
@@ -510,8 +506,6 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
 
                 return "";
             }
-
-            minPerc; // fix warning
 
             return "";
         }

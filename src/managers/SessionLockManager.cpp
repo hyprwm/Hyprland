@@ -69,7 +69,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
-    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([this](std::any data) {
+    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([](std::any data) {
         g_pCompositor->focusSurface(nullptr);
 
         for (auto& m : g_pCompositor->m_vMonitors)

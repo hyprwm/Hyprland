@@ -287,7 +287,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         LOGM(LOG, "enableHead on {}. For now, doing nothing. Waiting for apply().", PMONITOR->szName);
     });
 
-    resource->setDisableHead([this](CZwlrOutputConfigurationV1* r, wl_resource* outputHead) {
+    resource->setDisableHead([](CZwlrOutputConfigurationV1* r, wl_resource* outputHead) {
         const auto HEAD = PROTO::outputManagement->headFromResource(outputHead);
 
         if (!HEAD) {

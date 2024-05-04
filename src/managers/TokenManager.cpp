@@ -34,7 +34,7 @@ SP<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
 
     // cleanup expired tokens
     const auto NOW = std::chrono::system_clock::now();
-    std::erase_if(m_mTokens, [this, &NOW](const auto& el) { return el.second->expiresAt < NOW; });
+    std::erase_if(m_mTokens, [&NOW](const auto& el) { return el.second->expiresAt < NOW; });
 
     if (!m_mTokens.contains(uuid))
         return {};

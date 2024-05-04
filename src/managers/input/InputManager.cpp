@@ -808,7 +808,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         keeb.get());
 
     keeb->keyboardEvents.keymap.registerStaticListener(
-        [this](void* owner, std::any data) {
+        [](void* owner, std::any data) {
             auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 

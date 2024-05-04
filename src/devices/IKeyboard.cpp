@@ -118,7 +118,7 @@ std::string IKeyboard::getActiveLayout() {
 void IKeyboard::updateLEDs() {
     auto keyboard = wlr();
 
-    if (keyboard->xkb_state == nullptr)
+    if (!keyboard || keyboard->xkb_state == nullptr)
         return;
 
     uint32_t leds = 0;

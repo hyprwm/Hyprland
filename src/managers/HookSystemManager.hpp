@@ -16,8 +16,8 @@
 typedef std::function<void(void*, SCallbackInfo& info, std::any data)> HOOK_CALLBACK_FN;
 
 struct SCallbackFNPtr {
-    std::weak_ptr<HOOK_CALLBACK_FN> fn;
-    HANDLE                          handle = nullptr;
+    WP<HOOK_CALLBACK_FN> fn;
+    HANDLE               handle = nullptr;
 };
 
 #define EMIT_HOOK_EVENT(name, param)                                                                                                                                               \
@@ -43,9 +43,9 @@ class CHookSystemManager {
     // returns the pointer to the function.
     // losing this pointer (letting it get destroyed)
     // will equal to unregistering the callback.
-    [[nodiscard("Losing this pointer instantly unregisters the callback")]] std::shared_ptr<HOOK_CALLBACK_FN> hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn,
-                                                                                                                          HANDLE handle = nullptr);
-    void                                                                                                      unhook(std::shared_ptr<HOOK_CALLBACK_FN> fn);
+    [[nodiscard("Losing this pointer instantly unregisters the callback")]] SP<HOOK_CALLBACK_FN> hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn,
+                                                                                                             HANDLE handle = nullptr);
+    void                                                                                         unhook(SP<HOOK_CALLBACK_FN> fn);
 
     void                         emit(std::vector<SCallbackFNPtr>* const callbacks, SCallbackInfo& info, std::any data = 0);
     std::vector<SCallbackFNPtr>* getVecForEvent(const std::string& event);

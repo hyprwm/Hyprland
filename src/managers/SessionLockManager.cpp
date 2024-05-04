@@ -5,12 +5,12 @@
 #include "../protocols/SessionLock.hpp"
 
 SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
-    pWlrSurface = surface.lock()->surface();
+    pWlrSurface = surface->surface();
 
     listeners.map = surface_->events.map.registerListener([this](std::any data) {
         mapped = true;
 
-        g_pCompositor->focusSurface(surface.lock()->surface());
+        g_pCompositor->focusSurface(surface->surface());
 
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 
@@ -124,7 +124,7 @@ bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {
         return false;
 
     for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
-        if (sls->surface.lock()->surface() == pSurface)
+        if (sls->surface->surface() == pSurface)
             return true;
     }
 
@@ -144,7 +144,7 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
         if (!sls->mapped)
             continue;
 
-        g_pCompositor->focusSurface(sls->surface.lock()->surface());
+        g_pCompositor->focusSurface(sls->surface->surface());
         break;
     }
 }

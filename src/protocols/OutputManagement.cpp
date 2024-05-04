@@ -18,7 +18,7 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(re
         LOGM(LOG, "Creating new configuration");
 
         const auto RESOURCE = PROTO::outputManagement->m_vConfigurations.emplace_back(
-            std::make_shared<COutputConfiguration>(std::make_shared<CZwlrOutputConfigurationV1>(resource->client(), resource->version(), id), self.lock()));
+            makeShared<COutputConfiguration>(makeShared<CZwlrOutputConfigurationV1>(resource->client(), resource->version(), id), self.lock()));
 
         if (!RESOURCE->good()) {
             resource->noMemory();
@@ -49,7 +49,7 @@ void COutputManager::makeAndSendNewHead(CMonitor* pMonitor) {
         return;
 
     const auto RESOURCE =
-        PROTO::outputManagement->m_vHeads.emplace_back(std::make_shared<COutputHead>(std::make_shared<CZwlrOutputHeadV1>(resource->client(), resource->version(), 0), pMonitor));
+        PROTO::outputManagement->m_vHeads.emplace_back(makeShared<COutputHead>(makeShared<CZwlrOutputHeadV1>(resource->client(), resource->version(), 0), pMonitor));
 
     if (!RESOURCE->good()) {
         resource->noMemory();
@@ -205,8 +205,7 @@ void COutputHead::updateMode() {
 }
 
 void COutputHead::makeAndSendNewMode(wlr_output_mode* mode) {
-    const auto RESOURCE =
-        PROTO::outputManagement->m_vModes.emplace_back(std::make_shared<COutputMode>(std::make_shared<CZwlrOutputModeV1>(resource->client(), resource->version(), 0), mode));
+    const auto RESOURCE = PROTO::outputManagement->m_vModes.emplace_back(makeShared<COutputMode>(makeShared<CZwlrOutputModeV1>(resource->client(), resource->version(), 0), mode));
 
     if (!RESOURCE->good()) {
         resource->noMemory();
@@ -275,7 +274,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         }
 
         const auto RESOURCE = PROTO::outputManagement->m_vConfigurationHeads.emplace_back(
-            std::make_shared<COutputConfigurationHead>(std::make_shared<CZwlrOutputConfigurationHeadV1>(resource->client(), resource->version(), id), PMONITOR));
+            makeShared<COutputConfigurationHead>(makeShared<CZwlrOutputConfigurationHeadV1>(resource->client(), resource->version(), id), PMONITOR));
 
         if (!RESOURCE->good()) {
             resource->noMemory();
@@ -326,7 +325,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         else
             resource->sendFailed();
 
-        owner.lock()->sendDone();
+        owner->sendDone();
     });
 }
 
@@ -359,8 +358,8 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         newRule.name         = PMONITOR->szName;
 
         if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE) {
-            newRule.resolution  = {head->state.mode.lock()->getMode()->width, head->state.mode.lock()->getMode()->height};
-            newRule.refreshRate = head->state.mode.lock()->getMode()->refresh / 1000.F;
+            newRule.resolution  = {head->state.mode->getMode()->width, head->state.mode->getMode()->height};
+            newRule.refreshRate = head->state.mode->getMode()->refresh / 1000.F;
         } else if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
             newRule.resolution  = head->state.customMode.size;
             newRule.refreshRate = head->state.customMode.refresh / 1000.F;
@@ -539,7 +538,7 @@ COutputManagementProtocol::COutputManagementProtocol(const wl_interface* iface, 
 }
 
 void COutputManagementProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_shared<COutputManager>(std::make_shared<CZwlrOutputManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_vManagers.emplace_back(makeShared<COutputManager>(makeShared<CZwlrOutputManagerV1>(client, ver, id)));
 
     if (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

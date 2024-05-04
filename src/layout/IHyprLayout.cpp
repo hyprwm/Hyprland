@@ -45,11 +45,11 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
             pWindow->m_sGroupData.pNextWindow.reset();
 
             if (pWindow->m_sGroupData.head) {
-                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow.lock()->m_sGroupData.head, pWindow->m_sGroupData.head);
-                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow.lock()->m_sGroupData.locked, pWindow->m_sGroupData.locked);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.head, pWindow->m_sGroupData.head);
+                std::swap(PWINDOWPREV->m_sGroupData.pNextWindow->m_sGroupData.locked, pWindow->m_sGroupData.locked);
             }
 
-            if (pWindow == m_pLastTiledWindow.lock())
+            if (pWindow == m_pLastTiledWindow)
                 m_pLastTiledWindow.reset();
 
             pWindow->setHidden(false);
@@ -68,7 +68,7 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
         onWindowRemovedTiling(pWindow);
     }
 
-    if (pWindow == m_pLastTiledWindow.lock())
+    if (pWindow == m_pLastTiledWindow)
         m_pLastTiledWindow.reset();
 }
 
@@ -508,7 +508,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
-        if (pWindow == g_pCompositor->m_pLastWindow.lock())
+        if (pWindow == g_pCompositor->m_pLastWindow)
             m_pLastTiledWindow = pWindow;
     } else {
         onWindowRemovedTiling(pWindow);
@@ -533,7 +533,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         pWindow->updateSpecialRenderData();
 
-        if (pWindow == m_pLastTiledWindow.lock())
+        if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow.reset();
     }
 
@@ -589,7 +589,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         }
 
         // let's try the last tiled window.
-        if (m_pLastTiledWindow.lock() && m_pLastTiledWindow.lock()->m_pWorkspace == pWindow->m_pWorkspace)
+        if (m_pLastTiledWindow.lock() && m_pLastTiledWindow->m_pWorkspace == pWindow->m_pWorkspace)
             return m_pLastTiledWindow.lock();
 
         // if we don't, let's try to find any window that is in the middle
@@ -625,14 +625,14 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 }
 
 bool IHyprLayout::isWindowReachable(PHLWINDOW pWindow) {
-    return pWindow && (!pWindow->isHidden() || pWindow->m_sGroupData.pNextWindow.lock());
+    return pWindow && (!pWindow->isHidden() || pWindow->m_sGroupData.pNextWindow);
 }
 
 void IHyprLayout::bringWindowToTop(PHLWINDOW pWindow) {
     if (pWindow == nullptr)
         return;
 
-    if (pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow.lock()) {
+    if (pWindow->isHidden() && pWindow->m_sGroupData.pNextWindow) {
         // grouped, change the current to this window
         pWindow->setGroupCurrent(pWindow);
     }

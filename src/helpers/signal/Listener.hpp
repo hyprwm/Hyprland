@@ -3,6 +3,7 @@
 #include <any>
 #include <memory>
 #include <functional>
+#include "../../macros.hpp"
 
 class CSignal;
 
@@ -21,7 +22,7 @@ class CSignalListener {
     std::function<void(std::any)> m_fHandler;
 };
 
-typedef std::shared_ptr<CSignalListener> CHyprSignalListener;
+typedef SP<CSignalListener> CHyprSignalListener;
 
 class CStaticSignalListener {
   public:

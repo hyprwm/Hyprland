@@ -19,6 +19,6 @@ class CSignal {
     void registerStaticListener(std::function<void(void*, std::any)> handler, void* owner);
 
   private:
-    std::vector<std::weak_ptr<CSignalListener>>         m_vListeners;
+    std::vector<WP<CSignalListener>>                    m_vListeners;
     std::vector<std::unique_ptr<CStaticSignalListener>> m_vStaticListeners;
 };

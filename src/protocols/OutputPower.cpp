@@ -69,7 +69,7 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
     }
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(std::make_shared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), PMONITOR)).get();
+    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), PMONITOR)).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

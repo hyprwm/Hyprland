@@ -3,7 +3,7 @@
 #include "../config/ConfigValue.hpp"
 
 PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special) {
-    PHLWORKSPACE workspace = std::make_shared<CWorkspace>(id, monitorID, name, special);
+    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special);
     workspace->init(workspace);
     return workspace;
 }
@@ -183,7 +183,7 @@ void CWorkspace::moveToMonitor(const int& id) {
 }
 
 PHLWINDOW CWorkspace::getLastFocusedWindow() {
-    if (!validMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow.lock()->workspaceID() != m_iID)
+    if (!validMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->workspaceID() != m_iID)
         return nullptr;
 
     return m_pLastFocusedWindow.lock();

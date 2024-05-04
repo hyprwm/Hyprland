@@ -71,7 +71,7 @@ void CPointerGesturesProtocol::onGestureDestroy(CPointerGestureHold* gesture) {
 
 void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vPinches.emplace_back(std::make_unique<CPointerGesturePinch>(std::make_shared<CZwpPointerGesturePinchV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vPinches.emplace_back(std::make_unique<CPointerGesturePinch>(makeShared<CZwpPointerGesturePinchV1>(CLIENT, pMgr->version(), id))).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -82,7 +82,7 @@ void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, ui
 
 void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vSwipes.emplace_back(std::make_unique<CPointerGestureSwipe>(std::make_shared<CZwpPointerGestureSwipeV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vSwipes.emplace_back(std::make_unique<CPointerGestureSwipe>(makeShared<CZwpPointerGestureSwipeV1>(CLIENT, pMgr->version(), id))).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -93,7 +93,7 @@ void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, ui
 
 void CPointerGesturesProtocol::onGetHoldGesture(CZwpPointerGesturesV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vHolds.emplace_back(std::make_unique<CPointerGestureHold>(std::make_shared<CZwpPointerGestureHoldV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vHolds.emplace_back(std::make_unique<CPointerGestureHold>(makeShared<CZwpPointerGestureHoldV1>(CLIENT, pMgr->version(), id))).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

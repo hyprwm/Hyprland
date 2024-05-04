@@ -38,12 +38,12 @@ void CEventLoopManager::onTimerFire() {
     nudgeTimers();
 }
 
-void CEventLoopManager::addTimer(std::shared_ptr<CEventLoopTimer> timer) {
+void CEventLoopManager::addTimer(SP<CEventLoopTimer> timer) {
     m_sTimers.timers.push_back(timer);
     nudgeTimers();
 }
 
-void CEventLoopManager::removeTimer(std::shared_ptr<CEventLoopTimer> timer) {
+void CEventLoopManager::removeTimer(SP<CEventLoopTimer> timer) {
     std::erase_if(m_sTimers.timers, [timer](const auto& t) { return timer == t; });
     nudgeTimers();
 }

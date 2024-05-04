@@ -144,7 +144,7 @@ class CInputManager {
     std::deque<PHLLSREF> m_dExclusiveLSes;
 
     // constraints
-    std::vector<std::weak_ptr<CPointerConstraint>> m_vConstraints;
+    std::vector<WP<CPointerConstraint>> m_vConstraints;
 
     //
     void              newTabletTool(wlr_input_device*);
@@ -241,9 +241,9 @@ class CInputManager {
 
     // idle inhibitors
     struct SIdleInhibitor {
-        std::shared_ptr<CIdleInhibitor> inhibitor;
-        bool                            nonDesktop = false;
-        CHyprSignalListener             surfaceDestroyListener;
+        SP<CIdleInhibitor>  inhibitor;
+        bool                nonDesktop = false;
+        CHyprSignalListener surfaceDestroyListener;
     };
     std::vector<std::unique_ptr<SIdleInhibitor>> m_vIdleInhibitors;
 

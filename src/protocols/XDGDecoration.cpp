@@ -64,8 +64,7 @@ void CXDGDecorationProtocol::onGetDecoration(CZxdgDecorationManagerV1* pMgr, uin
 
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_mDecorations.emplace(xdgToplevel, std::make_unique<CXDGDecoration>(std::make_shared<CZxdgToplevelDecorationV1>(CLIENT, pMgr->version(), id), xdgToplevel))
-            .first->second.get();
+        m_mDecorations.emplace(xdgToplevel, std::make_unique<CXDGDecoration>(makeShared<CZxdgToplevelDecorationV1>(CLIENT, pMgr->version(), id), xdgToplevel)).first->second.get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

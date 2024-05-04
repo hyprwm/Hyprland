@@ -417,7 +417,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
             continue;
 
         // render active window after all others of this pass
-        if (w == g_pCompositor->m_pLastWindow.lock()) {
+        if (w == g_pCompositor->m_pLastWindow) {
             lastWindow = w;
             continue;
         }
@@ -740,12 +740,12 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition.x, pMonitor->vecPosition.y};
 
     renderdata.blur     = false;
-    renderdata.surface  = pSurface->surface.lock()->surface();
+    renderdata.surface  = pSurface->surface->surface();
     renderdata.decorate = false;
     renderdata.w        = pMonitor->vecSize.x;
     renderdata.h        = pMonitor->vecSize.y;
 
-    wlr_surface_for_each_surface(pSurface->surface.lock()->surface(), renderSurface, &renderdata);
+    wlr_surface_for_each_surface(pSurface->surface->surface(), renderSurface, &renderdata);
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {

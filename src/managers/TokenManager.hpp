@@ -1,10 +1,11 @@
 #pragma once
 
-#include <memory>
 #include <chrono>
 #include <any>
 #include <unordered_map>
 #include <string>
+
+#include "../helpers/memory/SharedPtr.hpp"
 
 class CUUIDToken {
   public:
@@ -24,14 +25,14 @@ class CUUIDToken {
 
 class CTokenManager {
   public:
-    std::string                 registerNewToken(std::any data, std::chrono::system_clock::duration expires);
-    std::string                 getRandomUUID();
+    std::string    registerNewToken(std::any data, std::chrono::system_clock::duration expires);
+    std::string    getRandomUUID();
 
-    std::shared_ptr<CUUIDToken> getToken(const std::string& uuid);
-    void                        removeToken(std::shared_ptr<CUUIDToken> token);
+    SP<CUUIDToken> getToken(const std::string& uuid);
+    void           removeToken(SP<CUUIDToken> token);
 
   private:
-    std::unordered_map<std::string, std::shared_ptr<CUUIDToken>> m_mTokens;
+    std::unordered_map<std::string, SP<CUUIDToken>> m_mTokens;
 };
 
 inline std::unique_ptr<CTokenManager> g_pTokenManager;

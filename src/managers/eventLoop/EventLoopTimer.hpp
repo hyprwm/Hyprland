@@ -4,9 +4,11 @@
 #include <functional>
 #include <optional>
 
+#include "../../helpers/memory/SharedPtr.hpp"
+
 class CEventLoopTimer {
   public:
-    CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb_, void* data_);
+    CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_);
 
     // if not specified, disarms.
     // if specified, arms.
@@ -19,11 +21,11 @@ class CEventLoopTimer {
 
     bool  cancelled();
     // resets expires
-    void call(std::shared_ptr<CEventLoopTimer> self);
+    void call(SP<CEventLoopTimer> self);
 
   private:
-    std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb;
-    void*                                                                  data = nullptr;
-    std::optional<std::chrono::system_clock::time_point>                   expires;
-    bool                                                                   wasCancelled = false;
+    std::function<void(SP<CEventLoopTimer> self, void* data)> cb;
+    void*                                                     data = nullptr;
+    std::optional<std::chrono::system_clock::time_point>      expires;
+    bool                                                      wasCancelled = false;
 };

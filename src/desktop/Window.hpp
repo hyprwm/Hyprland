@@ -467,7 +467,7 @@ inline bool valid(PHLWINDOW w) {
 }
 
 inline bool valid(PHLWINDOWREF w) {
-    return w.lock().get();
+    return !w.expired();
 }
 
 inline bool validMapped(PHLWINDOW w) {
@@ -479,7 +479,7 @@ inline bool validMapped(PHLWINDOW w) {
 inline bool validMapped(PHLWINDOWREF w) {
     if (!valid(w))
         return false;
-    return w.lock()->m_bIsMapped;
+    return w->m_bIsMapped;
 }
 
 /**

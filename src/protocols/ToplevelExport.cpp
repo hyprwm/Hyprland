@@ -369,7 +369,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
         return false;
 
     // render the client
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow.lock()->m_iMonitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -393,7 +393,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow.lock()->m_vRealPosition.value());
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
     if (!PFORMAT) {
@@ -426,7 +426,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 }
 
 bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, timespec* now) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow.lock()->m_iMonitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
@@ -440,7 +440,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow.lock()->m_vRealPosition.value());
+        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();

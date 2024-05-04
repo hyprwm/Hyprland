@@ -20,21 +20,21 @@ class CScreencopyClient {
     CScreencopyClient();
     ~CScreencopyClient();
 
-    int                               ref      = 0;
-    wl_resource*                      resource = nullptr;
+    int                  ref      = 0;
+    wl_resource*         resource = nullptr;
 
-    eClientOwners                     clientOwner = CLIENT_SCREENCOPY;
+    eClientOwners        clientOwner = CLIENT_SCREENCOPY;
 
-    int                               frameCounter           = 0;
-    int                               framesInLastHalfSecond = 0;
-    CTimer                            lastMeasure;
-    CTimer                            lastFrame;
-    bool                              sentScreencast = false;
+    int                  frameCounter           = 0;
+    int                  framesInLastHalfSecond = 0;
+    CTimer               lastMeasure;
+    CTimer               lastFrame;
+    bool                 sentScreencast = false;
 
-    void                              onTick();
-    std::shared_ptr<HOOK_CALLBACK_FN> tickCallback;
+    void                 onTick();
+    SP<HOOK_CALLBACK_FN> tickCallback;
 
-    bool                              operator==(const CScreencopyClient& other) const {
+    bool                 operator==(const CScreencopyClient& other) const {
         return resource == other.resource;
     }
 };

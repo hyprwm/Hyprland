@@ -42,9 +42,9 @@ class CWLSurface {
     CSubsurface* getSubsurface();
 
     // desktop components misc utils
-    std::optional<CBox>                 getSurfaceBoxGlobal();
-    void                                appendConstraint(std::weak_ptr<CPointerConstraint> constraint);
-    std::shared_ptr<CPointerConstraint> constraint();
+    std::optional<CBox>    getSurfaceBoxGlobal();
+    void                   appendConstraint(WP<CPointerConstraint> constraint);
+    SP<CPointerConstraint> constraint();
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;
@@ -99,11 +99,11 @@ class CWLSurface {
     CSubsurface* m_pSubsurfaceOwner = nullptr;
 
     //
-    std::weak_ptr<CPointerConstraint> m_pConstraint;
+    WP<CPointerConstraint> m_pConstraint;
 
-    void                              destroy();
-    void                              init();
-    bool                              desktopComponent();
+    void                   destroy();
+    void                   init();
+    bool                   desktopComponent();
 
     DYNLISTENER(destroy);
     DYNLISTENER(commit);

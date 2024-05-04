@@ -74,7 +74,7 @@ void CSubsurface::initSignals() {
         hyprListener_unmapSubsurface.initCallback(&m_pSubsurface->surface->events.unmap, &onUnmapSubsurface, this, "CSubsurface");
     } else {
         if (!m_pWindowParent.expired())
-            hyprListener_newSubsurface.initCallback(&m_pWindowParent.lock()->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
+            hyprListener_newSubsurface.initCallback(&m_pWindowParent->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
         else if (m_pPopupParent)
             hyprListener_newSubsurface.initCallback(&m_pPopupParent->m_sWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
         else
@@ -86,7 +86,7 @@ void CSubsurface::checkSiblingDamage() {
     if (!m_pParent)
         return; // ??????????
 
-    const double SCALE = m_pWindowParent.lock() && m_pWindowParent.lock()->m_bIsX11 ? 1.0 / m_pWindowParent.lock()->m_fX11SurfaceScaledBy : 1.0;
+    const double SCALE = m_pWindowParent.lock() && m_pWindowParent->m_bIsX11 ? 1.0 / m_pWindowParent->m_fX11SurfaceScaledBy : 1.0;
 
     for (auto& n : m_pParent->m_vChildren) {
         if (n.get() == this)
@@ -106,7 +106,7 @@ void CSubsurface::recheckDamageForSubsurfaces() {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (!m_pWindowParent.expired() && (!m_pWindowParent.lock()->m_bIsMapped || !m_pWindowParent.lock()->m_pWorkspace->m_bVisible)) {
+    if (!m_pWindowParent.expired() && (!m_pWindowParent->m_bIsMapped || !m_pWindowParent->m_pWorkspace->m_bVisible)) {
         m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
@@ -122,7 +122,7 @@ void CSubsurface::onCommit() {
     if (m_pPopupParent)
         m_pPopupParent->recheckTree();
     if (!m_pWindowParent.expired()) // I hate you firefox why are you doing this
-        m_pWindowParent.lock()->m_pPopupHead->recheckTree();
+        m_pWindowParent->m_pPopupHead->recheckTree();
 
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
@@ -170,7 +170,7 @@ void CSubsurface::onMap() {
     g_pHyprRenderer->damageBox(&box);
 
     if (!m_pWindowParent.expired())
-        m_pWindowParent.lock()->updateSurfaceScaleTransformDetails();
+        m_pWindowParent->updateSurfaceScaleTransformDetails();
 }
 
 void CSubsurface::onUnmap() {
@@ -207,7 +207,7 @@ Vector2D CSubsurface::coordsGlobal() {
     Vector2D coords = coordsRelativeToParent();
 
     if (!m_pWindowParent.expired())
-        coords += m_pWindowParent.lock()->m_vRealPosition.value();
+        coords += m_pWindowParent->m_vRealPosition.value();
     else if (m_pPopupParent)
         coords += m_pPopupParent->coordsGlobal();
 

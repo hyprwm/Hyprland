@@ -196,10 +196,10 @@ class CHyprOpenGLImpl {
     PHLWINDOWREF          m_pCurrentWindow; // hack to get the current rendered window
     PHLLS                 m_pCurrentLayer;  // hack to get the current rendered layer
 
-    std::map<PHLWINDOWREF, CFramebuffer, std::owner_less<PHLWINDOWREF>> m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer, std::owner_less<PHLLSREF>>         m_mLayerFramebuffers;
-    std::unordered_map<CMonitor*, SMonitorRenderData>                   m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CFramebuffer>                         m_mMonitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer>              m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>                  m_mLayerFramebuffers;
+    std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
+    std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;

@@ -7,7 +7,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 
-int wlTick(std::shared_ptr<CEventLoopTimer> self, void* data) {
+int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
         g_pAnimationManager->onTicked();
 
@@ -27,7 +27,7 @@ CAnimationManager::CAnimationManager() {
     std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
 
-    m_pAnimationTimer = std::make_unique<CEventLoopTimer>(std::chrono::microseconds(500), wlTick, nullptr);
+    m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
 }
 

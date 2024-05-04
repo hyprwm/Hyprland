@@ -185,7 +185,7 @@ void CFocusGrab::start() {
     }
 
     // Ensure new surfaces are focused if under the mouse when comitted.
-    g_pInputManager->refocus();
+    g_pInputManager->simulateMouseMovement();
     refocusKeyboard();
 }
 
@@ -253,14 +253,27 @@ void CFocusGrab::refocusKeyboard() {
     if (keyboardSurface != nullptr && isSurfaceComitted(keyboardSurface))
         return;
 
-    const auto KEYBOARD     = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-    uint32_t   keycodes[32] = {0};
+    wlr_surface* surface = nullptr;
+    for (auto& [surf, state] : m_mSurfaces) {
+        if (state->state == CFocusGrabSurfaceState::Comitted) {
+            surface = surf;
+            break;
+        }
+    }
 
-    wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, m_mSurfaces.begin()->first, keycodes, 0, &KEYBOARD->modifiers);
+    if (surface) {
+        const auto KEYBOARD     = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+        uint32_t   keycodes[32] = {0};
+
+        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, m_mSurfaces.begin()->first, keycodes, 0, &KEYBOARD->modifiers);
+    } else {
+        Debug::log(ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
+    }
 }
 
 void CFocusGrab::commit() {
     auto surfacesChanged = false;
+    auto anyComitted     = false;
     for (auto iter = m_mSurfaces.begin(); iter != m_mSurfaces.end();) {
         switch (iter->second->state) {
             case CFocusGrabSurfaceState::PendingRemoval:
@@ -270,18 +283,19 @@ void CFocusGrab::commit() {
             case CFocusGrabSurfaceState::PendingAddition:
                 iter->second->state = CFocusGrabSurfaceState::Comitted;
                 surfacesChanged     = true;
+                anyComitted         = true;
                 break;
-            default: break;
+            case CFocusGrabSurfaceState::Comitted: anyComitted = true; break;
         }
 
         iter++;
     }
 
     if (surfacesChanged) {
-        if (!m_mSurfaces.empty())
+        if (anyComitted)
             start();
         else
-            finish(false);
+            finish(true);
     }
 }
 

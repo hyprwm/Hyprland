@@ -68,6 +68,10 @@ INFO COMMANDS
 
     Lists all workspaces with their properties.
 
+**workspacerules**
+
+    Lists all workspace rules. 
+
 **clients**
 
     Lists all windows with their properties.
@@ -103,6 +107,10 @@ OPTIONS
 **-j**
 
     Outputs information in JSON.
+
+**-i, --instance**
+
+    Select instances (id or index in hyprctl instances).
 
 BUGS
 ====

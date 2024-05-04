@@ -190,7 +190,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, PWINDOW->m_cRealShadowColor.value().a), a);
 
         // render black window box ("clip")
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), ROUNDING * pMonitor->scale);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->scale);
 
         alphaSwapFB.bind();
 

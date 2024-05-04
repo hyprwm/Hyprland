@@ -284,9 +284,9 @@ void CTextInput::updateIMEState(SP<CInputMethodV2> ime) {
 }
 
 bool CTextInput::hasCursorRectangle() {
-    return !isV3() || pV3Input->current.box.updated;
+    return !isV3() || pV3Input.lock()->current.box.updated;
 }
 
 CBox CTextInput::cursorBox() {
-    return CBox{isV3() ? pV3Input->current.box.cursorBox : pV1Input->cursorRectangle};
+    return CBox{isV3() ? pV3Input.lock()->current.box.cursorBox : pV1Input->cursorRectangle};
 }

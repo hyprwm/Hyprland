@@ -55,6 +55,8 @@ bool CVirtualKeyboard::isVirtual() {
 }
 
 wlr_keyboard* CVirtualKeyboard::wlr() {
+    if (keyboard.expired())
+        return nullptr;
     return keyboard.lock()->wlr();
 }
 
@@ -67,5 +69,7 @@ void CVirtualKeyboard::disconnectCallbacks() {
 }
 
 wl_client* CVirtualKeyboard::getClient() {
+    if (keyboard.expired())
+        return nullptr;
     return keyboard.lock()->client();
 }

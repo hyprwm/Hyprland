@@ -41,8 +41,6 @@ class CFocusGrab {
     void                                                         removeSurface(wlr_surface* surface);
     void                                                         eraseSurface(wlr_surface* surface);
     void                                                         refocusKeyboard();
-    bool                                                         refocusKeyboardTestSurface(wlr_surface* surface);
-    bool                                                         refocusKeyboardTestPopupTree(UP<CPopup>& popup);
     void                                                         commit();
 
     SP<CHyprlandFocusGrabV1>                                     resource;

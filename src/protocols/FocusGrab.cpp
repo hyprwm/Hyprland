@@ -1,9 +1,5 @@
 #include "FocusGrab.hpp"
 #include "Compositor.hpp"
-#include "desktop/LayerSurface.hpp"
-#include "desktop/WLSurface.hpp"
-#include "desktop/Workspace.hpp"
-#include "render/decorations/CHyprGroupBarDecoration.hpp"
 #include "wlr-layer-shell-unstable-v1-protocol.h"
 #include <functional>
 #include <hyprland-focus-grab-v1.hpp>
@@ -70,8 +66,7 @@ static void focus_grab_keyboard_enter(wlr_seat_keyboard_grab* grab, wlr_surface*
 }
 
 static void focus_grab_keyboard_clear_focus(wlr_seat_keyboard_grab* grab) {
-    // focus will be cleared from non whitelisted surfaces if no
-    // whitelisted surfaces will accept it, so this should not reset the grab.
+    static_cast<CFocusGrab*>(grab->data)->finish(true);
 }
 
 static void focus_grab_keyboard_key(wlr_seat_keyboard_grab* grab, uint32_t time, uint32_t key, uint32_t state) {
@@ -256,170 +251,15 @@ void CFocusGrab::eraseSurface(wlr_surface* surface) {
     commit();
 }
 
-bool CFocusGrab::refocusKeyboardTestSurface(wlr_surface* surface) {
-    if (!isSurfaceComitted(surface))
-        return false;
-
-    const auto KEYBOARD     = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-    uint32_t   keycodes[32] = {0};
-
-    wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, surface, keycodes, 0, &KEYBOARD->modifiers);
-    return true;
-}
-
-bool CFocusGrab::refocusKeyboardTestPopupTree(UP<CPopup>& popup) {
-    for (auto& popup : popup->m_vChildren) {
-        if (refocusKeyboardTestPopupTree(popup))
-            return true;
-    }
-
-    auto wlrPopup = popup->wlr();
-    if (!wlrPopup)
-        return false;
-
-    return refocusKeyboardTestSurface(wlrPopup->base->surface);
-}
-
 void CFocusGrab::refocusKeyboard() {
-    // If there is no kb focused surface or the current kb focused surface is not whitelisted, replace it.
     auto keyboardSurface = g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface;
     if (keyboardSurface != nullptr && isSurfaceComitted(keyboardSurface))
         return;
 
-    auto testLayers = [&](std::vector<PHLLS>& lsl, std::function<bool(PHLLS&)> f) {
-        for (auto& ls : lsl | std::views::reverse) {
-            if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
-                continue;
+    const auto KEYBOARD     = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
+    uint32_t   keycodes[32] = {0};
 
-            if (ls->layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
-                continue;
-
-            if (f(ls))
-                return true;
-        }
-
-        return false;
-    };
-
-    auto testWindow = [&](PHLWINDOW& window) {
-        if (refocusKeyboardTestPopupTree(window->m_pPopupHead))
-            return true;
-
-        if (refocusKeyboardTestSurface(window->m_pWLSurface.wlr()))
-            return true;
-
-        return false;
-    };
-
-    auto testWindows = [&](std::function<bool(PHLWINDOW&)> f) {
-        for (auto& window : g_pCompositor->m_vWindows | std::views::reverse) {
-            if (!window->m_bIsMapped || window->isHidden() || window->m_sAdditionalConfigData.noFocus)
-                continue;
-
-            if (f(window) && refocusKeyboardTestPopupTree(window->m_pPopupHead))
-                return true;
-        }
-
-        for (auto& window : g_pCompositor->m_vWindows | std::views::reverse) {
-            if (!window->m_bIsMapped || window->isHidden() || window->m_sAdditionalConfigData.noFocus)
-                continue;
-
-            if (f(window) && refocusKeyboardTestSurface(window->m_pWLSurface.wlr()))
-                return true;
-        }
-
-        return false;
-    };
-
-    auto testMonitor = [&](CMonitor* monitor) {
-        // layer popups
-        for (auto& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
-            auto ret = testLayers(lsl, [&](auto& layer) { return refocusKeyboardTestPopupTree(layer->popupHead); });
-
-            if (ret)
-                return true;
-        }
-
-        // overlay and top layers
-        auto layerCallback = [&](auto& layer) { return refocusKeyboardTestSurface(layer->layerSurface->surface); };
-
-        if (testLayers(monitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], layerCallback))
-            return true;
-        if (testLayers(monitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], layerCallback))
-            return true;
-
-        auto workspace = monitor->activeWorkspace;
-
-        // fullscreen windows
-        if (workspace->m_bHasFullscreenWindow && workspace->m_efFullscreenMode == FULLSCREEN_FULL) {
-            auto window = g_pCompositor->getFullscreenWindowOnWorkspace(workspace->m_iID);
-            if (window) {
-                if (testWindow(window))
-                    return true;
-            }
-        }
-
-        // pinned windows
-        if (testWindows([&](auto& window) { return window->m_bPinned; }))
-            return true;
-
-        // windows on the active special workspace
-        if (monitor->activeSpecialWorkspace) {
-            auto ret = testWindows([&](auto& window) { return window->m_pWorkspace == monitor->activeSpecialWorkspace; });
-
-            if (ret)
-                return true;
-        }
-
-        if (workspace->m_bHasFullscreenWindow) {
-            // windows created over a fullscreen window
-            auto ret = testWindows([&](auto& window) { return window->m_pWorkspace == workspace && window->m_bCreatedOverFullscreen; });
-
-            if (ret)
-                return true;
-
-            // the fullscreen window
-            auto window = g_pCompositor->getFullscreenWindowOnWorkspace(workspace->m_iID);
-
-            if (testWindow(window))
-                return true;
-        }
-
-        // floating windows
-        bool ret = testWindows([&](auto& window) { return window->m_pWorkspace == workspace && window->m_bIsFloating; });
-
-        if (ret)
-            return true;
-
-        // tiled windows
-        ret = testWindows([&](auto& window) { return window->m_pWorkspace == workspace; });
-
-        if (ret)
-            return true;
-
-        // bottom and background layers
-        if (testLayers(monitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], layerCallback))
-            return true;
-        if (testLayers(monitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], layerCallback))
-            return true;
-
-        return false;
-    };
-
-    auto activeMonitor = g_pCompositor->getMonitorFromCursor();
-    if (testMonitor(activeMonitor))
-        return;
-
-    for (auto& monitor : g_pCompositor->m_vMonitors) {
-        if (monitor.get() == activeMonitor)
-            continue;
-
-        if (testMonitor(monitor.get()))
-            return;
-    }
-
-    // no applicable surfaces found, at least remove focus from any non whitelisted surfaces.
-    wlr_seat_keyboard_clear_focus(g_pCompositor->m_sSeat.seat);
+    wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, m_mSurfaces.begin()->first, keycodes, 0, &KEYBOARD->modifiers);
 }
 
 void CFocusGrab::commit() {
@@ -455,6 +295,8 @@ CFocusGrabProtocol::CFocusGrabProtocol(const wl_interface* iface, const int& ver
 void CFocusGrabProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](CHyprlandFocusGrabManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
+
+    RESOURCE->setDestroy([this](CHyprlandFocusGrabManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
     RESOURCE->setCreateGrab([this](CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) { this->onCreateGrab(pMgr, id); });
 }
 

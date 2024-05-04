@@ -993,6 +993,15 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
 SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, const SWorkspaceRule& rule2) {
     SWorkspaceRule mergedRule = rule1;
 
+    if (rule1.monitor.empty())
+        mergedRule.monitor = rule2.monitor;
+    if (rule1.workspaceString.empty())
+        mergedRule.workspaceString = rule2.workspaceString;
+    if (rule1.workspaceName.empty())
+        mergedRule.workspaceName = rule2.workspaceName;
+    if (rule1.workspaceId == WORKSPACE_INVALID)
+        mergedRule.workspaceId = rule2.workspaceId;
+
     if (rule2.isDefault)
         mergedRule.isDefault = true;
     if (rule2.isPersistent)

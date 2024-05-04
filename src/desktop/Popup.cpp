@@ -36,10 +36,6 @@ CPopup::~CPopup() {
     hyprListener_destroyPopup.removeCallback();
 }
 
-wlr_xdg_popup* CPopup::wlr() {
-    return this->m_pWLR;
-}
-
 static void onNewPopup(void* owner, void* data) {
     const auto POPUP = (CPopup*)owner;
     POPUP->onNewPopup((wlr_xdg_popup*)data);

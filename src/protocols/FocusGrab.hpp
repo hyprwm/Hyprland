@@ -1,7 +1,6 @@
 #pragma once
 
 #include "WaylandProtocol.hpp"
-#include "desktop/Popup.hpp"
 #include "hyprland-focus-grab-v1.hpp"
 #include "macros.hpp"
 #include <cstdint>

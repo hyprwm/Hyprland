@@ -32,7 +32,6 @@ class CLayerSurface {
 
     wlr_layer_surface_v1*       layerSurface;
     wl_list                     link;
-    std::unique_ptr<CPopup> popupHead;
 
     bool                        keyboardExclusive = false;
 
@@ -70,6 +69,8 @@ class CLayerSurface {
     void                        onCommit();
 
   private:
+    std::unique_ptr<CPopup> popupHead;
+
     DYNLISTENER(destroyLayerSurface);
     DYNLISTENER(mapLayerSurface);
     DYNLISTENER(unmapLayerSurface);

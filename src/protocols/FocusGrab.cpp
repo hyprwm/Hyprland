@@ -1,13 +1,10 @@
 #include "FocusGrab.hpp"
 #include "Compositor.hpp"
-#include "wlr-layer-shell-unstable-v1-protocol.h"
-#include <functional>
 #include <hyprland-focus-grab-v1.hpp>
 #include <managers/input/InputManager.hpp>
 #include <cstdint>
 #include <memory>
 #include <wayland-server.h>
-#include <wayland-util.h>
 
 static void focus_grab_pointer_enter(wlr_seat_pointer_grab* grab, wlr_surface* surface, double sx, double sy) {
     if (static_cast<CFocusGrab*>(grab->data)->isSurfaceComitted(surface))

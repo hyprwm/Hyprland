@@ -29,12 +29,14 @@ class CPopup {
 
     void       recheckTree();
 
+    bool       visible();
+
     CWLSurface m_sWLSurface;
 
   private:
     // T1 owners, each popup has to have one of these
     PHLWINDOWREF m_pWindowOwner;
-    PHLLS        m_pLayerOwner;
+    PHLLSREF     m_pLayerOwner;
 
     // T2 owners
     CPopup*        m_pParent = nullptr;

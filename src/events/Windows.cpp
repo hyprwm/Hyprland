@@ -150,8 +150,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         (PWINDOW->m_bIsX11 && PWINDOW->m_uSurface.xwayland->fullscreen);
     bool requestsFakeFullscreen = false;
     bool requestsMaximize       = false;
-    bool overridingNoFullscreen = false;
-    bool overridingNoMaximize   = false;
+    [[maybe_unused]] bool overridingNoFullscreen = false;
+    [[maybe_unused]] bool overridingNoMaximize   = false;
 
     for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {

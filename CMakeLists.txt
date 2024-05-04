@@ -78,6 +78,17 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
 else()
     add_compile_options(-O3)
     message(STATUS "Configuring Hyprland in Release with CMake")
+
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR LANGUAGES C CXX)
+
+    if(IPO_SUPPORTED)
+        message(STATUS "IPO / LTO enabled")
+    else()
+        message(WARNING "IPO / LTO not supported: <${IPO_ERROR}>")
+    endif()
+
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ${IPO_SUPPORTED})
 endif()
 
 include_directories(

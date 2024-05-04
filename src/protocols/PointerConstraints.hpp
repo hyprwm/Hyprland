@@ -34,7 +34,6 @@ class CPointerConstraint {
   private:
     SP<CZwpLockedPointerV1>         resourceL;
     SP<CZwpConfinedPointerV1>       resourceC;
-    wl_client*                      pClient = nullptr;
 
     CWLSurface*                     pHLSurface = nullptr;
 

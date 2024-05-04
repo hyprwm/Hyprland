@@ -28,7 +28,6 @@ class CFractionalScaleAddon {
 
   private:
     SP<CWpFractionalScaleV1> resource;
-    float                    scale       = 1.F;
     wlr_surface*             surface     = nullptr;
     bool                     surfaceGone = false;
 

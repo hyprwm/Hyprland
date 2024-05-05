@@ -157,7 +157,7 @@ void CGammaControlProtocol::destroyGammaControl(CGammaControl* gamma) {
 
 void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, uint32_t id, wl_resource* output) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(std::make_shared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
+    const auto RESOURCE = m_vGammaControllers.emplace_back(std::make_unique<CGammaControl>(makeShared<CZwlrGammaControlV1>(CLIENT, pMgr->version(), id), output)).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

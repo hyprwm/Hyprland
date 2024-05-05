@@ -16,7 +16,7 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-static void checkDefaultCursorWarp(std::shared_ptr<CMonitor>* PNEWMONITORWRAP, std::string monitorName) {
+static void checkDefaultCursorWarp(SP<CMonitor>* PNEWMONITORWRAP, std::string monitorName) {
     const auto  PNEWMONITOR = PNEWMONITORWRAP->get();
 
     static auto PCURSORMONITOR    = CConfigValue<std::string>("general:default_cursor_monitor");
@@ -61,9 +61,9 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     }
 
     // add it to real
-    std::shared_ptr<CMonitor>* PNEWMONITORWRAP = nullptr;
+    SP<CMonitor>* PNEWMONITORWRAP = nullptr;
 
-    PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(std::make_shared<CMonitor>());
+    PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
     if (std::string("HEADLESS-1") == OUTPUT->name)
         g_pCompositor->m_pUnsafeOutput = PNEWMONITORWRAP->get();
 
@@ -196,7 +196,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
 
-    std::erase_if(g_pCompositor->m_vRealMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == pMonitor; });
+    std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == pMonitor; });
 }
 
 void Events::listener_monitorStateRequest(void* owner, void* data) {

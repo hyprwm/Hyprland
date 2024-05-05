@@ -161,7 +161,7 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
     LOGM(LOG, "New sessionLock with id {}", id);
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vLocks.emplace_back(std::make_unique<CSessionLock>(std::make_shared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
+    const auto RESOURCE = m_vLocks.emplace_back(makeShared<CSessionLock>(makeShared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -195,8 +195,8 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
         }
     }
 
-    const auto RESOURCE = m_vLockSurfaces.emplace_back(
-        std::make_unique<CSessionLockSurface>(std::make_shared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
+    const auto RESOURCE =
+        m_vLockSurfaces.emplace_back(makeShared<CSessionLockSurface>(makeShared<CExtSessionLockSurfaceV1>(lock->client(), lock->version(), id), PSURFACE, PMONITOR, sessionLock));
 
     if (!RESOURCE->good()) {
         lock->noMemory();

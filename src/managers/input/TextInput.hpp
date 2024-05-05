@@ -15,7 +15,7 @@ class CInputMethodV2;
 
 class CTextInput {
   public:
-    CTextInput(std::weak_ptr<CTextInputV3> ti);
+    CTextInput(WP<CTextInputV3> ti);
     CTextInput(STextInputV1* ti);
     ~CTextInput();
 
@@ -37,13 +37,13 @@ class CTextInput {
     wlr_surface* focusedSurface();
 
   private:
-    void                        setFocusedSurface(wlr_surface* pSurface);
-    void                        initCallbacks();
+    void             setFocusedSurface(wlr_surface* pSurface);
+    void             initCallbacks();
 
-    wlr_surface*                pFocusedSurface = nullptr;
-    int                         enterLocks      = 0;
-    std::weak_ptr<CTextInputV3> pV3Input;
-    STextInputV1*               pV1Input = nullptr;
+    wlr_surface*     pFocusedSurface = nullptr;
+    int              enterLocks      = 0;
+    WP<CTextInputV3> pV3Input;
+    STextInputV1*    pV1Input = nullptr;
 
     DYNLISTENER(textInputEnable);
     DYNLISTENER(textInputDisable);

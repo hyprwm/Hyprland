@@ -45,7 +45,7 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
         return;
 
     const auto NEWHANDLE = PROTO::foreignToplevel->m_vHandles.emplace_back(
-        std::make_shared<CForeignToplevelHandle>(std::make_shared<CExtForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
+        makeShared<CForeignToplevelHandle>(makeShared<CExtForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
 
     if (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
@@ -68,7 +68,7 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
 
 SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(PHLWINDOW pWindow) {
     std::erase_if(handles, [](const auto& wp) { return wp.expired(); });
-    const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h.lock()->window() == pWindow; });
+    const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h->window() == pWindow; });
     return IT == handles.end() ? SP<CForeignToplevelHandle>{} : IT->lock();
 }
 
@@ -131,7 +131,7 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
 }
 
 void CForeignToplevelProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelList>(std::make_shared<CExtForeignToplevelListV1>(client, ver, id))).get();
+    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelList>(makeShared<CExtForeignToplevelListV1>(client, ver, id))).get();
 
     if (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");

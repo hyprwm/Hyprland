@@ -116,7 +116,7 @@ void CTextInputV3Protocol::destroyTextInput(CTextInputV3* input) {
 
 void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t id, wl_resource* seat) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vTextInputs.emplace_back(std::make_shared<CTextInputV3>(std::make_shared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
+    const auto RESOURCE = m_vTextInputs.emplace_back(makeShared<CTextInputV3>(makeShared<CZwpTextInputV3>(CLIENT, pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -125,5 +125,5 @@ void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t
         return;
     }
 
-    events.newTextInput.emit(std::weak_ptr<CTextInputV3>(RESOURCE));
+    events.newTextInput.emit(WP<CTextInputV3>(RESOURCE));
 }

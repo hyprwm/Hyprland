@@ -22,7 +22,7 @@ void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CTearingControlProtocol::onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, wlr_surface* surf) {
-    const auto CONTROLLER = m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(std::make_shared<CWpTearingControlV1>(client, pMgr->version(), id), surf)).get();
+    const auto CONTROLLER = m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(makeShared<CWpTearingControlV1>(client, pMgr->version(), id), surf)).get();
 
     if (!CONTROLLER->good()) {
         pMgr->noMemory();
@@ -67,7 +67,7 @@ void CTearingControl::updateWindow() {
     if (pWindow.expired())
         return;
 
-    pWindow.lock()->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
+    pWindow->m_bTearingHint = hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
 }
 
 bool CTearingControl::good() {

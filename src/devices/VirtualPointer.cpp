@@ -168,5 +168,5 @@ void CVirtualPointer::disconnectCallbacks() {
 wlr_pointer* CVirtualPointer::wlr() {
     if (pointer.expired())
         return nullptr;
-    return pointer.lock()->wlr();
+    return pointer->wlr();
 }

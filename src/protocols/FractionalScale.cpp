@@ -36,8 +36,8 @@ void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1*
         return;
     }
 
-    const auto PADDON = m_mAddons.emplace(surface, std::make_unique<CFractionalScaleAddon>(std::make_shared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface))
-                            .first->second.get();
+    const auto PADDON =
+        m_mAddons.emplace(surface, std::make_unique<CFractionalScaleAddon>(makeShared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface)).first->second.get();
 
     if (!PADDON->good()) {
         m_mAddons.erase(surface);

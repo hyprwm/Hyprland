@@ -139,7 +139,7 @@ void CForeignToplevelHandleWlr::sendState() {
     wl_array state;
     wl_array_init(&state);
 
-    if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
+    if (PWINDOW == g_pCompositor->m_pLastWindow) {
         auto p = (uint32_t*)wl_array_add(&state, sizeof(uint32_t));
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
@@ -185,7 +185,7 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
         return;
 
     const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_vHandles.emplace_back(
-        std::make_shared<CForeignToplevelHandleWlr>(std::make_shared<CZwlrForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
+        makeShared<CForeignToplevelHandleWlr>(makeShared<CZwlrForeignToplevelHandleV1>(resource->client(), resource->version(), 0), pWindow));
 
     if (!NEWHANDLE->good()) {
         LOGM(ERR, "Couldn't create a foreign handle");
@@ -208,7 +208,7 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
 
 SP<CForeignToplevelHandleWlr> CForeignToplevelWlrManager::handleForWindow(PHLWINDOW pWindow) {
     std::erase_if(handles, [](const auto& wp) { return wp.expired(); });
-    const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h.lock()->window() == pWindow; });
+    const auto IT = std::find_if(handles.begin(), handles.end(), [pWindow](const auto& h) { return h->window() == pWindow; });
     return IT == handles.end() ? SP<CForeignToplevelHandleWlr>{} : IT->lock();
 }
 
@@ -346,7 +346,7 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
 }
 
 void CForeignToplevelWlrProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelWlrManager>(std::make_shared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
+    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
 
     if (!RESOURCE->good()) {
         LOGM(ERR, "Couldn't create a foreign list");

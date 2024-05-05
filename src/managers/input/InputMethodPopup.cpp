@@ -73,7 +73,7 @@ void CInputPopup::damageSurface() {
 }
 
 void CInputPopup::updateBox() {
-    if (!popup.lock()->mapped)
+    if (!popup->mapped)
         return;
 
     const auto OWNER      = queryOwner();
@@ -114,7 +114,7 @@ void CInputPopup::updateBox() {
         popupOffset.x -= popupOverflow;
 
     CBox cursorBoxLocal({-popupOffset.x, -popupOffset.y}, cursorBoxParent.size());
-    popup.lock()->sendInputRectangle(cursorBoxLocal);
+    popup->sendInputRectangle(cursorBoxLocal);
 
     CBox popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
     if (popupBoxParent != lastBoxLocal) {

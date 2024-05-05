@@ -3,7 +3,7 @@
 
 #define LOGM PROTO::idle->protoLog
 
-static int onTimer(std::shared_ptr<CEventLoopTimer> self, void* data) {
+static int onTimer(SP<CEventLoopTimer> self, void* data) {
 
     const auto NOTIF = (CExtIdleNotification*)data;
 
@@ -19,7 +19,7 @@ CExtIdleNotification::CExtIdleNotification(SP<CExtIdleNotificationV1> resource_,
     resource->setDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
     resource->setOnDestroy([this](CExtIdleNotificationV1* r) { PROTO::idle->destroyNotification(this); });
 
-    timer = std::make_shared<CEventLoopTimer>(std::nullopt, onTimer, this);
+    timer = makeShared<CEventLoopTimer>(std::nullopt, onTimer, this);
     g_pEventLoopManager->addTimer(timer);
 
     updateTimer();
@@ -77,9 +77,8 @@ void CIdleNotifyProtocol::destroyNotification(CExtIdleNotification* notif) {
 }
 
 void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t id, uint32_t timeout, wl_resource* seat) {
-    const auto CLIENT = pMgr->client();
-    const auto RESOURCE =
-        m_vNotifications.emplace_back(std::make_unique<CExtIdleNotification>(std::make_shared<CExtIdleNotificationV1>(CLIENT, pMgr->version(), id), timeout)).get();
+    const auto CLIENT   = pMgr->client();
+    const auto RESOURCE = m_vNotifications.emplace_back(makeShared<CExtIdleNotification>(makeShared<CExtIdleNotificationV1>(CLIENT, pMgr->version(), id), timeout)).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

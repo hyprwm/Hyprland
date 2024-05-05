@@ -7,16 +7,16 @@ CHookSystemManager::CHookSystemManager() {
 }
 
 // returns the pointer to the function
-std::shared_ptr<HOOK_CALLBACK_FN> CHookSystemManager::hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle) {
-    std::shared_ptr<HOOK_CALLBACK_FN> hookFN = std::make_shared<HOOK_CALLBACK_FN>(fn);
+SP<HOOK_CALLBACK_FN> CHookSystemManager::hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle) {
+    SP<HOOK_CALLBACK_FN> hookFN = makeShared<HOOK_CALLBACK_FN>(fn);
     m_mRegisteredHooks[event].emplace_back(SCallbackFNPtr{.fn = hookFN, .handle = handle});
     return hookFN;
 }
 
-void CHookSystemManager::unhook(std::shared_ptr<HOOK_CALLBACK_FN> fn) {
+void CHookSystemManager::unhook(SP<HOOK_CALLBACK_FN> fn) {
     for (auto& [k, v] : m_mRegisteredHooks) {
         std::erase_if(v, [&](const auto& other) {
-            std::shared_ptr<HOOK_CALLBACK_FN> fn_ = other.fn.lock();
+            SP<HOOK_CALLBACK_FN> fn_ = other.fn.lock();
 
             return fn_.get() == fn.get();
         });
@@ -37,7 +37,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
         if (!cb.handle) {
             // we don't guard hl hooks
 
-            if (std::shared_ptr<HOOK_CALLBACK_FN> fn = cb.fn.lock())
+            if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
                 (*fn)(fn.get(), info, data);
             else
                 needsDeadCleanup = true;
@@ -51,7 +51,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
 
         try {
             if (!setjmp(m_jbHookFaultJumpBuf)) {
-                if (std::shared_ptr<HOOK_CALLBACK_FN> fn = cb.fn.lock())
+                if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
                     (*fn)(fn.get(), info, data);
                 else
                     needsDeadCleanup = true;

@@ -23,6 +23,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
+#include "../defines.hpp"
 #include "../version.h"
 
 #include <any>
@@ -62,9 +63,6 @@ class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
 class CWindow;
-
-typedef std::shared_ptr<CWindow> PHLWINDOW;
-typedef std::weak_ptr<CWindow>   PHLWINDOWREF;
 
 /*
     These methods are for the plugin to implement
@@ -144,7 +142,7 @@ namespace HyprlandAPI {
 
         WARNING: Losing this pointer will unregister the callback!
     */
-    APICALL [[nodiscard]] std::shared_ptr<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
+    APICALL [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
 
     /*
         Unregisters a callback. If the callback was dynamic, frees the memory.
@@ -153,7 +151,7 @@ namespace HyprlandAPI {
 
         Deprecated: just reset the pointer you received with registerCallbackDynamic
     */
-    APICALL [[deprecated]] bool unregisterCallback(HANDLE handle, std::shared_ptr<HOOK_CALLBACK_FN> fn);
+    APICALL [[deprecated]] bool unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN> fn);
 
     /*
         Calls a hyprctl command.
@@ -281,14 +279,14 @@ namespace HyprlandAPI {
 
         returns: Pointer. Nullptr on fail.
     */
-    APICALL std::shared_ptr<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+    APICALL SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
 
     /*
         Unregisters a hyprctl command
 
         returns: true on success. False otherwise.
     */
-    APICALL bool unregisterHyprCtlCommand(HANDLE handle, std::shared_ptr<SHyprCtlCommand> cmd);
+    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
 };
 
 /*

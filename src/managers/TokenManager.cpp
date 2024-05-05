@@ -26,11 +26,11 @@ std::string CTokenManager::getRandomUUID() {
 std::string CTokenManager::registerNewToken(std::any data, std::chrono::system_clock::duration expires) {
     std::string uuid = getRandomUUID();
 
-    m_mTokens[uuid] = std::make_shared<CUUIDToken>(uuid, data, expires);
+    m_mTokens[uuid] = makeShared<CUUIDToken>(uuid, data, expires);
     return uuid;
 }
 
-std::shared_ptr<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
+SP<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
 
     // cleanup expired tokens
     const auto NOW = std::chrono::system_clock::now();
@@ -42,7 +42,7 @@ std::shared_ptr<CUUIDToken> CTokenManager::getToken(const std::string& uuid) {
     return m_mTokens.at(uuid);
 }
 
-void CTokenManager::removeToken(std::shared_ptr<CUUIDToken> token) {
+void CTokenManager::removeToken(SP<CUUIDToken> token) {
     if (!token)
         return;
     m_mTokens.erase(token->uuid);

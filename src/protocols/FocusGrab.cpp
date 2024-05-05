@@ -315,7 +315,7 @@ void CFocusGrabProtocol::destroyGrab(CFocusGrab* grab) {
 }
 
 void CFocusGrabProtocol::onCreateGrab(CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) {
-    m_vGrabs.push_back(std::make_unique<CFocusGrab>(std::make_shared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
+    m_vGrabs.push_back(std::make_unique<CFocusGrab>(makeShared<CHyprlandFocusGrabV1>(pMgr->client(), pMgr->version(), id)));
     const auto RESOURCE = m_vGrabs.back().get();
 
     if (!RESOURCE->good()) {

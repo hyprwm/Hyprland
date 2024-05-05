@@ -2,10 +2,8 @@
 #include <limits>
 #include "EventLoopManager.hpp"
 
-CEventLoopTimer::CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb_,
-                                 void* data_) :
-    cb(cb_),
-    data(data_) {
+CEventLoopTimer::CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_) :
+    cb(cb_), data(data_) {
 
     if (!timeout.has_value())
         expires.reset();
@@ -40,7 +38,7 @@ bool CEventLoopTimer::cancelled() {
     return wasCancelled;
 }
 
-void CEventLoopTimer::call(std::shared_ptr<CEventLoopTimer> self) {
+void CEventLoopTimer::call(SP<CEventLoopTimer> self) {
     expires.reset();
     cb(self, data);
 }

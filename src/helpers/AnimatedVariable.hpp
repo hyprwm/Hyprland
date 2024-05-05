@@ -146,7 +146,7 @@ class CBaseAnimatedVariable {
 
   protected:
     PHLWINDOWREF                          m_pWindow;
-    std::weak_ptr<CWorkspace>             m_pWorkspace;
+    PHLWORKSPACEREF                       m_pWorkspace;
     PHLLSREF                              m_pLayer;
 
     SAnimationPropertyConfig*             m_pConfig = nullptr;

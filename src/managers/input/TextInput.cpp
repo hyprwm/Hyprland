@@ -11,7 +11,7 @@ CTextInput::CTextInput(STextInputV1* ti) : pV1Input(ti) {
     initCallbacks();
 }
 
-CTextInput::CTextInput(std::weak_ptr<CTextInputV3> ti) : pV3Input(ti) {
+CTextInput::CTextInput(WP<CTextInputV3> ti) : pV3Input(ti) {
     initCallbacks();
 }
 
@@ -109,7 +109,7 @@ void CTextInput::onCommit() {
         return;
     }
 
-    if (!(isV3() ? pV3Input.lock()->current.enabled : pV1Input->active)) {
+    if (!(isV3() ? pV3Input->current.enabled : pV1Input->active)) {
         Debug::log(WARN, "Disabled TextInput commit?");
         return;
     }
@@ -180,7 +180,7 @@ void CTextInput::enter(wlr_surface* pSurface) {
     }
 
     if (isV3())
-        pV3Input.lock()->enter(pSurface);
+        pV3Input->enter(pSurface);
     else {
         zwp_text_input_v1_send_enter(pV1Input->resourceImpl, pSurface->resource);
         pV1Input->active = true;
@@ -200,7 +200,7 @@ void CTextInput::leave() {
     }
 
     if (isV3() && focusedSurface())
-        pV3Input.lock()->leave(focusedSurface());
+        pV3Input->leave(focusedSurface());
     else if (focusedSurface() && pV1Input) {
         zwp_text_input_v1_send_leave(pV1Input->resourceImpl);
         pV1Input->active = false;
@@ -216,7 +216,7 @@ wlr_surface* CTextInput::focusedSurface() {
 }
 
 wl_client* CTextInput::client() {
-    return isV3() ? pV3Input.lock()->client() : pV1Input->client;
+    return isV3() ? pV3Input->client() : pV1Input->client;
 }
 
 void CTextInput::commitStateToIME(SP<CInputMethodV2> ime) {
@@ -284,9 +284,9 @@ void CTextInput::updateIMEState(SP<CInputMethodV2> ime) {
 }
 
 bool CTextInput::hasCursorRectangle() {
-    return !isV3() || pV3Input.lock()->current.box.updated;
+    return !isV3() || pV3Input->current.box.updated;
 }
 
 CBox CTextInput::cursorBox() {
-    return CBox{isV3() ? pV3Input.lock()->current.box.cursorBox : pV1Input->cursorRectangle};
+    return CBox{isV3() ? pV3Input->current.box.cursorBox : pV1Input->cursorRectangle};
 }

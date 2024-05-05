@@ -175,9 +175,9 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
         return {};
 
     if (!m_pWindowOwner.expired())
-        return m_pWindowOwner.lock()->getWindowMainSurfaceBox();
+        return m_pWindowOwner->getWindowMainSurfaceBox();
     if (!m_pLayerOwner.expired())
-        return m_pLayerOwner.lock()->geometry;
+        return m_pLayerOwner->geometry;
     if (m_pPopupOwner)
         return CBox{m_pPopupOwner->coordsGlobal(), m_pPopupOwner->size()};
     if (m_pSubsurfaceOwner)
@@ -186,7 +186,7 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     return {};
 }
 
-void CWLSurface::appendConstraint(std::weak_ptr<CPointerConstraint> constraint) {
+void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
     m_pConstraint = constraint;
 }
 
@@ -194,7 +194,7 @@ void CWLSurface::onCommit() {
     ;
 }
 
-std::shared_ptr<CPointerConstraint> CWLSurface::constraint() {
+SP<CPointerConstraint> CWLSurface::constraint() {
     return m_pConstraint.lock();
 }
 

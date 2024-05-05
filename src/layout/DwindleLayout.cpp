@@ -282,8 +282,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
 
     } else if (*PUSEACTIVE) {
-        if (g_pCompositor->m_pLastWindow.lock() && !g_pCompositor->m_pLastWindow.lock()->m_bIsFloating && g_pCompositor->m_pLastWindow.lock() != pWindow &&
-            g_pCompositor->m_pLastWindow.lock()->m_pWorkspace == pWindow->m_pWorkspace && g_pCompositor->m_pLastWindow.lock()->m_bIsMapped) {
+        if (g_pCompositor->m_pLastWindow.lock() && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow.lock() != pWindow &&
+            g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace && g_pCompositor->m_pLastWindow->m_bIsMapped) {
             OPENINGON = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
         } else {
             OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
@@ -334,19 +334,19 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
-        if (OPENINGON->pWindow.lock()->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
+        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
             return;
     }
 
     // if it's a group, add the window
-    if (OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock()                           // target is group
+    if (OPENINGON->pWindow->m_sGroupData.pNextWindow.lock()                                  // target is group
         && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
         m_lDwindleNodesData.remove(*PNODE);
 
         static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow.lock()->getGroupTail())->insertWindowToGroup(pWindow);
+        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
-        OPENINGON->pWindow.lock()->setGroupCurrent(pWindow);
+        OPENINGON->pWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
@@ -984,15 +984,15 @@ void CHyprDwindleLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
         getMasterNodeOnWorkspace(PNODE2->workspaceID)->recalcSizePosRecursive();
 
     if (ACTIVE1) {
-        ACTIVE1->box                         = PNODE->box;
-        ACTIVE1->pWindow.lock()->m_vPosition = ACTIVE1->box.pos();
-        ACTIVE1->pWindow.lock()->m_vSize     = ACTIVE1->box.size();
+        ACTIVE1->box                  = PNODE->box;
+        ACTIVE1->pWindow->m_vPosition = ACTIVE1->box.pos();
+        ACTIVE1->pWindow->m_vSize     = ACTIVE1->box.size();
     }
 
     if (ACTIVE2) {
-        ACTIVE2->box                         = PNODE2->box;
-        ACTIVE2->pWindow.lock()->m_vPosition = ACTIVE2->box.pos();
-        ACTIVE2->pWindow.lock()->m_vSize     = ACTIVE2->box.size();
+        ACTIVE2->box                  = PNODE2->box;
+        ACTIVE2->pWindow->m_vPosition = ACTIVE2->box.pos();
+        ACTIVE2->pWindow->m_vSize     = ACTIVE2->box.size();
     }
 
     g_pHyprRenderer->damageWindow(pWindow);

@@ -151,7 +151,7 @@ void CVirtualPointerProtocol::destroyResource(CVirtualPointerV1Resource* pointer
 
 void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id) {
 
-    const auto RESOURCE = m_vPointers.emplace_back(std::make_shared<CVirtualPointerV1Resource>(std::make_shared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_vPointers.emplace_back(makeShared<CVirtualPointerV1Resource>(makeShared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

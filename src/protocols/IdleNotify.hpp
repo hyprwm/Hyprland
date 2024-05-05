@@ -18,13 +18,13 @@ class CExtIdleNotification {
     void onActivity();
 
   private:
-    SP<CExtIdleNotificationV1>       resource;
-    uint32_t                         timeoutMs = 0;
-    std::shared_ptr<CEventLoopTimer> timer;
+    SP<CExtIdleNotificationV1> resource;
+    uint32_t                   timeoutMs = 0;
+    SP<CEventLoopTimer>        timer;
 
-    bool                             idled = false;
+    bool                       idled = false;
 
-    void                             updateTimer();
+    void                       updateTimer();
 };
 
 class CIdleNotifyProtocol : public IWaylandProtocol {

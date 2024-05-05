@@ -250,7 +250,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (!PSLS)
             return;
 
-        foundSurface = PSLS->surface.lock()->surface();
+        foundSurface = PSLS->surface->surface();
         surfacePos   = PMONITOR->vecPosition;
     }
 
@@ -408,7 +408,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         m_pFoundSurfaceToFocus = foundSurface;
     }
 
-    if (currentlyDraggedWindow.lock() && pFoundWindow != currentlyDraggedWindow.lock()) {
+    if (currentlyDraggedWindow.lock() && pFoundWindow != currentlyDraggedWindow) {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
         return;
@@ -434,8 +434,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock() &&
-                ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) ||
-                 (g_pCompositor->m_pLastWindow.lock()->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
+                ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     g_pCompositor->focusWindow(pFoundWindow, foundSurface);
@@ -446,12 +445,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
-            if (pFoundWindow == g_pCompositor->m_pLastWindow.lock()) {
+            if (pFoundWindow == g_pCompositor->m_pLastWindow) {
                 m_pLastMouseSurface = foundSurface;
                 wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
             }
 
-            if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow.lock())
+            if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
                 wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
 
             m_bLastFocusOnLS = false;
@@ -671,7 +670,7 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             }
 
             // if clicked on a floating window make it top
-            if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock()->m_bIsFloating)
+            if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsFloating)
                 g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow.lock(), true);
 
             break;
@@ -1172,9 +1171,9 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (m_vKeyboards.size() > 0) {
-        g_pCompositor->m_sSeat.keyboard                = m_vKeyboards.back();
-        g_pCompositor->m_sSeat.keyboard.lock()->active = true;
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, g_pCompositor->m_sSeat.keyboard.lock()->wlr());
+        g_pCompositor->m_sSeat.keyboard         = m_vKeyboards.back();
+        g_pCompositor->m_sSeat.keyboard->active = true;
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, g_pCompositor->m_sSeat.keyboard->wlr());
     } else {
         g_pCompositor->m_sSeat.keyboard.reset();
         wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, nullptr);
@@ -1278,7 +1277,7 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
 
     CVirtualKeyboard* vk = (CVirtualKeyboard*)pKeyboard.get();
 
-    return !pKeyboard || (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME.lock()->grabClient() == vk->getClient());
+    return !pKeyboard || (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME->grabClient() == vk->getClient());
 }
 
 void CInputManager::refocus() {

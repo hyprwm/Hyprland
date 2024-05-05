@@ -729,7 +729,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // swallowing
     if (valid(PWINDOW->m_pSwallowed)) {
-        PWINDOW->m_pSwallowed.lock()->setHidden(false);
+        PWINDOW->m_pSwallowed->setHidden(false);
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
         PWINDOW->m_pSwallowed.reset();
     }
@@ -1024,7 +1024,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 
         Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 
-        if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock()->getPID() != PWINDOW->getPID())
+        if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->getPID() != PWINDOW->getPID())
             return;
 
         if (!wlr_xwayland_or_surface_wants_focus(PWINDOW->m_uSurface.xwayland))

@@ -8,16 +8,16 @@ CRenderbuffer::~CRenderbuffer() {
     if (!g_pCompositor)
         return;
 
-    if (eglGetCurrentContext() != wlr_egl_get_context(g_pCompositor->m_sWLREGL))
-        eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL));
+    g_pHyprRenderer->makeEGLCurrent();
 
+    unbind();
     m_sFramebuffer.release();
     glDeleteRenderbuffers(1, &m_iRBO);
 
     g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(wlr_egl_get_display(g_pCompositor->m_sWLREGL), m_iImage);
 }
 
-CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer(buffer) {
+CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer(buffer), m_uDrmFormat(format) {
 
     // EVIL, but we can't include a hidden header because nixos is fucking special
     static EGLImageKHR (*PWLREGLCREATEIMAGEFROMDMABUF)(wlr_egl*, wlr_dmabuf_attributes*, bool*);
@@ -58,7 +58,7 @@ CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     hyprListener_destroyBuffer.initCallback(
-        &buffer->events.destroy, [](void* owner, void* data) { g_pHyprRenderer->onRenderbufferDestroy((CRenderbuffer*)owner); }, this, "CRenderbuffer");
+        &buffer->events.destroy, [this](void* owner, void* data) { g_pHyprRenderer->onRenderbufferDestroy(this); }, this, "CRenderbuffer");
 }
 
 void CRenderbuffer::bind() {

@@ -3,6 +3,7 @@
 #include "config/ConfigValue.hpp"
 #include "managers/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
+#include "managers/PointerManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <random>
 #include <unordered_set>
@@ -227,12 +228,7 @@ void CCompositor::initServer() {
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
 
-    m_sWLROutputLayout = wlr_output_layout_create(m_sWLDisplay);
-
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 6);
-
-    m_sWLRCursor = wlr_cursor_create();
-    wlr_cursor_attach_output_layout(m_sWLRCursor, m_sWLROutputLayout);
 
     m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
@@ -246,7 +242,7 @@ void CCompositor::initServer() {
         Debug::log(INFO, "VR will not be available");
     }
 
-    m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
+    // m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
 
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
 
@@ -270,23 +266,6 @@ void CCompositor::initServer() {
 void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sWLRXDGShell->events.new_toplevel, &Events::listen_newXDGToplevel, m_sWLRXDGShell, "XDG Shell");
-    addWLSignal(&m_sWLRCursor->events.motion, &Events::listen_mouseMove, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.motion_absolute, &Events::listen_mouseMoveAbsolute, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.button, &Events::listen_mouseButton, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.axis, &Events::listen_mouseAxis, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.frame, &Events::listen_mouseFrame, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.swipe_begin, &Events::listen_swipeBegin, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.swipe_update, &Events::listen_swipeUpdate, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.swipe_end, &Events::listen_swipeEnd, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.pinch_begin, &Events::listen_pinchBegin, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.pinch_update, &Events::listen_pinchUpdate, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.pinch_end, &Events::listen_pinchEnd, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.touch_down, &Events::listen_touchBegin, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.touch_up, &Events::listen_touchEnd, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.touch_motion, &Events::listen_touchUpdate, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.touch_frame, &Events::listen_touchFrame, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.hold_begin, &Events::listen_holdBegin, m_sWLRCursor, "WLRCursor");
-    addWLSignal(&m_sWLRCursor->events.hold_end, &Events::listen_holdEnd, m_sWLRCursor, "WLRCursor");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse, &m_sSeat, "Seat");
     addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
@@ -307,23 +286,6 @@ void CCompositor::initAllSignals() {
 void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newOutput);
     removeWLSignal(&Events::listen_newXDGToplevel);
-    removeWLSignal(&Events::listen_mouseMove);
-    removeWLSignal(&Events::listen_mouseMoveAbsolute);
-    removeWLSignal(&Events::listen_mouseButton);
-    removeWLSignal(&Events::listen_mouseAxis);
-    removeWLSignal(&Events::listen_mouseFrame);
-    removeWLSignal(&Events::listen_swipeBegin);
-    removeWLSignal(&Events::listen_swipeUpdate);
-    removeWLSignal(&Events::listen_swipeEnd);
-    removeWLSignal(&Events::listen_pinchBegin);
-    removeWLSignal(&Events::listen_pinchUpdate);
-    removeWLSignal(&Events::listen_pinchEnd);
-    removeWLSignal(&Events::listen_touchBegin);
-    removeWLSignal(&Events::listen_touchEnd);
-    removeWLSignal(&Events::listen_touchUpdate);
-    removeWLSignal(&Events::listen_touchFrame);
-    removeWLSignal(&Events::listen_holdBegin);
-    removeWLSignal(&Events::listen_holdEnd);
     removeWLSignal(&Events::listen_newInput);
     removeWLSignal(&Events::listen_requestMouse);
     removeWLSignal(&Events::listen_requestSetSel);
@@ -410,9 +372,6 @@ void CCompositor::cleanup() {
     g_pWatchdog.reset();
     g_pXWaylandManager.reset();
 
-    if (m_sWLRCursor)
-        wlr_cursor_destroy(m_sWLRCursor);
-
     if (m_sSeat.seat)
         wlr_seat_destroy(m_sSeat.seat);
 
@@ -461,6 +420,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             g_pConfigManager->init();
             g_pWatchdog = std::make_unique<CWatchdog>(); // requires config
+
+            Debug::log(LOG, "Creating the PointerManager!");
+            g_pPointerManager = std::make_unique<CPointerManager>();
         } break;
         case STAGE_LATE: {
             Debug::log(LOG, "Creating the ThreadManager!");
@@ -644,24 +606,28 @@ CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
 }
 
 CMonitor* CCompositor::getMonitorFromCursor() {
-    const auto COORDS = Vector2D(m_sWLRCursor->x, m_sWLRCursor->y);
-
-    return getMonitorFromVector(COORDS);
+    return getMonitorFromVector(g_pPointerManager->position());
 }
 
 CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
-    const auto OUTPUT = wlr_output_layout_output_at(m_sWLROutputLayout, point.x, point.y);
+    SP<CMonitor> mon;
+    for (auto& m : m_vMonitors) {
+        if (CBox{m->vecPosition, m->vecSize}.containsPoint(point)) {
+            mon = m;
+            break;
+        }
+    }
 
-    if (!OUTPUT) {
-        float     bestDistance = 0.f;
-        CMonitor* pBestMon     = nullptr;
+    if (!mon) {
+        float        bestDistance = 0.f;
+        SP<CMonitor> pBestMon;
 
         for (auto& m : m_vMonitors) {
             float dist = vecToRectDistanceSquared(point, m->vecPosition, m->vecPosition + m->vecSize);
 
             if (dist < bestDistance || !pBestMon) {
                 bestDistance = dist;
-                pBestMon     = m.get();
+                pBestMon     = m;
             }
         }
 
@@ -670,10 +636,10 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
             return m_vMonitors.front().get();
         }
 
-        return pBestMon;
+        return pBestMon.get();
     }
 
-    return getMonitorFromOutput(OUTPUT);
+    return mon.get();
 }
 
 void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
@@ -708,7 +674,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             const auto BB  = w->getWindowBoxUnified(properties);
             CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
             if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sAdditionalConfigData.noFocus && w != pIgnoreWindow) {
-                if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y}))
+                if (box.containsPoint(g_pPointerManager->position()))
                     return w;
 
                 if (!w->m_bIsX11) {
@@ -742,7 +708,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
                         continue;
 
-                    if (box.containsPoint({m_sWLRCursor->x, m_sWLRCursor->y})) {
+                    if (box.containsPoint(g_pPointerManager->position())) {
 
                         if (w->m_bIsX11 && w->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(w->m_uSurface.xwayland)) {
                             // Override Redirect
@@ -1695,7 +1661,7 @@ void checkFocusSurfaceIter(wlr_surface* pSurface, int x, int y, void* data) {
 }
 
 CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
-    return this->getMonitorInDirection(m_pLastMonitor, dir);
+    return this->getMonitorInDirection(m_pLastMonitor.get(), dir);
 }
 
 CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const char& dir) {
@@ -1709,7 +1675,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
     CMonitor*  longestIntersectMonitor = nullptr;
 
     for (auto& m : m_vMonitors) {
-        if (m.get() == m_pLastMonitor)
+        if (m == m_pLastMonitor)
             continue;
 
         const auto POSB  = m->vecPosition;
@@ -1987,7 +1953,7 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
 
 CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     if (name == "current")
-        return g_pCompositor->m_pLastMonitor;
+        return g_pCompositor->m_pLastMonitor.get();
     else if (isDirection(name))
         return getMonitorInDirection(name[0]);
     else if (name[0] == '+' || name[0] == '-') {
@@ -2008,7 +1974,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
 
         int currentPlace = 0;
         for (int i = 0; i < (int)m_vMonitors.size(); i++) {
-            if (m_vMonitors[i].get() == m_pLastMonitor) {
+            if (m_vMonitors[i] == m_pLastMonitor) {
                 currentPlace = i;
                 break;
             }
@@ -2134,7 +2100,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
         }
     }
 
-    if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_pLastMonitor) { // if it was active, preserve its' status. If it wasn't, don't.
+    if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_pLastMonitor.get()) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_iID);
 
         if (valid(pMonitor->activeWorkspace)) {
@@ -2150,7 +2116,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
         pWorkspace->m_bVisible = true;
 
         if (!noWarpCursor)
-            wlr_cursor_warp(m_sWLRCursor, nullptr, pMonitor->vecPosition.x + pMonitor->vecTransformedSize.x / 2, pMonitor->vecPosition.y + pMonitor->vecTransformedSize.y / 2);
+            g_pPointerManager->warpTo(pMonitor->vecPosition + pMonitor->vecTransformedSize / 2.F);
 
         g_pInputManager->sendMotionEventsToFocused();
     }
@@ -2415,10 +2381,10 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
     if (*PNOWARPS && !force)
         return;
 
-    wlr_cursor_warp(m_sWLRCursor, nullptr, pos.x, pos.y);
+    g_pPointerManager->warpTo(pos);
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
-    if (PMONITORNEW != m_pLastMonitor)
+    if (PMONITORNEW != m_pLastMonitor.get())
         setActiveMonitor(PMONITORNEW);
 }
 
@@ -2563,11 +2529,11 @@ void CCompositor::renameWorkspace(const int& id, const std::string& name) {
 }
 
 void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
-    if (m_pLastMonitor == pMonitor)
+    if (m_pLastMonitor.get() == pMonitor)
         return;
 
     if (!pMonitor) {
-        m_pLastMonitor = nullptr;
+        m_pLastMonitor.reset();
         return;
     }
 
@@ -2575,7 +2541,7 @@ void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + (PWORKSPACE ? PWORKSPACE->m_szName : "?")});
     EMIT_HOOK_EVENT("focusedMon", pMonitor);
-    m_pLastMonitor = pMonitor;
+    m_pLastMonitor = pMonitor->self;
 }
 
 bool CCompositor::isWorkspaceSpecial(const int& id) {

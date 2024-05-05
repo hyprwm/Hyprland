@@ -149,14 +149,14 @@ void CMonitor::onConnect(bool noRule) {
     for (const auto& PTOUCHDEV : g_pInputManager->m_vTouches) {
         if (matchesStaticSelector(PTOUCHDEV->boundOutput)) {
             Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->hlName, szName);
-            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, output);
+            // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, output);
         }
     }
 
     for (const auto& PTABLET : g_pInputManager->m_lTablets) {
         if (matchesStaticSelector(PTABLET.boundOutput)) {
             Debug::log(LOG, "Binding tablet {} to output {}", PTABLET.name, szName);
-            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTABLET.wlrDevice, output);
+            // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTABLET.wlrDevice, output);
         }
     }
 
@@ -203,7 +203,7 @@ void CMonitor::onConnect(bool noRule) {
     // verify last mon valid
     bool found = false;
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (m.get() == g_pCompositor->m_pLastMonitor) {
+        if (m == g_pCompositor->m_pLastMonitor) {
             found = true;
             break;
         }
@@ -219,6 +219,7 @@ void CMonitor::onConnect(bool noRule) {
     PROTO::gamma->applyGammaToState(this);
 
     events.connect.emit();
+    updateGlobal();
 }
 
 void CMonitor::onDisconnect(bool destroy) {
@@ -285,10 +286,11 @@ void CMonitor::onDisconnect(bool destroy) {
     m_bEnabled             = false;
     m_bRenderingInitPassed = false;
 
+    updateGlobal();
+
     if (BACKUPMON) {
         // snap cursor
-        wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, BACKUPMON->vecPosition.x + BACKUPMON->vecTransformedSize.x / 2.f,
-                        BACKUPMON->vecPosition.y + BACKUPMON->vecTransformedSize.y / 2.f);
+        g_pCompositor->warpCursorTo(BACKUPMON->vecPosition + BACKUPMON->vecTransformedSize / 2.F, true);
 
         // move workspaces
         std::deque<PHLWORKSPACE> wspToMove;
@@ -306,22 +308,19 @@ void CMonitor::onDisconnect(bool destroy) {
     } else {
         g_pCompositor->m_pLastFocus = nullptr;
         g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastMonitor = nullptr;
+        g_pCompositor->m_pLastMonitor.reset();
     }
 
     if (activeWorkspace)
         activeWorkspace->m_bVisible = false;
     activeWorkspace.reset();
 
-    if (!destroy)
-        wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
-
     wlr_output_state_set_enabled(state.wlr(), false);
 
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
 
-    if (g_pCompositor->m_pLastMonitor == this)
+    if (g_pCompositor->m_pLastMonitor.get() == this)
         g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput);
 
     if (g_pHyprRenderer->m_pMostHzMonitor == this) {
@@ -507,8 +506,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         }
 
         activeWorkspace.reset();
-
-        wlr_output_layout_remove(g_pCompositor->m_sWLROutputLayout, output);
 
         vecPosition = PMIRRORMON->vecPosition;
 
@@ -728,9 +725,6 @@ void CMonitor::setSpecialWorkspace(const int& id) {
 
 void CMonitor::moveTo(const Vector2D& pos) {
     vecPosition = pos;
-
-    if (!isMirror())
-        wlr_output_layout_add(g_pCompositor->m_sWLROutputLayout, output, (int)vecPosition.x, (int)vecPosition.y);
 }
 
 Vector2D CMonitor::middle() {
@@ -749,8 +743,20 @@ void CMonitor::updateMatrix() {
 int64_t CMonitor::activeWorkspaceID() {
     return activeWorkspace ? activeWorkspace->m_iID : 0;
 }
+
 int64_t CMonitor::activeSpecialWorkspaceID() {
     return activeSpecialWorkspace ? activeSpecialWorkspace->m_iID : 0;
+}
+
+CBox CMonitor::logicalBox() {
+    return {vecPosition, vecSize};
+}
+
+void CMonitor::updateGlobal() {
+    if (output->width > 0 && output->height > 0 && m_bEnabled)
+        wlr_output_create_global(output, g_pCompositor->m_sWLDisplay);
+    else
+        wlr_output_destroy_global(output);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

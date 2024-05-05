@@ -121,7 +121,7 @@ CBox& CBox::noNegativeSize() {
     return *this;
 }
 
-CBox CBox::intersection(const CBox other) const {
+CBox CBox::intersection(const CBox& other) const {
     const float newX      = std::max(x, other.x);
     const float newY      = std::max(y, other.y);
     const float newBottom = std::min(y + h, other.y + other.h);
@@ -135,6 +135,14 @@ CBox CBox::intersection(const CBox other) const {
     }
 
     return {newX, newY, newW, newH};
+}
+
+bool CBox::overlaps(const CBox& other) const {
+    return (other.x + other.w >= x) && (x + w >= other.x) && (other.y + other.h >= y) && (y + h >= other.y);
+}
+
+bool CBox::inside(const CBox& bound) const {
+    return bound.x < x && bound.y < y && x + w < bound.x + bound.w && y + h < bound.y + bound.h;
 }
 
 CBox CBox::roundInternal() {
@@ -154,6 +162,16 @@ Vector2D CBox::pos() const {
 
 Vector2D CBox::size() const {
     return {w, h};
+}
+
+Vector2D CBox::closestPoint(const Vector2D& vec) const {
+    if (containsPoint(vec))
+        return vec;
+
+    Vector2D nv = vec;
+    nv.x        = std::clamp(nv.x, x, x + w);
+    nv.y        = std::clamp(nv.y, y, y + h);
+    return nv;
 }
 
 SWindowDecorationExtents CBox::extentsFrom(const CBox& small) {

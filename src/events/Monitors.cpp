@@ -16,8 +16,7 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-static void checkDefaultCursorWarp(SP<CMonitor>* PNEWMONITORWRAP, std::string monitorName) {
-    const auto  PNEWMONITOR = PNEWMONITORWRAP->get();
+static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitorName) {
 
     static auto PCURSORMONITOR    = CConfigValue<std::string>("general:default_cursor_monitor");
     static auto firstMonitorAdded = std::chrono::system_clock::now();
@@ -61,17 +60,17 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     }
 
     // add it to real
-    SP<CMonitor>* PNEWMONITORWRAP = nullptr;
-
-    PNEWMONITORWRAP = &g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
+    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
     if (std::string("HEADLESS-1") == OUTPUT->name)
-        g_pCompositor->m_pUnsafeOutput = PNEWMONITORWRAP->get();
+        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
 
-    (*PNEWMONITORWRAP)->output    = OUTPUT;
+    PNEWMONITOR->output           = OUTPUT;
+    PNEWMONITOR->self             = PNEWMONITOR;
     const bool FALLBACK           = g_pCompositor->m_pUnsafeOutput ? OUTPUT == g_pCompositor->m_pUnsafeOutput->output : false;
-    (*PNEWMONITORWRAP)->ID        = FALLBACK ? -1 : g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
-    const auto PNEWMONITOR        = PNEWMONITORWRAP->get();
+    PNEWMONITOR->ID               = FALLBACK ? -1 : g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
     PNEWMONITOR->isUnsafeFallback = FALLBACK;
+
+    EMIT_HOOK_EVENT("newMonitor", PNEWMONITOR);
 
     if (!FALLBACK)
         PNEWMONITOR->onConnect(false);
@@ -82,14 +81,14 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // ready to process if we have a real monitor
 
     if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
-        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
+        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR.get();
 
     g_pCompositor->m_bReadyToProcess = true;
 
     g_pConfigManager->m_bWantsMonitorReload = true;
-    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR);
+    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get());
 
-    checkDefaultCursorWarp(PNEWMONITORWRAP, OUTPUT->name);
+    checkDefaultCursorWarp(PNEWMONITOR, OUTPUT->name);
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->m_iMonitorID == PNEWMONITOR->ID) {

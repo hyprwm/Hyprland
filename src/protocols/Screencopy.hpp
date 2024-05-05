@@ -48,8 +48,9 @@ struct SScreencopyFrame {
     CBox               box          = {};
     int                shmStride    = 0;
 
-    bool               overlayCursor = false;
-    bool               withDamage    = false;
+    bool               overlayCursor   = false;
+    bool               withDamage      = false;
+    bool               lockedSWCursors = false;
 
     wlr_buffer_cap     bufferCap = WLR_BUFFER_CAP_SHM;
 

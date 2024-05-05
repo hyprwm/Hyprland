@@ -1322,8 +1322,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                         damageBlinkCleanup = 0;
                 }
             }
-        } else
+        } else {
+            CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
             g_pHyprRenderer->renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
+            renderLockscreen(pMonitor, &now, renderBox);
+        }
     } else {
         sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
         if (pMonitor->activeSpecialWorkspace)

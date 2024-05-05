@@ -54,10 +54,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    auto        PMONITOR = g_pCompositor->m_pLastMonitor;
+    auto        PMONITOR = g_pCompositor->m_pLastMonitor.get();
     if (!g_pCompositor->m_pLastMonitor) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = g_pCompositor->m_pLastMonitor;
+        PMONITOR = g_pCompositor->m_pLastMonitor.get();
     }
     auto PWORKSPACE           = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
@@ -330,7 +330,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
-                PMONITOR = g_pCompositor->m_pLastMonitor;
+                PMONITOR = g_pCompositor->m_pLastMonitor.get();
             }
         } else
             workspaceSilent = false;

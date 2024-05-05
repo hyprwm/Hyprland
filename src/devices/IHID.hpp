@@ -10,13 +10,24 @@ enum eHIDCapabilityType : uint32_t {
     HID_INPUT_CAPABILITY_TOUCH    = (1 << 2),
 };
 
+enum eHIDType {
+    HID_TYPE_UNKNOWN = 0,
+    HID_TYPE_POINTER,
+    HID_TYPE_KEYBOARD,
+    HID_TYPE_TOUCH,
+    HID_TYPE_TABLET,
+};
+
 /*
     Base class for a HID device.
     This could be a keyboard, a mouse, or a touchscreen.
 */
 class IHID {
   public:
+    virtual ~IHID() {}
+
     virtual uint32_t getCapabilities() = 0;
+    virtual eHIDType getType();
 
     struct {
         CSignal destroy;

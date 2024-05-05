@@ -10,7 +10,7 @@ CHyprError::CHyprError() {
         if (!m_bIsCreated)
             return;
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor);
+        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor.get());
         m_bMonitorChanged = true;
     });
 

@@ -13,6 +13,7 @@ class IKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
     virtual uint32_t      getCapabilities();
+    virtual eHIDType      getType();
     virtual bool          isVirtual() = 0;
     virtual wlr_keyboard* wlr()       = 0;
 

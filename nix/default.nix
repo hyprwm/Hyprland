@@ -10,6 +10,7 @@
   binutils,
   cairo,
   expat,
+  fribidi,
   git,
   hyprcursor,
   hyprland-protocols,
@@ -17,14 +18,19 @@
   hyprwayland-scanner,
   jq,
   libGL,
+  libdatrie,
   libdrm,
   libexecinfo,
   libinput,
+  libselinux,
+  libsepol,
+  libthai,
   libuuid,
   libxkbcommon,
   mesa,
   pango,
   pciutils,
+  pcre2,
   python3,
   systemd,
   tomlplusplus,
@@ -70,28 +76,31 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       # Generate version.h
       cp src/version.h.in src/version.h
       substituteInPlace src/version.h \
-        --replace "@HASH@" '${commit}' \
-        --replace "@BRANCH@" "" \
-        --replace "@MESSAGE@" "" \
-        --replace "@DATE@" "${date}" \
-        --replace "@TAG@" "" \
-        --replace "@DIRTY@" '${
+        --replace-warn "@HASH@" '${commit}' \
+        --replace-warn "@BRANCH@" "" \
+        --replace-warn "@MESSAGE@" "" \
+        --replace-warn "@DATE@" "${date}" \
+        --replace-warn "@TAG@" "" \
+        --replace-warn "@DIRTY@" '${
         if commit == ""
         then "dirty"
         else ""
       }'
     '';
 
-    nativeBuildInputs = [
-      hyprwayland-scanner
-      jq
-      makeWrapper
-      cmake
-      meson
-      ninja
-      pkg-config
-      python3
-      wayland-scanner
+    nativeBuildInputs = lib.concatLists [
+      [
+        hyprwayland-scanner
+        jq
+        makeWrapper
+        cmake
+        ninja
+        pkg-config
+        python3
+        wayland-scanner
+      ]
+      # introduce this later so that cmake takes precedence
+      wlroots.nativeBuildInputs
     ];
 
     outputs = [
@@ -106,18 +115,24 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       [
         cairo
         expat
+        fribidi
         git
         hyprcursor.dev
         hyprland-protocols
         hyprlang
-        libdrm
         libGL
+        libdrm
+        libdatrie
         libinput
+        libselinux
+        libsepol
+        libthai
         libuuid
         libxkbcommon
         mesa
         pango
         pciutils
+        pcre2
         tomlplusplus
         wayland
         wayland-protocols

@@ -11,6 +11,7 @@
   cairo,
   expat,
   git,
+  hwdata,
   hyprcursor,
   hyprland-protocols,
   hyprlang,
@@ -107,6 +108,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         cairo
         expat
         git
+        hwdata
         hyprcursor.dev
         hyprland-protocols
         hyprlang

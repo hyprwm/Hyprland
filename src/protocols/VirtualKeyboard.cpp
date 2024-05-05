@@ -122,7 +122,7 @@ void CVirtualKeyboardProtocol::destroyResource(CVirtualKeyboardV1Resource* keeb)
 
 void CVirtualKeyboardProtocol::onCreateKeeb(CZwpVirtualKeyboardManagerV1* pMgr, wl_resource* seat, uint32_t id) {
 
-    const auto RESOURCE = m_vKeyboards.emplace_back(std::make_shared<CVirtualKeyboardV1Resource>(std::make_shared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_vKeyboards.emplace_back(makeShared<CVirtualKeyboardV1Resource>(makeShared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

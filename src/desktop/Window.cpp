@@ -8,7 +8,7 @@
 #include "../managers/TokenManager.hpp"
 
 PHLWINDOW CWindow::create() {
-    PHLWINDOW pWindow = std::shared_ptr<CWindow>(new CWindow);
+    PHLWINDOW pWindow = SP<CWindow>(new CWindow);
 
     pWindow->m_pSelf = pWindow;
 
@@ -894,7 +894,7 @@ PHLWINDOW CWindow::getGroupHead() {
 
 PHLWINDOW CWindow::getGroupTail() {
     PHLWINDOW curr = m_pSelf.lock();
-    while (!curr->m_sGroupData.pNextWindow.lock()->m_sGroupData.head)
+    while (!curr->m_sGroupData.pNextWindow->m_sGroupData.head)
         curr = curr->m_sGroupData.pNextWindow.lock();
     return curr;
 }

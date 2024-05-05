@@ -85,7 +85,7 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
 }
 
 void CInputMethodRelay::onNewTextInput(std::any tiv3) {
-    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(std::any_cast<std::weak_ptr<CTextInputV3>>(tiv3)));
+    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(std::any_cast<WP<CTextInputV3>>(tiv3)));
 }
 
 void CInputMethodRelay::onNewTextInput(STextInputV1* pTIV1) {
@@ -106,7 +106,7 @@ void CInputMethodRelay::activateIME(CTextInput* pInput) {
     if (m_pIME.expired())
         return;
 
-    m_pIME.lock()->activate();
+    m_pIME->activate();
     commitIMEState(pInput);
 }
 
@@ -114,7 +114,7 @@ void CInputMethodRelay::deactivateIME(CTextInput* pInput) {
     if (m_pIME.expired())
         return;
 
-    m_pIME.lock()->deactivate();
+    m_pIME->deactivate();
     commitIMEState(pInput);
 }
 

@@ -53,7 +53,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     const auto  CLIENT = mgr->client();
 
-    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(std::make_shared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
+    CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
     if (g_pXWaylandManager->m_sWLRXWayland && g_pXWaylandManager->m_sWLRXWayland->server && g_pXWaylandManager->m_sWLRXWayland->server->client == CLIENT)
         pXDGOutput->isXWayland = true;

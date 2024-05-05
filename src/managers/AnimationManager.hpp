@@ -33,7 +33,7 @@ class CAnimationManager {
     std::vector<CBaseAnimatedVariable*>           m_vAnimatedVariables;
     std::vector<CBaseAnimatedVariable*>           m_vActiveAnimatedVariables;
 
-    std::shared_ptr<CEventLoopTimer>              m_pAnimationTimer;
+    SP<CEventLoopTimer>                           m_pAnimationTimer;
 
     float                                         m_fLastTickTime; // in ms
 

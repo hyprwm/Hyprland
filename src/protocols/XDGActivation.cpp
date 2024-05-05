@@ -92,7 +92,7 @@ void CXDGActivationProtocol::destroyToken(CXDGActivationToken* token) {
 
 void CXDGActivationProtocol::onGetToken(CXdgActivationV1* pMgr, uint32_t id) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vTokens.emplace_back(std::make_unique<CXDGActivationToken>(std::make_shared<CXdgActivationTokenV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vTokens.emplace_back(std::make_unique<CXDGActivationToken>(makeShared<CXdgActivationTokenV1>(CLIENT, pMgr->version(), id))).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

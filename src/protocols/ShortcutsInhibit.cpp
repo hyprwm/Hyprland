@@ -58,7 +58,7 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
     }
 
     const auto RESOURCE =
-        m_vInhibitors.emplace_back(std::make_unique<CKeyboardShortcutsInhibitor>(std::make_shared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, pMgr->version(), id), surf)).get();
+        m_vInhibitors.emplace_back(std::make_unique<CKeyboardShortcutsInhibitor>(makeShared<CZwpKeyboardShortcutsInhibitorV1>(CLIENT, pMgr->version(), id), surf)).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

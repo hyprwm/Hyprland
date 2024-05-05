@@ -85,12 +85,17 @@ CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor
 }
 
 void CDecorationPositioner::sanitizeDatas() {
-    std::erase_if(m_mWindowDatas, [](const auto& other) { return !valid(other.first); });
+    std::erase_if(m_mWindowDatas, [](const auto& other) {
+        if (!valid(other.first))
+            return true;
+
+        return false;
+    });
     std::erase_if(m_vWindowPositioningDatas, [](const auto& other) {
         if (!validMapped(other->pWindow))
             return true;
-        if (std::find_if(other->pWindow.lock()->m_dWindowDecorations.begin(), other->pWindow.lock()->m_dWindowDecorations.end(),
-                         [&](const auto& el) { return el.get() == other->pDecoration; }) == other->pWindow.lock()->m_dWindowDecorations.end())
+        if (std::find_if(other->pWindow->m_dWindowDecorations.begin(), other->pWindow->m_dWindowDecorations.end(),
+                         [&](const auto& el) { return el.get() == other->pDecoration; }) == other->pWindow->m_dWindowDecorations.end())
             return true;
         return false;
     });
@@ -302,7 +307,7 @@ SWindowDecorationExtents CDecorationPositioner::getWindowDecorationExtents(PHLWI
         CBox decoBox;
 
         if (data->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
-            decoBox = data->pWindow.lock()->getWindowMainSurfaceBox();
+            decoBox = data->pWindow->getWindowMainSurfaceBox();
             decoBox.addExtents(data->positioningInfo.desiredExtents);
         } else {
             decoBox              = data->lastReply.assignedGeometry;
@@ -340,7 +345,7 @@ CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {
         CBox decoBox;
 
         if (data->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
-            decoBox = data->pWindow.lock()->getWindowMainSurfaceBox();
+            decoBox = data->pWindow->getWindowMainSurfaceBox();
             decoBox.addExtents(data->positioningInfo.desiredExtents);
         } else {
             decoBox              = data->lastReply.assignedGeometry;

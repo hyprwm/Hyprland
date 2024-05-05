@@ -23,7 +23,7 @@ CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboar
 
 CInputMethodKeyboardGrabV2::~CInputMethodKeyboardGrabV2() {
     if (!owner.expired())
-        std::erase_if(owner.lock()->grabs, [](const auto& g) { return g.expired(); });
+        std::erase_if(owner->grabs, [](const auto& g) { return g.expired(); });
 }
 
 void CInputMethodKeyboardGrabV2::sendKeyboardData(wlr_keyboard* keyboard) {
@@ -131,7 +131,7 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
 
 CInputMethodPopupV2::~CInputMethodPopupV2() {
     if (!owner.expired())
-        std::erase_if(owner.lock()->popups, [](const auto& p) { return p.expired(); });
+        std::erase_if(owner->popups, [](const auto& p) { return p.expired(); });
 
     events.destroy.emit();
 }
@@ -193,7 +193,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
 
     resource->setGetInputPopupSurface([this](CZwpInputMethodV2* r, uint32_t id, wl_resource* surface) {
         const auto RESOURCE = PROTO::ime->m_vPopups.emplace_back(
-            std::make_shared<CInputMethodPopupV2>(std::make_shared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surface)));
+            makeShared<CInputMethodPopupV2>(makeShared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surface)));
 
         if (!RESOURCE->good()) {
             r->noMemory();
@@ -209,8 +209,8 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
     });
 
     resource->setGrabKeyboard([this](CZwpInputMethodV2* r, uint32_t id) {
-        const auto RESOURCE = PROTO::ime->m_vGrabs.emplace_back(
-            std::make_shared<CInputMethodKeyboardGrabV2>(std::make_shared<CZwpInputMethodKeyboardGrabV2>(r->client(), r->version(), id), self.lock()));
+        const auto RESOURCE =
+            PROTO::ime->m_vGrabs.emplace_back(makeShared<CInputMethodKeyboardGrabV2>(makeShared<CZwpInputMethodKeyboardGrabV2>(r->client(), r->version(), id), self.lock()));
 
         if (!RESOURCE->good()) {
             r->noMemory();
@@ -364,7 +364,7 @@ void CInputMethodV2Protocol::destroyResource(CInputMethodV2* ime) {
 }
 
 void CInputMethodV2Protocol::onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource* seat, uint32_t id) {
-    const auto RESOURCE = m_vIMEs.emplace_back(std::make_shared<CInputMethodV2>(std::make_shared<CZwpInputMethodV2>(mgr->client(), mgr->version(), id)));
+    const auto RESOURCE = m_vIMEs.emplace_back(makeShared<CInputMethodV2>(makeShared<CZwpInputMethodV2>(mgr->client(), mgr->version(), id)));
 
     if (!RESOURCE->good()) {
         mgr->noMemory();

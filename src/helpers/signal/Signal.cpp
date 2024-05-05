@@ -20,8 +20,8 @@ void CSignal::emit(std::any data) {
 }
 
 CHyprSignalListener CSignal::registerListener(std::function<void(std::any)> handler) {
-    CHyprSignalListener listener = std::make_shared<CSignalListener>(handler);
-    m_vListeners.emplace_back(std::weak_ptr<CSignalListener>(listener));
+    CHyprSignalListener listener = makeShared<CSignalListener>(handler);
+    m_vListeners.emplace_back(WP<CSignalListener>(listener));
     return listener;
 }
 

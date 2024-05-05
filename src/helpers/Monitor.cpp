@@ -123,7 +123,7 @@ void CMonitor::onConnect(bool noRule) {
         m_bRenderingInitPassed = true;
     }
 
-    std::shared_ptr<CMonitor>* thisWrapper = nullptr;
+    SP<CMonitor>* thisWrapper = nullptr;
 
     // find the wrap
     for (auto& m : g_pCompositor->m_vRealMonitors) {
@@ -337,7 +337,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
-    std::erase_if(g_pCompositor->m_vMonitors, [&](std::shared_ptr<CMonitor>& el) { return el.get() == this; });
+    std::erase_if(g_pCompositor->m_vMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
@@ -464,7 +464,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // push to mvmonitors
 
-        std::shared_ptr<CMonitor>* thisWrapper = nullptr;
+        SP<CMonitor>* thisWrapper = nullptr;
 
         // find the wrap
         for (auto& m : g_pCompositor->m_vRealMonitors) {
@@ -578,7 +578,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         }
 
         if (!noFocus && !g_pCompositor->m_pLastMonitor->activeSpecialWorkspace &&
-            !(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock()->m_bPinned && g_pCompositor->m_pLastWindow.lock()->m_iMonitorID == ID)) {
+            !(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bPinned && g_pCompositor->m_pLastWindow->m_iMonitorID == ID)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->getLastFocusedWindow();
 
@@ -636,7 +636,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-        if (!(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock()->m_bPinned && g_pCompositor->m_pLastWindow.lock()->m_iMonitorID == ID)) {
+        if (!(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bPinned && g_pCompositor->m_pLastWindow->m_iMonitorID == ID)) {
             if (const auto PLAST = activeWorkspace->getLastFocusedWindow(); PLAST)
                 g_pCompositor->focusWindow(PLAST);
             else
@@ -704,7 +704,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
-    if (!(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock()->m_bPinned && g_pCompositor->m_pLastWindow.lock()->m_iMonitorID == ID)) {
+    if (!(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bPinned && g_pCompositor->m_pLastWindow->m_iMonitorID == ID)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             g_pCompositor->focusWindow(PLAST);
         else

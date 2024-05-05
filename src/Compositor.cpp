@@ -1183,7 +1183,7 @@ void CCompositor::sanityCheckWorkspaces() {
         const auto& WORKSPACE = *it;
 
         // If ref == 1, only the compositor holds a ref, which means it's inactive and has no mapped windows.
-        if (!WORKSPACE->m_bPersistent && WORKSPACE.use_count() == 1) {
+        if (!WORKSPACE->m_bPersistent && WORKSPACE.strongRef() == 1) {
             it = m_vWorkspaces.erase(it);
             continue;
         }
@@ -1823,7 +1823,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
         setBorderColor(*RENDERDATA.borderGradient);
     else {
         const bool GROUPLOCKED = pWindow->m_sGroupData.pNextWindow.lock() ? pWindow->getGroupHead()->m_sGroupData.locked : false;
-        if (pWindow == m_pLastWindow.lock()) {
+        if (pWindow == m_pLastWindow) {
             const auto* const ACTIVECOLOR =
                 !pWindow->m_sGroupData.pNextWindow.lock() ? (!pWindow->m_sGroupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
             setBorderColor(pWindow->m_sSpecialRenderData.activeBorderColor.toUnderlying().m_vColors.empty() ? *ACTIVECOLOR :
@@ -1848,7 +1848,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
                                                                                     pWindow->m_sSpecialRenderData.alphaFullscreen.toUnderlying() * *PFULLSCREENALPHA) :
             *PFULLSCREENALPHA;
     } else {
-        if (pWindow == m_pLastWindow.lock())
+        if (pWindow == m_pLastWindow)
             pWindow->m_fActiveInactiveAlpha = pWindow->m_sSpecialRenderData.alphaOverride.toUnderlying() ? pWindow->m_sSpecialRenderData.alpha.toUnderlying() :
                                                                                                            pWindow->m_sSpecialRenderData.alpha.toUnderlying() * *PACTIVEALPHA;
         else
@@ -1867,7 +1867,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
 
     // shadow
     if (pWindow->m_iX11Type != 2 && !pWindow->m_bX11DoesntWantBorders) {
-        if (pWindow == m_pLastWindow.lock()) {
+        if (pWindow == m_pLastWindow) {
             pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
         } else {
             pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
@@ -2346,7 +2346,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto& w : m_vWindows) {
-            if (!w->m_bIsMapped || w->m_bIsFloating != FLOAT || w->m_pWorkspace != m_pLastWindow.lock()->m_pWorkspace || w->isHidden())
+            if (!w->m_bIsMapped || w->m_bIsFloating != FLOAT || w->m_pWorkspace != m_pLastWindow->m_pWorkspace || w->isHidden())
                 continue;
 
             return w;

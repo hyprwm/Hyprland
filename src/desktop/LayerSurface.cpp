@@ -58,7 +58,7 @@ static void onDestroy(void* owner, void* data) {
 // IMPL
 
 PHLLS CLayerSurface::create(wlr_layer_surface_v1* pWLRLS) {
-    PHLLS pLS = std::shared_ptr<CLayerSurface>(new CLayerSurface);
+    PHLLS pLS = SP<CLayerSurface>(new CLayerSurface);
 
     auto  PMONITOR = g_pCompositor->getMonitorFromOutput(pWLRLS->output);
 
@@ -176,7 +176,7 @@ void CLayerSurface::onMap() {
     if ((uint64_t)monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(monitorID);
         for (auto it = POLDMON->m_aLayerSurfaceLayers[layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layer].end(); it++) {
-            if (*it == self.lock()) {
+            if (*it == self) {
                 PMONITOR->m_aLayerSurfaceLayers[layer].emplace_back(std::move(*it));
                 POLDMON->m_aLayerSurfaceLayers[layer].erase(it);
                 break;
@@ -235,7 +235,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
     if (!g_pInputManager->m_dExclusiveLSes.empty())
-        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0].lock()->layerSurface->surface);
+        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->layerSurface->surface);
 
     if (!g_pCompositor->getMonitorFromID(monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
@@ -284,7 +284,7 @@ void CLayerSurface::onUnmap() {
             foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                                &surfaceCoords, &pFoundLayerSurface);
 
-        if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow.lock()->m_pWorkspace)) {
+        if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
             // if there isn't any, focus the last window
             const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
             g_pCompositor->focusWindow(nullptr);
@@ -325,7 +325,7 @@ void CLayerSurface::onCommit() {
         const auto POLDMON = g_pCompositor->getMonitorFromID(monitorID);
 
         for (auto it = POLDMON->m_aLayerSurfaceLayers[layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layer].end(); it++) {
-            if (*it == self.lock()) {
+            if (*it == self) {
                 PMONITOR->m_aLayerSurfaceLayers[layer].emplace_back(std::move(*it));
                 POLDMON->m_aLayerSurfaceLayers[layer].erase(it);
                 break;
@@ -341,7 +341,7 @@ void CLayerSurface::onCommit() {
         if (layer != layerSurface->current.layer) {
 
             for (auto it = PMONITOR->m_aLayerSurfaceLayers[layer].begin(); it != PMONITOR->m_aLayerSurfaceLayers[layer].end(); it++) {
-                if (*it == self.lock()) {
+                if (*it == self) {
                     PMONITOR->m_aLayerSurfaceLayers[layerSurface->current.layer].emplace_back(std::move(*it));
                     PMONITOR->m_aLayerSurfaceLayers[layer].erase(it);
                     break;

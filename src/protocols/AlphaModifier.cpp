@@ -111,9 +111,8 @@ void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id,
         return;
     }
 
-    const auto RESOURCE =
-        m_mAlphaModifiers.emplace(surface, std::make_unique<CAlphaModifier>(std::make_shared<CWpAlphaModifierSurfaceV1>(pMgr->client(), pMgr->version(), id), surface))
-            .first->second.get();
+    const auto RESOURCE = m_mAlphaModifiers.emplace(surface, std::make_unique<CAlphaModifier>(makeShared<CWpAlphaModifierSurfaceV1>(pMgr->client(), pMgr->version(), id), surface))
+                              .first->second.get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

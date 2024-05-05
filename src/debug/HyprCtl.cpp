@@ -1588,11 +1588,11 @@ CHyprCtl::CHyprCtl() {
     startHyprCtlSocket();
 }
 
-std::shared_ptr<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
-    return m_vCommands.emplace_back(std::make_shared<SHyprCtlCommand>(cmd));
+SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
+    return m_vCommands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
 }
 
-void CHyprCtl::unregisterCommand(const std::shared_ptr<SHyprCtlCommand>& cmd) {
+void CHyprCtl::unregisterCommand(const SP<SHyprCtlCommand>& cmd) {
     std::erase(m_vCommands, cmd);
 }
 

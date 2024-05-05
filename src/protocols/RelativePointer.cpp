@@ -47,7 +47,7 @@ void CRelativePointerProtocol::destroyRelativePointer(CRelativePointer* pointer)
 
 void CRelativePointerProtocol::onGetRelativePointer(CZwpRelativePointerManagerV1* pMgr, uint32_t id, wl_resource* pointer) {
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vRelativePointers.emplace_back(std::make_unique<CRelativePointer>(std::make_shared<CZwpRelativePointerV1>(CLIENT, pMgr->version(), id))).get();
+    const auto RESOURCE = m_vRelativePointers.emplace_back(std::make_unique<CRelativePointer>(makeShared<CZwpRelativePointerV1>(CLIENT, pMgr->version(), id))).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

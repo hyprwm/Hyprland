@@ -91,27 +91,27 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     static auto PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
     float       lastSplitPercent   = *PMFACT;
 
-    auto        OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow.lock()->m_pWorkspace == pWindow->m_pWorkspace ?
+    auto        OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
                getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) :
                getMasterNodeOnWorkspace(pWindow->workspaceID());
 
     const auto  MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
 
     if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
-        if (OPENINGON->pWindow.lock()->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
+        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
             return;
     }
 
     // if it's a group, add the window
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow.lock()->m_sGroupData.pNextWindow.lock() // target is group
+    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow.lock() // target is group
         && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock())) {
 
         m_lMasterNodesData.remove(*PNODE);
 
         static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow.lock()->getGroupTail())->insertWindowToGroup(pWindow);
+        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
-        OPENINGON->pWindow.lock()->setGroupCurrent(pWindow);
+        OPENINGON->pWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
@@ -135,17 +135,17 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             for (auto it = m_lMasterNodesData.begin(); it != m_lMasterNodesData.end(); ++it) {
                 if (it->workspaceID != pWindow->workspaceID())
                     continue;
-                const CBox box = it->pWindow.lock()->getWindowIdealBoundingBoxIgnoreReserved();
+                const CBox box = it->pWindow->getWindowIdealBoundingBoxIgnoreReserved();
                 if (box.containsPoint(MOUSECOORDS)) {
                     switch (orientation) {
                         case ORIENTATION_LEFT:
                         case ORIENTATION_RIGHT:
-                            if (MOUSECOORDS.y > it->pWindow.lock()->middle().y)
+                            if (MOUSECOORDS.y > it->pWindow->middle().y)
                                 ++it;
                             break;
                         case ORIENTATION_TOP:
                         case ORIENTATION_BOTTOM:
-                            if (MOUSECOORDS.x > it->pWindow.lock()->middle().x)
+                            if (MOUSECOORDS.x > it->pWindow->middle().x)
                                 ++it;
                             break;
                         case ORIENTATION_CENTER: break;
@@ -163,19 +163,19 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
                     switch (orientation) {
                         case ORIENTATION_LEFT:
                         case ORIENTATION_CENTER:
-                            if (MOUSECOORDS.x < nd.pWindow.lock()->middle().x)
+                            if (MOUSECOORDS.x < nd.pWindow->middle().x)
                                 forceDropAsMaster = true;
                             break;
                         case ORIENTATION_RIGHT:
-                            if (MOUSECOORDS.x > nd.pWindow.lock()->middle().x)
+                            if (MOUSECOORDS.x > nd.pWindow->middle().x)
                                 forceDropAsMaster = true;
                             break;
                         case ORIENTATION_TOP:
-                            if (MOUSECOORDS.y < nd.pWindow.lock()->middle().y)
+                            if (MOUSECOORDS.y < nd.pWindow->middle().y)
                                 forceDropAsMaster = true;
                             break;
                         case ORIENTATION_BOTTOM:
-                            if (MOUSECOORDS.y > nd.pWindow.lock()->middle().y)
+                            if (MOUSECOORDS.y > nd.pWindow->middle().y)
                                 forceDropAsMaster = true;
                             break;
                         default: UNREACHABLE();

@@ -7,7 +7,7 @@ static const struct wlr_keyboard_impl virtualKeyboardImpl = {
     .name = "virtual-keyboard",
 };
 
-CVirtualKeyboard::CVirtualKeyboard(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
+CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
     if (!good())
         return;
 
@@ -84,20 +84,20 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CZwpVirtualKeyboardV1> resource_) : resour
     wlr_keyboard_init(&keyboard, &virtualKeyboardImpl, "CVirtualKeyboard");
 }
 
-CVirtualKeyboard::~CVirtualKeyboard() {
+CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {
     wlr_keyboard_finish(&keyboard);
     events.destroy.emit();
 }
 
-bool CVirtualKeyboard::good() {
+bool CVirtualKeyboardV1Resource::good() {
     return resource->resource();
 }
 
-wlr_keyboard* CVirtualKeyboard::wlr() {
+wlr_keyboard* CVirtualKeyboardV1Resource::wlr() {
     return &keyboard;
 }
 
-wl_client* CVirtualKeyboard::client() {
+wl_client* CVirtualKeyboardV1Resource::client() {
     return resource->client();
 }
 
@@ -116,13 +116,13 @@ void CVirtualKeyboardProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
 }
 
-void CVirtualKeyboardProtocol::destroyResource(CVirtualKeyboard* keeb) {
+void CVirtualKeyboardProtocol::destroyResource(CVirtualKeyboardV1Resource* keeb) {
     std::erase_if(m_vKeyboards, [&](const auto& other) { return other.get() == keeb; });
 }
 
 void CVirtualKeyboardProtocol::onCreateKeeb(CZwpVirtualKeyboardManagerV1* pMgr, wl_resource* seat, uint32_t id) {
 
-    const auto RESOURCE = m_vKeyboards.emplace_back(std::make_shared<CVirtualKeyboard>(std::make_shared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_vKeyboards.emplace_back(std::make_shared<CVirtualKeyboardV1Resource>(std::make_shared<CZwpVirtualKeyboardV1>(pMgr->client(), pMgr->version(), id)));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

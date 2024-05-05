@@ -90,7 +90,7 @@ PHLLS CLayerSurface::create(wlr_layer_surface_v1* pWLRLS) {
 
     pLS->alpha.setValueAndWarp(0.f);
 
-    pLS->surface.assign(pWLRLS->surface);
+    pLS->surface.assign(pWLRLS->surface, pLS);
 
     return pLS;
 }
@@ -196,7 +196,7 @@ void CLayerSurface::onMap() {
 
     const bool GRABSFOCUS = layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
-        (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained());
+        (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained());
 
     if (GRABSFOCUS) {
         g_pInputManager->releaseAllMouseButtons();
@@ -383,7 +383,7 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained()) // don't focus if constrained
+    if (layerSurface->current.keyboard_interactive && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
         && !keyboardExclusive && mapped) {
         g_pCompositor->focusSurface(layerSurface->surface);
 
@@ -391,7 +391,7 @@ void CLayerSurface::onCommit() {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
-    } else if (!layerSurface->current.keyboard_interactive && (!g_pCompositor->m_sSeat.mouse || !g_pInputManager->isConstrained()) && keyboardExclusive) {
+    } else if (!layerSurface->current.keyboard_interactive && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
         g_pInputManager->refocus();
     }
 

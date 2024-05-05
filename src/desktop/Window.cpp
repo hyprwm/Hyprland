@@ -1119,7 +1119,7 @@ void CWindow::updateSpecialRenderData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (!m_sSpecialRenderData.border || m_sAdditionalConfigData.forceNoBorder)
+    if (!m_sSpecialRenderData.border || m_sAdditionalConfigData.forceNoBorder || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
         return 0;
 
     if (m_sAdditionalConfigData.borderSize.toUnderlying() != -1)

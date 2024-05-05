@@ -22,3 +22,19 @@ class CSignalListener {
 };
 
 typedef std::shared_ptr<CSignalListener> CHyprSignalListener;
+
+class CStaticSignalListener {
+  public:
+    CStaticSignalListener(std::function<void(void*, std::any)> handler, void* owner);
+
+    CStaticSignalListener(CStaticSignalListener&&)       = delete;
+    CStaticSignalListener(CStaticSignalListener&)        = delete;
+    CStaticSignalListener(const CStaticSignalListener&)  = delete;
+    CStaticSignalListener(const CStaticSignalListener&&) = delete;
+
+    void emit(std::any data);
+
+  private:
+    void*                                m_pOwner = nullptr;
+    std::function<void(void*, std::any)> m_fHandler;
+};

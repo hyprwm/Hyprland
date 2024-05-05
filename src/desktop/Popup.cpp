@@ -71,8 +71,8 @@ void CPopup::initAllSignals() {
     if (!m_pWLR) {
         if (!m_pWindowOwner.expired())
             hyprListener_newPopup.initCallback(&m_pWindowOwner.lock()->m_uSurface.xdg->events.new_popup, ::onNewPopup, this, "CPopup Head");
-        else if (m_pLayerOwner)
-            hyprListener_newPopup.initCallback(&m_pLayerOwner->layerSurface->events.new_popup, ::onNewPopup, this, "CPopup Head");
+        else if (!m_pLayerOwner.expired())
+            hyprListener_newPopup.initCallback(&m_pLayerOwner.lock()->layerSurface->events.new_popup, ::onNewPopup, this, "CPopup Head");
         else
             ASSERT(false);
 
@@ -119,8 +119,8 @@ void CPopup::onMap() {
     unconstrain();
     sendScale();
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
+    if (!m_pLayerOwner.expired() && m_pLayerOwner.lock()->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner.lock()->layer));
 }
 
 void CPopup::onUnmap() {
@@ -136,8 +136,8 @@ void CPopup::onUnmap() {
 
     g_pInputManager->simulateMouseMovement();
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
+    if (!m_pLayerOwner.expired() && m_pLayerOwner.lock()->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner.lock()->layer));
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {
@@ -178,8 +178,8 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     m_bRequestedReposition = false;
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
+    if (!m_pLayerOwner.expired() && m_pLayerOwner.lock()->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner.lock()->layer));
 }
 
 void CPopup::onReposition() {
@@ -232,8 +232,8 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 Vector2D CPopup::t1ParentCoords() {
     if (!m_pWindowOwner.expired())
         return m_pWindowOwner.lock()->m_vRealPosition.value();
-    if (m_pLayerOwner)
-        return m_pLayerOwner->realPosition.value();
+    if (!m_pLayerOwner.expired())
+        return m_pLayerOwner.lock()->realPosition.value();
 
     ASSERT(false);
     return {};
@@ -262,8 +262,19 @@ Vector2D CPopup::size() {
 void CPopup::sendScale() {
     if (!m_pWindowOwner.expired())
         g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pWindowOwner.lock()->m_pWLSurface.m_fLastScale);
-    else if (m_pLayerOwner)
-        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner->surface.m_fLastScale);
+    else if (!m_pLayerOwner.expired())
+        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner.lock()->surface.m_fLastScale);
     else
         UNREACHABLE();
+}
+
+bool CPopup::visible() {
+    if (!m_pWindowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_pWindowOwner.lock());
+    if (!m_pLayerOwner.expired())
+        return true;
+    if (m_pParent)
+        return m_pParent->visible();
+
+    return false;
 }

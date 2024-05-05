@@ -53,6 +53,11 @@ CCursorManager::CCursorManager() {
     static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
 }
 
+CCursorManager::~CCursorManager() {
+    if (m_pWLRXCursorMgr)
+        wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+}
+
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
     std::erase_if(m_vCursorBuffers, [ref](const auto& buf) { return buf.get() == ref; });
 }

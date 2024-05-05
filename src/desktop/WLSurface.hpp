@@ -33,6 +33,7 @@ class CWLSurface {
     Vector2D     getViewporterCorrectedSize() const;
     CRegion      logicalDamage() const;
     void         onCommit();
+    bool         visible();
 
     // getters for owners.
     PHLWINDOW    getWindow();

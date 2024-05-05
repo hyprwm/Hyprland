@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 
 extern "C" char**             environ;
 
@@ -954,7 +955,7 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
-    for (auto& r : m_dMonitorRules) {
+    for (auto& r : m_dMonitorRules | std::views::reverse) {
         if (PMONITOR.matchesStaticSelector(r.name)) {
             return r;
         }
@@ -991,6 +992,15 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
 
 SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, const SWorkspaceRule& rule2) {
     SWorkspaceRule mergedRule = rule1;
+
+    if (rule1.monitor.empty())
+        mergedRule.monitor = rule2.monitor;
+    if (rule1.workspaceString.empty())
+        mergedRule.workspaceString = rule2.workspaceString;
+    if (rule1.workspaceName.empty())
+        mergedRule.workspaceName = rule2.workspaceName;
+    if (rule1.workspaceId == WORKSPACE_INVALID)
+        mergedRule.workspaceId = rule2.workspaceId;
 
     if (rule2.isDefault)
         mergedRule.isDefault = true;
@@ -1234,6 +1244,10 @@ void CConfigManager::dispatchExecOnce() {
 
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
+}
+
+void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
+    m_dMonitorRules.emplace_back(r);
 }
 
 void CConfigManager::performMonitorReload() {

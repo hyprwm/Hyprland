@@ -54,20 +54,11 @@ namespace Events {
 
     // Virt Ptr
     LISTENER(newVirtPtr);
-    DYNLISTENFUNC(destroyMouse);
-
-    DYNLISTENFUNC(keyboardKey);
-    DYNLISTENFUNC(keyboardMod);
-    DYNLISTENFUNC(keyboardDestroy);
 
     // Various
     LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
-
-    // outputMgr
-    LISTENER(outputMgrApply);
-    LISTENER(outputMgrTest);
 
     // Monitor part 2 the sequel
     DYNLISTENFUNC(monitorFrame);

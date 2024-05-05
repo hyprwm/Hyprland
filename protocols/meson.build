@@ -41,6 +41,8 @@ new_protocols = [
   ['input-method-unstable-v2.xml'],
   ['virtual-keyboard-unstable-v1.xml'],
   ['wlr-virtual-pointer-unstable-v1.xml'],
+  ['wlr-output-management-unstable-v1.xml'],
+  ['kde-server-decoration.xml'],
   [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
   [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],

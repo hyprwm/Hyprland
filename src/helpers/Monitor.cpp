@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
+#include "../devices/ITouch.hpp"
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -145,10 +146,10 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    for (const auto& PTOUCHDEV : g_pInputManager->m_lTouchDevices) {
-        if (matchesStaticSelector(PTOUCHDEV.boundOutput)) {
-            Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV.name, szName);
-            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV.pWlrDevice, output);
+    for (const auto& PTOUCHDEV : g_pInputManager->m_vTouches) {
+        if (matchesStaticSelector(PTOUCHDEV->boundOutput)) {
+            Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->hlName, szName);
+            wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, output);
         }
     }
 

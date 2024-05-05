@@ -227,3 +227,14 @@ void CSubsurface::initExistingSubsurfaces(wlr_surface* pSurface) {
 Vector2D CSubsurface::size() {
     return {m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
 }
+
+bool CSubsurface::visible() {
+    if (!m_pWindowParent.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_pWindowParent.lock());
+    if (m_pPopupParent)
+        return m_pPopupParent->visible();
+    if (m_pParent)
+        return m_pParent->visible();
+
+    return false;
+}

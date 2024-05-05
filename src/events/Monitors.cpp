@@ -16,50 +16,6 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-void Events::listener_change(wl_listener* listener, void* data) {
-    // layout got changed, let's update monitors.
-    const auto CONFIG = wlr_output_configuration_v1_create();
-
-    if (!CONFIG)
-        return;
-
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (!m->output)
-            continue;
-
-        if (g_pCompositor->m_pUnsafeOutput == m.get())
-            continue;
-
-        const auto CONFIGHEAD = wlr_output_configuration_head_v1_create(CONFIG, m->output);
-
-        CBox       BOX;
-        wlr_output_layout_get_box(g_pCompositor->m_sWLROutputLayout, m->output, BOX.pWlr());
-        BOX.applyFromWlr();
-
-        //m->vecSize.x = BOX.width;
-        // m->vecSize.y = BOX.height;
-        m->vecPosition.x = BOX.x;
-        m->vecPosition.y = BOX.y;
-
-        CONFIGHEAD->state.enabled = m->output->enabled;
-        CONFIGHEAD->state.mode    = m->output->current_mode;
-        if (!m->output->current_mode) {
-            CONFIGHEAD->state.custom_mode = {
-                m->output->width,
-                m->output->height,
-                m->output->refresh,
-            };
-        }
-        CONFIGHEAD->state.x                     = m->vecPosition.x;
-        CONFIGHEAD->state.y                     = m->vecPosition.y;
-        CONFIGHEAD->state.transform             = m->transform;
-        CONFIGHEAD->state.scale                 = m->scale;
-        CONFIGHEAD->state.adaptive_sync_enabled = m->vrrActive;
-    }
-
-    wlr_output_manager_v1_set_configuration(g_pCompositor->m_sWLROutputMgr, CONFIG);
-}
-
 static void checkDefaultCursorWarp(std::shared_ptr<CMonitor>* PNEWMONITORWRAP, std::string monitorName) {
     const auto  PNEWMONITOR = PNEWMONITORWRAP->get();
 

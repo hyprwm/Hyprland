@@ -5,6 +5,7 @@ project('Hyprland', 'cpp', 'c',
     'default_library=static',
     'optimization=3',
     'buildtype=release',
+    'b_lto=true',
     'debug=false'
     # 'cpp_std=c++23' # not yet supported by meson, as of version 0.63.0
     ])

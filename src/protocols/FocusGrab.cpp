@@ -144,9 +144,9 @@ CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_)
 
     resource->setDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
     resource->setOnDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
-    resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { this->addSurface(wlr_surface_from_resource(surface)); });
-    resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { this->removeSurface(wlr_surface_from_resource(surface)); });
-    resource->setCommit([this](CHyprlandFocusGrabV1* pMgr) { this->commit(); });
+    resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { addSurface(wlr_surface_from_resource(surface)); });
+    resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { removeSurface(wlr_surface_from_resource(surface)); });
+    resource->setCommit([this](CHyprlandFocusGrabV1* pMgr) { commit(); });
 }
 
 CFocusGrab::~CFocusGrab() {
@@ -175,13 +175,13 @@ void CFocusGrab::start() {
         // Ensure the grab ends if another grab begins, including from xdg_popup::grab.
 
         hyprListener_pointerGrabStarted.initCallback(
-            &g_pCompositor->m_sSeat.seat->events.pointer_grab_begin, [this](void*, void*) { this->finish(true); }, this, "CFocusGrab");
+            &g_pCompositor->m_sSeat.seat->events.pointer_grab_begin, [this](void*, void*) { finish(true); }, this, "CFocusGrab");
 
         hyprListener_keyboardGrabStarted.initCallback(
-            &g_pCompositor->m_sSeat.seat->events.keyboard_grab_begin, [this](void*, void*) { this->finish(true); }, this, "CFocusGrab");
+            &g_pCompositor->m_sSeat.seat->events.keyboard_grab_begin, [this](void*, void*) { finish(true); }, this, "CFocusGrab");
 
         hyprListener_touchGrabStarted.initCallback(
-            &g_pCompositor->m_sSeat.seat->events.touch_grab_begin, [this](void*, void*) { this->finish(true); }, this, "CFocusGrab");
+            &g_pCompositor->m_sSeat.seat->events.touch_grab_begin, [this](void*, void*) { finish(true); }, this, "CFocusGrab");
     }
 
     // Ensure new surfaces are focused if under the mouse when comitted.
@@ -200,17 +200,17 @@ void CFocusGrab::finish(bool sendCleared) {
         // or xdg_popup grab we might not own the current grab.
 
         bool hadGrab = false;
-        if (g_pCompositor->m_sSeat.seat->pointer_state.grab == &this->m_sPointerGrab) {
+        if (g_pCompositor->m_sSeat.seat->pointer_state.grab == &m_sPointerGrab) {
             wlr_seat_pointer_end_grab(g_pCompositor->m_sSeat.seat);
             hadGrab = true;
         }
 
-        if (g_pCompositor->m_sSeat.seat->keyboard_state.grab == &this->m_sKeyboardGrab) {
+        if (g_pCompositor->m_sSeat.seat->keyboard_state.grab == &m_sKeyboardGrab) {
             wlr_seat_keyboard_end_grab(g_pCompositor->m_sSeat.seat);
             hadGrab = true;
         }
 
-        if (g_pCompositor->m_sSeat.seat->touch_state.grab == &this->m_sTouchGrab) {
+        if (g_pCompositor->m_sSeat.seat->touch_state.grab == &m_sTouchGrab) {
             wlr_seat_touch_end_grab(g_pCompositor->m_sSeat.seat);
             hadGrab = true;
         }
@@ -228,9 +228,8 @@ void CFocusGrab::finish(bool sendCleared) {
 
 void CFocusGrab::addSurface(wlr_surface* surface) {
     auto iter = m_mSurfaces.find(surface);
-    if (iter == m_mSurfaces.end()) {
+    if (iter == m_mSurfaces.end())
         m_mSurfaces.emplace(surface, std::make_unique<CFocusGrabSurfaceState>(this, surface));
-    }
 }
 
 void CFocusGrab::removeSurface(wlr_surface* surface) {
@@ -261,14 +260,10 @@ void CFocusGrab::refocusKeyboard() {
         }
     }
 
-    if (surface) {
-        const auto KEYBOARD     = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-        uint32_t   keycodes[32] = {0};
-
-        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, m_mSurfaces.begin()->first, keycodes, 0, &KEYBOARD->modifiers);
-    } else {
+    if (surface)
+        g_pCompositor->focusSurface(surface);
+    else
         Debug::log(ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
-    }
 }
 
 void CFocusGrab::commit() {
@@ -305,10 +300,10 @@ CFocusGrabProtocol::CFocusGrabProtocol(const wl_interface* iface, const int& ver
 
 void CFocusGrabProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CHyprlandFocusGrabManagerV1>(client, ver, id)).get();
-    RESOURCE->setOnDestroy([this](CHyprlandFocusGrabManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
+    RESOURCE->setOnDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
 
-    RESOURCE->setDestroy([this](CHyprlandFocusGrabManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
-    RESOURCE->setCreateGrab([this](CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) { this->onCreateGrab(pMgr, id); });
+    RESOURCE->setDestroy([this](CHyprlandFocusGrabManagerV1* p) { onManagerResourceDestroy(p->resource()); });
+    RESOURCE->setCreateGrab([this](CHyprlandFocusGrabManagerV1* pMgr, uint32_t id) { onCreateGrab(pMgr, id); });
 }
 
 void CFocusGrabProtocol::onManagerResourceDestroy(wl_resource* res) {

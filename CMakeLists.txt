@@ -264,6 +264,7 @@ protocolNew("protocols/wlr-output-power-management-unstable-v1.xml" "wlr-output-
 protocolNew("protocols/virtual-keyboard-unstable-v1.xml" "virtual-keyboard-unstable-v1" true)
 protocolNew("protocols/wlr-virtual-pointer-unstable-v1.xml" "wlr-virtual-pointer-unstable-v1" true)
 protocolNew("protocols/input-method-unstable-v2.xml" "input-method-unstable-v2" true)
+protocolNew("subprojects/hyprland-protocols/protocols/hyprland-focus-grab-v1.xml" "hyprland-focus-grab-v1" true)
 protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)
 protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstable-v1" false)
@@ -280,7 +281,6 @@ protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "
 protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
 protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
 protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
-protocolNew("subprojects/hyprland-protocols/protocols/hyprland-focus-grab-v1.xml" "hyprland-focus-grab-v1" true)
 
 # tools
 add_subdirectory(hyprctl)

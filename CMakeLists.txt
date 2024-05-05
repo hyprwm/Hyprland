@@ -266,6 +266,7 @@ protocolNew("protocols/wlr-virtual-pointer-unstable-v1.xml" "wlr-virtual-pointer
 protocolNew("protocols/input-method-unstable-v2.xml" "input-method-unstable-v2" true)
 protocolNew("protocols/wlr-output-management-unstable-v1.xml" "wlr-output-management-unstable-v1" true)
 protocolNew("protocols/kde-server-decoration.xml" "kde-server-decoration" true)
+protocolNew("subprojects/hyprland-protocols/protocols/hyprland-focus-grab-v1.xml" "hyprland-focus-grab-v1" true)
 protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)
 protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstable-v1" false)

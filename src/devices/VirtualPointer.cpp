@@ -37,6 +37,7 @@ CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : point
         pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
             .timeMs   = E->time_msec,
             .absolute = {E->x, E->y},
+            .device   = self.lock(),
         });
     }, this, "CVirtualPointer");
 
@@ -61,6 +62,10 @@ CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : point
             .delta             = E->delta,
             .deltaDiscrete     = E->delta_discrete,
         });
+    }, this, "CVirtualPointer");
+
+    hyprListener_frame.initCallback(&mouse->events.frame, [this] (void* owner, void* data) {
+        pointerEvents.frame.emit();
     }, this, "CVirtualPointer");
 
     hyprListener_swipeBegin.initCallback(&mouse->events.swipe_begin, [this] (void* owner, void* data) {

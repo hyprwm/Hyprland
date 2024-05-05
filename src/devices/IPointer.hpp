@@ -13,6 +13,7 @@ struct wlr_pointer;
 class IPointer : public IHID {
   public:
     virtual uint32_t     getCapabilities();
+    virtual eHIDType     getType();
     virtual bool         isVirtual() = 0;
     virtual wlr_pointer* wlr()       = 0;
 
@@ -24,6 +25,7 @@ class IPointer : public IHID {
     struct SMotionAbsoluteEvent {
         uint32_t timeMs = 0;
         Vector2D absolute; // 0.0 - 1.0
+        SP<IHID> device;
     };
 
     struct SButtonEvent {

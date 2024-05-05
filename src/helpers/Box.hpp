@@ -54,13 +54,16 @@ class CBox {
     CBox&                    noNegativeSize();
 
     CBox                     copy() const;
-    CBox                     intersection(const CBox other) const;
+    CBox                     intersection(const CBox& other) const;
+    bool                     overlaps(const CBox& other) const;
+    bool                     inside(const CBox& bound) const;
 
     SWindowDecorationExtents extentsFrom(const CBox&); // this is the big box
 
     Vector2D                 middle() const;
     Vector2D                 pos() const;
     Vector2D                 size() const;
+    Vector2D                 closestPoint(const Vector2D& vec) const;
 
     bool                     containsPoint(const Vector2D& vec) const;
     bool                     empty() const;

@@ -18,7 +18,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
     Debug::log(LOG, "Attaching tablet to cursor!");
 
-    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
+    // wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
     PNEWTABLET->hyprListener_Destroy.initCallback(
         &pDevice->events.destroy,
@@ -39,7 +39,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
 
             switch (EVENT->tool->type) {
                 case WLR_TABLET_TOOL_TYPE_MOUSE:
-                    wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
+                    // wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
                     g_pInputManager->simulateMouseMovement();
                     g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
                     g_pInputManager->m_tmrLastCursorMovement.reset();
@@ -50,16 +50,16 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                     double y  = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->y : NAN;
                     double dy = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->dy : NAN;
 
-                    if (PTAB->relativeInput)
-                        wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
-                    else {
-                        // Calculate transformations if active area is set
-                        if (!PTAB->activeArea.empty()) {
-                            x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-                            y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-                        }
-                        wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
-                    }
+                    // if (PTAB->relativeInput)
+                    //  wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
+                    // else {
+                    // Calculate transformations if active area is set
+                    //    if (!PTAB->activeArea.empty()) {
+                    //         x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
+                    //        y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
+                    //     }
+                    //    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
+                    // }
 
                     g_pInputManager->simulateMouseMovement();
                     g_pInputManager->focusTablet(PTAB, EVENT->tool, true);

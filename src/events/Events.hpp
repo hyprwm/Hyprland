@@ -40,16 +40,6 @@ namespace Events {
     DYNLISTENFUNC(dissociateX11);
     DYNLISTENFUNC(ackConfigure);
 
-    // Window subsurfaces
-    // LISTENER(newSubsurfaceWindow);
-
-    // Input events
-    LISTENER(mouseMove);
-    LISTENER(mouseMoveAbsolute);
-    LISTENER(mouseButton);
-    LISTENER(mouseAxis);
-    LISTENER(mouseFrame);
-
     LISTENER(newInput);
 
     // Virt Ptr
@@ -88,23 +78,6 @@ namespace Events {
 
     // session
     LISTENER(sessionActive);
-
-    // Touchpad shit
-    LISTENER(swipeBegin);
-    LISTENER(swipeEnd);
-    LISTENER(swipeUpdate);
-    LISTENER(pinchBegin);
-    LISTENER(pinchUpdate);
-    LISTENER(pinchEnd);
-
-    // Touch
-    LISTENER(touchBegin);
-    LISTENER(touchEnd);
-    LISTENER(touchUpdate);
-    LISTENER(touchFrame);
-
-    LISTENER(holdBegin);
-    LISTENER(holdEnd);
 
     // Session Lock
     LISTENER(newSessionLock);

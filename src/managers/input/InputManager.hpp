@@ -7,15 +7,15 @@
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
 #include "../../helpers/signal/Listener.hpp"
+#include "../../devices/IPointer.hpp"
+#include "../../devices/ITouch.hpp"
 
 class CPointerConstraint;
 class CWindow;
 class CIdleInhibitor;
 class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
-class IPointer;
 class IKeyboard;
-class ITouch;
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
@@ -74,10 +74,10 @@ class CInputManager {
     CInputManager();
     ~CInputManager();
 
-    void               onMouseMoved(wlr_pointer_motion_event*);
-    void               onMouseWarp(wlr_pointer_motion_absolute_event*);
-    void               onMouseButton(wlr_pointer_button_event*);
-    void               onMouseWheel(wlr_pointer_axis_event*);
+    void               onMouseMoved(IPointer::SMotionEvent);
+    void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
+    void               onMouseButton(IPointer::SButtonEvent);
+    void               onMouseWheel(IPointer::SAxisEvent);
     void               onKeyboardKey(std::any, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
@@ -112,9 +112,9 @@ class CInputManager {
     eClickBehaviorMode getClickMode();
     void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
 
-    void               onTouchDown(wlr_touch_down_event*);
-    void               onTouchUp(wlr_touch_up_event*);
-    void               onTouchMove(wlr_touch_motion_event*);
+    void               onTouchDown(ITouch::SDownEvent);
+    void               onTouchUp(ITouch::SUpEvent);
+    void               onTouchMove(ITouch::SMotionEvent);
 
     STouchData         m_sTouchData;
 
@@ -153,9 +153,9 @@ class CInputManager {
     void              newIdleInhibitor(std::any);
     void              recheckIdleInhibitorStatus();
 
-    void              onSwipeBegin(wlr_pointer_swipe_begin_event*);
-    void              onSwipeEnd(wlr_pointer_swipe_end_event*);
-    void              onSwipeUpdate(wlr_pointer_swipe_update_event*);
+    void              onSwipeBegin(IPointer::SSwipeBeginEvent);
+    void              onSwipeEnd(IPointer::SSwipeEndEvent);
+    void              onSwipeUpdate(IPointer::SSwipeUpdateEvent);
 
     SSwipeGesture     m_sActiveSwipe;
 
@@ -212,8 +212,8 @@ class CInputManager {
     void               setupKeyboard(SP<IKeyboard> keeb);
     void               setupMouse(SP<IPointer> mauz);
 
-    void               processMouseDownNormal(wlr_pointer_button_event* e);
-    void               processMouseDownKill(wlr_pointer_button_event* e);
+    void               processMouseDownNormal(const IPointer::SButtonEvent& e);
+    void               processMouseDownKill(const IPointer::SButtonEvent& e);
 
     bool               cursorImageUnlocked();
 

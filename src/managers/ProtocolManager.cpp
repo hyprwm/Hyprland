@@ -24,6 +24,7 @@
 #include "../protocols/VirtualPointer.hpp"
 #include "../protocols/OutputManagement.hpp"
 #include "../protocols/ServerDecorationKDE.hpp"
+#include "../protocols/FocusGrab.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -51,6 +52,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::virtualPointer      = std::make_unique<CVirtualPointerProtocol>(&zwlr_virtual_pointer_manager_v1_interface, 2, "VirtualPointer");
     PROTO::outputManagement    = std::make_unique<COutputManagementProtocol>(&zwlr_output_manager_v1_interface, 4, "OutputManagement");
     PROTO::serverDecorationKDE = std::make_unique<CServerDecorationKDEProtocol>(&org_kde_kwin_server_decoration_manager_interface, 1, "ServerDecorationKDE");
+    PROTO::focusGrab           = std::make_unique<CFocusGrabProtocol>(&hyprland_focus_grab_manager_v1_interface, 1, "FocusGrab");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

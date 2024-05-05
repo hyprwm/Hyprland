@@ -58,7 +58,6 @@ class CCompositor {
     wlr_presentation*              m_sWLRPresentation;
     wlr_egl*                       m_sWLREGL;
     int                            m_iDRMFD;
-    wlr_server_decoration_manager* m_sWLRServerDecoMgr;
     wlr_tablet_manager_v2*         m_sWLRTabletManager;
     wlr_xdg_foreign_registry*      m_sWLRForeignRegistry;
     wlr_linux_dmabuf_v1*           m_sWLRLinuxDMABuf;

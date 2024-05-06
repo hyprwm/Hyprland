@@ -29,7 +29,6 @@ protocols = [
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
   ['wlr-layer-shell-unstable-v1.xml'],
   ['wlr-screencopy-unstable-v1.xml'],
-  ['tablet-unstable-v2.xml'],
   [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-global-shortcuts-v1.xml']
 ]
@@ -60,6 +59,7 @@ new_protocols = [
   [wl_protocol_dir, 'staging/xdg-activation/xdg-activation-v1.xml'],
   [wl_protocol_dir, 'staging/ext-idle-notify/ext-idle-notify-v1.xml'],
   [wl_protocol_dir, 'staging/ext-session-lock/ext-session-lock-v1.xml'],
+  [wl_protocol_dir, 'stable/tablet/tablet-v2.xml'],
 ]
 
 wl_protos_src = []

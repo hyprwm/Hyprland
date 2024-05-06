@@ -242,8 +242,6 @@ void CCompositor::initServer() {
         Debug::log(INFO, "VR will not be available");
     }
 
-    // m_sWLRTabletManager = wlr_tablet_v2_create(m_sWLDisplay);
-
     m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
 
     wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);

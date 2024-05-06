@@ -9,6 +9,7 @@
 #include "../../helpers/signal/Listener.hpp"
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
+#include "../../devices/Tablet.hpp"
 
 class CPointerConstraint;
 class CWindow;
@@ -87,9 +88,15 @@ class CInputManager {
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(wlr_input_device*);
     void               newSwitch(wlr_input_device*);
+    void               newTabletTool(wlr_tablet_tool*);
+    void               newTabletPad(wlr_input_device*);
+    void               newTablet(wlr_input_device*);
     void               destroyTouchDevice(SP<ITouch>);
     void               destroyKeyboard(SP<IKeyboard>);
     void               destroyPointer(SP<IPointer>);
+    void               destroyTablet(SP<CTablet>);
+    void               destroyTabletTool(SP<CTabletTool>);
+    void               destroyTabletPad(SP<CTabletPad>);
     void               destroySwitch(SSwitchDevice*);
 
     void               unconstrainMouse();
@@ -116,6 +123,15 @@ class CInputManager {
     void               onTouchUp(ITouch::SUpEvent);
     void               onTouchMove(ITouch::SMotionEvent);
 
+    void               onSwipeBegin(IPointer::SSwipeBeginEvent);
+    void               onSwipeEnd(IPointer::SSwipeEndEvent);
+    void               onSwipeUpdate(IPointer::SSwipeUpdateEvent);
+
+    void               onTabletAxis(CTablet::SAxisEvent);
+    void               onTabletProximity(CTablet::SProximityEvent);
+    void               onTabletTip(CTablet::STipEvent);
+    void               onTabletButton(CTablet::SButtonEvent);
+
     STouchData         m_sTouchData;
 
     // for dragging floating windows
@@ -124,18 +140,17 @@ class CInputManager {
     bool           m_bWasDraggingWindow = false;
 
     // for refocus to be forced
-    PHLWINDOWREF               m_pForcedFocus;
+    PHLWINDOWREF                 m_pForcedFocus;
 
-    SDrag                      m_sDrag;
+    SDrag                        m_sDrag;
 
-    std::vector<SP<IKeyboard>> m_vKeyboards;
-    std::vector<SP<IPointer>>  m_vPointers;
-    std::vector<SP<ITouch>>    m_vTouches;
-
-    // tablets
-    std::list<STablet>     m_lTablets;
-    std::list<STabletTool> m_lTabletTools;
-    std::list<STabletPad>  m_lTabletPads;
+    std::vector<SP<IKeyboard>>   m_vKeyboards;
+    std::vector<SP<IPointer>>    m_vPointers;
+    std::vector<SP<ITouch>>      m_vTouches;
+    std::vector<SP<CTablet>>     m_vTablets;
+    std::vector<SP<CTabletTool>> m_vTabletTools;
+    std::vector<SP<CTabletPad>>  m_vTabletPads;
+    std::vector<WP<IHID>>        m_vHIDs; // general container for all HID devices connected to the input manager.
 
     // Switches
     std::list<SSwitchDevice> m_lSwitches;
@@ -147,15 +162,8 @@ class CInputManager {
     std::vector<WP<CPointerConstraint>> m_vConstraints;
 
     //
-    void              newTabletTool(wlr_input_device*);
-    void              newTabletPad(wlr_input_device*);
-    void              focusTablet(STablet*, wlr_tablet_tool*, bool motion = false);
     void              newIdleInhibitor(std::any);
     void              recheckIdleInhibitorStatus();
-
-    void              onSwipeBegin(IPointer::SSwipeBeginEvent);
-    void              onSwipeEnd(IPointer::SSwipeEndEvent);
-    void              onSwipeUpdate(IPointer::SSwipeUpdateEvent);
 
     SSwipeGesture     m_sActiveSwipe;
 
@@ -223,7 +231,7 @@ class CInputManager {
 
     void               mouseMoveUnified(uint32_t, bool refocus = false);
 
-    STabletTool*       ensureTabletToolPresent(wlr_tablet_tool*);
+    SP<CTabletTool>    ensureTabletToolPresent(wlr_tablet_tool*);
 
     void               applyConfigToKeyboard(SP<IKeyboard>);
 

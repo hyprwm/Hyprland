@@ -38,8 +38,8 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             g_pInputManager->newTouchDevice(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET:
-            Debug::log(LOG, "Attached a tablet tool with name {}", DEVICE->name);
-            g_pInputManager->newTabletTool(DEVICE);
+            Debug::log(LOG, "Attached a tablet with name {}", DEVICE->name);
+            g_pInputManager->newTablet(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_PAD:
             Debug::log(LOG, "Attached a tablet pad with name {}", DEVICE->name);

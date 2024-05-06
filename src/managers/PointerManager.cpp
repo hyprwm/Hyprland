@@ -635,37 +635,60 @@ void CPointerManager::warpTo(const Vector2D& logical) {
 
 void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = pointerPos;
-    auto       newPos = oldPos + deltaLogical;
+    auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
     warpTo(newPos);
 }
 
-void CPointerManager::warpAbsolute(const Vector2D& abs, SP<IHID> dev) {
+void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     SP<CMonitor> currentMonitor = g_pCompositor->m_pLastMonitor.lock();
+    if (!currentMonitor)
+        return;
+
+    if (!std::isnan(abs.x))
+        abs.x = std::clamp(abs.x, 0.0, 1.0);
+    if (!std::isnan(abs.y))
+        abs.y = std::clamp(abs.y, 0.0, 1.0);
+
+    // in logical global
+    CBox mappedArea = currentMonitor->logicalBox();
 
     switch (dev->getType()) {
-        case HID_TYPE_TABLET:
-            //TODO:
-            break;
-        case HID_TYPE_TOUCH: {
-            auto TOUCH = SP<ITouch>(dev);
-            if (!TOUCH->boundOutput.empty()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(TOUCH->boundOutput);
-                if (PMONITOR)
+        case HID_TYPE_TABLET: {
+            CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
+            if (!TAB->boundOutput.empty()) {
+                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TAB->boundOutput); PMONITOR) {
                     currentMonitor = PMONITOR->self.lock();
+                    mappedArea     = currentMonitor->logicalBox();
+                }
+            }
+
+            if (!TAB->boundBox.empty())
+                mappedArea = TAB->boundBox.translate(currentMonitor->vecPosition);
+            break;
+        }
+        case HID_TYPE_TOUCH: {
+            ITouch* TOUCH = reinterpret_cast<ITouch*>(dev.get());
+            if (!TOUCH->boundOutput.empty()) {
+                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TOUCH->boundOutput); PMONITOR) {
+                    currentMonitor = PMONITOR->self.lock();
+                    mappedArea     = currentMonitor->logicalBox();
+                }
             }
             break;
         }
         default: break;
     }
 
-    if (!currentMonitor)
-        return;
-
     damageIfSoftware();
 
-    pointerPos = currentMonitor->vecPosition + currentMonitor->vecSize * abs;
+    if (std::isnan(abs.x) || std::isnan(abs.y)) {
+        pointerPos.x = std::isnan(abs.x) ? pointerPos.x : mappedArea.x + mappedArea.w * abs.x;
+        pointerPos.y = std::isnan(abs.y) ? pointerPos.y : mappedArea.y + mappedArea.h * abs.y;
+    } else
+        pointerPos = mappedArea.pos() + mappedArea.size() * abs;
+
     onCursorMoved();
     recheckEnteredOutputs();
 
@@ -839,12 +862,57 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     Debug::log(LOG, "Attached touch {} to global", touch->hlName);
 }
 
+void CPointerManager::attachTablet(SP<CTablet> tablet) {
+    if (!tablet)
+        return;
+
+    auto listener = tabletListeners.emplace_back(makeShared<STabletListener>());
+
+    listener->tablet = tablet;
+
+    // clang-format off
+    listener->destroy = tablet->events.destroy.registerListener([this] (std::any d) {
+        detachTablet(nullptr);
+    });
+
+    listener->axis = tablet->tabletEvents.axis.registerListener([this] (std::any e) {
+        auto E = std::any_cast<CTablet::SAxisEvent>(e);
+
+        g_pInputManager->onTabletAxis(E);
+    });
+
+    listener->proximity = tablet->tabletEvents.proximity.registerListener([this] (std::any e) {
+        auto E = std::any_cast<CTablet::SProximityEvent>(e);
+
+        g_pInputManager->onTabletProximity(E);
+    });
+
+    listener->tip = tablet->tabletEvents.tip.registerListener([this] (std::any e) {
+        auto E = std::any_cast<CTablet::STipEvent>(e);
+
+        g_pInputManager->onTabletTip(E);
+    });
+
+    listener->button = tablet->tabletEvents.button.registerListener([this] (std::any e) {
+        auto E = std::any_cast<CTablet::SButtonEvent>(e);
+
+        g_pInputManager->onTabletButton(E);
+    });
+    // clang-format on
+
+    Debug::log(LOG, "Attached tablet {} to global", tablet->hlName);
+}
+
 void CPointerManager::detachPointer(SP<IPointer> pointer) {
     std::erase_if(pointerListeners, [pointer](const auto& e) { return e->pointer.expired() || e->pointer == pointer; });
 }
 
 void CPointerManager::detachTouch(SP<ITouch> touch) {
     std::erase_if(touchListeners, [touch](const auto& e) { return e->touch.expired() || e->touch == touch; });
+}
+
+void CPointerManager::detachTablet(SP<CTablet> tablet) {
+    std::erase_if(tabletListeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
 }
 
 void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {

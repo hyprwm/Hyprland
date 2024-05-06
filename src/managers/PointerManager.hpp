@@ -2,6 +2,7 @@
 
 #include "../devices/IPointer.hpp"
 #include "../devices/ITouch.hpp"
+#include "../devices/Tablet.hpp"
 #include "../helpers/Box.hpp"
 #include "../helpers/Region.hpp"
 #include "../desktop/WLSurface.hpp"
@@ -22,18 +23,18 @@ class CPointerManager {
   public:
     CPointerManager();
 
-    // pointers will move the cursor on their respective events
     void attachPointer(SP<IPointer> pointer);
-    // touch inputs won't move the cursor, it needs to be done manually
     void attachTouch(SP<ITouch> touch);
+    void attachTablet(SP<CTablet> tablet);
 
     void detachPointer(SP<IPointer> pointer);
     void detachTouch(SP<ITouch> touch);
+    void detachTablet(SP<CTablet> tablet);
 
     // only clamps to the layout.
     void warpTo(const Vector2D& logical);
     void move(const Vector2D& deltaLogical);
-    void warpAbsolute(const Vector2D& abs, SP<IHID> dev);
+    void warpAbsolute(Vector2D abs, SP<IHID> dev);
 
     void setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, const float& scale);
     void setCursorSurface(CWLSurface* buf, const Vector2D& hotspot);
@@ -110,6 +111,17 @@ class CPointerManager {
         WP<ITouch>          touch;
     };
     std::vector<SP<STouchListener>> touchListeners;
+
+    struct STabletListener {
+        CHyprSignalListener destroy;
+        CHyprSignalListener axis;
+        CHyprSignalListener proximity;
+        CHyprSignalListener tip;
+        CHyprSignalListener button;
+
+        WP<CTablet>         tablet;
+    };
+    std::vector<SP<STabletListener>> tabletListeners;
 
     struct {
         std::vector<CBox> monitorBoxes;

@@ -110,10 +110,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
     const auto ASSIGNEDBOX = assignedBoxGlobal();
 
-    m_fBarWidth  = *PSTACKED ? ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
-    m_fBarHeight = *PSTACKED ? (ASSIGNEDBOX.h - BAR_PADDING_OUTER_VERT * (barsToDraw - 1)) / barsToDraw : ASSIGNEDBOX.y - BAR_PADDING_OUTER_VERT;
+    const auto ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+    m_fBarWidth             = *PSTACKED ? ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
+    m_fBarHeight = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - BAR_PADDING_OUTER_VERT) - BAR_PADDING_OUTER_VERT * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - BAR_PADDING_OUTER_VERT;
 
-    const auto ONEBARHEIGHT  = BAR_PADDING_OUTER_VERT + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT : BAR_PADDING_OUTER_VERT * 2 + ONEBARHEIGHT;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h) {
         g_pDecorationPositioner->repositionDeco(this);
@@ -455,7 +455,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const float BARRELATIVEY = pos.y - assignedBoxGlobal().y;
-    const int   WINDOWINDEX  = *PSTACKED ? ((BARRELATIVEY) / (m_fBarHeight + BAR_PADDING_OUTER_VERT)) : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
+    const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + BAR_PADDING_OUTER_VERT)) : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
     static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
     // close window on middle click
@@ -474,7 +474,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         return true;
 
     // click on padding
-    if (!*PSTACKED && BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth) {
+    const auto TABPAD   = !*PSTACKED && (BARRELATIVEX - (m_fBarWidth + BAR_HORIZONTAL_PADDING) * WINDOWINDEX > m_fBarWidth);
+    const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_fBarHeight + BAR_PADDING_OUTER_VERT) * WINDOWINDEX < BAR_PADDING_OUTER_VERT);
+    if (TABPAD || STACKPAD) {
         if (!g_pCompositor->isWindowActive(m_pWindow.lock()))
             g_pCompositor->focusWindow(m_pWindow.lock());
         return true;

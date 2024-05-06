@@ -8,6 +8,7 @@ enum eHIDCapabilityType : uint32_t {
     HID_INPUT_CAPABILITY_KEYBOARD = (1 << 0),
     HID_INPUT_CAPABILITY_POINTER  = (1 << 1),
     HID_INPUT_CAPABILITY_TOUCH    = (1 << 2),
+    HID_INPUT_CAPABILITY_TABLET   = (1 << 3),
 };
 
 enum eHIDType {
@@ -16,6 +17,8 @@ enum eHIDType {
     HID_TYPE_KEYBOARD,
     HID_TYPE_TOUCH,
     HID_TYPE_TABLET,
+    HID_TYPE_TABLET_TOOL,
+    HID_TYPE_TABLET_PAD,
 };
 
 /*

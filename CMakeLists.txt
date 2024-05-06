@@ -251,7 +251,6 @@ target_link_libraries(Hyprland
         uuid
 )
 
-protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)
 protocol("protocols/wlr-layer-shell-unstable-v1.xml" "wlr-layer-shell-unstable-v1" true)
 protocol("protocols/wlr-screencopy-unstable-v1.xml" "wlr-screencopy-unstable-v1" true)
 protocol("subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml" "hyprland-global-shortcuts-v1" true)
@@ -285,6 +284,7 @@ protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "
 protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
 protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
 protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
+protocolNew("stable/tablet/tablet-v2.xml" "tablet-v2" false)
 
 # tools
 add_subdirectory(hyprctl)

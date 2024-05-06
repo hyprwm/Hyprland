@@ -1,290 +1,291 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/IdleNotify.hpp"
+#include "../../protocols/Tablet.hpp"
+#include "../../devices/Tablet.hpp"
+#include "../../managers/PointerManager.hpp"
+#include "../../protocols/PointerConstraints.hpp"
 
-void CInputManager::newTabletTool(wlr_input_device* pDevice) {
-    const auto PNEWTABLET = &m_lTablets.emplace_back();
+static void unfocusTool(SP<CTabletTool> tool) {
+    if (!tool->getSurface())
+        return;
+
+    tool->setSurface(nullptr);
+    if (tool->isDown)
+        PROTO::tablet->up(tool);
+    for (auto& b : tool->buttonsDown) {
+        PROTO::tablet->buttonTool(tool, b, false);
+    }
+    PROTO::tablet->proximityOut(tool);
+}
+
+static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* surf) {
+    if (tool->getSurface() == surf || !surf)
+        return;
+
+    if (tool->getSurface() && tool->getSurface() != surf)
+        unfocusTool(tool);
+
+    tool->setSurface(surf);
+    PROTO::tablet->proximityIn(tool, tablet, surf);
+    if (tool->isDown)
+        PROTO::tablet->down(tool);
+    for (auto& b : tool->buttonsDown) {
+        PROTO::tablet->buttonTool(tool, b, true);
+    }
+}
+
+static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
+    const auto LASTHLSURFACE = CWLSurface::surfaceFromWlr(g_pInputManager->m_pLastMouseSurface);
+
+    if (!LASTHLSURFACE || !tool->active) {
+        if (tool->getSurface())
+            unfocusTool(tool);
+
+        return;
+    }
+
+    const auto BOX = LASTHLSURFACE->getSurfaceBoxGlobal();
+
+    if (!BOX.has_value()) {
+        if (tool->getSurface())
+            unfocusTool(tool);
+
+        return;
+    }
+
+    const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
+
+    focusTool(tool, tab, g_pInputManager->m_pLastMouseSurface);
+
+    if (!motion)
+        return;
+
+    if (LASTHLSURFACE->constraint() && tool->wlr()->type != WLR_TABLET_TOOL_TYPE_MOUSE) {
+        // cursor logic will completely break here as the cursor will be locked.
+        // let's just "map" the desired position to the constraint area.
+
+        Vector2D local;
+
+        // yes, this technically ignores any regions set by the app. Too bad!
+        if (LASTHLSURFACE->getWindow())
+            local = tool->absolutePos * LASTHLSURFACE->getWindow()->m_vRealSize.goal();
+        else
+            local = tool->absolutePos * BOX->size();
+
+        if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_bIsX11)
+            local = local * LASTHLSURFACE->getWindow()->m_fX11SurfaceScaledBy;
+
+        PROTO::tablet->motion(tool, local);
+        return;
+    }
+
+    auto local = CURSORPOS - BOX->pos();
+
+    if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_bIsX11)
+        local = local * LASTHLSURFACE->getWindow()->m_fX11SurfaceScaledBy;
+
+    PROTO::tablet->motion(tool, local);
+}
+
+void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
+    const auto PTAB  = e.tablet;
+    const auto PTOOL = ensureTabletToolPresent(e.tool);
+
+    if (PTOOL->active && (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y))) {
+        double   x  = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X) ? e.axis.x : NAN;
+        double   dx = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X) ? e.axisDelta.x : NAN;
+        double   y  = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y) ? e.axis.y : NAN;
+        double   dy = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y) ? e.axisDelta.y : NAN;
+
+        Vector2D delta = {std::isnan(dx) ? 0.0 : dx, std::isnan(dy) ? 0.0 : dy};
+
+        switch (e.tool->type) {
+            case WLR_TABLET_TOOL_TYPE_MOUSE: {
+                g_pPointerManager->move(delta);
+                break;
+            }
+            default: {
+                if (!std::isnan(x))
+                    PTOOL->absolutePos.x = x;
+                if (!std::isnan(y))
+                    PTOOL->absolutePos.y = y;
+
+                if (PTAB->relativeInput)
+                    g_pPointerManager->move(delta);
+                else {
+                    //Calculate transformations if active area is set
+                    if (!PTAB->activeArea.empty()) {
+                        if (!std::isnan(x))
+                            x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
+                        if (!std::isnan(y))
+                            y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
+                    }
+                    g_pPointerManager->warpAbsolute({x, y}, PTAB);
+                }
+                break;
+            }
+        }
+
+        refocusTablet(PTAB, PTOOL, true);
+        m_tmrLastCursorMovement.reset();
+    }
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_PRESSURE)
+        PROTO::tablet->pressure(PTOOL, e.pressure);
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_DISTANCE)
+        PROTO::tablet->distance(PTOOL, e.distance);
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_ROTATION)
+        PROTO::tablet->rotation(PTOOL, e.rotation);
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_SLIDER)
+        PROTO::tablet->slider(PTOOL, e.slider);
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_WHEEL)
+        PROTO::tablet->wheel(PTOOL, e.wheelDelta);
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_X)
+        PTOOL->tilt.x = e.tilt.x;
+
+    if (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_Y)
+        PTOOL->tilt.y = e.tilt.y;
+
+    if (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_Y))
+        PROTO::tablet->tilt(PTOOL, PTOOL->tilt);
+
+    PROTO::idle->onActivity();
+}
+
+void CInputManager::onTabletTip(CTablet::STipEvent e) {
+    const auto PTAB  = e.tablet;
+    const auto PTOOL = ensureTabletToolPresent(e.tool);
+
+    if (e.in) {
+        simulateMouseMovement();
+        refocusTablet(PTAB, PTOOL);
+        PROTO::tablet->down(PTOOL);
+    } else
+        PROTO::tablet->up(PTOOL);
+
+    PTOOL->isDown = e.in;
+
+    PROTO::idle->onActivity();
+}
+
+void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
+    const auto PTOOL = ensureTabletToolPresent(e.tool);
+
+    PROTO::tablet->buttonTool(PTOOL, e.button, e.down);
+
+    if (e.down)
+        PTOOL->buttonsDown.push_back(e.button);
+    else
+        std::erase(PTOOL->buttonsDown, e.button);
+
+    PROTO::idle->onActivity();
+}
+
+void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
+    const auto PTAB  = e.tablet;
+    const auto PTOOL = ensureTabletToolPresent(e.tool);
+
+    PTOOL->active = e.in;
+
+    if (!e.in) {
+        if (PTOOL->getSurface())
+            unfocusTool(PTOOL);
+    } else {
+        simulateMouseMovement();
+        refocusTablet(PTAB, PTOOL);
+    }
+
+    PROTO::idle->onActivity();
+}
+
+void CInputManager::newTablet(wlr_input_device* pDevice) {
+    const auto PNEWTABLET = m_vTablets.emplace_back(CTablet::create(wlr_tablet_from_input_device(pDevice)));
+    m_vHIDs.push_back(PNEWTABLET);
 
     try {
-        PNEWTABLET->name = deviceNameToInternalString(pDevice->name);
+        PNEWTABLET->hlName = deviceNameToInternalString(pDevice->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Tablet had no name???"); // logic error
     }
 
-    PNEWTABLET->wlrTablet       = wlr_tablet_from_input_device(pDevice);
-    PNEWTABLET->wlrDevice       = pDevice;
-    PNEWTABLET->wlrTabletV2     = wlr_tablet_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
-    PNEWTABLET->wlrTablet->data = PNEWTABLET;
+    g_pPointerManager->attachTablet(PNEWTABLET);
 
-    Debug::log(LOG, "Attaching tablet to cursor!");
-
-    // wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
-
-    PNEWTABLET->hyprListener_Destroy.initCallback(
-        &pDevice->events.destroy,
-        [](void* owner, void* data) {
-            const auto PTAB = (STablet*)owner;
-
-            g_pInputManager->m_lTablets.remove(*PTAB);
-
-            Debug::log(LOG, "Removed a tablet");
+    PNEWTABLET->events.destroy.registerStaticListener(
+        [this](void* owner, std::any d) {
+            auto TABLET = ((CTablet*)owner)->self;
+            destroyTablet(TABLET.lock());
         },
-        PNEWTABLET, "Tablet");
-
-    PNEWTABLET->hyprListener_Axis.initCallback(
-        &wlr_tablet_from_input_device(pDevice)->events.axis,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_tool_axis_event*)data;
-            const auto PTAB  = (STablet*)owner;
-
-            switch (EVENT->tool->type) {
-                case WLR_TABLET_TOOL_TYPE_MOUSE:
-                    // wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, EVENT->dx, EVENT->dy);
-                    g_pInputManager->simulateMouseMovement();
-                    g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
-                    g_pInputManager->m_tmrLastCursorMovement.reset();
-                    break;
-                default:
-                    double x  = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->x : NAN;
-                    double dx = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_X) ? EVENT->dx : NAN;
-                    double y  = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->y : NAN;
-                    double dy = (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_Y) ? EVENT->dy : NAN;
-
-                    // if (PTAB->relativeInput)
-                    //  wlr_cursor_move(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, dx, dy);
-                    // else {
-                    // Calculate transformations if active area is set
-                    //    if (!PTAB->activeArea.empty()) {
-                    //         x = (x - PTAB->activeArea.x) / (PTAB->activeArea.w - PTAB->activeArea.x);
-                    //        y = (y - PTAB->activeArea.y) / (PTAB->activeArea.h - PTAB->activeArea.y);
-                    //     }
-                    //    wlr_cursor_warp_absolute(g_pCompositor->m_sWLRCursor, PTAB->wlrDevice, x, y);
-                    // }
-
-                    g_pInputManager->simulateMouseMovement();
-                    g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
-                    g_pInputManager->m_tmrLastCursorMovement.reset();
-                    break;
-            }
-
-            const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
-
-            // TODO: this might be wrong
-            if (PTOOL->active) {
-                g_pInputManager->simulateMouseMovement();
-
-                g_pInputManager->focusTablet(PTAB, EVENT->tool, true);
-            }
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_PRESSURE)
-                wlr_tablet_v2_tablet_tool_notify_pressure(PTOOL->wlrTabletToolV2, EVENT->pressure);
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_DISTANCE)
-                wlr_tablet_v2_tablet_tool_notify_distance(PTOOL->wlrTabletToolV2, EVENT->distance);
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_ROTATION)
-                wlr_tablet_v2_tablet_tool_notify_rotation(PTOOL->wlrTabletToolV2, EVENT->rotation);
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_SLIDER)
-                wlr_tablet_v2_tablet_tool_notify_slider(PTOOL->wlrTabletToolV2, EVENT->slider);
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_WHEEL)
-                wlr_tablet_v2_tablet_tool_notify_wheel(PTOOL->wlrTabletToolV2, EVENT->wheel_delta, 0);
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_X)
-                PTOOL->tiltX = EVENT->tilt_x;
-
-            if (EVENT->updated_axes & WLR_TABLET_TOOL_AXIS_TILT_Y)
-                PTOOL->tiltY = EVENT->tilt_y;
-
-            if (EVENT->updated_axes & (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y))
-                wlr_tablet_v2_tablet_tool_notify_tilt(PTOOL->wlrTabletToolV2, PTOOL->tiltX, PTOOL->tiltY);
-
-            PROTO::idle->onActivity();
-        },
-        PNEWTABLET, "Tablet");
-
-    PNEWTABLET->hyprListener_Tip.initCallback(
-        &wlr_tablet_from_input_device(pDevice)->events.tip,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_tool_tip_event*)data;
-            const auto PTAB  = (STablet*)owner;
-
-            const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
-
-            // TODO: this might be wrong
-            if (EVENT->state == WLR_TABLET_TOOL_TIP_DOWN) {
-                g_pInputManager->simulateMouseMovement();
-                g_pInputManager->focusTablet(PTAB, EVENT->tool);
-                wlr_send_tablet_v2_tablet_tool_down(PTOOL->wlrTabletToolV2);
-            } else {
-                wlr_send_tablet_v2_tablet_tool_up(PTOOL->wlrTabletToolV2);
-            }
-
-            PROTO::idle->onActivity();
-        },
-        PNEWTABLET, "Tablet");
-
-    PNEWTABLET->hyprListener_Button.initCallback(
-        &wlr_tablet_from_input_device(pDevice)->events.button,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_tool_button_event*)data;
-
-            const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
-
-            wlr_tablet_v2_tablet_tool_notify_button(PTOOL->wlrTabletToolV2, (zwp_tablet_pad_v2_button_state)EVENT->button, (zwp_tablet_pad_v2_button_state)EVENT->state);
-            PROTO::idle->onActivity();
-        },
-        PNEWTABLET, "Tablet");
-
-    PNEWTABLET->hyprListener_Proximity.initCallback(
-        &wlr_tablet_from_input_device(pDevice)->events.proximity,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_tool_proximity_event*)data;
-            const auto PTAB  = (STablet*)owner;
-
-            const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
-
-            if (EVENT->state == WLR_TABLET_TOOL_PROXIMITY_OUT) {
-                PTOOL->active = false;
-
-                if (PTOOL->pSurface) {
-                    wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
-                    PTOOL->pSurface = nullptr;
-                }
-
-            } else {
-                PTOOL->active = true;
-                g_pInputManager->simulateMouseMovement();
-                g_pInputManager->focusTablet(PTAB, EVENT->tool);
-            }
-
-            PROTO::idle->onActivity();
-        },
-        PNEWTABLET, "Tablet");
+        PNEWTABLET.get());
 
     setTabletConfigs();
 }
 
-STabletTool* CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
+SP<CTabletTool> CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
     if (pTool->data == nullptr) {
-        const auto PTOOL = &m_lTabletTools.emplace_back();
+        const auto PTOOL = m_vTabletTools.emplace_back(CTabletTool::create(pTool));
+        m_vHIDs.push_back(PTOOL);
 
-        Debug::log(LOG, "Creating tablet tool v2 for {:x}", (uintptr_t)pTool);
-
-        PTOOL->wlrTabletTool = pTool;
-        pTool->data          = PTOOL;
-
-        PTOOL->wlrTabletToolV2 = wlr_tablet_tool_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pTool);
-
-        PTOOL->hyprListener_TabletToolDestroy.initCallback(
-            &pTool->events.destroy,
-            [](void* owner, void* data) {
-                const auto PTOOL = (STabletTool*)owner;
-
-                PTOOL->wlrTabletTool->data = nullptr;
-                g_pInputManager->m_lTabletTools.remove(*PTOOL);
+        PTOOL->events.destroy.registerStaticListener(
+            [this](void* owner, std::any d) {
+                auto TOOL = ((CTabletTool*)owner)->self;
+                destroyTabletTool(TOOL.lock());
             },
-            PTOOL, "Tablet Tool V1");
-
-        //TODO: set cursor request
+            PTOOL.get());
     }
 
-    return (STabletTool*)pTool->data;
+    return CTabletTool::fromWlr(pTool);
 }
 
 void CInputManager::newTabletPad(wlr_input_device* pDevice) {
-    const auto PNEWPAD = &m_lTabletPads.emplace_back();
+    const auto PNEWPAD = m_vTabletPads.emplace_back(CTabletPad::create(wlr_tablet_pad_from_input_device(pDevice)));
+    m_vHIDs.push_back(PNEWPAD);
 
     try {
-        PNEWPAD->name = deviceNameToInternalString(pDevice->name);
+        PNEWPAD->hlName = deviceNameToInternalString(pDevice->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Pad had no name???"); // logic error
     }
 
-    PNEWPAD->wlrTabletPadV2 = wlr_tablet_pad_create(g_pCompositor->m_sWLRTabletManager, g_pCompositor->m_sSeat.seat, pDevice);
-    PNEWPAD->pWlrDevice     = pDevice;
+    // clang-format off
+    PNEWPAD->events.destroy.registerStaticListener([this](void* owner, std::any d) {
+        auto PAD = ((CTabletPad*)owner)->self;
+        destroyTabletPad(PAD.lock());
+    }, PNEWPAD.get());
 
-    PNEWPAD->hyprListener_Button.initCallback(
-        &wlr_tablet_pad_from_input_device(pDevice)->events.button,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_pad_button_event*)data;
-            const auto PPAD  = (STabletPad*)owner;
+    PNEWPAD->padEvents.button.registerStaticListener([this](void* owner, std::any e) {
+        const auto E = std::any_cast<CTabletPad::SButtonEvent>(e);
+        const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
-            wlr_tablet_v2_tablet_pad_notify_mode(PPAD->wlrTabletPadV2, EVENT->group, EVENT->mode, EVENT->time_msec);
-            wlr_tablet_v2_tablet_pad_notify_button(PPAD->wlrTabletPadV2, EVENT->button, EVENT->time_msec, (zwp_tablet_pad_v2_button_state)EVENT->state);
-        },
-        PNEWPAD, "Tablet Pad");
+        PROTO::tablet->mode(PPAD, 0, E.mode, E.timeMs);
+        PROTO::tablet->buttonPad(PPAD, E.button, E.timeMs, E.down);
+    }, PNEWPAD.get());
 
-    PNEWPAD->hyprListener_Strip.initCallback(
-        &wlr_tablet_pad_from_input_device(pDevice)->events.strip,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_pad_strip_event*)data;
-            const auto PPAD  = (STabletPad*)owner;
+    PNEWPAD->padEvents.strip.registerStaticListener([this](void* owner, std::any e) {
+        const auto E = std::any_cast<CTabletPad::SStripEvent>(e);
+        const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
-            wlr_tablet_v2_tablet_pad_notify_strip(PPAD->wlrTabletPadV2, EVENT->strip, EVENT->position, EVENT->source == WLR_TABLET_PAD_STRIP_SOURCE_FINGER, EVENT->time_msec);
-        },
-        PNEWPAD, "Tablet Pad");
+        PROTO::tablet->strip(PPAD, E.strip, E.position, E.finger, E.timeMs);
+    }, PNEWPAD.get());
 
-    PNEWPAD->hyprListener_Ring.initCallback(
-        &wlr_tablet_pad_from_input_device(pDevice)->events.strip,
-        [](void* owner, void* data) {
-            const auto EVENT = (wlr_tablet_pad_ring_event*)data;
-            const auto PPAD  = (STabletPad*)owner;
+    PNEWPAD->padEvents.ring.registerStaticListener([this](void* owner, std::any e) {
+        const auto E = std::any_cast<CTabletPad::SRingEvent>(e);
+        const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
-            wlr_tablet_v2_tablet_pad_notify_ring(PPAD->wlrTabletPadV2, EVENT->ring, EVENT->position, EVENT->source == WLR_TABLET_PAD_RING_SOURCE_FINGER, EVENT->time_msec);
-        },
-        PNEWPAD, "Tablet Pad");
+        PROTO::tablet->ring(PPAD, E.ring, E.position, E.finger, E.timeMs);
+    }, PNEWPAD.get());
 
-    PNEWPAD->hyprListener_Attach.initCallback(
-        &wlr_tablet_pad_from_input_device(pDevice)->events.strip,
-        [](void* owner, void* data) {
-            const auto TABLET = (wlr_tablet_tool*)data;
-            const auto PPAD   = (STabletPad*)owner;
+    PNEWPAD->padEvents.attach.registerStaticListener([this](void* owner, std::any e) {
+        const auto PPAD  = ((CTabletPad*)owner)->self.lock();
+        const auto TOOL = std::any_cast<SP<CTabletTool>>(e);
 
-            PPAD->pTabletParent = (STablet*)TABLET->data;
+        PPAD->parent = TOOL;
+    }, PNEWPAD.get());
 
-            if (!PPAD->pTabletParent)
-                Debug::log(ERR, "tabletpad got attached to a nullptr tablet!! this might be bad.");
-        },
-        PNEWPAD, "Tablet Pad");
-
-    PNEWPAD->hyprListener_Destroy.initCallback(
-        &pDevice->events.destroy,
-        [](void* owner, void* data) {
-            const auto PPAD = (STabletPad*)owner;
-
-            g_pInputManager->m_lTabletPads.remove(*PPAD);
-
-            Debug::log(LOG, "Removed a tablet pad");
-        },
-        PNEWPAD, "Tablet Pad");
-}
-
-void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool motion) {
-    const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTool);
-
-    if (const auto PWINDOW = g_pCompositor->m_pLastWindow.lock(); PWINDOW) {
-        const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
-
-        if (PTOOL->pSurface != g_pInputManager->m_pLastMouseSurface)
-            wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
-
-        if (g_pInputManager->m_pLastMouseSurface) {
-            PTOOL->pSurface = g_pCompositor->m_pLastFocus;
-            wlr_tablet_v2_tablet_tool_notify_proximity_in(PTOOL->wlrTabletToolV2, pTab->wlrTabletV2, g_pInputManager->m_pLastMouseSurface);
-        }
-
-        if (motion) {
-            auto local = CURSORPOS - PWINDOW->m_vRealPosition.goal();
-
-            if (PWINDOW->m_bIsX11)
-                local = local * PWINDOW->m_fX11SurfaceScaledBy;
-
-            wlr_tablet_v2_tablet_tool_notify_motion(PTOOL->wlrTabletToolV2, local.x, local.y);
-        }
-    } else {
-        if (PTOOL->pSurface)
-            wlr_tablet_v2_tablet_tool_notify_proximity_out(PTOOL->wlrTabletToolV2);
-    }
+    // clang-format on
 }

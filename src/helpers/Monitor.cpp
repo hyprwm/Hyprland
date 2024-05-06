@@ -146,20 +146,6 @@ void CMonitor::onConnect(bool noRule) {
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
-    for (const auto& PTOUCHDEV : g_pInputManager->m_vTouches) {
-        if (matchesStaticSelector(PTOUCHDEV->boundOutput)) {
-            Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->hlName, szName);
-            // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, output);
-        }
-    }
-
-    for (const auto& PTABLET : g_pInputManager->m_lTablets) {
-        if (matchesStaticSelector(PTABLET.boundOutput)) {
-            Debug::log(LOG, "Binding tablet {} to output {}", PTABLET.name, szName);
-            // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTABLET.wlrDevice, output);
-        }
-    }
-
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 

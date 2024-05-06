@@ -22,6 +22,7 @@
 #include "../devices/IPointer.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
+#include "../devices/Tablet.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -557,7 +558,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\"tablets\": [\n";
 
-        for (auto& d : g_pInputManager->m_lTabletPads) {
+        for (auto& d : g_pInputManager->m_vTabletPads) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -567,26 +568,26 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
             "name": "{}"
         }}
     }},)#",
-                (uintptr_t)&d, (uintptr_t)d.pTabletParent, escapeJSONStrings(d.pTabletParent ? d.pTabletParent->name : ""));
+                (uintptr_t)d.get(), (uintptr_t)d->parent.get(), escapeJSONStrings(d->parent ? d->parent->hlName : ""));
         }
 
-        for (auto& d : g_pInputManager->m_lTablets) {
+        for (auto& d : g_pInputManager->m_vTablets) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, escapeJSONStrings(d.name));
+                (uintptr_t)d.get(), escapeJSONStrings(d->hlName));
         }
 
-        for (auto& d : g_pInputManager->m_lTabletTools) {
+        for (auto& d : g_pInputManager->m_vTabletTools) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
         "type": "tabletTool",
         "belongsTo": "0x{:x}"
     }},)#",
-                (uintptr_t)&d, d.wlrTabletTool ? (uintptr_t)d.wlrTabletTool->data : 0);
+                (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
         }
 
         trimTrailingComma(result);
@@ -643,16 +644,16 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\n\nTablets:\n";
 
-        for (auto& d : g_pInputManager->m_lTabletPads) {
-            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)&d, (uintptr_t)d.pTabletParent, d.pTabletParent ? d.pTabletParent->name : "");
+        for (auto& d : g_pInputManager->m_vTabletPads) {
+            result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)d.get(), (uintptr_t)d->parent.get(), d->parent ? d->parent->hlName : "");
         }
 
-        for (auto& d : g_pInputManager->m_lTablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)&d, d.name, d.wlrTablet->width_mm, d.wlrTablet->height_mm);
+        for (auto& d : g_pInputManager->m_vTablets) {
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->wlr()->width_mm, d->wlr()->height_mm);
         }
 
-        for (auto& d : g_pInputManager->m_lTabletTools) {
-            result += std::format("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)&d, d.wlrTabletTool ? (uintptr_t)d.wlrTabletTool->data : 0);
+        for (auto& d : g_pInputManager->m_vTabletTools) {
+            result += std::format("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
         }
 
         result += "\n\nTouch:\n";

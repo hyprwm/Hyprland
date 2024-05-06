@@ -122,7 +122,9 @@ template <typename T>
 class CSharedPointer {
   public:
     template <typename X>
-    using validHierarchy = typename std::enable_if<std::is_assignable<T*, X*>::value>;
+    using validHierarchy = typename std::enable_if<std::is_assignable<CSharedPointer<T>&, X>::value, CSharedPointer&>::type;
+    template <typename X>
+    using isConstructible = typename std::enable_if<std::is_constructible<T&, X&>::value>::type;
 
     /* creates a new shared pointer managing a resource
        avoid calling. Could duplicate ownership. Prefer makeShared */
@@ -132,7 +134,7 @@ class CSharedPointer {
     }
 
     /* creates a shared pointer from a reference */
-    template <typename U, typename = validHierarchy<U>>
+    template <typename U, typename = isConstructible<U>>
     CSharedPointer(const CSharedPointer<U>& ref) noexcept {
         impl_ = ref.impl_;
         increment();
@@ -143,7 +145,7 @@ class CSharedPointer {
         increment();
     }
 
-    template <typename U, typename = validHierarchy<U>>
+    template <typename U, typename = isConstructible<U>>
     CSharedPointer(CSharedPointer<U>&& ref) noexcept {
         std::swap(impl_, ref.impl_);
     }
@@ -178,8 +180,8 @@ class CSharedPointer {
             decrement();
     }
 
-    template <typename U, typename = validHierarchy<U>>
-    CSharedPointer<T>& operator=(const CSharedPointer<U>& rhs) {
+    template <typename U>
+    validHierarchy<const CSharedPointer<U>&> operator=(const CSharedPointer<U>& rhs) {
         if (impl_ == rhs.impl_)
             return *this;
 
@@ -199,8 +201,8 @@ class CSharedPointer {
         return *this;
     }
 
-    template <typename U, typename = validHierarchy<U>>
-    CSharedPointer<T>& operator=(CSharedPointer<U>&& rhs) {
+    template <typename U>
+    validHierarchy<const CSharedPointer<U>&> operator=(CSharedPointer<U>&& rhs) {
         std::swap(impl_, rhs.impl_);
         return *this;
     }

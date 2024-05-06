@@ -14,10 +14,12 @@ template <typename T>
 class CWeakPointer {
   public:
     template <typename X>
-    using validHierarchy = typename std::enable_if<std::is_assignable<T*, X*>::value>;
+    using validHierarchy = typename std::enable_if<std::is_assignable<CWeakPointer<T>&, X>::value, CWeakPointer&>::type;
+    template <typename X>
+    using isConstructible = typename std::enable_if<std::is_constructible<T&, X&>::value>::type;
 
     /* create a weak ptr from a reference */
-    template <typename U, typename = validHierarchy<U>>
+    template <typename U, typename = isConstructible<U>>
     CWeakPointer(const CSharedPointer<U>& ref) noexcept {
         if (!ref.impl_)
             return;
@@ -27,7 +29,7 @@ class CWeakPointer {
     }
 
     /* create a weak ptr from another weak ptr */
-    template <typename U, typename = validHierarchy<U>>
+    template <typename U, typename = isConstructible<U>>
     CWeakPointer(const CWeakPointer<U>& ref) noexcept {
         if (!ref.impl_)
             return;
@@ -44,7 +46,7 @@ class CWeakPointer {
         incrementWeak();
     }
 
-    template <typename U, typename = validHierarchy<U>>
+    template <typename U, typename = isConstructible<U>>
     CWeakPointer(CWeakPointer<U>&& ref) noexcept {
         std::swap(impl_, ref.impl_);
     }
@@ -54,8 +56,8 @@ class CWeakPointer {
     }
 
     /* create a weak ptr from another weak ptr with assignment */
-    template <typename U, typename = validHierarchy<U>>
-    CWeakPointer<T>& operator=(const CWeakPointer<U>& rhs) {
+    template <typename U>
+    validHierarchy<const CWeakPointer<U>&> operator=(const CWeakPointer<U>& rhs) {
         if (impl_ == rhs.impl_)
             return *this;
 
@@ -76,8 +78,8 @@ class CWeakPointer {
     }
 
     /* create a weak ptr from a shared ptr with assignment */
-    template <typename U, typename = validHierarchy<U>>
-    CWeakPointer<T>& operator=(const CSharedPointer<U>& rhs) {
+    template <typename U>
+    validHierarchy<const CWeakPointer<U>&> operator=(const CSharedPointer<U>& rhs) {
         if ((uintptr_t)impl_ == (uintptr_t)rhs.impl_)
             return *this;
 

@@ -110,9 +110,6 @@ void CPointerConstraint::deactivate() {
 
     active = false;
 
-    if (locked)
-        g_pCompositor->warpCursorTo(logicPositionHint(), true);
-
     if (lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT) {
         dead = true;
         // remove from inputmgr
@@ -133,9 +130,6 @@ void CPointerConstraint::activate() {
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
         wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, pHLSurface->wlr(), LOCAL.x, LOCAL.y);
     }
-
-    if (locked)
-        g_pCompositor->warpCursorTo(logicPositionHint(), true);
 
     if (locked)
         resourceL->sendLocked();

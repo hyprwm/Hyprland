@@ -282,20 +282,20 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
         outName = WORKSPACENAME;
     } else if (in.starts_with("empty")) {
-            const bool same_mon = in.substr(5).contains("m");
-            const bool next = in.substr(5).contains("n");
-            if (same_mon) {
-                if (!g_pCompositor->m_pLastMonitor) {
-                    Debug::log(ERR, "Empty monitor workspace on monitor null!");
-                    return WORKSPACE_INVALID;
-                }
+        const bool same_mon = in.substr(5).contains("m");
+        const bool next     = in.substr(5).contains("n");
+        if (same_mon) {
+            if (!g_pCompositor->m_pLastMonitor) {
+                Debug::log(ERR, "Empty monitor workspace on monitor null!");
+                return WORKSPACE_INVALID;
             }
-            int id = next ? g_pCompositor->m_pLastMonitor->activeWorkspaceID() : 0;
-            while (++id < INT_MAX) {
-                const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-                if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && (!same_mon || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)))
-                    return id;
-            }
+        }
+        int id = next ? g_pCompositor->m_pLastMonitor->activeWorkspaceID() : 0;
+        while (++id < INT_MAX) {
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && (!same_mon || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)))
+                return id;
+        }
     } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
             return WORKSPACE_INVALID;

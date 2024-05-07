@@ -52,6 +52,7 @@ class CSessionLock {
 
     bool good();
     void sendLocked();
+    void sendDenied();
 
     struct {
         CSignal newLockSurface; // SP<CSessionLockSurface>

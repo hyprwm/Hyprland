@@ -113,6 +113,11 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_
     });
 
     resource->setUnlockAndDestroy([this](CExtSessionLockV1* r) {
+        if (inert) {
+            PROTO::sessionLock->destroyResource(this);
+            return;
+        }
+
         events.unlockAndDestroy.emit();
         inert                      = true;
         PROTO::sessionLock->locked = false;
@@ -130,6 +135,11 @@ void CSessionLock::sendLocked() {
 
 bool CSessionLock::good() {
     return resource->resource();
+}
+
+void CSessionLock::sendDenied() {
+    inert = true;
+    resource->sendFinished();
 }
 
 CSessionLockProtocol::CSessionLockProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -171,8 +181,8 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
 
     if (m_vLocks.size() > 1) {
         LOGM(ERR, "Tried to lock a locked session");
-        RESOURCE->resource->sendFinished();
         RESOURCE->inert = true;
+        RESOURCE->resource->sendFinished();
         return;
     }
 

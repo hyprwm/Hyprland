@@ -196,8 +196,8 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
 
     LOGM(LOG, "Newly mapped window {:016x}", (uintptr_t)pWindow.get());
     resource->sendToplevel(NEWHANDLE->resource.get());
-    NEWHANDLE->resource->sendAppId(pWindow->m_szInitialClass.c_str());
-    NEWHANDLE->resource->sendTitle(pWindow->m_szInitialTitle.c_str());
+    NEWHANDLE->resource->sendAppId(g_pXWaylandManager->getAppIDClass(pWindow).c_str());
+    NEWHANDLE->resource->sendTitle(pWindow->m_szTitle.c_str());
     if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR)
         NEWHANDLE->sendMonitor(PMONITOR);
     NEWHANDLE->sendState();

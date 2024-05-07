@@ -36,7 +36,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     const auto PCONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
-        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
+        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE) == 1) {
             Debug::log(LOG, "Updating keyboard {:x}'s translation state from an active index {}", (uintptr_t)this, i);
 
             CVarList       keyboardLayouts(currentRules.layout, 0, ',');
@@ -103,7 +103,7 @@ std::string IKeyboard::getActiveLayout() {
     const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
-        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
+        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE) == 1) {
             const auto LAYOUTNAME = xkb_keymap_layout_get_name(KEYMAP, i);
 
             if (LAYOUTNAME)

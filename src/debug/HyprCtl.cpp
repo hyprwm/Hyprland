@@ -1084,7 +1084,7 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
     const auto         LAYOUTS      = xkb_keymap_num_layouts(PWLRKEYBOARD->keymap);
     xkb_layout_index_t activeLayout = 0;
     while (activeLayout < LAYOUTS) {
-        if (xkb_state_layout_index_is_active(PWLRKEYBOARD->xkb_state, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE))
+        if (xkb_state_layout_index_is_active(PWLRKEYBOARD->xkb_state, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
             break;
 
         activeLayout++;

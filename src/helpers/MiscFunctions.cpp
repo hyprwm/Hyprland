@@ -284,7 +284,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
-        if (same_mon) {
+        if (same_mon || next) {
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Empty monitor workspace on monitor null!");
                 return WORKSPACE_INVALID;

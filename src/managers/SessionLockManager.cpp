@@ -43,6 +43,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
         Debug::log(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        pLock->sendDenied();
         return;
     }
 

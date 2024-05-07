@@ -34,7 +34,7 @@ all:
 	$(MAKE) release
 
 install:
-	cmake --install ./build
+	cmake --install ./build --prefix ${PREFIX}
 
 uninstall:
 	xargs rm < ./build/install_manifest.txt

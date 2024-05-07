@@ -836,6 +836,8 @@ void CWindow::createGroup() {
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+        g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("1,{:x}", (uintptr_t)this)});
     }
 }
 
@@ -852,9 +854,12 @@ void CWindow::destroyGroup() {
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+        g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{:x}", (uintptr_t)this)});
         return;
     }
 
+    std::string            addresses;
     PHLWINDOW              curr = m_pSelf.lock();
     std::vector<PHLWINDOW> members;
     do {
@@ -863,6 +868,8 @@ void CWindow::destroyGroup() {
         PLASTWIN->m_sGroupData.pNextWindow.reset();
         curr->setHidden(false);
         members.push_back(curr);
+
+        addresses += std::format("{:x},", (uintptr_t)curr.get());
     } while (curr.get() != this);
 
     for (auto& w : members) {
@@ -883,6 +890,10 @@ void CWindow::destroyGroup() {
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    if (!addresses.empty())
+        addresses.pop_back();
+    g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{}", addresses)});
 }
 
 PHLWINDOW CWindow::getGroupHead() {

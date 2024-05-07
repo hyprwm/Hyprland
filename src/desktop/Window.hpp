@@ -332,6 +332,7 @@ class CWindow {
     PHLWINDOWREF m_pLastCycledWindow;
 
     // Window decorations
+    // TODO: make this a SP.
     std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 

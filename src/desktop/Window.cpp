@@ -211,6 +211,8 @@ void CWindow::updateWindowDecos() {
     }
 
     for (auto& wd : decos) {
+        if (std::find_if(m_dWindowDecorations.begin(), m_dWindowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_dWindowDecorations.end())
+            continue;
         wd->updateWindow(m_pSelf.lock());
     }
 }

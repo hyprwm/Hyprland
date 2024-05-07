@@ -166,7 +166,7 @@ void COutputHead::sendAllData() {
                     LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->width, m->mode->height, m->mode->refresh);
                 else
                     LOGM(LOG, "  | sending current mode for {}: null (fake)", pMonitor->szName);
-                resource->sendCurrentMode(m->resource->resource());
+                resource->sendCurrentMode(m->resource.get());
                 break;
             }
         }
@@ -197,7 +197,7 @@ void COutputHead::updateMode() {
                     LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->width, m->mode->height, m->mode->refresh);
                 else
                     LOGM(LOG, "  | sending current mode for {}: null (fake)", pMonitor->szName);
-                resource->sendCurrentMode(m->resource->resource());
+                resource->sendCurrentMode(m->resource.get());
                 break;
             }
         }

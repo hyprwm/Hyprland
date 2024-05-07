@@ -1,5 +1,5 @@
 prefix=@PREFIX@
-includedir=@PREFIX@/include
+includedir=@PREFIX@/@INCLUDEDIR@
 
 Name: Hyprland
 URL: https://github.com/hyprwm/Hyprland

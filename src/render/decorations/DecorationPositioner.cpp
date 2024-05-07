@@ -271,8 +271,10 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
         }
     }
 
-    WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    if (WINDOWDATA->extents != SWindowDecorationExtents{{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}}) {
+        WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    }
 }
 
 void CDecorationPositioner::onWindowUnmap(PHLWINDOW pWindow) {

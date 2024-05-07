@@ -47,6 +47,7 @@ installheaders:
 	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
 	rm -fr ${PREFIX}/include/hyprland
+	if [ -d ${HOME}/.local/share/hyprpm/headersRoot ]; then rm -rf  ${HOME}/.local/share/hyprpm/headersRoot && mkdir -d ${HOME}/.local/share/hyprpm/headersRoot; fi
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/include/hyprland/wlroots-hyprland
@@ -60,8 +61,13 @@ installheaders:
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
+
 	chmod -R 755 ${PREFIX}/include/hyprland
 	chmod 755 ${PREFIX}/share/pkgconfig
+
+	if [ -d ${HOME}/.local/share/hyprpm/headersRoot ]; then cp -r ${PREFIX}/include/hyprland ${HOME}/.local/share/hyprpm/headersRoot; fi
+	if [ -d ${HOME}/.local/share/hyprpm/headersRoot ]; then mkdir -p ${HOME}/.local/share/hyprpm/headersRoot/share/pkgconfig && cp ${} ${HOME}/.local/share/hyprpm/headersRoot/share/pkgconfig; fi
+
 
 man:
 	pandoc ./docs/Hyprland.1.rst \

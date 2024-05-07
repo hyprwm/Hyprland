@@ -12,6 +12,8 @@ class CEventLoopManager {
     CEventLoopManager();
 
     void enterLoop(wl_display* display, wl_event_loop* wlEventLoop);
+
+    // Note: will remove the timer if the ptr is lost.
     void addTimer(SP<CEventLoopTimer> timer);
     void removeTimer(SP<CEventLoopTimer> timer);
 

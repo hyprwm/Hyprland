@@ -31,7 +31,7 @@ void CEventLoopManager::enterLoop(wl_display* display, wl_event_loop* wlEventLoo
 
 void CEventLoopManager::onTimerFire() {
     for (auto& t : m_sTimers.timers) {
-        if (t->passed() && !t->cancelled())
+        if (t.strongRef() > 1 /* if it's 1, it was lost. Don't call it. */ && t->passed() && !t->cancelled())
             t->call(t);
     }
 
@@ -62,6 +62,8 @@ static void timespecAddNs(timespec* pTimespec, int64_t delta) {
 }
 
 void CEventLoopManager::nudgeTimers() {
+    // remove timers that have gone missing
+    std::erase_if(m_sTimers.timers, [](const auto& t) { return t.strongRef() <= 1; });
 
     long nextTimerUs = 10 * 1000 * 1000; // 10s
 

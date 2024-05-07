@@ -282,12 +282,19 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         }
         outName = WORKSPACENAME;
     } else if (in.starts_with("empty")) {
-        int id = 0;
-        while (++id < INT_MAX) {
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-            if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0))
-                return id;
-        }
+            const bool same_mon = in.starts_with("emptym");
+            if (same_mon) {
+                if (!g_pCompositor->m_pLastMonitor) {
+                    Debug::log(ERR, "Empty monitor workspace on monitor null!");
+                    return WORKSPACE_INVALID;
+                }
+            }
+            int id = 0;
+            while (++id < INT_MAX) {
+                const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+                if (!PWORKSPACE || (g_pCompositor->getWindowsOnWorkspace(id) == 0 && (!same_mon || PWORKSPACE->m_iMonitorID == g_pCompositor->m_pLastMonitor->ID)))
+                    return id;
+            }
     } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
             return WORKSPACE_INVALID;

@@ -86,7 +86,7 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
     Debug::log(LOG, "Socket2 accepted a new client at FD {}", ACCEPTEDCONNECTION);
 
     // add to event loop so we can close it when we need to
-    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, WL_EVENT_READABLE, onServerEvent, this);
+    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, 0, onServerEvent, this);
     m_mClients.emplace(ACCEPTEDCONNECTION,
                        SClient{
                            {},
@@ -101,16 +101,6 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
         Debug::log(LOG, "Socket2 fd {} hung up", fd);
         removeClientByFD(fd);
         return 0;
-    }
-
-    if (mask & WL_EVENT_READABLE) {
-        char       buf[1024];
-        const auto RECEIVED = recv(fd, buf, sizeof(buf), 0);
-        if (RECEIVED < 0) {
-            Debug::log(ERR, "Socket2 fd {} sent invalid data", fd);
-            removeClientByFD(fd);
-            return 0;
-        }
     }
 
     if (mask & WL_EVENT_WRITABLE) {
@@ -129,7 +119,7 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
 
         // stop polling when we sent all events
         if (client.events.empty())
-            wl_event_source_fd_update(client.eventSource, WL_EVENT_READABLE);
+            wl_event_source_fd_update(client.eventSource, 0);
     }
 
     return 0;
@@ -176,7 +166,7 @@ void CEventManager::postEvent(const SHyprIPCEvent& event) {
 
             // poll for write if queue was empty
             if (QUEUESIZE == 0)
-                wl_event_source_fd_update(client.eventSource, WL_EVENT_READABLE | WL_EVENT_WRITABLE);
+                wl_event_source_fd_update(client.eventSource, WL_EVENT_WRITABLE);
         }
 
         ++it;

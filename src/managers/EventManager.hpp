@@ -28,7 +28,7 @@ class CEventManager {
 
     struct SClient {
         std::deque<SP<std::string>> events;
-        wl_event_source*            eventSource;
+        wl_event_source*            eventSource = nullptr;
     };
 
     std::unordered_map<int, SClient>::iterator removeClientByFD(int fd);

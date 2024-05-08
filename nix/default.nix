@@ -5,7 +5,6 @@
   pkgconf,
   makeWrapper,
   cmake,
-  meson,
   ninja,
   binutils,
   cairo,

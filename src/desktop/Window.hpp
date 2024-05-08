@@ -422,7 +422,7 @@ class CWindow {
     bool                     visibleOnMonitor(CMonitor* pMonitor);
     int                      workspaceID();
     bool                     onSpecialWorkspace();
-    void                     activate();
+    void                     activate(bool force = false);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

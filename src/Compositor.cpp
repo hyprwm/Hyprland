@@ -341,6 +341,28 @@ void CCompositor::removeAllSignals() {
         removeWLSignal(&Events::listen_sessionActive);
 }
 
+void CCompositor::cleanEnvironment() {
+    // in compositor constructor
+    unsetenv("WAYLAND_DISPLAY");
+    // in startCompositor
+    unsetenv("HYPRLAND_INSTANCE_SIGNATURE");
+
+    // in main
+    unsetenv("HYPRLAND_CMD");
+    unsetenv("XDG_BACKEND");
+    unsetenv("XDG_CURRENT_DESKTOP");
+
+    if (m_sWLRSession) {
+        const auto CMD =
+#ifdef USES_SYSTEMD
+            "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME && hash "
+            "dbus-update-activation-environment 2>/dev/null && "
+#endif
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME";
+        g_pKeybindManager->spawn(CMD);
+    }
+}
+
 void CCompositor::cleanup() {
     if (!m_sWLDisplay || m_bIsShuttingDown)
         return;
@@ -357,6 +379,8 @@ void CCompositor::cleanup() {
     if (Systemd::SdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
         Systemd::SdNotify(0, "STOPPING=1");
 #endif
+
+    cleanEnvironment();
 
     // unload all remaining plugins while the compositor is
     // still in a normal working state.

@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <deque>
+#include <set>
 #include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
@@ -12,20 +13,23 @@ class CPluginSystem;
 class IKeyboard;
 
 struct SKeybind {
-    std::string key          = "";
-    uint32_t    keycode      = 0;
-    bool        catchAll     = false;
-    uint32_t    modmask      = 0;
-    std::string handler      = "";
-    std::string arg          = "";
-    bool        locked       = false;
-    std::string submap       = "";
-    bool        release      = false;
-    bool        repeat       = false;
-    bool        mouse        = false;
-    bool        nonConsuming = false;
-    bool        transparent  = false;
-    bool        ignoreMods   = false;
+    std::string           key          = "";
+    std::set<std::string> keys         = {};
+    uint32_t              keycode      = 0;
+    std::set<uint32_t>    keycodes     = {};
+    bool                  catchAll     = false;
+    uint32_t              modmask      = 0;
+    std::string           handler      = "";
+    std::string           arg          = "";
+    bool                  locked       = false;
+    std::string           submap       = "";
+    bool                  release      = false;
+    bool                  repeat       = false;
+    bool                  mouse        = false;
+    bool                  nonConsuming = false;
+    bool                  transparent  = false;
+    bool                  ignoreMods   = false;
+	bool				  multiKey = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;

@@ -1274,7 +1274,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     return results;
 }
 
-void CWindow::activate() {
+void CWindow::activate(bool force) {
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
@@ -1282,7 +1282,7 @@ void CWindow::activate() {
 
     m_bIsUrgent = true;
 
-    if (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE))
+    if (!force && (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;
 
     if (m_bIsFloating)

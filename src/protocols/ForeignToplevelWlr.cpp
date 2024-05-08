@@ -17,10 +17,9 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if (!PWINDOW)
             return;
 
-        if (PWINDOW->m_eSuppressedEvents & SUPPRESS_ACTIVATE)
-            return;
-
-        PWINDOW->activate();
+        // these requests bypass the config'd stuff cuz it's usually like
+        // window switchers and shit
+        PWINDOW->activate(true);
     });
 
     resource->setSetFullscreen([this](CZwlrForeignToplevelHandleV1* p, wl_resource* output) {

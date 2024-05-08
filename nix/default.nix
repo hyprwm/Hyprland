@@ -12,7 +12,6 @@
   fribidi,
   git,
   hyprcursor,
-  hyprland-protocols,
   hyprlang,
   hyprwayland-scanner,
   jq,
@@ -107,7 +106,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         fribidi
         git
         hyprcursor.dev
-        hyprland-protocols
         hyprlang
         libGL
         libdrm

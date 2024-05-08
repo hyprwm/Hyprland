@@ -74,9 +74,6 @@
         # hyprland-extras
         
         xdg-desktop-portal-hyprland
-        # dependencies
-        
-        hyprland-protocols
         ;
     });
 

@@ -37,6 +37,12 @@ class CXDGActivationProtocol : public IWaylandProtocol {
     void destroyToken(CXDGActivationToken* pointer);
     void onGetToken(CXdgActivationV1* pMgr, uint32_t id);
 
+    struct SSentToken {
+        std::string token;
+        wl_client*  client = nullptr; // READ-ONLY: can be dead
+    };
+    std::vector<SSentToken> m_vSentTokens;
+
     //
     std::vector<UP<CXdgActivationV1>>    m_vManagers;
     std::vector<UP<CXDGActivationToken>> m_vTokens;

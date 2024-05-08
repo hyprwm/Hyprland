@@ -27,7 +27,11 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
 #endif
 }
 
-CHyprXWaylandManager::~CHyprXWaylandManager() {}
+CHyprXWaylandManager::~CHyprXWaylandManager() {
+#ifndef NO_XWAYLAND
+    unsetenv("DISPLAY");
+#endif
+}
 
 wlr_surface* CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
     if (pWindow->m_bIsX11)

@@ -1,6 +1,7 @@
 #include "EventManager.hpp"
 #include "../Compositor.hpp"
 
+#include <algorithm>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -39,9 +40,9 @@ CEventManager::CEventManager() {
 }
 
 CEventManager::~CEventManager() {
-    for (const auto& [fd, client] : m_mClients) {
+    for (const auto& client : m_vClients) {
         wl_event_source_remove(client.eventSource);
-        close(fd);
+        close(client.fd);
     }
 
     if (m_pEventSource != nullptr)
@@ -87,11 +88,11 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
 
     // add to event loop so we can close it when we need to
     auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, 0, onServerEvent, this);
-    m_mClients.emplace(ACCEPTEDCONNECTION,
-                       SClient{
-                           {},
-                           eventSource,
-                       });
+    m_vClients.emplace_back(SClient{
+        ACCEPTEDCONNECTION,
+        {},
+        eventSource,
+    });
 
     return 0;
 }
@@ -104,33 +105,35 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
     }
 
     if (mask & WL_EVENT_WRITABLE) {
-        const auto IT = m_mClients.find(fd);
+        const auto CLIENTIT = findClientByFD(fd);
 
         // send all queued events
-        const auto& FD     = IT->first;
-        auto&       client = IT->second;
-        while (!client.events.empty()) {
-            const auto& event = client.events.front();
-            if (write(FD, event->c_str(), event->length()) < 0)
+        while (!CLIENTIT->events.empty()) {
+            const auto& event = CLIENTIT->events.front();
+            if (write(CLIENTIT->fd, event->c_str(), event->length()) < 0)
                 break;
 
-            client.events.pop_front();
+            CLIENTIT->events.pop_front();
         }
 
         // stop polling when we sent all events
-        if (client.events.empty())
-            wl_event_source_fd_update(client.eventSource, 0);
+        if (CLIENTIT->events.empty())
+            wl_event_source_fd_update(CLIENTIT->eventSource, 0);
     }
 
     return 0;
 }
 
-std::unordered_map<int, CEventManager::SClient>::iterator CEventManager::removeClientByFD(int fd) {
-    const auto IT = m_mClients.find(fd);
-    wl_event_source_remove(IT->second.eventSource);
+std::vector<CEventManager::SClient>::iterator CEventManager::findClientByFD(int fd) {
+    return std::find_if(m_vClients.begin(), m_vClients.end(), [fd](const auto& client) { return client.fd == fd; });
+}
+
+std::vector<CEventManager::SClient>::iterator CEventManager::removeClientByFD(int fd) {
+    const auto CLIENTIT = findClientByFD(fd);
+    wl_event_source_remove(CLIENTIT->eventSource);
     close(fd);
 
-    return m_mClients.erase(IT);
+    return m_vClients.erase(CLIENTIT);
 }
 
 std::string CEventManager::formatEvent(const SHyprIPCEvent& event) const {
@@ -148,26 +151,23 @@ void CEventManager::postEvent(const SHyprIPCEvent& event) {
 
     const size_t MAX_QUEUED_EVENTS = 64;
     auto         sharedEvent       = makeShared<std::string>(formatEvent(event));
-    for (auto it = m_mClients.begin(); it != m_mClients.end();) {
-        const auto FD     = it->first;
-        auto&      client = it->second;
-
+    for (auto it = m_vClients.begin(); it != m_vClients.end();) {
         // try to send the event immediately
-        if (write(FD, sharedEvent->c_str(), sharedEvent->length()) < 0) {
-            const auto QUEUESIZE = client.events.size();
+        if (write(it->fd, sharedEvent->c_str(), sharedEvent->length()) < 0) {
+            const auto QUEUESIZE = it->events.size();
             if (QUEUESIZE >= MAX_QUEUED_EVENTS) {
                 // too many events queued, remove the client
-                Debug::log(ERR, "Socket2 fd {} overflowed event queue, removing", FD);
-                it = removeClientByFD(FD);
+                Debug::log(ERR, "Socket2 fd {} overflowed event queue, removing", it->fd);
+                it = removeClientByFD(it->fd);
                 continue;
             }
 
             // queue it to send later if failed
-            client.events.push_back(sharedEvent);
+            it->events.push_back(sharedEvent);
 
             // poll for write if queue was empty
             if (QUEUESIZE == 0)
-                wl_event_source_fd_update(client.eventSource, WL_EVENT_WRITABLE);
+                wl_event_source_fd_update(it->eventSource, WL_EVENT_WRITABLE);
         }
 
         ++it;

@@ -1,6 +1,6 @@
 #pragma once
 #include <deque>
-#include <unordered_map>
+#include <vector>
 
 #include "../defines.hpp"
 #include "../helpers/memory/SharedPtr.hpp"
@@ -27,17 +27,19 @@ class CEventManager {
     int         onClientEvent(int fd, uint32_t mask);
 
     struct SClient {
+        int                         fd = -1;
         std::deque<SP<std::string>> events;
         wl_event_source*            eventSource = nullptr;
     };
 
-    std::unordered_map<int, SClient>::iterator removeClientByFD(int fd);
+    std::vector<SClient>::iterator findClientByFD(int fd);
+    std::vector<SClient>::iterator removeClientByFD(int fd);
 
   private:
-    int                              m_iSocketFD    = -1;
-    wl_event_source*                 m_pEventSource = nullptr;
+    int                  m_iSocketFD    = -1;
+    wl_event_source*     m_pEventSource = nullptr;
 
-    std::unordered_map<int, SClient> m_mClients;
+    std::vector<SClient> m_vClients;
 };
 
 inline std::unique_ptr<CEventManager> g_pEventManager;

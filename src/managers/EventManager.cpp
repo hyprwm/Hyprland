@@ -157,6 +157,7 @@ void CEventManager::postEvent(const SHyprIPCEvent& event) {
             const auto QUEUESIZE = client.events.size();
             if (QUEUESIZE >= MAX_QUEUED_EVENTS) {
                 // too many events queued, remove the client
+                Debug::log(ERR, "Socket2 fd {} overflowed event queue, removing", FD);
                 it = removeClientByFD(FD);
                 continue;
             }

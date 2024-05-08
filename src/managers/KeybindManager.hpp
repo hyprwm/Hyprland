@@ -106,7 +106,7 @@ class CKeybindManager {
 
     CTimer                          m_tScrollTimer;
 
-    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
+    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, const std::deque<SPressedKeyWithMods> = {});
 
     bool                            handleInternalKeybinds(xkb_keysym_t);
     bool                            handleVT(xkb_keysym_t);

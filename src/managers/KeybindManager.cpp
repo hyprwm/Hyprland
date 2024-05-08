@@ -7,6 +7,7 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../devices/IKeyboard.hpp"
 
+#include <optional>
 #include <regex>
 #include <tuple>
 
@@ -375,7 +376,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
         m_dPressedKeys.push_back(KEY);
 
-        suppressEvent = handleKeybinds(MODS, KEY, true);
+        suppressEvent = handleKeybinds(MODS, KEY, true, m_dPressedKeys);
 
         if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
@@ -387,7 +388,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
                 if (it->submapAtPress == m_szCurrentSelectedSubmap)
-                    handleKeybinds(MODS, *it, false);
+                    handleKeybinds(MODS, *it, false, m_dPressedKeys);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
@@ -537,7 +538,7 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, const std::deque<SPressedKeyWithMods> keys) {
     bool found = false;
 
     if (g_pCompositor->m_sSeat.exclusiveClient)

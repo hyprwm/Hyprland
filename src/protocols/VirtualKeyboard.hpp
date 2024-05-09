@@ -24,6 +24,8 @@ class CVirtualKeyboardV1Resource {
     SP<CZwpVirtualKeyboardV1> resource;
     wlr_keyboard              keyboard;
 
+    void                      releasePressed();
+
     bool                      hasKeymap = false;
 };
 

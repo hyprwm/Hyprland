@@ -800,6 +800,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     keeb->keyboardEvents.key.registerStaticListener(
         [this](void* owner, std::any data) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
+
             onKeyboardKey(data, PKEEB);
         },
         keeb.get());
@@ -807,6 +808,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     keeb->keyboardEvents.modifiers.registerStaticListener(
         [this](void* owner, std::any data) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
+
             onKeyboardMod(PKEEB);
         },
         keeb.get());

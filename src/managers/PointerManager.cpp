@@ -518,6 +518,9 @@ Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
 }
 
 Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
+    if (!pMonitor->output->cursor_swapchain)
+        return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
+
     return CBox{currentCursorImage.hotspot, {0, 0}}
         .transform(wlr_output_transform_invert(pMonitor->transform), pMonitor->output->cursor_swapchain->width, pMonitor->output->cursor_swapchain->height)
         .pos();

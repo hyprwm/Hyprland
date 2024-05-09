@@ -394,7 +394,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebu
 }
 
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMRIGID = CConfigValue<Hyprlang::INT>("misc:cursor_zoom_rigid");
+    static auto PZOOMRIGID = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
 
     TRACY_GPU_ZONE("RenderEnd");
 

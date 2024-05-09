@@ -2394,9 +2394,9 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
 void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     // warpCursorTo should only be used for warps that
-    // should be disabled with no_cursor_warps
+    // should be disabled with no_warps
 
-    static auto PNOWARPS = CConfigValue<Hyprlang::INT>("general:no_cursor_warps");
+    static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
     if (*PNOWARPS && !force)
         return;

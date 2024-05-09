@@ -1092,7 +1092,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PNODIRECTSCANOUT    = CConfigValue<Hyprlang::INT>("misc:no_direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
-    static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("misc:cursor_zoom_factor");
+    static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
     static auto                                           PFIRSTLAUNCHANIM    = CConfigValue<Hyprlang::INT>("animations:first_launch_animation");
     static auto                                           PTEARINGENABLED     = CConfigValue<Hyprlang::INT>("general:allow_tearing");
@@ -2278,9 +2278,9 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("general:cursor_inactive_timeout");
-    static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("misc:hide_cursor_on_touch");
-    static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("misc:hide_cursor_on_key_press");
+    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("cursor:inactive_timeout");
+    static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
+    static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
 
     if (*PCURSORTIMEOUT <= 0)
         m_sCursorHiddenConditions.hiddenOnTimeout = false;

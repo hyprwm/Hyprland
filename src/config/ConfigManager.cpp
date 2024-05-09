@@ -1954,11 +1954,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         }
     }
 
-    const auto  MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
-    const auto  MODSTR = ARGS[0];
-    std::string KEY;
-    if (!multiKey)
-        KEY = ARGS[1];
+    const auto KEY    = multiKey ? "" : ARGS[1];
+    const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
+    const auto MODSTR = ARGS[0];
 
     auto       HANDLER = ARGS[2];
 

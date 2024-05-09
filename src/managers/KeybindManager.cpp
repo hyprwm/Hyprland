@@ -376,7 +376,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 
         m_dPressedKeys.push_back(KEY);
-        Debug::log(LOG, "{} added to m_dPressedKeys", KEY.keycode);
 
         suppressEvent = handleKeybinds(MODS, KEY, true, m_dPressedKeys);
 

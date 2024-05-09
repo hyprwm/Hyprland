@@ -152,9 +152,9 @@ void CEventManager::postEvent(const SHyprIPCEvent& event) {
     const size_t MAX_QUEUED_EVENTS = 64;
     auto         sharedEvent       = makeShared<std::string>(formatEvent(event));
     for (auto it = m_vClients.begin(); it != m_vClients.end();) {
-        // try to send the event immediately
-        if (write(it->fd, sharedEvent->c_str(), sharedEvent->length()) < 0) {
-            const auto QUEUESIZE = it->events.size();
+        // try to send the event immediately if the queue is empty
+        const auto QUEUESIZE = it->events.size();
+        if (QUEUESIZE > 0 || write(it->fd, sharedEvent->c_str(), sharedEvent->length()) < 0) {
             if (QUEUESIZE >= MAX_QUEUED_EVENTS) {
                 // too many events queued, remove the client
                 Debug::log(ERR, "Socket2 fd {} overflowed event queue, removing", it->fd);

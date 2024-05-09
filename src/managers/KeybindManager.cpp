@@ -586,7 +586,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                     s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
                 }
 
-				s_keysym.erase(0);
+                s_keysym.erase(0);
 
                 if (s_keysym.contains(mkey.keysym))
                     foundMk = true;

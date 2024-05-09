@@ -51,7 +51,6 @@ class CCompositor {
     wlr_data_device_manager*  m_sWLRDataDevMgr;
     wlr_drm*                  m_sWRLDRM;
     wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
-    wlr_layer_shell_v1*       m_sWLRLayerShell;
     wlr_xdg_shell*            m_sWLRXDGShell;
     wlr_presentation*         m_sWLRPresentation;
     wlr_egl*                  m_sWLREGL;
@@ -71,6 +70,7 @@ class CCompositor {
     std::vector<SP<CMonitor>>                 m_vMonitors;
     std::vector<SP<CMonitor>>                 m_vRealMonitors; // for all monitors, even those turned off
     std::vector<PHLWINDOW>                    m_vWindows;
+    std::vector<PHLLS>                        m_vLayers;
     std::vector<PHLWORKSPACE>                 m_vWorkspaces;
     std::vector<PHLWINDOWREF>                 m_vWindowsFadingOut;
     std::vector<PHLLSREF>                     m_vSurfacesFadingOut;
@@ -112,7 +112,7 @@ class CCompositor {
     void         focusSurface(wlr_surface*, PHLWINDOW pWindowOwner = nullptr);
     bool         monitorExists(CMonitor*);
     PHLWINDOW    vectorToWindowUnified(const Vector2D&, uint8_t properties, PHLWINDOW pIgnoreWindow = nullptr);
-    wlr_surface* vectorToLayerSurface(const Vector2D&, std::vector<PHLLS>*, Vector2D*, PHLLS*);
+    wlr_surface* vectorToLayerSurface(const Vector2D&, std::vector<PHLLSREF>*, Vector2D*, PHLLS*);
     wlr_surface* vectorToLayerPopupSurface(const Vector2D&, CMonitor* monitor, Vector2D*, PHLLS*);
     wlr_surface* vectorWindowToSurface(const Vector2D&, PHLWINDOW, Vector2D& sl);
     Vector2D     vectorToSurfaceLocal(const Vector2D&, PHLWINDOW, wlr_surface*);
@@ -162,7 +162,6 @@ class CCompositor {
     void         addToFadingOutSafe(PHLWINDOW);
     PHLWINDOW    getWindowByRegex(const std::string&);
     void         warpCursorTo(const Vector2D&, bool force = false);
-    PHLLS        getLayerSurfaceFromWlr(wlr_layer_surface_v1*);
     PHLLS        getLayerSurfaceFromSurface(wlr_surface*);
     void         closeWindow(PHLWINDOW);
     Vector2D     parseWindowVectorArgsRelative(const std::string&, const Vector2D&);

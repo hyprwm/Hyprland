@@ -6,6 +6,7 @@
 #include <random>
 #include "../config/ConfigValue.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../protocols/LayerShell.hpp"
 
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);

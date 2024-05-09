@@ -140,7 +140,7 @@ class CMonitor {
         CSignal modeChanged;
     } events;
 
-    std::array<std::vector<PHLLS>, 4> m_aLayerSurfaceLayers;
+    std::array<std::vector<PHLLSREF>, 4> m_aLayerSurfaceLayers;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);

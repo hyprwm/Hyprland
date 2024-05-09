@@ -4,6 +4,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "helpers/VarList.hpp"
+#include "../protocols/LayerShell.hpp"
 
 #include <string.h>
 #include <string>
@@ -1204,7 +1205,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
         } else {
             std::regex NSCHECK(lr.targetNamespace);
 
-            if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+            if (!std::regex_search(pLS->layerSurface->layerNamespace, NSCHECK))
                 continue;
         }
 
@@ -1212,8 +1213,8 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
         returns.push_back(lr);
     }
 
-    if (pLS->layerSurface->_namespace && shouldBlurLS(pLS->layerSurface->_namespace))
-        returns.push_back({pLS->layerSurface->_namespace, "blur"});
+    if (shouldBlurLS(pLS->layerSurface->layerNamespace))
+        returns.push_back({pLS->layerSurface->layerNamespace, "blur"});
 
     return returns;
 }

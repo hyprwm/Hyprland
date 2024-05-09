@@ -37,7 +37,7 @@ void CInputManager::beginWorkspaceSwipe() {
     m_sActiveSwipe.speedPoints     = 0;
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
             ls->alpha = 1.f;
         }
     }
@@ -193,7 +193,7 @@ void CInputManager::endWorkspaceSwipe() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+    for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
         ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
     }
 }

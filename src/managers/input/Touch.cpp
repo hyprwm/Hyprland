@@ -33,7 +33,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (m_sActiveSwipe.pWorkspaceBegin) {
         return;
         // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
+    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= 1)) {
         const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");

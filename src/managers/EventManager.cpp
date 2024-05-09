@@ -36,7 +36,7 @@ CEventManager::CEventManager() {
         return;
     }
 
-    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, onClientEvent, this);
+    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, onClientEvent, nullptr);
 }
 
 CEventManager::~CEventManager() {
@@ -53,13 +53,11 @@ CEventManager::~CEventManager() {
 }
 
 int CEventManager::onServerEvent(int fd, uint32_t mask, void* data) {
-    auto* const PEVMGR = (CEventManager*)data;
-    return PEVMGR->onClientEvent(fd, mask);
+    return g_pEventManager->onClientEvent(fd, mask);
 }
 
 int CEventManager::onClientEvent(int fd, uint32_t mask, void* data) {
-    auto* const PEVMGR = (CEventManager*)data;
-    return PEVMGR->onServerEvent(fd, mask);
+    return g_pEventManager->onServerEvent(fd, mask);
 }
 
 int CEventManager::onServerEvent(int fd, uint32_t mask) {
@@ -92,7 +90,7 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
     Debug::log(LOG, "Socket2 accepted a new client at FD {}", ACCEPTEDCONNECTION);
 
     // add to event loop so we can close it when we need to
-    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, 0, onServerEvent, this);
+    auto* eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, ACCEPTEDCONNECTION, 0, onServerEvent, nullptr);
     m_vClients.emplace_back(SClient{
         ACCEPTEDCONNECTION,
         {},

@@ -78,9 +78,14 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
     socklen_t   clientSize         = sizeof(clientAddress);
     const auto  ACCEPTEDCONNECTION = accept4(m_iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK);
     if (ACCEPTEDCONNECTION < 0) {
-        Debug::log(ERR, "Socket2 failed receiving connection, errno: {}", errno);
-        wl_event_source_remove(m_pEventSource);
-        close(fd);
+        if (errno != EAGAIN) {
+            Debug::log(ERR, "Socket2 failed receiving connection, errno: {}", errno);
+            wl_event_source_remove(m_pEventSource);
+            m_pEventSource = nullptr;
+            close(fd);
+            m_iSocketFD = -1;
+        }
+
         return 0;
     }
 

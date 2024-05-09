@@ -1,81 +1,29 @@
 #include "LayerSurface.hpp"
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
+#include "../protocols/LayerShell.hpp"
 
-void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
-    const auto WLRLAYERSURFACE = (wlr_layer_surface_v1*)data;
+PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
+    PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    if (!WLRLAYERSURFACE->output) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    CMonitor* pMonitor = resource->monitor.empty() ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->getMonitorFromName(resource->monitor);
 
-        if (!PMONITOR) {
-            Debug::log(ERR, "No monitor at cursor on new layer without a monitor. Ignoring.");
-            wlr_layer_surface_v1_destroy(WLRLAYERSURFACE);
-            return;
-        }
-
-        Debug::log(LOG, "New LayerSurface has no preferred monitor. Assigning Monitor {}", PMONITOR->szName);
-
-        WLRLAYERSURFACE->output = PMONITOR->output;
+    if (!pMonitor) {
+        Debug::log(ERR, "New LS has no monitor??");
+        return pLS;
     }
 
-    auto PMONITOR = g_pCompositor->getMonitorFromOutput(WLRLAYERSURFACE->output);
-
-    if (!WLRLAYERSURFACE->output || !PMONITOR || PMONITOR->pMirrorOf) {
-        PMONITOR                = g_pCompositor->m_vMonitors.front().get();
-        WLRLAYERSURFACE->output = PMONITOR->output; // TODO: current mon
-    }
-
-    const auto PLS = PMONITOR->m_aLayerSurfaceLayers[WLRLAYERSURFACE->pending.layer].emplace_back(CLayerSurface::create(WLRLAYERSURFACE));
-
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)WLRLAYERSURFACE, WLRLAYERSURFACE->_namespace, (int)PLS->layer, PMONITOR->szName);
-}
-
-static void onCommit(void* owner, void* data) {
-    const auto LS = ((CLayerSurface*)owner)->self.lock();
-
-    LS->onCommit();
-}
-
-static void onMap(void* owner, void* data) {
-    const auto LS = ((CLayerSurface*)owner)->self.lock();
-
-    LS->onMap();
-}
-
-static void onUnmap(void* owner, void* data) {
-    const auto LS = ((CLayerSurface*)owner)->self.lock();
-
-    LS->onUnmap();
-}
-
-static void onDestroy(void* owner, void* data) {
-    const auto LS = ((CLayerSurface*)owner)->self.lock();
-
-    LS->onDestroy();
-}
-
-// IMPL
-
-PHLLS CLayerSurface::create(wlr_layer_surface_v1* pWLRLS) {
-    PHLLS pLS = SP<CLayerSurface>(new CLayerSurface);
-
-    auto  PMONITOR = g_pCompositor->getMonitorFromOutput(pWLRLS->output);
+    if (pMonitor->pMirrorOf)
+        pMonitor = g_pCompositor->m_vMonitors.front().get();
 
     pLS->self = pLS;
 
-    pLS->szNamespace = pWLRLS->_namespace;
+    pLS->szNamespace = resource->layerNamespace;
 
-    pLS->hyprListener_commitLayerSurface.initCallback(&pWLRLS->surface->events.commit, ::onCommit, pLS.get(), "layerSurface");
-    pLS->hyprListener_destroyLayerSurface.initCallback(&pWLRLS->events.destroy, ::onDestroy, pLS.get(), "layerSurface");
-    pLS->hyprListener_mapLayerSurface.initCallback(&pWLRLS->surface->events.map, ::onMap, pLS.get(), "layerSurface");
-    pLS->hyprListener_unmapLayerSurface.initCallback(&pWLRLS->surface->events.unmap, ::onUnmap, pLS.get(), "layerSurface");
-
-    pLS->layerSurface = pWLRLS;
-    pLS->layer        = pWLRLS->current.layer;
-    pWLRLS->data      = pLS.get();
-    pLS->monitorID    = PMONITOR->ID;
-    pLS->popupHead    = std::make_unique<CPopup>(pLS);
+    pLS->layer     = resource->current.layer;
+    pLS->popupHead = std::make_unique<CPopup>(pLS);
+    pLS->monitorID = pMonitor->ID;
+    pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);
 
@@ -90,7 +38,9 @@ PHLLS CLayerSurface::create(wlr_layer_surface_v1* pWLRLS) {
 
     pLS->alpha.setValueAndWarp(0.f);
 
-    pLS->surface.assign(pWLRLS->surface, pLS);
+    pLS->surface.assign(resource->surface, pLS);
+
+    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
 
     return pLS;
 }
@@ -102,8 +52,11 @@ void CLayerSurface::registerCallbacks() {
     });
 }
 
-CLayerSurface::CLayerSurface() {
-    ;
+CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : layerSurface(resource_) {
+    listeners.commit  = layerSurface->events.commit.registerListener([this](std::any d) { onCommit(); });
+    listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
+    listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+    listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
 }
 
 CLayerSurface::~CLayerSurface() {
@@ -139,11 +92,6 @@ void CLayerSurface::onDestroy() {
 
     noProcess = true;
 
-    hyprListener_commitLayerSurface.removeCallback();
-    hyprListener_destroyLayerSurface.removeCallback();
-    hyprListener_mapLayerSurface.removeCallback();
-    hyprListener_unmapLayerSurface.removeCallback();
-
     // rearrange to fix the reserved areas
     if (PMONITOR) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
@@ -155,7 +103,7 @@ void CLayerSurface::onDestroy() {
     }
 
     readyToDelete = true;
-    layerSurface  = nullptr;
+    layerSurface.reset();
     surface.unassign();
 }
 
@@ -163,7 +111,7 @@ void CLayerSurface::onMap() {
     Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface);
 
     mapped            = true;
-    keyboardExclusive = layerSurface->current.keyboard_interactive;
+    keyboardExclusive = layerSurface->current.interactivity;
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
@@ -173,28 +121,16 @@ void CLayerSurface::onMap() {
 
     applyRules();
 
-    if ((uint64_t)monitorID != PMONITOR->ID) {
-        const auto POLDMON = g_pCompositor->getMonitorFromID(monitorID);
-        for (auto it = POLDMON->m_aLayerSurfaceLayers[layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layer].end(); it++) {
-            if (*it == self) {
-                PMONITOR->m_aLayerSurfaceLayers[layer].emplace_back(std::move(*it));
-                POLDMON->m_aLayerSurfaceLayers[layer].erase(it);
-                break;
-            }
-        }
-        monitorID                 = PMONITOR->ID;
-        PMONITOR->scheduledRecalc = true;
-        g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
-    }
+    PMONITOR->scheduledRecalc = true;
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
     wlr_surface_send_enter(surface.wlr(), PMONITOR->output);
 
-    if (layerSurface->current.keyboard_interactive == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+    if (layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
         g_pInputManager->m_dExclusiveLSes.push_back(self);
 
-    const bool GRABSFOCUS = layerSurface->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
+    const bool GRABSFOCUS = layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
         (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained());
 
@@ -229,7 +165,7 @@ void CLayerSurface::onMap() {
 void CLayerSurface::onUnmap() {
     Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", std::string(layerSurface->_namespace ? layerSurface->_namespace : "")});
+    g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", self.lock());
 
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
@@ -257,7 +193,7 @@ void CLayerSurface::onUnmap() {
 
     g_pCompositor->addToFadingOutSafe(self.lock());
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layerSurface->output);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == layerSurface->surface;
 
@@ -306,10 +242,10 @@ void CLayerSurface::onUnmap() {
 }
 
 void CLayerSurface::onCommit() {
-    if (!layerSurface || !layerSurface->output)
+    if (!layerSurface)
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layerSurface->output);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     if (!PMONITOR)
         return;
@@ -320,25 +256,8 @@ void CLayerSurface::onCommit() {
     CBox geomFixed = {geometry.x, geometry.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
-    // fix if it changed its mon
-    if ((uint64_t)monitorID != PMONITOR->ID) {
-        const auto POLDMON = g_pCompositor->getMonitorFromID(monitorID);
-
-        for (auto it = POLDMON->m_aLayerSurfaceLayers[layer].begin(); it != POLDMON->m_aLayerSurfaceLayers[layer].end(); it++) {
-            if (*it == self) {
-                PMONITOR->m_aLayerSurfaceLayers[layer].emplace_back(std::move(*it));
-                POLDMON->m_aLayerSurfaceLayers[layer].erase(it);
-                break;
-            }
-        }
-
-        monitorID                 = PMONITOR->ID;
-        PMONITOR->scheduledRecalc = true;
-        g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
-    }
-
     if (layerSurface->current.committed != 0) {
-        if (layer != layerSurface->current.layer) {
+        if (layerSurface->current.committed & CLayerShellResource::eCommittedState::STATE_LAYER) {
 
             for (auto it = PMONITOR->m_aLayerSurfaceLayers[layer].begin(); it != PMONITOR->m_aLayerSurfaceLayers[layer].end(); it++) {
                 if (*it == self) {
@@ -383,7 +302,7 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (layerSurface->current.keyboard_interactive && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
+    if (layerSurface->current.interactivity && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
         && !keyboardExclusive && mapped) {
         g_pCompositor->focusSurface(layerSurface->surface);
 
@@ -391,11 +310,11 @@ void CLayerSurface::onCommit() {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layerSurface->surface, LOCAL.x, LOCAL.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
-    } else if (!layerSurface->current.keyboard_interactive && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
+    } else if (!layerSurface->current.interactivity && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
         g_pInputManager->refocus();
     }
 
-    keyboardExclusive = layerSurface->current.keyboard_interactive;
+    keyboardExclusive = layerSurface->current.interactivity;
 
     g_pHyprRenderer->damageSurface(layerSurface->surface, position.x, position.y);
 
@@ -582,8 +501,7 @@ int CLayerSurface::popupsCount() {
     if (!layerSurface || !mapped || fadingOut)
         return 0;
 
-    int no = 0;
-    wlr_layer_surface_v1_for_each_popup_surface(
-        layerSurface, [](wlr_surface* s, int x, int y, void* data) { *(int*)data += 1; }, &no);
+    int no = -1; // we have one dummy
+    popupHead->breadthfirst([](CPopup* p, void* data) { *(int*)data += 1; }, &no);
     return no;
 }

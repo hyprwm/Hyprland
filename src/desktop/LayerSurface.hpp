@@ -4,19 +4,20 @@
 #include "../defines.hpp"
 #include "WLSurface.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-#include "wlr-layer-shell-unstable-v1-protocol.h"
 
 struct SLayerRule {
     std::string targetNamespace = "";
     std::string rule            = "";
 };
 
+class CLayerShellResource;
+
 class CLayerSurface {
   public:
-    static PHLLS create(wlr_layer_surface_v1*);
+    static PHLLS create(SP<CLayerShellResource>);
 
   private:
-    CLayerSurface();
+    CLayerSurface(SP<CLayerShellResource>);
 
   public:
     ~CLayerSurface();
@@ -30,7 +31,7 @@ class CLayerSurface {
     CAnimatedVariable<Vector2D> realSize;
     CAnimatedVariable<float>    alpha;
 
-    wlr_layer_surface_v1*       layerSurface;
+    WP<CLayerShellResource>     layerSurface;
     wl_list                     link;
 
     bool                        keyboardExclusive = false;
@@ -38,6 +39,7 @@ class CLayerSurface {
     CWLSurface                  surface;
 
     bool                        mapped = false;
+    uint32_t                    layer  = 0;
 
     int                         monitorID = -1;
 
@@ -55,13 +57,12 @@ class CLayerSurface {
 
     std::optional<std::string>  animationStyle;
 
-    zwlr_layer_shell_v1_layer   layer;
-
     PHLLSREF                    self;
 
     CBox                        geometry = {0, 0, 0, 0};
     Vector2D                    position;
     std::string                 szNamespace = "";
+    std::unique_ptr<CPopup>     popupHead;
 
     void                        onDestroy();
     void                        onMap();
@@ -69,12 +70,12 @@ class CLayerSurface {
     void                        onCommit();
 
   private:
-    std::unique_ptr<CPopup> popupHead;
-
-    DYNLISTENER(destroyLayerSurface);
-    DYNLISTENER(mapLayerSurface);
-    DYNLISTENER(unmapLayerSurface);
-    DYNLISTENER(commitLayerSurface);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener map;
+        CHyprSignalListener unmap;
+        CHyprSignalListener commit;
+    } listeners;
 
     void registerCallbacks();
 

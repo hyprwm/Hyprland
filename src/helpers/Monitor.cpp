@@ -4,6 +4,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
 #include "../devices/ITouch.hpp"
+#include "../protocols/LayerShell.hpp"
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -254,7 +255,7 @@ void CMonitor::onDisconnect(bool destroy) {
     for (size_t i = 0; i < 4; ++i) {
         for (auto& ls : m_aLayerSurfaceLayers[i]) {
             if (ls->layerSurface && !ls->fadingOut)
-                wlr_layer_surface_v1_destroy(ls->layerSurface);
+                ls->layerSurface->sendClosed();
         }
         m_aLayerSurfaceLayers[i].clear();
     }

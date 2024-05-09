@@ -1,6 +1,8 @@
 #include "Popup.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../Compositor.hpp"
+#include "../protocols/LayerShell.hpp"
+#include <ranges>
 
 CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
     initAllSignals();
@@ -72,7 +74,7 @@ void CPopup::initAllSignals() {
         if (!m_pWindowOwner.expired())
             hyprListener_newPopup.initCallback(&m_pWindowOwner->m_uSurface.xdg->events.new_popup, ::onNewPopup, this, "CPopup Head");
         else if (!m_pLayerOwner.expired())
-            hyprListener_newPopup.initCallback(&m_pLayerOwner->layerSurface->events.new_popup, ::onNewPopup, this, "CPopup Head");
+            listeners.newPopup = m_pLayerOwner->layerSurface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<wlr_xdg_popup*>(d)); });
         else
             ASSERT(false);
 
@@ -277,4 +279,47 @@ bool CPopup::visible() {
         return m_pParent->visible();
 
     return false;
+}
+
+void CPopup::bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, void*)> fn, void* data) {
+    for (auto& n : nodes) {
+        fn(n, data);
+    }
+
+    std::vector<CPopup*> nodes2;
+
+    for (auto& n : nodes) {
+        for (auto& c : n->m_vChildren) {
+            nodes2.push_back(c.get());
+        }
+    }
+
+    bfHelper(nodes2, fn, data);
+}
+
+void CPopup::breadthfirst(std::function<void(CPopup*, void*)> fn, void* data) {
+    std::vector<CPopup*> popups;
+    popups.push_back(this);
+}
+
+CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+    std::vector<CPopup*> popups;
+    breadthfirst([](CPopup* popup, void* data) { ((std::vector<CPopup*>*)data)->push_back(popup); }, &popups);
+
+    for (auto& p : popups | std::views::reverse) {
+        if (!p->m_pWLR)
+            continue;
+
+        if (!allowsInput) {
+            const auto BOX = CBox{p->coordsGlobal(), p->size()};
+            if (BOX.containsPoint(globalCoords))
+                return p;
+        } else {
+            const auto REGION = CRegion{&m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal());
+            if (REGION.containsPoint(globalCoords))
+                return p;
+        }
+    }
+
+    return nullptr;
 }

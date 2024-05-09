@@ -9,6 +9,7 @@
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/SessionLock.hpp"
+#include "../protocols/LayerShell.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -709,8 +710,17 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     renderdata.dontRound       = true;
     renderdata.popup           = true;
     renderdata.blur            = pLayer->forceBlurPopups;
-    if (popups)
-        wlr_layer_surface_v1_for_each_popup_surface(pLayer->layerSurface, renderSurface, &renderdata);
+    if (popups) {
+        pLayer->popupHead->breadthfirst(
+            [](CPopup* popup, void* data) {
+                if (!popup->m_sWLSurface.wlr())
+                    return;
+
+                Vector2D pos = popup->coordsRelativeToParent();
+                renderSurface(popup->m_sWLSurface.wlr(), pos.x, pos.y, data);
+            },
+            &renderdata);
+    }
 
     g_pHyprOpenGL->m_pCurrentLayer             = nullptr;
     g_pHyprOpenGL->m_RenderData.clipBox        = {};
@@ -786,16 +796,16 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         g_pHyprOpenGL->blend(true);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
 
         g_pHyprOpenGL->m_RenderData.renderModif = {};
@@ -826,10 +836,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
         g_pHyprOpenGL->blend(true);
 
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
         for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls, pMonitor, time);
+            renderLayer(ls.lock(), pMonitor, time);
         }
 
         g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
@@ -896,7 +906,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     // Render surfaces above windows for monitor
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls, pMonitor, time);
+        renderLayer(ls.lock(), pMonitor, time);
     }
 
     // Render IME popups
@@ -905,12 +915,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     }
 
     for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls, pMonitor, time);
+        renderLayer(ls.lock(), pMonitor, time);
     }
 
     for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
         for (auto& ls : lsl) {
-            renderLayer(ls, pMonitor, time, true);
+            renderLayer(ls.lock(), pMonitor, time, true);
         }
     }
 
@@ -1514,7 +1524,7 @@ static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusi
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLLS>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
+void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
     CBox full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto& ls : layerSurfaces) {
@@ -1523,18 +1533,18 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
 
         const auto PLAYER = ls->layerSurface;
         const auto PSTATE = &PLAYER->current;
-        if (exclusiveZone != (PSTATE->exclusive_zone > 0))
+        if (exclusiveZone != (PSTATE->exclusive > 0))
             continue;
 
         CBox bounds;
-        if (PSTATE->exclusive_zone == -1)
+        if (PSTATE->exclusive == -1)
             bounds = full_area;
         else
             bounds = *usableArea;
 
         const Vector2D OLDSIZE = {ls->geometry.width, ls->geometry.height};
 
-        CBox           box = {0, 0, PSTATE->desired_width, PSTATE->desired_height};
+        CBox           box = {{}, PSTATE->desiredSize};
         // Horizontal axis
         const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
         if (box.width == 0) {
@@ -1589,12 +1599,12 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
         // Apply
         ls->geometry = box;
 
-        applyExclusive(*usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
+        applyExclusive(*usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         usableArea->applyFromWlr();
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
-            wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
+            ls->layerSurface->configure(box.size());
 
         ls->realPosition = box.pos();
         ls->realSize     = box.size();

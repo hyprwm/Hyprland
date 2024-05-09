@@ -6,6 +6,7 @@
 #include "../managers/TokenManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../protocols/LayerShell.hpp"
 
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //
@@ -481,7 +482,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
-    if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.keyboard_interactive)
+    if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_bNoInitialFocus = true;
     if (PWORKSPACE->m_bHasFullscreenWindow && !requestsFullscreen && !PWINDOW->m_bIsFloating) {
         if (*PNEWTAKESOVERFS == 0)

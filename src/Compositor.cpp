@@ -451,6 +451,10 @@ void CCompositor::cleanup() {
 
     wl_display_terminate(m_sWLDisplay);
     m_sWLDisplay = nullptr;
+
+    std::string waylandSocket = std::string{getenv("XDG_RUNTIME_DIR")} + "/" + m_szWLDisplaySocket;
+    std::filesystem::remove(waylandSocket);
+    std::filesystem::remove(waylandSocket + ".lock");
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

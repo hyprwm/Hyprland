@@ -7,6 +7,10 @@ uint32_t IKeyboard::getCapabilities() {
     return HID_INPUT_CAPABILITY_KEYBOARD;
 }
 
+eHIDType IKeyboard::getType() {
+    return HID_TYPE_KEYBOARD;
+}
+
 IKeyboard::~IKeyboard() {
     events.destroy.emit();
 

@@ -1,5 +1,6 @@
 #include "Screencopy.hpp"
 #include "../Compositor.hpp"
+#include "../managers/PointerManager.hpp"
 
 #include <algorithm>
 
@@ -183,6 +184,11 @@ void CScreencopyProtocolManager::removeFrame(SScreencopyFrame* frame, bool force
     if (!frame)
         return;
 
+    if (frame->lockedSWCursors) {
+        g_pPointerManager->unlockSoftwareForMonitor(frame->pMonitor->self.lock());
+        g_pPointerManager->damageCursor(frame->pMonitor->self.lock());
+    }
+
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
 
     wl_resource_set_user_data(frame->resource, nullptr);
@@ -352,8 +358,11 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
     m_vFramesAwaitingWrite.emplace_back(PFRAME);
 
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
-    if (PFRAME->overlayCursor)
-        g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
+    if (PFRAME->overlayCursor && !PFRAME->lockedSWCursors) {
+        PFRAME->lockedSWCursors = true;
+        g_pPointerManager->lockSoftwareForMonitor(PFRAME->pMonitor->self.lock());
+        g_pPointerManager->damageCursor(PFRAME->pMonitor->self.lock());
+    }
 
     if (!PFRAME->withDamage)
         g_pHyprRenderer->damageMonitor(PFRAME->pMonitor);
@@ -393,17 +402,8 @@ void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor) {
         removeFrame(f);
     }
 
-    g_pHyprRenderer->m_bSoftwareCursorsLocked = false;
-
     if (m_vFramesAwaitingWrite.empty()) {
         g_pHyprRenderer->m_bDirectScanoutBlocked = false;
-    } else {
-        for (auto& f : m_vFramesAwaitingWrite) {
-            if (f->overlayCursor) {
-                g_pHyprRenderer->m_bSoftwareCursorsLocked = true;
-                break;
-            }
-        }
     }
 }
 

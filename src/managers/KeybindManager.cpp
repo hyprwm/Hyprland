@@ -258,7 +258,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     if (!monitor)
         return false;
 
-    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor.get();
     if (LASTMONITOR == monitor) {
         Debug::log(LOG, "Tried to move to active monitor");
         return false;
@@ -409,7 +409,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     return !suppressEvent && !mouseBindWasActive;
 }
 
-bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
+bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
     const auto  MODS = g_pInputManager->accumulateModsFromAllKBs();
 
     static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
@@ -428,13 +428,13 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     }
 
     bool found = false;
-    if (e->source == WL_POINTER_AXIS_SOURCE_WHEEL && e->orientation == WL_POINTER_AXIS_VERTICAL_SCROLL) {
-        if (e->delta < 0)
+    if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
+        if (e.delta < 0)
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true);
         else
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true);
-    } else if (e->source == WL_POINTER_AXIS_SOURCE_WHEEL && e->orientation == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
-        if (e->delta < 0)
+    } else if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+        if (e.delta < 0)
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true);
         else
             found = handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true);
@@ -446,18 +446,18 @@ bool CKeybindManager::onAxisEvent(wlr_pointer_axis_event* e) {
     return !found;
 }
 
-bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
+bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 
     bool       suppressEvent = false;
 
-    m_uLastMouseCode = e->button;
+    m_uLastMouseCode = e.button;
     m_uLastCode      = 0;
-    m_uTimeLastMs    = e->time_msec;
+    m_uTimeLastMs    = e.timeMs;
 
     bool       mouseBindWasActive = ensureMouseBindState();
 
-    const auto KEY_NAME = "mouse:" + std::to_string(e->button);
+    const auto KEY_NAME = "mouse:" + std::to_string(e.button);
 
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
@@ -470,7 +470,7 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
         m_pActiveKeybind            = nullptr;
     }
 
-    if (e->state == WL_POINTER_BUTTON_STATE_PRESSED) {
+    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 
         suppressEvent = handleKeybinds(MODS, KEY, true);
@@ -503,12 +503,11 @@ bool CKeybindManager::onMouseEvent(wlr_pointer_button_event* e) {
     return !suppressEvent && !mouseBindWasActive;
 }
 
-void CKeybindManager::resizeWithBorder(wlr_pointer_button_event* e) {
-    if (e->state == WL_POINTER_BUTTON_STATE_PRESSED) {
+void CKeybindManager::resizeWithBorder(const IPointer::SButtonEvent& e) {
+    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
         mouse("1resizewindow");
-    } else {
+    else
         mouse("0resizewindow");
-    }
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
@@ -1008,7 +1007,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
     static auto PWORKSPACECENTERON    = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
 
-    const auto  PMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto  PMONITOR = g_pCompositor->m_pLastMonitor.get();
 
     if (!PMONITOR)
         return;
@@ -1488,20 +1487,20 @@ void CKeybindManager::moveCursorToCorner(std::string arg) {
     switch (CORNER) {
         case 0:
             // bottom left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y}, true);
             break;
         case 1:
             // bottom right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x,
-                            PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y},
+                                        true);
             break;
         case 2:
             // top right
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y}, true);
             break;
         case 3:
             // top left
-            wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y}, true);
             break;
     }
 }
@@ -1531,7 +1530,7 @@ void CKeybindManager::moveCursor(std::string args) {
     x = std::stoi(x_str);
     y = std::stoi(y_str);
 
-    wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, x, y);
+    g_pCompositor->warpCursorTo({x, y}, true);
 }
 
 void CKeybindManager::workspaceOpt(std::string args) {
@@ -1667,7 +1666,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor;
+    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor.get();
 
     if (!PCURRMONITOR) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");

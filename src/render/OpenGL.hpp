@@ -95,33 +95,35 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    CMonitor*           pMonitor   = nullptr;
-    PHLWORKSPACE        pWorkspace = nullptr;
-    float               projection[9];
-    float               savedProjection[9];
+    CMonitor*            pMonitor   = nullptr;
+    PHLWORKSPACE         pWorkspace = nullptr;
+    float                projection[9];
+    float                savedProjection[9];
+    std::array<float, 9> monitorProjection;
 
-    SMonitorRenderData* pCurrentMonData = nullptr;
-    CFramebuffer*       currentFB       = nullptr; // current rendering to
-    CFramebuffer*       mainFB          = nullptr; // main to render to
-    CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData*  pCurrentMonData = nullptr;
+    CFramebuffer*        currentFB       = nullptr; // current rendering to
+    CFramebuffer*        mainFB          = nullptr; // main to render to
+    CFramebuffer*        outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    CRegion             damage;
-    CRegion             finalDamage; // damage used for funal off -> main
+    CRegion              damage;
+    CRegion              finalDamage; // damage used for funal off -> main
 
-    SRenderModifData    renderModif;
-    float               mouseZoomFactor    = 1.f;
-    bool                mouseZoomUseMouse  = true; // true by default
-    bool                useNearestNeighbor = false;
-    bool                forceIntrospection = false; // cleaned in ::end()
-    bool                blockScreenShader  = false;
+    SRenderModifData     renderModif;
+    float                mouseZoomFactor    = 1.f;
+    bool                 mouseZoomUseMouse  = true; // true by default
+    bool                 useNearestNeighbor = false;
+    bool                 forceIntrospection = false; // cleaned in ::end()
+    bool                 blockScreenShader  = false;
+    bool                 simplePass         = false;
 
-    Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D             primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D             primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    CBox                clipBox = {}; // scaled coordinates
+    CBox                 clipBox = {}; // scaled coordinates
 
-    uint32_t            discardMode    = DISCARD_OPAQUE;
-    float               discardOpacity = 0.f;
+    uint32_t             discardMode    = DISCARD_OPAQUE;
+    float                discardOpacity = 0.f;
 };
 
 class CGradientValueData;
@@ -131,13 +133,16 @@ class CHyprOpenGLImpl {
     CHyprOpenGLImpl();
 
     void                  begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void                  beginSimple(CMonitor*, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
     void                  end();
 
     void                  renderRect(CBox*, const CColor&, int round = 0);
     void                  renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
     void                  renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
     void                  renderTexture(wlr_texture*, CBox*, float a, int round = 0, bool allowCustomUV = false);
+    void                  renderTextureWithDamage(wlr_texture*, CBox*, CRegion* damage, float a, int round = 0, bool allowCustomUV = false);
     void                  renderTexture(const CTexture&, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
+    void                  renderTextureWithDamage(const CTexture&, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
     void                  renderTextureWithBlur(const CTexture&, CBox*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
     void                  renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
     void                  renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);

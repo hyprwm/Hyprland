@@ -31,6 +31,21 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
         LOGM(LOG, "assigned new xdg-activation token {}", token);
 
         resource->sendDone(token.c_str());
+
+        PROTO::activation->m_vSentTokens.push_back({token, resource->client()});
+
+        auto count = std::count_if(PROTO::activation->m_vSentTokens.begin(), PROTO::activation->m_vSentTokens.end(),
+                                   [this](const auto& other) { return other.client == resource->client(); });
+
+        if (count > 10) {
+            // remove first token. Too many, dear app.
+            for (auto i = PROTO::activation->m_vSentTokens.begin(); i != PROTO::activation->m_vSentTokens.end(); ++i) {
+                if (i->client == resource->client()) {
+                    PROTO::activation->m_vSentTokens.erase(i);
+                    break;
+                }
+            }
+        }
     });
 }
 
@@ -54,21 +69,15 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setDestroy([this](CXdgActivationV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setGetActivationToken([this](CXdgActivationV1* pMgr, uint32_t id) { this->onGetToken(pMgr, id); });
     RESOURCE->setActivate([this](CXdgActivationV1* pMgr, const char* token, wl_resource* surface) {
-        const auto TOKEN = std::find_if(m_vTokens.begin(), m_vTokens.end(), [token](const auto& t) { return t->committed && t->token == token; });
+        auto TOKEN = std::find_if(m_vSentTokens.begin(), m_vSentTokens.end(), [token](const auto& t) { return t.token == token; });
 
-        if (TOKEN == m_vTokens.end()) {
+        if (TOKEN == m_vSentTokens.end()) {
             LOGM(WARN, "activate event for non-existent token {}??", token);
             return;
         }
 
-        auto xdgToken = TOKEN->get();
-
-        if (xdgToken->used) {
-            LOGM(WARN, "activate event for already used token {}, ignoring", token);
-            return;
-        }
-
-        xdgToken->used = true;
+        // remove token. It's been now spent.
+        m_vSentTokens.erase(TOKEN);
 
         wlr_surface* surf    = wlr_surface_from_resource(surface);
         const auto   PWINDOW = g_pCompositor->getWindowFromSurface(surf);

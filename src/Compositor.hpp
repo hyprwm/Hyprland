@@ -51,14 +51,11 @@ class CCompositor {
     wlr_data_device_manager*  m_sWLRDataDevMgr;
     wlr_drm*                  m_sWRLDRM;
     wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
-    wlr_output_layout*        m_sWLROutputLayout;
     wlr_layer_shell_v1*       m_sWLRLayerShell;
     wlr_xdg_shell*            m_sWLRXDGShell;
-    wlr_cursor*               m_sWLRCursor;
     wlr_presentation*         m_sWLRPresentation;
     wlr_egl*                  m_sWLREGL;
     int                       m_iDRMFD;
-    wlr_tablet_manager_v2*    m_sWLRTabletManager;
     wlr_xdg_foreign_registry* m_sWLRForeignRegistry;
     wlr_linux_dmabuf_v1*      m_sWLRLinuxDMABuf;
     wlr_backend*              m_sWLRHeadlessBackend;
@@ -88,7 +85,7 @@ class CCompositor {
 
     wlr_surface*                              m_pLastFocus = nullptr;
     PHLWINDOWREF                              m_pLastWindow;
-    CMonitor*                                 m_pLastMonitor = nullptr;
+    WP<CMonitor>                              m_pLastMonitor;
 
     std::vector<PHLWINDOWREF>                 m_vWindowFocusHistory; // first element is the most recently focused.
 
@@ -191,6 +188,7 @@ class CCompositor {
   private:
     void     initAllSignals();
     void     removeAllSignals();
+    void     cleanEnvironment();
     void     setRandomSplash();
     void     initManagers(eManagersInitStage stage);
     void     prepareFallbackOutput();

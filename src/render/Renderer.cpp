@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/SessionLock.hpp"
@@ -95,8 +96,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     TRACY_GPU_ZONE("RenderSurface");
 
-    double outputX = 0, outputY = 0;
-    wlr_output_layout_output_coords(g_pCompositor->m_sWLROutputLayout, RDATA->pMonitor->output, &outputX, &outputY);
+    double      outputX = -RDATA->pMonitor->vecPosition.x, outputY = -RDATA->pMonitor->vecPosition.y;
 
     auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
 
@@ -217,9 +217,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 }
 
 bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
-    CBox geometry = pWindow->getFullWindowBoundingBox();
-
-    if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
+    if (!pWindow->visibleOnMonitor(pMonitor))
         return false;
 
     if (!pWindow->m_pWorkspace && !pWindow->m_bFadingOut)
@@ -1209,10 +1207,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     EMIT_HOOK_EVENT("render", RENDER_PRE);
 
-    const bool UNLOCK_SC = g_pHyprRenderer->m_bSoftwareCursorsLocked;
-    if (UNLOCK_SC)
-        wlr_output_lock_software_cursors(pMonitor->output, true);
-
     pMonitor->renderingActive = true;
 
     // we need to cleanup fading out when rendering the appropriate context
@@ -1238,12 +1232,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
-
-        if (UNLOCK_SC)
-            wlr_output_lock_software_cursors(pMonitor->output, false);
-
         pMonitor->state.clear();
-
         return;
     }
 
@@ -1300,7 +1289,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
                 renderLockscreen(pMonitor, &now, renderBox);
 
-                if (pMonitor == g_pCompositor->m_pLastMonitor) {
+                if (pMonitor == g_pCompositor->m_pLastMonitor.get()) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
                     g_pHyprError->draw();
                 }
@@ -1338,11 +1327,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
 
         if (lockSoftware) {
-            wlr_output_lock_software_cursors(pMonitor->output, true);
-            g_pHyprRenderer->renderSoftwareCursors(pMonitor, g_pHyprOpenGL->m_RenderData.damage);
-            wlr_output_lock_software_cursors(pMonitor->output, false);
+            g_pPointerManager->lockSoftwareForMonitor(pMonitor->self.lock());
+            g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
+            g_pPointerManager->unlockSoftwareForMonitor(pMonitor->self.lock());
         } else
-            g_pHyprRenderer->renderSoftwareCursors(pMonitor, g_pHyprOpenGL->m_RenderData.damage);
+            g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
@@ -1373,20 +1362,12 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pMonitor->state.wlr()->tearing_page_flip = shouldTear;
 
     if (!pMonitor->state.commit()) {
-
-        if (UNLOCK_SC)
-            wlr_output_lock_software_cursors(pMonitor->output, false);
-
         wlr_damage_ring_add_whole(&pMonitor->damage);
-
         return;
     }
 
     if (shouldTear)
         pMonitor->tearingState.busy = true;
-
-    if (UNLOCK_SC)
-        wlr_output_lock_software_cursors(pMonitor->output, false);
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor);
@@ -1843,6 +1824,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             pMonitor->onDisconnect();
 
         pMonitor->events.modeChanged.emit();
+        pMonitor->updateGlobal();
 
         return true;
     }
@@ -2248,11 +2230,12 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
     pMonitor->events.modeChanged.emit();
+    pMonitor->updateGlobal();
 
     return true;
 }
 
-void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspotY, bool force) {
+void CHyprRenderer::setCursorSurface(CWLSurface* surf, int hotspotX, int hotspotY, bool force) {
     m_bCursorHasSurface = surf;
 
     if (surf == m_sLastCursorData.surf && hotspotX == m_sLastCursorData.hotspotX && hotspotY == m_sLastCursorData.hotspotY && !force)
@@ -2266,7 +2249,7 @@ void CHyprRenderer::setCursorSurface(wlr_surface* surf, int hotspotX, int hotspo
     if (m_bCursorHidden && !force)
         return;
 
-    wlr_cursor_set_surface(g_pCompositor->m_sWLRCursor, surf, hotspotX, hotspotY);
+    g_pCursorManager->setCursorSurface(surf, {hotspotX, hotspotY});
 }
 
 void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
@@ -2338,7 +2321,7 @@ void CHyprRenderer::setCursorHidden(bool hide) {
     m_bCursorHidden = hide;
 
     if (hide) {
-        wlr_cursor_unset_image(g_pCompositor->m_sWLRCursor);
+        g_pPointerManager->resetCursorImage();
         return;
     }
 
@@ -2544,23 +2527,6 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     pMonitor->solitaryClient = PCANDIDATE;
 }
 
-void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& damage, std::optional<Vector2D> overridePos) {
-    const auto         CURSORPOS = overridePos.value_or(g_pInputManager->getMouseCoordsInternal() - pMonitor->vecPosition) * pMonitor->scale;
-    wlr_output_cursor* cursor;
-    wl_list_for_each(cursor, &pMonitor->output->cursors, link) {
-        if (!cursor->enabled || !cursor->visible || pMonitor->output->hardware_cursor == cursor)
-            continue;
-
-        if (!cursor->texture)
-            continue;
-
-        CBox cursorBox = CBox{CURSORPOS.x, CURSORPOS.y, cursor->width, cursor->height}.translate({-cursor->hotspot_x, -cursor->hotspot_y});
-
-        // TODO: NVIDIA doesn't like if we use renderTexturePrimitive here. Why?
-        g_pHyprOpenGL->renderTexture(cursor->texture, &cursorBox, 1.0);
-    }
-}
-
 CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt) {
     auto it = std::find_if(m_vRenderbuffers.begin(), m_vRenderbuffers.end(), [&](const auto& other) { return other->m_pWlrBuffer == buffer; });
 
@@ -2582,7 +2548,7 @@ void CHyprRenderer::unsetEGL() {
     eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* buffer, CFramebuffer* fb) {
+bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* buffer, CFramebuffer* fb, bool simple) {
 
     makeEGLCurrent();
 
@@ -2593,7 +2559,10 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     if (mode == RENDER_MODE_FULL_FAKE) {
         RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
         fb->bind();
-        g_pHyprOpenGL->begin(pMonitor, damage, fb);
+        if (simple)
+            g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
+        else
+            g_pHyprOpenGL->begin(pMonitor, damage, fb);
         return true;
     }
 
@@ -2623,7 +2592,10 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
 
     m_pCurrentRenderbuffer->bind();
-    g_pHyprOpenGL->begin(pMonitor, damage);
+    if (simple)
+        g_pHyprOpenGL->beginSimple(pMonitor, damage, m_pCurrentRenderbuffer);
+    else
+        g_pHyprOpenGL->begin(pMonitor, damage);
 
     return true;
 }

@@ -1,6 +1,7 @@
 #include "ToplevelExport.hpp"
 #include "../Compositor.hpp"
 #include "ForeignToplevelWlr.hpp"
+#include "../managers/PointerManager.hpp"
 
 #include <algorithm>
 
@@ -313,7 +314,7 @@ void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_outp
 
         CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};
 
-        if (!wlr_output_layout_intersects(g_pCompositor->m_sWLROutputLayout, pMonitor->output, geometry.pWlr()))
+        if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
             continue;
 
         shareFrame(f);
@@ -382,8 +383,10 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
         return false;
     }
 
-    if (frame->overlayCursor)
-        wlr_output_lock_software_cursors(PMONITOR->output, true);
+    if (frame->overlayCursor) {
+        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+    }
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
@@ -393,7 +396,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
     if (!PFORMAT) {
@@ -419,8 +422,10 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 
     wlr_buffer_end_data_ptr_access(frame->buffer);
 
-    if (frame->overlayCursor)
-        wlr_output_lock_software_cursors(PMONITOR->output, false);
+    if (frame->overlayCursor) {
+        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+    }
 
     return true;
 }
@@ -440,7 +445,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (frame->overlayCursor)
-        g_pHyprRenderer->renderSoftwareCursors(PMONITOR, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();

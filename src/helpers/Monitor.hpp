@@ -114,6 +114,8 @@ class CMonitor {
 
     SMonitorRule            activeMonitorRule;
 
+    WP<CMonitor>            self;
+
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
@@ -167,6 +169,8 @@ class CMonitor {
     void     updateMatrix();
     int64_t  activeWorkspaceID();
     int64_t  activeSpecialWorkspaceID();
+    CBox     logicalBox();
+    void     updateGlobal();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

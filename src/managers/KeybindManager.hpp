@@ -6,6 +6,7 @@
 #include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
+#include "../devices/IPointer.hpp"
 
 class CInputManager;
 class CConfigManager;
@@ -67,9 +68,9 @@ class CKeybindManager {
     ~CKeybindManager();
 
     bool                                                              onKeyEvent(std::any, SP<IKeyboard>);
-    bool                                                              onAxisEvent(wlr_pointer_axis_event*);
-    bool                                                              onMouseEvent(wlr_pointer_button_event*);
-    void                                                              resizeWithBorder(wlr_pointer_button_event*);
+    bool                                                              onAxisEvent(const IPointer::SAxisEvent&);
+    bool                                                              onMouseEvent(const IPointer::SButtonEvent&);
+    void                                                              resizeWithBorder(const IPointer::SButtonEvent&);
     void                                                              onSwitchEvent(const std::string&);
     void                                                              onSwitchOnEvent(const std::string&);
     void                                                              onSwitchOffEvent(const std::string&);

@@ -36,6 +36,7 @@ CMouse::CMouse(wlr_pointer* mouse_) : mouse(mouse_) {
         pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
             .timeMs   = E->time_msec,
             .absolute = {E->x, E->y},
+            .device   = self.lock(),
         });
     }, this, "CMouse");
 
@@ -60,6 +61,10 @@ CMouse::CMouse(wlr_pointer* mouse_) : mouse(mouse_) {
             .delta             = E->delta,
             .deltaDiscrete     = E->delta_discrete,
         });
+    }, this, "CMouse");
+
+    hyprListener_frame.initCallback(&mouse->events.frame, [this] (void* owner, void* data) {
+        pointerEvents.frame.emit();
     }, this, "CMouse");
 
     hyprListener_swipeBegin.initCallback(&mouse->events.swipe_begin, [this] (void* owner, void* data) {

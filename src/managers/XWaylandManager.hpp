@@ -4,6 +4,7 @@
 #include <optional>
 
 class CWindow; // because clangd
+typedef SP<CWindow> PHLWINDOW;
 
 class CHyprXWaylandManager {
   public:
@@ -12,22 +13,22 @@ class CHyprXWaylandManager {
 
     wlr_xwayland* m_sWLRXWayland = nullptr;
 
-    wlr_surface*  getWindowSurface(CWindow*);
+    wlr_surface*  getWindowSurface(PHLWINDOW);
     void          activateSurface(wlr_surface*, bool);
-    void          activateWindow(CWindow*, bool);
-    void          getGeometryForWindow(CWindow*, CBox*);
-    std::string   getTitle(CWindow*);
-    std::string   getAppIDClass(CWindow*);
-    void          sendCloseWindow(CWindow*);
-    void          setWindowSize(CWindow*, Vector2D, bool force = false);
-    void          setWindowStyleTiled(CWindow*, uint32_t);
-    void          setWindowFullscreen(CWindow*, bool);
-    wlr_surface*  surfaceAt(CWindow*, const Vector2D&, Vector2D&);
-    bool          shouldBeFloated(CWindow*, bool pending = false);
-    void          moveXWaylandWindow(CWindow*, const Vector2D&);
-    void          checkBorders(CWindow*);
-    Vector2D      getMaxSizeForWindow(CWindow*);
-    Vector2D      getMinSizeForWindow(CWindow*);
+    void          activateWindow(PHLWINDOW, bool);
+    void          getGeometryForWindow(PHLWINDOW, CBox*);
+    std::string   getTitle(PHLWINDOW);
+    std::string   getAppIDClass(PHLWINDOW);
+    void          sendCloseWindow(PHLWINDOW);
+    void          setWindowSize(PHLWINDOW, Vector2D, bool force = false);
+    void          setWindowStyleTiled(PHLWINDOW, uint32_t);
+    void          setWindowFullscreen(PHLWINDOW, bool);
+    wlr_surface*  surfaceAt(PHLWINDOW, const Vector2D&, Vector2D&);
+    bool          shouldBeFloated(PHLWINDOW, bool pending = false);
+    void          moveXWaylandWindow(PHLWINDOW, const Vector2D&);
+    void          checkBorders(PHLWINDOW);
+    Vector2D      getMaxSizeForWindow(PHLWINDOW);
+    Vector2D      getMinSizeForWindow(PHLWINDOW);
     Vector2D      xwaylandToWaylandCoords(const Vector2D&);
 };
 

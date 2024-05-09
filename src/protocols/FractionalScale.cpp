@@ -1,118 +1,98 @@
 #include "FractionalScale.hpp"
 
-#include "../Compositor.hpp"
+#define LOGM PROTO::fractional->protoLog
 
-#define FRACTIONAL_SCALE_VERSION 1
+static void onWlrSurfaceDestroy(void* owner, void* data) {
+    const auto SURF = (wlr_surface*)owner;
 
-static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint32_t id) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->bindManager(client, data, version, id);
+    PROTO::fractional->onSurfaceDestroy(SURF);
 }
 
-static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->displayDestroy();
+CFractionalScaleProtocol::CFractionalScaleProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+    ;
 }
 
-void CFractionalScaleProtocolManager::displayDestroy() {
-    wl_global_destroy(m_pGlobal);
+void CFractionalScaleProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
+    const auto RESOURCE = m_vManagers.emplace_back(std::make_unique<CWpFractionalScaleManagerV1>(client, ver, id)).get();
+    RESOURCE->setOnDestroy([this](CWpFractionalScaleManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
+
+    RESOURCE->setDestroy([this](CWpFractionalScaleManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
+    RESOURCE->setGetFractionalScale(
+        [this](CWpFractionalScaleManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetFractionalScale(pMgr, id, wlr_surface_from_resource(surface)); });
 }
 
-static void handleDestroy(wl_client* client, wl_resource* resource) {
-    wl_resource_destroy(resource);
+void CFractionalScaleProtocol::removeAddon(CFractionalScaleAddon* addon) {
+    m_mAddons.erase(addon->surf());
 }
 
-void handleGetFractionalScale(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface) {
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->getFractionalScale(client, resource, id, surface);
+void CFractionalScaleProtocol::onManagerResourceDestroy(wl_resource* res) {
+    std::erase_if(m_vManagers, [res](const auto& other) { return other->resource() == res; });
 }
 
-CFractionalScaleProtocolManager::CFractionalScaleProtocolManager() {
-    m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, &wp_fractional_scale_manager_v1_interface, FRACTIONAL_SCALE_VERSION, this, bindManagerInt);
-
-    if (!m_pGlobal) {
-        Debug::log(ERR, "FractionalScaleManager could not start! Fractional scaling will not work!");
+void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface) {
+    if (m_mAddons.contains(surface)) {
+        LOGM(ERR, "Surface {:x} already has a fractionalScale addon", (uintptr_t)surface);
+        pMgr->error(WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale already exists");
         return;
     }
 
-    m_liDisplayDestroy.notify = handleDisplayDestroy;
-    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
+    const auto PADDON =
+        m_mAddons.emplace(surface, std::make_unique<CFractionalScaleAddon>(makeShared<CWpFractionalScaleV1>(pMgr->client(), pMgr->version(), id), surface)).first->second.get();
 
-    Debug::log(LOG, "FractionalScaleManager started successfully!");
-}
-
-static const struct wp_fractional_scale_manager_v1_interface fractionalScaleManagerImpl = {
-    .destroy              = handleDestroy,
-    .get_fractional_scale = handleGetFractionalScale,
-};
-
-void CFractionalScaleProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
-    const auto RESOURCE = wl_resource_create(client, &wp_fractional_scale_manager_v1_interface, version, id);
-    wl_resource_set_implementation(RESOURCE, &fractionalScaleManagerImpl, this, nullptr);
-
-    Debug::log(LOG, "FractionalScaleManager bound successfully!");
-}
-
-static void handleDestroyScaleAddon(wl_client* client, wl_resource* resource);
-//
-
-static const struct wp_fractional_scale_v1_interface fractionalScaleAddonImpl {
-    .destroy = handleDestroyScaleAddon
-};
-
-//
-SFractionalScaleAddon* addonFromResource(wl_resource* resource) {
-    ASSERT(wl_resource_instance_of(resource, &wp_fractional_scale_v1_interface, &fractionalScaleAddonImpl));
-    return (SFractionalScaleAddon*)wl_resource_get_user_data(resource);
-}
-
-static void handleDestroyScaleAddon(wl_client* client, wl_resource* resource) {
-    wl_resource_destroy(resource);
-}
-
-static void handleAddonDestroy(wl_resource* resource) {
-    const auto PADDON = addonFromResource(resource);
-    if (PADDON->pResource) {
-        wl_resource_set_user_data(PADDON->pResource, nullptr);
-    }
-
-    g_pProtocolManager->m_pFractionalScaleProtocolManager->removeAddon(PADDON->pSurface);
-}
-
-void CFractionalScaleProtocolManager::getFractionalScale(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface) {
-    const auto PSURFACE = wlr_surface_from_resource(surface);
-    const auto PADDON   = getAddonForSurface(PSURFACE);
-
-    if (PADDON->pResource) {
-        wl_resource_post_error(resource, WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale exists.");
+    if (!PADDON->good()) {
+        m_mAddons.erase(surface);
+        pMgr->noMemory();
         return;
     }
 
-    PADDON->pResource = wl_resource_create(client, &wp_fractional_scale_v1_interface, wl_resource_get_version(resource), id);
-    wl_resource_set_implementation(PADDON->pResource, &fractionalScaleAddonImpl, PADDON, handleAddonDestroy);
+    PADDON->resource->setOnDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
+    PADDON->resource->setDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
 
-    wp_fractional_scale_v1_send_preferred_scale(PADDON->pResource, (uint32_t)std::round(PADDON->preferredScale * 120.0));
+    if (!m_mSurfaceScales.contains(surface))
+        m_mSurfaceScales[surface] = 1.F;
+
+    PADDON->setScale(m_mSurfaceScales[surface]);
+    registerSurface(surface);
 }
 
-SFractionalScaleAddon* CFractionalScaleProtocolManager::getAddonForSurface(wlr_surface* surface) {
-    const auto IT = std::find_if(m_vFractionalScaleAddons.begin(), m_vFractionalScaleAddons.end(), [&](const auto& other) { return other->pSurface == surface; });
-
-    if (IT != m_vFractionalScaleAddons.end())
-        return IT->get();
-
-    m_vFractionalScaleAddons.emplace_back(std::make_unique<SFractionalScaleAddon>());
-
-    m_vFractionalScaleAddons.back()->pSurface = surface;
-
-    return m_vFractionalScaleAddons.back().get();
+void CFractionalScaleProtocol::sendScale(wlr_surface* surf, const float& scale) {
+    m_mSurfaceScales[surf] = scale;
+    if (m_mAddons.contains(surf))
+        m_mAddons[surf]->setScale(scale);
+    registerSurface(surf);
 }
 
-void CFractionalScaleProtocolManager::setPreferredScaleForSurface(wlr_surface* surface, double scale) {
-    const auto PADDON = getAddonForSurface(surface);
+void CFractionalScaleProtocol::registerSurface(wlr_surface* surf) {
+    if (m_mSurfaceDestroyListeners.contains(surf))
+        return;
 
-    PADDON->preferredScale = scale;
-
-    if (PADDON->pResource)
-        wp_fractional_scale_v1_send_preferred_scale(PADDON->pResource, (uint32_t)std::round(scale * 120.0));
+    m_mSurfaceDestroyListeners[surf].hyprListener_surfaceDestroy.initCallback(&surf->events.destroy, ::onWlrSurfaceDestroy, surf, "FractionalScale");
 }
 
-void CFractionalScaleProtocolManager::removeAddon(wlr_surface* surface) {
-    std::erase_if(m_vFractionalScaleAddons, [&](const auto& other) { return other->pSurface == surface; });
+void CFractionalScaleProtocol::onSurfaceDestroy(wlr_surface* surf) {
+    m_mSurfaceDestroyListeners.erase(surf);
+    m_mSurfaceScales.erase(surf);
+    if (m_mAddons.contains(surf))
+        m_mAddons[surf]->onSurfaceDestroy();
+}
+
+CFractionalScaleAddon::CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, wlr_surface* surf_) : resource(resource_), surface(surf_) {
+    resource->setDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
+    resource->setOnDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
+}
+
+void CFractionalScaleAddon::onSurfaceDestroy() {
+    surfaceGone = true;
+}
+
+void CFractionalScaleAddon::setScale(const float& scale) {
+    resource->sendPreferredScale(std::round(scale * 120.0));
+}
+
+bool CFractionalScaleAddon::good() {
+    return resource->resource();
+}
+
+wlr_surface* CFractionalScaleAddon::surf() {
+    return surface;
 }

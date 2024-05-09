@@ -4,16 +4,62 @@
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
+#include "../../protocols/CursorShape.hpp"
+#include "../../protocols/IdleInhibit.hpp"
+#include "../../protocols/RelativePointer.hpp"
+#include "../../protocols/PointerConstraints.hpp"
+#include "../../protocols/IdleNotify.hpp"
+#include "../../protocols/SessionLock.hpp"
+#include "../../protocols/InputMethodV2.hpp"
+#include "../../protocols/VirtualKeyboard.hpp"
+#include "../../protocols/VirtualPointer.hpp"
+
+#include "../../devices/Mouse.hpp"
+#include "../../devices/VirtualPointer.hpp"
+#include "../../devices/Keyboard.hpp"
+#include "../../devices/VirtualKeyboard.hpp"
+#include "../../devices/TouchDevice.hpp"
+
+CInputManager::CInputManager() {
+    m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+        if (!cursorImageUnlocked())
+            return;
+
+        auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
+
+        if (!g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+            return;
+
+        if (wl_resource_get_client(event.pMgr->resource()) != g_pCompositor->m_sSeat.seat->pointer_state.focused_client->client)
+            return;
+
+        Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
+
+        m_sCursorSurfaceInfo.wlSurface.unassign();
+        m_sCursorSurfaceInfo.vHotspot = {};
+        m_sCursorSurfaceInfo.name     = event.shapeName;
+        m_sCursorSurfaceInfo.hidden   = false;
+
+        m_sCursorSurfaceInfo.inUse = true;
+        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+    });
+
+    m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_sListeners.newVirtualKeyboard =
+        PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) { this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data)); });
+    m_sListeners.newVirtualMouse =
+        PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) { this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data)); });
+}
 
 CInputManager::~CInputManager() {
     m_vConstraints.clear();
-    m_lKeyboards.clear();
-    m_lMice.clear();
+    m_vKeyboards.clear();
+    m_vPointers.clear();
+    m_vTouches.clear();
     m_lTablets.clear();
     m_lTabletTools.clear();
     m_lTabletPads.clear();
-    m_lIdleInhibitors.clear();
-    m_lTouchDevices.clear();
+    m_vIdleInhibitors.clear();
     m_lSwitches.clear();
 }
 
@@ -25,11 +71,9 @@ void CInputManager::onMouseMoved(wlr_pointer_motion_event* e) {
     const auto  DELTA = *PNOACCEL == 1 ? Vector2D(e->unaccel_dx, e->unaccel_dy) : Vector2D(e->delta_x, e->delta_y);
 
     if (*PSENSTORAW == 1)
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x * *PSENS,
-                                                             DELTA.y * *PSENS, e->unaccel_dx * *PSENS, e->unaccel_dy * *PSENS);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA * *PSENS, Vector2D{e->unaccel_dx, e->unaccel_dy} * *PSENS);
     else
-        wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)e->time_msec * 1000, DELTA.x, DELTA.y,
-                                                             e->unaccel_dx, e->unaccel_dy);
+        PROTO::relativePointer->sendRelativeMotion((uint64_t)e->time_msec * 1000, DELTA, Vector2D{e->unaccel_dx, e->unaccel_dy});
 
     wlr_cursor_move(g_pCompositor->m_sWLRCursor, &e->pointer->base, DELTA.x * *PSENS, DELTA.y * *PSENS);
 
@@ -89,14 +133,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
 
-    m_pFoundSurfaceToFocus      = nullptr;
-    m_pFoundLSToFocus           = nullptr;
-    m_pFoundWindowToFocus       = nullptr;
-    wlr_surface*   foundSurface = nullptr;
-    Vector2D       surfaceCoords;
-    Vector2D       surfacePos         = Vector2D(-1337, -1337);
-    CWindow*       pFoundWindow       = nullptr;
-    SLayerSurface* pFoundLayerSurface = nullptr;
+    m_pFoundSurfaceToFocus = nullptr;
+    m_pFoundLSToFocus.reset();
+    m_pFoundWindowToFocus.reset();
+    wlr_surface* foundSurface = nullptr;
+    Vector2D     surfaceCoords;
+    Vector2D     surfacePos = Vector2D(-1337, -1337);
+    PHLWINDOW    pFoundWindow;
+    PHLLS        pFoundLayerSurface;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
@@ -115,7 +159,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
 
     if (time)
-        g_pCompositor->notifyIdleActivity();
+        PROTO::idle->onActivity();
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -128,10 +172,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (!PMONITOR->solitaryClient && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0)
+    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
-    CWindow* forcedFocus = m_pForcedFocus;
+    PHLWINDOW forcedFocus = m_pForcedFocus.lock();
 
     if (!forcedFocus)
         forcedFocus = g_pCompositor->getForceFocus();
@@ -143,7 +187,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     // constraints
-    if (g_pCompositor->m_sSeat.mouse && isConstrained()) {
+    if (!g_pCompositor->m_sSeat.mouse.expired() && isConstrained()) {
         const auto SURF       = CWLSurface::surfaceFromWlr(g_pCompositor->m_pLastFocus);
         const auto CONSTRAINT = SURF->constraint();
 
@@ -159,13 +203,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
                 wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, CLOSEST.x, CLOSEST.y);
                 wlr_seat_pointer_send_motion(g_pCompositor->m_sSeat.seat, time, CLOSESTLOCAL.x, CLOSESTLOCAL.y);
-                wlr_relative_pointer_manager_v1_send_relative_motion(g_pCompositor->m_sWLRRelPointerMgr, g_pCompositor->m_sSeat.seat, (uint64_t)time * 1000, 0, 0, 0, 0);
+                PROTO::relativePointer->sendRelativeMotion((uint64_t)time * 1000, {}, {});
             }
 
             return;
 
         } else
-            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT);
+            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT.get());
     }
 
     // update stuff
@@ -184,9 +228,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                 surfacePos              = foundPopup->globalBox().pos();
                 m_bFocusHeldByButtons   = true;
                 m_bRefocusHeldByButtons = refocus;
-            } else if (g_pCompositor->m_pLastWindow) {
+            } else if (!g_pCompositor->m_pLastWindow.expired()) {
                 foundSurface = m_pLastMouseSurface;
-                pFoundWindow = g_pCompositor->m_pLastWindow;
+                pFoundWindow = g_pCompositor->m_pLastWindow.lock();
 
                 surfaceCoords           = g_pCompositor->vectorToSurfaceLocal(mouseCoords, pFoundWindow, foundSurface);
                 m_bFocusHeldByButtons   = true;
@@ -197,7 +241,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus) && !m_pForcedFocus)
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -206,7 +250,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (!PSLS)
             return;
 
-        foundSurface = PSLS->pWlrLockSurface->surface;
+        foundSurface = PSLS->surface->surface();
         surfacePos   = PMONITOR->vecPosition;
     }
 
@@ -327,7 +371,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         wlr_seat_pointer_clear_focus(g_pCompositor->m_sSeat.seat);
         m_pLastMouseSurface = nullptr;
 
-        if (refocus || !g_pCompositor->m_pLastWindow) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
+        if (refocus || g_pCompositor->m_pLastWindow.expired()) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
             g_pCompositor->focusWindow(nullptr);
 
         return;
@@ -364,7 +408,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         m_pFoundSurfaceToFocus = foundSurface;
     }
 
-    if (currentlyDraggedWindow && pFoundWindow != currentlyDraggedWindow) {
+    if (currentlyDraggedWindow.lock() && pFoundWindow != currentlyDraggedWindow) {
         wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, foundSurface, surfaceLocal.x, surfaceLocal.y);
         wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, time, surfaceLocal.x, surfaceLocal.y);
         return;
@@ -389,7 +433,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         if (FOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow &&
+            if (pFoundWindow != g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow.lock() &&
                 ((pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR == 2) || (g_pCompositor->m_pLastWindow->m_bIsFloating != pFoundWindow->m_bIsFloating && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
@@ -412,13 +456,13 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_pLastMouseFocus != pFoundWindow)) || refocus)) {
-                if (m_pLastMouseFocus != pFoundWindow || g_pCompositor->m_pLastWindow != pFoundWindow || g_pCompositor->m_pLastFocus != foundSurface || refocus) {
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_pLastMouseFocus.lock() != pFoundWindow)) || refocus)) {
+                if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow || g_pCompositor->m_pLastFocus != foundSurface || refocus) {
                     m_pLastMouseFocus = pFoundWindow;
 
                     // TODO: this looks wrong. When over a popup, it constantly is switching.
                     // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
-                    if (m_pLastMouseFocus != pFoundWindow || g_pCompositor->m_pLastWindow != pFoundWindow)
+                    if (m_pLastMouseFocus.lock() != pFoundWindow || g_pCompositor->m_pLastWindow.lock() != pFoundWindow)
                         g_pCompositor->focusWindow(pFoundWindow, foundSurface);
                     else
                         g_pCompositor->focusSurface(foundSurface, pFoundWindow);
@@ -450,7 +494,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 void CInputManager::onMouseButton(wlr_pointer_button_event* e) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 
     m_tmrLastCursorMovement.reset();
 
@@ -506,23 +550,6 @@ void CInputManager::processMouseRequest(wlr_seat_pointer_request_set_cursor_even
 
         m_sCursorSurfaceInfo.inUse = true;
         g_pHyprRenderer->setCursorSurface(e->surface, e->hotspot_x, e->hotspot_y);
-    }
-}
-
-void CInputManager::processMouseRequest(wlr_cursor_shape_manager_v1_request_set_shape_event* e) {
-    if (!cursorImageUnlocked())
-        return;
-
-    Debug::log(LOG, "cursorImage request: shape {}", (uint32_t)e->shape);
-
-    if (e->seat_client == g_pCompositor->m_sSeat.seat->pointer_state.focused_client) {
-        m_sCursorSurfaceInfo.wlSurface.unassign();
-        m_sCursorSurfaceInfo.vHotspot = {};
-        m_sCursorSurfaceInfo.name     = wlr_cursor_shape_v1_name(e->shape);
-        m_sCursorSurfaceInfo.hidden   = false;
-
-        m_sCursorSurfaceInfo.inUse = true;
-        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     }
 }
 
@@ -629,8 +656,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
-            if ((!g_pCompositor->m_sSeat.mouse || !isConstrained()) /* No constraints */
-                && (w && g_pCompositor->m_pLastWindow != w) /* window should change */) {
+            if ((g_pCompositor->m_sSeat.mouse.expired() || !isConstrained()) /* No constraints */
+                && (w && g_pCompositor->m_pLastWindow.lock() != w) /* window should change */) {
                 // a bit hacky
                 // if we only pressed one button, allow us to refocus. m_lCurrentlyHeldButtons.size() > 0 will stick the focus
                 if (m_lCurrentlyHeldButtons.size() == 1) {
@@ -643,8 +670,8 @@ void CInputManager::processMouseDownNormal(wlr_pointer_button_event* e) {
             }
 
             // if clicked on a floating window make it top
-            if (g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsFloating)
-                g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow, true);
+            if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsFloating)
+                g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow.lock(), true);
 
             break;
         case WL_POINTER_BUTTON_STATE_RELEASED: break;
@@ -692,7 +719,7 @@ void CInputManager::onMouseWheel(wlr_pointer_axis_event* e) {
 
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 
     if (!passEvent)
         return;
@@ -732,101 +759,88 @@ Vector2D CInputManager::getMouseCoordsInternal() {
 }
 
 void CInputManager::newKeyboard(wlr_input_device* keyboard) {
-    const auto PNEWKEYBOARD = &m_lKeyboards.emplace_back();
+    const auto PNEWKEYBOARD = m_vKeyboards.emplace_back(CKeyboard::create(wlr_keyboard_from_input_device(keyboard)));
 
-    PNEWKEYBOARD->keyboard = keyboard;
+    setupKeyboard(PNEWKEYBOARD);
 
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard);
+}
+
+void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) {
+    const auto PNEWKEYBOARD = m_vKeyboards.emplace_back(CVirtualKeyboard::create(keyboard));
+
+    setupKeyboard(PNEWKEYBOARD);
+
+    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard->wlr());
+}
+
+void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     try {
-        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->name);
+        keeb->hlName = getNameForNewDevice(keeb->wlr()->base.name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???"); // logic error
     }
 
-    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
+    keeb->events.destroy.registerStaticListener(
+        [this](void* owner, std::any data) {
+            auto PKEEB = ((IKeyboard*)owner)->self.lock();
 
-    PNEWKEYBOARD->hyprListener_keyboardKeymap.initCallback(
-        &wlr_keyboard_from_input_device(keyboard)->events.keymap,
-        [&](void* owner, void* data) {
-            const auto PKEYBOARD = (SKeyboard*)owner;
-            const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
+            if (!PKEEB)
+                return;
 
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
-            EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
+            destroyKeyboard(PKEEB);
+            Debug::log(LOG, "Destroyed keyboard {:x}", (uintptr_t)owner);
         },
-        PNEWKEYBOARD, "Keyboard");
+        keeb.get());
+
+    keeb->keyboardEvents.key.registerStaticListener(
+        [this](void* owner, std::any data) {
+            auto PKEEB = ((IKeyboard*)owner)->self.lock();
+            onKeyboardKey(data, PKEEB);
+        },
+        keeb.get());
+
+    keeb->keyboardEvents.modifiers.registerStaticListener(
+        [this](void* owner, std::any data) {
+            auto PKEEB = ((IKeyboard*)owner)->self.lock();
+            onKeyboardMod(PKEEB);
+        },
+        keeb.get());
+
+    keeb->keyboardEvents.keymap.registerStaticListener(
+        [this](void* owner, std::any data) {
+            auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
+            const auto LAYOUT = PKEEB->getActiveLayout();
+
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->hlName + "," + LAYOUT});
+            EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
+        },
+        keeb.get());
 
     disableAllKeyboards(false);
 
-    m_pActiveKeyboard = PNEWKEYBOARD;
+    g_pCompositor->m_sSeat.keyboard = keeb;
 
-    PNEWKEYBOARD->active = true;
+    keeb->active = true;
 
-    applyConfigToKeyboard(PNEWKEYBOARD);
+    applyConfigToKeyboard(keeb);
 
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
-
-    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
-}
-
-void CInputManager::newVirtualKeyboard(wlr_input_device* keyboard) {
-    const auto PNEWKEYBOARD = &m_lKeyboards.emplace_back();
-
-    PNEWKEYBOARD->keyboard  = keyboard;
-    PNEWKEYBOARD->isVirtual = true;
-
-    try {
-        PNEWKEYBOARD->name = getNameForNewDevice(keyboard->name);
-    } catch (std::exception& e) {
-        Debug::log(ERR, "Keyboard had no name???"); // logic error
-    }
-
-    PNEWKEYBOARD->hyprListener_keyboardMod.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.modifiers, &Events::listener_keyboardMod, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardKey.initCallback(&wlr_keyboard_from_input_device(keyboard)->events.key, &Events::listener_keyboardKey, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardDestroy.initCallback(&keyboard->events.destroy, &Events::listener_keyboardDestroy, PNEWKEYBOARD, "Keyboard");
-    PNEWKEYBOARD->hyprListener_keyboardKeymap.initCallback(
-        &wlr_keyboard_from_input_device(keyboard)->events.keymap,
-        [&](void* owner, void* data) {
-            const auto PKEYBOARD = (SKeyboard*)owner;
-            const auto LAYOUT    = getActiveLayoutForKeyboard(PKEYBOARD);
-
-            g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEYBOARD->name + "," + LAYOUT});
-            EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{PKEYBOARD, (void*)&LAYOUT}));
-        },
-        PNEWKEYBOARD, "Keyboard");
-
-    disableAllKeyboards(true);
-
-    m_pActiveKeyboard = PNEWKEYBOARD;
-
-    PNEWKEYBOARD->active = true;
-
-    applyConfigToKeyboard(PNEWKEYBOARD);
-
-    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(keyboard));
-
-    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD, (uintptr_t)keyboard);
+    wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, keeb->wlr());
 }
 
 void CInputManager::setKeyboardLayout() {
-    for (auto& k : m_lKeyboards)
-        applyConfigToKeyboard(&k);
+    for (auto& k : m_vKeyboards)
+        applyConfigToKeyboard(k);
 
     g_pKeybindManager->updateXKBTranslationState();
 }
 
-void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
-    auto       devname = pKeyboard->name;
+void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
+    auto       devname = pKeyboard->hlName;
 
     const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
-    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", pKeyboard->name, (int)HASCONFIG);
-
-    ASSERT(pKeyboard);
-
-    if (!wlr_keyboard_from_input_device(pKeyboard->keyboard))
-        return;
+    Debug::log(LOG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", devname, (int)HASCONFIG);
 
     const auto REPEATRATE  = g_pConfigManager->getDeviceInt(devname, "repeat_rate", "input:repeat_rate");
     const auto REPEATDELAY = g_pConfigManager->getDeviceInt(devname, "repeat_delay", "input:repeat_delay");
@@ -858,7 +872,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         // we can ignore those and just apply
     }
 
-    wlr_keyboard_set_repeat_info(wlr_keyboard_from_input_device(pKeyboard->keyboard), std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
+    wlr_keyboard_set_repeat_info(pKeyboard->wlr(), std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
 
     pKeyboard->repeatDelay = REPEATDELAY;
     pKeyboard->repeatRate  = REPEATRATE;
@@ -916,7 +930,7 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
         KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    wlr_keyboard_set_keymap(wlr_keyboard_from_input_device(pKeyboard->keyboard), KEYMAP);
+    wlr_keyboard_set_keymap(pKeyboard->wlr(), KEYMAP);
 
     pKeyboard->updateXKBTranslationState();
 
@@ -931,76 +945,91 @@ void CInputManager::applyConfigToKeyboard(SKeyboard* pKeyboard) {
     }
 
     if (wlrMods.locked != 0)
-        wlr_keyboard_notify_modifiers(wlr_keyboard_from_input_device(pKeyboard->keyboard), 0, 0, wlrMods.locked, 0);
+        wlr_keyboard_notify_modifiers(pKeyboard->wlr(), 0, 0, wlrMods.locked, 0);
 
     xkb_keymap_unref(KEYMAP);
     xkb_context_unref(CONTEXT);
 
-    const auto LAYOUTSTR = getActiveLayoutForKeyboard(pKeyboard);
+    const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUTSTR});
-    EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUTSTR}));
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUTSTR});
+    EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUTSTR}));
 
-    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->currentRules.layout, pKeyboard->currentRules.variant,
-               pKeyboard->keyboard->name);
+    Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->currentRules.layout, pKeyboard->currentRules.variant, pKeyboard->hlName);
 }
 
-void CInputManager::newMouse(wlr_input_device* mouse, bool virt) {
-    m_lMice.emplace_back();
-    const auto PMOUSE = &m_lMice.back();
+void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
+    const auto PMOUSE = m_vPointers.emplace_back(CVirtualPointer::create(mouse));
 
-    PMOUSE->mouse = mouse;
-    PMOUSE->virt  = virt;
+    setupMouse(PMOUSE);
+
+    Debug::log(LOG, "New virtual mouse created, pointer WLR: {:x}", (uintptr_t)mouse->wlr());
+}
+
+void CInputManager::newMouse(wlr_input_device* mouse) {
+    const auto PMOUSE = m_vPointers.emplace_back(CMouse::create(wlr_pointer_from_input_device(mouse)));
+
+    setupMouse(PMOUSE);
+
+    Debug::log(LOG, "New mouse created, pointer WLR: {:x}", (uintptr_t)mouse);
+}
+
+void CInputManager::setupMouse(SP<IPointer> mauz) {
     try {
-        PMOUSE->name = getNameForNewDevice(mouse->name);
+        mauz->hlName = getNameForNewDevice(mauz->wlr()->base.name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
 
-    if (wlr_input_device_is_libinput(mouse)) {
-        const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(mouse);
+    if (wlr_input_device_is_libinput(&mauz->wlr()->base)) {
+        const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&mauz->wlr()->base);
 
         Debug::log(LOG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
                    libinput_device_config_accel_get_default_speed(LIBINPUTDEV), (int)libinput_device_config_accel_get_profile(LIBINPUTDEV),
                    (int)libinput_device_config_accel_get_default_profile(LIBINPUTDEV));
     }
 
-    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, mouse);
+    wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, &mauz->wlr()->base);
 
-    PMOUSE->connected = true;
+    mauz->connected = true;
 
     setPointerConfigs();
 
-    PMOUSE->hyprListener_destroyMouse.initCallback(&mouse->events.destroy, &Events::listener_destroyMouse, PMOUSE, "Mouse");
+    mauz->events.destroy.registerStaticListener(
+        [this](void* mouse, std::any data) {
+            const auto PMOUSE = (IPointer*)mouse;
 
-    g_pCompositor->m_sSeat.mouse = PMOUSE;
+            if (!PMOUSE)
+                return;
+
+            destroyPointer(PMOUSE->self.lock());
+        },
+        mauz.get());
+
+    g_pCompositor->m_sSeat.mouse = mauz;
 
     m_tmrLastCursorMovement.reset();
-
-    Debug::log(LOG, "New mouse created, pointer WLR: {:x}", (uintptr_t)mouse);
 }
 
 void CInputManager::setPointerConfigs() {
-    for (auto& m : m_lMice) {
-        const auto PPOINTER = &m;
-
-        auto       devname = PPOINTER->name;
+    for (auto& m : m_vPointers) {
+        auto       devname = m->hlName;
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
 
         if (HASCONFIG) {
             const auto ENABLED = g_pConfigManager->getDeviceInt(devname, "enabled");
-            if (ENABLED && !m.connected) {
-                wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, m.mouse);
-                m.connected = true;
-            } else if (!ENABLED && m.connected) {
-                wlr_cursor_detach_input_device(g_pCompositor->m_sWLRCursor, m.mouse);
-                m.connected = false;
+            if (ENABLED && !m->connected) {
+                wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, &m->wlr()->base);
+                m->connected = true;
+            } else if (!ENABLED && m->connected) {
+                wlr_cursor_detach_input_device(g_pCompositor->m_sWLRCursor, &m->wlr()->base);
+                m->connected = false;
             }
         }
 
-        if (wlr_input_device_is_libinput(m.mouse)) {
-            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(m.mouse);
+        if (wlr_input_device_is_libinput(&m->wlr()->base)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base);
 
             double     touchw = 0, touchh = 0;
             const auto ISTOUCHPAD = libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) &&
@@ -1129,71 +1158,50 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_scroll_set_button_lock(LIBINPUTDEV,
                                                           SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
 
-            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m.name, LIBINPUTSENS);
+            Debug::log(LOG, "Applied config to mouse {}, sens {:.2f}", m->hlName, LIBINPUTSENS);
         }
     }
 }
 
-void CInputManager::destroyKeyboard(SKeyboard* pKeyboard) {
-    pKeyboard->hyprListener_keyboardDestroy.removeCallback();
-    pKeyboard->hyprListener_keyboardMod.removeCallback();
-    pKeyboard->hyprListener_keyboardKey.removeCallback();
+void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
+    if (pKeyboard->xkbTranslationState)
+        xkb_state_unref(pKeyboard->xkbTranslationState);
+    pKeyboard->xkbTranslationState = nullptr;
 
-    xkb_state_unref(pKeyboard->xkbTranslationState);
+    std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
-    if (pKeyboard->active) {
-        m_lKeyboards.remove(*pKeyboard);
-
-        if (m_lKeyboards.size() > 0) {
-            m_pActiveKeyboard         = &m_lKeyboards.back();
-            m_pActiveKeyboard->active = true;
-        } else {
-            m_pActiveKeyboard = nullptr;
-        }
-    } else
-        m_lKeyboards.remove(*pKeyboard);
+    if (m_vKeyboards.size() > 0) {
+        g_pCompositor->m_sSeat.keyboard         = m_vKeyboards.back();
+        g_pCompositor->m_sSeat.keyboard->active = true;
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, g_pCompositor->m_sSeat.keyboard->wlr());
+    } else {
+        g_pCompositor->m_sSeat.keyboard.reset();
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, nullptr);
+    }
 }
 
-void CInputManager::destroyMouse(wlr_input_device* mouse) {
-    for (auto& m : m_lMice) {
-        if (m.mouse == mouse) {
-            m_lMice.remove(m);
-            break;
-        }
-    }
+void CInputManager::destroyPointer(SP<IPointer> mouse) {
+    std::erase_if(m_vPointers, [mouse](const auto& other) { return other == mouse; });
 
-    g_pCompositor->m_sSeat.mouse = m_lMice.size() > 0 ? &m_lMice.front() : nullptr;
+    g_pCompositor->m_sSeat.mouse = m_vPointers.size() > 0 ? m_vPointers.front() : nullptr;
 
-    if (g_pCompositor->m_sSeat.mouse)
+    if (!g_pCompositor->m_sSeat.mouse.expired())
         unconstrainMouse();
 }
 
-void CInputManager::updateKeyboardsLeds(wlr_input_device* pKeyboard) {
-    auto keyboard = wlr_keyboard_from_input_device(pKeyboard);
+void CInputManager::destroyTouchDevice(SP<ITouch> touch) {
+    Debug::log(LOG, "Touch device at {:x} removed", (uintptr_t)touch.get());
 
-    if (keyboard->xkb_state == NULL) {
-        return;
-    }
-
-    uint32_t leds = 0;
-    for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
-            leds |= (1 << i);
-    }
-
-    for (auto& kb : m_lKeyboards) {
-        if ((kb.isVirtual && shouldIgnoreVirtualKeyboard(&kb)) || kb.keyboard == pKeyboard)
-            continue;
-
-        wlr_keyboard_led_update(wlr_keyboard_from_input_device(kb.keyboard), leds);
-    }
+    std::erase_if(m_vTouches, [touch](const auto& other) { return other == touch; });
 }
 
-void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboard) {
+void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->enabled)
         return;
 
-    const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", e}};
+    const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
+
+    const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
     static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
@@ -1202,65 +1210,74 @@ void CInputManager::onKeyboardKey(wlr_keyboard_key_event* e, SKeyboard* pKeyboar
         g_pKeybindManager->dpms("on");
     }
 
-    bool passEvent = g_pKeybindManager->onKeyEvent(e, pKeyboard);
+    bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
-    g_pCompositor->notifyIdleActivity();
+    auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
+
+    PROTO::idle->onActivity();
 
     if (passEvent) {
+        const auto IME = m_sIMERelay.m_pIME.lock();
 
-        const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
-
-        if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
-            wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-            wlr_input_method_keyboard_grab_v2_send_key(PIMEGRAB->pWlrKbGrab, e->time_msec, e->keycode, e->state);
+        if (IME && IME->hasGrab() && !DISALLOWACTION) {
+            IME->setKeyboard(pKeyboard->wlr());
+            IME->sendKey(e.timeMs, e.keycode, e.state);
         } else {
-            wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e->time_msec, e->keycode, e->state);
+            wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, pKeyboard->wlr());
+            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e.timeMs, e.keycode, e.state);
         }
 
-        updateKeyboardsLeds(pKeyboard->keyboard);
+        for (auto& k : m_vKeyboards) {
+            k->updateLEDs();
+        }
     }
 }
 
-void CInputManager::onKeyboardMod(void* data, SKeyboard* pKeyboard) {
+void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->enabled)
         return;
 
-    const auto PIMEGRAB = m_sIMERelay.getIMEKeyboardGrab(pKeyboard);
+    const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
     const auto ALLMODS = accumulateModsFromAllKBs();
+    const auto PWLRKB  = pKeyboard->wlr();
 
-    auto       MODS = wlr_keyboard_from_input_device(pKeyboard->keyboard)->modifiers;
+    auto       MODS = PWLRKB->modifiers;
     MODS.depressed  = ALLMODS;
 
-    if (PIMEGRAB && PIMEGRAB->pWlrKbGrab && PIMEGRAB->pWlrKbGrab->input_method) {
-        wlr_input_method_keyboard_grab_v2_set_keyboard(PIMEGRAB->pWlrKbGrab, wlr_keyboard_from_input_device(pKeyboard->keyboard));
-        wlr_input_method_keyboard_grab_v2_send_modifiers(PIMEGRAB->pWlrKbGrab, &MODS);
+    const auto IME = m_sIMERelay.m_pIME.lock();
+
+    if (IME && IME->hasGrab() && !DISALLOWACTION) {
+        IME->setKeyboard(PWLRKB);
+        IME->sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
     } else {
-        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, wlr_keyboard_from_input_device(pKeyboard->keyboard));
+        wlr_seat_set_keyboard(g_pCompositor->m_sSeat.seat, PWLRKB);
         wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &MODS);
     }
 
-    updateKeyboardsLeds(pKeyboard->keyboard);
-
-    const auto PWLRKB = wlr_keyboard_from_input_device(pKeyboard->keyboard);
+    for (auto& k : m_vKeyboards) {
+        k->updateLEDs();
+    }
 
     if (PWLRKB->modifiers.group != pKeyboard->activeLayout) {
         pKeyboard->activeLayout = PWLRKB->modifiers.group;
 
-        const auto LAYOUT = getActiveLayoutForKeyboard(pKeyboard);
+        const auto LAYOUT = pKeyboard->getActiveLayout();
 
         pKeyboard->updateXKBTranslationState();
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->name + "," + LAYOUT});
-        EMIT_HOOK_EVENT("activeLayout", (std::vector<void*>{pKeyboard, (void*)&LAYOUT}));
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUT});
+        EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUT}));
     }
 }
 
-bool CInputManager::shouldIgnoreVirtualKeyboard(SKeyboard* pKeyboard) {
-    return !pKeyboard ||
-        (m_sIMERelay.m_pKeyboardGrab &&
-         wl_resource_get_client(m_sIMERelay.m_pKeyboardGrab->pWlrKbGrab->resource) == wl_resource_get_client(wlr_input_device_get_virtual_keyboard(pKeyboard->keyboard)->resource));
+bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
+    if (!pKeyboard->isVirtual())
+        return false;
+
+    CVirtualKeyboard* vk = (CVirtualKeyboard*)pKeyboard.get();
+
+    return !pKeyboard || (!m_sIMERelay.m_pIME.expired() && m_sIMERelay.m_pIME->grabClient() == vk->getClient());
 }
 
 void CInputManager::refocus() {
@@ -1284,20 +1301,30 @@ void CInputManager::updateDragIcon() {
 }
 
 void CInputManager::unconstrainMouse() {
-    if (!g_pCompositor->m_sSeat.mouse)
+    if (g_pCompositor->m_sSeat.mouse.expired())
         return;
 
     for (auto& c : m_vConstraints) {
-        if (!c->active())
+        const auto C = c.lock();
+
+        if (!C)
             continue;
 
-        c->deactivate();
+        if (!C->isActive())
+            continue;
+
+        C->deactivate();
     }
 }
 
 bool CInputManager::isConstrained() {
     for (auto& c : m_vConstraints) {
-        if (!c->active() || c->owner()->wlr() != g_pCompositor->m_pLastFocus)
+        const auto C = c.lock();
+
+        if (!C)
+            continue;
+
+        if (!C->isActive() || C->owner()->wlr() != g_pCompositor->m_pLastFocus)
             continue;
 
         return true;
@@ -1309,11 +1336,11 @@ bool CInputManager::isConstrained() {
 void CInputManager::updateCapabilities() {
     uint32_t caps = 0;
 
-    if (!m_lKeyboards.empty())
+    if (!m_vKeyboards.empty())
         caps |= WL_SEAT_CAPABILITY_KEYBOARD;
-    if (!m_lMice.empty())
+    if (!m_vPointers.empty())
         caps |= WL_SEAT_CAPABILITY_POINTER;
-    if (!m_lTouchDevices.empty())
+    if (!m_vTouches.empty())
         caps |= WL_SEAT_CAPABILITY_TOUCH;
     if (!m_lTabletTools.empty())
         caps |= WL_SEAT_CAPABILITY_POINTER;
@@ -1326,54 +1353,34 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
 
     uint32_t finalMask = 0;
 
-    for (auto& kb : m_lKeyboards) {
-        if (kb.isVirtual && shouldIgnoreVirtualKeyboard(&kb))
+    for (auto& kb : m_vKeyboards) {
+        if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
             continue;
 
-        if (!kb.enabled)
+        if (!kb->enabled)
             continue;
 
-        finalMask |= wlr_keyboard_get_modifiers(wlr_keyboard_from_input_device(kb.keyboard));
+        finalMask |= wlr_keyboard_get_modifiers(kb->wlr());
     }
 
     return finalMask;
 }
 
-std::string CInputManager::getActiveLayoutForKeyboard(SKeyboard* pKeyboard) {
-    const auto WLRKB      = wlr_keyboard_from_input_device(pKeyboard->keyboard);
-    const auto KEYMAP     = WLRKB->keymap;
-    const auto STATE      = WLRKB->xkb_state;
-    const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
-
-    for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
-        if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
-            const auto LAYOUTNAME = xkb_keymap_layout_get_name(KEYMAP, i);
-
-            if (LAYOUTNAME)
-                return std::string(LAYOUTNAME);
-            return "error";
-        }
-    }
-
-    return "none";
-}
-
 void CInputManager::disableAllKeyboards(bool virt) {
 
-    for (auto& k : m_lKeyboards) {
-        if (k.isVirtual != virt)
+    for (auto& k : m_vKeyboards) {
+        if (k->isVirtual() != virt)
             continue;
 
-        k.active = false;
+        k->active = false;
     }
 }
 
 void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
-    const auto PNEWDEV  = &m_lTouchDevices.emplace_back();
-    PNEWDEV->pWlrDevice = pDevice;
+    const auto PNEWDEV = m_vTouches.emplace_back(CTouchDevice::create(wlr_touch_from_input_device(pDevice)));
 
     try {
-        PNEWDEV->name = getNameForNewDevice(pDevice->name);
+        PNEWDEV->hlName = getNameForNewDevice(pDevice->name);
     } catch (std::exception& e) {
         Debug::log(ERR, "Touch Device had no name???"); // logic error
     }
@@ -1381,32 +1388,40 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
     setTouchDeviceConfigs(PNEWDEV);
     wlr_cursor_attach_input_device(g_pCompositor->m_sWLRCursor, pDevice);
 
-    Debug::log(LOG, "New touch device added at {:x}", (uintptr_t)PNEWDEV);
+    PNEWDEV->events.destroy.registerStaticListener(
+        [this](void* owner, std::any data) {
+            auto PDEV = ((ITouch*)owner)->self.lock();
 
-    PNEWDEV->hyprListener_destroy.initCallback(
-        &pDevice->events.destroy, [&](void* owner, void* data) { destroyTouchDevice((STouchDevice*)data); }, PNEWDEV, "TouchDevice");
+            if (!PDEV)
+                return;
+
+            destroyTouchDevice(PDEV);
+        },
+        PNEWDEV.get());
+
+    Debug::log(LOG, "New touch device added at {:x}", (uintptr_t)PNEWDEV.get());
 }
 
-void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
-    auto setConfig = [&](STouchDevice* const PTOUCHDEV) -> void {
-        if (wlr_input_device_is_libinput(PTOUCHDEV->pWlrDevice)) {
-            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(PTOUCHDEV->pWlrDevice);
+void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
+    auto setConfig = [&](SP<ITouch> PTOUCHDEV) -> void {
+        if (wlr_input_device_is_libinput(&PTOUCHDEV->wlr()->base)) {
+            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&PTOUCHDEV->wlr()->base);
 
-            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "enabled", "input:touchdevice:enabled");
+            const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "enabled", "input:touchdevice:enabled");
             const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
             if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
                 libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
 
-            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->name, "transform", "input:touchdevice:transform"), 0, 7);
-            Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->name);
+            const int ROTATION = std::clamp(g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "transform", "input:touchdevice:transform"), 0, 7);
+            Debug::log(LOG, "Setting calibration matrix for device {}", PTOUCHDEV->hlName);
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV))
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
-            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->name, "output", "input:touchdevice:output");
+            auto       output     = g_pConfigManager->getDeviceString(PTOUCHDEV->hlName, "output", "input:touchdevice:output");
             bool       bound      = !output.empty() && output != STRVAL_EMPTY;
             const bool AUTODETECT = output == "[[Auto]]";
             if (!bound && AUTODETECT) {
-                const auto DEFAULTOUTPUT = wlr_touch_from_input_device(PTOUCHDEV->pWlrDevice)->output_name;
+                const auto DEFAULTOUTPUT = PTOUCHDEV->wlr()->output_name;
                 if (DEFAULTOUTPUT) {
                     output = DEFAULTOUTPUT;
                     bound  = true;
@@ -1415,10 +1430,10 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
             PTOUCHDEV->boundOutput = bound ? output : "";
             const auto PMONITOR    = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
             if (PMONITOR) {
-                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->name, PMONITOR->szName);
-                wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, PTOUCHDEV->pWlrDevice, PMONITOR->output);
+                Debug::log(LOG, "Binding touch device {} to output {}", PTOUCHDEV->hlName, PMONITOR->szName);
+                wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, PMONITOR->output);
             } else if (bound)
-                Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->name, output);
+                Debug::log(ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->hlName, output);
         }
     };
 
@@ -1427,10 +1442,8 @@ void CInputManager::setTouchDeviceConfigs(STouchDevice* dev) {
         return;
     }
 
-    for (auto& m : m_lTouchDevices) {
-        const auto PTOUCHDEV = &m;
-
-        setConfig(PTOUCHDEV);
+    for (auto& m : m_vTouches) {
+        setConfig(m);
     }
 }
 
@@ -1475,12 +1488,6 @@ void CInputManager::setTabletConfigs() {
             }
         }
     }
-}
-
-void CInputManager::destroyTouchDevice(STouchDevice* pDevice) {
-    Debug::log(LOG, "Touch device at {:x} removed", (uintptr_t)pDevice);
-
-    m_lTouchDevices.remove(*pDevice);
 }
 
 void CInputManager::newSwitch(wlr_input_device* pDevice) {
@@ -1554,16 +1561,16 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
     auto proposedNewName = deviceNameToInternalString(internalName);
     int  dupeno          = 0;
 
-    while (std::find_if(m_lKeyboards.begin(), m_lKeyboards.end(),
-                        [&](const SKeyboard& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lKeyboards.end())
+    while (std::find_if(m_vKeyboards.begin(), m_vKeyboards.end(),
+                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vKeyboards.end())
         dupeno++;
 
-    while (std::find_if(m_lMice.begin(), m_lMice.end(), [&](const SMouse& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) !=
-           m_lMice.end())
+    while (std::find_if(m_vPointers.begin(), m_vPointers.end(),
+                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vPointers.end())
         dupeno++;
 
-    while (std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(),
-                        [&](const STouchDevice& other) { return other.name == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_lTouchDevices.end())
+    while (std::find_if(m_vTouches.begin(), m_vTouches.end(),
+                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vTouches.end())
         dupeno++;
 
     while (std::find_if(m_lTabletPads.begin(), m_lTabletPads.end(),
@@ -1594,7 +1601,7 @@ void CInputManager::releaseAllMouseButtons() {
     m_lCurrentlyHeldButtons.clear();
 }
 
-void CInputManager::setCursorIconOnBorder(CWindow* w) {
+void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // do not override cursor icons set by mouse binds
     if (g_pKeybindManager->m_bIsMouseBindActive) {
         m_eBorderIconDirection = BORDERICON_NONE;
@@ -1615,7 +1622,7 @@ void CInputManager::setCursorIconOnBorder(CWindow* w) {
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_lCurrentlyHeldButtons.empty() && !currentlyDraggedWindow))
+    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_lCurrentlyHeldButtons.empty() && currentlyDraggedWindow.expired()))
         direction = BORDERICON_NONE;
     else {
 

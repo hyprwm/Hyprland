@@ -1,6 +1,8 @@
 #include "HookSystem.hpp"
 #include "../debug/Log.hpp"
 #include "../helpers/VarList.hpp"
+#include "../managers/TokenManager.hpp"
+#include "../Compositor.hpp"
 
 #define register
 #include <udis86.h>
@@ -9,6 +11,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
     m_pSource      = source;
@@ -72,62 +76,56 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
     // actually newline + 1
     size_t lastAsmNewline = 0;
     // needle for destination binary
-    size_t      currentDestinationOffset = 0;
-    std::string assemblyBuilder;
+    size_t            currentDestinationOffset = 0;
+
+    std::vector<char> finalBytes;
+    finalBytes.resize(probe.len);
+
     for (auto& len : probe.insSizes) {
+
+        // copy original bytes to our finalBytes
+        for (size_t i = 0; i < len; ++i) {
+            finalBytes[currentDestinationOffset + i] = *(char*)(currentAddress + i);
+        }
 
         std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find("\n", lastAsmNewline) - lastAsmNewline);
         if (code.contains("%rip")) {
-            CVarList       tokens{code, 0, 's'};
-            size_t         plusPresent  = tokens[1][0] == '+' ? 1 : 0;
-            size_t         minusPresent = tokens[1][0] == '-' ? 1 : 0;
-            std::string    addr         = tokens[1].substr((plusPresent || minusPresent), tokens[1].find("(%rip)") - (plusPresent || minusPresent));
-            const uint64_t OFFSET       = (minusPresent ? -1 : 1) * configStringToInt(addr);
+            CVarList      tokens{code, 0, 's'};
+            size_t        plusPresent  = tokens[1][0] == '+' ? 1 : 0;
+            size_t        minusPresent = tokens[1][0] == '-' ? 1 : 0;
+            std::string   addr         = tokens[1].substr((plusPresent || minusPresent), tokens[1].find("(%rip)") - (plusPresent || minusPresent));
+            const int32_t OFFSET       = (minusPresent ? -1 : 1) * configStringToInt(addr);
             if (OFFSET == 0)
                 return {};
             const uint64_t DESTINATION = currentAddress + OFFSET + len;
 
-            if (code.starts_with("call")) {
-                // call +0xdeadbeef(%rip)
-                assemblyBuilder += std::format("pushq %rax\nmovabs $0x{:x}, %rax\ncallq *%rax\npopq %rax\n", DESTINATION);
-                currentDestinationOffset += 14;
-            } else if (code.starts_with("lea")) {
-                // lea 0xdeadbeef(%rip), %rax
-                assemblyBuilder += std::format("movabs $0x{:x}, {}\n", DESTINATION, tokens[2]);
-                currentDestinationOffset += 10;
-            } else {
-                auto ADDREND   = code.find("(%rip)");
-                auto ADDRSTART = (code.substr(0, ADDREND).find_last_of(' '));
+            auto           ADDREND   = code.find("(%rip)");
+            auto           ADDRSTART = (code.substr(0, ADDREND).find_last_of(' '));
 
-                if (ADDREND == std::string::npos || ADDRSTART == std::string::npos)
-                    return {};
-
-                const uint64_t PREDICTEDRIP = (uint64_t)m_pTrampolineAddr + currentDestinationOffset + len;
-                const bool     POSITIVE     = DESTINATION > PREDICTEDRIP;
-                const uint64_t NEWRIPOFFSET = POSITIVE ? DESTINATION - PREDICTEDRIP : PREDICTEDRIP - DESTINATION;
-
-                assemblyBuilder += std::format("{} {}0x{:x}{}\n", code.substr(0, ADDRSTART), POSITIVE ? '+' : '-', NEWRIPOFFSET, code.substr(ADDREND));
-                currentDestinationOffset += len;
-            }
-        } else if (code.contains("invalid")) {
-            std::vector<uint8_t> bytes;
-            bytes.resize(len);
-            memcpy(bytes.data(), (std::byte*)currentAddress, len);
-            if (len == 4 && bytes[0] == 0xF3 && bytes[1] == 0x0F && bytes[2] == 0x1E && bytes[3] == 0xFA) {
-                // F3 0F 1E FA = endbr64, udis doesn't understand that one
-                assemblyBuilder += "endbr64\n";
-                currentDestinationOffset += 4;
-            } else {
-                // raise error, unknown op
-                std::string strBytes;
-                for (auto& b : bytes) {
-                    strBytes += std::format("{:x} ", b);
-                }
-                Debug::log(ERR, "[functionhook] unknown bytes: {}", strBytes);
+            if (ADDREND == std::string::npos || ADDRSTART == std::string::npos)
                 return {};
+
+            const uint64_t PREDICTEDRIP = (uint64_t)m_pTrampolineAddr + currentDestinationOffset + len;
+            const int32_t  NEWRIPOFFSET = DESTINATION - PREDICTEDRIP;
+
+            size_t         ripOffset = 0;
+
+            // find %rip usage offset from beginning
+            for (int i = len - 4 /* 32-bit */; i > 0; --i) {
+                if (*(int32_t*)(currentAddress + i) == OFFSET) {
+                    ripOffset = i;
+                    break;
+                }
             }
+
+            if (ripOffset == 0)
+                return {};
+
+            // fix offset in the final bytes. This doesn't care about endianness
+            *(int32_t*)&finalBytes[currentDestinationOffset + ripOffset] = NEWRIPOFFSET;
+
+            currentDestinationOffset += len;
         } else {
-            assemblyBuilder += code + "\n";
             currentDestinationOffset += len;
         }
 
@@ -135,26 +133,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
         currentAddress += len;
     }
 
-    std::ofstream ofs("/tmp/hypr/.hookcode.asm", std::ios::trunc);
-    ofs << assemblyBuilder;
-    ofs.close();
-    std::string ret = execAndGet(
-        "cc -x assembler -c /tmp/hypr/.hookcode.asm -o /tmp/hypr/.hookbinary.o 2>&1 && objcopy -O binary -j .text /tmp/hypr/.hookbinary.o /tmp/hypr/.hookbinary2.o 2>&1");
-    Debug::log(LOG, "[functionhook] assembler returned:\n{}", ret);
-    if (!std::filesystem::exists("/tmp/hypr/.hookbinary2.o")) {
-        std::filesystem::remove("/tmp/hypr/.hookcode.asm");
-        std::filesystem::remove("/tmp/hypr/.hookbinary.asm");
-        return {};
-    }
-
-    std::ifstream ifs("/tmp/hypr/.hookbinary2.o", std::ios::binary);
-    returns = {std::vector<char>(std::istreambuf_iterator<char>(ifs), {})};
-    ifs.close();
-    std::filesystem::remove("/tmp/hypr/.hookcode.asm");
-    std::filesystem::remove("/tmp/hypr/.hookbinary.o");
-    std::filesystem::remove("/tmp/hypr/.hookbinary2.o");
-
-    return returns;
+    return {finalBytes};
 }
 
 bool CFunctionHook::hook() {

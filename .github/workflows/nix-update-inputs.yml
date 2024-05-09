@@ -1,8 +1,10 @@
 name: Nix
 
 on:
-  schedule:
-    - cron: '0 0 * * *' # check daily
+  workflow_call:
+    secrets:
+      PAT:
+        required: true
 
 jobs:
   update:
@@ -22,8 +24,3 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "[gha] Nix: update inputs"
-
-  update-build:
-    needs: update
-    uses: ./.github/workflows/nix-build.yml
-    secrets: inherit

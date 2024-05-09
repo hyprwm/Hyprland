@@ -8,19 +8,19 @@
 
 class CTitleTex {
   public:
-    CTitleTex(CWindow* pWindow, const Vector2D& bufferSize);
+    CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize);
     ~CTitleTex();
 
-    CTexture    tex;
-    std::string szContent;
-    CWindow*    pWindowOwner = nullptr;
+    CTexture     tex;
+    std::string  szContent;
+    PHLWINDOWREF pWindowOwner;
 };
 
 void refreshGroupBarGradients();
 
 class CHyprGroupBarDecoration : public IHyprWindowDecoration {
   public:
-    CHyprGroupBarDecoration(CWindow*);
+    CHyprGroupBarDecoration(PHLWINDOW);
     virtual ~CHyprGroupBarDecoration();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -31,7 +31,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual eDecorationType            getDecorationType();
 
-    virtual void                       updateWindow(CWindow*);
+    virtual void                       updateWindow(PHLWINDOW);
 
     virtual void                       damageEntire();
 
@@ -48,9 +48,9 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     CBox                     m_bAssignedBox = {0};
 
-    CWindow*                 m_pWindow = nullptr;
+    PHLWINDOWREF             m_pWindow;
 
-    std::deque<CWindow*>     m_dwGroupMembers;
+    std::deque<PHLWINDOWREF> m_dwGroupMembers;
 
     float                    m_fBarWidth;
 
@@ -60,7 +60,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     CBox                     assignedBoxGlobal();
 
     bool                     onBeginWindowDragOnDeco(const Vector2D&);
-    bool                     onEndWindowDragOnDeco(const Vector2D&, CWindow*);
+    bool                     onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);
     bool                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
     bool                     onScrollOnDeco(const Vector2D&, wlr_pointer_axis_event*);
 

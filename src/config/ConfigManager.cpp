@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 
 extern "C" char**             environ;
 
@@ -318,6 +319,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:layout", {"dwindle"});
     m_pConfig->addConfigValue("general:allow_tearing", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_corner", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("general:default_cursor_monitor", {STRVAL_EMPTY});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -350,6 +352,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:enable_hyprcursor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:hide_cursor_on_key_press", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
@@ -376,6 +379,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:error_limit", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:watchdog_timeout", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("decoration:rounding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
@@ -591,7 +595,7 @@ CConfigManager::CConfigManager() {
     setDefaultAnimationVars();
     resetHLConfig();
 
-    Debug::log(LOG,
+    Debug::log(INFO,
                "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
                "https://wiki.hyprland.org/Configuring/Variables/#debug");
 
@@ -817,6 +821,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (Debug::disableStdout && isFirstLaunch)
         Debug::log(LOG, "Disabling stdout logs! Check the log for further logs.");
 
+    Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
+
     for (auto& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
@@ -825,6 +831,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
+
+        // also force mirrors, as the aspect ratio could've changed
+        for (auto& mirror : m->mirrors)
+            mirror->forceFullFrames = 3;
     }
 
     // Reset no monitor reload
@@ -945,7 +955,7 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
-    for (auto& r : m_dMonitorRules) {
+    for (auto& r : m_dMonitorRules | std::views::reverse) {
         if (PMONITOR.matchesStaticSelector(r.name)) {
             return r;
         }
@@ -961,7 +971,11 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.name = "", .resolution = Vector2D(0, 0), .offset = Vector2D(-INT32_MAX, -INT32_MAX), .scale = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
+                        .name       = "",
+                        .resolution = Vector2D(0, 0),
+                        .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
+                        .scale      = -1}; // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
@@ -970,41 +984,56 @@ SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
         if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
             continue;
 
-        if (rule.isDefault)
-            mergedRule.isDefault = true;
-        if (rule.isPersistent)
-            mergedRule.isPersistent = true;
-        if (rule.gapsIn.has_value())
-            mergedRule.gapsIn = rule.gapsIn;
-        if (rule.gapsOut.has_value())
-            mergedRule.gapsOut = rule.gapsOut;
-        if (rule.borderSize.has_value())
-            mergedRule.borderSize = rule.borderSize;
-        if (rule.border.has_value())
-            mergedRule.border = rule.border;
-        if (rule.rounding.has_value())
-            mergedRule.rounding = rule.rounding;
-        if (rule.decorate.has_value())
-            mergedRule.decorate = rule.decorate;
-        if (rule.shadow.has_value())
-            mergedRule.shadow = rule.shadow;
-        if (rule.onCreatedEmptyRunCmd.has_value())
-            mergedRule.onCreatedEmptyRunCmd = rule.onCreatedEmptyRunCmd;
-        if (rule.defaultName.has_value())
-            mergedRule.defaultName = rule.defaultName;
-
-        if (!rule.layoutopts.empty()) {
-            for (const auto& layoutopt : rule.layoutopts) {
-                mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
-            }
-        }
+        mergedRule = mergeWorkspaceRules(mergedRule, rule);
     }
 
     return mergedRule;
 }
 
-std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool dynamic, bool shadowExec) {
-    if (!g_pCompositor->windowExists(pWindow))
+SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, const SWorkspaceRule& rule2) {
+    SWorkspaceRule mergedRule = rule1;
+
+    if (rule1.monitor.empty())
+        mergedRule.monitor = rule2.monitor;
+    if (rule1.workspaceString.empty())
+        mergedRule.workspaceString = rule2.workspaceString;
+    if (rule1.workspaceName.empty())
+        mergedRule.workspaceName = rule2.workspaceName;
+    if (rule1.workspaceId == WORKSPACE_INVALID)
+        mergedRule.workspaceId = rule2.workspaceId;
+
+    if (rule2.isDefault)
+        mergedRule.isDefault = true;
+    if (rule2.isPersistent)
+        mergedRule.isPersistent = true;
+    if (rule2.gapsIn.has_value())
+        mergedRule.gapsIn = rule2.gapsIn;
+    if (rule2.gapsOut.has_value())
+        mergedRule.gapsOut = rule2.gapsOut;
+    if (rule2.borderSize.has_value())
+        mergedRule.borderSize = rule2.borderSize;
+    if (rule2.border.has_value())
+        mergedRule.border = rule2.border;
+    if (rule2.rounding.has_value())
+        mergedRule.rounding = rule2.rounding;
+    if (rule2.decorate.has_value())
+        mergedRule.decorate = rule2.decorate;
+    if (rule2.shadow.has_value())
+        mergedRule.shadow = rule2.shadow;
+    if (rule2.onCreatedEmptyRunCmd.has_value())
+        mergedRule.onCreatedEmptyRunCmd = rule2.onCreatedEmptyRunCmd;
+    if (rule2.defaultName.has_value())
+        mergedRule.defaultName = rule2.defaultName;
+    if (!rule2.layoutopts.empty()) {
+        for (const auto& layoutopt : rule2.layoutopts) {
+            mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
+        }
+    }
+    return mergedRule;
+}
+
+std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, bool dynamic, bool shadowExec) {
+    if (!valid(pWindow))
         return std::vector<SWindowRule>();
 
     std::vector<SWindowRule> returns;
@@ -1089,7 +1118,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
                 }
 
                 if (rule.bFocus != -1) {
-                    if (rule.bFocus != (g_pCompositor->m_pLastWindow == pWindow))
+                    if (rule.bFocus != (g_pCompositor->m_pLastWindow.lock() == pWindow))
                         continue;
                 }
 
@@ -1159,7 +1188,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(CWindow* pWindow, bool
     return returns;
 }
 
-std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
+std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
     std::vector<SLayerRule> returns;
 
     if (!pLS->layerSurface || pLS->fadingOut)
@@ -1167,7 +1196,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(SLayerSurface* pLS) {
 
     for (auto& lr : m_dLayerRules) {
         if (lr.targetNamespace.starts_with("address:0x")) {
-            if (std::format("address:0x{:x}", (uintptr_t)pLS) != lr.targetNamespace)
+            if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr.targetNamespace)
                 continue;
         } else {
             std::regex NSCHECK(lr.targetNamespace);
@@ -1215,6 +1244,10 @@ void CConfigManager::dispatchExecOnce() {
 
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
+}
+
+void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
+    m_dMonitorRules.emplace_back(r);
 }
 
 void CConfigManager::performMonitorReload() {
@@ -1635,6 +1668,21 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
 
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
+        // If this is the first monitor rule needs to be on the right.
+        if (ARGS[2] == "auto-right" || ARGS[2] == "auto" || m_dMonitorRules.empty())
+            newrule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
+        else if (ARGS[2] == "auto-left")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_LEFT;
+        else if (ARGS[2] == "auto-up")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_UP;
+        else if (ARGS[2] == "auto-down")
+            newrule.autoDir = eAutoDirs::DIR_AUTO_DOWN;
+        else {
+            Debug::log(WARN,
+                       "Invalid auto direction. Valid options are 'auto',"
+                       "'auto-up', 'auto-down', 'auto-left', and 'auto-right'.");
+            error += "invalid auto direction ";
+        }
     } else {
         if (!ARGS[2].contains("x")) {
             error += "invalid offset ";
@@ -1780,11 +1828,14 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     PANIM->second.overridden = true;
     PANIM->second.pValues    = &PANIM->second;
 
-    // on/off
-    PANIM->second.internalEnabled = ARGS[1] == "1";
+    // This helper casts strings like "1", "true", "off", "yes"... to int.
+    int64_t enabledInt = configStringToInt(ARGS[1]) == 1;
 
-    if (ARGS[1] != "0" && ARGS[1] != "1")
+    // Checking that the int is 1 or 0 because the helper can return integers out of range.
+    if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
+
+    PANIM->second.internalEnabled = configStringToInt(ARGS[1]) == 1;
 
     if (PANIM->second.internalEnabled) {
         // speed
@@ -1944,7 +1995,7 @@ bool windowRuleValid(const std::string& RULE) {
         RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" || RULE == "maximize" || RULE == "keepaspectratio" ||
         RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") || RULE.starts_with("bordercolor") || RULE == "forcergbx" ||
         RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") || RULE.starts_with("center") ||
-        RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent");
+        RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent") || RULE.starts_with("plugin:");
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -2307,7 +2358,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     if (IT == m_dWorkspaceRules.end())
         m_dWorkspaceRules.emplace_back(wsRule);
     else
-        *IT = wsRule;
+        *IT = mergeWorkspaceRules(*IT, wsRule);
 
     return {};
 }

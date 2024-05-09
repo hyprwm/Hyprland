@@ -12,7 +12,7 @@ void handleWrapped(wl_listener* listener, void* data) {
 
     try {
         pWrap->m_pSelf->emit(data);
-    } catch (std::exception& e) { Debug::log(ERR, "Listener {} timed out and was killed by Watchdog!!!", (uintptr_t)listener); }
+    } catch (std::exception& e) { Debug::log(ERR, "Listener {} threw or timed out and was killed by Watchdog!!! This is bad. what(): {}", (uintptr_t)listener, e.what()); }
 
     if (g_pWatchdog)
         g_pWatchdog->endWatching();

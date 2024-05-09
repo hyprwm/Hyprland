@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../protocols/IdleNotify.hpp"
 
 void CInputManager::newTabletTool(wlr_input_device* pDevice) {
     const auto PNEWTABLET = &m_lTablets.emplace_back();
@@ -99,7 +100,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             if (EVENT->updated_axes & (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y))
                 wlr_tablet_v2_tablet_tool_notify_tilt(PTOOL->wlrTabletToolV2, PTOOL->tiltX, PTOOL->tiltY);
 
-            g_pCompositor->notifyIdleActivity();
+            PROTO::idle->onActivity();
         },
         PNEWTABLET, "Tablet");
 
@@ -120,7 +121,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                 wlr_send_tablet_v2_tablet_tool_up(PTOOL->wlrTabletToolV2);
             }
 
-            g_pCompositor->notifyIdleActivity();
+            PROTO::idle->onActivity();
         },
         PNEWTABLET, "Tablet");
 
@@ -132,7 +133,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
             const auto PTOOL = g_pInputManager->ensureTabletToolPresent(EVENT->tool);
 
             wlr_tablet_v2_tablet_tool_notify_button(PTOOL->wlrTabletToolV2, (zwp_tablet_pad_v2_button_state)EVENT->button, (zwp_tablet_pad_v2_button_state)EVENT->state);
-            g_pCompositor->notifyIdleActivity();
+            PROTO::idle->onActivity();
         },
         PNEWTABLET, "Tablet");
 
@@ -158,7 +159,7 @@ void CInputManager::newTabletTool(wlr_input_device* pDevice) {
                 g_pInputManager->focusTablet(PTAB, EVENT->tool);
             }
 
-            g_pCompositor->notifyIdleActivity();
+            PROTO::idle->onActivity();
         },
         PNEWTABLET, "Tablet");
 
@@ -263,7 +264,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
 void CInputManager::focusTablet(STablet* pTab, wlr_tablet_tool* pTool, bool motion) {
     const auto PTOOL = g_pInputManager->ensureTabletToolPresent(pTool);
 
-    if (const auto PWINDOW = g_pCompositor->m_pLastWindow; PWINDOW) {
+    if (const auto PWINDOW = g_pCompositor->m_pLastWindow.lock(); PWINDOW) {
         const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
         if (PTOOL->pSurface != g_pInputManager->m_pLastMouseSurface)

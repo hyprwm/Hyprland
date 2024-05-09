@@ -1,38 +1,69 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "fractional-scale-v1-protocol.h"
+#include <memory>
+#include <unordered_map>
+#include "WaylandProtocol.hpp"
+#include "fractional-scale-v1.hpp"
 
-#include <vector>
-#include <algorithm>
+class CFractionalScaleProtocol;
 
-struct SFractionalScaleAddon {
-    wlr_surface* pSurface       = nullptr;
-    double       preferredScale = 1.0;
-    wl_resource* pResource      = nullptr;
-};
-
-class CFractionalScaleProtocolManager {
+class CFractionalScaleAddon {
   public:
-    CFractionalScaleProtocolManager();
+    CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, wlr_surface* surf_);
 
-    void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
+    void         setScale(const float& scale);
+    void         onSurfaceDestroy();
 
-    void displayDestroy();
+    bool         good();
 
-    void setPreferredScaleForSurface(wlr_surface*, double);
+    wlr_surface* surf();
 
-    void removeAddon(wlr_surface*);
+    bool         operator==(const wl_resource* other) const {
+        return other == resource->resource();
+    }
 
-    // handlers
-
-    void getFractionalScale(wl_client* client, wl_resource* resource, uint32_t id, wl_resource* surface);
+    bool operator==(const CFractionalScaleAddon* other) const {
+        return other->resource == resource;
+    }
 
   private:
-    SFractionalScaleAddon*                              getAddonForSurface(wlr_surface*);
+    SP<CWpFractionalScaleV1> resource;
+    float                    scale       = 1.F;
+    wlr_surface*             surface     = nullptr;
+    bool                     surfaceGone = false;
 
-    std::vector<std::unique_ptr<SFractionalScaleAddon>> m_vFractionalScaleAddons;
+    friend class CFractionalScaleProtocol;
+};
 
-    wl_global*                                          m_pGlobal = nullptr;
-    wl_listener                                         m_liDisplayDestroy;
+struct SSurfaceListener {
+    DYNLISTENER(surfaceDestroy);
+};
+
+class CFractionalScaleProtocol : public IWaylandProtocol {
+  public:
+    CFractionalScaleProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+
+    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+    void         onSurfaceDestroy(wlr_surface* surf);
+    void         sendScale(wlr_surface* surf, const float& scale);
+
+  private:
+    void removeAddon(CFractionalScaleAddon*);
+    void registerSurface(wlr_surface*);
+    void onManagerResourceDestroy(wl_resource* res);
+    void onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, wlr_surface* surface);
+
+    //
+    std::unordered_map<wlr_surface*, SSurfaceListener>          m_mSurfaceDestroyListeners;
+
+    std::unordered_map<wlr_surface*, float>                     m_mSurfaceScales;
+    std::unordered_map<wlr_surface*, UP<CFractionalScaleAddon>> m_mAddons;
+    std::vector<UP<CWpFractionalScaleManagerV1>>                m_vManagers;
+
+    friend class CFractionalScaleAddon;
+};
+
+namespace PROTO {
+    inline UP<CFractionalScaleProtocol> fractional;
 };

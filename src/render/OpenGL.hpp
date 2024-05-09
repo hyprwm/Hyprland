@@ -7,6 +7,7 @@
 #include "../helpers/Region.hpp"
 #include <list>
 #include <unordered_map>
+#include <map>
 
 #include <cairo/cairo.h>
 
@@ -67,7 +68,7 @@ struct SMonitorRenderData {
     CFramebuffer mirrorSwapFB; // etc
     CFramebuffer offMainFB;
 
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
 
     CTexture     stencilTex;
 
@@ -151,12 +152,12 @@ class CHyprOpenGLImpl {
 
     void                  blend(bool enabled);
 
-    void                  makeWindowSnapshot(CWindow*);
-    void                  makeRawWindowSnapshot(CWindow*, CFramebuffer*);
-    void                  makeLayerSnapshot(SLayerSurface*);
-    void                  renderSnapshot(CWindow**);
-    void                  renderSnapshot(SLayerSurface**);
-    bool                  shouldUseNewBlurOptimizations(SLayerSurface* pLayer, CWindow* pWindow);
+    void                  makeWindowSnapshot(PHLWINDOW);
+    void                  makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
+    void                  makeLayerSnapshot(PHLLS);
+    void                  renderSnapshot(PHLWINDOW);
+    void                  renderSnapshot(PHLLS);
+    bool                  shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
     void                  clear(const CColor&);
     void                  clearWithTex();
@@ -172,7 +173,7 @@ class CHyprOpenGLImpl {
     bool                  preBlurQueued();
     void                  preRender(CMonitor*);
 
-    void                  saveBufferForMirror();
+    void                  saveBufferForMirror(CBox*);
     void                  renderMirrored();
 
     void                  applyScreenShader(const std::string& path);
@@ -192,11 +193,11 @@ class CHyprOpenGLImpl {
 
     bool                  m_bReloadScreenShader = true; // at launch it can be set
 
-    CWindow*              m_pCurrentWindow = nullptr; // hack to get the current rendered window
-    SLayerSurface*        m_pCurrentLayer  = nullptr; // hack to get the current rendered layer
+    PHLWINDOWREF          m_pCurrentWindow; // hack to get the current rendered window
+    PHLLS                 m_pCurrentLayer;  // hack to get the current rendered layer
 
-    std::unordered_map<CWindow*, CFramebuffer>        m_mWindowFramebuffers;
-    std::unordered_map<SLayerSurface*, CFramebuffer>  m_mLayerFramebuffers;
+    std::map<PHLWINDOWREF, CFramebuffer>              m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>                  m_mLayerFramebuffers;
     std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
     std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
 

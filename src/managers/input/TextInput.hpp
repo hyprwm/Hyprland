@@ -3,17 +3,20 @@
 #include "../../helpers/WLListener.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/Box.hpp"
+#include "../../helpers/signal/Listener.hpp"
+#include <memory>
 
-struct wlr_text_input_v3;
 struct wlr_surface;
 struct wl_client;
 
 struct STextInputV1;
+class CTextInputV3;
+class CInputMethodV2;
 
 class CTextInput {
   public:
+    CTextInput(WP<CTextInputV3> ti);
     CTextInput(STextInputV1* ti);
-    CTextInput(wlr_text_input_v3* ti);
     ~CTextInput();
 
     bool         isV3();
@@ -21,8 +24,8 @@ class CTextInput {
     void         leave();
     void         tiV1Destroyed();
     wl_client*   client();
-    void         commitStateToIME(wlr_input_method_v2* ime);
-    void         updateIMEState(wlr_input_method_v2* ime);
+    void         commitStateToIME(SP<CInputMethodV2> ime);
+    void         updateIMEState(SP<CInputMethodV2> ime);
 
     void         onEnabled(wlr_surface* surfV1 = nullptr);
     void         onDisabled();
@@ -34,13 +37,13 @@ class CTextInput {
     wlr_surface* focusedSurface();
 
   private:
-    void               setFocusedSurface(wlr_surface* pSurface);
-    void               initCallbacks();
+    void             setFocusedSurface(wlr_surface* pSurface);
+    void             initCallbacks();
 
-    wlr_surface*       pFocusedSurface = nullptr;
-    int                enterLocks      = 0;
-    wlr_text_input_v3* pWlrInput       = nullptr;
-    STextInputV1*      pV1Input        = nullptr;
+    wlr_surface*     pFocusedSurface = nullptr;
+    int              enterLocks      = 0;
+    WP<CTextInputV3> pV3Input;
+    STextInputV1*    pV1Input = nullptr;
 
     DYNLISTENER(textInputEnable);
     DYNLISTENER(textInputDisable);
@@ -48,4 +51,11 @@ class CTextInput {
     DYNLISTENER(textInputDestroy);
     DYNLISTENER(surfaceUnmapped);
     DYNLISTENER(surfaceDestroyed);
+
+    struct {
+        CHyprSignalListener enable;
+        CHyprSignalListener disable;
+        CHyprSignalListener commit;
+        CHyprSignalListener destroy;
+    } listeners;
 };

@@ -20,14 +20,14 @@ executable('Hyprland', src,
     xcb_dep,
     backtrace_dep,
     epoll_dep,
-    systemd_dep,
     udis86,
 
     dependency('pixman-1'),
     dependency('gl', 'opengl'),
     dependency('threads'),
     dependency('pango'),
-    dependency('pangocairo')
+    dependency('pangocairo'),
+    dependency('uuid'),
   ],
   install : true
 )

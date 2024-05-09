@@ -2,7 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 
-CHyprBorderDecoration::CHyprBorderDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
+CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 }
 
@@ -34,7 +34,7 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
     CBox box = m_bAssignedGeometry;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_pWindow.lock()));
 
     const auto PWORKSPACE = m_pWindow->m_pWorkspace;
 
@@ -81,13 +81,13 @@ eDecorationType CHyprBorderDecoration::getDecorationType() {
     return DECORATION_BORDER;
 }
 
-void CHyprBorderDecoration::updateWindow(CWindow*) {
+void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
     if (m_pWindow->getRealBorderSize() != m_seExtents.topLeft.x)
         g_pDecorationPositioner->repositionDeco(this);
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!g_pCompositor->windowValidMapped(m_pWindow))
+    if (!validMapped(m_pWindow))
         return;
 
     auto       surfaceBox   = m_pWindow->getWindowMainSurfaceBox();
@@ -109,7 +109,7 @@ void CHyprBorderDecoration::damageEntire() {
     borderRegion.subtract(surfaceBoxShrunkRounding);
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow.lock(), m.get())) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             borderRegion.subtract(monitorRegion);
         }

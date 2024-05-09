@@ -2,7 +2,6 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <memory>
 #include <thread>
 #include <wayland-server.h>
 
@@ -13,8 +12,10 @@ class CEventLoopManager {
     CEventLoopManager();
 
     void enterLoop(wl_display* display, wl_event_loop* wlEventLoop);
-    void addTimer(std::shared_ptr<CEventLoopTimer> timer);
-    void removeTimer(std::shared_ptr<CEventLoopTimer> timer);
+
+    // Note: will remove the timer if the ptr is lost.
+    void addTimer(SP<CEventLoopTimer> timer);
+    void removeTimer(SP<CEventLoopTimer> timer);
 
     void onTimerFire();
 
@@ -28,8 +29,8 @@ class CEventLoopManager {
     } m_sWayland;
 
     struct {
-        std::vector<std::shared_ptr<CEventLoopTimer>> timers;
-        int                                           timerfd = -1;
+        std::vector<SP<CEventLoopTimer>> timers;
+        int                              timerfd = -1;
     } m_sTimers;
 };
 

@@ -16,8 +16,8 @@
 typedef std::function<void(void*, SCallbackInfo& info, std::any data)> HOOK_CALLBACK_FN;
 
 struct SCallbackFNPtr {
-    HOOK_CALLBACK_FN* fn     = nullptr;
-    HANDLE            handle = nullptr;
+    WP<HOOK_CALLBACK_FN> fn;
+    HANDLE               handle = nullptr;
 };
 
 #define EMIT_HOOK_EVENT(name, param)                                                                                                                                               \
@@ -40,21 +40,21 @@ class CHookSystemManager {
   public:
     CHookSystemManager();
 
-    // returns the pointer to the function
-    HOOK_CALLBACK_FN*            hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle = nullptr);
-    void                         hookStatic(const std::string& event, HOOK_CALLBACK_FN* fn, HANDLE handle = nullptr);
-    void                         unhook(HOOK_CALLBACK_FN* fn);
+    // returns the pointer to the function.
+    // losing this pointer (letting it get destroyed)
+    // will equal to unregistering the callback.
+    [[nodiscard("Losing this pointer instantly unregisters the callback")]] SP<HOOK_CALLBACK_FN> hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn,
+                                                                                                             HANDLE handle = nullptr);
+    void                                                                                         unhook(SP<HOOK_CALLBACK_FN> fn);
 
-    void                         emit(const std::vector<SCallbackFNPtr>* callbacks, SCallbackInfo& info, std::any data = 0);
+    void                         emit(std::vector<SCallbackFNPtr>* const callbacks, SCallbackInfo& info, std::any data = 0);
     std::vector<SCallbackFNPtr>* getVecForEvent(const std::string& event);
 
     bool                         m_bCurrentEventPlugin = false;
     jmp_buf                      m_jbHookFaultJumpBuf;
 
   private:
-    // todo: this is slow. Maybe static ptrs should be somehow allowed. unique ptr for vec?
-    std::list<std::pair<std::string, std::vector<SCallbackFNPtr>>> m_lpRegisteredHooks;
-    std::list<HOOK_CALLBACK_FN>                                    m_lCallbackFunctions;
+    std::unordered_map<std::string, std::vector<SCallbackFNPtr>> m_mRegisteredHooks;
 };
 
 inline std::unique_ptr<CHookSystemManager> g_pHookSystem;

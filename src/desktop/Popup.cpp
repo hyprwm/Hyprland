@@ -2,11 +2,11 @@
 #include "../config/ConfigValue.hpp"
 #include "../Compositor.hpp"
 
-CPopup::CPopup(CWindow* pOwner) : m_pWindowOwner(pOwner) {
+CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
     initAllSignals();
 }
 
-CPopup::CPopup(SLayerSurface* pOwner) : m_pLayerOwner(pOwner) {
+CPopup::CPopup(PHLLS pOwner) : m_pLayerOwner(pOwner) {
     initAllSignals();
 }
 
@@ -69,9 +69,9 @@ static void onRepositionPopup(void* owner, void* data) {
 void CPopup::initAllSignals() {
 
     if (!m_pWLR) {
-        if (m_pWindowOwner)
+        if (!m_pWindowOwner.expired())
             hyprListener_newPopup.initCallback(&m_pWindowOwner->m_uSurface.xdg->events.new_popup, ::onNewPopup, this, "CPopup Head");
-        else if (m_pLayerOwner)
+        else if (!m_pLayerOwner.expired())
             hyprListener_newPopup.initCallback(&m_pLayerOwner->layerSurface->events.new_popup, ::onNewPopup, this, "CPopup Head");
         else
             ASSERT(false);
@@ -119,7 +119,7 @@ void CPopup::onMap() {
     unconstrain();
     sendScale();
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
@@ -136,7 +136,7 @@ void CPopup::onUnmap() {
 
     g_pInputManager->simulateMouseMovement();
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
@@ -146,12 +146,12 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (m_pWindowOwner && (!m_pWindowOwner->m_bIsMapped || !m_pWindowOwner->m_pWorkspace->m_bVisible)) {
+    if (!m_pWindowOwner.expired() && (!m_pWindowOwner->m_bIsMapped || !m_pWindowOwner->m_pWorkspace->m_bVisible)) {
         m_vLastSize = {m_pWLR->base->current.geometry.width, m_pWLR->base->current.geometry.height};
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner);
+            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_pWindowOwner.lock());
         return;
     }
 
@@ -178,7 +178,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     m_bRequestedReposition = false;
 
-    if (m_pLayerOwner && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
 }
 
@@ -230,9 +230,9 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 }
 
 Vector2D CPopup::t1ParentCoords() {
-    if (m_pWindowOwner)
+    if (!m_pWindowOwner.expired())
         return m_pWindowOwner->m_vRealPosition.value();
-    if (m_pLayerOwner)
+    if (!m_pLayerOwner.expired())
         return m_pLayerOwner->realPosition.value();
 
     ASSERT(false);
@@ -260,10 +260,21 @@ Vector2D CPopup::size() {
 }
 
 void CPopup::sendScale() {
-    if (m_pWindowOwner)
+    if (!m_pWindowOwner.expired())
         g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pWindowOwner->m_pWLSurface.m_fLastScale);
-    else if (m_pLayerOwner)
+    else if (!m_pLayerOwner.expired())
         g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner->surface.m_fLastScale);
     else
         UNREACHABLE();
+}
+
+bool CPopup::visible() {
+    if (!m_pWindowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_pWindowOwner.lock());
+    if (!m_pLayerOwner.expired())
+        return true;
+    if (m_pParent)
+        return m_pParent->visible();
+
+    return false;
 }

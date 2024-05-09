@@ -17,14 +17,9 @@ namespace Events {
 
     // Layer events
     LISTENER(newLayerSurface);
-    DYNLISTENFUNC(destroyLayerSurface);
-    DYNLISTENFUNC(mapLayerSurface);
-    DYNLISTENFUNC(unmapLayerSurface);
-    DYNLISTENFUNC(commitLayerSurface);
 
     // Surface XDG (window)
     LISTENER(newXDGToplevel);
-    LISTENER(activateXDG);
 
     // Window events
     DYNLISTENFUNC(commitWindow);
@@ -59,22 +54,11 @@ namespace Events {
 
     // Virt Ptr
     LISTENER(newVirtPtr);
-    DYNLISTENFUNC(destroyMouse);
-
-    DYNLISTENFUNC(keyboardKey);
-    DYNLISTENFUNC(keyboardMod);
-    DYNLISTENFUNC(keyboardDestroy);
-
-    LISTENER(newConstraint);
 
     // Various
     LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
-
-    // outputMgr
-    LISTENER(outputMgrApply);
-    LISTENER(outputMgrTest);
 
     // Monitor part 2 the sequel
     DYNLISTENFUNC(monitorFrame);
@@ -99,13 +83,8 @@ namespace Events {
     DYNLISTENFUNC(destroyDragIcon);
     DYNLISTENFUNC(commitDragIcon);
 
-    // Deco XDG
-    LISTENER(NewXDGDeco);
-
     // Renderer destroy
     LISTENER(RendererDestroy);
-
-    LISTENER(newIdleInhibitor);
 
     // session
     LISTENER(sessionActive);
@@ -118,14 +97,6 @@ namespace Events {
     LISTENER(pinchUpdate);
     LISTENER(pinchEnd);
 
-    // Power
-    LISTENER(powerMgrSetMode);
-
-    // IME
-    LISTENER(newIME);
-    LISTENER(newTextInput);
-    LISTENER(newVirtualKeyboard);
-
     // Touch
     LISTENER(touchBegin);
     LISTENER(touchEnd);
@@ -137,16 +108,4 @@ namespace Events {
 
     // Session Lock
     LISTENER(newSessionLock);
-
-    // Gamma control
-    LISTENER(setGamma);
-
-    // Cursor shape
-    LISTENER(setCursorShape);
-
-    // Tearing hints
-    LISTENER(newTearingHint);
-
-    // Shortcut inhibitor
-    LISTENER(newShortcutInhibitor);
 };

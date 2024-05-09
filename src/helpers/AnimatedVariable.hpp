@@ -6,7 +6,7 @@
 #include <type_traits>
 #include "Vector2D.hpp"
 #include "Color.hpp"
-#include "../macros.hpp"
+#include "../defines.hpp"
 #include "../debug/Log.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
@@ -49,11 +49,11 @@ enum AVARDAMAGEPOLICY {
 };
 
 class CAnimationManager;
-struct SLayerSurface;
 struct SAnimationPropertyConfig;
 class CHyprRenderer;
 class CWindow;
 class CWorkspace;
+class CLayerSurface;
 
 // Utility to define a concept as a list of possible type
 template <class T, class... U>
@@ -68,8 +68,8 @@ concept Animable = OneOf<T, Vector2D, float, CColor>;
 class CBaseAnimatedVariable {
   public:
     CBaseAnimatedVariable(ANIMATEDVARTYPE type);
-    void create(SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy);
-    void create(SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy);
     void create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy);
 
@@ -140,14 +140,14 @@ class CBaseAnimatedVariable {
         m_bRemoveEndAfterRan   = false;
     }
 
-    CWindow* getWindow() {
-        return (CWindow*)m_pWindow;
+    PHLWINDOW getWindow() {
+        return m_pWindow.lock();
     }
 
   protected:
-    void*                                 m_pWindow = nullptr;
-    std::weak_ptr<CWorkspace>             m_pWorkspace;
-    void*                                 m_pLayer = nullptr;
+    PHLWINDOWREF                          m_pWindow;
+    PHLWORKSPACEREF                       m_pWorkspace;
+    PHLLSREF                              m_pLayer;
 
     SAnimationPropertyConfig*             m_pConfig = nullptr;
 
@@ -199,7 +199,7 @@ class CBaseAnimatedVariable {
 
     friend class CAnimationManager;
     friend class CWorkspace;
-    friend struct SLayerSurface;
+    friend class CLayerSurface;
     friend class CHyprRenderer;
 };
 
@@ -208,12 +208,12 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
     CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
 
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, CWindow* pWindow, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pWindow, policy);
         m_Value = value;
         m_Goal  = value;
     }
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, SLayerSurface* pLayer, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy) {
         create(pAnimConfig, pLayer, policy);
         m_Value = value;
         m_Goal  = value;
@@ -304,6 +304,6 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
 
     friend class CAnimationManager;
     friend class CWorkspace;
-    friend struct SLayerSurface;
+    friend class CLayerSurface;
     friend class CHyprRenderer;
 };

@@ -23,6 +23,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
+#include "../defines.hpp"
 #include "../version.h"
 
 #include <any>
@@ -61,6 +62,7 @@ class IHyprLayout;
 class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
+class CWindow;
 
 /*
     These methods are for the plugin to implement
@@ -133,27 +135,23 @@ namespace HyprlandAPI {
     APICALL Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
-        Register a static (pointer) callback to a selected event.
-        Pointer must be kept valid until unregisterCallback() is called.
-
-        returns: true on success, false on fail
-    */
-    APICALL bool registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn);
-
-    /*
         Register a dynamic (function) callback to a selected event.
         Pointer will be free'd by Hyprland on unregisterCallback().
 
         returns: a pointer to the newly allocated function. nullptr on fail.
+
+        WARNING: Losing this pointer will unregister the callback!
     */
-    APICALL HOOK_CALLBACK_FN* registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
+    APICALL [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
 
     /*
         Unregisters a callback. If the callback was dynamic, frees the memory.
 
         returns: true on success, false on fail
+
+        Deprecated: just reset the pointer you received with registerCallbackDynamic
     */
-    APICALL bool unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn);
+    APICALL [[deprecated]] bool unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN> fn);
 
     /*
         Calls a hyprctl command.
@@ -223,7 +221,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration);
+    APICALL bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration);
 
     /*
         Removes a window decoration
@@ -281,14 +279,14 @@ namespace HyprlandAPI {
 
         returns: Pointer. Nullptr on fail.
     */
-    APICALL std::shared_ptr<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+    APICALL SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
 
     /*
         Unregisters a hyprctl command
 
         returns: true on success. False otherwise.
     */
-    APICALL bool unregisterHyprCtlCommand(HANDLE handle, std::shared_ptr<SHyprCtlCommand> cmd);
+    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
 };
 
 /*

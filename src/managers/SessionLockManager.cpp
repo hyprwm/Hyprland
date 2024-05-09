@@ -1,141 +1,94 @@
 #include "SessionLockManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../protocols/FractionalScale.hpp"
+#include "../protocols/SessionLock.hpp"
 
-static void handleSurfaceMap(void* owner, void* data) {
-    const auto PSURFACE = (SSessionLockSurface*)owner;
+SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
+    pWlrSurface = surface->surface();
 
-    Debug::log(LOG, "SessionLockSurface {:x} mapped", (uintptr_t)PSURFACE);
+    listeners.map = surface_->events.map.registerListener([this](std::any data) {
+        mapped = true;
 
-    PSURFACE->mapped = true;
+        g_pCompositor->focusSurface(surface->surface());
 
-    g_pCompositor->focusSurface(PSURFACE->pWlrLockSurface->surface);
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PSURFACE->iMonitorID);
+        if (PMONITOR)
+            g_pHyprRenderer->damageMonitor(PMONITOR);
+    });
 
-    if (PMONITOR)
-        g_pHyprRenderer->damageMonitor(PMONITOR);
+    listeners.destroy = surface_->events.destroy.registerListener([this](std::any data) {
+        if (pWlrSurface == g_pCompositor->m_pLastFocus)
+            g_pCompositor->m_pLastFocus = nullptr;
+
+        g_pSessionLockManager->removeSessionLockSurface(this);
+    });
+
+    listeners.commit = surface_->events.commit.registerListener([this](std::any data) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
+
+        if (PMONITOR)
+            g_pHyprRenderer->damageMonitor(PMONITOR);
+    });
 }
 
-static void handleSurfaceCommit(void* owner, void* data) {
-    const auto PSURFACE = (SSessionLockSurface*)owner;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PSURFACE->iMonitorID);
-
-    if (PMONITOR)
-        g_pHyprRenderer->damageMonitor(PMONITOR);
+CSessionLockManager::CSessionLockManager() {
+    listeners.newLock = PROTO::sessionLock->events.newLock.registerListener([this](std::any data) { this->onNewSessionLock(std::any_cast<SP<CSessionLock>>(data)); });
 }
 
-static void handleSurfaceDestroy(void* owner, void* data) {
-    const auto PSURFACE = (SSessionLockSurface*)owner;
-
-    Debug::log(LOG, "SessionLockSurface {:x} destroyed", (uintptr_t)PSURFACE);
-
-    PSURFACE->hyprListener_commit.removeCallback();
-    PSURFACE->hyprListener_destroy.removeCallback();
-    PSURFACE->hyprListener_map.removeCallback();
-
-    if (PSURFACE->pWlrLockSurface->surface == g_pCompositor->m_pLastFocus)
-        g_pCompositor->m_pLastFocus = nullptr;
-
-    g_pSessionLockManager->removeSessionLockSurface(PSURFACE);
-}
-
-void CSessionLockManager::onNewSessionLock(wlr_session_lock_v1* pWlrLock) {
+void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
 
     static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
-    if (m_sSessionLock.active && (!*PALLOWRELOCK || m_sSessionLock.pWlrLock)) {
-        Debug::log(LOG, "Attempted to lock a locked session!");
-        wlr_session_lock_v1_destroy(pWlrLock);
+    if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
+        Debug::log(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        pLock->sendDenied();
         return;
     }
 
-    Debug::log(LOG, "Session got locked by {:x}", (uintptr_t)pWlrLock);
+    Debug::log(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 
-    m_sSessionLock.pWlrLock = pWlrLock;
+    m_pSessionLock       = std::make_unique<SSessionLock>();
+    m_pSessionLock->lock = pLock;
 
-    g_pCompositor->m_sSeat.exclusiveClient = wl_resource_get_client(pWlrLock->resource);
+    m_pSessionLock->listeners.newSurface = pLock->events.newLockSurface.registerListener([this](std::any data) {
+        auto       SURFACE = std::any_cast<SP<CSessionLockSurface>>(data);
 
-    m_sSessionLock.hyprListener_newSurface.initCallback(
-        &pWlrLock->events.new_surface,
-        [&](void* owner, void* data) {
-            const auto PSURFACE = &*m_sSessionLock.vSessionLockSurfaces.emplace_back(std::make_unique<SSessionLockSurface>());
+        const auto PMONITOR = SURFACE->monitor();
 
-            const auto PWLRSURFACE = (wlr_session_lock_surface_v1*)data;
+        const auto NEWSURFACE  = m_pSessionLock->vSessionLockSurfaces.emplace_back(std::make_unique<SSessionLockSurface>(SURFACE)).get();
+        NEWSURFACE->iMonitorID = PMONITOR->ID;
+        PROTO::fractional->sendScale(SURFACE->surface(), PMONITOR->scale);
+    });
 
-            const auto PMONITOR = g_pCompositor->getMonitorFromOutput(PWLRSURFACE->output);
+    m_pSessionLock->listeners.unlock = pLock->events.unlockAndDestroy.registerListener([this](std::any data) {
+        m_pSessionLock.reset();
+        g_pInputManager->refocus();
 
-            if (!PMONITOR) {
-                m_sSessionLock.vSessionLockSurfaces.pop_back();
-                return;
-            }
+        for (auto& m : g_pCompositor->m_vMonitors)
+            g_pHyprRenderer->damageMonitor(m.get());
+    });
 
-            PSURFACE->pWlrLockSurface = PWLRSURFACE;
-            PSURFACE->iMonitorID      = PMONITOR->ID;
+    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([this](std::any data) {
+        g_pCompositor->focusSurface(nullptr);
 
-            g_pProtocolManager->m_pFractionalScaleProtocolManager->setPreferredScaleForSurface(PSURFACE->pWlrLockSurface->surface, PMONITOR->scale);
+        for (auto& m : g_pCompositor->m_vMonitors)
+            g_pHyprRenderer->damageMonitor(m.get());
+    });
 
-            wlr_session_lock_surface_v1_configure(PWLRSURFACE, PMONITOR->vecSize.x, PMONITOR->vecSize.y);
-
-            PSURFACE->hyprListener_map.initCallback(&PWLRSURFACE->surface->events.map, &handleSurfaceMap, PSURFACE, "SSessionLockSurface");
-            PSURFACE->hyprListener_destroy.initCallback(&PWLRSURFACE->events.destroy, &handleSurfaceDestroy, PSURFACE, "SSessionLockSurface");
-            PSURFACE->hyprListener_commit.initCallback(&PWLRSURFACE->surface->events.commit, &handleSurfaceCommit, PSURFACE, "SSessionLockSurface");
-        },
-        pWlrLock, "wlr_session_lock_v1");
-
-    m_sSessionLock.hyprListener_unlock.initCallback(
-        &pWlrLock->events.unlock,
-        [&](void* owner, void* data) {
-            Debug::log(LOG, "Session Unlocked");
-
-            m_sSessionLock.hyprListener_destroy.removeCallback();
-            m_sSessionLock.hyprListener_newSurface.removeCallback();
-            m_sSessionLock.hyprListener_unlock.removeCallback();
-
-            m_sSessionLock.active = false;
-
-            m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.clear();
-
-            g_pCompositor->m_sSeat.exclusiveClient = nullptr;
-            g_pInputManager->refocus();
-
-            for (auto& m : g_pCompositor->m_vMonitors)
-                g_pHyprRenderer->damageMonitor(m.get());
-        },
-        pWlrLock, "wlr_session_lock_v1");
-
-    m_sSessionLock.hyprListener_destroy.initCallback(
-        &pWlrLock->events.destroy,
-        [&](void* owner, void* data) {
-            Debug::log(LOG, "Session Lock Abandoned");
-
-            m_sSessionLock.hyprListener_destroy.removeCallback();
-            m_sSessionLock.hyprListener_newSurface.removeCallback();
-            m_sSessionLock.hyprListener_unlock.removeCallback();
-
-            g_pCompositor->m_sSeat.exclusiveClient = nullptr;
-
-            g_pCompositor->focusSurface(nullptr);
-
-            m_sSessionLock.pWlrLock = nullptr;
-
-            for (auto& m : g_pCompositor->m_vMonitors)
-                g_pHyprRenderer->damageMonitor(m.get());
-        },
-        pWlrLock, "wlr_session_lock_v1");
-
-    wlr_session_lock_v1_send_locked(pWlrLock);
-
-    g_pSessionLockManager->activateLock();
+    pLock->sendLocked();
 }
 
 bool CSessionLockManager::isSessionLocked() {
-    return m_sSessionLock.active;
+    return PROTO::sessionLock->isLocked();
 }
 
 SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64_t id) {
-    for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
+    if (!m_pSessionLock)
+        return nullptr;
+
+    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)
                 return sls.get();
@@ -150,11 +103,14 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
 // We don't want the red screen to flash.
 // This violates the protocol a bit, but tries to handle the missing sync between a lock surface beeing created and the red screen beeing drawn.
 float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
-    const auto& NOMAPPEDSURFACETIMER = m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.find(id);
+    if (!m_pSessionLock)
+        return 0.F;
 
-    if (NOMAPPEDSURFACETIMER == m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.end()) {
-        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers.emplace(id, CTimer());
-        m_sSessionLock.mMonitorsWithoutMappedSurfaceTimers[id].reset();
+    const auto& NOMAPPEDSURFACETIMER = m_pSessionLock->mMonitorsWithoutMappedSurfaceTimers.find(id);
+
+    if (NOMAPPEDSURFACETIMER == m_pSessionLock->mMonitorsWithoutMappedSurfaceTimers.end()) {
+        m_pSessionLock->mMonitorsWithoutMappedSurfaceTimers.emplace(id, CTimer());
+        m_pSessionLock->mMonitorsWithoutMappedSurfaceTimers[id].reset();
         return 0.f;
     }
 
@@ -162,8 +118,14 @@ float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
 }
 
 bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {
-    for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
-        if (sls->pWlrLockSurface->surface == pSurface)
+    // TODO: this has some edge cases when it's wrong (e.g. destroyed lock but not yet surfaces)
+    // but can be easily fixed when I rewrite wlr_surface
+
+    if (!m_pSessionLock)
+        return false;
+
+    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+        if (sls->surface->surface() == pSurface)
             return true;
     }
 
@@ -171,20 +133,23 @@ bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {
 }
 
 void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
-    std::erase_if(m_sSessionLock.vSessionLockSurfaces, [&](const auto& other) { return pSLS == other.get(); });
+    if (!m_pSessionLock)
+        return;
+
+    std::erase_if(m_pSessionLock->vSessionLockSurfaces, [&](const auto& other) { return pSLS == other.get(); });
 
     if (g_pCompositor->m_pLastFocus)
         return;
 
-    for (auto& sls : m_sSessionLock.vSessionLockSurfaces) {
+    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (!sls->mapped)
             continue;
 
-        g_pCompositor->focusSurface(sls->pWlrLockSurface->surface);
+        g_pCompositor->focusSurface(sls->surface->surface());
         break;
     }
 }
 
-void CSessionLockManager::activateLock() {
-    m_sSessionLock.active = true;
+bool CSessionLockManager::isSessionLockPresent() {
+    return m_pSessionLock && !m_pSessionLock->vSessionLockSurfaces.empty();
 }

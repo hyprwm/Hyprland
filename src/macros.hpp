@@ -4,6 +4,10 @@
 #include <csignal>
 #include <utility>
 
+#include "helpers/memory/WeakPtr.hpp"
+
+#define UP std::unique_ptr
+
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
 #define ISDEBUG true

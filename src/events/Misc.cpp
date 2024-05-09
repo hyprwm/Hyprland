@@ -16,16 +16,6 @@
 //                                //
 // ------------------------------ //
 
-void Events::listener_outputMgrApply(wl_listener* listener, void* data) {
-    const auto CONFIG = (wlr_output_configuration_v1*)data;
-    g_pHyprRenderer->outputMgrApplyTest(CONFIG, false);
-}
-
-void Events::listener_outputMgrTest(wl_listener* listener, void* data) {
-    const auto CONFIG = (wlr_output_configuration_v1*)data;
-    g_pHyprRenderer->outputMgrApplyTest(CONFIG, true);
-}
-
 void Events::listener_leaseRequest(wl_listener* listener, void* data) {
     const auto               REQUEST = (wlr_drm_lease_request_v1*)data;
     struct wlr_drm_lease_v1* lease   = wlr_drm_lease_request_v1_grant(REQUEST);
@@ -141,7 +131,8 @@ void Events::listener_destroyDrag(void* owner, void* data) {
     g_pInputManager->m_sDrag.dragIcon = nullptr;
     g_pInputManager->m_sDrag.hyprListener_destroy.removeCallback();
 
-    g_pCompositor->focusWindow(g_pCompositor->m_pLastWindow, g_pCompositor->m_pLastWindow ? g_pXWaylandManager->getWindowSurface(g_pCompositor->m_pLastWindow) : nullptr);
+    g_pCompositor->focusWindow(g_pCompositor->m_pLastWindow.lock(),
+                               g_pCompositor->m_pLastWindow.lock() ? g_pXWaylandManager->getWindowSurface(g_pCompositor->m_pLastWindow.lock()) : nullptr);
 }
 
 void Events::listener_mapDragIcon(void* owner, void* data) {
@@ -185,110 +176,4 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;
-}
-
-void Events::listener_powerMgrSetMode(wl_listener* listener, void* data) {
-    Debug::log(LOG, "PowerMgr set mode!");
-
-    const auto EVENT    = (wlr_output_power_v1_set_mode_event*)data;
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(EVENT->output);
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Invalid powerMgrSetMode output");
-        return;
-    }
-
-    wlr_output_state_set_enabled(PMONITOR->state.wlr(), EVENT->mode == 1);
-
-    if (!PMONITOR->state.commit())
-        Debug::log(ERR, "Couldn't set power mode");
-}
-
-void Events::listener_newIME(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New IME added!");
-
-    g_pInputManager->m_sIMERelay.onNewIME((wlr_input_method_v2*)data);
-}
-
-void Events::listener_newTextInput(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New TextInput added!");
-
-    g_pInputManager->m_sIMERelay.onNewTextInput((wlr_text_input_v3*)data);
-}
-
-void Events::listener_newSessionLock(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New session lock!");
-
-    g_pSessionLockManager->onNewSessionLock((wlr_session_lock_v1*)data);
-}
-
-void Events::listener_setGamma(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New Gamma event at {:x}", (uintptr_t)data);
-
-    const auto E = (wlr_gamma_control_manager_v1_set_gamma_event*)data;
-
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(E->output);
-
-    if (!PMONITOR) {
-        Debug::log(ERR, "Gamma event object references non-existent output {:x} ?", (uintptr_t)E->output);
-        return;
-    }
-
-    PMONITOR->gammaChanged = true;
-
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
-}
-
-void Events::listener_setCursorShape(wl_listener* listener, void* data) {
-    const auto E = (wlr_cursor_shape_manager_v1_request_set_shape_event*)data;
-
-    g_pInputManager->processMouseRequest(E);
-}
-
-void Events::listener_newTearingHint(wl_listener* listener, void* data) {
-    Debug::log(LOG, "New tearing hint at {:x}", (uintptr_t)data);
-
-    const auto NEWCTRL = g_pHyprRenderer->m_vTearingControllers.emplace_back(std::make_unique<STearingController>()).get();
-    NEWCTRL->pWlrHint  = (wlr_tearing_control_v1*)data;
-
-    NEWCTRL->hyprListener_destroy.initCallback(
-        &NEWCTRL->pWlrHint->events.destroy,
-        [&](void* owner, void* data) {
-            Debug::log(LOG, "Destroyed {:x} tearing hint", (uintptr_t)((STearingController*)owner)->pWlrHint);
-
-            std::erase_if(g_pHyprRenderer->m_vTearingControllers, [&](const auto& other) { return other.get() == owner; });
-        },
-        NEWCTRL, "TearingController");
-
-    NEWCTRL->hyprListener_set.initCallback(
-        &NEWCTRL->pWlrHint->events.set_hint,
-        [&](void* owner, void* data) {
-            const auto TEARINGHINT = (STearingController*)owner;
-
-            const auto PWINDOW = g_pCompositor->getWindowFromSurface(TEARINGHINT->pWlrHint->surface);
-
-            if (PWINDOW) {
-                PWINDOW->m_bTearingHint = (bool)TEARINGHINT->pWlrHint->current;
-
-                Debug::log(LOG, "Hint {:x} (window {}) set tearing hint to {}", (uintptr_t)TEARINGHINT->pWlrHint, PWINDOW, (uint32_t)TEARINGHINT->pWlrHint->current);
-            }
-        },
-        NEWCTRL, "TearingController");
-}
-
-void Events::listener_newShortcutInhibitor(wl_listener* listener, void* data) {
-    const auto INHIBITOR = (wlr_keyboard_shortcuts_inhibitor_v1*)data;
-
-    const auto PINH = &g_pKeybindManager->m_lShortcutInhibitors.emplace_back();
-    PINH->hyprListener_destroy.initCallback(
-        &INHIBITOR->events.destroy,
-        [](void* owner, void* data) {
-            const auto OWNER = (SShortcutInhibitor*)owner;
-            g_pKeybindManager->m_lShortcutInhibitors.remove(*OWNER);
-        },
-        PINH, "ShortcutInhibitor");
-
-    PINH->pWlrInhibitor = INHIBITOR;
-
-    Debug::log(LOG, "New shortcut inhibitor for surface {:x}", (uintptr_t)INHIBITOR->surface);
 }

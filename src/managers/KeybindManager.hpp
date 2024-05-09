@@ -9,6 +9,7 @@
 class CInputManager;
 class CConfigManager;
 class CPluginSystem;
+class IKeyboard;
 
 struct SKeybind {
     std::string key          = "";
@@ -32,9 +33,12 @@ struct SKeybind {
 
 enum eFocusWindowMode {
     MODE_CLASS_REGEX = 0,
+    MODE_INITIAL_CLASS_REGEX,
     MODE_TITLE_REGEX,
+    MODE_INITIAL_TITLE_REGEX,
     MODE_ADDRESS,
-    MODE_PID
+    MODE_PID,
+    MODE_ACTIVE_WINDOW
 };
 
 struct SPressedKeyWithMods {
@@ -55,8 +59,9 @@ struct SParsedKey {
 class CKeybindManager {
   public:
     CKeybindManager();
+    ~CKeybindManager();
 
-    bool                                                              onKeyEvent(wlr_keyboard_key_event*, SKeyboard*);
+    bool                                                              onKeyEvent(std::any, SP<IKeyboard>);
     bool                                                              onAxisEvent(wlr_pointer_axis_event*);
     bool                                                              onMouseEvent(wlr_pointer_button_event*);
     void                                                              resizeWithBorder(wlr_pointer_button_event*);
@@ -78,7 +83,6 @@ class CKeybindManager {
     bool                                                              m_bGroupsLocked = false;
 
     std::list<SKeybind>                                               m_lKeybinds;
-    std::list<SShortcutInhibitor>                                     m_lShortcutInhibitors;
 
   private:
     std::deque<SPressedKeyWithMods> m_dPressedKeys;
@@ -109,9 +113,9 @@ class CKeybindManager {
     bool                            ensureMouseBindState();
 
     static bool                     tryMoveFocusToMonitor(CMonitor* monitor);
-    static void                     moveWindowOutOfGroup(CWindow* pWindow, const std::string& dir = "");
-    static void                     moveWindowIntoGroup(CWindow* pWindow, CWindow* pWindowInDirection);
-    static void                     switchToWindow(CWindow* PWINDOWTOCHANGETO);
+    static void                     moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
+    static void                     moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
+    static void                     switchToWindow(PHLWINDOW PWINDOWTOCHANGETO);
 
     // -------------- Dispatchers -------------- //
     static void     killActive(std::string);

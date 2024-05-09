@@ -13,6 +13,7 @@ struct wlr_xwayland;
 class CCursorManager {
   public:
     CCursorManager();
+    ~CCursorManager();
 
     wlr_buffer*      getCursorBuffer();
 

@@ -49,7 +49,7 @@ class CWorkspace {
     bool m_bIsSpecialWorkspace = false;
 
     // last window
-    CWindow* m_pLastFocusedWindow = nullptr;
+    PHLWINDOWREF m_pLastFocusedWindow;
 
     // user-set
     bool m_bDefaultFloating = false;
@@ -68,7 +68,7 @@ class CWorkspace {
 
     void        moveToMonitor(const int&);
 
-    CWindow*    getLastFocusedWindow();
+    PHLWINDOW   getLastFocusedWindow();
     void        rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
 
     std::string getConfigName();
@@ -78,11 +78,11 @@ class CWorkspace {
     void        markInert();
 
   private:
-    void                      init(PHLWORKSPACE self);
+    void                 init(PHLWORKSPACE self);
 
-    HOOK_CALLBACK_FN*         m_pFocusedWindowHook = nullptr;
-    bool                      m_bInert             = true;
-    std::weak_ptr<CWorkspace> m_pSelf;
+    SP<HOOK_CALLBACK_FN> m_pFocusedWindowHook;
+    bool                 m_bInert = true;
+    WP<CWorkspace>       m_pSelf;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

@@ -1,7 +1,6 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
-#include "xdg-output-unstable-v1-protocol.h"
 #include "../config/ConfigValue.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
@@ -28,9 +27,13 @@ CHyprXWaylandManager::CHyprXWaylandManager() {
 #endif
 }
 
-CHyprXWaylandManager::~CHyprXWaylandManager() {}
+CHyprXWaylandManager::~CHyprXWaylandManager() {
+#ifndef NO_XWAYLAND
+    unsetenv("DISPLAY");
+#endif
+}
 
-wlr_surface* CHyprXWaylandManager::getWindowSurface(CWindow* pWindow) {
+wlr_surface* CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
     if (pWindow->m_bIsX11)
         return pWindow->m_uSurface.xwayland->surface;
 
@@ -54,7 +57,7 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
     }
 }
 
-void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
+void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
     if (pWindow->m_bIsX11) {
         setWindowSize(pWindow, pWindow->m_vRealSize.value()); // update xwayland output pos
 
@@ -77,7 +80,7 @@ void CHyprXWaylandManager::activateWindow(CWindow* pWindow, bool activate) {
         pWindow->m_pWorkspace->m_pLastFocusedWindow = pWindow;
 }
 
-void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
+void CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow, CBox* pbox) {
     if (pWindow->m_bIsX11) {
         const auto SIZEHINTS = pWindow->m_uSurface.xwayland->size_hints;
 
@@ -98,7 +101,7 @@ void CHyprXWaylandManager::getGeometryForWindow(CWindow* pWindow, CBox* pbox) {
     }
 }
 
-std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
+std::string CHyprXWaylandManager::getTitle(PHLWINDOW pWindow) {
     try {
         if (pWindow->m_bIsX11) {
             if (!pWindow->m_bIsMapped)
@@ -122,7 +125,7 @@ std::string CHyprXWaylandManager::getTitle(CWindow* pWindow) {
     return "";
 }
 
-std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
+std::string CHyprXWaylandManager::getAppIDClass(PHLWINDOW pWindow) {
     try {
         if (pWindow->m_bIsX11) {
             if (!pWindow->m_bIsMapped)
@@ -145,14 +148,14 @@ std::string CHyprXWaylandManager::getAppIDClass(CWindow* pWindow) {
     return "";
 }
 
-void CHyprXWaylandManager::sendCloseWindow(CWindow* pWindow) {
+void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_close(pWindow->m_uSurface.xwayland);
     else
         wlr_xdg_toplevel_send_close(pWindow->m_uSurface.xdg->toplevel);
 }
 
-void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool force) {
+void CHyprXWaylandManager::setWindowSize(PHLWINDOW pWindow, Vector2D size, bool force) {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
@@ -190,7 +193,7 @@ void CHyprXWaylandManager::setWindowSize(CWindow* pWindow, Vector2D size, bool f
         pWindow->m_vPendingSizeAcks.push_back(std::make_pair<>(wlr_xdg_toplevel_set_size(pWindow->m_uSurface.xdg->toplevel, size.x, size.y), size.floor()));
 }
 
-void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez) {
+void CHyprXWaylandManager::setWindowStyleTiled(PHLWINDOW pWindow, uint32_t edgez) {
     if (pWindow->m_bIsX11)
         return;
 
@@ -198,14 +201,14 @@ void CHyprXWaylandManager::setWindowStyleTiled(CWindow* pWindow, uint32_t edgez)
     wlr_xdg_toplevel_set_maximized(pWindow->m_uSurface.xdg->toplevel, true);
 }
 
-wlr_surface* CHyprXWaylandManager::surfaceAt(CWindow* pWindow, const Vector2D& client, Vector2D& surface) {
+wlr_surface* CHyprXWaylandManager::surfaceAt(PHLWINDOW pWindow, const Vector2D& client, Vector2D& surface) {
     if (pWindow->m_bIsX11)
         return wlr_surface_surface_at(pWindow->m_uSurface.xwayland->surface, client.x, client.y, &surface.x, &surface.y);
 
     return wlr_xdg_surface_surface_at(pWindow->m_uSurface.xdg, client.x, client.y, &surface.x, &surface.y);
 }
 
-bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow, bool pending) {
+bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
     if (pWindow->m_bIsX11) {
         for (size_t i = 0; i < pWindow->m_uSurface.xwayland->window_type_len; i++)
             if (pWindow->m_uSurface.xwayland->window_type[i] == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] ||
@@ -258,8 +261,8 @@ bool CHyprXWaylandManager::shouldBeFloated(CWindow* pWindow, bool pending) {
     return false;
 }
 
-void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& pos) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+void CHyprXWaylandManager::moveXWaylandWindow(PHLWINDOW pWindow, const Vector2D& pos) {
+    if (!validMapped(pWindow))
         return;
 
     if (!pWindow->m_bIsX11)
@@ -268,7 +271,7 @@ void CHyprXWaylandManager::moveXWaylandWindow(CWindow* pWindow, const Vector2D& 
     wlr_xwayland_surface_configure(pWindow->m_uSurface.xwayland, pos.x, pos.y, pWindow->m_vRealSize.value().x, pWindow->m_vRealSize.value().y);
 }
 
-void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
+void CHyprXWaylandManager::checkBorders(PHLWINDOW pWindow) {
     if (!pWindow->m_bIsX11)
         return;
 
@@ -291,18 +294,15 @@ void CHyprXWaylandManager::checkBorders(CWindow* pWindow) {
     }
 }
 
-void CHyprXWaylandManager::setWindowFullscreen(CWindow* pWindow, bool fullscreen) {
+void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscreen) {
     if (pWindow->m_bIsX11)
         wlr_xwayland_surface_set_fullscreen(pWindow->m_uSurface.xwayland, fullscreen);
     else
         wlr_xdg_toplevel_set_fullscreen(pWindow->m_uSurface.xdg->toplevel, fullscreen);
-
-    if (pWindow->m_phForeignToplevel)
-        wlr_foreign_toplevel_handle_v1_set_fullscreen(pWindow->m_phForeignToplevel, fullscreen);
 }
 
-Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+Vector2D CHyprXWaylandManager::getMaxSizeForWindow(PHLWINDOW pWindow) {
+    if (!validMapped(pWindow))
         return Vector2D(99999, 99999);
 
     if ((pWindow->m_bIsX11 && !pWindow->m_uSurface.xwayland->size_hints) || (!pWindow->m_bIsX11 && !pWindow->m_uSurface.xdg->toplevel) ||
@@ -320,8 +320,8 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(CWindow* pWindow) {
     return MAXSIZE;
 }
 
-Vector2D CHyprXWaylandManager::getMinSizeForWindow(CWindow* pWindow) {
-    if (!g_pCompositor->windowValidMapped(pWindow))
+Vector2D CHyprXWaylandManager::getMinSizeForWindow(PHLWINDOW pWindow) {
+    if (!validMapped(pWindow))
         return Vector2D(0, 0);
 
     if ((pWindow->m_bIsX11 && !pWindow->m_uSurface.xwayland->size_hints) || (!pWindow->m_bIsX11 && !pWindow->m_uSurface.xdg->toplevel))

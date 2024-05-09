@@ -3,7 +3,7 @@
 #include <pango/pangocairo.h>
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
-    g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (m_dNotifications.size() == 0)
             return;
 
@@ -34,6 +34,13 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
     const auto LASTCHAR    = COMMA < NEWLINE ? COMMA : NEWLINE;
 
     m_szIconFontName = fonts.substr(COLON + 2, LASTCHAR - (COLON + 2));
+}
+
+CHyprNotificationOverlay::~CHyprNotificationOverlay() {
+    if (m_pCairo)
+        cairo_destroy(m_pCairo);
+    if (m_pCairoSurface)
+        cairo_surface_destroy(m_pCairoSurface);
 }
 
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon, const float fontSize) {

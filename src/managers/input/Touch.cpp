@@ -1,6 +1,8 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../protocols/IdleNotify.hpp"
+#include "../../devices/ITouch.hpp"
 
 void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
@@ -14,10 +16,10 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     auto       PMONITOR = g_pCompositor->getMonitorFromName(e->touch->output_name ? e->touch->output_name : "");
 
-    const auto PDEVIT = std::find_if(m_lTouchDevices.begin(), m_lTouchDevices.end(), [&](const STouchDevice& other) { return other.pWlrDevice == &e->touch->base; });
+    const auto PDEVIT = std::find_if(m_vTouches.begin(), m_vTouches.end(), [&](const auto& other) { return other->wlr() == e->touch; });
 
-    if (PDEVIT != m_lTouchDevices.end() && !PDEVIT->boundOutput.empty())
-        PMONITOR = g_pCompositor->getMonitorFromName(PDEVIT->boundOutput);
+    if (PDEVIT != m_vTouches.end() && !(*PDEVIT)->boundOutput.empty())
+        PMONITOR = g_pCompositor->getMonitorFromName((*PDEVIT)->boundOutput);
 
     PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor;
 
@@ -36,7 +38,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
     if (m_sActiveSwipe.pWorkspaceBegin) {
         return;
         // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (!m_pFoundLSToFocus || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
+    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
         const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
@@ -64,16 +66,16 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     Vector2D local;
 
-    if (m_sTouchData.touchFocusWindow) {
+    if (!m_sTouchData.touchFocusWindow.expired()) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
             local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
             m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goal();
         } else {
-            g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow, local);
+            g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow.lock(), local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
         }
-    } else if (m_sTouchData.touchFocusLS) {
-        local = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_sTouchData.touchFocusLS->geometry.x, m_sTouchData.touchFocusLS->geometry.y);
+    } else if (!m_sTouchData.touchFocusLS.expired()) {
+        local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusLS->geometry.pos();
 
         m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
     } else {
@@ -82,7 +84,7 @@ void CInputManager::onTouchDown(wlr_touch_down_event* e) {
 
     wlr_seat_touch_notify_down(g_pCompositor->m_sSeat.seat, m_sTouchData.touchFocusSurface, e->time_msec, e->touch_id, local.x, local.y);
 
-    g_pCompositor->notifyIdleActivity();
+    PROTO::idle->onActivity();
 }
 
 void CInputManager::onTouchUp(wlr_touch_up_event* e) {
@@ -107,25 +109,26 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
             return;
         const bool VERTANIMS = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
-        static auto PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
-        static auto PSWIPEDIST = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
+        static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+        static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
+        const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
         // Handle the workspace swipe if there is one
         if (m_sActiveSwipe.initialDirection == -1) {
             if (*PSWIPEINVR)
-                // go from 0 to -PSWIPEDIST
-                updateWorkspaceSwipe(*PSWIPEDIST * ((VERTANIMS ? e->y : e->x) - 1));
+                // go from 0 to -SWIPEDISTANCE
+                updateWorkspaceSwipe(SWIPEDISTANCE * ((VERTANIMS ? e->y : e->x) - 1));
             else
-                // go from 0 to -PSWIPEDIST
-                updateWorkspaceSwipe(*PSWIPEDIST * (-1 * (VERTANIMS ? e->y : e->x)));
+                // go from 0 to -SWIPEDISTANCE
+                updateWorkspaceSwipe(SWIPEDISTANCE * (-1 * (VERTANIMS ? e->y : e->x)));
         } else if (*PSWIPEINVR)
-            // go from 0 to PSWIPEDIST
-            updateWorkspaceSwipe(*PSWIPEDIST * (VERTANIMS ? e->y : e->x));
+            // go from 0 to SWIPEDISTANCE
+            updateWorkspaceSwipe(SWIPEDISTANCE * (VERTANIMS ? e->y : e->x));
         else
-            // go from 0 to PSWIPEDIST
-            updateWorkspaceSwipe(*PSWIPEDIST * (1 - (VERTANIMS ? e->y : e->x)));
+            // go from 0 to SWIPEDISTANCE
+            updateWorkspaceSwipe(SWIPEDISTANCE * (1 - (VERTANIMS ? e->y : e->x)));
         return;
     }
-    if (m_sTouchData.touchFocusWindow && g_pCompositor->windowValidMapped(m_sTouchData.touchFocusWindow)) {
+    if (validMapped(m_sTouchData.touchFocusWindow)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusWindow->m_iMonitorID);
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
@@ -136,7 +139,7 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
 
         wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id, local.x, local.y);
         // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
-    } else if (m_sTouchData.touchFocusLS) {
+    } else if (!m_sTouchData.touchFocusLS.expired()) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS->monitorID);
 
         wlr_cursor_warp(g_pCompositor->m_sWLRCursor, nullptr, PMONITOR->vecPosition.x + e->x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e->y * PMONITOR->vecSize.y);
@@ -146,12 +149,4 @@ void CInputManager::onTouchMove(wlr_touch_motion_event* e) {
         wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, e->touch_id, local.x, local.y);
         // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
     }
-}
-
-void CInputManager::onPointerHoldBegin(wlr_pointer_hold_begin_event* e) {
-    wlr_pointer_gestures_v1_send_hold_begin(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, e->time_msec, e->fingers);
-}
-
-void CInputManager::onPointerHoldEnd(wlr_pointer_hold_end_event* e) {
-    wlr_pointer_gestures_v1_send_hold_end(g_pCompositor->m_sWLRPointerGestures, g_pCompositor->m_sSeat.seat, e->time_msec, e->cancelled);
 }

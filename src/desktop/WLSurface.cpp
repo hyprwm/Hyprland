@@ -7,14 +7,14 @@ void CWLSurface::assign(wlr_surface* pSurface) {
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, CWindow* pOwner) {
+void CWLSurface::assign(wlr_surface* pSurface, PHLWINDOW pOwner) {
     m_pWindowOwner = pOwner;
     m_pWLRSurface  = pSurface;
     init();
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, SLayerSurface* pOwner) {
+void CWLSurface::assign(wlr_surface* pSurface, PHLLS pOwner) {
     m_pLayerOwner = pOwner;
     m_pWLRSurface = pSurface;
     init();
@@ -52,20 +52,22 @@ wlr_surface* CWLSurface::wlr() const {
 }
 
 bool CWLSurface::small() const {
-    if (!m_pWindowOwner || !exists())
+    if (!validMapped(m_pWindowOwner) || !exists())
         return false;
 
-    return m_pWindowOwner->m_vReportedSize.x > m_pWLRSurface->current.buffer_width + 1 || m_pWindowOwner->m_vReportedSize.y > m_pWLRSurface->current.buffer_height + 1;
+    const auto O = m_pWindowOwner.lock();
+
+    return O->m_vReportedSize.x > m_pWLRSurface->current.buffer_width + 1 || O->m_vReportedSize.y > m_pWLRSurface->current.buffer_height + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!m_pWindowOwner || !exists() || !small() || m_bFillIgnoreSmall)
+    if (!validMapped(m_pWindowOwner) || !exists() || !small() || m_bFillIgnoreSmall)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
+    const auto O    = m_pWindowOwner.lock();
 
-    return Vector2D{(m_pWindowOwner->m_vReportedSize.x - SIZE.x) / 2, (m_pWindowOwner->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) *
-        (m_pWindowOwner->m_vRealSize.value() / m_pWindowOwner->m_vReportedSize);
+    return Vector2D{(O->m_vReportedSize.x - SIZE.x) / 2, (O->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_vRealSize.value() / O->m_vReportedSize);
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
@@ -103,16 +105,18 @@ void CWLSurface::destroy() {
     if (!m_pWLRSurface)
         return;
 
+    events.destroy.emit();
+
     m_pConstraint.reset();
 
     hyprListener_destroy.removeCallback();
     hyprListener_commit.removeCallback();
     m_pWLRSurface->data = nullptr;
-    m_pWindowOwner      = nullptr;
-    m_pLayerOwner       = nullptr;
-    m_pPopupOwner       = nullptr;
-    m_pSubsurfaceOwner  = nullptr;
-    m_bInert            = true;
+    m_pWindowOwner.reset();
+    m_pLayerOwner.reset();
+    m_pPopupOwner      = nullptr;
+    m_pSubsurfaceOwner = nullptr;
+    m_bInert           = true;
 
     if (g_pCompositor && g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;
@@ -146,12 +150,12 @@ void CWLSurface::init() {
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
 
-CWindow* CWLSurface::getWindow() {
-    return m_pWindowOwner;
+PHLWINDOW CWLSurface::getWindow() {
+    return m_pWindowOwner.lock();
 }
 
-SLayerSurface* CWLSurface::getLayer() {
-    return m_pLayerOwner;
+PHLLS CWLSurface::getLayer() {
+    return m_pLayerOwner.lock();
 }
 
 CPopup* CWLSurface::getPopup() {
@@ -163,16 +167,16 @@ CSubsurface* CWLSurface::getSubsurface() {
 }
 
 bool CWLSurface::desktopComponent() {
-    return m_pLayerOwner || m_pWindowOwner || m_pSubsurfaceOwner || m_pPopupOwner;
+    return !m_pLayerOwner.expired() || !m_pWindowOwner.expired() || m_pSubsurfaceOwner || m_pPopupOwner;
 }
 
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     if (!desktopComponent())
         return {};
 
-    if (m_pWindowOwner)
+    if (!m_pWindowOwner.expired())
         return m_pWindowOwner->getWindowMainSurfaceBox();
-    if (m_pLayerOwner)
+    if (!m_pLayerOwner.expired())
         return m_pLayerOwner->geometry;
     if (m_pPopupOwner)
         return CBox{m_pPopupOwner->coordsGlobal(), m_pPopupOwner->size()};
@@ -182,15 +186,26 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
     return {};
 }
 
-void CWLSurface::appendConstraint(wlr_pointer_constraint_v1* constraint) {
-    m_pConstraint = std::make_unique<CConstraint>(constraint, this);
+void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
+    m_pConstraint = constraint;
 }
 
 void CWLSurface::onCommit() {
-    if (m_pConstraint)
-        m_pConstraint->onCommit();
+    ;
 }
 
-CConstraint* CWLSurface::constraint() {
-    return m_pConstraint.get();
+SP<CPointerConstraint> CWLSurface::constraint() {
+    return m_pConstraint.lock();
+}
+
+bool CWLSurface::visible() {
+    if (!m_pWindowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_pWindowOwner.lock());
+    if (!m_pLayerOwner.expired())
+        return true;
+    if (m_pPopupOwner)
+        return m_pPopupOwner->visible();
+    if (m_pSubsurfaceOwner)
+        return m_pSubsurfaceOwner->visible();
+    return true; // non-desktop, we don't know much.
 }

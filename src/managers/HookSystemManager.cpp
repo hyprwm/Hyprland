@@ -7,30 +7,28 @@ CHookSystemManager::CHookSystemManager() {
 }
 
 // returns the pointer to the function
-HOOK_CALLBACK_FN* CHookSystemManager::hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle) {
-    const auto PVEC = getVecForEvent(event);
-    const auto PFN  = &m_lCallbackFunctions.emplace_back(fn);
-    PVEC->emplace_back(SCallbackFNPtr{PFN, handle});
-    return PFN;
+SP<HOOK_CALLBACK_FN> CHookSystemManager::hookDynamic(const std::string& event, HOOK_CALLBACK_FN fn, HANDLE handle) {
+    SP<HOOK_CALLBACK_FN> hookFN = makeShared<HOOK_CALLBACK_FN>(fn);
+    m_mRegisteredHooks[event].emplace_back(SCallbackFNPtr{.fn = hookFN, .handle = handle});
+    return hookFN;
 }
 
-void CHookSystemManager::hookStatic(const std::string& event, HOOK_CALLBACK_FN* fn, HANDLE handle) {
-    const auto PVEC = getVecForEvent(event);
-    PVEC->emplace_back(SCallbackFNPtr{fn, handle});
-}
+void CHookSystemManager::unhook(SP<HOOK_CALLBACK_FN> fn) {
+    for (auto& [k, v] : m_mRegisteredHooks) {
+        std::erase_if(v, [&](const auto& other) {
+            SP<HOOK_CALLBACK_FN> fn_ = other.fn.lock();
 
-void CHookSystemManager::unhook(HOOK_CALLBACK_FN* fn) {
-    std::erase_if(m_lCallbackFunctions, [&](const auto& other) { return &other == fn; });
-    for (auto& [k, v] : m_lpRegisteredHooks) {
-        std::erase_if(v, [&](const auto& other) { return other.fn == fn; });
+            return fn_.get() == fn.get();
+        });
     }
 }
 
-void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCallbackInfo& info, std::any data) {
+void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCallbackInfo& info, std::any data) {
     if (callbacks->empty())
         return;
 
     std::vector<HANDLE> faultyHandles;
+    bool                needsDeadCleanup = false;
 
     for (auto& cb : *callbacks) {
 
@@ -38,7 +36,11 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCal
 
         if (!cb.handle) {
             // we don't guard hl hooks
-            (*cb.fn)(cb.fn, info, data);
+
+            if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
+                (*fn)(fn.get(), info, data);
+            else
+                needsDeadCleanup = true;
             continue;
         }
 
@@ -48,9 +50,12 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCal
             continue;
 
         try {
-            if (!setjmp(m_jbHookFaultJumpBuf))
-                (*cb.fn)(cb.fn, info, data);
-            else {
+            if (!setjmp(m_jbHookFaultJumpBuf)) {
+                if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
+                    (*fn)(fn.get(), info, data);
+                else
+                    needsDeadCleanup = true;
+            } else {
                 // this module crashed.
                 throw std::exception();
             }
@@ -61,6 +66,9 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCal
         }
     }
 
+    if (needsDeadCleanup)
+        std::erase_if(*callbacks, [](const auto& fn) { return !fn.fn.lock(); });
+
     if (!faultyHandles.empty()) {
         for (auto& h : faultyHandles)
             g_pPluginSystem->unloadPlugin(g_pPluginSystem->getPluginByHandle(h), true);
@@ -68,12 +76,8 @@ void CHookSystemManager::emit(const std::vector<SCallbackFNPtr>* callbacks, SCal
 }
 
 std::vector<SCallbackFNPtr>* CHookSystemManager::getVecForEvent(const std::string& event) {
-    auto IT = std::find_if(m_lpRegisteredHooks.begin(), m_lpRegisteredHooks.end(), [&](const auto& other) { return other.first == event; });
+    if (!m_mRegisteredHooks.contains(event))
+        Debug::log(LOG, "[hookSystem] New hook event registered: {}", event);
 
-    if (IT != m_lpRegisteredHooks.end())
-        return &IT->second;
-
-    Debug::log(LOG, "[hookSystem] New hook event registered: {}", event);
-
-    return &m_lpRegisteredHooks.emplace_back(std::make_pair<>(event, std::vector<SCallbackFNPtr>{})).second;
+    return &m_mRegisteredHooks[event];
 }

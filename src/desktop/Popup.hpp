@@ -4,13 +4,11 @@
 #include <memory>
 #include "Subsurface.hpp"
 
-struct SLayerSurface;
-
 class CPopup {
   public:
     // dummy head nodes
-    CPopup(CWindow* pOwner);
-    CPopup(SLayerSurface* pOwner);
+    CPopup(PHLWINDOW pOwner);
+    CPopup(PHLLS pOwner);
 
     // real nodes
     CPopup(wlr_xdg_popup* popup, CPopup* pOwner);
@@ -31,12 +29,14 @@ class CPopup {
 
     void       recheckTree();
 
+    bool       visible();
+
     CWLSurface m_sWLSurface;
 
   private:
     // T1 owners, each popup has to have one of these
-    CWindow*       m_pWindowOwner = nullptr;
-    SLayerSurface* m_pLayerOwner  = nullptr;
+    PHLWINDOWREF m_pWindowOwner;
+    PHLLSREF     m_pLayerOwner;
 
     // T2 owners
     CPopup*        m_pParent = nullptr;

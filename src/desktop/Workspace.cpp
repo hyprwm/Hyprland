@@ -3,7 +3,7 @@
 #include "../config/ConfigValue.hpp"
 
 PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special) {
-    PHLWORKSPACE workspace = std::make_shared<CWorkspace>(id, monitorID, name, special);
+    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special);
     workspace->init(workspace);
     return workspace;
 }
@@ -33,10 +33,10 @@ void CWorkspace::init(PHLWORKSPACE self) {
         m_szName = RULEFORTHIS.defaultName.value();
 
     m_pFocusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<CWindow*>(param);
+        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
 
-        if (PWINDOW == m_pLastFocusedWindow)
-            m_pLastFocusedWindow = nullptr;
+        if (PWINDOW == m_pLastFocusedWindow.lock())
+            m_pLastFocusedWindow.reset();
     });
 
     m_bInert = false;
@@ -75,7 +75,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
         for (auto& w : g_pCompositor->m_vWindows) {
-            if (!g_pCompositor->windowValidMapped(w.get()) || w->workspaceID() != m_iID)
+            if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
 
             w->onWorkspaceAnimUpdate();
@@ -182,11 +182,11 @@ void CWorkspace::moveToMonitor(const int& id) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
-CWindow* CWorkspace::getLastFocusedWindow() {
-    if (!g_pCompositor->windowValidMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->workspaceID() != m_iID)
+PHLWINDOW CWorkspace::getLastFocusedWindow() {
+    if (!validMapped(m_pLastFocusedWindow) || m_pLastFocusedWindow->workspaceID() != m_iID)
         return nullptr;
 
-    return m_pLastFocusedWindow;
+    return m_pLastFocusedWindow.lock();
 }
 
 void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
@@ -207,7 +207,7 @@ void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
 
 std::string CWorkspace::getConfigName() {
     if (m_bIsSpecialWorkspace) {
-        return "special:" + m_szName;
+        return m_szName;
     }
 
     if (m_iID > 0)
@@ -252,6 +252,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // w - windowCount: w[1-4] or w[1], optional flag t or f for tiled or floating and
             //                  flag g to count groups instead of windows, e.g. w[t1-2], w[fg4]
             //                  flag v will count only visible windows
+            // f - fullscreen state : f[-1], f[0], f[1], or f[2] for different fullscreen states
+            //                        -1: no fullscreen, 0: fullscreen, 1: maximized, 2: fullscreen without sending fs state to window
 
             const auto  NEXTSPACE = selector.find_first_of(' ', i);
             std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
@@ -439,6 +441,44 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 if (std::clamp(count, from, to) != count)
                     return false;
+                continue;
+            }
+
+            if (cur == 'f') {
+                if (!prop.starts_with("f[") || !prop.ends_with("]")) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                prop        = prop.substr(2, prop.length() - 3);
+                int FSSTATE = -1;
+                try {
+                    FSSTATE = std::stoi(prop);
+                } catch (std::exception& e) {
+                    Debug::log(LOG, "Invalid selector {}", selector);
+                    return false;
+                }
+
+                switch (FSSTATE) {
+                    case -1: // no fullscreen
+                        if (m_bHasFullscreenWindow)
+                            return false;
+                        break;
+                    case 0: // fullscreen full
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL)
+                            return false;
+                        break;
+                    case 1: // maximized
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_MAXIMIZED)
+                            return false;
+                        break;
+                    case 2: // fullscreen without sending fullscreen state to window
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL || !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID) ||
+                            !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID)->m_bDontSendFullscreen)
+                            return false;
+                        break;
+                    default: break;
+                }
                 continue;
             }
 

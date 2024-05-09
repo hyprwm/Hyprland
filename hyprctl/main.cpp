@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <pwd.h>
 #include <unistd.h>
 #include <ranges>
 #include <algorithm>
@@ -38,24 +39,34 @@ struct SInstanceData {
     bool        valid = true;
 };
 
+std::string getRuntimeDir() {
+    const auto XDG = getenv("XDG_RUNTIME_DIR");
+
+    if (!XDG) {
+        const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+        return "/run/user/" + USERID + "/hypr";
+    }
+
+    return std::string{XDG} + "/hypr";
+}
+
 std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
-    for (const auto& el : std::filesystem::directory_iterator("/tmp/hypr")) {
-        if (el.is_directory() || !el.path().string().ends_with(".lock"))
+    for (const auto& el : std::filesystem::directory_iterator(getRuntimeDir())) {
+        if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
             continue;
 
         // read lock
         SInstanceData* data = &result.emplace_back();
-        data->id            = el.path().string();
-        data->id            = data->id.substr(data->id.find_last_of('/') + 1, data->id.find(".lock") - data->id.find_last_of('/') - 1);
+        data->id            = el.path().filename().string();
 
         try {
-            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1));
+            data->time = std::stoull(data->id.substr(data->id.find_first_of('_') + 1, data->id.find_last_of('_') - (data->id.find_first_of('_') + 1)));
         } catch (std::exception& e) { continue; }
 
         // read file
-        std::ifstream ifs(el.path().string());
+        std::ifstream ifs(el.path().string() + "/hyprland.lock");
 
         int           i = 0;
         for (std::string line; std::getline(ifs, line); ++i) {
@@ -99,10 +110,12 @@ void request(std::string arg, int minArgs = 0) {
         return;
     }
 
-    sockaddr_un serverAddress = {0};
-    serverAddress.sun_family  = AF_UNIX;
+    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
 
-    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.socket.sock";
+    sockaddr_un       serverAddress = {0};
+    serverAddress.sun_family        = AF_UNIX;
+
+    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/.socket.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
@@ -160,7 +173,9 @@ void requestHyprpaper(std::string arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = "/tmp/hypr/" + instanceSignature + "/.hyprpaper.sock";
+    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+
+    std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/.hyprpaper.sock";
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 

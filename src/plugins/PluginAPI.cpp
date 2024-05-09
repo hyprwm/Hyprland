@@ -13,37 +13,25 @@ APICALL const char* __hyprland_api_get_hash() {
     return GIT_COMMIT_HASH;
 }
 
-APICALL bool HyprlandAPI::registerCallbackStatic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN* fn) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    g_pHookSystem->hookStatic(event, fn, handle);
-    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, fn));
-
-    return true;
-}
-
-APICALL HOOK_CALLBACK_FN* HyprlandAPI::registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn) {
+APICALL SP<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return nullptr;
 
-    auto* const PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, PFN));
+    auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
+    PLUGIN->registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
     return PFN;
 }
 
-APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, HOOK_CALLBACK_FN* fn) {
+APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN> fn) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
     g_pHookSystem->unhook(fn);
-    std::erase_if(PLUGIN->registeredCallbacks, [&](const auto& other) { return other.second == fn; });
+    std::erase_if(PLUGIN->registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
 
     return true;
 }
@@ -111,13 +99,13 @@ APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook)
     return g_pFunctionHookSystem->removeHook(hook);
 }
 
-APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, CWindow* pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration) {
+APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, std::unique_ptr<IHyprWindowDecoration> pDecoration) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
-    if (!g_pCompositor->windowValidMapped(pWindow))
+    if (!validMapped(pWindow))
         return false;
 
     PLUGIN->registeredDecorations.push_back(pDecoration.get());
@@ -367,7 +355,7 @@ APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
     return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE, GIT_COMMITS};
 }
 
-APICALL std::shared_ptr<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd) {
+APICALL SP<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
@@ -378,7 +366,7 @@ APICALL std::shared_ptr<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HAN
     return PTR;
 }
 
-APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, std::shared_ptr<SHyprCtlCommand> cmd) {
+APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd) {
 
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 

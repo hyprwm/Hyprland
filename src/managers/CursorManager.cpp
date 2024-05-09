@@ -50,7 +50,12 @@ CCursorManager::CCursorManager() {
 
     updateTheme();
 
-    g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
+    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
+}
+
+CCursorManager::~CCursorManager() {
+    if (m_pWLRXCursorMgr)
+        wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
@@ -117,8 +122,16 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     m_sCurrentCursorShapeData = m_pHyprcursor->getShape(name.c_str(), m_sCurrentStyleInfo);
 
     if (m_sCurrentCursorShapeData.images.size() < 1) {
+        // try with '_' first (old hc, etc)
+        std::string newName = name;
+        std::replace(newName.begin(), newName.end(), '-', '_');
+
+        m_sCurrentCursorShapeData = m_pHyprcursor->getShape(newName.c_str(), m_sCurrentStyleInfo);
+    }
+
+    if (m_sCurrentCursorShapeData.images.size() < 1) {
         // fallback to a default if available
-        constexpr const std::array<const char*, 2> fallbackShapes = {"default", "left_ptr"};
+        constexpr const std::array<const char*, 3> fallbackShapes = {"default", "left_ptr", "left-ptr"};
 
         for (auto& s : fallbackShapes) {
             m_sCurrentCursorShapeData = m_pHyprcursor->getShape(s, m_sCurrentStyleInfo);
@@ -210,13 +223,15 @@ void CCursorManager::updateTheme() {
             highestScale = m->scale;
     }
 
-    if (highestScale * m_iSize == m_sCurrentStyleInfo.size)
+    highestScale = std::ceil(highestScale);
+
+    if (std::round(highestScale * m_iSize) == m_sCurrentStyleInfo.size)
         return;
 
     if (m_sCurrentStyleInfo.size && m_pHyprcursor->valid())
         m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
 
-    m_sCurrentStyleInfo.size = m_iSize * highestScale;
+    m_sCurrentStyleInfo.size = std::round(m_iSize * highestScale);
     m_fCursorScale           = highestScale;
 
     if (m_pHyprcursor->valid())

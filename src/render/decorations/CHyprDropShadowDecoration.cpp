@@ -3,7 +3,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 
-CHyprDropShadowDecoration::CHyprDropShadowDecoration(CWindow* pWindow) : IHyprWindowDecoration(pWindow) {
+CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
 }
 
@@ -24,7 +24,7 @@ SDecorationPositioningInfo CHyprDropShadowDecoration::getPositioningInfo() {
 }
 
 void CHyprDropShadowDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
-    updateWindow(m_pWindow);
+    updateWindow(m_pWindow.lock());
 }
 
 uint64_t CHyprDropShadowDecoration::getDecorationFlags() {
@@ -41,31 +41,33 @@ void CHyprDropShadowDecoration::damageEntire() {
     if (*PSHADOWS != 1)
         return; // disabled
 
-    CBox       shadowBox = {m_pWindow->m_vRealPosition.value().x - m_seExtents.topLeft.x, m_pWindow->m_vRealPosition.value().y - m_seExtents.topLeft.y,
-                            m_pWindow->m_vRealSize.value().x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
-                            m_pWindow->m_vRealSize.value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
+    const auto PWINDOW = m_pWindow.lock();
 
-    const auto PWORKSPACE = m_pWindow->m_pWorkspace;
-    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+    CBox       shadowBox = {PWINDOW->m_vRealPosition.value().x - m_seExtents.topLeft.x, PWINDOW->m_vRealPosition.value().y - m_seExtents.topLeft.y,
+                            PWINDOW->m_vRealSize.value().x + m_seExtents.topLeft.x + m_seExtents.bottomRight.x,
+                            PWINDOW->m_vRealSize.value().y + m_seExtents.topLeft.y + m_seExtents.bottomRight.y};
+
+    const auto PWORKSPACE = PWINDOW->m_pWorkspace;
+    if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOW->m_bPinned)
         shadowBox.translate(PWORKSPACE->m_vRenderOffset.value());
-    shadowBox.translate(m_pWindow->m_vFloatingOffset);
+    shadowBox.translate(PWINDOW->m_vFloatingOffset);
 
     static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow_ignore_window");
-    const auto  ROUNDING            = m_pWindow->rounding();
+    const auto  ROUNDING            = PWINDOW->rounding();
     const auto  ROUNDINGSIZE        = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
 
     CRegion     shadowRegion(shadowBox);
     if (*PSHADOWIGNOREWINDOW) {
-        CBox surfaceBox = m_pWindow->getWindowMainSurfaceBox();
-        if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
+        CBox surfaceBox = PWINDOW->getWindowMainSurfaceBox();
+        if (PWORKSPACE && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOW->m_bPinned)
             surfaceBox.translate(PWORKSPACE->m_vRenderOffset.value());
-        surfaceBox.translate(m_pWindow->m_vFloatingOffset);
+        surfaceBox.translate(PWINDOW->m_vFloatingOffset);
         surfaceBox.expand(-ROUNDINGSIZE);
         shadowRegion.subtract(CRegion(surfaceBox));
     }
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow, m.get())) {
+        if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m.get())) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             shadowRegion.subtract(monitorRegion);
         }
@@ -74,9 +76,11 @@ void CHyprDropShadowDecoration::damageEntire() {
     g_pHyprRenderer->damageRegion(shadowRegion);
 }
 
-void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
-    m_vLastWindowPos  = m_pWindow->m_vRealPosition.value();
-    m_vLastWindowSize = m_pWindow->m_vRealSize.value();
+void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
+    const auto PWINDOW = m_pWindow.lock();
+
+    m_vLastWindowPos  = PWINDOW->m_vRealPosition.value();
+    m_vLastWindowSize = PWINDOW->m_vRealSize.value();
 
     m_bLastWindowBox          = {m_vLastWindowPos.x, m_vLastWindowPos.y, m_vLastWindowSize.x, m_vLastWindowSize.y};
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
@@ -84,19 +88,21 @@ void CHyprDropShadowDecoration::updateWindow(CWindow* pWindow) {
 
 void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
-    if (!g_pCompositor->windowValidMapped(m_pWindow))
+    const auto PWINDOW = m_pWindow.lock();
+
+    if (!validMapped(PWINDOW))
         return;
 
-    if (m_pWindow->m_cRealShadowColor.value() == CColor(0, 0, 0, 0))
+    if (PWINDOW->m_cRealShadowColor.value() == CColor(0, 0, 0, 0))
         return; // don't draw invisible shadows
 
-    if (!m_pWindow->m_sSpecialRenderData.decorate)
+    if (!PWINDOW->m_sSpecialRenderData.decorate)
         return;
 
-    if (!m_pWindow->m_sSpecialRenderData.shadow)
+    if (!PWINDOW->m_sSpecialRenderData.shadow)
         return;
 
-    if (m_pWindow->m_sAdditionalConfigData.forceNoShadow)
+    if (PWINDOW->m_sAdditionalConfigData.forceNoShadow)
         return;
 
     static auto PSHADOWS            = CConfigValue<Hyprlang::INT>("decoration:drop_shadow");
@@ -108,10 +114,10 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     if (*PSHADOWS != 1)
         return; // disabled
 
-    const auto ROUNDINGBASE    = m_pWindow->rounding();
-    const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + m_pWindow->getRealBorderSize() : 0;
-    const auto PWORKSPACE      = m_pWindow->m_pWorkspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
+    const auto ROUNDINGBASE    = PWINDOW->rounding();
+    const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
+    const auto PWORKSPACE      = PWINDOW->m_pWorkspace;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_bLastWindowBoxWithDecos;
@@ -126,13 +132,13 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     // scale the box in relation to the center of the box
     fullBox.scaleFromCenter(SHADOWSCALE).translate(*PSHADOWOFFSET);
 
-    updateWindow(m_pWindow);
+    updateWindow(PWINDOW);
     m_vLastWindowPos += WORKSPACEOFFSET;
     m_seExtents = {{m_vLastWindowPos.x - fullBox.x - pMonitor->vecPosition.x + 2, m_vLastWindowPos.y - fullBox.y - pMonitor->vecPosition.y + 2},
                    {fullBox.x + fullBox.width + pMonitor->vecPosition.x - m_vLastWindowPos.x - m_vLastWindowSize.x + 2,
                     fullBox.y + fullBox.height + pMonitor->vecPosition.y - m_vLastWindowPos.y - m_vLastWindowSize.y + 2}};
 
-    fullBox.translate(m_pWindow->m_vFloatingOffset);
+    fullBox.translate(PWINDOW->m_vFloatingOffset);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return; // don't draw invisible shadows
@@ -154,8 +160,8 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         windowBox.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
         withDecos.translate(-pMonitor->vecPosition + WORKSPACEOFFSET);
 
-        windowBox.translate(m_pWindow->m_vFloatingOffset);
-        withDecos.translate(m_pWindow->m_vFloatingOffset);
+        windowBox.translate(PWINDOW->m_vFloatingOffset);
+        withDecos.translate(PWINDOW->m_vFloatingOffset);
 
         auto scaledExtentss = withDecos.extentsFrom(windowBox);
         scaledExtentss      = scaledExtentss * pMonitor->scale;
@@ -181,15 +187,15 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
         g_pHyprOpenGL->renderRect(&fullBox, CColor(0, 0, 0, 1), 0);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, m_pWindow->m_cRealShadowColor.value().a), a);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, PWINDOW->m_cRealShadowColor.value().a), a);
 
         // render black window box ("clip")
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), ROUNDING * pMonitor->scale);
+        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->scale);
 
         alphaSwapFB.bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprOpenGL->renderRect(&fullBox, m_pWindow->m_cRealShadowColor.value().stripA(), 0);
+        g_pHyprOpenGL->renderRect(&fullBox, PWINDOW->m_cRealShadowColor.value().stripA(), 0);
 
         LASTFB->bind();
 
@@ -202,7 +208,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
 
         g_pHyprOpenGL->m_RenderData.damage = saveDamage;
     } else {
-        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, m_pWindow->m_cRealShadowColor.value(), a);
+        g_pHyprOpenGL->renderRoundedShadow(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, PWINDOW->m_cRealShadowColor.value(), a);
     }
 
     if (m_seExtents != m_seReportedExtents)

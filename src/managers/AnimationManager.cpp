@@ -4,9 +4,10 @@
 #include "macros.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 
-int wlTick(std::shared_ptr<CEventLoopTimer> self, void* data) {
+int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
         g_pAnimationManager->onTicked();
 
@@ -26,7 +27,7 @@ CAnimationManager::CAnimationManager() {
     std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
     m_mBezierCurves["default"].setup(&points);
 
-    m_pAnimationTimer = std::make_unique<CEventLoopTimer>(std::chrono::microseconds(500), wlTick, nullptr);
+    m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
 }
 
@@ -80,9 +81,9 @@ void CAnimationManager::tick() {
         const float SPENT = av->getPercent();
 
         // window stuff
-        const auto   PWINDOW            = (CWindow*)av->m_pWindow;
+        PHLWINDOW    PWINDOW            = av->m_pWindow.lock();
         PHLWORKSPACE PWORKSPACE         = av->m_pWorkspace.lock();
-        const auto   PLAYER             = (SLayerSurface*)av->m_pLayer;
+        PHLLS        PLAYER             = av->m_pLayer.lock();
         CMonitor*    PMONITOR           = nullptr;
         bool         animationsDisabled = animGlobalDisabled;
 
@@ -121,19 +122,19 @@ void CAnimationManager::tick() {
                     const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
                     const CBox monitorBox        = {PMONITOR->vecPosition, PMONITOR->vecSize};
                     if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
-                        g_pHyprRenderer->damageWindow(w.get(), true);
+                        g_pHyprRenderer->damageWindow(w, true);
                 }
 
                 if (PWORKSPACE->m_bIsSpecialWorkspace)
-                    g_pHyprRenderer->damageWindow(w.get(), true); // hack for special too because it can cross multiple monitors
+                    g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
             }
 
             // damage any workspace window that is on any monitor
             for (auto& w : g_pCompositor->m_vWindows) {
-                if (!g_pCompositor->windowValidMapped(w.get()) || w->m_pWorkspace != PWORKSPACE || w->m_bPinned)
+                if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE || w->m_bPinned)
                     continue;
 
-                g_pHyprRenderer->damageWindow(w.get());
+                g_pHyprRenderer->damageWindow(w);
             }
         } else if (PLAYER) {
             // "some fucking layers miss 1 pixel???" -- vaxry
@@ -141,7 +142,7 @@ void CAnimationManager::tick() {
             expandBox.expand(5);
             g_pHyprRenderer->damageBox(&expandBox);
 
-            PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D(PLAYER->geometry.x, PLAYER->geometry.y) + Vector2D(PLAYER->geometry.width, PLAYER->geometry.height) / 2.f);
+            PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition.goal() + PLAYER->realSize.goal() / 2.F);
             if (!PMONITOR)
                 continue;
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
@@ -192,7 +193,7 @@ void CAnimationManager::tick() {
             default: UNREACHABLE();
         }
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
-        if (g_pCompositor->windowValidMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
+        if (validMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
 
         // check if we did not finish animating. If so, trigger onAnimationEnd.
@@ -213,14 +214,14 @@ void CAnimationManager::tick() {
                     g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
                     for (auto& w : g_pCompositor->m_vWindows) {
-                        if (!g_pCompositor->windowValidMapped(w.get()) || w->m_pWorkspace != PWORKSPACE)
+                        if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE)
                             continue;
 
                         w->updateWindowDecos();
 
                         // damage any workspace window that is on any monitor
                         if (!w->m_bPinned)
-                            g_pHyprRenderer->damageWindow(w.get());
+                            g_pHyprRenderer->damageWindow(w);
                     }
                 } else if (PLAYER) {
                     if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
@@ -304,7 +305,7 @@ bool CAnimationManager::bezierExists(const std::string& bezier) {
 //
 //
 
-void CAnimationManager::animationPopin(CWindow* pWindow, bool close, float minPerc) {
+void CAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
     const auto GOALPOS  = pWindow->m_vRealPosition.goal();
     const auto GOALSIZE = pWindow->m_vRealSize.goal();
 
@@ -317,7 +318,7 @@ void CAnimationManager::animationPopin(CWindow* pWindow, bool close, float minPe
     }
 }
 
-void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool close) {
+void CAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
     pWindow->m_vRealSize.warp(false); // size we preserve in slide
 
     const auto GOALPOS  = pWindow->m_vRealPosition.goal();
@@ -381,7 +382,7 @@ void CAnimationManager::animationSlide(CWindow* pWindow, std::string force, bool
         pWindow->m_vRealPosition = posOffset;
 }
 
-void CAnimationManager::onWindowPostCreateClose(CWindow* pWindow, bool close) {
+void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!close) {
         pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
         pWindow->m_vRealSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("windowsIn");

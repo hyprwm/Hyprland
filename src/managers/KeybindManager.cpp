@@ -565,7 +565,28 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (!key.keyName.empty()) {
+        if (k.multiKey) {
+            for (auto& mkey : keys) {
+                if (!mkey.keyName.empty()) {
+                    if (!k.keys.contains(mkey.keyName))
+                        continue;
+                } else if (mkey.keycode != 0) {
+                    if (!k.keycodes.contains(mkey.keycode))
+                        continue;
+                } else {
+                    // oMg such performance hit!!11!
+                    // this little maneouver is gonna cost us up to 8x4µs! );
+                    const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);
+                    const auto KBKEYLOWER = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+
+                    if (KBKEY == 0 && KBKEY == 0)
+                        continue;
+
+                    if (mkey.keysym != KBKEY && mkey.keysym != KBKEYLOWER)
+                        continue;
+                }
+            }
+        } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)
                 continue;
         } else if (k.keycode != 0) {

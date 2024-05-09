@@ -12,10 +12,12 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         return;
 
     resource->setDestroy([this](CZwpVirtualKeyboardV1* r) {
+        releasePressed();
         events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
     resource->setOnDestroy([this](CZwpVirtualKeyboardV1* r) {
+        releasePressed();
         events.destroy.emit();
         PROTO::virtualKeyboard->destroyResource(this);
     });
@@ -99,6 +101,22 @@ wlr_keyboard* CVirtualKeyboardV1Resource::wlr() {
 
 wl_client* CVirtualKeyboardV1Resource::client() {
     return resource->client();
+}
+
+void CVirtualKeyboardV1Resource::releasePressed() {
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    size_t keycodesNum = keyboard.num_keycodes;
+
+    for (size_t i = 0; i < keycodesNum; ++i) {
+        struct wlr_keyboard_key_event event = {
+            .time_msec    = (now.tv_sec * 1000 + now.tv_nsec / 1000000),
+            .keycode      = keyboard.keycodes[keycodesNum - i - 1],
+            .update_state = false,
+            .state        = WL_KEYBOARD_KEY_STATE_RELEASED,
+        };
+        wlr_keyboard_notify_key(&keyboard, &event); // updates num_keycodes
+    }
 }
 
 CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

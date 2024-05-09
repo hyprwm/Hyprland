@@ -43,7 +43,6 @@ extern "C" {
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_drm_lease_v1.h>
 #include <wlr/types/wlr_drm.h>
-#include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_input_device.h>
@@ -74,9 +73,6 @@ extern "C" {
 #include <wlr/render/wlr_texture.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/interfaces/wlr_pointer.h>
-#include <wlr/types/wlr_xdg_foreign_registry.h>
-#include <wlr/types/wlr_xdg_foreign_v1.h>
-#include <wlr/types/wlr_xdg_foreign_v2.h>
 #include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_switch.h>
 #include <wlr/config.h>

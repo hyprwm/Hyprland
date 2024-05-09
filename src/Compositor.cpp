@@ -224,7 +224,6 @@ void CCompositor::initServer() {
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
     m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
 
-    wlr_export_dmabuf_manager_v1_create(m_sWLDisplay);
     wlr_data_control_manager_v1_create(m_sWLDisplay);
     wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
@@ -240,11 +239,6 @@ void CCompositor::initServer() {
         Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");
         Debug::log(INFO, "VR will not be available");
     }
-
-    m_sWLRForeignRegistry = wlr_xdg_foreign_registry_create(m_sWLDisplay);
-
-    wlr_xdg_foreign_v1_create(m_sWLDisplay, m_sWLRForeignRegistry);
-    wlr_xdg_foreign_v2_create(m_sWLDisplay, m_sWLRForeignRegistry);
 
     m_sWLRHeadlessBackend = wlr_headless_backend_create(m_sWLEventLoop);
 

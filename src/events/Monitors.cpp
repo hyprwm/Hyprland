@@ -18,7 +18,7 @@
 
 static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitorName) {
 
-    static auto PCURSORMONITOR    = CConfigValue<std::string>("general:default_cursor_monitor");
+    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
     static auto firstMonitorAdded = std::chrono::system_clock::now();
     static bool cursorDefaultDone = false;
     static bool firstLaunch       = true;

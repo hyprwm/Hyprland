@@ -327,7 +327,7 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("misc:cursor_zoom_factor");
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);
@@ -340,7 +340,7 @@ void CMonitor::addDamage(const CRegion* rg) {
 }
 
 void CMonitor::addDamage(const CBox* box) {
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("misc:cursor_zoom_factor");
+    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
         g_pCompositor->scheduleFrameForMonitor(this);

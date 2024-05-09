@@ -156,7 +156,7 @@ void CCursorManager::setXCursor(const std::string& name) {
 
 void CCursorManager::setCursorFromName(const std::string& name) {
 
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("misc:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
 
     if (!m_pHyprcursor->valid() || !*PUSEHYPRCURSOR) {
         setXCursor(name);

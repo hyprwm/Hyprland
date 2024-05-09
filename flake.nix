@@ -94,9 +94,4 @@
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;
   };
-
-  nixConfig = {
-    extra-substituters = ["https://hyprland.cachix.org"];
-    extra-trusted-public-keys = ["hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="];
-  };
 }

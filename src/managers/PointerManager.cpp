@@ -297,6 +297,13 @@ void CPointerManager::resetCursorImage(bool apply) {
     currentCursorImage.scale   = 1.F;
     currentCursorImage.hotspot = {0, 0};
 
+    for (auto& s : monitorStates) {
+        if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_bEnabled)
+            continue;
+
+        s->entered = false;
+    }
+
     if (!apply)
         return;
 

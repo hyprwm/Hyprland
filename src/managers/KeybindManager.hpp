@@ -29,7 +29,7 @@ struct SKeybind {
     bool                  nonConsuming = false;
     bool                  transparent  = false;
     bool                  ignoreMods   = false;
-	bool				  multiKey = false;
+    bool                  multiKey     = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;

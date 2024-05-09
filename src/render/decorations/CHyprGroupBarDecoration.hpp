@@ -9,7 +9,7 @@
 
 class CTitleTex {
   public:
-    CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize);
+    CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale);
     ~CTitleTex();
 
     CTexture     tex;

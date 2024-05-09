@@ -154,8 +154,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
             if (!pTitleTex)
                 pTitleTex = m_sTitleTexs.titleTexs
-                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i].lock(),
-                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
+                                .emplace_back(std::make_unique<CTitleTex>(
+                                    m_dwGroupMembers[i].lock(), Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                                 .get();
 
             rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
@@ -184,7 +184,7 @@ void CHyprGroupBarDecoration::invalidateTextures() {
     m_sTitleTexs.titleTexs.clear();
 }
 
-CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize) {
+CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) {
     szContent                 = pWindow->m_szTitle;
     pWindowOwner              = pWindow;
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
@@ -207,7 +207,7 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize) {
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_from_string((*PTITLEFONTFAMILY).c_str());
-    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
+    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE * monitorScale);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 

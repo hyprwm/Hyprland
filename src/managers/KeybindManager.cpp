@@ -568,31 +568,31 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
         if (k.multiKey && keys.size() > 1) {
             bool willContinue = false;
             for (auto& mkey : keys) {
-                if (!mkey.keyName.empty()) {
-                    if (!k.keys.contains(mkey.keyName)) {
-                        willContinue = true;
-                        break;
-                    }
-                } else if (mkey.keycode != 0) {
-                    if (!k.keycodes.contains(mkey.keycode)) {
-                        willContinue = true;
-                        break;
-                    }
-                } else {
-                    // oMg such performance hit!!11!
-                    // this little maneouver is gonna cost us up to 8x4µs! );
-                    const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);
-                    const auto KBKEYLOWER = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+                bool foundMk = false;
 
-                    if (KBKEY == 0 && KBKEY == 0) {
-                        willContinue = true;
-                        break;
-                    }
+                if (k.keys.contains(mkey.keyName))
+                    foundMk = true;
 
-                    if (mkey.keysym != KBKEY && mkey.keysym != KBKEYLOWER) {
-                        willContinue = true;
-                        break;
-                    }
+                if (k.keycodes.contains(mkey.keycode))
+                    foundMk = true;
+
+                // oMg such performance hit!!11!
+                // this little maneouver is gonna cost us up to 8x4µs! );
+                std::set<xkb_keysym_t> s_keysym = {};
+
+                for (auto pressedKeyString : k.keys) {
+                    s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_NO_FLAGS));
+                    s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+                }
+
+				s_keysym.erase(0);
+
+                if (s_keysym.contains(mkey.keysym))
+                    foundMk = true;
+
+                if (!foundMk) {
+                    willContinue = true;
+                    break;
                 }
             }
             if (willContinue)

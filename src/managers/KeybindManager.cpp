@@ -9,6 +9,7 @@
 
 #include <optional>
 #include <regex>
+#include <string>
 #include <tuple>
 
 #include <sys/ioctl.h>

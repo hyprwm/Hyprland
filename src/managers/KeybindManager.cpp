@@ -566,8 +566,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (k.multiKey && keys.size() > 1) {
-            bool willContinue = false;
+        if (k.multiKey) {
+            uint32_t modKeySum      = 0;
+            uint8_t  nonModKeyCount = 0;
+            bool     willContinue   = false;
             for (auto& mkey : keys) {
                 bool foundMk = false;
 
@@ -591,12 +593,19 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                 if (s_keysym.contains(mkey.keysym))
                     foundMk = true;
 
+                auto mkeyModmask = keycodeToModifier(mkey.keycode);
+                if (mkeyModmask) {
+                    modKeySum += mkeyModmask;
+                    foundMk = true;
+                } else
+                    nonModKeyCount++;
+
                 if (!foundMk) {
                     willContinue = true;
                     break;
                 }
             }
-            if (willContinue)
+            if (willContinue || modKeySum != k.modmask || nonModKeyCount != (k.keys.size() + k.keycodes.size()))
                 continue;
         } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)

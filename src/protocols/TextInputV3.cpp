@@ -8,7 +8,6 @@ void CTextInputV3::SState::reset() {
     surrounding.updated = false;
     contentType.updated = false;
     box.updated         = false;
-    enabled             = false;
 }
 
 CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) {
@@ -21,9 +20,18 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) 
     resource->setOnDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
 
     resource->setCommit([this](CZwpTextInputV3* r) {
+        bool wasEnabled = current.enabled;
+
         current = pending;
-        events.onCommit.emit();
         serial++;
+
+        if (wasEnabled && !current.enabled) {
+            current.reset();
+            events.disable.emit();
+        } else if (!wasEnabled && current.enabled)
+            events.enable.emit();
+        else
+            events.onCommit.emit();
     });
 
     resource->setSetSurroundingText([this](CZwpTextInputV3* r, const char* text, int32_t cursor, int32_t anchor) {
@@ -46,13 +54,9 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) 
         pending.box.cursorBox = {x, y, w, h};
     });
 
-    resource->setEnable([this](CZwpTextInputV3* r) {
-        events.enable.emit();
-        pending.enabled = true;
-    });
+    resource->setEnable([this](CZwpTextInputV3* r) { pending.enabled = true; });
 
     resource->setDisable([this](CZwpTextInputV3* r) {
-        events.disable.emit();
         pending.enabled = false;
         pending.reset();
     });

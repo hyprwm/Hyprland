@@ -5,6 +5,7 @@
 #include "config/ConfigDataValues.hpp"
 #include "helpers/VarList.hpp"
 
+#include <cstdint>
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -1937,12 +1938,14 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     std::set<uint32_t>    KEYCODES;
     std::set<std::string> KEYS;
+    uint8_t               KEYCOUNT = 0;
 
     if (ARGS[1].contains('&')) {
         multiKey             = true;
         const auto SPLITKEYS = CVarList(ARGS[1], 8, '&');
         for (auto sk = SPLITKEYS.begin(); sk != SPLITKEYS.end();) {
             const auto pk = parseKey(*sk);
+            KEYCOUNT++;
             if (pk.key != "")
                 KEYS.insert(pk.key);
             else if (pk.keycode != 0)
@@ -1987,8 +1990,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYS, parsedKey.keycode, KEYCODES, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
-                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYS, parsedKey.keycode, KEYCODES, KEYCOUNT, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap,
+                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

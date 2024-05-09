@@ -376,6 +376,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 
         m_dPressedKeys.push_back(KEY);
+        Debug::log(LOG, "{} added to m_dPressedKeys", KEY.keycode);
 
         suppressEvent = handleKeybinds(MODS, KEY, true, m_dPressedKeys);
 
@@ -597,15 +598,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                 if (mkeyModmask) {
                     modKeySum += mkeyModmask;
                     foundMk = true;
-                } else
-                    nonModKeyCount++;
+                }
+                nonModKeyCount++;
 
                 if (!foundMk) {
                     willContinue = true;
                     break;
                 }
             }
-            if (willContinue || modKeySum != k.modmask || nonModKeyCount != (k.keys.size() + k.keycodes.size()))
+            if (willContinue || modKeySum != k.modmask || nonModKeyCount < k.keycount)
                 continue;
         } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)

@@ -52,7 +52,6 @@ class CCompositor {
     wlr_drm*                  m_sWRLDRM;
     wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
     wlr_xdg_shell*            m_sWLRXDGShell;
-    wlr_presentation*         m_sWLRPresentation;
     wlr_egl*                  m_sWLREGL;
     int                       m_iDRMFD;
     wlr_linux_dmabuf_v1*      m_sWLRLinuxDMABuf;

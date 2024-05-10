@@ -232,8 +232,6 @@ void CCompositor::initServer() {
 
     m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
-    m_sWLRPresentation = wlr_presentation_create(m_sWLDisplay, m_sWLRBackend);
-
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
         Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");

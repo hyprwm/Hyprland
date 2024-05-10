@@ -27,6 +27,7 @@
 #include "../protocols/FocusGrab.hpp"
 #include "../protocols/Tablet.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/PresentationTime.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -57,6 +58,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::focusGrab           = std::make_unique<CFocusGrabProtocol>(&hyprland_focus_grab_manager_v1_interface, 1, "FocusGrab");
     PROTO::tablet              = std::make_unique<CTabletV2Protocol>(&zwp_tablet_manager_v2_interface, 1, "TabletV2");
     PROTO::layerShell          = std::make_unique<CLayerShellProtocol>(&zwlr_layer_shell_v1_interface, 5, "LayerShell");
+    PROTO::presentation        = std::make_unique<CPresentationProtocol>(&wp_presentation_interface, 1, "Presentation");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

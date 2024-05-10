@@ -149,6 +149,7 @@ class CMonitor {
     DYNLISTENER(monitorNeedsFrame);
     DYNLISTENER(monitorCommit);
     DYNLISTENER(monitorBind);
+    DYNLISTENER(monitorPresented);
 
     // methods
     void     onConnect(bool noRule);

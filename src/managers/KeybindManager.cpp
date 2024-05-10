@@ -1902,8 +1902,6 @@ void CKeybindManager::pass(std::string regexp) {
         return;
     }
 
-    const auto PLASTSRF = g_pCompositor->m_pLastFocus;
-
     const auto KEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
 
     if (!KEYBOARD) {

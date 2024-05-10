@@ -10,6 +10,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/XDGShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 
 extern "C" {
@@ -615,9 +616,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_bIsX11) {
-            CBox geom;
-            wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, geom.pWlr());
-            geom.applyFromWlr();
+            CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
             renderdata.x -= geom.x;
             renderdata.y -= geom.y;
@@ -643,7 +642,20 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
             if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-            wlr_xdg_surface_for_each_popup_surface(pWindow->m_uSurface.xdg, renderSurface, &renderdata);
+            pWindow->m_pPopupHead->breadthfirst(
+                [](CPopup* popup, void* data) {
+                    if (!popup->m_sWLSurface.wlr())
+                        return;
+                    auto     pos    = popup->coordsRelativeToParent();
+                    auto     rd     = (SRenderData*)data;
+                    Vector2D oldPos = {rd->x, rd->y};
+                    rd->x += pos.x;
+                    rd->y += pos.y;
+                    wlr_surface_for_each_surface(popup->m_sWLSurface.wlr(), renderSurface, rd);
+                    rd->x = oldPos.x;
+                    rd->y = oldPos.y;
+                },
+                &renderdata);
 
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
@@ -1000,9 +1012,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurfa
         if (!main || !pWindow)
             return;
 
-        CBox geom;
-        wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, geom.pWlr());
-        geom.applyFromWlr();
+        CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.value().x || geom.height > pWindow->m_vRealSize.value().y) {
@@ -2530,8 +2540,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     if (PCANDIDATE->m_bIsX11) {
         surfaceCount = 1;
     } else {
-        wlr_xdg_surface_for_each_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
-        wlr_xdg_surface_for_each_popup_surface(PCANDIDATE->m_uSurface.xdg, countSubsurfacesIter, &surfaceCount);
+        surfaceCount = PCANDIDATE->popupsCount() + PCANDIDATE->surfacesCount();
     }
 
     if (surfaceCount > 1)

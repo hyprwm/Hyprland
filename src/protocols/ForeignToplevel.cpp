@@ -91,7 +91,7 @@ void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
     if (!H || H->closed)
         return;
 
-    H->resource->sendAppId(g_pXWaylandManager->getAppIDClass(pWindow).c_str());
+    H->resource->sendAppId(pWindow->m_szClass.c_str());
 }
 
 void CForeignToplevelList::onUnmap(PHLWINDOW pWindow) {

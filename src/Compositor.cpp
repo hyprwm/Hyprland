@@ -18,6 +18,7 @@
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
+#include "protocols/XDGShell.hpp"
 #include "desktop/LayerSurface.hpp"
 
 #include <sys/types.h>
@@ -229,8 +230,6 @@ void CCompositor::initServer() {
     // wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
 
-    m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 6);
-
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
         Debug::log(INFO, "Failed to create wlr_drm_lease_v1_manager");
@@ -253,7 +252,6 @@ void CCompositor::initServer() {
 
 void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
-    addWLSignal(&m_sWLRXDGShell->events.new_toplevel, &Events::listen_newXDGToplevel, m_sWLRXDGShell, "XDG Shell");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
     // addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
     // addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
@@ -271,7 +269,6 @@ void CCompositor::initAllSignals() {
 
 void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newOutput);
-    removeWLSignal(&Events::listen_newXDGToplevel);
     removeWLSignal(&Events::listen_newInput);
     removeWLSignal(&Events::listen_requestSetSel);
     removeWLSignal(&Events::listen_requestDrag);
@@ -805,22 +802,28 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW p
 
     RASSERT(!pWindow->m_bIsX11, "Cannot call vectorWindowToSurface on an X11 window!");
 
-    const auto PSURFACE = pWindow->m_uSurface.xdg;
+    double subx, suby;
 
-    double     subx, suby;
+    CBox   geom = pWindow->m_pXDGSurface->current.geometry;
 
-    // calc for oversized windows... fucking bullshit, again.
-    CBox geom;
-    wlr_xdg_surface_get_geometry(pWindow->m_uSurface.xdg, geom.pWlr());
-    geom.applyFromWlr();
+    // try popups first
+    const auto   PPOPUP = pWindow->m_pPopupHead->at(pos);
 
-    const auto PFOUND =
-        wlr_xdg_surface_surface_at(PSURFACE, pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx, &suby);
+    wlr_surface* found = PPOPUP ? PPOPUP->m_sWLSurface.wlr() : nullptr;
 
-    if (PFOUND) {
+    if (!PPOPUP)
+        found = wlr_surface_surface_at(pWindow->m_pWLSurface.wlr(), pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx,
+                                       &suby);
+    else {
+        const auto OFF = PPOPUP->coordsRelativeToParent();
+        subx           = pos.x - OFF.x + geom.x - pWindow->m_vRealPosition.goal().x;
+        suby           = pos.y - OFF.y + geom.y - pWindow->m_vRealPosition.goal().y;
+    }
+
+    if (found) {
         sl.x = subx;
         sl.y = suby;
-        return PFOUND;
+        return found;
     }
 
     sl.x = pos.x - pWindow->m_vRealPosition.value().x;
@@ -829,7 +832,7 @@ wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW p
     sl.x += geom.x;
     sl.y += geom.y;
 
-    return PSURFACE->surface;
+    return pWindow->m_pWLSurface.wlr();
 }
 
 Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindow, wlr_surface* pSurface) {
@@ -839,12 +842,14 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
     if (pWindow->m_bIsX11)
         return vec - pWindow->m_vRealPosition.goal();
 
-    const auto                         PSURFACE = pWindow->m_uSurface.xdg;
+    const auto PPOPUP = pWindow->m_pPopupHead->at(vec);
+    if (PPOPUP)
+        return vec - PPOPUP->coordsGlobal();
 
     std::tuple<wlr_surface*, int, int> iterData = {pSurface, -1337, -1337};
 
-    wlr_xdg_surface_for_each_surface(
-        PSURFACE,
+    wlr_surface_for_each_surface(
+        pWindow->m_pWLSurface.wlr(),
         [](wlr_surface* surf, int x, int y, void* data) {
             const auto PDATA = (std::tuple<wlr_surface*, int, int>*)data;
             if (surf == std::get<0>(*PDATA)) {
@@ -854,9 +859,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
         },
         &iterData);
 
-    CBox geom = {};
-    wlr_xdg_surface_get_geometry(PSURFACE, geom.pWlr());
-    geom.applyFromWlr();
+    CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
     if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
         return vec - pWindow->m_vRealPosition.goal();
@@ -993,7 +996,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
         pWindow->m_bIsUrgent = false;
 
     // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", g_pXWaylandManager->getAppIDClass(pWindow) + "," + pWindow->m_szTitle});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", pWindow->m_szClass + "," + pWindow->m_szTitle});
     g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)pWindow.get())});
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
@@ -2310,7 +2313,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
 
         switch (mode) {
             case MODE_CLASS_REGEX: {
-                const auto windowClass = g_pXWaylandManager->getAppIDClass(w);
+                const auto windowClass = w->m_szClass;
                 if (!std::regex_search(windowClass, regexCheck))
                     continue;
                 break;
@@ -2322,7 +2325,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
                 break;
             }
             case MODE_TITLE_REGEX: {
-                const auto windowTitle = g_pXWaylandManager->getTitle(w);
+                const auto windowTitle = w->m_szTitle;
                 if (!std::regex_search(windowTitle, regexCheck))
                     continue;
                 break;

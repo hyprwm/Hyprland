@@ -1943,20 +1943,27 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     std::set<std::string> KEYS;
     uint8_t               KEYCOUNT = 0;
 
+    std::set<uint32_t>    modSet;
     if (ARGS[1].contains('&')) {
         multiKey             = true;
         const auto SPLITKEYS = CVarList(ARGS[1], 8, '&');
         for (auto sk = SPLITKEYS.begin(); sk != SPLITKEYS.end();) {
             const auto pk = parseKey(*sk);
             KEYCOUNT++;
-            if (pk.key != "")
+            if (pk.key != "") {
+                modSet.insert(g_pKeybindManager->stringToModMask(pk.key));
                 KEYS.insert(pk.key);
-            else if (pk.keycode != 0)
+            } else if (pk.keycode != 0)
                 KEYCODES.insert(pk.keycode);
             ++sk;
         }
     }
 
+    // We want to make sure we are also adding mods that aren't in the keylist.
+    for (auto splitMod : CVarList(ARGS[0], 8, '_')) {
+        if (!modSet.contains(g_pKeybindManager->stringToModMask(splitMod)))
+            KEYCOUNT++;
+    }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
 

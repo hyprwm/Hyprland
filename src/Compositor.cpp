@@ -338,9 +338,6 @@ void CCompositor::cleanup() {
     m_pLastFocus = nullptr;
     m_pLastWindow.reset();
 
-    // end threads
-    g_pEventManager->m_tThread = std::thread();
-
     m_vWorkspaces.clear();
     m_vWindows.clear();
 
@@ -463,7 +460,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the EventManager!");
             g_pEventManager = std::make_unique<CEventManager>();
-            g_pEventManager->startThread();
 
             Debug::log(LOG, "Creating the HyprDebugOverlay!");
             g_pDebugOverlay = std::make_unique<CHyprDebugOverlay>();

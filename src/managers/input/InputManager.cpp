@@ -15,6 +15,7 @@
 #include "../../protocols/VirtualPointer.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Seat.hpp"
+#include "../../protocols/XDGShell.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -387,10 +388,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (pFoundWindow && !pFoundWindow->m_bIsX11 && surfacePos != Vector2D(-1337, -1337)) {
         // calc for oversized windows... fucking bullshit.
-        wlr_box geom;
-        wlr_xdg_surface_get_geometry(pFoundWindow->m_uSurface.xdg, &geom);
+        CBox geom = pFoundWindow->m_pXDGSurface->current.geometry;
 
-        surfaceLocal = mouseCoords - surfacePos + Vector2D(geom.x, geom.y);
+        surfaceLocal = mouseCoords - surfacePos + geom.pos();
     }
 
     if (pFoundWindow && pFoundWindow->m_bIsX11) // for x11 force scale zero

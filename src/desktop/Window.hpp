@@ -164,6 +164,7 @@ struct SWindowAdditionalConfigData {
     CWindowOverridableVar<bool>     dimAround             = false;
     CWindowOverridableVar<bool>     forceRGBX             = false;
     CWindowOverridableVar<bool>     keepAspectRatio       = false;
+    CWindowOverridableVar<bool>     focusOnActivate       = false;
     CWindowOverridableVar<int>      xray                  = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<int>      borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
     CWindowOverridableVar<bool>     forceTearing          = false;

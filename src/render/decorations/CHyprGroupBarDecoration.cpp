@@ -111,7 +111,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     const auto ASSIGNEDBOX = assignedBoxGlobal();
 
     const auto ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
-    m_fBarWidth             = *PSTACKED ? ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
+    m_fBarWidth             = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - BAR_HORIZONTAL_PADDING * (barsToDraw - 1)) / barsToDraw;
     m_fBarHeight = *PSTACKED ? ((ASSIGNEDBOX.h - 2 - BAR_PADDING_OUTER_VERT) - BAR_PADDING_OUTER_VERT * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - BAR_PADDING_OUTER_VERT;
 
     const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT : BAR_PADDING_OUTER_VERT * 2 + ONEBARHEIGHT;

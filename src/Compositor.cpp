@@ -4,6 +4,7 @@
 #include "managers/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
 #include "managers/PointerManager.hpp"
+#include "managers/SeatManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <random>
 #include <unordered_set>
@@ -222,15 +223,13 @@ void CCompositor::initServer() {
 
     m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, 6, m_sWLRRenderer);
     m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
-    m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
+    // m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
 
-    wlr_data_control_manager_v1_create(m_sWLDisplay);
-    wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
+    // wlr_data_control_manager_v1_create(m_sWLDisplay);
+    // wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
     wlr_viewporter_create(m_sWLDisplay);
 
     m_sWLRXDGShell = wlr_xdg_shell_create(m_sWLDisplay, 6);
-
-    m_sSeat.seat = wlr_seat_create(m_sWLDisplay, "seat0");
 
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
@@ -256,12 +255,11 @@ void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sWLRXDGShell->events.new_toplevel, &Events::listen_newXDGToplevel, m_sWLRXDGShell, "XDG Shell");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
-    addWLSignal(&m_sSeat.seat->events.request_set_cursor, &Events::listen_requestMouse, &m_sSeat, "Seat");
-    addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
-    addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
-    addWLSignal(&m_sSeat.seat->events.start_drag, &Events::listen_startDrag, &m_sSeat, "Seat");
-    addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
-    addWLSignal(&m_sSeat.seat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel, &m_sSeat, "Seat");
+    // addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
+    // addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
+    // addWLSignal(&m_sSeat.seat->events.start_drag, &Events::listen_startDrag, &m_sSeat, "Seat");
+    // addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
+    // addWLSignal(&m_sSeat.seat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel, &m_sSeat, "Seat");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
 
     if (m_sWRLDRMLeaseMgr)
@@ -275,7 +273,6 @@ void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newOutput);
     removeWLSignal(&Events::listen_newXDGToplevel);
     removeWLSignal(&Events::listen_newInput);
-    removeWLSignal(&Events::listen_requestMouse);
     removeWLSignal(&Events::listen_requestSetSel);
     removeWLSignal(&Events::listen_requestDrag);
     removeWLSignal(&Events::listen_startDrag);
@@ -379,9 +376,8 @@ void CCompositor::cleanup() {
     g_pHookSystem.reset();
     g_pWatchdog.reset();
     g_pXWaylandManager.reset();
-
-    if (m_sSeat.seat)
-        wlr_seat_destroy(m_sSeat.seat);
+    g_pPointerManager.reset();
+    g_pSeatManager.reset();
 
     if (m_sWLRRenderer)
         wlr_renderer_destroy(m_sWLRRenderer);
@@ -411,6 +407,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the ProtocolManager!");
             g_pProtocolManager = std::make_unique<CProtocolManager>();
+
+            Debug::log(LOG, "Creating the SeatManager!");
+            g_pSeatManager = std::make_unique<CSeatManager>();
 
             Debug::log(LOG, "Creating the KeybindManager!");
             g_pKeybindManager = std::make_unique<CKeybindManager>();
@@ -890,8 +889,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
 
-    if (g_pCompositor->m_sSeat.exclusiveClient) {
-        Debug::log(LOG, "Disallowing setting focus to a window due to there being an active input inhibitor layer.");
+    if (g_pSessionLockManager->isSessionLocked()) {
+        Debug::log(LOG, "Refusing a keyboard focus to a window because of a sessionlock");
         return;
     }
 
@@ -919,7 +918,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
         }
 
-        wlr_seat_keyboard_notify_clear_focus(m_sSeat.seat);
+        g_pSeatManager->setKeyboardFocus(nullptr);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
@@ -939,7 +938,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (m_pLastWindow.lock() == pWindow && m_sSeat.seat->keyboard_state.focused_surface == pSurface)
+    if (m_pLastWindow.lock() == pWindow && g_pSeatManager->state.keyboardFocus == pSurface)
         return;
 
     if (pWindow->m_bPinned)
@@ -1017,7 +1016,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
 
 void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
 
-    if (m_sSeat.seat->keyboard_state.focused_surface == pSurface || (pWindowOwner && m_sSeat.seat->keyboard_state.focused_surface == pWindowOwner->m_pWLSurface.wlr()))
+    if (g_pSeatManager->state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->state.keyboardFocus == pWindowOwner->m_pWLSurface.wlr()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
@@ -1030,7 +1029,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
         g_pXWaylandManager->activateSurface(m_pLastFocus, false);
 
     if (!pSurface) {
-        wlr_seat_keyboard_clear_focus(m_sSeat.seat);
+        g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
         EMIT_HOOK_EVENT("keyboardFocus", (wlr_surface*)nullptr);
@@ -1038,17 +1037,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
         return;
     }
 
-    if (const auto KEYBOARD = wlr_seat_get_keyboard(m_sSeat.seat); KEYBOARD) {
-        uint32_t keycodes[WLR_KEYBOARD_KEYS_CAP] = {0}; // TODO: maybe send valid, non-keybind codes?
-        wlr_seat_keyboard_notify_enter(m_sSeat.seat, pSurface, keycodes, 0, &KEYBOARD->modifiers);
-
-        wlr_seat_keyboard_focus_change_event event = {
-            .seat        = m_sSeat.seat,
-            .old_surface = m_pLastFocus,
-            .new_surface = pSurface,
-        };
-        wl_signal_emit_mutable(&m_sSeat.seat->keyboard_state.events.focus_change, &event);
-    }
+    if (g_pSeatManager->keyboard)
+        g_pSeatManager->setKeyboardFocus(pSurface);
 
     if (pWindowOwner)
         Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", (uintptr_t)pSurface, pWindowOwner);
@@ -1243,27 +1233,6 @@ PHLWINDOW CCompositor::getTopLeftWindowOnWorkspace(const int& id) {
             return w;
     }
     return nullptr;
-}
-
-bool CCompositor::doesSeatAcceptInput(wlr_surface* surface) {
-    if (g_pSessionLockManager->isSessionLocked()) {
-        if (g_pSessionLockManager->isSurfaceSessionLock(surface))
-            return true;
-
-        if (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource))
-            return true;
-
-        return false;
-    }
-
-    if (m_sSeat.exclusiveClient) {
-        if (surface && m_sSeat.exclusiveClient == wl_resource_get_client(surface->resource))
-            return true;
-
-        return false;
-    }
-
-    return true;
 }
 
 bool CCompositor::isWindowActive(PHLWINDOW pWindow) {

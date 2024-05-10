@@ -15,12 +15,6 @@
 //                                                      //
 // ---------------------------------------------------- //
 
-void Events::listener_requestMouse(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
-
-    g_pInputManager->processMouseRequest(EVENT);
-}
-
 void Events::listener_newInput(wl_listener* listener, void* data) {
     const auto DEVICE = (wlr_input_device*)data;
 

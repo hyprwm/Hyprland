@@ -26,13 +26,13 @@ void Events::listener_leaseRequest(wl_listener* listener, void* data) {
 }
 
 void Events::listener_requestSetPrimarySel(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_seat_request_set_primary_selection_event*)data;
-    wlr_seat_set_primary_selection(g_pCompositor->m_sSeat.seat, EVENT->source, EVENT->serial);
+    // const auto EVENT = (wlr_seat_request_set_primary_selection_event*)data;
+    // wlr_seat_set_primary_selection(g_pCompositor->m_sSeat.seat, EVENT->source, EVENT->serial);
 }
 
 void Events::listener_requestSetSel(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_seat_request_set_selection_event*)data;
-    wlr_seat_set_selection(g_pCompositor->m_sSeat.seat, EVENT->source, EVENT->serial);
+    //  const auto EVENT = (wlr_seat_request_set_selection_event*)data;
+    // wlr_seat_set_selection(g_pCompositor->m_sSeat.seat, EVENT->source, EVENT->serial);
 }
 
 void Events::listener_readyXWayland(wl_listener* listener, void* data) {
@@ -58,7 +58,7 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
         free(reply);
     }
 
-    wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sSeat.seat);
+    //wlr_xwayland_set_seat(g_pXWaylandManager->m_sWLRXWayland, g_pCompositor->m_sSeat.seat);
 
     g_pCursorManager->setXWaylandCursor(g_pXWaylandManager->m_sWLRXWayland);
 
@@ -80,15 +80,15 @@ void Events::listener_readyXWayland(wl_listener* listener, void* data) {
 }
 
 void Events::listener_requestDrag(wl_listener* listener, void* data) {
-    const auto E = (wlr_seat_request_start_drag_event*)data;
+    // const auto E = (wlr_seat_request_start_drag_event*)data;
 
-    if (!wlr_seat_validate_pointer_grab_serial(g_pCompositor->m_sSeat.seat, E->origin, E->serial)) {
-        Debug::log(LOG, "Ignoring drag and drop request: serial mismatch.");
-        wlr_data_source_destroy(E->drag->source);
-        return;
-    }
+    // if (!wlr_seat_validate_pointer_grab_serial(g_pCompositor->m_sSeat.seat, E->origin, E->serial)) {
+    //     Debug::log(LOG, "Ignoring drag and drop request: serial mismatch.");
+    //     wlr_data_source_destroy(E->drag->source);
+    //     return;
+    // }
 
-    wlr_seat_start_pointer_drag(g_pCompositor->m_sSeat.seat, E->drag, E->serial);
+    // wlr_seat_start_pointer_drag(g_pCompositor->m_sSeat.seat, E->drag, E->serial);
 }
 
 void Events::listener_startDrag(wl_listener* listener, void* data) {

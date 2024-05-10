@@ -2490,8 +2490,8 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
 
     const auto PWORKSPACE = pMonitor->activeWorkspace;
 
-    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || g_pCompositor->m_sSeat.exclusiveClient || pMonitor->activeSpecialWorkspace ||
-        PWORKSPACE->m_fAlpha.value() != 1.f || PWORKSPACE->m_vRenderOffset.value() != Vector2D{})
+    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || pMonitor->activeSpecialWorkspace || PWORKSPACE->m_fAlpha.value() != 1.f ||
+        PWORKSPACE->m_vRenderOffset.value() != Vector2D{})
         return;
 
     const auto PCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);

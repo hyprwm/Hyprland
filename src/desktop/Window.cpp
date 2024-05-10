@@ -671,6 +671,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.dimAround = true;
     } else if (r.szRule == "keepaspectratio") {
         m_sAdditionalConfigData.keepAspectRatio = true;
+    } else if (r.szRule.starts_with("focusonactivate")) {
+        m_sAdditionalConfigData.focusOnActivate = true;
     } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
@@ -745,6 +747,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceRGBX       = false;
     m_sAdditionalConfigData.borderSize      = -1;
     m_sAdditionalConfigData.keepAspectRatio = false;
+    m_sAdditionalConfigData.focusOnActivate = false;
     m_sAdditionalConfigData.xray            = -1;
     m_sAdditionalConfigData.forceTearing    = false;
     m_sAdditionalConfigData.nearestNeighbor = false;
@@ -1282,7 +1285,8 @@ void CWindow::activate(bool force) {
 
     m_bIsUrgent = true;
 
-    if (!force && (!*PFOCUSONACTIVATE || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
+    if (!force &&
+        (!(*PFOCUSONACTIVATE || m_sAdditionalConfigData.focusOnActivate) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;
 
     if (m_bIsFloating)

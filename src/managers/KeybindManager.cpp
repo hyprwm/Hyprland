@@ -565,7 +565,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (k.multiKey) {
+        if (k.multiKey && keys.size() > 1) {
             uint32_t modKeySum      = 0;
             uint8_t  nonModKeyCount = 0;
             bool     willContinue   = false;
@@ -604,6 +604,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                     break;
                 }
             }
+            if (!willContinue && modKeySum == k.modmask && nonModKeyCount < k.keycount)
+                return true;
+
             if (willContinue || modKeySum != k.modmask || nonModKeyCount < k.keycount)
                 continue;
         } else if (!key.keyName.empty()) {

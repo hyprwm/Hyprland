@@ -60,6 +60,7 @@ new_protocols = [
   [wl_protocol_dir, 'staging/ext-idle-notify/ext-idle-notify-v1.xml'],
   [wl_protocol_dir, 'staging/ext-session-lock/ext-session-lock-v1.xml'],
   [wl_protocol_dir, 'stable/tablet/tablet-v2.xml'],
+  [wl_protocol_dir, 'stable/presentation-time/presentation-time.xml'],
 ]
 
 wl_protos_src = []

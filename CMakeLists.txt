@@ -285,6 +285,7 @@ protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" f
 protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
 protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
 protocolNew("stable/tablet/tablet-v2.xml" "tablet-v2" false)
+protocolNew("stable/presentation-time/presentation-time.xml" "presentation-time" false)
 
 # tools
 add_subdirectory(hyprctl)

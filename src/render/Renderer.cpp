@@ -10,6 +10,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/PresentationTime.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -206,7 +207,10 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
         wlr_surface_send_frame_done(surface, RDATA->when);
-        wlr_presentation_surface_textured_on_output(surface, RDATA->pMonitor->output);
+        auto FEEDBACK = makeShared<CQueuedPresentationData>(surface);
+        FEEDBACK->attachMonitor(RDATA->pMonitor);
+        FEEDBACK->presented();
+        PROTO::presentation->queueData(FEEDBACK);
     }
 
     g_pHyprOpenGL->blend(true);
@@ -1067,7 +1071,11 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     wlr_surface_send_frame_done(PSURFACE, &now);
-    wlr_presentation_surface_scanned_out_on_output(PSURFACE, pMonitor->output);
+    auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
+    FEEDBACK->attachMonitor(pMonitor);
+    FEEDBACK->presented();
+    FEEDBACK->setPresentationType(true);
+    PROTO::presentation->queueData(FEEDBACK);
 
     if (pMonitor->state.commit()) {
         if (m_pLastScanout.expired()) {

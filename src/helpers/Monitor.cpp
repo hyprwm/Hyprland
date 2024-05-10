@@ -5,6 +5,7 @@
 #include "../protocols/GammaControl.hpp"
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/PresentationTime.hpp"
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -30,6 +31,13 @@ CMonitor::~CMonitor() {
     events.destroy.emit();
 }
 
+static void onPresented(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+    auto       E        = (wlr_output_event_present*)data;
+
+    PROTO::presentation->onPresented(PMONITOR, E->when, E->refresh, E->seq, E->flags);
+}
+
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -38,13 +46,15 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();
     hyprListener_monitorBind.removeCallback();
-    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this);
-    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this);
-    hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this);
-    hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this);
-    hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this);
-    hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this);
-    hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this);
+    hyprListener_monitorPresented.removeCallback();
+    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this, "CMonitor");
+    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this, "CMonitor");
+    hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this, "CMonitor");
+    hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this, "CMonitor");
+    hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this, "CMonitor");
+    hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this, "CMonitor");
+    hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this, "CMonitor");
+    hyprListener_monitorPresented.initCallback(&output->events.present, ::onPresented, this, "CMonitor");
 
     tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
 
@@ -247,6 +257,7 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     hyprListener_monitorFrame.removeCallback();
+    hyprListener_monitorPresented.removeCallback();
     hyprListener_monitorDamage.removeCallback();
     hyprListener_monitorNeedsFrame.removeCallback();
     hyprListener_monitorCommit.removeCallback();

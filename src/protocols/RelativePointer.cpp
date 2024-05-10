@@ -1,5 +1,7 @@
 #include "RelativePointer.hpp"
-#include "Compositor.hpp"
+#include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
+#include "core/Seat.hpp"
 #include <algorithm>
 
 CRelativePointer::CRelativePointer(SP<CZwpRelativePointerV1> resource_) : resource(resource_) {
@@ -58,10 +60,10 @@ void CRelativePointerProtocol::onGetRelativePointer(CZwpRelativePointerManagerV1
 
 void CRelativePointerProtocol::sendRelativeMotion(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
 
-    if (!g_pCompositor->m_sSeat.seat->pointer_state.focused_client)
+    if (!g_pSeatManager->state.pointerFocusResource)
         return;
 
-    const auto FOCUSED = g_pCompositor->m_sSeat.seat->pointer_state.focused_client->client;
+    const auto FOCUSED = g_pSeatManager->state.pointerFocusResource->client();
 
     for (auto& rp : m_vRelativePointers) {
         if (FOCUSED != rp->client())

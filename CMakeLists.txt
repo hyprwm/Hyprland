@@ -71,6 +71,7 @@ pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
+pkg_get_variable(WAYLAND_SERVER_DIR wayland-server pkgdatadir)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -239,6 +240,13 @@ function(protocolNew protoPath protoName external)
         target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
     endif()
 endfunction()
+function(protocolWayland)
+    execute_process(
+        COMMAND hyprwayland-scanner --wayland-enums ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    target_sources(Hyprland PRIVATE protocols/wayland.cpp)
+endfunction()
 
 target_link_libraries(Hyprland
         ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland/build/libwlroots.a
@@ -284,6 +292,8 @@ protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1
 protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
 protocolNew("stable/tablet/tablet-v2.xml" "tablet-v2" false)
 protocolNew("stable/presentation-time/presentation-time.xml" "presentation-time" false)
+
+protocolWayland()
 
 # tools
 add_subdirectory(hyprctl)

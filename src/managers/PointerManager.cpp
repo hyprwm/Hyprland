@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
+#include "SeatManager.hpp"
 #include <wlr/interfaces/wlr_output.h>
 #include <wlr/render/interface.h>
 #include <wlr/render/wlr_renderer.h>
@@ -774,7 +775,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendPointerFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {
@@ -865,7 +866,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     });
 
     listener->frame = touch->touchEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_touch_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendTouchFrame();
     });
     // clang-format on
 

@@ -58,14 +58,6 @@ struct SExtensionFindingData {
     wlr_surface** found;
 };
 
-struct SSeat {
-    wlr_seat*     seat            = nullptr;
-    wl_client*    exclusiveClient = nullptr;
-
-    WP<IPointer>  mouse;
-    WP<IKeyboard> keyboard;
-};
-
 struct SDrag {
     wlr_drag* drag = nullptr;
 

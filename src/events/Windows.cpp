@@ -4,6 +4,7 @@
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/TokenManager.hpp"
+#include "../managers/SeatManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -668,7 +669,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
 
-    if (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained())
+    if (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
 
     // fix some xwayland apps that don't behave nicely

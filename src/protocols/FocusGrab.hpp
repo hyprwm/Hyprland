@@ -44,10 +44,10 @@ class CFocusGrab {
 
     SP<CHyprlandFocusGrabV1>                                     resource;
     std::unordered_map<wlr_surface*, UP<CFocusGrabSurfaceState>> m_mSurfaces;
-    wlr_seat_pointer_grab                                        m_sPointerGrab;
-    wlr_seat_keyboard_grab                                       m_sKeyboardGrab;
-    wlr_seat_touch_grab                                          m_sTouchGrab;
-    bool                                                         m_bGrabActive = false;
+    // wlr_seat_pointer_grab                                        m_sPointerGrab;
+    // wlr_seat_keyboard_grab                                       m_sKeyboardGrab;
+    // wlr_seat_touch_grab                                          m_sTouchGrab;
+    bool m_bGrabActive = false;
 
     DYNLISTENER(pointerGrabStarted);
     DYNLISTENER(keyboardGrabStarted);

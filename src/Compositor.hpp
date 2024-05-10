@@ -48,7 +48,6 @@ class CCompositor {
     wlr_allocator*            m_sWLRAllocator;
     wlr_compositor*           m_sWLRCompositor;
     wlr_subcompositor*        m_sWLRSubCompositor;
-    wlr_data_device_manager*  m_sWLRDataDevMgr;
     wlr_drm*                  m_sWRLDRM;
     wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
     wlr_xdg_shell*            m_sWLRXDGShell;
@@ -86,8 +85,6 @@ class CCompositor {
     WP<CMonitor>                              m_pLastMonitor;
 
     std::vector<PHLWINDOWREF>                 m_vWindowFocusHistory; // first element is the most recently focused.
-
-    SSeat                                     m_sSeat;
 
     bool                                      m_bReadyToProcess = false;
     bool                                      m_bSessionActive  = true;
@@ -132,7 +129,6 @@ class CCompositor {
     PHLWINDOW    getFirstWindowOnWorkspace(const int&);
     PHLWINDOW    getTopLeftWindowOnWorkspace(const int&);
     PHLWINDOW    getFullscreenWindowOnWorkspace(const int&);
-    bool         doesSeatAcceptInput(wlr_surface*);
     bool         isWindowActive(PHLWINDOW);
     void         changeWindowZOrder(PHLWINDOW, bool);
     void         cleanupFadingOut(const int& monid);

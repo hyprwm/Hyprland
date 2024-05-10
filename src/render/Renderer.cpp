@@ -1247,6 +1247,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         pMonitor->forceFullFrames                      = 10;
     }
 
+    bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
+    if (lockSoftware)
+        g_pPointerManager->lockSoftwareForMonitor(pMonitor->self.lock());
+
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Debug::log(ERR, "renderer: couldn't beginRender()!");
@@ -1341,20 +1345,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-
-        bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
-
-        if (lockSoftware) {
-            g_pPointerManager->lockSoftwareForMonitor(pMonitor->self.lock());
-            g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
-            g_pPointerManager->unlockSoftwareForMonitor(pMonitor->self.lock());
-        } else
-            g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->self.lock(), &now, g_pHyprOpenGL->m_RenderData.damage);
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     endRender();
+
+    if (lockSoftware)
+        g_pPointerManager->unlockSoftwareForMonitor(pMonitor->self.lock());
 
     TRACY_GPU_COLLECT;
 

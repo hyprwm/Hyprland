@@ -1,5 +1,6 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
+#include "XDGShell.hpp"
 
 #define LOGM PROTO::layerShell->protoLog
 
@@ -118,14 +119,14 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, wlr_
     });
 
     resource->setGetPopup([this](CZwlrLayerSurfaceV1* r, wl_resource* popup_) {
-        auto popup = wlr_xdg_popup_from_resource(popup_);
+        auto popup = CXDGPopupResource::fromResource(popup_);
 
-        if (popup->parent) {
+        if (popup->taken) {
             r->error(-1, "Parent already exists!");
             return;
         }
 
-        popup->parent = surface;
+        popup->taken = true;
         events.newPopup.emit(popup);
     });
 

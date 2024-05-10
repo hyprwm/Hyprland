@@ -1042,8 +1042,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     std::vector<SWindowRule> returns;
 
-    std::string              title      = g_pXWaylandManager->getTitle(pWindow);
-    std::string              appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
+    std::string              title      = pWindow->m_szTitle;
+    std::string              appidclass = pWindow->m_szClass;
 
     Debug::log(LOG, "Searching for matching rules for {} (title: {})", appidclass, title);
 

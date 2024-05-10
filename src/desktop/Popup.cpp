@@ -294,7 +294,8 @@ void CPopup::bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, vo
         }
     }
 
-    bfHelper(nodes2, fn, data);
+    if (!nodes2.empty())
+        bfHelper(nodes2, fn, data);
 }
 
 void CPopup::breadthfirst(std::function<void(CPopup*, void*)> fn, void* data) {

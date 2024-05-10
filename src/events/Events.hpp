@@ -46,7 +46,6 @@ namespace Events {
     LISTENER(newVirtPtr);
 
     // Various
-    LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
 

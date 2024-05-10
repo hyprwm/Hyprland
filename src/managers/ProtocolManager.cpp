@@ -28,9 +28,14 @@
 #include "../protocols/Tablet.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../protocols/core/Seat.hpp"
 
 CProtocolManager::CProtocolManager() {
 
+    // Core
+    PROTO::seat = std::make_unique<CWLSeatProtocol>(&wl_seat_interface, 9, "WLSeat");
+
+    // Extensions
     PROTO::tearing             = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
     PROTO::fractional          = std::make_unique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
     PROTO::xdgOutput           = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");

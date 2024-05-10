@@ -1,5 +1,6 @@
 #include "SessionLock.hpp"
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
 #include "FractionalScale.hpp"
 
 #define LOGM PROTO::sessionLock->protoLog
@@ -76,7 +77,7 @@ CSessionLockSurface::~CSessionLockSurface() {
 }
 
 void CSessionLockSurface::sendConfigure() {
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(resource->client()));
     resource->sendConfigure(SERIAL, pMonitor->vecSize.x, pMonitor->vecSize.y);
 }
 

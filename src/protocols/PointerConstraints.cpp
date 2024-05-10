@@ -2,6 +2,7 @@
 #include "../desktop/WLSurface.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../managers/SeatManager.hpp"
 
 #define LOGM PROTO::constraints->protoLog
 
@@ -125,10 +126,10 @@ void CPointerConstraint::activate() {
         return;
 
     // TODO: hack, probably not a super duper great idea
-    if (g_pCompositor->m_sSeat.seat->pointer_state.focused_surface != pHLSurface->wlr()) {
+    if (g_pSeatManager->state.pointerFocus != pHLSurface->wlr()) {
         const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, pHLSurface->wlr(), LOCAL.x, LOCAL.y);
+        g_pSeatManager->setPointerFocus(pHLSurface->wlr(), LOCAL);
     }
 
     if (locked)

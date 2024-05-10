@@ -117,7 +117,7 @@ class CInputManager {
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
-    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
+    void               processMouseRequest(std::any e);
 
     void               onTouchDown(ITouch::SDownEvent);
     void               onTouchUp(ITouch::SUpEvent);
@@ -196,7 +196,6 @@ class CInputManager {
 
     // for tracking mouse refocus
     PHLWINDOWREF m_pLastMouseFocus;
-    wlr_surface* m_pLastMouseSurface = nullptr;
 
     //
     bool m_bEmptyFocusCursorSet = false;
@@ -208,6 +207,7 @@ class CInputManager {
         CHyprSignalListener newIdleInhibitor;
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
+        CHyprSignalListener setCursor;
     } m_sListeners;
 
     bool                 m_bCursorImageOverridden = false;

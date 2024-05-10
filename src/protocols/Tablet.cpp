@@ -1,6 +1,8 @@
 #include "Tablet.hpp"
 #include "../devices/Tablet.hpp"
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
+#include "core/Seat.hpp"
 #include <algorithm>
 
 #define LOGM PROTO::tablet->protoLog
@@ -159,12 +161,10 @@ CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<
     resource->setOnDestroy([this](CZwpTabletToolV2* r) { PROTO::tablet->destroyResource(this); });
 
     resource->setSetCursor([this](CZwpTabletToolV2* r, uint32_t serial, wl_resource* surf, int32_t hot_x, int32_t hot_y) {
-        wlr_seat_pointer_request_set_cursor_event e;
-        e.hotspot_x = hot_x;
-        e.hotspot_y = hot_y;
-        e.surface   = surf ? wlr_surface_from_resource(surf) : nullptr;
-        e.serial    = serial;
-        g_pInputManager->processMouseRequest(&e);
+        if (!g_pSeatManager->state.pointerFocusResource || g_pSeatManager->state.pointerFocusResource->client() != r->client())
+            return;
+
+        g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{wlr_surface_from_resource(surf), {hot_x, hot_y}});
     });
 }
 
@@ -539,7 +539,7 @@ void CTabletV2Protocol::down(SP<CTabletTool> tool) {
         if (t->tool != tool || !t->current)
             continue;
 
-        auto serial = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, t->resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->resource->client()));
         t->resource->sendDown(serial);
         t->queueFrame();
     }
@@ -586,7 +586,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, wl
     toolResource->current  = true;
     toolResource->lastSurf = surf;
 
-    auto serial = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, toolResource->resource->client()));
+    auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(toolResource->resource->client()));
     toolResource->resource->sendProximityIn(serial, tabletResource->resource.get(), surf->resource);
     toolResource->queueFrame();
 
@@ -610,7 +610,7 @@ void CTabletV2Protocol::buttonTool(SP<CTabletTool> tool, uint32_t button, uint32
         if (t->tool != tool || !t->current)
             continue;
 
-        auto serial = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, t->resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->resource->client()));
         t->resource->sendButton(serial, button, (zwpTabletToolV2ButtonState)state);
         t->queueFrame();
     }
@@ -634,7 +634,7 @@ void CTabletV2Protocol::mode(SP<CTabletPad> pad, uint32_t group, uint32_t mode, 
             LOGM(ERR, "BUG THIS: group >= t->groups.size()");
             return;
         }
-        auto serial = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, t->resource->client()));
+        auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->resource->client()));
         t->groups.at(group)->resource->sendModeSwitch(timeMs, serial, mode);
     }
 }

@@ -126,8 +126,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
         CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
-                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - yoff - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y,
-                           m_fBarWidth, BAR_INDICATOR_HEIGHT};
+                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - yoff - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
+                           BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -168,10 +168,11 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
             CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_szTitle);
 
             if (!pTitleTex)
-                pTitleTex = m_sTitleTexs.titleTexs
-                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
-                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
-                                .get();
+                pTitleTex =
+                    m_sTitleTexs.titleTexs
+                        .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
+                                                                  Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
+                        .get();
 
             rect.y += (*PHEIGHT / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
             rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
@@ -357,7 +358,6 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     if (m_pWindow.lock() == m_pWindow->m_sGroupData.pNextWindow.lock())
         return false;
 
-
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
     const float BARRELATIVEY = pos.y - assignedBoxGlobal().y;
     const int   WINDOWINDEX  = *PSTACKED ? (BARRELATIVEY / (m_fBarHeight + BAR_PADDING_OUTER_VERT)) : (BARRELATIVEX) / (m_fBarWidth + BAR_HORIZONTAL_PADDING);
@@ -388,7 +388,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
 }
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWINDOW pDraggedWindow) {
-    static auto                PSTACKED      = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto PSTACKED = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
     if (!pDraggedWindow->canBeGroupedInto(m_pWindow.lock()))
         return false;
 

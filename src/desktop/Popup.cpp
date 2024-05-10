@@ -301,6 +301,7 @@ void CPopup::bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, vo
 void CPopup::breadthfirst(std::function<void(CPopup*, void*)> fn, void* data) {
     std::vector<CPopup*> popups;
     popups.push_back(this);
+    bfHelper(popups, fn, data);
 }
 
 CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
@@ -316,7 +317,7 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const auto REGION = CRegion{&m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal());
+            const auto REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

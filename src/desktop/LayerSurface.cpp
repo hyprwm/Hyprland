@@ -73,8 +73,6 @@ void CLayerSurface::onDestroy() {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
-    popupHead.reset();
-
     if (!g_pCompositor->getMonitorFromID(monitorID))
         Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
@@ -89,6 +87,8 @@ void CLayerSurface::onDestroy() {
             g_pCompositor->addToFadingOutSafe(self.lock());
         }
     }
+
+    popupHead.reset();
 
     noProcess = true;
 

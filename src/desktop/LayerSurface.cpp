@@ -261,7 +261,7 @@ void CLayerSurface::onCommit() {
 
             for (auto it = PMONITOR->m_aLayerSurfaceLayers[layer].begin(); it != PMONITOR->m_aLayerSurfaceLayers[layer].end(); it++) {
                 if (*it == self) {
-                    PMONITOR->m_aLayerSurfaceLayers[layerSurface->current.layer].emplace_back(std::move(*it));
+                    PMONITOR->m_aLayerSurfaceLayers[layerSurface->current.layer].emplace_back(*it);
                     PMONITOR->m_aLayerSurfaceLayers[layer].erase(it);
                     break;
                 }

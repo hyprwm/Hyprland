@@ -1,5 +1,6 @@
 #include "Screencopy.hpp"
 #include "../Compositor.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/PointerManager.hpp"
 
 #include <algorithm>
@@ -35,6 +36,20 @@ CScreencopyProtocolManager::CScreencopyProtocolManager() {
     wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
 
     Debug::log(LOG, "ScreencopyProtocolManager started successfully!");
+
+    m_pSoftwareCursorTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            // TODO: make it per-monitor
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                g_pPointerManager->unlockSoftwareForMonitor(m);
+            }
+            m_bTimerArmed = false;
+
+            Debug::log(LOG, "[screencopy] Releasing software cursor lock");
+        },
+        nullptr);
+    g_pEventLoopManager->addTimer(m_pSoftwareCursorTimer);
 }
 
 static void handleCaptureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output) {
@@ -183,11 +198,6 @@ static void handleFrameResourceDestroy(wl_resource* resource) {
 void CScreencopyProtocolManager::removeFrame(SScreencopyFrame* frame, bool force) {
     if (!frame)
         return;
-
-    if (frame->lockedSWCursors) {
-        g_pPointerManager->unlockSoftwareForMonitor(frame->pMonitor->self.lock());
-        g_pPointerManager->damageCursor(frame->pMonitor->self.lock());
-    }
 
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
 
@@ -360,8 +370,15 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
     if (PFRAME->overlayCursor && !PFRAME->lockedSWCursors) {
         PFRAME->lockedSWCursors = true;
-        g_pPointerManager->lockSoftwareForMonitor(PFRAME->pMonitor->self.lock());
-        g_pPointerManager->damageCursor(PFRAME->pMonitor->self.lock());
+        // TODO: make it per-monitor
+        if (!m_bTimerArmed) {
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                g_pPointerManager->lockSoftwareForMonitor(m);
+            }
+            m_bTimerArmed = true;
+            Debug::log(LOG, "[screencopy] Locking sw cursors due to screensharing");
+        }
+        m_pSoftwareCursorTimer->updateTimeout(std::chrono::seconds(1));
     }
 
     if (!PFRAME->withDamage)

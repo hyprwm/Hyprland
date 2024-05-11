@@ -2492,7 +2492,7 @@ void CCompositor::forceReportSizesToWindowsOnWorkspace(const int& wid) {
     }
 }
 
-PHLWORKSPACE CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name) {
+PHLWORKSPACE CCompositor::createNewWorkspace(const int& id, const int& monid, const std::string& name, bool isEmtpy) {
     const auto NAME  = name == "" ? std::to_string(id) : name;
     auto       monID = monid;
 
@@ -2503,7 +2503,7 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const int& id, const int& monid, co
 
     const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
 
-    const auto PWORKSPACE = m_vWorkspaces.emplace_back(CWorkspace::create(id, monID, NAME, SPECIAL));
+    const auto PWORKSPACE = m_vWorkspaces.emplace_back(CWorkspace::create(id, monID, NAME, SPECIAL, isEmtpy));
 
     PWORKSPACE->m_fAlpha.setValueAndWarp(0);
 

@@ -164,7 +164,7 @@ class CCompositor {
     void         closeWindow(PHLWINDOW);
     Vector2D     parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void         forceReportSizesToWindowsOnWorkspace(const int&);
-    PHLWORKSPACE createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    PHLWORKSPACE createNewWorkspace(const int&, const int&, const std::string& name = "", bool isEmtpy = true); // will be deleted next frame if left empty and unfocused!
     void         renameWorkspace(const int&, const std::string& name = "");
     void         setActiveMonitor(CMonitor*);
     bool         isWorkspaceSpecial(const int&);

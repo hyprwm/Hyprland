@@ -1103,7 +1103,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         pMonitor = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->setActiveMonitor(pMonitor);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         pMonitor   = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
@@ -1159,7 +1159,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 

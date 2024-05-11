@@ -59,16 +59,6 @@ namespace Events {
     LISTENER(readyXWayland);
     LISTENER(surfaceXWayland);
 
-    // Drag & Drop
-    LISTENER(requestDrag);
-    LISTENER(startDrag);
-    DYNLISTENFUNC(destroyDrag);
-
-    DYNLISTENFUNC(mapDragIcon);
-    DYNLISTENFUNC(unmapDragIcon);
-    DYNLISTENFUNC(destroyDragIcon);
-    DYNLISTENFUNC(commitDragIcon);
-
     // Renderer destroy
     LISTENER(RendererDestroy);
 

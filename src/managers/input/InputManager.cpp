@@ -15,6 +15,7 @@
 #include "../../protocols/VirtualPointer.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Seat.hpp"
+#include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/XDGShell.hpp"
 
 #include "../../devices/Mouse.hpp"
@@ -137,7 +138,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto PRESIZECURSORICON = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
     static auto PZOOMFACTOR       = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
 
-    const auto  FOLLOWMOUSE = *PFOLLOWONDND && m_sDrag.drag ? 1 : *PFOLLOWMOUSE;
+    const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 
     m_pFoundSurfaceToFocus = nullptr;
     m_pFoundLSToFocus.reset();
@@ -218,10 +219,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT.get());
     }
 
-    // update stuff
-    updateDragIcon();
-
-    if (!m_sDrag.drag && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus && g_pSeatManager->state.pointerFocus) {
+    // if we are holding a pointer button,
+    // and we're not dnd-ing, don't refocus. Keep focus on last surface.
+    if (!PROTO::data->dndActive() && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus && g_pSeatManager->state.pointerFocus && !m_bHardInput) {
         foundSurface       = g_pSeatManager->state.pointerFocus;
         pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
         if (pFoundLayerSurface) {
@@ -1340,22 +1340,6 @@ void CInputManager::refocus() {
     mouseMoveUnified(0, true);
 }
 
-void CInputManager::updateDragIcon() {
-    if (!m_sDrag.dragIcon)
-        return;
-
-    switch (m_sDrag.dragIcon->drag->grab_type) {
-        case WLR_DRAG_GRAB_KEYBOARD: break;
-        case WLR_DRAG_GRAB_KEYBOARD_POINTER: {
-            CBox box = {m_sDrag.pos.x - 2, m_sDrag.pos.y - 2, m_sDrag.dragIcon->surface->current.width + 4, m_sDrag.dragIcon->surface->current.height + 4};
-            g_pHyprRenderer->damageBox(&box);
-            m_sDrag.pos = getMouseCoordsInternal();
-            break;
-        }
-        default: break;
-    }
-}
-
 void CInputManager::unconstrainMouse() {
     if (g_pSeatManager->mouse.expired())
         return;
@@ -1649,7 +1633,7 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
 void CInputManager::releaseAllMouseButtons() {
     const auto buttonsCopy = m_lCurrentlyHeldButtons;
 
-    if (g_pInputManager->m_sDrag.drag)
+    if (PROTO::data->dndActive())
         return;
 
     for (auto& mb : buttonsCopy) {

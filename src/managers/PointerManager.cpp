@@ -941,3 +941,7 @@ void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
         return;
     }
 }
+
+Vector2D CPointerManager::cursorSizeLogical() {
+    return currentCursorImage.size / currentCursorImage.scale;
+}

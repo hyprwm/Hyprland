@@ -253,11 +253,6 @@ void CCompositor::initServer() {
 void CCompositor::initAllSignals() {
     addWLSignal(&m_sWLRBackend->events.new_output, &Events::listen_newOutput, m_sWLRBackend, "Backend");
     addWLSignal(&m_sWLRBackend->events.new_input, &Events::listen_newInput, m_sWLRBackend, "Backend");
-    // addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
-    // addWLSignal(&m_sSeat.seat->events.request_start_drag, &Events::listen_requestDrag, &m_sSeat, "Seat");
-    // addWLSignal(&m_sSeat.seat->events.start_drag, &Events::listen_startDrag, &m_sSeat, "Seat");
-    // addWLSignal(&m_sSeat.seat->events.request_set_selection, &Events::listen_requestSetSel, &m_sSeat, "Seat");
-    // addWLSignal(&m_sSeat.seat->events.request_set_primary_selection, &Events::listen_requestSetPrimarySel, &m_sSeat, "Seat");
     addWLSignal(&m_sWLRRenderer->events.destroy, &Events::listen_RendererDestroy, m_sWLRRenderer, "WLRRenderer");
 
     if (m_sWRLDRMLeaseMgr)
@@ -270,11 +265,6 @@ void CCompositor::initAllSignals() {
 void CCompositor::removeAllSignals() {
     removeWLSignal(&Events::listen_newOutput);
     removeWLSignal(&Events::listen_newInput);
-    removeWLSignal(&Events::listen_requestSetSel);
-    removeWLSignal(&Events::listen_requestDrag);
-    removeWLSignal(&Events::listen_startDrag);
-    removeWLSignal(&Events::listen_requestSetSel);
-    removeWLSignal(&Events::listen_requestSetPrimarySel);
     removeWLSignal(&Events::listen_RendererDestroy);
 
     if (m_sWRLDRMLeaseMgr)

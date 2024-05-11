@@ -112,7 +112,6 @@ class CInputManager {
     void               setTouchDeviceConfigs(SP<ITouch> dev = nullptr);
     void               setTabletConfigs();
 
-    void               updateDragIcon();
     void               updateCapabilities();
 
     void               setClickMode(eClickBehaviorMode);
@@ -141,8 +140,6 @@ class CInputManager {
 
     // for refocus to be forced
     PHLWINDOWREF                 m_pForcedFocus;
-
-    SDrag                        m_sDrag;
 
     std::vector<SP<IKeyboard>>   m_vKeyboards;
     std::vector<SP<IPointer>>    m_vPointers;

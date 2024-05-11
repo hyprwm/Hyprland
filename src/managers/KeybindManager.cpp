@@ -570,6 +570,10 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             uint8_t  nonModKeyCount = 0;
             bool     willContinue   = false;
             for (auto& mkey : keys) {
+
+                if (!mkey.sent)
+                    continue;
+
                 bool foundMk = false;
 
                 if (k.keys.contains(mkey.keyName))
@@ -605,7 +609,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
                 }
             }
             if (!willContinue && modKeySum == k.modmask && nonModKeyCount < k.keycount)
-                return true;
+                found = true;
 
             if (willContinue || modKeySum != k.modmask || nonModKeyCount < k.keycount)
                 continue;

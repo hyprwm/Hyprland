@@ -7,6 +7,7 @@
 #include <vector>
 #include "../managers/HookSystemManager.hpp"
 #include "../helpers/Timer.hpp"
+#include "../managers/eventLoop/EventLoopTimer.hpp"
 
 class CMonitor;
 
@@ -83,6 +84,9 @@ class CScreencopyProtocolManager {
     wl_global*                     m_pGlobal = nullptr;
     std::list<SScreencopyFrame>    m_lFrames;
     std::list<CScreencopyClient>   m_lClients;
+
+    SP<CEventLoopTimer>            m_pSoftwareCursorTimer;
+    bool                           m_bTimerArmed = false;
 
     wl_listener                    m_liDisplayDestroy;
 

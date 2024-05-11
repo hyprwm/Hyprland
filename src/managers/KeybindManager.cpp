@@ -386,8 +386,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                if (it->submapAtPress == m_szCurrentSelectedSubmap)
-                    handleKeybinds(MODS, *it, false);
+                handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
@@ -570,7 +569,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             if (key.keycode != k.keycode)
                 continue;
         } else if (k.catchAll) {
-            if (found)
+            if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
             // oMg such performance hit!!11!

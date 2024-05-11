@@ -12,6 +12,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../protocols/core/DataDevice.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -1806,19 +1807,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
 }
 
 void CHyprRenderer::renderDragIcon(CMonitor* pMonitor, timespec* time) {
-    if (!(g_pInputManager->m_sDrag.dragIcon && g_pInputManager->m_sDrag.iconMapped && g_pInputManager->m_sDrag.dragIcon->surface))
-        return;
-
-    SRenderData renderdata = {pMonitor, time, g_pInputManager->m_sDrag.pos.x, g_pInputManager->m_sDrag.pos.y};
-    renderdata.surface     = g_pInputManager->m_sDrag.dragIcon->surface;
-    renderdata.w           = g_pInputManager->m_sDrag.dragIcon->surface->current.width;
-    renderdata.h           = g_pInputManager->m_sDrag.dragIcon->surface->current.height;
-
-    wlr_surface_for_each_surface(g_pInputManager->m_sDrag.dragIcon->surface, renderSurface, &renderdata);
-
-    CBox box = {g_pInputManager->m_sDrag.pos.x - 2, g_pInputManager->m_sDrag.pos.y - 2, g_pInputManager->m_sDrag.dragIcon->surface->current.width + 4,
-                g_pInputManager->m_sDrag.dragIcon->surface->current.height + 4};
-    g_pHyprRenderer->damageBox(&box);
+    PROTO::data->renderDND(pMonitor, time);
 }
 
 DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& mode) {
@@ -2500,7 +2489,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
 
     const auto PWORKSPACE = pMonitor->activeWorkspace;
 
-    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || g_pInputManager->m_sDrag.drag || pMonitor->activeSpecialWorkspace || PWORKSPACE->m_fAlpha.value() != 1.f ||
+    if (!PWORKSPACE || !PWORKSPACE->m_bHasFullscreenWindow || PROTO::data->dndActive() || pMonitor->activeSpecialWorkspace || PWORKSPACE->m_fAlpha.value() != 1.f ||
         PWORKSPACE->m_vRenderOffset.value() != Vector2D{})
         return;
 

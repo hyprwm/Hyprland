@@ -358,6 +358,26 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
 
+    // grabs
+    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface)) {
+        if (m_bHardInput || refocus) {
+            g_pSeatManager->setGrab(nullptr);
+            return; // setGrab will refocus
+        } else {
+            // we need to grab the last surface.
+            foundSurface = g_pSeatManager->state.pointerFocus;
+
+            auto HLSurface = CWLSurface::surfaceFromWlr(foundSurface);
+
+            if (HLSurface) {
+                const auto BOX = HLSurface->getSurfaceBoxGlobal();
+
+                if (BOX.has_value())
+                    surfacePos = BOX->pos();
+            }
+        }
+    }
+
     if (!foundSurface) {
         if (!m_bEmptyFocusCursorSet) {
             if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_eBorderIconDirection != BORDERICON_NONE) {
@@ -678,6 +698,12 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_pLastMonitor.get() && PMON)
         g_pCompositor->setActiveMonitor(PMON);
+
+    if (g_pSeatManager->seatGrab && e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        m_bHardInput = true;
+        simulateMouseMovement();
+        m_bHardInput = false;
+    }
 }
 
 void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {

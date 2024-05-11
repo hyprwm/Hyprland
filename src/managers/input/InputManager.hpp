@@ -187,9 +187,11 @@ class CInputManager {
     void        releaseAllMouseButtons();
 
     // for some bugs in follow mouse 0
-    bool m_bLastFocusOnLS = false;
-
+    bool m_bLastFocusOnLS       = false;
     bool m_bLastFocusOnIMEPopup = false;
+
+    // for hard input e.g. clicks
+    bool m_bHardInput = false;
 
     // for hiding cursor on touch
     bool m_bLastInputTouch = false;

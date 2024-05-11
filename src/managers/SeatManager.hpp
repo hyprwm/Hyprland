@@ -14,6 +14,37 @@ class CWLSeatResource;
 class IPointer;
 class IKeyboard;
 
+/*
+    A seat grab defines a restricted set of surfaces that can be focused.
+    Only one grab can be active at a time
+
+    when a grab is removed, refocus() will happen
+
+    Different from a constraint.
+
+    When first set with setGrab, SeatManager will try to find a surface that is at the mouse pointer to focus,
+    from first added to last added. If none are, first is focused.
+*/
+class CSeatGrab {
+  public:
+    bool accepts(wlr_surface* surf);
+    void add(wlr_surface* surf);
+    void remove(wlr_surface* surf);
+    void setCallback(std::function<void()> onEnd_);
+    void clear();
+
+    bool keyboard = false;
+    bool pointer  = false;
+    bool touch    = false;
+
+    bool removeOnInput = true; // on hard input e.g. click outside, remove
+
+  private:
+    std::vector<wlr_surface*> surfs; // read-only
+    std::function<void()>     onEnd;
+    friend class CSeatManager;
+};
+
 class CSeatManager {
   public:
     CSeatManager();
@@ -76,6 +107,9 @@ class CSeatManager {
     WP<IPointer>  mouse;
     WP<IKeyboard> keyboard;
 
+    void          setGrab(SP<CSeatGrab> grab); // nullptr removes
+    SP<CSeatGrab> seatGrab;
+
   private:
     struct SSeatResourceContainer {
         SSeatResourceContainer(SP<CWLSeatResource>);
@@ -92,6 +126,8 @@ class CSeatManager {
     void                                    onNewSeatResource(SP<CWLSeatResource> resource);
     SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
 
+    void                                    refocusGrab();
+
     struct {
         CHyprSignalListener newSeatResource;
     } listeners;
@@ -101,6 +137,7 @@ class CSeatManager {
     DYNLISTENER(touchSurfaceDestroy);
 
     friend struct SSeatResourceContainer;
+    friend class CSeatGrab;
 };
 
 inline UP<CSeatManager> g_pSeatManager;

@@ -371,6 +371,40 @@ void CSeatManager::sendTouchOrientation(int32_t id, double angle) {
     }
 }
 
+void CSeatManager::refocusGrab() {
+    if (!seatGrab)
+        return;
+
+    if (seatGrab->surfs.size() > 0) {
+        // try to find a surf in focus first
+        const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+        for (auto& s : seatGrab->surfs) {
+            auto hlSurf = CWLSurface::surfaceFromWlr(s);
+            if (!hlSurf)
+                continue;
+
+            auto b = hlSurf->getSurfaceBoxGlobal();
+            if (!b.has_value())
+                continue;
+
+            if (!b->containsPoint(MOUSE))
+                continue;
+
+            if (seatGrab->keyboard)
+                setKeyboardFocus(s);
+            if (seatGrab->pointer)
+                setPointerFocus(s, MOUSE - b->pos());
+            return;
+        }
+
+        wlr_surface* surf = seatGrab->surfs.at(0);
+        if (seatGrab->keyboard)
+            setKeyboardFocus(surf);
+        if (seatGrab->pointer)
+            setPointerFocus(surf, {});
+    }
+}
+
 void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, wlr_surface* surf, const Vector2D& hotspot) {
     if (!state.pointerFocusResource || !seatResource || seatResource->client() != state.pointerFocusResource->client()) {
         Debug::log(LOG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
@@ -388,4 +422,43 @@ void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial
 
 SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
     return PROTO::seat->seatResourceForClient(client);
+}
+
+void CSeatManager::setGrab(SP<CSeatGrab> grab) {
+    if (seatGrab) {
+        auto oldGrab = seatGrab;
+        seatGrab.reset();
+        g_pInputManager->refocus();
+        if (oldGrab->onEnd)
+            oldGrab->onEnd();
+    }
+
+    if (!grab)
+        return;
+
+    seatGrab = grab;
+
+    refocusGrab();
+}
+
+bool CSeatGrab::accepts(wlr_surface* surf) {
+    return std::find(surfs.begin(), surfs.end(), surf) != surfs.end();
+}
+
+void CSeatGrab::add(wlr_surface* surf) {
+    surfs.push_back(surf);
+}
+
+void CSeatGrab::remove(wlr_surface* surf) {
+    std::erase(surfs, surf);
+    if ((keyboard && g_pSeatManager->state.keyboardFocus == surf) || (pointer && g_pSeatManager->state.pointerFocus == surf))
+        g_pSeatManager->refocusGrab();
+}
+
+void CSeatGrab::setCallback(std::function<void()> onEnd_) {
+    onEnd = onEnd_;
+}
+
+void CSeatGrab::clear() {
+    surfs.clear();
 }

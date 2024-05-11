@@ -45,6 +45,7 @@ void CPopup::initAllSignals() {
     listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
     listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
     listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
+    listeners.dismissed  = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
     listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
     listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
     listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
@@ -65,8 +66,9 @@ void CPopup::onDestroy() {
 }
 
 void CPopup::onMap() {
-    m_vLastSize       = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
-    const auto COORDS = coordsGlobal();
+    m_vLastSize         = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
+    const auto COORDS   = coordsGlobal();
+    const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
 
     CBox       box;
     wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
@@ -79,8 +81,9 @@ void CPopup::onMap() {
 
     m_pSubsurfaceHead = std::make_unique<CSubsurface>(this);
 
-    unconstrain();
+    //unconstrain();
     sendScale();
+    wlr_surface_send_enter(m_pResource->surface->surface, PMONITOR->output);
 
     if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
@@ -178,7 +181,6 @@ void CPopup::unconstrain() {
 
     CBox box = {PMONITOR->vecPosition.x - COORDS.x, PMONITOR->vecPosition.y - COORDS.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     m_pResource->applyPositioning(box, COORDS - PMONITOR->vecPosition);
-    wlr_surface_send_enter(m_pResource->surface->surface, PMONITOR->output);
 }
 
 Vector2D CPopup::coordsRelativeToParent() {
@@ -189,8 +191,6 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     CPopup* current = this;
     offset -= current->m_pResource->surface->current.geometry.pos();
-
-    offset -= m_pResource->surface->current.geometry.pos();
 
     while (current->m_pParent && current->m_pResource) {
 
@@ -293,11 +293,15 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             continue;
 
         if (!allowsInput) {
-            const auto BOX = CBox{p->coordsGlobal(), p->size()};
+            const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
+            const Vector2D size   = p->m_pResource ? p->m_pResource->geometry.size() : p->size();
+
+            const auto     BOX = CBox{p->coordsGlobal() + offset, size};
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const auto REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal());
+            const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
+            const auto     REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal() + offset);
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

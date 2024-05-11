@@ -8,6 +8,7 @@
 #include <vector>
 
 class CFocusGrab;
+class CSeatGrab;
 
 class CFocusGrabSurfaceState {
   public:
@@ -40,14 +41,13 @@ class CFocusGrab {
     void                                                         removeSurface(wlr_surface* surface);
     void                                                         eraseSurface(wlr_surface* surface);
     void                                                         refocusKeyboard();
-    void                                                         commit();
+    void                                                         commit(bool removeOnly = false);
 
     SP<CHyprlandFocusGrabV1>                                     resource;
     std::unordered_map<wlr_surface*, UP<CFocusGrabSurfaceState>> m_mSurfaces;
-    // wlr_seat_pointer_grab                                        m_sPointerGrab;
-    // wlr_seat_keyboard_grab                                       m_sKeyboardGrab;
-    // wlr_seat_touch_grab                                          m_sTouchGrab;
-    bool m_bGrabActive = false;
+    SP<CSeatGrab>                                                grab;
+
+    bool                                                         m_bGrabActive = false;
 
     DYNLISTENER(pointerGrabStarted);
     DYNLISTENER(keyboardGrabStarted);

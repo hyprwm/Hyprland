@@ -1,6 +1,8 @@
 #include "XDGShell.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
+#include "core/Seat.hpp"
 
 #define LOGM PROTO::xdgShell->protoLog
 
@@ -14,12 +16,14 @@ CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceReso
     resource->setDestroy([this](CXdgPopup* r) {
         if (surface && surface->mapped)
             surface->events.unmap.emit();
+        PROTO::xdgShell->onPopupDestroy(self);
         events.destroy.emit();
         PROTO::xdgShell->destroyResource(this);
     });
     resource->setOnDestroy([this](CXdgPopup* r) {
         if (surface && surface->mapped)
             surface->events.unmap.emit();
+        PROTO::xdgShell->onPopupDestroy(self);
         events.destroy.emit();
         PROTO::xdgShell->destroyResource(this);
     });
@@ -34,11 +38,17 @@ CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceReso
         events.reposition.emit();
     });
 
+    resource->setGrab([this](CXdgPopup* r, wl_resource* seat, uint32_t serial) {
+        LOGM(LOG, "xdg_popup {:x} requests grab", (uintptr_t)this);
+        PROTO::xdgShell->addOrStartGrab(self.lock());
+    });
+
     if (parent)
         taken = true;
 }
 
 CXDGPopupResource::~CXDGPopupResource() {
+    PROTO::xdgShell->onPopupDestroy(self);
     events.destroy.emit();
 }
 
@@ -85,6 +95,7 @@ void CXDGPopupResource::configure(const CBox& box) {
 }
 
 void CXDGPopupResource::done() {
+    events.dismissed.emit();
     resource->sendPopupDone();
 }
 
@@ -659,7 +670,15 @@ wl_client* CXDGWMBase::client() {
 }
 
 CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    ;
+    grab           = makeShared<CSeatGrab>();
+    grab->keyboard = true;
+    grab->pointer  = true;
+    grab->setCallback([this]() {
+        for (auto& g : grabbed) {
+            g->done();
+        }
+        grabbed.clear();
+    });
 }
 
 void CXDGShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -694,4 +713,40 @@ void CXDGShellProtocol::destroyResource(CXDGToplevelResource* resource) {
 
 void CXDGShellProtocol::destroyResource(CXDGPopupResource* resource) {
     std::erase_if(m_vPopups, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
+    if (!grabOwner) {
+        grabOwner = popup;
+        grabbed.clear();
+        grab->clear();
+        grab->add(popup->surface->surface);
+        if (popup->parent)
+            grab->add(popup->parent->surface);
+        g_pSeatManager->setGrab(grab);
+        grabbed.emplace_back(popup);
+        return;
+    }
+
+    grabbed.emplace_back(popup);
+
+    grab->add(popup->surface->surface);
+
+    if (popup->parent)
+        grab->add(popup->parent->surface);
+}
+
+void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
+    if (popup == grabOwner) {
+        g_pSeatManager->setGrab(nullptr);
+        for (auto& g : grabbed) {
+            g->done();
+        }
+        grabbed.clear();
+        return;
+    }
+
+    std::erase(grabbed, popup);
+    if (popup->surface)
+        grab->remove(popup->surface->surface);
 }

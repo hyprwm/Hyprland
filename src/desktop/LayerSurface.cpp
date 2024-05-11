@@ -136,6 +136,8 @@ void CLayerSurface::onMap() {
         (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained());
 
     if (GRABSFOCUS) {
+        // TODO: use the new superb really very cool grab
+        g_pSeatManager->setGrab(nullptr);
         g_pInputManager->releaseAllMouseButtons();
         g_pCompositor->focusSurface(surface.wlr());
 

@@ -59,6 +59,7 @@ class CXDGPopupResource {
 
     struct {
         CSignal reposition;
+        CSignal dismissed;
         CSignal destroy; // only the role
     } events;
 
@@ -198,10 +199,10 @@ class CXDGPositionerResource {
 
     bool                              good();
 
-   SXDGPositionerState state;
+    SXDGPositionerState               state;
 
-    WP<CXDGWMBase>             owner;
-    WP<CXDGPositionerResource> self;
+    WP<CXDGWMBase>                    owner;
+    WP<CXDGPositionerResource>        self;
 
   private:
     SP<CXdgPositioner> resource;
@@ -243,6 +244,14 @@ class CXDGShellProtocol : public IWaylandProtocol {
     std::vector<SP<CXDGSurfaceResource>>    m_vSurfaces;
     std::vector<SP<CXDGToplevelResource>>   m_vToplevels;
     std::vector<SP<CXDGPopupResource>>      m_vPopups;
+
+    // current popup grab
+    WP<CXDGPopupResource>              grabOwner;
+    SP<CSeatGrab>                      grab;
+    std::vector<WP<CXDGPopupResource>> grabbed;
+
+    void                               addOrStartGrab(SP<CXDGPopupResource> popup);
+    void                               onPopupDestroy(WP<CXDGPopupResource> popup);
 
     friend class CXDGWMBase;
     friend class CXDGPositionerResource;

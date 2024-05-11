@@ -52,6 +52,7 @@ class CPointerManager {
 
     //
     Vector2D position();
+    Vector2D cursorSizeLogical();
 
   private:
     void recheckPointerPosition();

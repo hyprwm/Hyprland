@@ -1,5 +1,6 @@
 #include "SeatManager.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "../protocols/core/DataDevice.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include <algorithm>
@@ -222,6 +223,8 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
 
         p->sendMotion(timeMs, local);
     }
+
+    lastLocalCoords = local;
 }
 
 void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state_) {
@@ -424,6 +427,28 @@ SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
     return PROTO::seat->seatResourceForClient(client);
 }
 
+void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
+    if (source == selection.currentSelection) {
+        Debug::log(WARN, "[seat] duplicated setCurrentSelection?");
+        return;
+    }
+
+    selection.destroySelection.reset();
+
+    if (selection.currentSelection)
+        selection.currentSelection->cancelled();
+
+    if (!source)
+        PROTO::data->setSelection(nullptr);
+
+    selection.currentSelection = source;
+
+    if (source) {
+        selection.destroySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
+        PROTO::data->setSelection(source);
+    }
+}
+
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {
     if (seatGrab) {
         auto oldGrab = seatGrab;
@@ -439,6 +464,19 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
     seatGrab = grab;
 
     refocusGrab();
+}
+
+void CSeatManager::resendEnterEvents() {
+    wlr_surface* kb = state.keyboardFocus;
+    wlr_surface* pt = state.pointerFocus;
+
+    auto         last = lastLocalCoords;
+
+    setKeyboardFocus(nullptr);
+    setPointerFocus(nullptr, {});
+
+    setKeyboardFocus(kb);
+    setPointerFocus(pt, last);
 }
 
 bool CSeatGrab::accepts(wlr_surface* surf) {

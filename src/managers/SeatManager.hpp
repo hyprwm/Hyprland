@@ -5,6 +5,7 @@
 #include "../macros.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/Vector2D.hpp"
+#include "../protocols/types/DataDevice.hpp"
 #include <vector>
 
 constexpr size_t MAX_SERIAL_STORE_LEN = 100;
@@ -72,6 +73,8 @@ class CSeatManager {
     void     sendTouchShape(int32_t id, const Vector2D& shape);
     void     sendTouchOrientation(int32_t id, double angle);
 
+    void     resendEnterEvents();
+
     uint32_t nextSerial(SP<CWLSeatResource> seatResource);
     // pops the serial if it was valid, meaning it is consumed.
     bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial);
@@ -103,6 +106,13 @@ class CSeatManager {
         CSignal setCursor; // SSetCursorEvent
     } events;
 
+    struct {
+        WP<IDataSource>     currentSelection;
+        CHyprSignalListener destroySelection;
+    } selection;
+
+    void setCurrentSelection(SP<IDataSource> source);
+
     // do not write to directly, use set...
     WP<IPointer>  mouse;
     WP<IKeyboard> keyboard;
@@ -131,6 +141,8 @@ class CSeatManager {
     struct {
         CHyprSignalListener newSeatResource;
     } listeners;
+
+    Vector2D lastLocalCoords;
 
     DYNLISTENER(keyboardSurfaceDestroy);
     DYNLISTENER(pointerSurfaceDestroy);

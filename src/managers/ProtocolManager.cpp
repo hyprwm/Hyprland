@@ -28,13 +28,16 @@
 #include "../protocols/Tablet.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
-#include "../protocols/core/Seat.hpp"
 #include "../protocols/XDGShell.hpp"
+
+#include "../protocols/core/Seat.hpp"
+#include "../protocols/core/DataDevice.hpp"
 
 CProtocolManager::CProtocolManager() {
 
     // Core
     PROTO::seat = std::make_unique<CWLSeatProtocol>(&wl_seat_interface, 9, "WLSeat");
+    PROTO::data = std::make_unique<CWLDataDeviceProtocol>(&wl_data_device_manager_interface, 3, "WLDataDevice");
 
     // Extensions
     PROTO::tearing             = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");

@@ -58,25 +58,6 @@ struct SExtensionFindingData {
     wlr_surface** found;
 };
 
-struct SDrag {
-    wlr_drag* drag = nullptr;
-
-    DYNLISTENER(destroy);
-
-    // Icon
-
-    bool           iconMapped = false;
-
-    wlr_drag_icon* dragIcon = nullptr;
-
-    Vector2D       pos;
-
-    DYNLISTENER(destroyIcon);
-    DYNLISTENER(mapIcon);
-    DYNLISTENER(unmapIcon);
-    DYNLISTENER(commitIcon);
-};
-
 struct SSwipeGesture {
     PHLWORKSPACE pWorkspaceBegin = nullptr;
 

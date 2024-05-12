@@ -1550,6 +1550,18 @@ std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string reque
     return "ok";
 }
 
+std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
+    std::string lockedStr = g_pSessionLockManager->isSessionLocked() ? "true" : "false";
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+        lockedStr = std::format(R"#(
+{{
+    "locked": {}
+}}
+)#",
+                                lockedStr);
+    return lockedStr;
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1569,6 +1581,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"rollinglog", true, rollinglogRequest});
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
+    registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

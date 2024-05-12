@@ -62,6 +62,12 @@ struct SParsedKey {
     bool        catchAll = false;
 };
 
+enum eMultiKeyCase {
+    MK_NO_MATCH = 0,
+    MK_PARTIAL_MATCH,
+    MK_FULL_MATCH
+};
+
 class CKeybindManager {
   public:
     CKeybindManager();
@@ -108,7 +114,10 @@ class CKeybindManager {
 
     CTimer                          m_tScrollTimer;
 
-    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, const std::deque<SPressedKeyWithMods> = {});
+    bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
+
+    std::set<SPressedKeyWithMods>   m_sMultiKeysToHandle = {};
+    eMultiKeyCase                   handleMultiKeybind(SKeybind);
 
     bool                            handleInternalKeybinds(xkb_keysym_t);
     bool                            handleVT(xkb_keysym_t);

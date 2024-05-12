@@ -377,7 +377,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
         m_dPressedKeys.push_back(KEY);
 
-        suppressEvent = handleKeybinds(MODS, KEY, true, m_dPressedKeys);
+        suppressEvent = handleKeybinds(MODS, KEY, true);
 
         if (suppressEvent)
             shadowKeybinds(keysym, KEYCODE);
@@ -389,7 +389,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
                 if (it->submapAtPress == m_szCurrentSelectedSubmap)
-                    handleKeybinds(MODS, *it, false, m_dPressedKeys);
+                    handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
@@ -538,9 +538,64 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, const std::deque<SPressedKeyWithMods> keys) {
+eMultiKeyCase CKeybindManager::handleMultiKeybind(const SKeybind keybind) {
+    uint32_t modKeySum      = 0;
+    uint8_t  nonModKeyCount = 0;
+    for (auto& key : m_sMultiKeysToHandle) {
+        bool foundMk = false;
+
+        if (keybind.keys.contains(key.keyName))
+            foundMk = true;
+
+        if (keybind.keycodes.contains(key.keycode))
+            foundMk = true;
+
+        // oMg such performance hit!!11!
+        // this little maneouver is gonna cost us up to 8x4µs! );
+        std::set<xkb_keysym_t> s_keysym = {};
+
+        for (auto pressedKeyString : keybind.keys) {
+            s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_NO_FLAGS));
+            s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+
+        s_keysym.erase(0);
+
+        if (s_keysym.contains(key.keysym))
+            foundMk = true;
+
+        auto mkeyModmask = keycodeToModifier(key.keycode);
+        if (mkeyModmask) {
+            modKeySum += mkeyModmask;
+            foundMk = true;
+        }
+        nonModKeyCount++;
+
+        if (!foundMk) {
+            return MK_NO_MATCH;
+        }
+    }
+    if (modKeySum == 0 && m_sMultiKeysToHandle.size() < nonModKeyCount)
+        return MK_NO_MATCH;
+    if (modKeySum != keybind.modmask)
+        return MK_NO_MATCH;
+    if (nonModKeyCount < keybind.keycount)
+        return MK_PARTIAL_MATCH;
+    m_sMultiKeysToHandle.clear();
+    return MK_FULL_MATCH;
+}
+
+bool operator<(const SPressedKeyWithMods& lhs, const SPressedKeyWithMods& rhs) {
+    return std::tie(lhs.keycode, lhs.keysym) < std::tie(rhs.keycode, rhs.keysym);
+}
+
+bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     bool found = false;
 
+    if (pressed)
+        m_sMultiKeysToHandle.insert(key);
+    else if (!pressed)
+        m_sMultiKeysToHandle.erase(key);
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
@@ -565,54 +620,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (k.multiKey && keys.size() > 1) {
-            uint32_t modKeySum      = 0;
-            uint8_t  nonModKeyCount = 0;
-            bool     willContinue   = false;
-            for (auto& mkey : keys) {
-
-                if (!mkey.sent)
-                    continue;
-
-                bool foundMk = false;
-
-                if (k.keys.contains(mkey.keyName))
-                    foundMk = true;
-
-                if (k.keycodes.contains(mkey.keycode))
-                    foundMk = true;
-
-                // oMg such performance hit!!11!
-                // this little maneouver is gonna cost us up to 8x4µs! );
-                std::set<xkb_keysym_t> s_keysym = {};
-
-                for (auto pressedKeyString : k.keys) {
-                    s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_NO_FLAGS));
-                    s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
-                }
-
-                s_keysym.erase(0);
-
-                if (s_keysym.contains(mkey.keysym))
-                    foundMk = true;
-
-                auto mkeyModmask = keycodeToModifier(mkey.keycode);
-                if (mkeyModmask) {
-                    modKeySum += mkeyModmask;
-                    foundMk = true;
-                }
-                nonModKeyCount++;
-
-                if (!foundMk) {
-                    willContinue = true;
-                    break;
-                }
+        if (k.multiKey) {
+            switch (handleMultiKeybind(k)) {
+                case MK_NO_MATCH: continue;
+                case MK_PARTIAL_MATCH: found = true; continue;
+                case MK_FULL_MATCH: found = true;
             }
-            if (!willContinue && modKeySum == k.modmask && nonModKeyCount < k.keycount)
-                found = true;
-
-            if (willContinue || modKeySum != k.modmask || nonModKeyCount < k.keycount)
-                continue;
         } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)
                 continue;

@@ -297,6 +297,8 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
 
         RESOURCE->self = RESOURCE;
 
+        sources.push_back(RESOURCE);
+
         LOGM(LOG, "New data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 

@@ -1,6 +1,7 @@
 #include "SeatManager.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
+#include "../protocols/DataDeviceWlr.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include <algorithm>
@@ -446,6 +447,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (source) {
         selection.destroySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
         PROTO::data->setSelection(source);
+        PROTO::dataWlr->setSelection(source);
     }
 }
 

@@ -538,64 +538,50 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-eMultiKeyCase CKeybindManager::handleMultiKeybind(const SKeybind keybind) {
-    uint32_t modKeySum      = 0;
-    uint8_t  nonModKeyCount = 0;
-    for (auto& key : m_sMultiKeysToHandle) {
-        bool foundMk = false;
+eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
+    // Returns whether two sets of keysyms are equal, partially equal, or not
+    // matching. (Partially matching means that pressed is a subset of bound)
 
-        if (keybind.keys.contains(key.keyName))
-            foundMk = true;
+    std::set<xkb_keysym_t> boundKeysNotPressed;
+    std::set<xkb_keysym_t> pressedKeysNotBound;
 
-        if (keybind.keycodes.contains(key.keycode))
-            foundMk = true;
+    std::set_difference(keybindKeysyms.begin(), keybindKeysyms.end(), pressedKeysyms.begin(), pressedKeysyms.end(),
+                        std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
+    std::set_difference(pressedKeysyms.begin(), pressedKeysyms.end(), keybindKeysyms.begin(), keybindKeysyms.end(),
+                        std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
 
-        // oMg such performance hit!!11!
-        // this little maneouver is gonna cost us up to 8x4µs! );
-        std::set<xkb_keysym_t> s_keysym = {};
+    if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
+        return MK_FULL_MATCH;
 
-        for (auto pressedKeyString : keybind.keys) {
-            s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_NO_FLAGS));
-            s_keysym.insert(xkb_keysym_from_name(pressedKeyString.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
-        }
-
-        s_keysym.erase(0);
-
-        if (s_keysym.contains(key.keysym))
-            foundMk = true;
-
-        auto mkeyModmask = keycodeToModifier(key.keycode);
-        if (mkeyModmask) {
-            modKeySum += mkeyModmask;
-            foundMk = true;
-        }
-        nonModKeyCount++;
-
-        if (!foundMk) {
-            return MK_NO_MATCH;
-        }
-    }
-    if (modKeySum == 0 && m_sMultiKeysToHandle.size() < nonModKeyCount)
-        return MK_NO_MATCH;
-    if (modKeySum != keybind.modmask)
-        return MK_NO_MATCH;
-    if (nonModKeyCount < keybind.keycount)
+    if (boundKeysNotPressed.size() && pressedKeysNotBound.empty())
         return MK_PARTIAL_MATCH;
-    m_sMultiKeysToHandle.clear();
-    return MK_FULL_MATCH;
+
+    return MK_NO_MATCH;
 }
 
-bool operator<(const SPressedKeyWithMods& lhs, const SPressedKeyWithMods& rhs) {
-    return std::tie(lhs.keycode, lhs.keysym) < std::tie(rhs.keycode, rhs.keysym);
+eMultiKeyCase CKeybindManager::mkBindMatches(const SKeybind keybind) {
+    if (mkKeysymSetMatches(keybind.sMkMods, m_sMkMods) != MK_FULL_MATCH)
+        return MK_NO_MATCH;
+
+    return mkKeysymSetMatches(keybind.sMkKeys, m_sMkKeys);
 }
 
 bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     bool found = false;
 
-    if (pressed)
-        m_sMultiKeysToHandle.insert(key);
-    else if (!pressed)
-        m_sMultiKeysToHandle.erase(key);
+    if (pressed) {
+        if (keycodeToModifier(key.keycode)) {
+            m_sMkMods.insert(key.keysym);
+        } else {
+            m_sMkKeys.insert(key.keysym);
+        }
+    } else {
+        if (keycodeToModifier(key.keycode)) {
+            m_sMkMods.erase(key.keysym);
+        } else {
+            m_sMkKeys.erase(key.keysym);
+        }
+    }
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");
 
@@ -621,7 +607,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             continue;
 
         if (k.multiKey) {
-            switch (handleMultiKeybind(k)) {
+            switch (mkBindMatches(k)) {
                 case MK_NO_MATCH: continue;
                 case MK_PARTIAL_MATCH: found = true; continue;
                 case MK_FULL_MATCH: found = true;

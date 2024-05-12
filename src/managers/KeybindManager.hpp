@@ -14,24 +14,23 @@ class CPluginSystem;
 class IKeyboard;
 
 struct SKeybind {
-    std::string           key          = "";
-    std::set<std::string> keys         = {};
-    uint32_t              keycode      = 0;
-    std::set<uint32_t>    keycodes     = {};
-    uint8_t               keycount     = 0;
-    bool                  catchAll     = false;
-    uint32_t              modmask      = 0;
-    std::string           handler      = "";
-    std::string           arg          = "";
-    bool                  locked       = false;
-    std::string           submap       = "";
-    bool                  release      = false;
-    bool                  repeat       = false;
-    bool                  mouse        = false;
-    bool                  nonConsuming = false;
-    bool                  transparent  = false;
-    bool                  ignoreMods   = false;
-    bool                  multiKey     = false;
+    std::string            key          = "";
+    std::set<xkb_keysym_t> sMkKeys      = {};
+    uint32_t               keycode      = 0;
+    bool                   catchAll     = false;
+    uint32_t               modmask      = 0;
+    std::set<xkb_keysym_t> sMkMods      = {};
+    std::string            handler      = "";
+    std::string            arg          = "";
+    bool                   locked       = false;
+    std::string            submap       = "";
+    bool                   release      = false;
+    bool                   repeat       = false;
+    bool                   mouse        = false;
+    bool                   nonConsuming = false;
+    bool                   transparent  = false;
+    bool                   ignoreMods   = false;
+    bool                   multiKey     = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -116,8 +115,10 @@ class CKeybindManager {
 
     bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
 
-    std::set<SPressedKeyWithMods>   m_sMultiKeysToHandle = {};
-    eMultiKeyCase                   handleMultiKeybind(SKeybind);
+    std::set<xkb_keysym_t>          m_sMkKeys = {};
+    std::set<xkb_keysym_t>          m_sMkMods = {};
+    eMultiKeyCase                   mkBindMatches(const SKeybind);
+    eMultiKeyCase                   mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
 
     bool                            handleInternalKeybinds(xkb_keysym_t);
     bool                            handleVT(xkb_keysym_t);

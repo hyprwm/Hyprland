@@ -18,6 +18,7 @@
 #include <iostream>
 #include <sstream>
 #include <ranges>
+#include <xkbcommon/xkbcommon.h>
 
 extern "C" char**             environ;
 
@@ -1939,30 +1940,19 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
         return "bind: too many args";
 
-    std::set<uint32_t>    KEYCODES;
-    std::set<std::string> KEYS;
-    uint8_t               KEYCOUNT = 0;
+    std::set<xkb_keysym_t> KEYSYMS;
+    std::set<xkb_keysym_t> MODS;
 
-    std::set<uint32_t>    modSet;
     if (ARGS[1].contains('&')) {
         multiKey             = true;
-        const auto SPLITKEYS = CVarList(ARGS[1], 8, '&');
-        for (auto sk = SPLITKEYS.begin(); sk != SPLITKEYS.end();) {
-            const auto pk = parseKey(*sk);
-            KEYCOUNT++;
-            if (pk.key != "") {
-                modSet.insert(g_pKeybindManager->stringToModMask(pk.key));
-                KEYS.insert(pk.key);
-            } else if (pk.keycode != 0)
-                KEYCODES.insert(pk.keycode);
-            ++sk;
+        for (auto sk : CVarList(ARGS[1], 8, '&')) {
+            KEYSYMS.insert(xkb_keysym_from_name(sk.c_str(), XKB_KEYSYM_NO_FLAGS));
         }
     }
 
     // We want to make sure we are also adding mods that aren't in the keylist.
     for (auto splitMod : CVarList(ARGS[0], 8, '_')) {
-        if (!modSet.contains(g_pKeybindManager->stringToModMask(splitMod)))
-            KEYCOUNT++;
+        MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_NO_FLAGS));
     }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
@@ -1999,8 +1989,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYS, parsedKey.keycode, KEYCODES, KEYCOUNT, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap,
-                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat,
+                                               mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

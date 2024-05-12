@@ -24,7 +24,6 @@ hyprwayland_scanner = find_program(
 )
 
 protocols = [
-  [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
   [wl_protocol_dir, 'unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
   ['wlr-screencopy-unstable-v1.xml'],
@@ -99,12 +98,27 @@ foreach p : new_protocols
 	)
 endforeach
 
-wayland_server = dependency('wayland-server', version: '>=1.20.0')
+wayland_server_dep = dependency('wayland-server', version: '>=1.20.0')
+wayland_server_dir = wayland_server_dep.get_variable('pkgdatadir')
+
+wl_server_protos = [
+	wayland_server_dir / 'wayland.xml'
+]
+wl_server_protos_gen = []
+foreach p : wl_server_protos
+	wl_server_protos_gen += custom_target(
+		p.underscorify(),
+		input: p,
+		install: false,
+		output: ['@BASENAME@.cpp', '@BASENAME@.hpp'],
+		command: [hyprwayland_scanner, '--wayland-enums', '@INPUT@', '@OUTDIR@'],
+	)
+endforeach
 
 lib_server_protos = static_library(
 	'server_protos',
-	wl_protos_src + wl_protos_headers + new_wl_protos,
-	dependencies: wayland_server.partial_dependency(compile_args: true),
+	wl_protos_src + wl_protos_headers + new_wl_protos + wl_server_protos_gen,
+	dependencies: wayland_server_dep.partial_dependency(compile_args: true),
 )
 
 server_protos = declare_dependency(

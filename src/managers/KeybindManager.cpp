@@ -1911,6 +1911,7 @@ void CKeybindManager::pass(std::string regexp) {
     const auto XWTOXW       = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
     const auto SL           = Vector2D(g_pCompositor->m_sSeat.seat->pointer_state.sx, g_pCompositor->m_sSeat.seat->pointer_state.sy);
     uint32_t   keycodes[32] = {0};
+    const auto LASTSRF      = g_pCompositor->m_pLastFocus;
 
     // pass all mf shit
     if (!XWTOXW) {
@@ -1961,7 +1962,7 @@ void CKeybindManager::pass(std::string regexp) {
     }
 
     if (g_pKeybindManager->m_uLastCode != 0)
-        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, LASTSRF, KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
     else
         wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), SL.x, SL.y);
 }

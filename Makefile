@@ -54,7 +54,7 @@ installheaders:
 	mkdir -p ${PREFIX}/share/pkgconfig
 
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cd subprojects/wlroots-hyprland/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../..
+	cd subprojects/wlroots-hyprland/include/wlr && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
 	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
 	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig

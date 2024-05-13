@@ -1144,9 +1144,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
 
         if (*PXWLFORCESCALEZERO) {
             if (const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID); PMONITOR) {
-                const Vector2D DELTA = PWINDOW->m_vRealSize.goal() - PWINDOW->m_vRealSize.goal() / PMONITOR->scale;
                 PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goal() / PMONITOR->scale);
-                PWINDOW->m_vRealPosition.setValueAndWarp(PWINDOW->m_vRealPosition.goal() + DELTA / 2.0);
             }
         }
 

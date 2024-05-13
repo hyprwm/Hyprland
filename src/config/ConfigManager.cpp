@@ -1922,6 +1922,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             transparent = true;
         } else if (arg == 'i') {
             ignoreMods = true;
+        } else if (arg == 's') {
+            multiKey = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1943,16 +1945,16 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     std::set<xkb_keysym_t> KEYSYMS;
     std::set<xkb_keysym_t> MODS;
 
-    if (ARGS[1].contains('&')) {
-        multiKey             = true;
-        for (auto sk : CVarList(ARGS[1], 8, '&')) {
-            KEYSYMS.insert(xkb_keysym_from_name(sk.c_str(), XKB_KEYSYM_NO_FLAGS));
+    if (multiKey) {
+        if (ARGS[1].contains('&')) {
+            for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+                KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_NO_FLAGS));
+            }
         }
-    }
 
-    // We want to make sure we are also adding mods that aren't in the keylist.
-    for (auto splitMod : CVarList(ARGS[0], 8, '_')) {
-        MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_NO_FLAGS));
+        for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
+            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_NO_FLAGS));
+        }
     }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
@@ -1989,8 +1991,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat,
-                                               mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
+                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

@@ -261,7 +261,7 @@ class CWindow {
 
     // this is used for pseudotiling
     bool         m_bIsPseudotiled = false;
-    Vector2D     m_vPseudoSize    = Vector2D(0, 0);
+    Vector2D     m_vPseudoSize    = Vector2D(1280, 720);
 
     bool         m_bFirstMap           = false; // for layouts
     bool         m_bIsFloating         = false;

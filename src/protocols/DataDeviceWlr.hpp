@@ -19,7 +19,8 @@ class CWLRDataOffer {
     bool            good();
     void            sendData();
 
-    bool            dead = false;
+    bool            dead    = false;
+    bool            primary = false;
 
     WP<IDataSource> source;
 
@@ -61,6 +62,7 @@ class CWLRDataDevice {
 
     void               sendDataOffer(SP<CWLRDataOffer> offer);
     void               sendSelection(SP<CWLRDataOffer> selection);
+    void               sendPrimarySelection(SP<CWLRDataOffer> selection);
 
     WP<CWLRDataDevice> self;
 
@@ -103,8 +105,8 @@ class CDataDeviceWLRProtocol : public IWaylandProtocol {
     std::vector<SP<CWLRDataOffer>>                  m_vOffers;
 
     //
-    void setSelection(SP<IDataSource> source);
-    void sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel);
+    void setSelection(SP<IDataSource> source, bool primary);
+    void sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary);
 
     //
     SP<CWLRDataDevice> dataDeviceForClient(wl_client*);

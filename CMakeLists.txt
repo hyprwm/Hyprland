@@ -293,6 +293,7 @@ protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock
 protocolNew("stable/tablet/tablet-v2.xml" "tablet-v2" false)
 protocolNew("stable/presentation-time/presentation-time.xml" "presentation-time" false)
 protocolNew("stable/xdg-shell/xdg-shell.xml" "xdg-shell" false)
+protocolNew("unstable/primary-selection/primary-selection-unstable-v1.xml" "primary-selection-unstable-v1" false)
 
 protocolWayland()
 

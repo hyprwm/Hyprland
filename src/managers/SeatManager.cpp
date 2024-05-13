@@ -2,6 +2,7 @@
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/DataDeviceWlr.hpp"
+#include "../protocols/PrimarySelection.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include <algorithm>
@@ -447,7 +448,30 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (source) {
         selection.destroySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentSelection(nullptr); });
         PROTO::data->setSelection(source);
-        PROTO::dataWlr->setSelection(source);
+        PROTO::dataWlr->setSelection(source, false);
+    }
+}
+
+void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
+    if (source == selection.currentPrimarySelection) {
+        Debug::log(WARN, "[seat] duplicated setCurrentPrimarySelection?");
+        return;
+    }
+
+    selection.destroyPrimarySelection.reset();
+
+    if (selection.currentPrimarySelection)
+        selection.currentPrimarySelection->cancelled();
+
+    if (!source)
+        PROTO::primarySelection->setSelection(nullptr);
+
+    selection.currentPrimarySelection = source;
+
+    if (source) {
+        selection.destroyPrimarySelection = source->events.destroy.registerListener([this](std::any d) { setCurrentPrimarySelection(nullptr); });
+        PROTO::primarySelection->setSelection(source);
+        PROTO::dataWlr->setSelection(source, true);
     }
 }
 

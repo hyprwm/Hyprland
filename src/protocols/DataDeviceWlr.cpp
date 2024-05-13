@@ -145,7 +145,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
         source->markUsed();
 
         LOGM(LOG, "wlr manager requests primary selection to {:x}", (uintptr_t)source.get());
-        g_pSeatManager->setCurrentSelection(source);
+        g_pSeatManager->setCurrentPrimarySelection(source);
     });
 }
 
@@ -168,6 +168,10 @@ void CWLRDataDevice::sendDataOffer(SP<CWLRDataOffer> offer) {
 
 void CWLRDataDevice::sendSelection(SP<CWLRDataOffer> selection) {
     resource->sendSelection(selection->resource.get());
+}
+
+void CWLRDataDevice::sendPrimarySelection(SP<CWLRDataOffer> selection) {
+    resource->sendPrimarySelection(selection->resource.get());
 }
 
 CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataControlManagerV1> resource_) : resource(resource_) {
@@ -259,9 +263,14 @@ void CDataDeviceWLRProtocol::destroyResource(CWLRDataOffer* resource) {
     std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel) {
-    if (!sel)
+void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary) {
+    if (!sel) {
+        if (primary)
+            dev->resource->sendPrimarySelectionRaw(nullptr);
+        else
+            dev->resource->sendSelectionRaw(nullptr);
         return;
+    }
 
     const auto OFFER = m_vOffers.emplace_back(makeShared<CWLRDataOffer>(makeShared<CZwlrDataControlOfferV1>(dev->resource->client(), dev->resource->version(), 0), sel));
 
@@ -271,34 +280,41 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
         return;
     }
 
-    LOGM(LOG, "New offer {:x} for data source {:x}", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
+    OFFER->primary = primary;
+
+    LOGM(LOG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
 
     dev->sendDataOffer(OFFER);
     OFFER->sendData();
-    dev->sendSelection(OFFER);
+    if (primary)
+        dev->sendPrimarySelection(OFFER);
+    else
+        dev->sendSelection(OFFER);
 }
 
-void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source) {
+void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) {
     for (auto& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
+            continue;
+        if (o->primary != primary)
             continue;
         o->dead = true;
     }
 
     if (!source) {
-        LOGM(LOG, "resetting selection");
+        LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
 
         for (auto& d : m_vDevices) {
-            sendSelectionToDevice(d, nullptr);
+            sendSelectionToDevice(d, nullptr, primary);
         }
 
         return;
     }
 
-    LOGM(LOG, "New selection for data source {:x}", (uintptr_t)source.get());
+    LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
     for (auto& d : m_vDevices) {
-        sendSelectionToDevice(d, source);
+        sendSelectionToDevice(d, source, primary);
     }
 }
 

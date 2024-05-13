@@ -1946,14 +1946,11 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     std::set<xkb_keysym_t> MODS;
 
     if (multiKey) {
-        if (ARGS[1].contains('&')) {
-            for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
-                KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_NO_FLAGS));
-            }
+        for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+            KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
         }
-
         for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
-            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_NO_FLAGS));
+            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
         }
     }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);

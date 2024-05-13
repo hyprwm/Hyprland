@@ -742,6 +742,10 @@ std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) 
 std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret       = "";
     const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
+
+    if (SHORTCUTS.empty())
+        return "No apps have registered any global shortcuts";
+
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         for (auto& sh : SHORTCUTS)
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);

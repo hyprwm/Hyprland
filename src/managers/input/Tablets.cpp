@@ -4,6 +4,7 @@
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../managers/PointerManager.hpp"
+#include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 
 static void unfocusTool(SP<CTabletTool> tool) {
@@ -36,7 +37,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* sur
 }
 
 static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
-    const auto LASTHLSURFACE = CWLSurface::surfaceFromWlr(g_pInputManager->m_pLastMouseSurface);
+    const auto LASTHLSURFACE = CWLSurface::surfaceFromWlr(g_pSeatManager->state.pointerFocus);
 
     if (!LASTHLSURFACE || !tool->active) {
         if (tool->getSurface())
@@ -56,7 +57,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
-    focusTool(tool, tab, g_pInputManager->m_pLastMouseSurface);
+    focusTool(tool, tab, g_pSeatManager->state.pointerFocus);
 
     if (!motion)
         return;

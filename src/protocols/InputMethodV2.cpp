@@ -1,5 +1,7 @@
 #include "InputMethodV2.hpp"
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
+#include "../devices/IKeyboard.hpp"
 #include <sys/mman.h>
 
 #define LOGM PROTO::ime->protoLog
@@ -11,14 +13,12 @@ CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboar
     resource->setRelease([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
     resource->setOnDestroy([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
 
-    const auto PKEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-
-    if (!PKEYBOARD) {
+    if (!g_pSeatManager->keyboard) {
         LOGM(ERR, "IME called but no active keyboard???");
         return;
     }
 
-    sendKeyboardData(PKEYBOARD);
+    sendKeyboardData(g_pSeatManager->keyboard->wlr());
 }
 
 CInputMethodKeyboardGrabV2::~CInputMethodKeyboardGrabV2() {
@@ -53,19 +53,20 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(wlr_keyboard* keyboard) {
 
     close(keymapFD);
 
-    sendMods(0, 0, 0, 0);
+    const auto MODS = keyboard->modifiers;
+    sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     resource->sendRepeatInfo(keyboard->repeat_info.rate, keyboard->repeat_info.delay);
 }
 
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(resource->client()));
 
     resource->sendKey(SERIAL, time, key, (uint32_t)state);
 }
 
 void CInputMethodKeyboardGrabV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-    const auto SERIAL = wlr_seat_client_next_serial(wlr_seat_client_for_wl_client(g_pCompositor->m_sSeat.seat, resource->client()));
+    const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(resource->client()));
 
     resource->sendModifiers(SERIAL, depressed, latched, locked, group);
 }

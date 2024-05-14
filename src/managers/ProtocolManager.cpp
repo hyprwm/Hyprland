@@ -26,9 +26,22 @@
 #include "../protocols/ServerDecorationKDE.hpp"
 #include "../protocols/FocusGrab.hpp"
 #include "../protocols/Tablet.hpp"
+#include "../protocols/LayerShell.hpp"
+#include "../protocols/PresentationTime.hpp"
+#include "../protocols/XDGShell.hpp"
+#include "../protocols/DataDeviceWlr.hpp"
+#include "../protocols/PrimarySelection.hpp"
+
+#include "../protocols/core/Seat.hpp"
+#include "../protocols/core/DataDevice.hpp"
 
 CProtocolManager::CProtocolManager() {
 
+    // Core
+    PROTO::seat = std::make_unique<CWLSeatProtocol>(&wl_seat_interface, 9, "WLSeat");
+    PROTO::data = std::make_unique<CWLDataDeviceProtocol>(&wl_data_device_manager_interface, 3, "WLDataDevice");
+
+    // Extensions
     PROTO::tearing             = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
     PROTO::fractional          = std::make_unique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
     PROTO::xdgOutput           = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
@@ -55,6 +68,11 @@ CProtocolManager::CProtocolManager() {
     PROTO::serverDecorationKDE = std::make_unique<CServerDecorationKDEProtocol>(&org_kde_kwin_server_decoration_manager_interface, 1, "ServerDecorationKDE");
     PROTO::focusGrab           = std::make_unique<CFocusGrabProtocol>(&hyprland_focus_grab_manager_v1_interface, 1, "FocusGrab");
     PROTO::tablet              = std::make_unique<CTabletV2Protocol>(&zwp_tablet_manager_v2_interface, 1, "TabletV2");
+    PROTO::layerShell          = std::make_unique<CLayerShellProtocol>(&zwlr_layer_shell_v1_interface, 5, "LayerShell");
+    PROTO::presentation        = std::make_unique<CPresentationProtocol>(&wp_presentation_interface, 1, "Presentation");
+    PROTO::xdgShell            = std::make_unique<CXDGShellProtocol>(&xdg_wm_base_interface, 6, "XDGShell");
+    PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
+    PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

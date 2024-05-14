@@ -24,10 +24,8 @@ hyprwayland_scanner = find_program(
 )
 
 protocols = [
-  [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
   [wl_protocol_dir, 'unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
-  ['wlr-layer-shell-unstable-v1.xml'],
   ['wlr-screencopy-unstable-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-global-shortcuts-v1.xml']
@@ -42,6 +40,8 @@ new_protocols = [
   ['wlr-virtual-pointer-unstable-v1.xml'],
   ['wlr-output-management-unstable-v1.xml'],
   ['kde-server-decoration.xml'],
+  ['wlr-layer-shell-unstable-v1.xml'],
+  ['wlr-data-control-unstable-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
   [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
@@ -60,6 +60,9 @@ new_protocols = [
   [wl_protocol_dir, 'staging/ext-idle-notify/ext-idle-notify-v1.xml'],
   [wl_protocol_dir, 'staging/ext-session-lock/ext-session-lock-v1.xml'],
   [wl_protocol_dir, 'stable/tablet/tablet-v2.xml'],
+  [wl_protocol_dir, 'stable/presentation-time/presentation-time.xml'],
+  [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
+  [wl_protocol_dir, 'unstable/primary-selection/primary-selection-unstable-v1.xml'],
 ]
 
 wl_protos_src = []
@@ -96,12 +99,27 @@ foreach p : new_protocols
 	)
 endforeach
 
-wayland_server = dependency('wayland-server', version: '>=1.20.0')
+wayland_server_dep = dependency('wayland-server', version: '>=1.20.0')
+wayland_server_dir = wayland_server_dep.get_variable('pkgdatadir')
+
+wl_server_protos = [
+	wayland_server_dir / 'wayland.xml'
+]
+wl_server_protos_gen = []
+foreach p : wl_server_protos
+	wl_server_protos_gen += custom_target(
+		p.underscorify(),
+		input: p,
+		install: false,
+		output: ['@BASENAME@.cpp', '@BASENAME@.hpp'],
+		command: [hyprwayland_scanner, '--wayland-enums', '@INPUT@', '@OUTDIR@'],
+	)
+endforeach
 
 lib_server_protos = static_library(
 	'server_protos',
-	wl_protos_src + wl_protos_headers + new_wl_protos,
-	dependencies: wayland_server.partial_dependency(compile_args: true),
+	wl_protos_src + wl_protos_headers + new_wl_protos + wl_server_protos_gen,
+	dependencies: wayland_server_dep.partial_dependency(compile_args: true),
 )
 
 server_protos = declare_dependency(

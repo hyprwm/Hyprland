@@ -5,7 +5,6 @@
   pkgconf,
   makeWrapper,
   cmake,
-  meson,
   ninja,
   binutils,
   cairo,
@@ -13,7 +12,6 @@
   fribidi,
   git,
   hyprcursor,
-  hyprland-protocols,
   hyprlang,
   hyprwayland-scanner,
   jq,
@@ -73,20 +71,13 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp
 
-      # Generate version.h
-      cp src/version.h.in src/version.h
-      substituteInPlace src/version.h \
-        --replace-warn "@HASH@" '${commit}' \
-        --replace-warn "@BRANCH@" "" \
-        --replace-warn "@MESSAGE@" "" \
-        --replace-warn "@DATE@" "${date}" \
-        --replace-warn "@TAG@" "" \
-        --replace-warn "@DIRTY@" '${
-        if commit == ""
-        then "dirty"
-        else ""
-      }'
+      # Remove extra @PREFIX@ to fix pkg-config paths
+      sed -i "s#@PREFIX@/##g" hyprland.pc.in
     '';
+
+    DATE = date;
+    HASH = commit;
+    DIRTY = if commit == "" then "dirty" else "";
 
     nativeBuildInputs = lib.concatLists [
       [
@@ -118,7 +109,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         fribidi
         git
         hyprcursor.dev
-        hyprland-protocols
         hyprlang
         libGL
         libdrm

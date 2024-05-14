@@ -3,6 +3,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../devices/ITouch.hpp"
+#include "../SeatManager.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
@@ -33,7 +34,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (m_sActiveSwipe.pWorkspaceBegin) {
         return;
         // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)) {
+    } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= 1)) {
         const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
@@ -76,7 +77,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     } else
         return; // oops, nothing found.
 
-    wlr_seat_touch_notify_down(g_pCompositor->m_sSeat.seat, m_sTouchData.touchFocusSurface, e.timeMs, e.touchID, local.x, local.y);
+    g_pSeatManager->sendTouchDown(m_sTouchData.touchFocusSurface, e.timeMs, e.touchID, local);
 
     PROTO::idle->onActivity();
 }
@@ -90,9 +91,8 @@ void CInputManager::onTouchUp(ITouch::SUpEvent e) {
         return;
     }
 
-    if (m_sTouchData.touchFocusSurface) {
-        wlr_seat_touch_notify_up(g_pCompositor->m_sSeat.seat, e.timeMs, e.touchID);
-    }
+    if (m_sTouchData.touchFocusSurface)
+        g_pSeatManager->sendTouchUp(e.timeMs, e.touchID);
 }
 
 void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
@@ -131,8 +131,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11)
             local = local * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
 
-        wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e.timeMs, e.touchID, local.x, local.y);
-        // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
+        g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     } else if (!m_sTouchData.touchFocusLS.expired()) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS->monitorID);
 
@@ -140,7 +139,6 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
         const auto local = g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchSurfaceOrigin;
 
-        wlr_seat_touch_notify_motion(g_pCompositor->m_sSeat.seat, e.timeMs, e.touchID, local.x, local.y);
-        // wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, e->time_msec, local.x, local.y);
+        g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     }
 }

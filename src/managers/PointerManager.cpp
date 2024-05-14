@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
+#include "SeatManager.hpp"
 #include <wlr/interfaces/wlr_output.h>
 #include <wlr/render/interface.h>
 #include <wlr/render/wlr_renderer.h>
@@ -223,7 +224,7 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
             },
             nullptr, "CPointerManager");
 
-        if (surf->wlr()->current.buffer) {
+        if (wlr_surface_has_buffer(surf->wlr())) {
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             wlr_surface_send_frame_done(surf->wlr(), &now);
@@ -296,6 +297,13 @@ void CPointerManager::resetCursorImage(bool apply) {
 
     currentCursorImage.scale   = 1.F;
     currentCursorImage.hotspot = {0, 0};
+
+    for (auto& s : monitorStates) {
+        if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_bEnabled)
+            continue;
+
+        s->entered = false;
+    }
 
     if (!apply)
         return;
@@ -518,6 +526,9 @@ Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
 }
 
 Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
+    if (!pMonitor->output->cursor_swapchain)
+        return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
+
     return CBox{currentCursorImage.hotspot, {0, 0}}
         .transform(wlr_output_transform_invert(pMonitor->transform), pMonitor->output->cursor_swapchain->width, pMonitor->output->cursor_swapchain->height)
         .pos();
@@ -764,7 +775,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendPointerFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {
@@ -855,7 +866,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     });
 
     listener->frame = touch->touchEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_touch_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendTouchFrame();
     });
     // clang-format on
 
@@ -929,4 +940,8 @@ void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
 
         return;
     }
+}
+
+Vector2D CPointerManager::cursorSizeLogical() {
+    return currentCursorImage.size / currentCursorImage.scale;
 }

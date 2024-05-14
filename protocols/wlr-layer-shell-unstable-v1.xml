@@ -25,7 +25,7 @@
     THIS SOFTWARE.
   </copyright>
 
-  <interface name="zwlr_layer_shell_v1" version="4">
+  <interface name="zwlr_layer_shell_v1" version="5">
     <description summary="create surfaces that are layers of the desktop">
       Clients can use this interface to assign the surface_layer role to
       wl_surfaces. Such surfaces are assigned to a "layer" of the output and
@@ -100,7 +100,7 @@
     </request>
   </interface>
 
-  <interface name="zwlr_layer_surface_v1" version="4">
+  <interface name="zwlr_layer_surface_v1" version="5">
     <description summary="layer metadata interface">
       An interface that may be implemented by a wl_surface, for surfaces that
       are designed to be rendered as a layer of a stacked desktop-like
@@ -367,6 +367,7 @@
       <entry name="invalid_size" value="1" summary="size is invalid"/>
       <entry name="invalid_anchor" value="2" summary="anchor bitfield is invalid"/>
       <entry name="invalid_keyboard_interactivity" value="3" summary="keyboard interactivity is invalid"/>
+      <entry name="invalid_exclusive_edge" value="4" summary="exclusive edge is invalid given the surface anchors"/>
     </enum>
 
     <enum name="anchor" bitfield="true">
@@ -385,6 +386,22 @@
         Layer is double-buffered, see wl_surface.commit.
       </description>
       <arg name="layer" type="uint" enum="zwlr_layer_shell_v1.layer" summary="layer to move this surface to"/>
+    </request>
+
+    <!-- Version 5 additions -->
+
+    <request name="set_exclusive_edge" since="5">
+      <description summary="set the edge the exclusive zone will be applied to">
+        Requests an edge for the exclusive zone to apply. The exclusive
+        edge will be automatically deduced from anchor points when possible,
+        but when the surface is anchored to a corner, it will be necessary
+        to set it explicitly to disambiguate, as it is not possible to deduce
+        which one of the two corner edges should be used.
+
+        The edge must be one the surface is anchored to, otherwise the
+        invalid_exclusive_edge protocol error will be raised.
+      </description>
+      <arg name="edge" type="uint" enum="anchor"/>
     </request>
   </interface>
 </protocol>

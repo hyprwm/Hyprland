@@ -154,8 +154,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
             if (!pTitleTex)
                 pTitleTex = m_sTitleTexs.titleTexs
-                                .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[i].lock(),
-                                                                          Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}))
+                                .emplace_back(std::make_unique<CTitleTex>(
+                                    m_dwGroupMembers[i].lock(), Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                                 .get();
 
             rect.y += (ASSIGNEDBOX.h / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
@@ -184,7 +184,7 @@ void CHyprGroupBarDecoration::invalidateTextures() {
     m_sTitleTexs.titleTexs.clear();
 }
 
-CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize) {
+CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) {
     szContent                 = pWindow->m_szTitle;
     pWindowOwner              = pWindow;
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
@@ -207,7 +207,7 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize) {
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_from_string((*PTITLEFONTFAMILY).c_str());
-    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE);
+    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE * monitorScale);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);
 
@@ -422,7 +422,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     return true;
 }
 
-bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_pointer_button_event* e) {
+bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
     if (m_pWindow->m_bIsFullscreen && m_pWindow->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)
         return true;
 
@@ -431,18 +431,18 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
     // close window on middle click
-    if (e->button == 274) {
+    if (e.button == 274) {
         static Vector2D pressedCursorPos;
 
-        if (e->state == WL_POINTER_BUTTON_STATE_PRESSED)
+        if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
             pressedCursorPos = pos;
-        else if (e->state == WL_POINTER_BUTTON_STATE_RELEASED && pressedCursorPos == pos)
+        else if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && pressedCursorPos == pos)
             g_pXWaylandManager->sendCloseWindow(m_pWindow->getGroupWindowByIndex(WINDOWINDEX));
 
         return true;
     }
 
-    if (e->state != WL_POINTER_BUTTON_STATE_PRESSED)
+    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED)
         return true;
 
     // click on padding
@@ -466,13 +466,13 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, wlr_point
     return true;
 }
 
-bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_axis_event* e) {
+bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, const IPointer::SAxisEvent e) {
     static auto PGROUPBARSCROLLING = CConfigValue<Hyprlang::INT>("group:groupbar:scrolling");
 
     if (!*PGROUPBARSCROLLING || m_pWindow->m_sGroupData.pNextWindow.expired())
         return false;
 
-    if (e->delta > 0)
+    if (e.delta > 0)
         m_pWindow->setGroupCurrent(m_pWindow->m_sGroupData.pNextWindow.lock());
     else
         m_pWindow->setGroupCurrent(m_pWindow->getGroupPrevious());
@@ -482,8 +482,8 @@ bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, wlr_pointer_ax
 
 bool CHyprGroupBarDecoration::onInputOnDeco(const eInputType type, const Vector2D& mouseCoords, std::any data) {
     switch (type) {
-        case INPUT_TYPE_AXIS: return onScrollOnDeco(mouseCoords, std::any_cast<wlr_pointer_axis_event*>(data));
-        case INPUT_TYPE_BUTTON: return onMouseButtonOnDeco(mouseCoords, std::any_cast<wlr_pointer_button_event*>(data));
+        case INPUT_TYPE_AXIS: return onScrollOnDeco(mouseCoords, std::any_cast<const IPointer::SAxisEvent>(data));
+        case INPUT_TYPE_BUTTON: return onMouseButtonOnDeco(mouseCoords, std::any_cast<const IPointer::SButtonEvent&>(data));
         case INPUT_TYPE_DRAG_START: return onBeginWindowDragOnDeco(mouseCoords);
         case INPUT_TYPE_DRAG_END: return onEndWindowDragOnDeco(mouseCoords, std::any_cast<PHLWINDOW>(data));
         default: return false;

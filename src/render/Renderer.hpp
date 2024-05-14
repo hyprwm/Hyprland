@@ -105,7 +105,7 @@ class CHyprRenderer {
     } m_sLastCursorData;
 
   private:
-    void           arrangeLayerArray(CMonitor*, const std::vector<PHLLS>&, bool, CBox*);
+    void           arrangeLayerArray(CMonitor*, const std::vector<PHLLSREF>&, bool, CBox*);
     void           renderWorkspaceWindowsFullscreen(CMonitor*, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void           renderWorkspaceWindows(CMonitor*, PHLWORKSPACE, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void           renderWindow(PHLWINDOW, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);

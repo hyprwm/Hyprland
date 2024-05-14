@@ -120,8 +120,6 @@ void CWLSurface::destroy() {
 
     if (g_pCompositor && g_pCompositor->m_pLastFocus == m_pWLRSurface)
         g_pCompositor->m_pLastFocus = nullptr;
-    if (g_pInputManager && g_pInputManager->m_pLastMouseSurface == m_pWLRSurface)
-        g_pInputManager->m_pLastMouseSurface = nullptr;
     if (g_pHyprRenderer && g_pHyprRenderer->m_sLastCursorData.surf == this)
         g_pHyprRenderer->m_sLastCursorData.surf.reset();
 

@@ -1,0 +1,95 @@
+#pragma once
+
+#include <memory>
+#include <vector>
+#include <cstdint>
+#include <tuple>
+#include "WaylandProtocol.hpp"
+#include "wlr-layer-shell-unstable-v1.hpp"
+#include "../helpers/Vector2D.hpp"
+#include "../helpers/signal/Signal.hpp"
+
+class CMonitor;
+
+class CLayerShellResource {
+  public:
+    CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, wlr_surface* surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
+    ~CLayerShellResource();
+
+    bool good();
+    void configure(const Vector2D& size);
+    void sendClosed();
+
+    enum eCommittedState {
+        STATE_SIZE          = (1 << 0),
+        STATE_ANCHOR        = (1 << 1),
+        STATE_EXCLUSIVE     = (1 << 2),
+        STATE_MARGIN        = (1 << 3),
+        STATE_INTERACTIVITY = (1 << 4),
+        STATE_LAYER         = (1 << 5),
+        STATE_EDGE          = (1 << 6),
+    };
+
+    struct {
+        CSignal destroy;
+        CSignal commit;
+        CSignal map;
+        CSignal unmap;
+        CSignal newPopup; // wlr_xdg_popup*
+    } events;
+
+    struct SState {
+        uint32_t                                anchor    = 0;
+        int32_t                                 exclusive = 0;
+        Vector2D                                desiredSize;
+        zwlrLayerSurfaceV1KeyboardInteractivity interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+        zwlrLayerShellV1Layer                   layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
+        zwlrLayerSurfaceV1Anchor                exclusiveEdge = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+        uint32_t                                committed     = 0;
+
+        struct {
+            double left = 0, right = 0, top = 0, bottom = 0;
+        } margin;
+
+        void reset();
+    } current, pending;
+
+    Vector2D     size;
+    std::string  layerNamespace;
+    std::string  monitor    = "";
+    wlr_surface* surface    = nullptr;
+    bool         mapped     = false;
+    bool         configured = false;
+
+  private:
+    SP<CZwlrLayerSurfaceV1> resource;
+
+    DYNLISTENER(destroySurface);
+    DYNLISTENER(commitSurface);
+
+    bool                                       closed = false;
+
+    std::vector<std::pair<uint32_t, Vector2D>> serials;
+};
+
+class CLayerShellProtocol : public IWaylandProtocol {
+  public:
+    CLayerShellProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+
+    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+  private:
+    void onManagerResourceDestroy(wl_resource* res);
+    void destroyResource(CLayerShellResource* surf);
+    void onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_);
+
+    //
+    std::vector<UP<CZwlrLayerShellV1>>   m_vManagers;
+    std::vector<SP<CLayerShellResource>> m_vLayers;
+
+    friend class CLayerShellResource;
+};
+
+namespace PROTO {
+    inline UP<CLayerShellProtocol> layerShell;
+};

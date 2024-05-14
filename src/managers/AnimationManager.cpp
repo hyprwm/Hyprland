@@ -224,7 +224,7 @@ void CAnimationManager::tick() {
                             g_pHyprRenderer->damageWindow(w);
                     }
                 } else if (PLAYER) {
-                    if (PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || PLAYER->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
+                    if (PLAYER->layer <= 1)
                         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
 
                     // some fucking layers miss 1 pixel???

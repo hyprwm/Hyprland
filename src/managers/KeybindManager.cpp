@@ -725,25 +725,29 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
-        const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH)) {
+            shadow = true;
+        } else {
+            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-        for (auto& pk : m_dPressedKeys) {
-            if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
-                shadow = true;
+            for (auto& pk : m_dPressedKeys) {
+                if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
+                    shadow = true;
 
-                if (pk.keysym == doesntHave && doesntHave != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keysym == doesntHave && doesntHave != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
-            }
 
-            if (pk.keycode != 0 && pk.keycode == k.keycode) {
-                shadow = true;
+                if (pk.keycode != 0 && pk.keycode == k.keycode) {
+                    shadow = true;
 
-                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
             }
         }

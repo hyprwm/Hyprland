@@ -570,17 +570,15 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
     bool found = false;
 
     if (pressed) {
-        if (keycodeToModifier(key.keycode)) {
+        if (keycodeToModifier(key.keycode))
             m_sMkMods.insert(key.keysym);
-        } else {
+        else
             m_sMkKeys.insert(key.keysym);
-        }
     } else {
-        if (keycodeToModifier(key.keycode)) {
+        if (keycodeToModifier(key.keycode))
             m_sMkMods.erase(key.keysym);
-        } else {
+        else
             m_sMkKeys.erase(key.keysym);
-        }
     }
     if (g_pCompositor->m_sSeat.exclusiveClient)
         Debug::log(LOG, "Keybind handling only locked (inhibitor)");

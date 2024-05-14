@@ -1239,6 +1239,26 @@ void CInputManager::destroyTabletPad(SP<CTabletPad> pad) {
     removeFromHIDs(pad);
 }
 
+void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
+    if (!pKeyboard)
+        return;
+
+    auto keyboard = pKeyboard->wlr();
+
+    if (!keyboard || keyboard->xkb_state == nullptr)
+        return;
+
+    uint32_t leds = 0;
+    for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
+        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
+            leds |= (1 << i);
+    }
+
+    for (auto& k : m_vKeyboards) {
+        k->updateLEDs(leds);
+    }
+}
+
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->enabled)
         return;
@@ -1271,9 +1291,7 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
             wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, e.timeMs, e.keycode, e.state);
         }
 
-        for (auto& k : m_vKeyboards) {
-            k->updateLEDs();
-        }
+        updateKeyboardsLeds(pKeyboard);
     }
 }
 
@@ -1299,9 +1317,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
         wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &MODS);
     }
 
-    for (auto& k : m_vKeyboards) {
-        k->updateLEDs();
-    }
+    updateKeyboardsLeds(pKeyboard);
 
     if (PWLRKB->modifiers.group != pKeyboard->activeLayout) {
         pKeyboard->activeLayout = PWLRKB->modifiers.group;

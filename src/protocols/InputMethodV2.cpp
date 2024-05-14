@@ -53,7 +53,8 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(wlr_keyboard* keyboard) {
 
     close(keymapFD);
 
-    sendMods(0, 0, 0, 0);
+    const auto MODS = keyboard->modifiers;
+    sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
     resource->sendRepeatInfo(keyboard->repeat_info.rate, keyboard->repeat_info.delay);
 }

@@ -131,8 +131,17 @@ void IKeyboard::updateLEDs() {
             leds |= (1 << i);
     }
 
+    updateLEDs(leds);
+}
+
+void IKeyboard::updateLEDs(uint32_t leds) {
+    auto keyboard = wlr();
+
+    if (!keyboard || keyboard->xkb_state == nullptr)
+        return;
+
     if (isVirtual() && g_pInputManager->shouldIgnoreVirtualKeyboard(self.lock()))
         return;
 
-    wlr_keyboard_led_update(wlr(), leds);
+    wlr_keyboard_led_update(keyboard, leds);
 }

@@ -206,6 +206,12 @@ void CCompositor::initServer() {
         m_sWLRLinuxDMABuf = wlr_linux_dmabuf_v1_create_with_renderer(m_sWLDisplay, 4, m_sWLRRenderer);
     }
 
+    if (wlr_renderer_get_drm_fd(m_sWLRRenderer) >= 0 &&
+        m_sWLRRenderer->features.timeline) {
+      wlr_linux_drm_syncobj_manager_v1_create(m_sWLDisplay, 1,
+                                              wlr_renderer_get_drm_fd(m_sWLRRenderer));
+    }
+
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
 
     if (!m_sWLRAllocator) {

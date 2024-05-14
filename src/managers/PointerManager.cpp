@@ -223,7 +223,7 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
             },
             nullptr, "CPointerManager");
 
-        if (surf->wlr()->current.buffer) {
+        if (wlr_surface_has_buffer(surf->wlr())) {
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             wlr_surface_send_frame_done(surf->wlr(), &now);

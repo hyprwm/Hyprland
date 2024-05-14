@@ -114,6 +114,7 @@ class CInputManager {
 
     void               updateDragIcon();
     void               updateCapabilities();
+    void               updateKeyboardsLeds(SP<IKeyboard>);
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();

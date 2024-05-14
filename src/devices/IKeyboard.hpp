@@ -42,6 +42,7 @@ class IKeyboard : public IHID {
     void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
     std::string        getActiveLayout();
     void               updateLEDs();
+    void               updateLEDs(uint32_t leds);
 
     bool               active  = false;
     bool               enabled = true;

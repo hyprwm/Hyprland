@@ -189,21 +189,3 @@ class CCompositor {
 };
 
 inline std::unique_ptr<CCompositor> g_pCompositor;
-
-// For XWayland
-inline std::map<std::string, xcb_atom_t> HYPRATOMS = {HYPRATOM("_NET_WM_WINDOW_TYPE"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_NORMAL"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_DOCK"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_DIALOG"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_UTILITY"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_TOOLBAR"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_SPLASH"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_MENU"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_POPUP_MENU"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_TOOLTIP"),
-                                                      HYPRATOM("_NET_WM_WINDOW_TYPE_NOTIFICATION"),
-                                                      HYPRATOM("_KDE_NET_WM_WINDOW_TYPE_OVERRIDE"),
-                                                      HYPRATOM("_NET_SUPPORTING_WM_CHECK"),
-                                                      HYPRATOM("_NET_WM_NAME"),
-                                                      HYPRATOM("UTF8_STRING")};

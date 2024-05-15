@@ -31,6 +31,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/DataDeviceWlr.hpp"
 #include "../protocols/PrimarySelection.hpp"
+#include "../protocols/XWaylandShell.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -73,6 +74,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::xdgShell            = std::make_unique<CXDGShellProtocol>(&xdg_wm_base_interface, 6, "XDGShell");
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
+    PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

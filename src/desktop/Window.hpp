@@ -15,6 +15,7 @@
 #include "../helpers/signal/Signal.hpp"
 
 class CXDGSurfaceResource;
+class CXWaylandSurface;
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -199,37 +200,14 @@ struct SInitialWorkspaceToken {
 class CWindow {
   public:
     static PHLWINDOW create(SP<CXDGSurfaceResource>);
-    // xwl
-    static PHLWINDOW create();
+    static PHLWINDOW create(SP<CXWaylandSurface>);
 
   private:
     CWindow(SP<CXDGSurfaceResource> resource);
-    CWindow();
+    CWindow(SP<CXWaylandSurface> surface);
 
   public:
     ~CWindow();
-
-    DYNLISTENER(commitWindow);
-    DYNLISTENER(mapWindow);
-    DYNLISTENER(unmapWindow);
-    DYNLISTENER(destroyWindow);
-    DYNLISTENER(setTitleWindow);
-    DYNLISTENER(setGeometryX11U);
-    DYNLISTENER(fullscreenWindow);
-    DYNLISTENER(requestMove);
-    DYNLISTENER(requestMinimize);
-    DYNLISTENER(requestMaximize);
-    DYNLISTENER(requestResize);
-    DYNLISTENER(activateX11);
-    DYNLISTENER(configureX11);
-    DYNLISTENER(toplevelClose);
-    DYNLISTENER(toplevelActivate);
-    DYNLISTENER(toplevelFullscreen);
-    DYNLISTENER(setOverrideRedirect);
-    DYNLISTENER(associateX11);
-    DYNLISTENER(dissociateX11);
-    DYNLISTENER(ackConfigure);
-    // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface m_pWLSurface;
 
@@ -237,10 +215,8 @@ class CWindow {
         CSignal destroy;
     } events;
 
-    union {
-        wlr_xwayland_surface* xwayland;
-    } m_uSurface;
     WP<CXDGSurfaceResource> m_pXDGSurface;
+    WP<CXWaylandSurface>    m_pXWaylandSurface;
 
     // this is the position and size of the "bounding box"
     Vector2D m_vPosition = Vector2D(0, 0);
@@ -391,7 +367,7 @@ class CWindow {
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
-        return m_pXDGSurface == rhs.m_pXDGSurface && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
+        return m_pXDGSurface == rhs.m_pXDGSurface && m_pXWaylandSurface == rhs.m_pXWaylandSurface && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
             m_bFadingOut == rhs.m_bFadingOut;
     }
 
@@ -459,6 +435,8 @@ class CWindow {
     void                     onWorkspaceAnimUpdate();
     void                     onUpdateState();
     void                     onUpdateMeta();
+    void                     onX11Configure(CBox box);
+    void                     onResourceChangeX11();
     std::string              fetchTitle();
     std::string              fetchClass();
 
@@ -478,8 +456,12 @@ class CWindow {
         CHyprSignalListener unmap;
         CHyprSignalListener commit;
         CHyprSignalListener destroy;
+        CHyprSignalListener activate;
+        CHyprSignalListener configure;
+        CHyprSignalListener setGeometry;
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;
+        CHyprSignalListener resourceChange;
     } listeners;
 
   private:

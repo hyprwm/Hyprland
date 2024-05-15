@@ -63,6 +63,7 @@ class CSeatManager {
     void     sendPointerMotion(uint32_t timeMs, const Vector2D& local);
     void     sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state);
     void     sendPointerFrame();
+    void     sendPointerFrame(WP<CWLSeatResource> pResource);
     void     sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, wl_pointer_axis_source source, wl_pointer_axis_relative_direction relative);
 
     void     sendTouchDown(wlr_surface* surf, uint32_t timeMs, int32_t id, const Vector2D& local);

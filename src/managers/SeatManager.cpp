@@ -186,10 +186,13 @@ void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
         }
     }
 
+    auto lastPointerFocusResource = state.pointerFocusResource;
+
     state.pointerFocusResource.reset();
     state.pointerFocus = surf;
 
     if (!surf) {
+        sendPointerFrame(lastPointerFocusResource);
         events.pointerFocusChange.emit();
         return;
     }
@@ -208,6 +211,11 @@ void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
             break;
         }
     }
+
+    if (state.pointerFocusResource != lastPointerFocusResource)
+        sendPointerFrame(lastPointerFocusResource);
+
+    sendPointerFrame();
 
     hyprListener_pointerSurfaceDestroy.initCallback(
         &surf->events.destroy, [this](void* owner, void* data) { setPointerFocus(nullptr, {}); }, nullptr, "CSeatManager");
@@ -245,7 +253,14 @@ void CSeatManager::sendPointerFrame() {
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
+    sendPointerFrame(state.pointerFocusResource);
+}
+
+void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
+    if (!pResource)
+        return;
+
+    for (auto& p : pResource->pointers) {
         if (!p)
             continue;
 

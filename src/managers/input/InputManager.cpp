@@ -471,6 +471,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             if (FOLLOWMOUSE != 0 || pFoundWindow == g_pCompositor->m_pLastWindow)
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
+            if (g_pSeatManager->state.pointerFocus == foundSurface)
+                g_pSeatManager->sendPointerMotion(time, surfaceLocal);
+
             m_bLastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {

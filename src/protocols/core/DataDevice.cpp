@@ -233,7 +233,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : reso
 
         source->dnd = true;
 
-        PROTO::data->initiateDrag(source, wlr_surface_from_resource(icon), wlr_surface_from_resource(origin));
+        PROTO::data->initiateDrag(source, icon ? wlr_surface_from_resource(icon) : nullptr, wlr_surface_from_resource(origin));
     });
 }
 
@@ -471,22 +471,24 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     dnd.currentSource = currentSource;
     dnd.originSurface = origin;
     dnd.dndSurface    = dragSurface;
-    dnd.hyprListener_dndSurfaceDestroy.initCallback(
-        &dragSurface->events.destroy, [this](void* owner, void* data) { abortDrag(); }, nullptr, "CWLDataDeviceProtocol::drag");
-    dnd.hyprListener_dndSurfaceCommit.initCallback(
-        &dragSurface->events.commit,
-        [this](void* owner, void* data) {
-            if (dnd.dndSurface->pending.buffer_width > 0 && dnd.dndSurface->pending.buffer_height > 0 && !dnd.dndSurface->mapped) {
-                wlr_surface_map(dnd.dndSurface);
-                return;
-            }
+    if (dragSurface) {
+        dnd.hyprListener_dndSurfaceDestroy.initCallback(
+            &dragSurface->events.destroy, [this](void* owner, void* data) { abortDrag(); }, nullptr, "CWLDataDeviceProtocol::drag");
+        dnd.hyprListener_dndSurfaceCommit.initCallback(
+            &dragSurface->events.commit,
+            [this](void* owner, void* data) {
+                if (dnd.dndSurface->pending.buffer_width > 0 && dnd.dndSurface->pending.buffer_height > 0 && !dnd.dndSurface->mapped) {
+                    wlr_surface_map(dnd.dndSurface);
+                    return;
+                }
 
-            if (dnd.dndSurface->pending.buffer_width <= 0 && dnd.dndSurface->pending.buffer_height <= 0 && dnd.dndSurface->mapped) {
-                wlr_surface_unmap(dnd.dndSurface);
-                return;
-            }
-        },
-        nullptr, "CWLDataDeviceProtocol::drag");
+                if (dnd.dndSurface->pending.buffer_width <= 0 && dnd.dndSurface->pending.buffer_height <= 0 && dnd.dndSurface->mapped) {
+                    wlr_surface_unmap(dnd.dndSurface);
+                    return;
+                }
+            },
+            nullptr, "CWLDataDeviceProtocol::drag");
+    }
 
     dnd.mouseButton = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<IPointer::SButtonEvent>(e);

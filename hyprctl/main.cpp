@@ -90,24 +90,24 @@ std::vector<SInstanceData> instances() {
     return result;
 }
 
-void request(std::string arg, int minArgs = 0) {
+int request(std::string arg, int minArgs = 0) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
 
     if (ARGS < minArgs) {
         std::cout << "Not enough arguments, expected at least " << minArgs;
-        return;
+        return -1;
     }
 
     if (SERVERSOCKET < 0) {
         std::cout << "Couldn't open a socket (1)";
-        return;
+        return 1;
     }
 
     if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
-        return;
+        return 2;
     }
 
     const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
@@ -121,14 +121,14 @@ void request(std::string arg, int minArgs = 0) {
 
     if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";
-        return;
+        return 3;
     }
 
     auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 
     if (sizeWritten < 0) {
         std::cout << "Couldn't write (4)";
-        return;
+        return 4;
     }
 
     std::string reply        = "";
@@ -138,7 +138,7 @@ void request(std::string arg, int minArgs = 0) {
 
     if (sizeWritten < 0) {
         std::cout << "Couldn't read (5)";
-        return;
+        return 5;
     }
 
     reply += std::string(buffer, sizeWritten);
@@ -147,7 +147,7 @@ void request(std::string arg, int minArgs = 0) {
         sizeWritten = read(SERVERSOCKET, buffer, 8192);
         if (sizeWritten < 0) {
             std::cout << "Couldn't read (5)";
-            return;
+            return 5;
         }
         reply += std::string(buffer, sizeWritten);
     }
@@ -155,19 +155,21 @@ void request(std::string arg, int minArgs = 0) {
     close(SERVERSOCKET);
 
     std::cout << reply;
+
+    return 0;
 }
 
-void requestHyprpaper(std::string arg) {
+int requestHyprpaper(std::string arg) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
         std::cout << "Couldn't open a socket (1)";
-        return;
+        return 1;
     }
 
     if (instanceSignature.empty()) {
         std::cout << "HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)";
-        return;
+        return 2;
     }
 
     sockaddr_un serverAddress = {0};
@@ -181,7 +183,7 @@ void requestHyprpaper(std::string arg) {
 
     if (connect(SERVERSOCKET, (sockaddr*)&serverAddress, SUN_LEN(&serverAddress)) < 0) {
         std::cout << "Couldn't connect to " << socketPath << ". (3)";
-        return;
+        return 3;
     }
 
     arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
@@ -191,7 +193,7 @@ void requestHyprpaper(std::string arg) {
 
     if (sizeWritten < 0) {
         std::cout << "Couldn't write (4)";
-        return;
+        return 4;
     }
 
     char buffer[8192] = {0};
@@ -200,12 +202,14 @@ void requestHyprpaper(std::string arg) {
 
     if (sizeWritten < 0) {
         std::cout << "Couldn't read (5)";
-        return;
+        return 5;
     }
 
     close(SERVERSOCKET);
 
     std::cout << std::string(buffer);
+
+    return 0;
 }
 
 void batchRequest(std::string arg, bool json) {
@@ -384,33 +388,33 @@ int main(int argc, char** argv) {
     if (fullRequest.contains("/--batch"))
         batchRequest(fullRequest, json);
     else if (fullRequest.contains("/hyprpaper"))
-        requestHyprpaper(fullRequest);
+        exitStatus = requestHyprpaper(fullRequest);
     else if (fullRequest.contains("/switchxkblayout"))
-        request(fullRequest, 2);
+        exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/seterror"))
-        request(fullRequest, 1);
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/setprop"))
-        request(fullRequest, 3);
+        exitStatus = request(fullRequest, 3);
     else if (fullRequest.contains("/plugin"))
-        request(fullRequest, 1);
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/dismissnotify"))
-        request(fullRequest, 0);
+        exitStatus = request(fullRequest, 0);
     else if (fullRequest.contains("/notify"))
-        request(fullRequest, 2);
+        exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/output"))
-        request(fullRequest, 2);
+        exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/setcursor"))
-        request(fullRequest, 1);
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/dispatch"))
-        request(fullRequest, 1);
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/keyword"))
-        request(fullRequest, 2);
+        exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/decorations"))
-        request(fullRequest, 1);
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
     else {
-        request(fullRequest);
+        exitStatus = request(fullRequest);
     }
 
     std::cout << std::endl;

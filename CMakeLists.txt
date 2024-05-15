@@ -16,7 +16,7 @@ project(Hyprland
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
-configure_file(hyprland.pc.in hyprland.pc @ONLY) 
+configure_file(hyprland.pc.in hyprland.pc @ONLY)
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
@@ -90,9 +90,12 @@ include_directories(
   "protocols/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value
+    -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith
+    -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 message(STATUS "Checking deps...")
 

@@ -5,20 +5,9 @@ project('Hyprland', 'cpp', 'c',
     'default_library=static',
     'optimization=3',
     'buildtype=release',
-    'debug=false'
-    # 'cpp_std=c++23' # not yet supported by meson, as of version 0.63.0
-    ])
-
-# clang v14.0.6 uses C++2b instead of C++23, so we've gotta account for that
-# replace the following with a project default option once meson gets support for C++23
-cpp_compiler = meson.get_compiler('cpp')
-if cpp_compiler.has_argument('-std=c++23')
-  add_global_arguments('-std=c++23', language: 'cpp')
-elif cpp_compiler.has_argument('-std=c++2b')
-  add_global_arguments('-std=c++2b', language: 'cpp')
-else
-  error('Could not configure current C++ compiler (' + cpp_compiler.get_id() + ' ' + cpp_compiler.version() + ') with required C++ standard (C++23)')
-endif
+    'debug=false',
+    'cpp_std=c++23',
+  ])
 
 add_project_arguments(
   [
@@ -26,9 +15,11 @@ add_project_arguments(
     '-Wno-unused-value',
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
+    '-Wno-pointer-arith',
   ],
   language: 'cpp')
 
+cpp_compiler = meson.get_compiler('cpp')
 if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
@@ -65,7 +56,7 @@ if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif
 
-version_h = run_command('sh', '-c', 'scripts/generateVersion.sh')
+version_h = run_command('sh', '-c', 'scripts/generateVersion.sh', check: true)
 
 globber = run_command('find', 'src', '-name', '*.h*', check: true)
 headers = globber.stdout().strip().split('\n')

@@ -297,6 +297,9 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
         p->sendAxis(timeMs, axis, value);
         p->sendAxisSource(source);
         p->sendAxisRelativeDirection(axis, relative);
+
+        if (value == 0)
+            p->sendAxisStop(timeMs, axis);
     }
 }
 

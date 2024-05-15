@@ -1041,6 +1041,9 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     if (!valid(pWindow))
         return std::vector<SWindowRule>();
 
+    // if the window is unmapped, don't process exec rules yet.
+    shadowExec = shadowExec || !pWindow->m_bIsMapped;
+
     std::vector<SWindowRule> returns;
 
     std::string              title      = pWindow->m_szTitle;

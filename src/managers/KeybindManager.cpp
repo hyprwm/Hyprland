@@ -720,9 +720,9 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
-        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH)) {
+        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH))
             shadow = true;
-        } else {
+        else {
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 

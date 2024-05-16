@@ -24,7 +24,6 @@ in {
     inputs.hyprcursor.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprwayland-scanner.overlays.default
-    self.overlays.wayland-protocols
     self.overlays.xwayland
 
     # Hyprland packages themselves
@@ -71,16 +70,6 @@ in {
       postInstall = ''
         sed -i '/includedir/d' $out/lib/pkgconfig/xwayland.pc
       '';
-    });
-  };
-
-  wayland-protocols = final: prev: {
-    wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
-      version = "1.35";
-      src = prev.fetchurl {
-        url = "https://gitlab.freedesktop.org/wayland/${super.pname}/-/releases/${self.version}/downloads/${super.pname}-${self.version}.tar.xz";
-        hash = "sha256-N6JxaigTPcgZNBxWiinSHoy3ITDlwSah/PyfQsI9las=";
-      };
     });
   };
 }

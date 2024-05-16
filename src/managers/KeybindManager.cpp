@@ -8,7 +8,9 @@
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
 
+#include <optional>
 #include <regex>
+#include <string>
 #include <tuple>
 
 #include <sys/ioctl.h>
@@ -536,8 +538,48 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
+eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
+    // Returns whether two sets of keysyms are equal, partially equal, or not
+    // matching. (Partially matching means that pressed is a subset of bound)
+
+    std::set<xkb_keysym_t> boundKeysNotPressed;
+    std::set<xkb_keysym_t> pressedKeysNotBound;
+
+    std::set_difference(keybindKeysyms.begin(), keybindKeysyms.end(), pressedKeysyms.begin(), pressedKeysyms.end(),
+                        std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
+    std::set_difference(pressedKeysyms.begin(), pressedKeysyms.end(), keybindKeysyms.begin(), keybindKeysyms.end(),
+                        std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
+
+    if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
+        return MK_FULL_MATCH;
+
+    if (boundKeysNotPressed.size() && pressedKeysNotBound.empty())
+        return MK_PARTIAL_MATCH;
+
+    return MK_NO_MATCH;
+}
+
+eMultiKeyCase CKeybindManager::mkBindMatches(const SKeybind keybind) {
+    if (mkKeysymSetMatches(keybind.sMkMods, m_sMkMods) != MK_FULL_MATCH)
+        return MK_NO_MATCH;
+
+    return mkKeysymSetMatches(keybind.sMkKeys, m_sMkKeys);
+}
+
 bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
-    bool        found = false;
+    bool found = false;
+
+    if (pressed) {
+        if (keycodeToModifier(key.keycode))
+            m_sMkMods.insert(key.keysym);
+        else
+            m_sMkKeys.insert(key.keysym);
+    } else {
+        if (keycodeToModifier(key.keycode))
+            m_sMkMods.erase(key.keysym);
+        else
+            m_sMkKeys.erase(key.keysym);
+    }
 
     static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
 
@@ -559,7 +601,13 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
         if (!IGNORECONDITIONS && ((modmask != k.modmask && !k.ignoreMods) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (!key.keyName.empty()) {
+        if (k.multiKey) {
+            switch (mkBindMatches(k)) {
+                case MK_NO_MATCH: continue;
+                case MK_PARTIAL_MATCH: found = true; continue;
+                case MK_FULL_MATCH: found = true;
+            }
+        } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)
                 continue;
         } else if (k.keycode != 0) {
@@ -672,25 +720,29 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
-        const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH))
+            shadow = true;
+        else {
+            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-        for (auto& pk : m_dPressedKeys) {
-            if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
-                shadow = true;
+            for (auto& pk : m_dPressedKeys) {
+                if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
+                    shadow = true;
 
-                if (pk.keysym == doesntHave && doesntHave != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keysym == doesntHave && doesntHave != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
-            }
 
-            if (pk.keycode != 0 && pk.keycode == k.keycode) {
-                shadow = true;
+                if (pk.keycode != 0 && pk.keycode == k.keycode) {
+                    shadow = true;
 
-                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
             }
         }

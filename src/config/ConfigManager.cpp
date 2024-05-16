@@ -6,6 +6,7 @@
 #include "helpers/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
+#include <cstdint>
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -18,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <ranges>
+#include <xkbcommon/xkbcommon.h>
 
 extern "C" char**             environ;
 
@@ -1908,6 +1910,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       nonConsuming = false;
     bool       transparent  = false;
     bool       ignoreMods   = false;
+    bool       multiKey     = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -1925,6 +1928,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             transparent = true;
         } else if (arg == 'i') {
             ignoreMods = true;
+        } else if (arg == 's') {
+            multiKey = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1943,10 +1948,21 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
         return "bind: too many args";
 
+    std::set<xkb_keysym_t> KEYSYMS;
+    std::set<xkb_keysym_t> MODS;
+
+    if (multiKey) {
+        for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+            KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+        for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
+            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+    }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
 
-    const auto KEY = ARGS[1];
+    const auto KEY = multiKey ? "" : ARGS[1];
 
     auto       HANDLER = ARGS[2];
 
@@ -1970,7 +1986,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
-    if (KEY != "") {
+    if ((KEY != "") || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
         if (parsedKey.catchAll && m_szCurrentSubmap == "") {
@@ -1978,8 +1994,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
-                                               nonConsuming, transparent, ignoreMods});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
+                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

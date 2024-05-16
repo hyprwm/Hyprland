@@ -54,6 +54,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     std::deque<PHLWINDOWREF> m_dwGroupMembers;
 
     float                    m_fBarWidth;
+    float                    m_fBarHeight;
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();

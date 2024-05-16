@@ -774,7 +774,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
         }
     }
 
-    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, std::round(factor * e.deltaDiscrete), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, std::round(factor * e.deltaDiscrete / 120), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

@@ -236,7 +236,14 @@ function(protocolNew protoPath protoName external)
     else()
         set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
     endif()
-    hyprwayland_protocol(Hyprland ${protoName} ${path} ${CMAKE_SOURCE_DIR}/protocols)
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}.cpp
+               ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp
+        COMMAND hyprwayland-scanner ${path}/${protoName}.xml ${CMAKE_SOURCE_DIR}/protocols/
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+    target_sources(Hyprland PRIVATE protocols/${protoName}.hpp)
 endfunction()
 function(protocolWayland)
     add_custom_command(

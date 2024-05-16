@@ -17,7 +17,7 @@ wayland_scanner = find_program(
 	wayland_scanner_dep.get_variable('wayland_scanner'),
 	native: true,
 )
-hyprwayland_scanner_dep = dependency('hyprwayland-scanner', version: '>=0.3.5', native: true)
+hyprwayland_scanner_dep = dependency('hyprwayland-scanner', version: '>=0.3.8', native: true)
 hyprwayland_scanner = find_program(
 	hyprwayland_scanner_dep.get_variable('hyprwayland_scanner'),
 	native: true,

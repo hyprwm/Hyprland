@@ -309,6 +309,11 @@ void CPointerManager::resetCursorImage(bool apply) {
         return;
 
     for (auto& ms : monitorStates) {
+        if (!ms->monitor || !ms->monitor->m_bEnabled || !ms->monitor->dpmsStatus) {
+            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
+
         if (ms->cursorFrontBuffer) {
             if (ms->monitor->output->impl->set_cursor)
                 ms->monitor->output->impl->set_cursor(ms->monitor->output, nullptr, 0, 0);
@@ -323,6 +328,11 @@ void CPointerManager::updateCursorBackend() {
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
+
+        if (!m->m_bEnabled || !m->dpmsStatus) {
+            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
 
         if (state->softwareLocks > 0 || *PNOHW || !attemptHardwareCursor(state)) {
             Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);

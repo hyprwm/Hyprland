@@ -126,6 +126,8 @@ endif()
 add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
 add_dependencies(Hyprland wlroots-hyprland)
 
+set(USE_GPROF ON)
+
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
 
@@ -151,8 +153,12 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         endif()
     endif()
 
-    add_compile_options(-pg -no-pie -fno-builtin)
-    add_link_options(-pg -no-pie -fno-builtin)
+    add_compile_options(-fno-pie -fno-builtin)
+    add_link_options(-no-pie -fno-builtin)
+    if(USE_GPROF)
+        add_compile_options(-pg)
+        add_link_options(-pg)
+    endif()
 endif()
 
 check_include_file("execinfo.h" EXECINFOH)

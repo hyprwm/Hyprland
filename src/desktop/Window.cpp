@@ -1337,7 +1337,7 @@ void CWindow::onUpdateState() {
     if (!m_pXDGSurface)
         return;
 
-    if (m_pXDGSurface->toplevel->state.requestsFullscreen) {
+    if (m_pXDGSurface->toplevel->state.requestsFullscreen && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN)) {
         bool fs = m_pXDGSurface->toplevel->state.requestsFullscreen.value();
 
         if (fs != m_bIsFullscreen && m_pXDGSurface->mapped)
@@ -1347,7 +1347,7 @@ void CWindow::onUpdateState() {
             m_bWantsInitialFullscreen = fs;
     }
 
-    if (m_pXDGSurface->toplevel->state.requestsMaximize) {
+    if (m_pXDGSurface->toplevel->state.requestsMaximize && !(m_eSuppressedEvents & SUPPRESS_MAXIMIZE)) {
         bool fs = m_pXDGSurface->toplevel->state.requestsMaximize.value();
 
         if (fs != m_bIsFullscreen && m_pXDGSurface->mapped)

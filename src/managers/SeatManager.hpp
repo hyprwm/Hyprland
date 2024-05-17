@@ -54,6 +54,7 @@ class CSeatManager {
 
     void     setMouse(SP<IPointer> mouse);
     void     setKeyboard(SP<IKeyboard> keeb);
+    void     updateActiveKeyboardData(); // updates the clients with the keymap and repeat info
 
     void     setKeyboardFocus(wlr_surface* surf);
     void     sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);

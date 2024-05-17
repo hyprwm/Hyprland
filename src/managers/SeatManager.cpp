@@ -86,10 +86,15 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
         keyboard->active = false;
     keyboard = KEEB;
 
-    if (KEEB) {
+    if (KEEB)
         KEEB->active = true;
-        PROTO::seat->updateRepeatInfo(KEEB->wlr()->repeat_info.rate, KEEB->wlr()->repeat_info.delay);
-    }
+
+    updateActiveKeyboardData();
+}
+
+void CSeatManager::updateActiveKeyboardData() {
+    if (keyboard)
+        PROTO::seat->updateRepeatInfo(keyboard->wlr()->repeat_info.rate, keyboard->wlr()->repeat_info.delay);
     PROTO::seat->updateKeymap();
 }
 

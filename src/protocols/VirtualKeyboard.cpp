@@ -87,8 +87,8 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
 }
 
 CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {
-    wlr_keyboard_finish(&keyboard);
     events.destroy.emit();
+    wlr_keyboard_finish(&keyboard);
 }
 
 bool CVirtualKeyboardV1Resource::good() {

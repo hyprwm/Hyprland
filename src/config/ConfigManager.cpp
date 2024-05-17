@@ -374,6 +374,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:manual_crash", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:suppress_errors", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:error_limit", Hyprlang::INT{5});
+    m_pConfig->addConfigValue("debug:error_position", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:watchdog_timeout", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});

@@ -839,6 +839,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 
+            if (PKEEB == g_pSeatManager->keyboard)
+                g_pSeatManager->updateActiveKeyboardData();
+
             g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->hlName + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
         },

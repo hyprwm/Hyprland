@@ -301,7 +301,9 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
                 return p;
         } else {
             const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
-            const auto     REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}.translate(p->coordsGlobal() + offset);
+            const auto     REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}
+                                    .intersect(CBox{{}, {p->m_sWLSurface.wlr()->current.width, p->m_sWLSurface.wlr()->current.height}})
+                                    .translate(p->coordsGlobal() + offset);
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

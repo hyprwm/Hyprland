@@ -164,7 +164,7 @@ CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<
         if (!g_pSeatManager->state.pointerFocusResource || g_pSeatManager->state.pointerFocusResource->client() != r->client())
             return;
 
-        g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{wlr_surface_from_resource(surf), {hot_x, hot_y}});
+        g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{surf ? wlr_surface_from_resource(surf) : nullptr, {hot_x, hot_y}});
     });
 }
 

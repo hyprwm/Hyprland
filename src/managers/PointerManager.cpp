@@ -169,11 +169,13 @@ SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(SP<CMonitor>
 }
 
 void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, const float& scale) {
+    damageIfSoftware();
     if (buf == currentCursorImage.pBuffer) {
         if (hotspot != currentCursorImage.hotspot || scale != currentCursorImage.scale) {
             currentCursorImage.hotspot = hotspot;
             currentCursorImage.scale   = scale;
             updateCursorBackend();
+            damageIfSoftware();
         }
 
         return;
@@ -193,14 +195,18 @@ void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, 
     currentCursorImage.scale   = scale;
 
     updateCursorBackend();
+    damageIfSoftware();
 }
 
 void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot) {
+    damageIfSoftware();
+
     if (surf == currentCursorImage.surface) {
         if (hotspot != currentCursorImage.hotspot || (surf && surf->wlr() ? surf->wlr()->current.scale : 1.F) != currentCursorImage.scale) {
             currentCursorImage.hotspot = hotspot;
             currentCursorImage.scale   = surf && surf->wlr() ? surf->wlr()->current.scale : 1.F;
             updateCursorBackend();
+            damageIfSoftware();
         }
 
         return;
@@ -217,10 +223,12 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
         currentCursorImage.hyprListener_commitSurface.initCallback(
             &surf->wlr()->events.commit,
             [this](void* owner, void* data) {
+                damageIfSoftware();
                 currentCursorImage.size  = {currentCursorImage.surface->wlr()->current.buffer_width, currentCursorImage.surface->wlr()->current.buffer_height};
                 currentCursorImage.scale = currentCursorImage.surface && currentCursorImage.surface->wlr() ? currentCursorImage.surface->wlr()->current.scale : 1.F;
                 recheckEnteredOutputs();
                 updateCursorBackend();
+                damageIfSoftware();
             },
             nullptr, "CPointerManager");
 
@@ -235,6 +243,7 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
 
     recheckEnteredOutputs();
     updateCursorBackend();
+    damageIfSoftware();
 }
 
 void CPointerManager::recheckEnteredOutputs() {
@@ -276,6 +285,8 @@ void CPointerManager::recheckEnteredOutputs() {
 }
 
 void CPointerManager::resetCursorImage(bool apply) {
+    damageIfSoftware();
+
     if (currentCursorImage.surface) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             wlr_surface_send_leave(currentCursorImage.surface->wlr(), m->output);

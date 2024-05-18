@@ -2,6 +2,7 @@
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../helpers/FontUtils.hpp"
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
@@ -11,30 +12,17 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
         g_pHyprRenderer->damageBox(&m_bLastDamage);
     });
 
-    // check for the icon backend
-    std::string fonts      = execAndGet("fc-list");
-    std::string fontsLower = fonts;
-    std::transform(fontsLower.begin(), fontsLower.end(), fontsLower.begin(), [&](char& i) { return std::tolower(i); });
+    m_fontFamily = *CConfigValue<std::string>("misc:font_family");
 
-    size_t index = 0;
-
-    if (index = fontsLower.find("nerd"); index != std::string::npos) {
-        m_eIconBackend = ICONS_BACKEND_NF;
-    } else if (index = fontsLower.find("font awesome"); index != std::string::npos) {
-        m_eIconBackend = ICONS_BACKEND_FA;
-    } else if (index = fontsLower.find("fontawesome"); index != std::string::npos) {
-        m_eIconBackend = ICONS_BACKEND_FA;
-    } else {
-        return;
+    // preference: Nerd > FontAwesome > text
+    auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
+    for (auto iconID : eIconBackendChecks) {
+        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
+        if (count_missing_glyphs(iconsText, m_fontFamily) == 0) {
+            m_eIconBackend = iconID;
+            break;
+        }
     }
-
-    const auto LASTNEWLINE = fonts.find_last_of('\n', index);
-    const auto COLON       = fonts.find(':', LASTNEWLINE);
-    const auto COMMA       = fonts.find(',', COLON);
-    const auto NEWLINE     = fonts.find('\n', COLON);
-    const auto LASTCHAR    = COMMA < NEWLINE ? COMMA : NEWLINE;
-
-    m_szIconFontName = fonts.substr(COLON + 2, LASTCHAR - (COLON + 2));
 }
 
 CHyprNotificationOverlay::~CHyprNotificationOverlay() {
@@ -85,12 +73,11 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
-    static auto           font_family = CConfigValue<std::string>("misc:font_family");
-    PangoLayout*          layoutIcon  = pango_cairo_create_layout(m_pCairo);
-    PangoLayout*          layoutText  = pango_cairo_create_layout(m_pCairo);
-    PangoFontDescription* pangoFD     = pango_font_description_new();
+    PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
+    PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
+    pango_font_description_set_family_static(pangoFD, m_fontFamily.c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 

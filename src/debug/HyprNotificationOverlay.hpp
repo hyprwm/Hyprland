@@ -60,8 +60,8 @@ class CHyprNotificationOverlay {
 
     CTexture                                   m_tTexture;
 
-    eIconBackend                               m_eIconBackend   = ICONS_BACKEND_NONE;
-    std::string                                m_szIconFontName = "Sans";
+    std::string                                m_fontFamily;
+    eIconBackend                               m_eIconBackend = ICONS_BACKEND_NONE;
 };
 
 inline std::unique_ptr<CHyprNotificationOverlay> g_pHyprNotificationOverlay;

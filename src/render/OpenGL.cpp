@@ -2117,8 +2117,10 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     int textW = 0, textH = 0;
     pango_layout_set_text(layoutText, g_pCompositor->m_szCurrentSplash.c_str(), -1);
     pango_layout_get_size(layoutText, &textW, &textH);
+    textW /= PANGO_SCALE;
+    textH /= PANGO_SCALE;
 
-    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH + offsetY);
+    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH * 2 + offsetY);
     pango_cairo_show_layout(CAIRO, layoutText);
 
     pango_font_description_free(pangoFD);

@@ -129,6 +129,8 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
         int textW = 0, textH = 0;
         pango_layout_get_size(layoutText, &textW, &textH);
+        textW /= PANGO_SCALE;
+        textH /= PANGO_SCALE;
         if (textW > maxTextW)
             maxTextW = textW;
 
@@ -136,8 +138,9 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
         cairo_rel_move_to(cr, 0, fontSize + 1);
     };
 
-    const int PADDING = 4;
-    cairo_move_to(cr, PADDING, PADDING + offset);
+    const int MARGIN_TOP  = 8;
+    const int MARGIN_LEFT = 4;
+    cairo_move_to(cr, MARGIN_LEFT, MARGIN_TOP + offset);
     cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
 
     std::string text;
@@ -174,8 +177,8 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     cairo_get_current_point(cr, &pos_x, &pos_y);
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
-    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + PADDING, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + PADDING - 1,
-                        (int)maxTextW + 2, pos_y - offset - PADDING + 2};
+    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
+                        (int)maxTextW + 2, pos_y - offset - MARGIN_TOP + 2};
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
 
     return pos_y - offset;

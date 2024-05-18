@@ -107,7 +107,7 @@ void CHyprError::createQueued() {
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
     pango_layout_set_font_description(layoutText, pangoFD);
 
-    float yoffset     = TOPBAR ? FONTSIZE : Y - PAD + FONTSIZE;
+    float yoffset     = TOPBAR ? 0 : Y - PAD;
     int   renderedcnt = 0;
     while (!m_szQueued.empty() && renderedcnt < VISLINECOUNT) {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));

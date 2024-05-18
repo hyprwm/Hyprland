@@ -156,13 +156,13 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
 
             // draw icon
             cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
-            cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY + std::round((NOTIFSIZE.y - iconH - 4) / 2.0));
+            cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY - 2 + std::round((NOTIFSIZE.y - iconH) / 2.0));
             pango_cairo_show_layout(m_pCairo, layoutIcon);
         }
 
         // draw text
         cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
-        cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY + FONTSIZE + (FONTSIZE / 10.0));
+        cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY - 2 + std::round((NOTIFSIZE.y - textH) / 2.0));
         pango_cairo_show_layout(m_pCairo, layoutText);
 
         // adjust offset and move on

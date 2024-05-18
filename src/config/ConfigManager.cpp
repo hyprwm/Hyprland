@@ -325,6 +325,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:col.splash", Hyprlang::INT{0x55ffffff});
     m_pConfig->addConfigValue("misc:splash_font_family", {"Sans"});
+    m_pConfig->addConfigValue("misc:font_family", {"Sans"});
     m_pConfig->addConfigValue("misc:force_default_wallpaper", Hyprlang::INT{-1});
     m_pConfig->addConfigValue("misc:vfr", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:vrr", Hyprlang::INT{0});

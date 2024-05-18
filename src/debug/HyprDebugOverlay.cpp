@@ -1,5 +1,6 @@
 #include <pango/pangocairo.h>
 #include "HyprDebugOverlay.hpp"
+#include "config/ConfigValue.hpp"
 #include "../Compositor.hpp"
 
 void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
@@ -104,10 +105,11 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     const float           FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float           idealFPS = m_dLastFrametimes.size();
 
-    PangoLayout*          layoutText = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
+    static auto           font_family = CConfigValue<std::string>("misc:font_family");
+    PangoLayout*          layoutText  = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
+    PangoFontDescription* pangoFD     = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, "Sans");
+    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 

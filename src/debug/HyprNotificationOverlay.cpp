@@ -1,6 +1,7 @@
+#include <pango/pangocairo.h>
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"
-#include <pango/pangocairo.h>
+#include "../config/ConfigValue.hpp"
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
@@ -84,10 +85,12 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
-    PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
-    PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
-    pango_font_description_set_family_static(pangoFD, "Sans");
+    static auto           font_family = CConfigValue<std::string>("misc:font_family");
+    PangoLayout*          layoutIcon  = pango_cairo_create_layout(m_pCairo);
+    PangoLayout*          layoutText  = pango_cairo_create_layout(m_pCairo);
+    PangoFontDescription* pangoFD     = pango_font_description_new();
+
+    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 

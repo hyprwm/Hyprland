@@ -81,25 +81,21 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     float                 offsetY  = 10;
     float                 maxWidth = 0;
 
-    const auto            SCALE = pMonitor->scale;
-
+    const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
-    cairo_text_extents_t  cairoExtents;
-    int                   iconW = 0, iconH = 0;
-
-    cairo_select_font_face(m_pCairo, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
+    PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
+    pango_font_description_set_family_static(pangoFD, "Sans");
+    pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
+    pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 
     const auto PBEZIER = g_pAnimationManager->getBezier("default");
 
     for (auto& notif : m_dNotifications) {
-        const auto            ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
-        const auto            FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
-
-        PangoLayout*          pangoLayout = pango_cairo_create_layout(m_pCairo);
-        PangoFontDescription* pangoFD     = pango_font_description_from_string(("Sans " + std::to_string(FONTSIZE * ICON_SCALE)).c_str());
-        pango_layout_set_font_description(pangoLayout, pangoFD);
-        cairo_set_font_size(m_pCairo, FONTSIZE);
+        const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
+        const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 
         // first rect (bg, col)
         const float FIRSTRECTANIMP =
@@ -122,31 +118,37 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
         const float THIRDRECTPERC = notif->started.getMillis() / notif->timeMs;
 
         // get text size
-        cairo_text_extents(m_pCairo, notif->text.c_str(), &cairoExtents);
         const auto ICON      = ICONS_ARRAY[m_eIconBackend][notif->icon];
         const auto ICONCOLOR = ICONS_COLORS[notif->icon];
-        pango_layout_set_text(pangoLayout, ICON.c_str(), -1);
-        pango_layout_set_font_description(pangoLayout, pangoFD);
-        pango_cairo_update_layout(m_pCairo, pangoLayout);
-        pango_layout_get_size(pangoLayout, &iconW, &iconH);
+
+        int        iconW = 0, iconH = 0;
+        pango_font_description_set_absolute_size(pangoFD, PANGO_SCALE * FONTSIZE * ICON_SCALE);
+        pango_layout_set_font_description(layoutIcon, pangoFD);
+        pango_layout_set_text(layoutIcon, ICON.c_str(), -1);
+        pango_layout_get_size(layoutIcon, &iconW, &iconH);
         iconW /= PANGO_SCALE;
         iconH /= PANGO_SCALE;
 
-        cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
+        int textW = 0, textH = 0;
+        pango_font_description_set_absolute_size(pangoFD, PANGO_SCALE * FONTSIZE);
+        pango_layout_set_font_description(layoutText, pangoFD);
+        pango_layout_set_text(layoutText, notif->text.c_str(), -1);
+        pango_layout_get_size(layoutText, &textW, &textH);
+        textW /= PANGO_SCALE;
+        textH /= PANGO_SCALE;
 
-        const auto NOTIFSIZE = Vector2D{cairoExtents.width + 20 + iconW + 2 * ICONPADFORNOTIF, cairoExtents.height + 10};
+        const auto NOTIFSIZE = Vector2D{textW + 20 + iconW + 2 * ICONPADFORNOTIF, textH + 10};
 
         // draw rects
+        cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
         cairo_rectangle(m_pCairo, MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, offsetY, (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC, NOTIFSIZE.y);
         cairo_fill(m_pCairo);
 
         cairo_set_source_rgb(m_pCairo, 0.f, 0.f, 0.f);
-
         cairo_rectangle(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC, offsetY, NOTIFSIZE.x * SECONDRECTPERC, NOTIFSIZE.y);
         cairo_fill(m_pCairo);
 
         cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);
-
         cairo_rectangle(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + 3, offsetY + NOTIFSIZE.y - 4, THIRDRECTPERC * (NOTIFSIZE.x - 6), 2);
         cairo_fill(m_pCairo);
 
@@ -165,24 +167,24 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
             // draw icon
             cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
             cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY + std::round((NOTIFSIZE.y - iconH - 4) / 2.0));
-            pango_cairo_show_layout(m_pCairo, pangoLayout);
+            pango_cairo_show_layout(m_pCairo, layoutIcon);
         }
 
         // draw text
-        cairo_set_font_size(m_pCairo, FONTSIZE);
         cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
         cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY + FONTSIZE + (FONTSIZE / 10.0));
-        cairo_show_text(m_pCairo, notif->text.c_str());
+        pango_cairo_show_layout(m_pCairo, layoutText);
 
         // adjust offset and move on
         offsetY += NOTIFSIZE.y + 10;
 
         if (maxWidth < NOTIFSIZE.x)
             maxWidth = NOTIFSIZE.x;
-
-        pango_font_description_free(pangoFD);
-        g_object_unref(pangoLayout);
     }
+
+    pango_font_description_free(pangoFD);
+    g_object_unref(layoutText);
+    g_object_unref(layoutIcon);
 
     // cleanup notifs
     std::erase_if(m_dNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });

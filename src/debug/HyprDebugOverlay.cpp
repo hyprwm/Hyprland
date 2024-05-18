@@ -1,3 +1,4 @@
+#include <pango/pangocairo.h>
 #include "HyprDebugOverlay.hpp"
 #include "../Compositor.hpp"
 
@@ -46,11 +47,6 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 
     if (!m_pMonitor)
         return 0;
-
-    int                  yOffset = offset;
-    cairo_text_extents_t cairoExtents;
-    float                maxX = 0;
-    std::string          text = "";
 
     // get avg fps
     float avgFrametime = 0;
@@ -105,23 +101,45 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     float varAnimMgrTick = maxAnimMgrTick - minAnimMgrTick;
     avgAnimMgrTick /= m_dLastAnimationTicks.size() == 0 ? 1 : m_dLastAnimationTicks.size();
 
-    const float FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
-    const float idealFPS = m_dLastFrametimes.size();
+    const float           FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
+    const float           idealFPS = m_dLastFrametimes.size();
 
-    cairo_select_font_face(g_pDebugOverlay->m_pCairo, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    PangoLayout*          layoutText = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    cairo_set_font_size(g_pDebugOverlay->m_pCairo, 10);
+    pango_font_description_set_family_static(pangoFD, "Sans");
+    pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
+    pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
+
+    float maxTextW = 0;
+    int   fontSize = 0;
+    auto  cr       = g_pDebugOverlay->m_pCairo;
+
+    auto  showText = [cr, layoutText, pangoFD, &maxTextW, &fontSize](const char* text, int size) {
+        if (fontSize != size) {
+            pango_font_description_set_absolute_size(pangoFD, size * PANGO_SCALE);
+            pango_layout_set_font_description(layoutText, pangoFD);
+            fontSize = size;
+        }
+
+        pango_layout_set_text(layoutText, text, -1);
+        pango_cairo_show_layout(cr, layoutText);
+
+        int textW = 0, textH = 0;
+        pango_layout_get_size(layoutText, &textW, &textH);
+        if (textW > maxTextW)
+            maxTextW = textW;
+
+        // move to next line
+        cairo_rel_move_to(cr, 0, fontSize + 1);
+    };
+
+    const int PADDING = 4;
+    cairo_move_to(cr, PADDING, PADDING + offset);
     cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
 
-    yOffset += 10;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
-    text = m_pMonitor->szName;
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
-
-    cairo_set_font_size(g_pDebugOverlay->m_pCairo, 16);
+    std::string text;
+    showText(m_pMonitor->szName.c_str(), 10);
 
     if (FPS > idealFPS * 0.95f)
         cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 0.2f, 1.f, 0.2f, 1.f);
@@ -130,57 +148,35 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     else
         cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 0.2f, 0.2f, 1.f);
 
-    yOffset += 17;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::format("{} FPS", (int)FPS);
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
+    showText(text.c_str(), 16);
 
-    cairo_set_font_size(g_pDebugOverlay->m_pCairo, 10);
     cairo_set_source_rgba(g_pDebugOverlay->m_pCairo, 1.f, 1.f, 1.f, 1.f);
 
-    yOffset += 11;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::format("Avg Frametime: {:.2f}ms (var {:.2f}ms)", avgFrametime, varFrametime);
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
+    showText(text.c_str(), 10);
 
-    yOffset += 11;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::format("Avg Rendertime: {:.2f}ms (var {:.2f}ms)", avgRenderTime, varRenderTime);
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
+    showText(text.c_str(), 10);
 
-    yOffset += 11;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::format("Avg Rendertime (No Overlay): {:.2f}ms (var {:.2f}ms)", avgRenderTimeNoOverlay, varRenderTimeNoOverlay);
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
+    showText(text.c_str(), 10);
 
-    yOffset += 11;
-    cairo_move_to(g_pDebugOverlay->m_pCairo, 0, yOffset);
     text = std::format("Avg Anim Tick: {:.2f}ms (var {:.2f}ms) ({:.2f} TPS)", avgAnimMgrTick, varAnimMgrTick, 1.0 / (avgAnimMgrTick / 1000.0));
-    cairo_show_text(g_pDebugOverlay->m_pCairo, text.c_str());
-    cairo_text_extents(g_pDebugOverlay->m_pCairo, text.c_str(), &cairoExtents);
-    if (cairoExtents.width > maxX)
-        maxX = cairoExtents.width;
+    showText(text.c_str(), 10);
 
-    yOffset += 11;
+    pango_font_description_free(pangoFD);
+    g_object_unref(layoutText);
+
+    double pos_x = 0, pos_y = 0;
+    cairo_get_current_point(cr, &pos_x, &pos_y);
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
-    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset - 1, (int)maxX + 2,
-                        yOffset - offset + 2};
+    m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + PADDING, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + PADDING - 1,
+                        (int)maxTextW + 2, pos_y - offset - PADDING + 2};
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
 
-    return yOffset - offset;
+    return pos_y - offset;
 }
 
 void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float µs) {

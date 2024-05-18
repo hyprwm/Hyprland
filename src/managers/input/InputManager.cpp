@@ -222,26 +222,29 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // if we are holding a pointer button,
     // and we're not dnd-ing, don't refocus. Keep focus on last surface.
     if (!PROTO::data->dndActive() && !m_lCurrentlyHeldButtons.empty() && g_pCompositor->m_pLastFocus && g_pSeatManager->state.pointerFocus && !m_bHardInput) {
-        foundSurface       = g_pSeatManager->state.pointerFocus;
-        pFoundLayerSurface = g_pCompositor->getLayerSurfaceFromSurface(foundSurface);
-        if (pFoundLayerSurface) {
-            surfacePos              = pFoundLayerSurface->position;
+        foundSurface = g_pSeatManager->state.pointerFocus;
+
+        // IME popups aren't desktop-like elements
+        // TODO: make them.
+        CInputPopup* foundPopup = m_sIMERelay.popupFromSurface(foundSurface);
+        if (foundPopup) {
+            surfacePos              = foundPopup->globalBox().pos();
             m_bFocusHeldByButtons   = true;
             m_bRefocusHeldByButtons = refocus;
         } else {
-            CInputPopup* foundPopup = m_sIMERelay.popupFromSurface(foundSurface);
-            if (foundPopup) {
-                surfacePos              = foundPopup->globalBox().pos();
-                m_bFocusHeldByButtons   = true;
-                m_bRefocusHeldByButtons = refocus;
-            } else if (!g_pCompositor->m_pLastWindow.expired()) {
-                foundSurface = g_pSeatManager->state.pointerFocus;
-                pFoundWindow = g_pCompositor->m_pLastWindow.lock();
+            auto HLSurface = CWLSurface::surfaceFromWlr(foundSurface);
 
-                surfaceCoords           = g_pCompositor->vectorToSurfaceLocal(mouseCoords, pFoundWindow, foundSurface);
-                m_bFocusHeldByButtons   = true;
-                m_bRefocusHeldByButtons = refocus;
-            }
+            if (HLSurface) {
+                const auto BOX = HLSurface->getSurfaceBoxGlobal();
+
+                if (BOX) {
+                    surfacePos         = BOX->pos();
+                    pFoundLayerSurface = HLSurface->getLayer();
+                    pFoundWindow       = HLSurface->getWindow();
+                } else // reset foundSurface, find one normally
+                    foundSurface = nullptr;
+            } else // reset foundSurface, find one normally
+                foundSurface = nullptr;
         }
     }
 

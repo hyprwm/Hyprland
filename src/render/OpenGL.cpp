@@ -1,9 +1,9 @@
+#include <random>
+#include <pango/pangocairo.h>
 #include "Shaders.hpp"
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "Shaders.hpp"
-#include <random>
 #include "../config/ConfigValue.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -2097,25 +2097,32 @@ void CHyprOpenGLImpl::renderMirrored() {
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
-    static auto PSPLASHCOLOR = CConfigValue<Hyprlang::INT>("misc:col.splash");
+    static auto           PSPLASHCOLOR = CConfigValue<Hyprlang::INT>("misc:col.splash");
+    static auto           PSPLASHFONT  = CConfigValue<std::string>("misc:splash_font_family");
 
-    static auto PSPLASHFONT = CConfigValue<std::string>("misc:splash_font_family");
+    const auto            FONTSIZE = (int)(size.y / 76);
+    const auto            COLOR    = CColor(*PSPLASHCOLOR);
 
-    cairo_select_font_face(CAIRO, (*PSPLASHFONT).c_str(), CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    const auto FONTSIZE = (int)(size.y / 76);
-    cairo_set_font_size(CAIRO, FONTSIZE);
-
-    const auto COLOR = CColor(*PSPLASHCOLOR);
+    pango_font_description_set_family_static(pangoFD, (*PSPLASHFONT).c_str());
+    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
+    pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
+    pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
+    pango_layout_set_font_description(layoutText, pangoFD);
 
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
 
-    cairo_text_extents_t textExtents;
-    cairo_text_extents(CAIRO, g_pCompositor->m_szCurrentSplash.c_str(), &textExtents);
+    int textW = 0, textH = 0;
+    pango_layout_set_text(layoutText, g_pCompositor->m_szCurrentSplash.c_str(), -1);
+    pango_layout_get_size(layoutText, &textW, &textH);
 
-    cairo_move_to(CAIRO, (size.x - textExtents.width) / 2.0, size.y - textExtents.height + offsetY);
+    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH + offsetY);
+    pango_cairo_show_layout(CAIRO, layoutText);
 
-    cairo_show_text(CAIRO, g_pCompositor->m_szCurrentSplash.c_str());
+    pango_font_description_free(pangoFD);
+    g_object_unref(layoutText);
 
     cairo_surface_flush(CAIROSURFACE);
 }

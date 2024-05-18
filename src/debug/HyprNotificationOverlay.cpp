@@ -4,6 +4,17 @@
 #include "../config/ConfigValue.hpp"
 #include "../helpers/FontUtils.hpp"
 
+eIconBackend get_iconBackendID(const std::string& font_family) {
+    // preference: Nerd > FontAwesome > text
+    auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
+    for (auto iconID : eIconBackendChecks) {
+        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
+        if (count_missing_glyphs(iconsText, font_family) == 0)
+            return iconID;
+    }
+    return ICONS_BACKEND_NONE;
+}
+
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (m_dNotifications.size() == 0)
@@ -11,18 +22,6 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
 
         g_pHyprRenderer->damageBox(&m_bLastDamage);
     });
-
-    m_fontFamily = *CConfigValue<std::string>("misc:font_family");
-
-    // preference: Nerd > FontAwesome > text
-    auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
-    for (auto iconID : eIconBackendChecks) {
-        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
-        if (count_missing_glyphs(iconsText, m_fontFamily) == 0) {
-            m_eIconBackend = iconID;
-            break;
-        }
-    }
 }
 
 CHyprNotificationOverlay::~CHyprNotificationOverlay() {
@@ -73,11 +72,14 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
+    static auto           font_family   = CConfigValue<std::string>("misc:font_family");
+    auto                  iconBackendID = get_iconBackendID(*font_family);
+
     PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
     PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
     PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, m_fontFamily.c_str());
+    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 
@@ -108,7 +110,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
         const float THIRDRECTPERC = notif->started.getMillis() / notif->timeMs;
 
         // get text size
-        const auto ICON      = ICONS_ARRAY[m_eIconBackend][notif->icon];
+        const auto ICON      = ICONS_ARRAY[iconBackendID][notif->icon];
         const auto ICONCOLOR = ICONS_COLORS[notif->icon];
 
         int        iconW = 0, iconH = 0;

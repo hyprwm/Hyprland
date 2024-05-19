@@ -1,3 +1,4 @@
+#include <numeric>
 #include <pango/pangocairo.h>
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"

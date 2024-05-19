@@ -17,8 +17,8 @@ class CHyprCtl {
     int                 m_iSocketFD = -1;
 
     struct {
-        bool all = false;
-		bool sysInfoConfig = false;
+        bool all           = false;
+        bool sysInfoConfig = false;
     } m_sCurrentRequestParams;
 
   private:

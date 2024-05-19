@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
                 fullArgs += "r";
             } else if (ARGS[i] == "-a" && !fullArgs.contains("a")) {
                 fullArgs += "a";
-            } else if (ARGS[i] == "-c" && !fullArgs.contains("c")) {
+            } else if ((ARGS[i] == "-c" || ARGS[i] == "--config") && !fullArgs.contains("c")) {
                 fullArgs += "c";
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";

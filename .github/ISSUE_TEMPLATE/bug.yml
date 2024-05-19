@@ -12,8 +12,8 @@ body:
   - type: textarea
     id: ver
     attributes:
-      label: Hyprland Version
-      description: "Paste the output of `hyprctl systeminfo` here."
+      label: System Info and Version
+      description: "Paste the output of `hyprctl systeminfo -c` here. If you have configs outside of the main config shown here, please attach or paste them below."
       value: "<details>
         <summary>System/Version info</summary>
 
@@ -21,6 +21,26 @@ body:
         ```sh
         
         <Paste the output of the command here>
+
+        ```
+
+
+        </details>"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ver
+    attributes:
+      label: Config Info
+      description: "If you replace your config with https://github.com/hyprwm/Hyprland/blob/main/example/hyprland.conf can you reproduce this issue? If yes please let us know below. If not Please make sure to include ALL hyprland config files here. *Issues that do not follow this will be closed.*"
+      value: "<details>
+        <summary>Config Info</summary>
+
+
+        ```sh
+
+        <Paste all Hyprland config files here, if you attach the configs as files, please note that here.>
 
         ```
 

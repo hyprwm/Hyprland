@@ -897,7 +897,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 
     if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
         result += "======Config-Start======";
-        result += "Config: " + execAndGet("cat ~/.config/hypr/hyprland.conf") + "\n";
+        result += "Config: " + execAndGet(std::string("cat " + g_pConfigManager->configCurrentPath).c_str()) + "\n";
         result += "======Config-End========";
     }
 

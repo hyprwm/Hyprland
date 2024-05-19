@@ -62,6 +62,6 @@ body:
       label: Crash reports, logs, images, videos
       description: |
         Anything that can help. Please always ATTACH and not paste them.
-        Logs can be found in /tmp/hypr
+        Logs can be found in $XDG_RUNTIME_DIR/hypr
         Crash reports are stored in ~/.cache/hyprland or $XDG_CACHE_HOME/hyprland
 

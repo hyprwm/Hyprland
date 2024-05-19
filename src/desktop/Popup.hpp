@@ -3,6 +3,9 @@
 #include <vector>
 #include <memory>
 #include "Subsurface.hpp"
+#include "../helpers/signal/Listener.hpp"
+
+class CXDGPopupResource;
 
 class CPopup {
   public:
@@ -11,26 +14,31 @@ class CPopup {
     CPopup(PHLLS pOwner);
 
     // real nodes
-    CPopup(wlr_xdg_popup* popup, CPopup* pOwner);
+    CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner);
 
     ~CPopup();
 
-    Vector2D   coordsRelativeToParent();
-    Vector2D   coordsGlobal();
+    Vector2D coordsRelativeToParent();
+    Vector2D coordsGlobal();
 
-    Vector2D   size();
+    Vector2D size();
 
-    void       onNewPopup(wlr_xdg_popup* popup);
-    void       onDestroy();
-    void       onMap();
-    void       onUnmap();
-    void       onCommit(bool ignoreSiblings = false);
-    void       onReposition();
+    void     onNewPopup(SP<CXDGPopupResource> popup);
+    void     onDestroy();
+    void     onMap();
+    void     onUnmap();
+    void     onCommit(bool ignoreSiblings = false);
+    void     onReposition();
 
-    void       recheckTree();
+    void     recheckTree();
 
-    bool       visible();
+    bool     visible();
 
+    // will also loop over this node
+    void    breadthfirst(std::function<void(CPopup*, void*)> fn, void* data);
+    CPopup* at(const Vector2D& globalCoords, bool allowsInput = false);
+
+    //
     CWLSurface m_sWLSurface;
 
   private:
@@ -39,34 +47,37 @@ class CPopup {
     PHLLSREF     m_pLayerOwner;
 
     // T2 owners
-    CPopup*        m_pParent = nullptr;
+    CPopup*               m_pParent = nullptr;
 
-    wlr_xdg_popup* m_pWLR = nullptr;
+    WP<CXDGPopupResource> m_pResource;
 
-    Vector2D       m_vLastSize = {};
-    Vector2D       m_vLastPos  = {};
+    Vector2D              m_vLastSize = {};
+    Vector2D              m_vLastPos  = {};
 
-    bool           m_bRequestedReposition = false;
+    bool                  m_bRequestedReposition = false;
 
-    bool           m_bInert = false;
+    bool                  m_bInert = false;
 
     //
     std::vector<std::unique_ptr<CPopup>> m_vChildren;
     std::unique_ptr<CSubsurface>         m_pSubsurfaceHead;
 
-    // signals
-    DYNLISTENER(newPopup);
-    DYNLISTENER(destroyPopup);
-    DYNLISTENER(mapPopup);
-    DYNLISTENER(unmapPopup);
-    DYNLISTENER(commitPopup);
-    DYNLISTENER(repositionPopup);
+    struct {
+        CHyprSignalListener newPopup;
+        CHyprSignalListener destroy;
+        CHyprSignalListener map;
+        CHyprSignalListener unmap;
+        CHyprSignalListener commit;
+        CHyprSignalListener dismissed;
+        CHyprSignalListener reposition;
+    } listeners;
 
-    void     initAllSignals();
-    void     unconstrain();
-    void     recheckChildrenRecursive();
-    void     sendScale();
+    void        initAllSignals();
+    void        unconstrain();
+    void        recheckChildrenRecursive();
+    void        sendScale();
 
-    Vector2D localToGlobal(const Vector2D& rel);
-    Vector2D t1ParentCoords();
+    Vector2D    localToGlobal(const Vector2D& rel);
+    Vector2D    t1ParentCoords();
+    static void bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, void*)> fn, void* data);
 };

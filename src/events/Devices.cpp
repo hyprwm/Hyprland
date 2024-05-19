@@ -4,7 +4,6 @@
 #include "../helpers/WLClasses.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
-#include "../protocols/PointerGestures.hpp"
 
 // ---------------------------------------------------- //
 //   _____  ________      _______ _____ ______  _____   //
@@ -15,32 +14,6 @@
 //  |_____/|______|   \/   |_____\_____|______|_____/   //
 //                                                      //
 // ---------------------------------------------------- //
-
-void Events::listener_mouseFrame(wl_listener* listener, void* data) {
-    wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
-}
-
-void Events::listener_mouseMove(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseMoved((wlr_pointer_motion_event*)data);
-}
-
-void Events::listener_mouseMoveAbsolute(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseWarp((wlr_pointer_motion_absolute_event*)data);
-}
-
-void Events::listener_mouseButton(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseButton((wlr_pointer_button_event*)data);
-}
-
-void Events::listener_mouseAxis(wl_listener* listener, void* data) {
-    g_pInputManager->onMouseWheel((wlr_pointer_axis_event*)data);
-}
-
-void Events::listener_requestMouse(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_seat_pointer_request_set_cursor_event*)data;
-
-    g_pInputManager->processMouseRequest(EVENT);
-}
 
 void Events::listener_newInput(wl_listener* listener, void* data) {
     const auto DEVICE = (wlr_input_device*)data;
@@ -59,8 +32,8 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             g_pInputManager->newTouchDevice(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET:
-            Debug::log(LOG, "Attached a tablet tool with name {}", DEVICE->name);
-            g_pInputManager->newTabletTool(DEVICE);
+            Debug::log(LOG, "Attached a tablet with name {}", DEVICE->name);
+            g_pInputManager->newTablet(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET_PAD:
             Debug::log(LOG, "Attached a tablet pad with name {}", DEVICE->name);
@@ -74,63 +47,4 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     }
 
     g_pInputManager->updateCapabilities();
-}
-
-void Events::listener_swipeBegin(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_pointer_swipe_begin_event*)data;
-
-    g_pInputManager->onSwipeBegin(EVENT);
-}
-
-void Events::listener_swipeUpdate(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_pointer_swipe_update_event*)data;
-
-    g_pInputManager->onSwipeUpdate(EVENT);
-}
-
-void Events::listener_swipeEnd(wl_listener* listener, void* data) {
-    const auto EVENT = (wlr_pointer_swipe_end_event*)data;
-
-    g_pInputManager->onSwipeEnd(EVENT);
-}
-
-void Events::listener_pinchBegin(wl_listener* listener, void* data) {
-    const auto EV = (wlr_pointer_pinch_begin_event*)data;
-    PROTO::pointerGestures->pinchBegin(EV->time_msec, EV->fingers);
-}
-
-void Events::listener_pinchUpdate(wl_listener* listener, void* data) {
-    const auto EV = (wlr_pointer_pinch_update_event*)data;
-    PROTO::pointerGestures->pinchUpdate(EV->time_msec, {EV->dx, EV->dy}, EV->scale, EV->rotation);
-}
-
-void Events::listener_pinchEnd(wl_listener* listener, void* data) {
-    const auto EV = (wlr_pointer_pinch_end_event*)data;
-    PROTO::pointerGestures->pinchEnd(EV->time_msec, EV->cancelled);
-}
-
-void Events::listener_touchBegin(wl_listener* listener, void* data) {
-    g_pInputManager->onTouchDown((wlr_touch_down_event*)data);
-}
-
-void Events::listener_touchEnd(wl_listener* listener, void* data) {
-    g_pInputManager->onTouchUp((wlr_touch_up_event*)data);
-}
-
-void Events::listener_touchUpdate(wl_listener* listener, void* data) {
-    g_pInputManager->onTouchMove((wlr_touch_motion_event*)data);
-}
-
-void Events::listener_touchFrame(wl_listener* listener, void* data) {
-    wlr_seat_touch_notify_frame(g_pCompositor->m_sSeat.seat);
-}
-
-void Events::listener_holdBegin(wl_listener* listener, void* data) {
-    const auto EV = (wlr_pointer_hold_begin_event*)data;
-    PROTO::pointerGestures->holdBegin(EV->time_msec, EV->fingers);
-}
-
-void Events::listener_holdEnd(wl_listener* listener, void* data) {
-    const auto EV = (wlr_pointer_hold_end_event*)data;
-    PROTO::pointerGestures->holdEnd(EV->time_msec, EV->cancelled);
 }

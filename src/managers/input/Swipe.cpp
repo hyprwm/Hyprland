@@ -2,14 +2,14 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 
-void CInputManager::onSwipeBegin(wlr_pointer_swipe_begin_event* e) {
+void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
     static auto PSWIPE        = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe");
     static auto PSWIPEFINGERS = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_fingers");
     static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
     EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
 
-    if (e->fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
+    if (e.fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
         return;
 
     int onMonitor = 0;
@@ -32,18 +32,18 @@ void CInputManager::beginWorkspaceSwipe() {
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
-    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor;
+    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor.get();
     m_sActiveSwipe.avgSpeed        = 0;
     m_sActiveSwipe.speedPoints     = 0;
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
             ls->alpha = 1.f;
         }
     }
 }
 
-void CInputManager::onSwipeEnd(wlr_pointer_swipe_end_event* e) {
+void CInputManager::onSwipeEnd(IPointer::SSwipeEndEvent e) {
     EMIT_HOOK_EVENT_CANCELLABLE("swipeEnd", e);
 
     if (!m_sActiveSwipe.pWorkspaceBegin)
@@ -193,12 +193,12 @@ void CInputManager::endWorkspaceSwipe() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+    for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
         ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
     }
 }
 
-void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
+void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
     EMIT_HOOK_EVENT_CANCELLABLE("swipeUpdate", e);
 
     if (!m_sActiveSwipe.pWorkspaceBegin)
@@ -207,7 +207,7 @@ void CInputManager::onSwipeUpdate(wlr_pointer_swipe_update_event* e) {
     const bool  VERTANIMS  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
-    const double delta = m_sActiveSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e->dy : e->dy) : (*PSWIPEINVR ? -e->dx : e->dx));
+    const double delta = m_sActiveSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
     updateWorkspaceSwipe(delta);
 }
 
@@ -348,7 +348,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
 
     if (*PSWIPEFOREVER) {
         if (abs(m_sActiveSwipe.delta) >= SWIPEDISTANCE) {
-            onSwipeEnd(nullptr);
+            onSwipeEnd({});
             beginWorkspaceSwipe();
         }
     }

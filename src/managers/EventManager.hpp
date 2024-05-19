@@ -1,10 +1,9 @@
 #pragma once
 #include <deque>
-#include <fstream>
-#include <mutex>
+#include <vector>
 
 #include "../defines.hpp"
-#include "../helpers/MiscFunctions.hpp"
+#include "../helpers/memory/SharedPtr.hpp"
 
 struct SHyprIPCEvent {
     std::string event;
@@ -14,27 +13,33 @@ struct SHyprIPCEvent {
 class CEventManager {
   public:
     CEventManager();
+    ~CEventManager();
 
-    void        postEvent(const SHyprIPCEvent event);
-
-    void        startThread();
-
-    std::thread m_tThread;
-
-    int         m_iSocketFD = -1;
-
-    int         onSocket2Write(int fd, uint32_t mask);
-    int         onFDWrite(int fd, uint32_t mask);
+    void postEvent(const SHyprIPCEvent& event);
 
   private:
-    void                                         flushEvents();
+    std::string formatEvent(const SHyprIPCEvent& event) const;
 
-    std::mutex                                   eventQueueMutex;
-    std::deque<SHyprIPCEvent>                    m_dQueuedEvents;
+    static int  onServerEvent(int fd, uint32_t mask, void* data);
+    static int  onClientEvent(int fd, uint32_t mask, void* data);
 
-    std::deque<std::pair<int, wl_event_source*>> m_dAcceptedSocketFDs;
+    int         onServerEvent(int fd, uint32_t mask);
+    int         onClientEvent(int fd, uint32_t mask);
 
-    wl_event_source*                             m_pEventSource = nullptr;
+    struct SClient {
+        int                         fd = -1;
+        std::deque<SP<std::string>> events;
+        wl_event_source*            eventSource = nullptr;
+    };
+
+    std::vector<SClient>::iterator findClientByFD(int fd);
+    std::vector<SClient>::iterator removeClientByFD(int fd);
+
+  private:
+    int                  m_iSocketFD    = -1;
+    wl_event_source*     m_pEventSource = nullptr;
+
+    std::vector<SClient> m_vClients;
 };
 
 inline std::unique_ptr<CEventManager> g_pEventManager;

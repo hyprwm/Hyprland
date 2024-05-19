@@ -4,6 +4,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
+#include "../protocols/XDGShell.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -140,8 +141,12 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
         // TODO: detect a popup in a more consistent way.
         if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_bIsX11) {
-            // if it's not, fall back to the center placement
-            pWindow->m_vRealPosition = PMONITOR->vecPosition + Vector2D((PMONITOR->vecSize.x - desiredGeometry.width) / 2.f, (PMONITOR->vecSize.y - desiredGeometry.height) / 2.f);
+            // if the pos isn't set, fall back to the center placement if it's not a child, otherwise middle of parent if available
+            if (!pWindow->m_bIsX11 && pWindow->m_pXDGSurface->toplevel->parent && validMapped(pWindow->m_pXDGSurface->toplevel->parent->window))
+                pWindow->m_vRealPosition = pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealPosition.goal() +
+                    pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealSize.goal() / 2.F - desiredGeometry.size() / 2.F;
+            else
+                pWindow->m_vRealPosition = PMONITOR->vecPosition + desiredGeometry.size() / 2.F;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
@@ -518,7 +523,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         CBox wb = {pWindow->m_vRealPosition.goal() + (pWindow->m_vRealSize.goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
         wb.round();
 
-        if (DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) &&
+        if (!(pWindow->m_bIsFloating && pWindow->m_bIsPseudotiled) && DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) &&
             DELTALESSTHAN(pWindow->m_vRealSize.value().y, pWindow->m_vLastFloatingSize.y, 10)) {
             wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
@@ -693,7 +698,7 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     else
         sizePredicted = predictSizeForNewWindowFloating(pWindow);
 
-    Vector2D maxSize = Vector2D{pWindow->m_uSurface.xdg->toplevel->pending.max_width, pWindow->m_uSurface.xdg->toplevel->pending.max_height};
+    Vector2D maxSize = pWindow->m_pXDGSurface->toplevel->pending.maxSize;
 
     if ((maxSize.x > 0 && maxSize.x < sizePredicted.x) || (maxSize.y > 0 && maxSize.y < sizePredicted.y))
         sizePredicted = {};

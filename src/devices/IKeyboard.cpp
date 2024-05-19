@@ -7,6 +7,10 @@ uint32_t IKeyboard::getCapabilities() {
     return HID_INPUT_CAPABILITY_KEYBOARD;
 }
 
+eHIDType IKeyboard::getType() {
+    return HID_TYPE_KEYBOARD;
+}
+
 IKeyboard::~IKeyboard() {
     events.destroy.emit();
 
@@ -127,8 +131,17 @@ void IKeyboard::updateLEDs() {
             leds |= (1 << i);
     }
 
+    updateLEDs(leds);
+}
+
+void IKeyboard::updateLEDs(uint32_t leds) {
+    auto keyboard = wlr();
+
+    if (!keyboard || keyboard->xkb_state == nullptr)
+        return;
+
     if (isVirtual() && g_pInputManager->shouldIgnoreVirtualKeyboard(self.lock()))
         return;
 
-    wlr_keyboard_led_update(wlr(), leds);
+    wlr_keyboard_led_update(keyboard, leds);
 }

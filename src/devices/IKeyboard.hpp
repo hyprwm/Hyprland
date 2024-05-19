@@ -13,6 +13,7 @@ class IKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
     virtual uint32_t      getCapabilities();
+    virtual eHIDType      getType();
     virtual bool          isVirtual() = 0;
     virtual wlr_keyboard* wlr()       = 0;
 
@@ -41,6 +42,7 @@ class IKeyboard : public IHID {
     void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
     std::string        getActiveLayout();
     void               updateLEDs();
+    void               updateLEDs(uint32_t leds);
 
     bool               active  = false;
     bool               enabled = true;

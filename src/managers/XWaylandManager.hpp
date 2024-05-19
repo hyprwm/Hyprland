@@ -17,11 +17,8 @@ class CHyprXWaylandManager {
     void          activateSurface(wlr_surface*, bool);
     void          activateWindow(PHLWINDOW, bool);
     void          getGeometryForWindow(PHLWINDOW, CBox*);
-    std::string   getTitle(PHLWINDOW);
-    std::string   getAppIDClass(PHLWINDOW);
     void          sendCloseWindow(PHLWINDOW);
     void          setWindowSize(PHLWINDOW, Vector2D, bool force = false);
-    void          setWindowStyleTiled(PHLWINDOW, uint32_t);
     void          setWindowFullscreen(PHLWINDOW, bool);
     wlr_surface*  surfaceAt(PHLWINDOW, const Vector2D&, Vector2D&);
     bool          shouldBeFloated(PHLWINDOW, bool pending = false);

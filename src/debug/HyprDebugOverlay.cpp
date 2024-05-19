@@ -33,7 +33,7 @@ void CHyprMonitorDebugOverlay::frameData(CMonitor* pMonitor) {
         m_pMonitor = pMonitor;
 
     // anim data too
-    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor : g_pCompositor->m_pLastMonitor;
+    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor : g_pCompositor->m_pLastMonitor.get();
     if (PMONITORFORTICKS) {
         if (m_dLastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->refreshRate)
             m_dLastAnimationTicks.pop_front();

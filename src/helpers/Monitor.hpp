@@ -114,6 +114,8 @@ class CMonitor {
 
     SMonitorRule            activeMonitorRule;
 
+    WP<CMonitor>            self;
+
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
@@ -138,7 +140,7 @@ class CMonitor {
         CSignal modeChanged;
     } events;
 
-    std::array<std::vector<PHLLS>, 4> m_aLayerSurfaceLayers;
+    std::array<std::vector<PHLLSREF>, 4> m_aLayerSurfaceLayers;
 
     DYNLISTENER(monitorFrame);
     DYNLISTENER(monitorDestroy);
@@ -147,6 +149,7 @@ class CMonitor {
     DYNLISTENER(monitorNeedsFrame);
     DYNLISTENER(monitorCommit);
     DYNLISTENER(monitorBind);
+    DYNLISTENER(monitorPresented);
 
     // methods
     void     onConnect(bool noRule);
@@ -167,6 +170,8 @@ class CMonitor {
     void     updateMatrix();
     int64_t  activeWorkspaceID();
     int64_t  activeSpecialWorkspaceID();
+    CBox     logicalBox();
+    void     updateGlobal();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

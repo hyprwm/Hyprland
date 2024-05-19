@@ -4,7 +4,9 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
 #include "helpers/VarList.hpp"
+#include "../protocols/LayerShell.hpp"
 
+#include <cstdint>
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -17,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <ranges>
+#include <xkbcommon/xkbcommon.h>
 
 extern "C" char**             environ;
 
@@ -310,8 +313,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
     m_pConfig->addConfigValue("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
     m_pConfig->addConfigValue("general:gaps_workspaces", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("general:cursor_inactive_timeout", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("general:no_cursor_warps", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:no_focus_fallback", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_on_border", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:extend_border_grab_area", Hyprlang::INT{15});
@@ -319,7 +320,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:layout", {"dwindle"});
     m_pConfig->addConfigValue("general:allow_tearing", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_corner", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("general:default_cursor_monitor", {STRVAL_EMPTY});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -340,19 +340,15 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:swallow_exception_regex", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("misc:focus_on_activate", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:no_direct_scanout", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("misc:hide_cursor_on_touch", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:mouse_move_focuses_monitor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_ahead_of_time", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:render_ahead_safezone", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("misc:cursor_zoom_factor", {1.f});
-    m_pConfig->addConfigValue("misc:cursor_zoom_rigid", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:allow_session_lock_restore", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:close_special_on_empty", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:background_color", Hyprlang::INT{0xff111111});
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("misc:enable_hyprcursor", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("misc:hide_cursor_on_key_press", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
@@ -365,6 +361,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:render_titles", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:scrolling", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
+    m_pConfig->addConfigValue("group:groupbar:stacked", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("debug:int", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});
@@ -377,6 +374,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:manual_crash", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:suppress_errors", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:error_limit", Hyprlang::INT{5});
+    m_pConfig->addConfigValue("debug:error_position", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:watchdog_timeout", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
@@ -515,6 +513,17 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
     m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{2});
+
+    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("cursor:inactive_timeout", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_warps", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:default_monitor", {STRVAL_EMPTY});
+    m_pConfig->addConfigValue("cursor:zoom_factor", {1.f});
+    m_pConfig->addConfigValue("cursor:zoom_rigid", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:enable_hyprcursor", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("cursor:hide_on_key_press", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:hide_on_touch", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("autogenerated", Hyprlang::INT{0});
 
@@ -1036,10 +1045,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     if (!valid(pWindow))
         return std::vector<SWindowRule>();
 
+    // if the window is unmapped, don't process exec rules yet.
+    shadowExec = shadowExec || !pWindow->m_bIsMapped;
+
     std::vector<SWindowRule> returns;
 
-    std::string              title      = g_pXWaylandManager->getTitle(pWindow);
-    std::string              appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
+    std::string              title      = pWindow->m_szTitle;
+    std::string              appidclass = pWindow->m_szClass;
 
     Debug::log(LOG, "Searching for matching rules for {} (title: {})", appidclass, title);
 
@@ -1201,7 +1213,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
         } else {
             std::regex NSCHECK(lr.targetNamespace);
 
-            if (!pLS->layerSurface->_namespace || !std::regex_search(pLS->layerSurface->_namespace, NSCHECK))
+            if (!std::regex_search(pLS->layerSurface->layerNamespace, NSCHECK))
                 continue;
         }
 
@@ -1209,8 +1221,8 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
         returns.push_back(lr);
     }
 
-    if (pLS->layerSurface->_namespace && shouldBlurLS(pLS->layerSurface->_namespace))
-        returns.push_back({pLS->layerSurface->_namespace, "blur"});
+    if (shouldBlurLS(pLS->layerSurface->layerNamespace))
+        returns.push_back({pLS->layerSurface->layerNamespace, "blur"});
 
     return returns;
 }
@@ -1899,6 +1911,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       nonConsuming = false;
     bool       transparent  = false;
     bool       ignoreMods   = false;
+    bool       multiKey     = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -1916,6 +1929,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             transparent = true;
         } else if (arg == 'i') {
             ignoreMods = true;
+        } else if (arg == 's') {
+            multiKey = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1934,10 +1949,21 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
         return "bind: too many args";
 
+    std::set<xkb_keysym_t> KEYSYMS;
+    std::set<xkb_keysym_t> MODS;
+
+    if (multiKey) {
+        for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+            KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+        for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
+            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+    }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
 
-    const auto KEY = ARGS[1];
+    const auto KEY = multiKey ? "" : ARGS[1];
 
     auto       HANDLER = ARGS[2];
 
@@ -1961,7 +1987,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
-    if (KEY != "") {
+    if ((KEY != "") || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
         if (parsedKey.catchAll && m_szCurrentSubmap == "") {
@@ -1969,8 +1995,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
-                                               nonConsuming, transparent, ignoreMods});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
+                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};
@@ -1993,8 +2019,8 @@ bool windowRuleValid(const std::string& RULE) {
         RULE.starts_with("maxsize") || RULE.starts_with("pseudo") || RULE.starts_with("monitor") || RULE.starts_with("idleinhibit") || RULE == "nofocus" || RULE == "noblur" ||
         RULE == "noshadow" || RULE == "nodim" || RULE == "noborder" || RULE == "opaque" || RULE == "forceinput" || RULE == "fullscreen" || RULE == "fakefullscreen" ||
         RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" || RULE == "maximize" || RULE == "keepaspectratio" ||
-        RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") || RULE.starts_with("bordercolor") || RULE == "forcergbx" ||
-        RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") || RULE.starts_with("center") ||
+        RULE == "focusonactivate" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") || RULE.starts_with("bordercolor") ||
+        RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") || RULE.starts_with("center") ||
         RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent") || RULE.starts_with("plugin:");
 }
 

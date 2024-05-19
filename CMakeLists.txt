@@ -71,6 +71,7 @@ pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
+pkg_get_variable(WAYLAND_SERVER_DIR wayland-server pkgdatadir)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -109,8 +110,10 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprwayland-scanner>=0.3.5 hyprlang>=0.3.2 hyprcursor>=0.1.7
+    hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
+
+find_package(hyprwayland-scanner 0.3.8 REQUIRED)
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
@@ -123,6 +126,8 @@ endif()
 add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
 add_dependencies(Hyprland wlroots-hyprland)
 
+set(USE_GPROF ON)
+
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Setting debug flags")
 
@@ -130,8 +135,6 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         message(STATUS "Enabling ASan")
 
         target_link_libraries(Hyprland asan)
-        pkg_check_modules(ffidep REQUIRED IMPORTED_TARGET libffi)
-        target_link_libraries(Hyprland ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
         target_compile_options(Hyprland PUBLIC -fsanitize=address)
     endif()
 
@@ -150,8 +153,12 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
         endif()
     endif()
 
-    add_compile_options(-pg -no-pie -fno-builtin)
-    add_link_options(-pg -no-pie -fno-builtin)
+    add_compile_options(-fno-pie -fno-builtin)
+    add_link_options(-no-pie -fno-builtin)
+    if(USE_GPROF)
+        add_compile_options(-pg)
+        add_link_options(-pg)
+    endif()
 endif()
 
 check_include_file("execinfo.h" EXECINFOH)
@@ -211,35 +218,48 @@ target_link_libraries(Hyprland rt PkgConfig::deps)
 
 function(protocol protoPath protoName external)
     if (external)
-        execute_process(
-            COMMAND ${WaylandScanner} server-header ${protoPath} protocols/${protoName}-protocol.h
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        execute_process(
-            COMMAND ${WaylandScanner} private-code ${protoPath} protocols/${protoName}-protocol.c
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
-        target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
+        set(path ${CMAKE_SOURCE_DIR}/${protoPath})
     else()
-        execute_process(
-            COMMAND ${WaylandScanner} server-header ${WAYLAND_PROTOCOLS_DIR}/${protoPath} protocols/${protoName}-protocol.h
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        execute_process(
-            COMMAND ${WaylandScanner} private-code ${WAYLAND_PROTOCOLS_DIR}/${protoPath} protocols/${protoName}-protocol.c
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})  
-        target_sources(Hyprland PRIVATE protocols/${protoName}-protocol.c)
+        set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
     endif()
+
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h
+        COMMAND ${WaylandScanner} server-header ${path} protocols/${protoName}-protocol.h
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c
+        COMMAND ${WaylandScanner} private-code ${path} protocols/${protoName}-protocol.c
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
+    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
 endfunction()
 function(protocolNew protoPath protoName external)
     if (external)
-        execute_process(
-            COMMAND hyprwayland-scanner ${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+        set(path ${CMAKE_SOURCE_DIR}/${protoPath})
     else()
-        execute_process(
-            COMMAND hyprwayland-scanner ${WAYLAND_PROTOCOLS_DIR}/${protoPath} ${CMAKE_SOURCE_DIR}/protocols/
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-        target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+        set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
     endif()
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}.cpp
+               ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp
+        COMMAND hyprwayland-scanner ${path}/${protoName}.xml ${CMAKE_SOURCE_DIR}/protocols/
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
+    target_sources(Hyprland PRIVATE protocols/${protoName}.hpp)
+endfunction()
+function(protocolWayland)
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
+               ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp
+        COMMAND hyprwayland-scanner --wayland-enums ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    target_sources(Hyprland PRIVATE protocols/wayland.cpp)
+    target_sources(Hyprland PRIVATE protocols/wayland.hpp)
 endfunction()
 
 target_link_libraries(Hyprland
@@ -251,40 +271,45 @@ target_link_libraries(Hyprland
         uuid
 )
 
-protocol("protocols/tablet-unstable-v2.xml" "tablet-unstable-v2" true)
-protocol("protocols/wlr-layer-shell-unstable-v1.xml" "wlr-layer-shell-unstable-v1" true)
 protocol("protocols/wlr-screencopy-unstable-v1.xml" "wlr-screencopy-unstable-v1" true)
 protocol("subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml" "hyprland-global-shortcuts-v1" true)
 protocol("subprojects/hyprland-protocols/protocols/hyprland-toplevel-export-v1.xml" "hyprland-toplevel-export-v1" true)
-protocol("stable/xdg-shell/xdg-shell.xml" "xdg-shell" false)
 protocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml" "linux-dmabuf-unstable-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 
-protocolNew("protocols/wlr-gamma-control-unstable-v1.xml" "wlr-gamma-control-unstable-v1" true)
-protocolNew("protocols/wlr-foreign-toplevel-management-unstable-v1.xml" "wlr-foreign-toplevel-management-unstable-v1" true)
-protocolNew("protocols/wlr-output-power-management-unstable-v1.xml" "wlr-output-power-management-unstable-v1" true)
-protocolNew("protocols/virtual-keyboard-unstable-v1.xml" "virtual-keyboard-unstable-v1" true)
-protocolNew("protocols/wlr-virtual-pointer-unstable-v1.xml" "wlr-virtual-pointer-unstable-v1" true)
-protocolNew("protocols/input-method-unstable-v2.xml" "input-method-unstable-v2" true)
-protocolNew("protocols/wlr-output-management-unstable-v1.xml" "wlr-output-management-unstable-v1" true)
-protocolNew("protocols/kde-server-decoration.xml" "kde-server-decoration" true)
-protocolNew("subprojects/hyprland-protocols/protocols/hyprland-focus-grab-v1.xml" "hyprland-focus-grab-v1" true)
-protocolNew("staging/tearing-control/tearing-control-v1.xml" "tearing-control-v1" false)
-protocolNew("staging/fractional-scale/fractional-scale-v1.xml" "fractional-scale-v1" false)
-protocolNew("unstable/xdg-output/xdg-output-unstable-v1.xml" "xdg-output-unstable-v1" false)
-protocolNew("staging/cursor-shape/cursor-shape-v1.xml" "cursor-shape-v1" false)
-protocolNew("unstable/idle-inhibit/idle-inhibit-unstable-v1.xml" "idle-inhibit-unstable-v1" false)
-protocolNew("unstable/relative-pointer/relative-pointer-unstable-v1.xml" "relative-pointer-unstable-v1" false)
-protocolNew("unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" "xdg-decoration-unstable-v1" false)
-protocolNew("staging/alpha-modifier/alpha-modifier-v1.xml" "alpha-modifier-v1" false)
-protocolNew("staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml" "ext-foreign-toplevel-list-v1" false)
-protocolNew("unstable/pointer-gestures/pointer-gestures-unstable-v1.xml" "pointer-gestures-unstable-v1" false)
-protocolNew("unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unstable-v1.xml" "keyboard-shortcuts-inhibit-unstable-v1" false)
-protocolNew("unstable/text-input/text-input-unstable-v3.xml" "text-input-unstable-v3" false)
-protocolNew("unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" "pointer-constraints-unstable-v1" false)
-protocolNew("staging/xdg-activation/xdg-activation-v1.xml" "xdg-activation-v1" false)
-protocolNew("staging/ext-idle-notify/ext-idle-notify-v1.xml" "ext-idle-notify-v1" false)
-protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock-v1" false)
+protocolNew("protocols" "wlr-gamma-control-unstable-v1" true)
+protocolNew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
+protocolNew("protocols" "wlr-output-power-management-unstable-v1" true)
+protocolNew("protocols" "virtual-keyboard-unstable-v1" true)
+protocolNew("protocols" "wlr-virtual-pointer-unstable-v1" true)
+protocolNew("protocols" "input-method-unstable-v2" true)
+protocolNew("protocols" "wlr-output-management-unstable-v1" true)
+protocolNew("protocols" "kde-server-decoration" true)
+protocolNew("protocols" "wlr-data-control-unstable-v1" true)
+protocolNew("subprojects/hyprland-protocols/protocols" "hyprland-focus-grab-v1" true)
+protocolNew("protocols" "wlr-layer-shell-unstable-v1" true)
+protocolNew("staging/tearing-control" "tearing-control-v1" false)
+protocolNew("staging/fractional-scale" "fractional-scale-v1" false)
+protocolNew("unstable/xdg-output" "xdg-output-unstable-v1" false)
+protocolNew("staging/cursor-shape" "cursor-shape-v1" false)
+protocolNew("unstable/idle-inhibit" "idle-inhibit-unstable-v1" false)
+protocolNew("unstable/relative-pointer" "relative-pointer-unstable-v1" false)
+protocolNew("unstable/xdg-decoration" "xdg-decoration-unstable-v1" false)
+protocolNew("staging/alpha-modifier" "alpha-modifier-v1" false)
+protocolNew("staging/ext-foreign-toplevel-list" "ext-foreign-toplevel-list-v1" false)
+protocolNew("unstable/pointer-gestures" "pointer-gestures-unstable-v1" false)
+protocolNew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-unstable-v1" false)
+protocolNew("unstable/text-input" "text-input-unstable-v3" false)
+protocolNew("unstable/pointer-constraints" "pointer-constraints-unstable-v1" false)
+protocolNew("staging/xdg-activation" "xdg-activation-v1" false)
+protocolNew("staging/ext-idle-notify" "ext-idle-notify-v1" false)
+protocolNew("staging/ext-session-lock" "ext-session-lock-v1" false)
+protocolNew("stable/tablet" "tablet-v2" false)
+protocolNew("stable/presentation-time" "presentation-time" false)
+protocolNew("stable/xdg-shell" "xdg-shell" false)
+protocolNew("unstable/primary-selection" "primary-selection-unstable-v1" false)
+
+protocolWayland()
 
 # tools
 add_subdirectory(hyprctl)

@@ -10,7 +10,7 @@ CHyprError::CHyprError() {
         if (!m_bIsCreated)
             return;
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor);
+        g_pHyprRenderer->damageMonitor(g_pCompositor->m_pLastMonitor.get());
         m_bMonitorChanged = true;
     });
 
@@ -58,8 +58,11 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto   LINECOUNT = Hyprlang::INT{1} + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
-    static auto  LINELIMIT = CConfigValue<Hyprlang::INT>("debug:error_limit");
+    const auto   LINECOUNT    = Hyprlang::INT{1} + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
+    static auto  LINELIMIT    = CConfigValue<Hyprlang::INT>("debug:error_limit");
+    static auto  BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+
+    const bool   TOPBAR = *BAR_POSITION == 0;
 
     const auto   VISLINECOUNT = std::min(LINECOUNT, *LINELIMIT);
     const auto   EXTRALINES   = (VISLINECOUNT < LINECOUNT) ? 1 : 0;
@@ -68,11 +71,11 @@ void CHyprError::createQueued() {
 
     const double PAD = 10 * SCALE;
 
-    const double X      = PAD;
-    const double Y      = PAD;
     const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * (VISLINECOUNT + EXTRALINES) + 3;
     const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
+    const double X      = PAD;
+    const double Y      = TOPBAR ? PAD : PMONITOR->vecPixelSize.y - HEIGHT - PAD;
 
     m_bDamageBox = {0, 0, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
 
@@ -96,9 +99,9 @@ void CHyprError::createQueued() {
     cairo_set_font_size(CAIRO, FONTSIZE);
     cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
-    float yoffset     = FONTSIZE;
+    float yoffset     = TOPBAR ? FONTSIZE : Y - PAD + FONTSIZE;
     int   renderedcnt = 0;
-    while (m_szQueued != "" && renderedcnt < VISLINECOUNT) {
+    while (!m_szQueued.empty() && renderedcnt < VISLINECOUNT) {
         std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));
         if (const auto NEWLPOS = m_szQueued.find('\n'); NEWLPOS != std::string::npos)
             m_szQueued = m_szQueued.substr(NEWLPOS + 1);

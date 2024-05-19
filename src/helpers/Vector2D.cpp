@@ -42,9 +42,11 @@ Vector2D Vector2D::clamp(const Vector2D& min, const Vector2D& max) const {
 }
 
 double Vector2D::distance(const Vector2D& other) const {
-    double dx = x - other.x;
-    double dy = y - other.y;
-    return std::sqrt(dx * dx + dy * dy);
+    return std::sqrt(distanceSq(other));
+}
+
+double Vector2D::distanceSq(const Vector2D& other) const {
+    return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y);
 }
 
 double Vector2D::size() const {

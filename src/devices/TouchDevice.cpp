@@ -27,6 +27,7 @@ CTouchDevice::CTouchDevice(wlr_touch* touch_) : touch(touch_) {
             .timeMs  = E->time_msec,
             .touchID = E->touch_id,
             .pos     = {E->x, E->y},
+            .device  = self.lock(),
         });
     }, this, "CTouchDevice");
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHyprWindowDecoration.hpp"
+#include "../../devices/IPointer.hpp"
 #include <deque>
 #include "../Texture.hpp"
 #include <string>
@@ -8,7 +9,7 @@
 
 class CTitleTex {
   public:
-    CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize);
+    CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale);
     ~CTitleTex();
 
     CTexture     tex;
@@ -53,6 +54,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     std::deque<PHLWINDOWREF> m_dwGroupMembers;
 
     float                    m_fBarWidth;
+    float                    m_fBarHeight;
 
     CTitleTex*               textureFromTitle(const std::string&);
     void                     invalidateTextures();
@@ -61,8 +63,8 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     bool                     onBeginWindowDragOnDeco(const Vector2D&);
     bool                     onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);
-    bool                     onMouseButtonOnDeco(const Vector2D&, wlr_pointer_button_event*);
-    bool                     onScrollOnDeco(const Vector2D&, wlr_pointer_axis_event*);
+    bool                     onMouseButtonOnDeco(const Vector2D&, const IPointer::SButtonEvent&);
+    bool                     onScrollOnDeco(const Vector2D&, const IPointer::SAxisEvent);
 
     struct STitleTexs {
         // STitleTexs*                            overriden = nullptr; // TODO: make shit shared in-group to decrease VRAM usage.

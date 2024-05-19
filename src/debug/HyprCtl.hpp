@@ -18,6 +18,7 @@ class CHyprCtl {
 
     struct {
         bool all = false;
+		bool sysInfoConfig = false;
     } m_sCurrentRequestParams;
 
   private:

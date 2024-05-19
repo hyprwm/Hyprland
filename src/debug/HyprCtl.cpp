@@ -895,6 +895,12 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
         result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
     }
 
+    if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+        result += "======Config-Start======";
+        result += "Config: " + execAndGet("cat ~/.config/hypr/hyprland.conf") + "\n";
+        result += "======Config-End========";
+    }
+
     return result;
 }
 
@@ -1638,6 +1644,8 @@ std::string CHyprCtl::getReply(std::string request) {
                 reloadAll = true;
             else if (c == 'a')
                 m_sCurrentRequestParams.all = true;
+            else if (c == 'c')
+                m_sCurrentRequestParams.sysInfoConfig = true;
         }
 
         if (sepIndex < request.size())

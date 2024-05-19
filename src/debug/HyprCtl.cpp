@@ -896,9 +896,9 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     }
 
     if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
-        result += "======Config-Start======";
+        result += "\n======Config-Start======\n";
         result += "Config: " + execAndGet(std::string("cat " + g_pConfigManager->configCurrentPath).c_str()) + "\n";
-        result += "======Config-End========";
+        result += "\n======Config-End========\n";
     }
 
     return result;

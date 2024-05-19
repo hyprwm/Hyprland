@@ -97,11 +97,11 @@ void CHyprError::createQueued() {
     const CColor textColor = m_cQueued.r + m_cQueued.g + m_cQueued.b < 0.2f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
     cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
-    static auto           font_family = CConfigValue<std::string>("misc:font_family");
-    PangoLayout*          layoutText  = pango_cairo_create_layout(CAIRO);
-    PangoFontDescription* pangoFD     = pango_font_description_new();
+    static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
+    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
+    pango_font_description_set_family_static(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);

@@ -4,12 +4,12 @@
 #include "../config/ConfigValue.hpp"
 #include "../helpers/FontUtils.hpp"
 
-eIconBackend get_iconBackendID(const std::string& font_family) {
+eIconBackend get_iconBackendID(const std::string& fontFamily) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
         auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
-        if (count_missing_glyphs(iconsText, font_family) == 0)
+        if (count_missing_glyphs(iconsText, fontFamily) == 0)
             return iconID;
     }
     return ICONS_BACKEND_NONE;
@@ -72,14 +72,14 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
-    static auto           font_family   = CConfigValue<std::string>("misc:font_family");
-    auto                  iconBackendID = get_iconBackendID(*font_family);
+    static auto           fontFamily    = CConfigValue<std::string>("misc:font_family");
+    auto                  iconBackendID = get_iconBackendID(*fontFamily);
 
     PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
     PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
     PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
+    pango_font_description_set_family_static(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 

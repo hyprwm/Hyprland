@@ -105,11 +105,11 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     const float           FPS      = 1.f / (avgFrametime / 1000.f); // frametimes are in ms
     const float           idealFPS = m_dLastFrametimes.size();
 
-    static auto           font_family = CConfigValue<std::string>("misc:font_family");
-    PangoLayout*          layoutText  = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
-    PangoFontDescription* pangoFD     = pango_font_description_new();
+    static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
+    PangoLayout*          layoutText = pango_cairo_create_layout(g_pDebugOverlay->m_pCairo);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, (*font_family).c_str());
+    pango_font_description_set_family_static(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 
@@ -173,15 +173,15 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
 
-    double pos_x = 0, pos_y = 0;
-    cairo_get_current_point(cr, &pos_x, &pos_y);
+    double posX = 0, posY = 0;
+    cairo_get_current_point(cr, &posX, &posY);
 
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
     m_wbLastDrawnBox = {(int)g_pCompositor->m_vMonitors.front()->vecPosition.x + MARGIN_LEFT - 1, (int)g_pCompositor->m_vMonitors.front()->vecPosition.y + offset + MARGIN_TOP - 1,
-                        (int)maxTextW + 2, pos_y - offset - MARGIN_TOP + 2};
+                        (int)maxTextW + 2, posY - offset - MARGIN_TOP + 2};
     g_pHyprRenderer->damageBox(&m_wbLastDrawnBox);
 
-    return pos_y - offset;
+    return posY - offset;
 }
 
 void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float µs) {

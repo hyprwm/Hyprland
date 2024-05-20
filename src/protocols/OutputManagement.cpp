@@ -106,6 +106,9 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) :
         }
 
         pMonitor = nullptr;
+        for (auto& m : PROTO::outputManagement->m_vManagers) {
+            m->sendDone();
+        }
     });
 
     listeners.monitorModeChange = pMonitor->events.modeChanged.registerListener([this](std::any d) { updateMode(); });

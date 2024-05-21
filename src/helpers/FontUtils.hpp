@@ -2,4 +2,4 @@
 
 #include <string>
 
-int count_missing_glyphs(const std::string& text, const std::string& fontname);
+int count_missing_glyphs(const std::string& text, const std::string& fontFamily);

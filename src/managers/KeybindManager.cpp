@@ -2051,11 +2051,14 @@ void CKeybindManager::sendshortcut(std::string args) {
 
 		const auto KEYSYM = xkb_keysym_from_name(KEY.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
 		keycode = 0;
+
+    const auto KB = g_pSeatManager->keyboard;
+    const auto KEYPAIRSTRING = std::to_string(KB) + KEY;
+    
 		// check if KEY is in m_mKeyToCodeCache
-		if (g_pKeybindManager->m_mKeyToCodeCache.find(KEY) == g_pKeybindManager->m_mKeyToCodeCache.end()) {
+		if (g_pKeybindManager->m_mKeyToCodeCache.find(KEYPAIRSTRING) == g_pKeybindManager->m_mKeyToCodeCache.end()) {
 			// find keycode and add to cache
 			// get current window
-			const auto KB = g_pSeatManager->keyboard;
 			xkb_keymap* km = KB->wlr()->keymap;
 			xkb_state* ks = KB->xkbTranslationState;
 			
@@ -2071,7 +2074,7 @@ void CKeybindManager::sendshortcut(std::string args) {
 				if (sym == KEYSYM) {
 					keycode = kc; // found the matching keycode
 					//save it to cache
-					g_pKeybindManager->m_mKeyToCodeCache[KEY] = keycode;
+					g_pKeybindManager->m_mKeyToCodeCache[KEYPAIRSTRING] = keycode;
 				}
 
 			}
@@ -2082,7 +2085,7 @@ void CKeybindManager::sendshortcut(std::string args) {
 			}
 
 		}else {
-			keycode = g_pKeybindManager->m_mKeyToCodeCache[KEY];
+			keycode = g_pKeybindManager->m_mKeyToCodeCache[KEYPAIRSTRING];
 		}
 	}
 

@@ -98,7 +98,8 @@ class CKeybindManager {
     //since we cant find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
     //and cache it in this map to make sendshortcut calls faster
-    std::unordered_map<std::string, xkb_keycode_t>                    m_mKeyToCodeCache;
+    //we also store the keyboard pointer (in the string) to differentiate between different keyboard (layouts)
+    std::unordered_map<std::string, xkb_keycode_t> m_mKeyToCodeCache;
 
   private:
     std::deque<SPressedKeyWithMods> m_dPressedKeys;

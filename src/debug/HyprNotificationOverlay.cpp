@@ -80,7 +80,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
     PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family_static(pangoFD, (*fontFamily).c_str());
+    pango_font_description_set_family(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 

@@ -550,6 +550,14 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
             return test.translate(-parentCoord - constraint.pos());
     }
 
+    // if flips fail, we will slide and remember.
+    // if the positioner is allowed to resize, then resize the slid thing.
+    CBox test = predictedBox;
+
+    // for slide and resize, defines the padding around the edge for the positioned
+    // surface.
+    constexpr int EDGE_PADDING = 4;
+
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y)) {
         // attempt to slide
         const bool slideX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X;
@@ -563,17 +571,15 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
         const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
 
-        CBox       test = predictedBox;
-
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && slideX)
-            test.x = constraint.x;
+            test.x = constraint.x + EDGE_PADDING;
         if (rightEdgeOut && slideX)
-            test.x = constraint.x + constraint.w - predictedBox.w;
+            test.x = constraint.x + constraint.w - predictedBox.w - EDGE_PADDING;
         if (topEdgeOut && slideY)
-            test.y = constraint.y;
+            test.y = constraint.y + EDGE_PADDING;
         if (bottomEdgeOut && slideY)
-            test.y = constraint.y + constraint.h - predictedBox.y;
+            test.y = constraint.y + constraint.h - predictedBox.y - EDGE_PADDING;
 
         success = test.copy().expand(-1).inside(constraint);
 
@@ -590,21 +596,19 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
         const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
 
-        CBox       test = predictedBox;
-
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && resizeX) {
-            test.w = test.x + test.w - constraint.x;
-            test.x = constraint.x;
+            test.w = test.x + test.w - constraint.x - EDGE_PADDING;
+            test.x = constraint.x + EDGE_PADDING;
         }
         if (rightEdgeOut && resizeX)
-            test.w = -(constraint.w + constraint.x - test.w - test.x);
+            test.w = -(constraint.w + constraint.x - test.w - test.x + EDGE_PADDING);
         if (topEdgeOut && resizeY) {
-            test.h = test.y + test.h - constraint.y;
-            test.y = constraint.y;
+            test.h = test.y + test.h - constraint.y - EDGE_PADDING;
+            test.y = constraint.y + EDGE_PADDING;
         }
         if (bottomEdgeOut && resizeY)
-            test.h = -(constraint.h + constraint.y - test.h - test.y);
+            test.h = -(constraint.h + constraint.y - test.h - test.y + EDGE_PADDING);
 
         success = test.copy().expand(-1).inside(constraint);
 
@@ -614,7 +618,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
 
     LOGM(WARN, "Compositor/client bug: xdg_positioner couldn't find a place");
 
-    return predictedBox.translate(-parentCoord - constraint.pos());
+    return test.translate(-parentCoord - constraint.pos());
 }
 
 CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {

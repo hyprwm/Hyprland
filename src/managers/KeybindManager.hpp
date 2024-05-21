@@ -95,6 +95,11 @@ class CKeybindManager {
 
     std::list<SKeybind>                                               m_lKeybinds;
 
+    //since we cant find keycode through keyname in xkb:
+    //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
+    //and cache it in this map to make sendshortcut calls faster
+    std::unordered_map<std::string, xkb_keycode_t>                    m_mKeyToCodeCache;
+
   private:
     std::deque<SPressedKeyWithMods> m_dPressedKeys;
 
@@ -177,6 +182,7 @@ class CKeybindManager {
     static void     focusWindow(std::string);
     static void     setSubmap(std::string);
     static void     pass(std::string);
+    static void     sendshortcut(std::string);
     static void     layoutmsg(std::string);
     static void     toggleOpaque(std::string);
     static void     dpms(std::string);

@@ -89,6 +89,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focuswindow"]                    = focusWindow;
     m_mDispatchers["submap"]                         = setSubmap;
     m_mDispatchers["pass"]                           = pass;
+    m_mDispatchers["sendshortcut"]                   = sendshortcut;
     m_mDispatchers["layoutmsg"]                      = layoutmsg;
     m_mDispatchers["toggleopaque"]                   = toggleOpaque;
     m_mDispatchers["dpms"]                           = dpms;
@@ -589,7 +590,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
     }
 
     for (auto& k : m_lKeybinds) {
-        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "mouse";
+        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "sendshortcut" || k.handler == "mouse";
         const bool SPECIALTRIGGERED =
             std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
@@ -2011,6 +2012,163 @@ void CKeybindManager::pass(std::string regexp) {
         g_pSeatManager->setKeyboardFocus(LASTSRF);
     else
         g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), SL);
+}
+
+void CKeybindManager::sendshortcut(std::string args) {
+
+	//args=<NEW_MODKEYS><NEW_KEY>[,WINDOW_RULES]
+	const auto ARGS = CVarList(args, 3);
+	if(ARGS.size() != 3) {
+		Debug::log(ERR, "sendshortcut: invalid args");
+		return;
+	}
+
+	const auto MOD = g_pKeybindManager->stringToModMask(ARGS[0]);
+	const auto KEY = ARGS[1];
+	uint32_t keycode;
+  	bool isMouse = 0;
+
+	//oriented from parseKey in ConfigManager
+	if (isNumber(KEY) && std::stoi(KEY) > 9){
+        keycode = std::stoi(KEY);
+	}
+  	else if (KEY.compare(0, 5, "code:") == 0 && isNumber(KEY.substr(5))) {
+		keycode = std::stoi(KEY.substr(5));
+	}
+	else if (KEY.compare(0, 6, "mouse:") == 0 && isNumber(KEY.substr(6))) {
+		keycode = std::stoi(KEY.substr(6));
+		isMouse = 1;
+		if (keycode < 272) {
+			Debug::log(ERR, "sendshortcut: invalid mouse button");
+			return;
+		}
+	}
+	else {
+
+		// here, we need to find the keycode from the key name
+		// this is not possible through xkb's lib, so we need to iterate through all keycodes
+		// once found, we save it to the cache
+
+		const auto KEYSYM = xkb_keysym_from_name(KEY.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+		keycode = 0;
+		// check if KEY is in m_mKeyToCodeCache
+		if (g_pKeybindManager->m_mKeyToCodeCache.find(KEY) == g_pKeybindManager->m_mKeyToCodeCache.end()) {
+			// find keycode and add to cache
+			// get current window
+			const auto KB = g_pSeatManager->keyboard;
+			xkb_keymap* km = KB->wlr()->keymap;
+			xkb_state* ks = KB->xkbTranslationState;
+			
+			xkb_keycode_t keycode_min, keycode_max;
+			keycode_min = xkb_keymap_min_keycode(km);
+			keycode_max = xkb_keymap_max_keycode(km);
+
+			for (xkb_keycode_t kc = keycode_min; kc <= keycode_max; ++kc) {
+				// Iterate through all the layers and levels of the key to find matching keysym
+				
+				xkb_keysym_t sym = xkb_state_key_get_one_sym(ks, kc);
+
+				if (sym == KEYSYM) {
+					keycode = kc; // found the matching keycode
+					//save it to cache
+					g_pKeybindManager->m_mKeyToCodeCache[KEY] = keycode;
+				}
+
+			}
+
+			if (keycode == 0) { //wasnt found
+				Debug::log(ERR, "sendshortcut: key not found");
+				return;
+			}
+
+		}else {
+			keycode = g_pKeybindManager->m_mKeyToCodeCache[KEY];
+		}
+	}
+
+	if (keycode == 0) {
+		Debug::log(ERR, "sendshortcut: invalid key");
+		return;
+	}
+		
+	const std::string regexp = ARGS[2];
+
+	PHLWINDOW PWINDOW = nullptr;
+	const auto LASTWINDOWEXISTS = g_pCompositor->m_pLastWindow.lock();
+
+	if(!LASTWINDOWEXISTS) {
+		Debug::log(ERR, "sendshortcut: no window to return to");
+		return;
+	}
+
+	const auto LASTWINDOW = g_pCompositor->m_pLastFocus;
+	
+	//if regexp is not empty, send shortcut to current window
+	//else, dont change focus
+	if (regexp != "") { 
+		PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+
+		if (!PWINDOW) {
+			Debug::log(ERR, "sendshortcut: window not found");
+			return;
+		}
+
+		if (!g_pSeatManager->keyboard) {
+			Debug::log(ERR, "No kb in sendshortcut?");
+			return;
+		}
+
+		if (isMouse == 0)
+			g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface.wlr());
+		else
+			g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), {1, 1});
+	}
+
+	//copied the rest from pass and modified it
+    g_pSeatManager->sendKeyboardMods(MOD, 0, 0, 0);
+
+    if (g_pKeybindManager->m_iPassPressed == 1) { //is the same variable as in pass, can be used, but without extra mouse button, handled above
+		if (isMouse == 0)
+			g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+		else 
+			g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
+    } else if (g_pKeybindManager->m_iPassPressed == 0) {
+		if (isMouse == 0)
+			g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+		else
+			g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
+	} else {
+        // dynamic call of the dispatcher
+		if (isMouse == 0) {
+        	g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+			g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, keycode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
+		} else {
+			g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_PRESSED);
+			g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, keycode, WL_POINTER_BUTTON_STATE_RELEASED);
+		}
+	}
+
+	if (PWINDOW) { //if focus of window was changed, this can't be still nullptr
+		
+		//if focus was changed, get back
+
+		if (PWINDOW->m_bIsX11) { //xwayland hack, see pass
+			if (isMouse == 0) {
+				g_pSeatManager->state.keyboardFocus = nullptr;
+				g_pSeatManager->state.keyboardFocusResource.reset();
+			} else {
+				g_pSeatManager->state.pointerFocus = nullptr;
+				g_pSeatManager->state.pointerFocusResource.reset();
+			}
+		}
+
+		const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
+
+		if (isMouse == 0)	
+			g_pSeatManager->setKeyboardFocus(LASTWINDOW);
+		else
+			g_pSeatManager->setPointerFocus(LASTWINDOW, SL);
+	}
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

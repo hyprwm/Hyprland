@@ -94,6 +94,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
 <DISPATCHERS> ::=  (exec)         	                                  "Execute a shell command"
                 |  (execr)           	                              "Execute a raw shell command"
                 |  (pass)            	                              "Pass the key to a specified window"
+                |  (sendshortcut)            	                      "On shortcut X sends shortcut Y to a specified window"
                 |  (killactive)          	                          "Close the active window"
                 |  (closewindow)         	                          "Close a specified window"
                 |  (workspace)           	                          "Change the workspace"

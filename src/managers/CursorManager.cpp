@@ -284,7 +284,11 @@ void CCursorManager::updateTheme() {
 }
 
 bool CCursorManager::changeTheme(const std::string& name, const int size) {
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), hcLogger, false);
+    auto options                 = Hyprcursor::SManagerOptions();
+    options.logFn                = hcLogger;
+    options.allowDefaultFallback = false;
+
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), options);
     if (m_pHyprcursor->valid()) {
         m_szTheme = name;
         m_iSize   = size;

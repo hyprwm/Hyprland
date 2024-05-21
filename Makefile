@@ -53,6 +53,8 @@ installheaders:
 	mkdir -p ${PREFIX}/include/hyprland/wlr
 	mkdir -p ${PREFIX}/share/pkgconfig
 
+	cmake --build ./build --config Release --target generate-protocol-headers
+
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cd subprojects/wlroots-hyprland/include/wlr && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
 	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..

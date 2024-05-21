@@ -219,6 +219,9 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland rt PkgConfig::deps)
 
+# used by `make installheaders`, to ensure the headers are generated
+add_custom_target(generate-protocol-headers)
+
 function(protocol protoPath protoName external)
     if (external)
         set(path ${CMAKE_SOURCE_DIR}/${protoPath})
@@ -236,9 +239,10 @@ function(protocol protoPath protoName external)
         COMMAND ${WaylandScanner} private-code ${path} protocols/${protoName}-protocol.c
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
-    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
+    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
 endfunction()
+
 function(protocolNew protoPath protoName external)
     if (external)
         set(path ${CMAKE_SOURCE_DIR}/${protoPath})
@@ -251,8 +255,8 @@ function(protocolNew protoPath protoName external)
         COMMAND hyprwayland-scanner ${path}/${protoName}.xml ${CMAKE_SOURCE_DIR}/protocols/
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
-    target_sources(Hyprland PRIVATE protocols/${protoName}.hpp)
+    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp protocols/${protoName}.hpp)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp)
 endfunction()
 function(protocolWayland)
     add_custom_command(
@@ -261,8 +265,8 @@ function(protocolWayland)
         COMMAND hyprwayland-scanner --wayland-enums ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE protocols/wayland.cpp)
-    target_sources(Hyprland PRIVATE protocols/wayland.hpp)
+    target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
 endfunction()
 
 target_link_libraries(Hyprland

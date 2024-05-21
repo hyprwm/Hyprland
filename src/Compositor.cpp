@@ -1386,7 +1386,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
         return nullptr;
 
     // 0 -> history, 1 -> shared length
-    static auto PMETHOD = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
+    static auto PMETHOD          = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
     const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);

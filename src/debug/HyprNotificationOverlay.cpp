@@ -3,14 +3,13 @@
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../helpers/FontUtils.hpp"
 
-eIconBackend get_iconBackendID(const std::string& fontFamily) {
+inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
         auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
-        if (count_missing_glyphs(iconsText, fontFamily) == 0)
+        if (pango_layout_get_unknown_glyphs_count(layout) == 0)
             return iconID;
     }
     return ICONS_BACKEND_NONE;
@@ -73,18 +72,17 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto            SCALE   = pMonitor->scale;
     const auto            MONSIZE = pMonitor->vecTransformedSize;
 
-    static auto           fontFamily    = CConfigValue<std::string>("misc:font_family");
-    auto                  iconBackendID = get_iconBackendID(*fontFamily);
+    static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
 
-    PangoLayout*          layoutIcon = pango_cairo_create_layout(m_pCairo);
-    PangoLayout*          layoutText = pango_cairo_create_layout(m_pCairo);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
+    PangoLayout*          layout  = pango_cairo_create_layout(m_pCairo);
+    PangoFontDescription* pangoFD = pango_font_description_new();
 
     pango_font_description_set_family(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
 
-    const auto PBEZIER = g_pAnimationManager->getBezier("default");
+    const auto iconBackendID = iconBackendFromLayout(layout);
+    const auto PBEZIER       = g_pAnimationManager->getBezier("default");
 
     for (auto& notif : m_dNotifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
@@ -116,17 +114,17 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
 
         int        iconW = 0, iconH = 0;
         pango_font_description_set_absolute_size(pangoFD, PANGO_SCALE * FONTSIZE * ICON_SCALE);
-        pango_layout_set_font_description(layoutIcon, pangoFD);
-        pango_layout_set_text(layoutIcon, ICON.c_str(), -1);
-        pango_layout_get_size(layoutIcon, &iconW, &iconH);
+        pango_layout_set_font_description(layout, pangoFD);
+        pango_layout_set_text(layout, ICON.c_str(), -1);
+        pango_layout_get_size(layout, &iconW, &iconH);
         iconW /= PANGO_SCALE;
         iconH /= PANGO_SCALE;
 
         int textW = 0, textH = 0;
         pango_font_description_set_absolute_size(pangoFD, PANGO_SCALE * FONTSIZE);
-        pango_layout_set_font_description(layoutText, pangoFD);
-        pango_layout_set_text(layoutText, notif->text.c_str(), -1);
-        pango_layout_get_size(layoutText, &textW, &textH);
+        pango_layout_set_font_description(layout, pangoFD);
+        pango_layout_set_text(layout, notif->text.c_str(), -1);
+        pango_layout_get_size(layout, &textW, &textH);
         textW /= PANGO_SCALE;
         textH /= PANGO_SCALE;
 
@@ -160,13 +158,15 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
             // draw icon
             cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
             cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + ICONPADFORNOTIF - 1, offsetY - 2 + std::round((NOTIFSIZE.y - iconH) / 2.0));
-            pango_cairo_show_layout(m_pCairo, layoutIcon);
+            pango_layout_set_text(layout, ICON.c_str(), -1);
+            pango_cairo_show_layout(m_pCairo, layout);
         }
 
         // draw text
         cairo_set_source_rgb(m_pCairo, 1.f, 1.f, 1.f);
         cairo_move_to(m_pCairo, MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC + NOTIF_LEFTBAR_SIZE + iconW + 2 * ICONPADFORNOTIF, offsetY - 2 + std::round((NOTIFSIZE.y - textH) / 2.0));
-        pango_cairo_show_layout(m_pCairo, layoutText);
+        pango_layout_set_text(layout, notif->text.c_str(), -1);
+        pango_cairo_show_layout(m_pCairo, layout);
 
         // adjust offset and move on
         offsetY += NOTIFSIZE.y + 10;
@@ -176,8 +176,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     }
 
     pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-    g_object_unref(layoutIcon);
+    g_object_unref(layout);
 
     // cleanup notifs
     std::erase_if(m_dNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });

@@ -1386,7 +1386,8 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
         return nullptr;
 
     // 0 -> history, 1 -> shared length
-    static auto PMETHOD = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
+    static auto PMETHOD          = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
     const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
@@ -1414,6 +1415,9 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
                 continue;
 
             if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
+
+            if (!*PMONITORFALLBACK && pWindow->m_iMonitorID != w->m_iMonitorID)
                 continue;
 
             const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -1503,6 +1507,9 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
                 continue;
 
             if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
+
+            if (!*PMONITORFALLBACK && pWindow->m_iMonitorID != w->m_iMonitorID)
                 continue;
 
             const auto DIST  = w->middle().distance(pWindow->middle());

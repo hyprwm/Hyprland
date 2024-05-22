@@ -1220,8 +1220,9 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {
-    static auto PFULLCYCLE = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
-    char        arg        = args[0];
+    static auto PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    char        arg              = args[0];
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -1230,7 +1231,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
     if (!PLASTWINDOW) {
-        tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
+        if (*PMONITORFALLBACK)
+            tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
+
         return;
     }
 
@@ -1246,7 +1249,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     Debug::log(LOG, "No window found in direction {}, looking for a monitor", arg);
 
-    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
+    if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return;
 
     static auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
@@ -1317,6 +1320,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
             moveActiveToWorkspaceSilent(PNEWMONITOR->activeWorkspace->getConfigName());
         else
             moveActiveToWorkspace(PNEWMONITOR->activeWorkspace->getConfigName());
+
+        return;
     }
 
     if (!isDirection(args)) {
@@ -1355,6 +1360,10 @@ void CKeybindManager::moveActiveTo(std::string args) {
             g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
         return;
     }
+
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    if (!*PMONITORFALLBACK)
+        return;
 
     // Otherwise, we always want to move to the next monitor in that direction
     const auto PMONITORTOCHANGETO = g_pCompositor->getMonitorInDirection(arg);

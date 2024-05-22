@@ -2099,14 +2099,16 @@ void CHyprOpenGLImpl::renderMirrored() {
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
     static auto           PSPLASHCOLOR = CConfigValue<Hyprlang::INT>("misc:col.splash");
     static auto           PSPLASHFONT  = CConfigValue<std::string>("misc:splash_font_family");
+    static auto           FALLBACKFONT = CConfigValue<std::string>("misc:font_family");
 
-    const auto            FONTSIZE = (int)(size.y / 76);
-    const auto            COLOR    = CColor(*PSPLASHCOLOR);
+    const auto            FONTFAMILY = *PSPLASHFONT != STRVAL_EMPTY ? *PSPLASHFONT : *FALLBACKFONT;
+    const auto            FONTSIZE   = (int)(size.y / 76);
+    const auto            COLOR      = CColor(*PSPLASHCOLOR);
 
     PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
     PangoFontDescription* pangoFD    = pango_font_description_new();
 
-    pango_font_description_set_family(pangoFD, (*PSPLASHFONT).c_str());
+    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
     pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);

@@ -46,17 +46,17 @@ pluginenv:
 installheaders:
 	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
+	# remove previous headers from hyprpm's dir
 	rm -fr ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
-	mkdir -p ${PREFIX}/include/hyprland/wlroots-hyprland
+	mkdir -p ${PREFIX}/include/hyprland/wlr
 	mkdir -p ${PREFIX}/share/pkgconfig
 
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cd subprojects/wlroots-hyprland/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../..
-	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlroots-hyprland && cd ../../../..
-	cp ./protocols/*.h ${PREFIX}/include/hyprland/protocols
-	cp ./protocols/*.hpp ${PREFIX}/include/hyprland/protocols
+	cd subprojects/wlroots-hyprland/include/wlr && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
+	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
+	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 

@@ -48,10 +48,8 @@ class CCompositor {
     wlr_allocator*            m_sWLRAllocator;
     wlr_compositor*           m_sWLRCompositor;
     wlr_subcompositor*        m_sWLRSubCompositor;
-    wlr_data_device_manager*  m_sWLRDataDevMgr;
     wlr_drm*                  m_sWRLDRM;
     wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
-    wlr_xdg_shell*            m_sWLRXDGShell;
     wlr_egl*                  m_sWLREGL;
     int                       m_iDRMFD;
     wlr_linux_dmabuf_v1*      m_sWLRLinuxDMABuf;
@@ -86,8 +84,6 @@ class CCompositor {
     WP<CMonitor>                              m_pLastMonitor;
 
     std::vector<PHLWINDOWREF>                 m_vWindowFocusHistory; // first element is the most recently focused.
-
-    SSeat                                     m_sSeat;
 
     bool                                      m_bReadyToProcess = false;
     bool                                      m_bSessionActive  = true;
@@ -132,7 +128,6 @@ class CCompositor {
     PHLWINDOW    getFirstWindowOnWorkspace(const int&);
     PHLWINDOW    getTopLeftWindowOnWorkspace(const int&);
     PHLWINDOW    getFullscreenWindowOnWorkspace(const int&);
-    bool         doesSeatAcceptInput(wlr_surface*);
     bool         isWindowActive(PHLWINDOW);
     void         changeWindowZOrder(PHLWINDOW, bool);
     void         cleanupFadingOut(const int& monid);
@@ -164,7 +159,7 @@ class CCompositor {
     void         closeWindow(PHLWINDOW);
     Vector2D     parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void         forceReportSizesToWindowsOnWorkspace(const int&);
-    PHLWORKSPACE createNewWorkspace(const int&, const int&, const std::string& name = ""); // will be deleted next frame if left empty and unfocused!
+    PHLWORKSPACE createNewWorkspace(const int&, const int&, const std::string& name = "", bool isEmtpy = true); // will be deleted next frame if left empty and unfocused!
     void         renameWorkspace(const int&, const std::string& name = "");
     void         setActiveMonitor(CMonitor*);
     bool         isWorkspaceSpecial(const int&);

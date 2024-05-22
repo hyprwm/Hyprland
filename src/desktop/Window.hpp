@@ -14,6 +14,8 @@
 #include "DesktopTypes.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+class CXDGSurfaceResource;
+
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
     IDLEINHIBIT_ALWAYS,
@@ -196,9 +198,12 @@ struct SInitialWorkspaceToken {
 
 class CWindow {
   public:
+    static PHLWINDOW create(SP<CXDGSurfaceResource>);
+    // xwl
     static PHLWINDOW create();
 
   private:
+    CWindow(SP<CXDGSurfaceResource> resource);
     CWindow();
 
   public:
@@ -233,9 +238,9 @@ class CWindow {
     } events;
 
     union {
-        wlr_xdg_surface*      xdg;
         wlr_xwayland_surface* xwayland;
     } m_uSurface;
+    WP<CXDGSurfaceResource> m_pXDGSurface;
 
     // this is the position and size of the "bounding box"
     Vector2D m_vPosition = Vector2D(0, 0);
@@ -261,7 +266,7 @@ class CWindow {
 
     // this is used for pseudotiling
     bool         m_bIsPseudotiled = false;
-    Vector2D     m_vPseudoSize    = Vector2D(0, 0);
+    Vector2D     m_vPseudoSize    = Vector2D(1280, 720);
 
     bool         m_bFirstMap           = false; // for layouts
     bool         m_bIsFloating         = false;
@@ -271,6 +276,7 @@ class CWindow {
     bool         m_bWasMaximized       = false;
     uint64_t     m_iMonitorID          = -1;
     std::string  m_szTitle             = "";
+    std::string  m_szClass             = "";
     std::string  m_szInitialTitle      = "";
     std::string  m_szInitialClass      = "";
     PHLWORKSPACE m_pWorkspace;
@@ -385,7 +391,7 @@ class CWindow {
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
-        return m_uSurface.xdg == rhs.m_uSurface.xdg && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
+        return m_pXDGSurface == rhs.m_pXDGSurface && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
             m_bFadingOut == rhs.m_bFadingOut;
     }
 
@@ -424,6 +430,7 @@ class CWindow {
     int                      workspaceID();
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);
+    int                      surfacesCount();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();
@@ -450,12 +457,30 @@ class CWindow {
     void                     switchWithWindowInGroup(PHLWINDOW pWindow);
     void                     setAnimationsToMove();
     void                     onWorkspaceAnimUpdate();
+    void                     onUpdateState();
+    void                     onUpdateMeta();
+    std::string              fetchTitle();
+    std::string              fetchClass();
+
+    // listeners
+    void onAck(uint32_t serial);
 
     //
     std::unordered_map<std::string, std::string> getEnv();
 
     //
     PHLWINDOWREF m_pSelf;
+
+    // make private once we move listeners to inside CWindow
+    struct {
+        CHyprSignalListener map;
+        CHyprSignalListener ack;
+        CHyprSignalListener unmap;
+        CHyprSignalListener commit;
+        CHyprSignalListener destroy;
+        CHyprSignalListener updateState;
+        CHyprSignalListener updateMetadata;
+    } listeners;
 
   private:
     // For hidden windows and stuff
@@ -520,7 +545,7 @@ struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
         if (formatMonitor)
             std::format_to(out, ", monitor: {}", w->m_iMonitorID);
         if (formatClass)
-            std::format_to(out, ", class: {}", g_pXWaylandManager->getAppIDClass(w));
+            std::format_to(out, ", class: {}", w->m_szClass);
         return std::format_to(out, "]");
     }
 };

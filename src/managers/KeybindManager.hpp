@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <deque>
+#include <set>
 #include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
@@ -13,20 +14,23 @@ class CPluginSystem;
 class IKeyboard;
 
 struct SKeybind {
-    std::string key          = "";
-    uint32_t    keycode      = 0;
-    bool        catchAll     = false;
-    uint32_t    modmask      = 0;
-    std::string handler      = "";
-    std::string arg          = "";
-    bool        locked       = false;
-    std::string submap       = "";
-    bool        release      = false;
-    bool        repeat       = false;
-    bool        mouse        = false;
-    bool        nonConsuming = false;
-    bool        transparent  = false;
-    bool        ignoreMods   = false;
+    std::string            key          = "";
+    std::set<xkb_keysym_t> sMkKeys      = {};
+    uint32_t               keycode      = 0;
+    bool                   catchAll     = false;
+    uint32_t               modmask      = 0;
+    std::set<xkb_keysym_t> sMkMods      = {};
+    std::string            handler      = "";
+    std::string            arg          = "";
+    bool                   locked       = false;
+    std::string            submap       = "";
+    bool                   release      = false;
+    bool                   repeat       = false;
+    bool                   mouse        = false;
+    bool                   nonConsuming = false;
+    bool                   transparent  = false;
+    bool                   ignoreMods   = false;
+    bool                   multiKey     = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -55,6 +59,12 @@ struct SParsedKey {
     std::string key      = "";
     uint32_t    keycode  = 0;
     bool        catchAll = false;
+};
+
+enum eMultiKeyCase {
+    MK_NO_MATCH = 0,
+    MK_PARTIAL_MATCH,
+    MK_FULL_MATCH
 };
 
 class CKeybindManager {
@@ -104,6 +114,11 @@ class CKeybindManager {
     CTimer                          m_tScrollTimer;
 
     bool                            handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
+
+    std::set<xkb_keysym_t>          m_sMkKeys = {};
+    std::set<xkb_keysym_t>          m_sMkMods = {};
+    eMultiKeyCase                   mkBindMatches(const SKeybind);
+    eMultiKeyCase                   mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
 
     bool                            handleInternalKeybinds(xkb_keysym_t);
     bool                            handleVT(xkb_keysym_t);

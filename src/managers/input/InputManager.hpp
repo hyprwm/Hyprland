@@ -112,12 +112,12 @@ class CInputManager {
     void               setTouchDeviceConfigs(SP<ITouch> dev = nullptr);
     void               setTabletConfigs();
 
-    void               updateDragIcon();
     void               updateCapabilities();
+    void               updateKeyboardsLeds(SP<IKeyboard>);
 
     void               setClickMode(eClickBehaviorMode);
     eClickBehaviorMode getClickMode();
-    void               processMouseRequest(wlr_seat_pointer_request_set_cursor_event* e);
+    void               processMouseRequest(std::any e);
 
     void               onTouchDown(ITouch::SDownEvent);
     void               onTouchUp(ITouch::SUpEvent);
@@ -141,8 +141,6 @@ class CInputManager {
 
     // for refocus to be forced
     PHLWINDOWREF                 m_pForcedFocus;
-
-    SDrag                        m_sDrag;
 
     std::vector<SP<IKeyboard>>   m_vKeyboards;
     std::vector<SP<IPointer>>    m_vPointers;
@@ -187,16 +185,17 @@ class CInputManager {
     void        releaseAllMouseButtons();
 
     // for some bugs in follow mouse 0
-    bool m_bLastFocusOnLS = false;
-
+    bool m_bLastFocusOnLS       = false;
     bool m_bLastFocusOnIMEPopup = false;
+
+    // for hard input e.g. clicks
+    bool m_bHardInput = false;
 
     // for hiding cursor on touch
     bool m_bLastInputTouch = false;
 
     // for tracking mouse refocus
     PHLWINDOWREF m_pLastMouseFocus;
-    wlr_surface* m_pLastMouseSurface = nullptr;
 
     //
     bool m_bEmptyFocusCursorSet = false;
@@ -208,6 +207,7 @@ class CInputManager {
         CHyprSignalListener newIdleInhibitor;
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
+        CHyprSignalListener setCursor;
     } m_sListeners;
 
     bool                 m_bCursorImageOverridden = false;

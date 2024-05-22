@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../managers/SeatManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
@@ -132,15 +133,16 @@ void CLayerSurface::onMap() {
 
     const bool GRABSFOCUS = layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
         // don't focus if constrained
-        (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained());
+        (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained());
 
     if (GRABSFOCUS) {
+        // TODO: use the new superb really very cool grab
+        g_pSeatManager->setGrab(nullptr);
         g_pInputManager->releaseAllMouseButtons();
         g_pCompositor->focusSurface(surface.wlr());
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, surface.wlr(), LOCAL.x, LOCAL.y);
-        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+        g_pSeatManager->setPointerFocus(surface.wlr(), LOCAL);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
     }
 
@@ -304,15 +306,14 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (layerSurface->current.interactivity && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
+    if (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
         && !keyboardExclusive && mapped) {
         g_pCompositor->focusSurface(layerSurface->surface);
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        wlr_seat_pointer_notify_enter(g_pCompositor->m_sSeat.seat, layerSurface->surface, LOCAL.x, LOCAL.y);
-        wlr_seat_pointer_notify_motion(g_pCompositor->m_sSeat.seat, 0, LOCAL.x, LOCAL.y);
+        g_pSeatManager->setPointerFocus(layerSurface->surface, LOCAL);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
-    } else if (!layerSurface->current.interactivity && (g_pCompositor->m_sSeat.mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
+    } else if (!layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
         g_pInputManager->refocus();
     }
 

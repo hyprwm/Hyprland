@@ -6,8 +6,11 @@
 #include "TokenManager.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../devices/IKeyboard.hpp"
+#include "../managers/SeatManager.hpp"
 
+#include <optional>
 #include <regex>
+#include <string>
 #include <tuple>
 
 #include <sys/ioctl.h>
@@ -386,8 +389,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         bool foundInPressedKeys = false;
         for (auto it = m_dPressedKeys.begin(); it != m_dPressedKeys.end();) {
             if (it->keycode == KEYCODE) {
-                if (it->submapAtPress == m_szCurrentSelectedSubmap)
-                    handleKeybinds(MODS, *it, false);
+                handleKeybinds(MODS, *it, false);
                 foundInPressedKeys = true;
                 suppressEvent      = !it->sent;
                 it                 = m_dPressedKeys.erase(it);
@@ -523,7 +525,7 @@ void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
 int repeatKeyHandler(void* data) {
     SKeybind** ppActiveKeybind = (SKeybind**)data;
 
-    if (!*ppActiveKeybind || g_pCompositor->m_sSeat.keyboard.expired())
+    if (!*ppActiveKeybind || g_pSeatManager->keyboard.expired())
         return 0;
 
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find((*ppActiveKeybind)->handler);
@@ -531,16 +533,53 @@ int repeatKeyHandler(void* data) {
     Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
     DISPATCHER->second((*ppActiveKeybind)->arg);
 
-    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pCompositor->m_sSeat.keyboard->repeatRate);
+    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->wlr()->repeat_info.rate);
 
     return 0;
+}
+
+eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
+    // Returns whether two sets of keysyms are equal, partially equal, or not
+    // matching. (Partially matching means that pressed is a subset of bound)
+
+    std::set<xkb_keysym_t> boundKeysNotPressed;
+    std::set<xkb_keysym_t> pressedKeysNotBound;
+
+    std::set_difference(keybindKeysyms.begin(), keybindKeysyms.end(), pressedKeysyms.begin(), pressedKeysyms.end(),
+                        std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
+    std::set_difference(pressedKeysyms.begin(), pressedKeysyms.end(), keybindKeysyms.begin(), keybindKeysyms.end(),
+                        std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
+
+    if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
+        return MK_FULL_MATCH;
+
+    if (boundKeysNotPressed.size() && pressedKeysNotBound.empty())
+        return MK_PARTIAL_MATCH;
+
+    return MK_NO_MATCH;
+}
+
+eMultiKeyCase CKeybindManager::mkBindMatches(const SKeybind keybind) {
+    if (mkKeysymSetMatches(keybind.sMkMods, m_sMkMods) != MK_FULL_MATCH)
+        return MK_NO_MATCH;
+
+    return mkKeysymSetMatches(keybind.sMkKeys, m_sMkKeys);
 }
 
 bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     bool found = false;
 
-    if (g_pCompositor->m_sSeat.exclusiveClient)
-        Debug::log(LOG, "Keybind handling only locked (inhibitor)");
+    if (pressed) {
+        if (keycodeToModifier(key.keycode))
+            m_sMkMods.insert(key.keysym);
+        else
+            m_sMkKeys.insert(key.keysym);
+    } else {
+        if (keycodeToModifier(key.keycode))
+            m_sMkMods.erase(key.keysym);
+        else
+            m_sMkKeys.erase(key.keysym);
+    }
 
     static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
 
@@ -559,18 +598,23 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
         if (!k.locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS &&
-            ((modmask != k.modmask && !k.ignoreMods) || (g_pCompositor->m_sSeat.exclusiveClient && !k.locked) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k.modmask && !k.ignoreMods) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
             continue;
 
-        if (!key.keyName.empty()) {
+        if (k.multiKey) {
+            switch (mkBindMatches(k)) {
+                case MK_NO_MATCH: continue;
+                case MK_PARTIAL_MATCH: found = true; continue;
+                case MK_FULL_MATCH: found = true;
+            }
+        } else if (!key.keyName.empty()) {
             if (key.keyName != k.key)
                 continue;
         } else if (k.keycode != 0) {
             if (key.keycode != k.keycode)
                 continue;
         } else if (k.catchAll) {
-            if (found)
+            if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
             // oMg such performance hit!!11!
@@ -654,7 +698,7 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             m_pActiveKeybind            = &k;
             m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybind);
 
-            const auto PACTIVEKEEB = g_pCompositor->m_sSeat.keyboard.lock();
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
             wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
         }
@@ -676,25 +720,29 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
         if (k.handler == "global" || k.transparent)
             continue; // can't be shadowed
 
-        const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-        const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
+        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH))
+            shadow = true;
+        else {
+            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-        for (auto& pk : m_dPressedKeys) {
-            if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
-                shadow = true;
+            for (auto& pk : m_dPressedKeys) {
+                if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
+                    shadow = true;
 
-                if (pk.keysym == doesntHave && doesntHave != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keysym == doesntHave && doesntHave != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
-            }
 
-            if (pk.keycode != 0 && pk.keycode == k.keycode) {
-                shadow = true;
+                if (pk.keycode != 0 && pk.keycode == k.keycode) {
+                    shadow = true;
 
-                if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
-                    shadow = false;
-                    break;
+                    if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
+                        shadow = false;
+                        break;
+                    }
                 }
             }
         }
@@ -1103,7 +1151,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
         pMonitor = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->setActiveMonitor(pMonitor);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         pMonitor   = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
@@ -1159,7 +1207,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
@@ -1172,8 +1220,9 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 void CKeybindManager::moveFocusTo(std::string args) {
-    static auto PFULLCYCLE = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
-    char        arg        = args[0];
+    static auto PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    char        arg              = args[0];
 
     if (!isDirection(args)) {
         Debug::log(ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", arg);
@@ -1182,7 +1231,9 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
     if (!PLASTWINDOW) {
-        tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
+        if (*PMONITORFALLBACK)
+            tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
+
         return;
     }
 
@@ -1198,7 +1249,7 @@ void CKeybindManager::moveFocusTo(std::string args) {
 
     Debug::log(LOG, "No window found in direction {}, looking for a monitor", arg);
 
-    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
+    if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg)))
         return;
 
     static auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
@@ -1269,6 +1320,8 @@ void CKeybindManager::moveActiveTo(std::string args) {
             moveActiveToWorkspaceSilent(PNEWMONITOR->activeWorkspace->getConfigName());
         else
             moveActiveToWorkspace(PNEWMONITOR->activeWorkspace->getConfigName());
+
+        return;
     }
 
     if (!isDirection(args)) {
@@ -1307,6 +1360,10 @@ void CKeybindManager::moveActiveTo(std::string args) {
             g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
         return;
     }
+
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    if (!*PMONITORFALLBACK)
+        return;
 
     // Otherwise, we always want to move to the next monitor in that direction
     const auto PMONITORTOCHANGETO = g_pCompositor->getMonitorInDirection(arg);
@@ -1902,46 +1959,42 @@ void CKeybindManager::pass(std::string regexp) {
         return;
     }
 
-    const auto KEYBOARD = wlr_seat_get_keyboard(g_pCompositor->m_sSeat.seat);
-
-    if (!KEYBOARD) {
+    if (!g_pSeatManager->keyboard) {
         Debug::log(ERR, "No kb in pass?");
         return;
     }
 
-    const auto XWTOXW       = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
-    const auto SL           = Vector2D(g_pCompositor->m_sSeat.seat->pointer_state.sx, g_pCompositor->m_sSeat.seat->pointer_state.sy);
-    uint32_t   keycodes[32] = {0};
+    const auto XWTOXW  = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
+    const auto LASTSRF = g_pCompositor->m_pLastFocus;
 
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_uLastCode != 0)
-            wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), keycodes, 0, &KEYBOARD->modifiers);
+            g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface.wlr());
         else
-            wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), 1, 1);
+            g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), {1, 1});
     }
 
-    wlr_keyboard_modifiers kbmods = {g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0};
-    wlr_seat_keyboard_notify_modifiers(g_pCompositor->m_sSeat.seat, &kbmods);
+    g_pSeatManager->sendKeyboardMods(g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0);
 
     if (g_pKeybindManager->m_iPassPressed == 1) {
         if (g_pKeybindManager->m_uLastCode != 0)
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
         else
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
     } else if (g_pKeybindManager->m_iPassPressed == 0)
         if (g_pKeybindManager->m_uLastCode != 0)
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         else
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
     else {
         // dynamic call of the dispatcher
         if (g_pKeybindManager->m_uLastCode != 0) {
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_PRESSED);
-            wlr_seat_keyboard_notify_key(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WLR_BUTTON_RELEASED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_PRESSED);
+            g_pSeatManager->sendKeyboardKey(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastCode - 8, WL_KEYBOARD_KEY_STATE_RELEASED);
         } else {
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
-            wlr_seat_pointer_notify_button(g_pCompositor->m_sSeat.seat, g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_PRESSED);
+            g_pSeatManager->sendPointerButton(g_pKeybindManager->m_uTimeLastMs, g_pKeybindManager->m_uLastMouseCode, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 
@@ -1949,22 +2002,24 @@ void CKeybindManager::pass(std::string regexp) {
         return;
 
     // Massive hack:
-    // this will make wlroots NOT send the leave event to XWayland apps, provided we are not on an XWayland window already.
+    // this will make g_pSeatManager NOT send the leave event to XWayland apps, provided we are not on an XWayland window already.
     // please kill me
     if (PWINDOW->m_bIsX11) {
         if (g_pKeybindManager->m_uLastCode != 0) {
-            g_pCompositor->m_sSeat.seat->keyboard_state.focused_client  = nullptr;
-            g_pCompositor->m_sSeat.seat->keyboard_state.focused_surface = nullptr;
+            g_pSeatManager->state.keyboardFocus = nullptr;
+            g_pSeatManager->state.keyboardFocusResource.reset();
         } else {
-            g_pCompositor->m_sSeat.seat->pointer_state.focused_client  = nullptr;
-            g_pCompositor->m_sSeat.seat->pointer_state.focused_surface = nullptr;
+            g_pSeatManager->state.pointerFocus = nullptr;
+            g_pSeatManager->state.pointerFocusResource.reset();
         }
     }
 
+    const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
+
     if (g_pKeybindManager->m_uLastCode != 0)
-        wlr_seat_keyboard_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), KEYBOARD->keycodes, KEYBOARD->num_keycodes, &KEYBOARD->modifiers);
+        g_pSeatManager->setKeyboardFocus(LASTSRF);
     else
-        wlr_seat_pointer_enter(g_pCompositor->m_sSeat.seat, PWINDOW->m_pWLSurface.wlr(), SL.x, SL.y);
+        g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), SL);
 }
 
 void CKeybindManager::layoutmsg(std::string msg) {

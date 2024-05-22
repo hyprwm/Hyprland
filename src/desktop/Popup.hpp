@@ -5,6 +5,8 @@
 #include "Subsurface.hpp"
 #include "../helpers/signal/Listener.hpp"
 
+class CXDGPopupResource;
+
 class CPopup {
   public:
     // dummy head nodes
@@ -12,7 +14,7 @@ class CPopup {
     CPopup(PHLLS pOwner);
 
     // real nodes
-    CPopup(wlr_xdg_popup* popup, CPopup* pOwner);
+    CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner);
 
     ~CPopup();
 
@@ -21,7 +23,7 @@ class CPopup {
 
     Vector2D size();
 
-    void     onNewPopup(wlr_xdg_popup* popup);
+    void     onNewPopup(SP<CXDGPopupResource> popup);
     void     onDestroy();
     void     onMap();
     void     onUnmap();
@@ -45,31 +47,29 @@ class CPopup {
     PHLLSREF     m_pLayerOwner;
 
     // T2 owners
-    CPopup*        m_pParent = nullptr;
+    CPopup*               m_pParent = nullptr;
 
-    wlr_xdg_popup* m_pWLR = nullptr;
+    WP<CXDGPopupResource> m_pResource;
 
-    Vector2D       m_vLastSize = {};
-    Vector2D       m_vLastPos  = {};
+    Vector2D              m_vLastSize = {};
+    Vector2D              m_vLastPos  = {};
 
-    bool           m_bRequestedReposition = false;
+    bool                  m_bRequestedReposition = false;
 
-    bool           m_bInert = false;
+    bool                  m_bInert = false;
 
     //
     std::vector<std::unique_ptr<CPopup>> m_vChildren;
     std::unique_ptr<CSubsurface>         m_pSubsurfaceHead;
 
-    // signals
-    DYNLISTENER(newPopup);
-    DYNLISTENER(destroyPopup);
-    DYNLISTENER(mapPopup);
-    DYNLISTENER(unmapPopup);
-    DYNLISTENER(commitPopup);
-    DYNLISTENER(repositionPopup);
-
     struct {
         CHyprSignalListener newPopup;
+        CHyprSignalListener destroy;
+        CHyprSignalListener map;
+        CHyprSignalListener unmap;
+        CHyprSignalListener commit;
+        CHyprSignalListener dismissed;
+        CHyprSignalListener reposition;
     } listeners;
 
     void        initAllSignals();

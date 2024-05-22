@@ -18,9 +18,6 @@ namespace Events {
     // Layer events
     LISTENER(newLayerSurface);
 
-    // Surface XDG (window)
-    LISTENER(newXDGToplevel);
-
     // Window events
     DYNLISTENFUNC(commitWindow);
     DYNLISTENFUNC(mapWindow);
@@ -46,7 +43,6 @@ namespace Events {
     LISTENER(newVirtPtr);
 
     // Various
-    LISTENER(requestMouse);
     LISTENER(requestSetSel);
     LISTENER(requestSetPrimarySel);
 
@@ -62,16 +58,6 @@ namespace Events {
     // XWayland
     LISTENER(readyXWayland);
     LISTENER(surfaceXWayland);
-
-    // Drag & Drop
-    LISTENER(requestDrag);
-    LISTENER(startDrag);
-    DYNLISTENFUNC(destroyDrag);
-
-    DYNLISTENFUNC(mapDragIcon);
-    DYNLISTENFUNC(unmapDragIcon);
-    DYNLISTENFUNC(destroyDragIcon);
-    DYNLISTENFUNC(commitDragIcon);
 
     // Renderer destroy
     LISTENER(RendererDestroy);

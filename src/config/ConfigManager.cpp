@@ -6,6 +6,7 @@
 #include "helpers/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
+#include <cstdint>
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -18,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <ranges>
+#include <xkbcommon/xkbcommon.h>
 
 extern "C" char**             environ;
 
@@ -322,7 +324,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:col.splash", Hyprlang::INT{0x55ffffff});
-    m_pConfig->addConfigValue("misc:splash_font_family", {"Sans"});
+    m_pConfig->addConfigValue("misc:splash_font_family", {STRVAL_EMPTY});
+    m_pConfig->addConfigValue("misc:font_family", {"Sans"});
     m_pConfig->addConfigValue("misc:force_default_wallpaper", Hyprlang::INT{-1});
     m_pConfig->addConfigValue("misc:vfr", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:vrr", Hyprlang::INT{0});
@@ -346,11 +349,12 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:background_color", Hyprlang::INT{0xff111111});
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("group:groupbar:font_family", {"Sans"});
+    m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});
     m_pConfig->addConfigValue("group:groupbar:gradients", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:height", Hyprlang::INT{14});
@@ -358,6 +362,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:render_titles", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:scrolling", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
+    m_pConfig->addConfigValue("group:groupbar:stacked", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("debug:int", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});
@@ -370,6 +375,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:manual_crash", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:suppress_errors", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:error_limit", Hyprlang::INT{5});
+    m_pConfig->addConfigValue("debug:error_position", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:watchdog_timeout", Hyprlang::INT{5});
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
@@ -489,6 +495,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("binds:ignore_group_lock", Hyprlang::INT{0});
     m_pConfig->addConfigValue("binds:movefocus_cycles_fullscreen", Hyprlang::INT{1});
     m_pConfig->addConfigValue("binds:disable_keybind_grabbing", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("binds:window_direction_monitor_fallback", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("gestures:workspace_swipe", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
@@ -1040,10 +1047,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     if (!valid(pWindow))
         return std::vector<SWindowRule>();
 
+    // if the window is unmapped, don't process exec rules yet.
+    shadowExec = shadowExec || !pWindow->m_bIsMapped;
+
     std::vector<SWindowRule> returns;
 
-    std::string              title      = g_pXWaylandManager->getTitle(pWindow);
-    std::string              appidclass = g_pXWaylandManager->getAppIDClass(pWindow);
+    std::string              title      = pWindow->m_szTitle;
+    std::string              appidclass = pWindow->m_szClass;
 
     Debug::log(LOG, "Searching for matching rules for {} (title: {})", appidclass, title);
 
@@ -1903,6 +1913,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       nonConsuming = false;
     bool       transparent  = false;
     bool       ignoreMods   = false;
+    bool       multiKey     = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -1920,6 +1931,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             transparent = true;
         } else if (arg == 'i') {
             ignoreMods = true;
+        } else if (arg == 's') {
+            multiKey = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1938,10 +1951,21 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
         return "bind: too many args";
 
+    std::set<xkb_keysym_t> KEYSYMS;
+    std::set<xkb_keysym_t> MODS;
+
+    if (multiKey) {
+        for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+            KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+        for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
+            MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+        }
+    }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto MODSTR = ARGS[0];
 
-    const auto KEY = ARGS[1];
+    const auto KEY = multiKey ? "" : ARGS[1];
 
     auto       HANDLER = ARGS[2];
 
@@ -1965,7 +1989,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
-    if (KEY != "") {
+    if ((KEY != "") || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
         if (parsedKey.catchAll && m_szCurrentSubmap == "") {
@@ -1973,8 +1997,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, parsedKey.keycode, parsedKey.catchAll, MOD, HANDLER, COMMAND, locked, m_szCurrentSubmap, release, repeat, mouse,
-                                               nonConsuming, transparent, ignoreMods});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
+                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

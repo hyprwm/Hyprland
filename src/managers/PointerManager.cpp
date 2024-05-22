@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
+#include "SeatManager.hpp"
 #include <wlr/interfaces/wlr_output.h>
 #include <wlr/render/interface.h>
 #include <wlr/render/wlr_renderer.h>
@@ -168,11 +169,13 @@ SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(SP<CMonitor>
 }
 
 void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, const float& scale) {
+    damageIfSoftware();
     if (buf == currentCursorImage.pBuffer) {
         if (hotspot != currentCursorImage.hotspot || scale != currentCursorImage.scale) {
             currentCursorImage.hotspot = hotspot;
             currentCursorImage.scale   = scale;
             updateCursorBackend();
+            damageIfSoftware();
         }
 
         return;
@@ -192,14 +195,18 @@ void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, 
     currentCursorImage.scale   = scale;
 
     updateCursorBackend();
+    damageIfSoftware();
 }
 
 void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot) {
+    damageIfSoftware();
+
     if (surf == currentCursorImage.surface) {
         if (hotspot != currentCursorImage.hotspot || (surf && surf->wlr() ? surf->wlr()->current.scale : 1.F) != currentCursorImage.scale) {
             currentCursorImage.hotspot = hotspot;
             currentCursorImage.scale   = surf && surf->wlr() ? surf->wlr()->current.scale : 1.F;
             updateCursorBackend();
+            damageIfSoftware();
         }
 
         return;
@@ -216,14 +223,16 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
         currentCursorImage.hyprListener_commitSurface.initCallback(
             &surf->wlr()->events.commit,
             [this](void* owner, void* data) {
+                damageIfSoftware();
                 currentCursorImage.size  = {currentCursorImage.surface->wlr()->current.buffer_width, currentCursorImage.surface->wlr()->current.buffer_height};
                 currentCursorImage.scale = currentCursorImage.surface && currentCursorImage.surface->wlr() ? currentCursorImage.surface->wlr()->current.scale : 1.F;
                 recheckEnteredOutputs();
                 updateCursorBackend();
+                damageIfSoftware();
             },
             nullptr, "CPointerManager");
 
-        if (surf->wlr()->current.buffer) {
+        if (wlr_surface_has_buffer(surf->wlr())) {
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             wlr_surface_send_frame_done(surf->wlr(), &now);
@@ -234,6 +243,7 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
 
     recheckEnteredOutputs();
     updateCursorBackend();
+    damageIfSoftware();
 }
 
 void CPointerManager::recheckEnteredOutputs() {
@@ -275,6 +285,8 @@ void CPointerManager::recheckEnteredOutputs() {
 }
 
 void CPointerManager::resetCursorImage(bool apply) {
+    damageIfSoftware();
+
     if (currentCursorImage.surface) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             wlr_surface_send_leave(currentCursorImage.surface->wlr(), m->output);
@@ -308,6 +320,11 @@ void CPointerManager::resetCursorImage(bool apply) {
         return;
 
     for (auto& ms : monitorStates) {
+        if (!ms->monitor || !ms->monitor->m_bEnabled || !ms->monitor->dpmsStatus) {
+            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
+
         if (ms->cursorFrontBuffer) {
             if (ms->monitor->output->impl->set_cursor)
                 ms->monitor->output->impl->set_cursor(ms->monitor->output, nullptr, 0, 0);
@@ -322,6 +339,11 @@ void CPointerManager::updateCursorBackend() {
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
+
+        if (!m->m_bEnabled || !m->dpmsStatus) {
+            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
 
         if (state->softwareLocks > 0 || *PNOHW || !attemptHardwareCursor(state)) {
             Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
@@ -774,7 +796,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_pointer_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendPointerFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {
@@ -865,7 +887,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     });
 
     listener->frame = touch->touchEvents.frame.registerListener([this] (std::any e) {
-        wlr_seat_touch_notify_frame(g_pCompositor->m_sSeat.seat);
+        g_pSeatManager->sendTouchFrame();
     });
     // clang-format on
 
@@ -939,4 +961,8 @@ void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
 
         return;
     }
+}
+
+Vector2D CPointerManager::cursorSizeLogical() {
+    return currentCursorImage.size / currentCursorImage.scale;
 }

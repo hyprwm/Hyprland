@@ -6,6 +6,7 @@
 #include "../config/ConfigValue.hpp"
 #include <any>
 #include "../managers/TokenManager.hpp"
+#include "../protocols/XDGShell.hpp"
 
 PHLWINDOW CWindow::create() {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow);
@@ -25,6 +26,39 @@ PHLWINDOW CWindow::create() {
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
 
     return pWindow;
+}
+
+PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
+    PHLWINDOW pWindow = SP<CWindow>(new CWindow(resource));
+
+    pWindow->m_pSelf           = pWindow;
+    resource->toplevel->window = pWindow;
+
+    pWindow->m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_vRealSize.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fBorderFadeAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    pWindow->m_fBorderAngleAnimationProgress.create(g_pConfigManager->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    pWindow->m_fAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    pWindow->m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+
+    pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
+    pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
+
+    pWindow->m_pWLSurface.assign(pWindow->m_pXDGSurface->surface, pWindow);
+
+    return pWindow;
+}
+
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_pXDGSurface(resource) {
+    listeners.map            = m_pXDGSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
+    listeners.ack            = m_pXDGSurface->events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
+    listeners.unmap          = m_pXDGSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
+    listeners.destroy        = m_pXDGSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
+    listeners.commit         = m_pXDGSurface->events.commit.registerListener([this](std::any d) { Events::listener_commitWindow(this, nullptr); });
+    listeners.updateState    = m_pXDGSurface->toplevel->events.stateChanged.registerListener([this](std::any d) { onUpdateState(); });
+    listeners.updateMetadata = m_pXDGSurface->toplevel->events.metadataChanged.registerListener([this](std::any d) { onUpdateMeta(); });
 }
 
 CWindow::CWindow() {
@@ -53,9 +87,9 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
-                {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+            return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
+                    {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
     }
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
@@ -74,21 +108,24 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
         maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
-    if (m_pWLSurface.exists() && !m_bIsX11) {
+    if (m_pWLSurface.exists() && !m_bIsX11 && m_pPopupHead) {
         CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
-        wlr_xdg_surface_for_each_popup_surface(
-            m_uSurface.xdg,
-            [](wlr_surface* surf, int sx, int sy, void* data) {
+        m_pPopupHead->breadthfirst(
+            [](CPopup* popup, void* data) {
+                if (!popup->m_sWLSurface.wlr())
+                    return;
+
                 CBox* pSurfaceExtents = (CBox*)data;
-                if (sx < pSurfaceExtents->x)
-                    pSurfaceExtents->x = sx;
-                if (sy < pSurfaceExtents->y)
-                    pSurfaceExtents->y = sy;
-                if (sx + surf->current.width > pSurfaceExtents->width)
-                    pSurfaceExtents->width = sx + surf->current.width - pSurfaceExtents->x;
-                if (sy + surf->current.height > pSurfaceExtents->height)
-                    pSurfaceExtents->height = sy + surf->current.height - pSurfaceExtents->y;
+                CBox  surf            = CBox{popup->coordsRelativeToParent(), popup->size()};
+                if (surf.x < pSurfaceExtents->x)
+                    pSurfaceExtents->x = surf.x;
+                if (surf.y < pSurfaceExtents->y)
+                    pSurfaceExtents->y = surf.y;
+                if (surf.x + surf.w > pSurfaceExtents->width)
+                    pSurfaceExtents->width = surf.x + surf.w - pSurfaceExtents->x;
+                if (surf.y + surf.h > pSurfaceExtents->height)
+                    pSurfaceExtents->height = surf.y + surf.h - pSurfaceExtents->y;
             },
             &surfaceExtents);
 
@@ -110,8 +147,8 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
 
 CBox CWindow::getFullWindowBoundingBox() {
     if (m_sAdditionalConfigData.dimAround) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+            return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
     auto maxExtents = getFullWindowExtents();
@@ -258,10 +295,10 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
 pid_t CWindow::getPID() {
     pid_t PID = -1;
     if (!m_bIsX11) {
-        if (!m_uSurface.xdg)
+        if (!m_pXDGSurface || !m_pXDGSurface->owner /* happens at unmap */)
             return -1;
 
-        wl_client_get_credentials(wl_resource_get_client(m_uSurface.xdg->resource), &PID, nullptr, nullptr);
+        wl_client_get_credentials(m_pXDGSurface->owner->client(), &PID, nullptr, nullptr);
     } else {
         if (!m_uSurface.xwayland)
             return -1;
@@ -511,8 +548,8 @@ void CWindow::onMap() {
 
     g_pCompositor->m_vWindowFocusHistory.push_back(m_pSelf);
 
-    hyprListener_unmapWindow.initCallback(m_bIsX11 ? &m_uSurface.xwayland->surface->events.unmap : &m_uSurface.xdg->surface->events.unmap, &Events::listener_unmapWindow, this,
-                                          "CWindow");
+    if (m_bIsX11)
+        hyprListener_unmapWindow.initCallback(&m_uSurface.xwayland->surface->events.unmap, &Events::listener_unmapWindow, this, "CWindow");
 
     m_vReportedSize = m_vPendingReportedSize;
     m_bAnimatingIn  = true;
@@ -793,26 +830,14 @@ bool CWindow::isInCurvedCorner(double x, double y) {
     return false;
 }
 
-void findExtensionForVector2D(wlr_surface* surface, int x, int y, void* data) {
-    const auto DATA = (SExtensionFindingData*)data;
-
-    CBox       box = {DATA->origin.x + x, DATA->origin.y + y, surface->current.width, surface->current.height};
-
-    if (box.containsPoint(DATA->vec))
-        *DATA->found = surface;
-}
-
 // checks if the wayland window has a popup at pos
 bool CWindow::hasPopupAt(const Vector2D& pos) {
     if (m_bIsX11)
         return false;
 
-    wlr_surface*          resultSurf = nullptr;
-    Vector2D              origin     = m_vRealPosition.value();
-    SExtensionFindingData data       = {origin, pos, &resultSurf};
-    wlr_xdg_surface_for_each_popup_surface(m_uSurface.xdg, findExtensionForVector2D, &data);
+    CPopup* popup = m_pPopupHead->at(pos);
 
-    return resultSurf;
+    return popup && popup->m_sWLSurface.wlr();
 }
 
 void CWindow::applyGroupRules() {
@@ -1096,11 +1121,11 @@ bool CWindow::opaque() {
     if (m_bIsX11)
         return !m_uSurface.xwayland->has_alpha;
 
-    if (m_uSurface.xdg->surface->opaque)
+    if (m_pXDGSurface->surface->opaque)
         return true;
 
-    const auto EXTENTS = pixman_region32_extents(&m_uSurface.xdg->surface->opaque_region);
-    if (EXTENTS->x2 - EXTENTS->x1 >= m_uSurface.xdg->surface->current.buffer_width && EXTENTS->y2 - EXTENTS->y1 >= m_uSurface.xdg->surface->current.buffer_height)
+    const auto EXTENTS = pixman_region32_extents(&m_pXDGSurface->surface->opaque_region);
+    if (EXTENTS->x2 - EXTENTS->x1 >= m_pXDGSurface->surface->current.buffer_width && EXTENTS->y2 - EXTENTS->y1 >= m_pXDGSurface->surface->current.buffer_height)
         return true;
 
     return false;
@@ -1162,10 +1187,10 @@ void CWindow::setSuspended(bool suspend) {
     if (suspend == m_bSuspended)
         return;
 
-    if (m_bIsX11)
+    if (m_bIsX11 || !m_pXDGSurface->toplevel)
         return;
 
-    wlr_xdg_toplevel_set_suspended(m_uSurface.xdg->toplevel, suspend);
+    m_pXDGSurface->toplevel->setSuspeneded(suspend);
     m_bSuspended = suspend;
 }
 
@@ -1222,11 +1247,20 @@ void CWindow::onWorkspaceAnimUpdate() {
 
 int CWindow::popupsCount() {
     if (m_bIsX11)
+        return 0;
+
+    int no = -1;
+    m_pPopupHead->breadthfirst([](CPopup* p, void* d) { *((int*)d) += 1; }, &no);
+    return no;
+}
+
+int CWindow::surfacesCount() {
+    if (m_bIsX11)
         return 1;
 
     int no = 0;
-    wlr_xdg_surface_for_each_popup_surface(
-        m_uSurface.xdg, [](wlr_surface* s, int x, int y, void* data) { *(int*)data += 1; }, &no);
+    wlr_surface_for_each_surface(
+        m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
     return no;
 }
 
@@ -1278,6 +1312,9 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 }
 
 void CWindow::activate(bool force) {
+    if (g_pCompositor->m_pLastWindow == m_pSelf)
+        return;
+
     static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
 
     g_pEventManager->postEvent(SHyprIPCEvent{"urgent", std::format("{:x}", (uintptr_t)this)});
@@ -1294,4 +1331,99 @@ void CWindow::activate(bool force) {
 
     g_pCompositor->focusWindow(m_pSelf.lock());
     g_pCompositor->warpCursorTo(middle());
+}
+
+void CWindow::onUpdateState() {
+    if (!m_pXDGSurface)
+        return;
+
+    if (m_pXDGSurface->toplevel->state.requestsFullscreen && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN)) {
+        bool fs = m_pXDGSurface->toplevel->state.requestsFullscreen.value();
+
+        if (fs != m_bIsFullscreen && m_pXDGSurface->mapped)
+            g_pCompositor->setWindowFullscreen(m_pSelf.lock(), fs, FULLSCREEN_FULL);
+
+        if (!m_pXDGSurface->mapped)
+            m_bWantsInitialFullscreen = fs;
+    }
+
+    if (m_pXDGSurface->toplevel->state.requestsMaximize && !(m_eSuppressedEvents & SUPPRESS_MAXIMIZE)) {
+        bool fs = m_pXDGSurface->toplevel->state.requestsMaximize.value();
+
+        if (fs != m_bIsFullscreen && m_pXDGSurface->mapped)
+            g_pCompositor->setWindowFullscreen(m_pSelf.lock(), fs, FULLSCREEN_MAXIMIZED);
+    }
+}
+
+void CWindow::onUpdateMeta() {
+    const auto NEWTITLE = fetchTitle();
+
+    if (m_szTitle != NEWTITLE) {
+        m_szTitle = NEWTITLE;
+        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)this)});
+        EMIT_HOOK_EVENT("windowTitle", m_pSelf.lock());
+
+        if (m_pSelf == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
+            EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
+        }
+
+        updateDynamicRules();
+        g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
+        updateToplevel();
+
+        Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
+    }
+
+    const auto NEWCLASS = fetchClass();
+    if (m_szClass != NEWCLASS) {
+        m_szClass = NEWCLASS;
+
+        if (m_pSelf == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", m_szClass + "," + m_szTitle});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", std::format("{:x}", (uintptr_t)this)});
+            EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
+        }
+
+        updateDynamicRules();
+        g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
+        updateToplevel();
+
+        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
+    }
+}
+
+std::string CWindow::fetchTitle() {
+    if (!m_bIsX11) {
+        if (m_pXDGSurface && m_pXDGSurface->toplevel)
+            return m_pXDGSurface->toplevel->state.title;
+    } else {
+        if (m_uSurface.xwayland && m_uSurface.xwayland->title)
+            return m_uSurface.xwayland->title;
+    }
+
+    return "";
+}
+
+std::string CWindow::fetchClass() {
+    if (!m_bIsX11) {
+        if (m_pXDGSurface && m_pXDGSurface->toplevel)
+            return m_pXDGSurface->toplevel->state.appid;
+    } else {
+        if (m_uSurface.xwayland && m_uSurface.xwayland->_class)
+            return m_uSurface.xwayland->_class;
+    }
+
+    return "";
+}
+
+void CWindow::onAck(uint32_t serial) {
+    const auto SERIAL = std::find_if(m_vPendingSizeAcks.rbegin(), m_vPendingSizeAcks.rend(), [serial](const auto& e) { return e.first == serial; });
+
+    if (SERIAL == m_vPendingSizeAcks.rend())
+        return;
+
+    m_pPendingSizeAck = *SERIAL;
+    std::erase_if(m_vPendingSizeAcks, [&](const auto& el) { return el.first <= SERIAL->first; });
 }

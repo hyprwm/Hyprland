@@ -324,7 +324,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:col.splash", Hyprlang::INT{0x55ffffff});
-    m_pConfig->addConfigValue("misc:splash_font_family", {"Sans"});
+    m_pConfig->addConfigValue("misc:splash_font_family", {STRVAL_EMPTY});
+    m_pConfig->addConfigValue("misc:font_family", {"Sans"});
     m_pConfig->addConfigValue("misc:force_default_wallpaper", Hyprlang::INT{-1});
     m_pConfig->addConfigValue("misc:vfr", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:vrr", Hyprlang::INT{0});
@@ -353,7 +354,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("group:groupbar:font_family", {"Sans"});
+    m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});
     m_pConfig->addConfigValue("group:groupbar:gradients", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:height", Hyprlang::INT{14});

@@ -209,11 +209,13 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto   CAIRO        = cairo_create(CAIROSURFACE);
 
+    static auto  FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
     static auto  PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
     static auto  PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto  PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
 
-    const CColor COLOR = CColor(*PTEXTCOLOR);
+    const CColor COLOR      = CColor(*PTEXTCOLOR);
+    const auto   FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
     // clear the pixmap
     cairo_save(CAIRO);
@@ -225,7 +227,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     PangoLayout* layout = pango_cairo_create_layout(CAIRO);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
-    PangoFontDescription* fontDesc = pango_font_description_from_string((*PTITLEFONTFAMILY).c_str());
+    PangoFontDescription* fontDesc = pango_font_description_new();
+    pango_font_description_set_family_static(fontDesc, FONTFAMILY.c_str());
     pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE * monitorScale);
     pango_layout_set_font_description(layout, fontDesc);
     pango_font_description_free(fontDesc);

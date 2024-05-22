@@ -2058,7 +2058,7 @@ void CKeybindManager::sendshortcut(std::string args) {
 
         // create a unique string for the keypair
         // casting wlr_keyboard* to void* for formatting
-        const auto KEYPAIRSTRING = std::format("{:p}{}", static_cast<void*>(KB->wlr()), KEY);
+        const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
         // check if KEYPAIRSTRING is in m_mKeyToCodeCache
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
@@ -2162,12 +2162,10 @@ void CKeybindManager::sendshortcut(std::string args) {
 
         const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
 
-        if (!LASTWINDOW) {
-            if (!isMouse)
-                g_pSeatManager->setKeyboardFocus(LASTWINDOW);
-            else
-                g_pSeatManager->setPointerFocus(LASTWINDOW, SL);
-        }
+        if (!isMouse)
+            g_pSeatManager->setKeyboardFocus(LASTWINDOW);
+        else
+            g_pSeatManager->setPointerFocus(LASTWINDOW, SL);
     }
 }
 

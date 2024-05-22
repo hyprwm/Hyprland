@@ -1071,6 +1071,14 @@ void CKeybindManager::changeworkspace(std::string args) {
 
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
+    if (BISWORKSPACECURRENT) {
+        if (*PALLOWWORKSPACECYCLES)
+            pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
+        else if (!EXPLICITPREVIOUS && !*PBACKANDFORTH)
+            pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
+    } else
+        pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
+
     PMONITORWORKSPACEOWNER->changeWorkspace(pWorkspaceToChangeTo, false, true);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
@@ -1082,14 +1090,6 @@ void CKeybindManager::changeworkspace(std::string args) {
         }
         g_pCompositor->warpCursorTo(middle);
     }
-
-    if (BISWORKSPACECURRENT) {
-        if (*PALLOWWORKSPACECYCLES)
-            pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
-        else if (!EXPLICITPREVIOUS && !*PBACKANDFORTH)
-            pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
-    } else
-        pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
 
     if (!g_pInputManager->m_bLastFocusOnLS) {
         if (g_pCompositor->m_pLastFocus)
@@ -1163,13 +1163,13 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     else if (POLDWS->m_bIsSpecialWorkspace)
         g_pCompositor->getMonitorFromID(POLDWS->m_iMonitorID)->setSpecialWorkspace(nullptr);
 
+    if (*PALLOWWORKSPACECYCLES)
+        pWorkspace->rememberPrevWorkspace(POLDWS);
+
     pMonitor->changeWorkspace(pWorkspace);
 
     g_pCompositor->focusWindow(PWINDOW);
     g_pCompositor->warpCursorTo(PWINDOW->middle());
-
-    if (*PALLOWWORKSPACECYCLES)
-        pWorkspace->rememberPrevWorkspace(POLDWS);
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {

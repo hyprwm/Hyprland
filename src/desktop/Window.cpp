@@ -87,9 +87,9 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_sAdditionalConfigData.dimAround) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
-                {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+            return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
+                    {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
     }
 
     SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
@@ -147,8 +147,8 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
 
 CBox CWindow::getFullWindowBoundingBox() {
     if (m_sAdditionalConfigData.dimAround) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+            return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
     auto maxExtents = getFullWindowExtents();

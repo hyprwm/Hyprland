@@ -1,18 +1,22 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "Subsurface.hpp"
-#include "../helpers/AnimatedVariable.hpp"
-#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include <set>
+#include <string>
+#include <string_view>
+
 #include "../config/ConfigDataValues.hpp"
+#include "../defines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/Vector2D.hpp"
-#include "WLSurface.hpp"
-#include "Popup.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "DesktopTypes.hpp"
-#include "../helpers/signal/Signal.hpp"
+#include "Popup.hpp"
+#include "Subsurface.hpp"
+#include "WLSurface.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -183,6 +187,7 @@ struct SWindowRule {
     std::string szClass;
     std::string szInitialTitle;
     std::string szInitialClass;
+    std::string szTag;
     int         bX11          = -1; // -1 means "ANY"
     int         bFloating     = -1;
     int         bFullscreen   = -1;
@@ -410,6 +415,7 @@ class CWindow {
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);
     int                      surfacesCount();
+    void                     applyTag(std::string_view tag);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

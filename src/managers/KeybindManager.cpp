@@ -11,6 +11,7 @@
 #include <optional>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #include <sys/ioctl.h>
@@ -1930,32 +1931,18 @@ void CKeybindManager::focusWindow(std::string regexp) {
 }
 
 void CKeybindManager::tagWindow(std::string args) {
-    PHLWINDOW   PWINDOW = nullptr;
-    std::string TAG;
+    PHLWINDOW PWINDOW = nullptr;
+    CVarList  vars{args, 0, 's'};
 
-    if (args.contains(',')) {
-        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
-        TAG     = args.substr(0, args.find_last_of(','));
-    } else {
+    if (vars.size() == 1)
         PWINDOW = g_pCompositor->m_pLastWindow.lock();
-        TAG     = args;
-    }
-
-    if (!PWINDOW)
+    else if (vars.size() == 2)
+        PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    else
         return;
 
-    bool isSet = true;
-
-    if (TAG.starts_with("-")) {
-        isSet = false;
-        TAG   = TAG.substr(1);
-    } else if (TAG.starts_with("+"))
-        TAG = TAG.substr(1);
-
-    if (isSet)
-        PWINDOW->m_tags.emplace(TAG);
-    else
-        PWINDOW->m_tags.erase(TAG);
+    if (PWINDOW)
+        PWINDOW->applyTag(vars[0]);
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

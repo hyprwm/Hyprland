@@ -1,10 +1,12 @@
+#include <any>
+#include <string_view>
+#include <algorithm>
 #include "Window.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../render/decorations/CHyprBorderDecoration.hpp"
 #include "../config/ConfigValue.hpp"
-#include <any>
 #include "../managers/TokenManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../xwayland/XWayland.hpp"
@@ -619,6 +621,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceTearing = true;
     } else if (r.szRule == "nearestneighbor") {
         m_sAdditionalConfigData.nearestNeighbor = true;
+    } else if (r.szRule.starts_with("tag")) {
+        CVarList vars{r.szRule, 0, 's'};
+
+        if (vars.size() == 2 && vars[0] == "tag")
+            applyTag(vars[1]);
+        else
+            Debug::log(ERR, "Rule tag invalid: {}", r.szRule);
     } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -848,6 +857,21 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     CPopup* popup = m_pPopupHead->at(pos);
 
     return popup && popup->m_sWLSurface.wlr();
+}
+
+void CWindow::applyTag(std::string_view tag) {
+    bool isSet = true;
+
+    if (tag.starts_with("-")) {
+        isSet = false;
+        tag   = tag.substr(1);
+    } else if (tag.starts_with("+"))
+        tag = tag.substr(1);
+
+    if (isSet)
+        m_tags.emplace(tag);
+    else
+        m_tags.erase(std::string(tag));
 }
 
 void CWindow::applyGroupRules() {
@@ -1269,8 +1293,7 @@ int CWindow::surfacesCount() {
         return 1;
 
     int no = 0;
-    wlr_surface_for_each_surface(
-        m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
+    wlr_surface_for_each_surface(m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
     return no;
 }
 

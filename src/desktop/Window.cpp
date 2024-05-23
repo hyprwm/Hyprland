@@ -862,11 +862,13 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
 void CWindow::applyTag(std::string_view tag) {
     bool isSet = true;
 
-    if (tag.starts_with("-")) {
+    if (tag.starts_with("-")) { // unset
         isSet = false;
         tag   = tag.substr(1);
-    } else if (tag.starts_with("+"))
+    } else if (tag.starts_with("+")) // set
         tag = tag.substr(1);
+    else
+        isSet = !m_tags.contains(std::string(tag)); // toggle
 
     if (isSet)
         m_tags.emplace(tag);

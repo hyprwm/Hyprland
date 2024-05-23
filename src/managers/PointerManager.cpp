@@ -696,8 +696,11 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
                 }
             }
 
-            if (!TAB->boundBox.empty())
-                mappedArea = TAB->boundBox.translate(currentMonitor->vecPosition);
+            mappedArea.translate(TAB->boundBox.pos());
+            if (!TAB->boundBox.empty()) {
+                mappedArea.w = TAB->boundBox.w;
+                mappedArea.h = TAB->boundBox.h;
+            }
             break;
         }
         case HID_TYPE_TOUCH: {

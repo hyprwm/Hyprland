@@ -308,7 +308,8 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         LOGM(LOG, "disableHead on {}", PMONITOR->szName);
 
         PMONITOR->activeMonitorRule.disabled = true;
-        g_pConfigManager->replaceMonitorRule(PMONITOR->activeMonitorRule);
+        if (!g_pConfigManager->replaceMonitorRule(PMONITOR->activeMonitorRule))
+            g_pConfigManager->appendMonitorRule(PMONITOR->activeMonitorRule);
         g_pHyprRenderer->applyMonitorRule(PMONITOR, &PMONITOR->activeMonitorRule, false);
     });
 

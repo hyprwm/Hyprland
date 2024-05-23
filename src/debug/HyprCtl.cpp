@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <typeindex>
+#include <numeric>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"

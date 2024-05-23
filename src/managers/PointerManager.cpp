@@ -131,7 +131,11 @@ CPointerManager::CPointerManager() {
         PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
         PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
-            [this](void* owner, std::any data) { std::erase_if(monitorStates, [](const auto& other) { return other->monitor.expired(); }); }, nullptr);
+            [this](void* owner, std::any data) {
+                if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)
+                    std::erase_if(monitorStates, [](const auto& other) { return other->monitor.expired(); });
+            },
+            nullptr);
     });
 }
 

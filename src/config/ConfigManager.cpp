@@ -1264,6 +1264,18 @@ void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
     m_dMonitorRules.emplace_back(r);
 }
 
+bool CConfigManager::replaceMonitorRule(const SMonitorRule& newrule) {
+    // Looks for an existing monitor rule (compared by name).
+    // If the rule exists, it is replaced with the input rule.
+    for (auto& r : m_dMonitorRules) {
+        if (r.name == newrule.name) {
+            r = newrule;
+            return true;
+        }
+    }
+    return false;
+}
+
 void CConfigManager::performMonitorReload() {
 
     bool overAgain = false;

@@ -87,6 +87,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["cyclenext"]                      = circleNext;
     m_mDispatchers["focuswindowbyclass"]             = focusWindow;
     m_mDispatchers["focuswindow"]                    = focusWindow;
+    m_mDispatchers["tagwindow"]                      = tagWindow;
     m_mDispatchers["submap"]                         = setSubmap;
     m_mDispatchers["pass"]                           = pass;
     m_mDispatchers["sendshortcut"]                   = sendshortcut;
@@ -1926,6 +1927,35 @@ void CKeybindManager::focusWindow(std::string regexp) {
         g_pCompositor->focusWindow(PWINDOW);
 
     g_pCompositor->warpCursorTo(PWINDOW->middle());
+}
+
+void CKeybindManager::tagWindow(std::string args) {
+    PHLWINDOW   PWINDOW = nullptr;
+    std::string TAG;
+
+    if (args.contains(',')) {
+        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        TAG     = args.substr(0, args.find_last_of(','));
+    } else {
+        PWINDOW = g_pCompositor->m_pLastWindow.lock();
+        TAG     = args;
+    }
+
+    if (!PWINDOW)
+        return;
+
+    bool isSet = true;
+
+    if (TAG.starts_with("-")) {
+        isSet = false;
+        TAG   = TAG.substr(1);
+    } else if (TAG.starts_with("+"))
+        TAG = TAG.substr(1);
+
+    if (isSet)
+        PWINDOW->m_tags.emplace(TAG);
+    else
+        PWINDOW->m_tags.erase(TAG);
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

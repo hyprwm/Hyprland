@@ -365,6 +365,9 @@ class CWindow {
     // stores the currently matched window rules
     std::vector<SWindowRule> m_vMatchedRules;
 
+    // window tags
+    std::set<std::string> m_tags;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
         return m_pXDGSurface == rhs.m_pXDGSurface && m_pXWaylandSurface == rhs.m_pXWaylandSurface && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&

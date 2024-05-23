@@ -131,10 +131,9 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 continue;
 
             result += std::format(
-                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
-                "workspace: {} ({})\n\treserved: {} "
-                "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
                 m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
                 (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspaceID(),
                 (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
@@ -145,6 +144,16 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     }
 
     return result;
+}
+
+static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+    const bool isJson = format == eHyprCtlOutputFormat::FORMAT_JSON;
+
+    if (isJson)
+        return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(),
+                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("\"{}\", \"{}\"", a, b); });
+    else
+        return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
@@ -205,6 +214,7 @@ static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "fullscreenMode": {},
     "fakeFullscreen": {},
     "grouped": [{}],
+    "tags": [{}],
     "swallowing": "0x{:x}",
     "focusHistoryID": {}
 }},)#",
@@ -214,18 +224,18 @@ static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
             ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0), w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format),
-            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     } else {
         return std::format("Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
                            "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
                            "{}\n\txwayland: {}\n\tpinned: "
-                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
                            (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
                            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
                            (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass,
                            w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
                            (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
-                           (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+                           getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     }
 }
 

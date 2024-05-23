@@ -883,6 +883,8 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#elif defined(__arm__) || defined(__aarch64__)
+    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif

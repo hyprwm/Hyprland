@@ -152,7 +152,7 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
     if (isJson)
         return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(),
-                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("\"{}\", \"{}\"", a, b); });
+                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
     else
         return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }

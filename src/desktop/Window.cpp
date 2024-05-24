@@ -869,19 +869,18 @@ void CWindow::applyTag(const std::string& tag, bool dynamic) {
 
     std::string tag_real = dynamic ? tag + "*" : tag;
 
-    bool        tagged  = isTagged(tag_real, true);
     bool        changed = true;
     bool        setTag  = true;
 
     if (tag_real.starts_with("-")) { // unset
         tag_real = tag_real.substr(1);
-        changed  = tagged;
+        changed  = isTagged(tag_real, true);
         setTag   = false;
     } else if (tag_real.starts_with("+")) { // set
         tag_real = tag_real.substr(1);
-        changed  = !tagged;
+        changed  = !isTagged(tag_real, true);
     } else // toggle if without prefix
-        setTag = !tagged;
+        setTag = !isTagged(tag_real, true);
 
     if (!changed)
         return;

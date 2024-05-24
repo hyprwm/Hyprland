@@ -3,7 +3,6 @@
 #include <deque>
 #include <set>
 #include <string>
-#include <string_view>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../defines.hpp"
@@ -415,7 +414,8 @@ class CWindow {
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);
     int                      surfacesCount();
-    void                     applyTag(std::string_view tag);
+    bool                     isTagged(const std::string& tag, bool strict = false);
+    void                     applyTag(const std::string& tag, bool dynamic = false);
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

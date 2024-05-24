@@ -622,10 +622,10 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
     } else if (r.szRule == "nearestneighbor") {
         m_sAdditionalConfigData.nearestNeighbor = true;
     } else if (r.szRule.starts_with("tag")) {
-        CVarList vars{r.szRule, 0, 's'};
+        CVarList vars{r.szRule, 0, 's', true};
 
         if (vars.size() == 2 && vars[0] == "tag")
-            applyTag(vars[1]);
+            applyTag(vars[1], true);
         else
             Debug::log(ERR, "Rule tag invalid: {}", r.szRule);
     } else if (r.szRule.starts_with("rounding")) {
@@ -809,6 +809,8 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.nearestNeighbor = false;
     m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
+    std::erase_if(m_tags, [](const auto& tag) { return tag.ends_with("*"); });
+
     m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
     for (auto& r : m_vMatchedRules) {
         applyDynamicRule(r);
@@ -859,21 +861,26 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     return popup && popup->m_sWLSurface.wlr();
 }
 
-void CWindow::applyTag(std::string_view tag) {
-    bool isSet = true;
+bool CWindow::isTagged(const std::string& tag, bool strict) {
+    return m_tags.contains(tag) || (!strict && m_tags.contains(tag + "*"));
+}
+
+void CWindow::applyTag(const std::string& tag, bool dynamic) {
+    bool        isSet    = true;
+    std::string tag_real = dynamic ? tag + "*" : tag;
 
     if (tag.starts_with("-")) { // unset
-        isSet = false;
-        tag   = tag.substr(1);
+        isSet    = false;
+        tag_real = tag_real.substr(1);
     } else if (tag.starts_with("+")) // set
-        tag = tag.substr(1);
-    else
-        isSet = !m_tags.contains(std::string(tag)); // toggle
+        tag_real = tag_real.substr(1);
+    else // toggle if without prefix
+        isSet = !isTagged(tag_real, true);
 
     if (isSet)
-        m_tags.emplace(tag);
+        m_tags.emplace(tag_real);
     else
-        m_tags.erase(std::string(tag));
+        m_tags.erase(tag_real);
 }
 
 void CWindow::applyGroupRules() {

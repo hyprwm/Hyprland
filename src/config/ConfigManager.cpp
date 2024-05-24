@@ -995,7 +995,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == "") {
+        if (r.name.empty()) {
             return r;
         }
     }
@@ -1088,7 +1088,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                 if (rule.szValue.starts_with("tag:")) {
                     const auto tag = rule.szValue.substr(4);
 
-                    if (!pWindow->m_tags.contains(tag))
+                    if (!pWindow->isTagged(tag))
                         continue;
                 } else if (rule.szValue.starts_with("title:")) {
                     std::regex RULECHECK(rule.szValue.substr(6));
@@ -1107,33 +1107,33 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
             }
         } else {
             try {
-                if (rule.szTag != "") {
-                    if (!pWindow->m_tags.contains(rule.szTag))
+                if (!rule.szTag.empty()) {
+                    if (!pWindow->isTagged(rule.szTag))
                         continue;
                 }
 
-                if (rule.szClass != "") {
+                if (!rule.szClass.empty()) {
                     std::regex RULECHECK(rule.szClass);
 
                     if (!std::regex_search(appidclass, RULECHECK))
                         continue;
                 }
 
-                if (rule.szTitle != "") {
+                if (!rule.szTitle.empty()) {
                     std::regex RULECHECK(rule.szTitle);
 
                     if (!std::regex_search(title, RULECHECK))
                         continue;
                 }
 
-                if (rule.szInitialTitle != "") {
+                if (!rule.szInitialTitle.empty()) {
                     std::regex RULECHECK(rule.szInitialTitle);
 
                     if (!std::regex_search(pWindow->m_szInitialTitle, RULECHECK))
                         continue;
                 }
 
-                if (rule.szInitialClass != "") {
+                if (!rule.szInitialClass.empty()) {
                     std::regex RULECHECK(rule.szInitialClass);
 
                     if (!std::regex_search(pWindow->m_szInitialClass, RULECHECK))
@@ -1706,7 +1706,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         newrule.resolution = Vector2D(-1, -2);
     } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
         newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
-        newrule.refreshRate = newrule.drmMode.vrefresh / 1000;
+        newrule.refreshRate = float(newrule.drmMode.vrefresh) / 1000;
     } else {
 
         if (!ARGS[1].contains("x")) {
@@ -2033,7 +2033,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if ((KEY != "") || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
-        if (parsedKey.catchAll && m_szCurrentSubmap == "") {
+        if (parsedKey.catchAll && m_szCurrentSubmap.empty()) {
             Debug::log(ERR, "Catchall not allowed outside of submap!");
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
@@ -2083,7 +2083,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "")
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
     if (RULE == "unset") {
@@ -2110,7 +2110,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "")
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
     if (RULE == "unset") {

@@ -1932,7 +1932,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
 
 void CKeybindManager::tagWindow(std::string args) {
     PHLWINDOW PWINDOW = nullptr;
-    CVarList  vars{args, 0, 's'};
+    CVarList  vars{args, 0, 's', true};
 
     if (vars.size() == 1)
         PWINDOW = g_pCompositor->m_pLastWindow.lock();

@@ -1296,9 +1296,12 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
         needle += 512;
     }
 
+    if (needle <= 1)
+        return {};
+
     std::replace(buffer.begin(), buffer.end() - 1, '\0', '\n');
 
-    CVarList envs(std::string{buffer.data(), needle - 1}, 0, '\n', true);
+    CVarList envs(std::string{buffer.data(), buffer.size() - 1}, 0, '\n', true);
 
     for (auto& e : envs) {
         if (!e.contains('='))

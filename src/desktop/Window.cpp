@@ -1334,7 +1334,8 @@ int CWindow::surfacesCount() {
         return 1;
 
     int no = 0;
-    wlr_surface_for_each_surface(m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
+    wlr_surface_for_each_surface(
+        m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
     return no;
 }
 

@@ -2666,6 +2666,7 @@ void CCompositor::arrangeMonitors() {
                 maxXOffsetLeft = newPosition.x;
                 break;
             case eAutoDirs::DIR_AUTO_RIGHT:
+            case eAutoDirs::DIR_AUTO_NONE:
                 newPosition.x = maxXOffsetRight;
                 maxXOffsetRight += m->vecSize.x;
                 break;

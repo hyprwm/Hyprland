@@ -866,21 +866,53 @@ bool CWindow::isTagged(const std::string& tag, bool strict) {
 }
 
 void CWindow::applyTag(const std::string& tag, bool dynamic) {
-    bool        isSet    = true;
+
     std::string tag_real = dynamic ? tag + "*" : tag;
 
-    if (tag.starts_with("-")) { // unset
-        isSet    = false;
-        tag_real = tag_real.substr(1);
-    } else if (tag.starts_with("+")) // set
-        tag_real = tag_real.substr(1);
-    else // toggle if without prefix
-        isSet = !isTagged(tag_real, true);
+    bool        tagged  = isTagged(tag_real, true);
+    bool        changed = true;
+    bool        setTag  = true;
 
-    if (isSet)
+    if (tag_real.starts_with("-")) { // unset
+        tag_real = tag_real.substr(1);
+        changed  = tagged;
+        setTag   = false;
+    } else if (tag_real.starts_with("+")) { // set
+        tag_real = tag_real.substr(1);
+        changed  = !tagged;
+    } else // toggle if without prefix
+        setTag = !tagged;
+
+    if (!changed)
+        return;
+
+    if (setTag)
         m_tags.emplace(tag_real);
     else
         m_tags.erase(tag_real);
+
+    // re run tag rules after update tag
+    queueScanForTagMatch();
+}
+
+void CWindow::queueScanForTagMatch() {
+    // TODO: assume single thread for window operation
+    if (!m_tagScanSource)
+        m_tagScanSource = wl_event_loop_add_idle(
+            g_pCompositor->m_sWLEventLoop,
+            [](void* data) {
+                auto w = static_cast<CWindow*>(data);
+
+                w->m_vMatchedRules = g_pConfigManager->getMatchingRules(w->m_pSelf.lock());
+                for (auto& r : w->m_vMatchedRules)
+                    if ((r.v2 && !r.szTag.empty() && w->isTagged(r.szTag)) || (!r.v2 && r.szValue.starts_with("tag:") && w->isTagged(r.szValue.substr(4))))
+                        w->applyDynamicRule(r);
+
+                // NOTE: if tag from tag, then the nested tag's rescan will be ignored
+                wl_event_source_remove(w->m_tagScanSource);
+                w->m_tagScanSource = nullptr;
+            },
+            this);
 }
 
 void CWindow::applyGroupRules() {

@@ -371,6 +371,7 @@ class CWindow {
 
     // window tags
     std::set<std::string> m_tags;
+    wl_event_source*      m_tagScanSource = nullptr;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
@@ -414,8 +415,10 @@ class CWindow {
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);
     int                      surfacesCount();
+
     bool                     isTagged(const std::string& tag, bool strict = false);
     void                     applyTag(const std::string& tag, bool dynamic = false);
+    void                     queueScanForTagMatch();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

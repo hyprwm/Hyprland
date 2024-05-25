@@ -5,6 +5,11 @@
 #include <cstdint>
 #include "../../helpers/signal/Signal.hpp"
 
+enum eDataSourceType {
+    DATA_SOURCE_TYPE_WAYLAND = 0,
+    DATA_SOURCE_TYPE_X11,
+};
+
 class IDataSource {
   public:
     IDataSource() {}
@@ -19,6 +24,7 @@ class IDataSource {
     virtual bool                     used();
     virtual void                     markUsed();
     virtual void                     error(uint32_t code, const std::string& msg) = 0;
+    virtual eDataSourceType          type();
 
     struct {
         CSignal destroy;

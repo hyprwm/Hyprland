@@ -498,6 +498,8 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
         PROTO::data->setSelection(source);
         PROTO::dataWlr->setSelection(source, false);
     }
+
+    events.setSelection.emit();
 }
 
 void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
@@ -521,6 +523,8 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
         PROTO::primarySelection->setSelection(source);
         PROTO::dataWlr->setSelection(source, true);
     }
+
+    events.setPrimarySelection.emit();
 }
 
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {

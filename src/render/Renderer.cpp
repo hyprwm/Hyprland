@@ -192,14 +192,10 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         g_pHyprOpenGL->blend(true);
 
     if (RDATA->surface && surface == RDATA->surface) {
-        if (wlr_xwayland_surface_try_from_wlr_surface(surface) && !wlr_xwayland_surface_try_from_wlr_surface(surface)->has_alpha && ALPHA == 1.f) {
+        if (RDATA->blur)
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
+        else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, true);
-        } else {
-            if (RDATA->blur)
-                g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
-            else
-                g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, true);
-        }
     } else {
         if (RDATA->blur && RDATA->popup)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, true, RDATA->fadeAlpha);

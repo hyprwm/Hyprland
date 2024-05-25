@@ -315,6 +315,7 @@ protocolNew("stable/tablet" "tablet-v2" false)
 protocolNew("stable/presentation-time" "presentation-time" false)
 protocolNew("stable/xdg-shell" "xdg-shell" false)
 protocolNew("unstable/primary-selection" "primary-selection-unstable-v1" false)
+protocolNew("staging/xwayland-shell" "xwayland-shell-v1" false)
 
 protocolWayland()
 

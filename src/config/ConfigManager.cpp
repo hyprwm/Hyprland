@@ -635,7 +635,7 @@ std::string CConfigManager::getMainConfigPath() {
 
 const std::string CConfigManager::getConfigString() {
     std::string configString;
-    std::string line;
+    std::string currFileContent;
 
     for (auto path : this->configPaths) {
         std::ifstream configFile(path.c_str());
@@ -646,9 +646,8 @@ const std::string CConfigManager::getConfigString() {
             continue;
         }
         configString += "Read Succeeded\n";
-        while (std::getline(configFile, line)) {
-            configString.append(line + "\n");
-        }
+        currFileContent.assign(std::istreambuf_iterator<char>(configFile), std::istreambuf_iterator<char>());
+        configString.append(currFileContent);
     }
     return configString;
 }

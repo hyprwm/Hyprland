@@ -647,7 +647,7 @@ const std::string CConfigManager::getConfigString() {
         }
         configString += "Read Succeeded\n";
         while (std::getline(configFile, line)) {
-            configString.append(line);
+            configString.append(line + "\n");
         }
     }
     return configString;

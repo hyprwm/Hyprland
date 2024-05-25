@@ -898,11 +898,11 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
         result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
     }
 
-        if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
-            result += "\n======Config-Start======\n";
-            result += g_pConfigManager->getConfigString();
-            result += "\n======Config-End========\n";
-        }
+    if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+        result += "\n======Config-Start======\n";
+        result += g_pConfigManager->getConfigString();
+        result += "\n======Config-End========\n";
+    }
 
     return result;
 }

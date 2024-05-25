@@ -148,13 +148,13 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
 }
 
 static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
-    const bool isJson = format == eHyprCtlOutputFormat::FORMAT_JSON;
+    const auto tags = w->m_tags.getTags();
 
-    if (isJson)
-        return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(),
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+        return std::accumulate(tags.begin(), tags.end(), std::string(),
                                [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
     else
-        return std::accumulate(w->m_tags.begin(), w->m_tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
+        return std::accumulate(tags.begin(), tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {

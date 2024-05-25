@@ -1,7 +1,6 @@
 #pragma once
 
 #include <deque>
-#include <set>
 #include <string>
 
 #include "../config/ConfigDataValues.hpp"
@@ -9,6 +8,7 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/Vector2D.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../helpers/TagKeeper.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../render/decorations/IHyprWindowDecoration.hpp"
@@ -370,8 +370,7 @@ class CWindow {
     std::vector<SWindowRule> m_vMatchedRules;
 
     // window tags
-    std::set<std::string> m_tags;
-    wl_event_source*      m_tagScanSource = nullptr;
+    TagKeeper m_tags;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {
@@ -415,10 +414,6 @@ class CWindow {
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);
     int                      surfacesCount();
-
-    bool                     isTagged(const std::string& tag, bool strict = false);
-    void                     applyTag(const std::string& tag, bool dynamic = false);
-    void                     queueScanForTagMatch();
 
     int                      getRealBorderSize();
     void                     updateSpecialRenderData();

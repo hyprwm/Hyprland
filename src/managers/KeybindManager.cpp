@@ -1,18 +1,16 @@
-#include "KeybindManager.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
-#include "debug/Log.hpp"
-#include "helpers/VarList.hpp"
 #include "../config/ConfigValue.hpp"
-#include "TokenManager.hpp"
-#include "../protocols/ShortcutsInhibit.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/ShortcutsInhibit.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "KeybindManager.hpp"
+#include "TokenManager.hpp"
+#include "debug/Log.hpp"
+#include "helpers/VarList.hpp"
 
 #include <optional>
-#include <regex>
 #include <string>
 #include <string_view>
-#include <tuple>
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -1941,8 +1939,10 @@ void CKeybindManager::tagWindow(std::string args) {
     else
         return;
 
-    if (PWINDOW)
-        PWINDOW->applyTag(vars[0]);
+    if (PWINDOW && PWINDOW->m_tags.applyTag(vars[0])) {
+        PWINDOW->updateDynamicRules();
+        g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW->m_pSelf.lock());
+    }
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

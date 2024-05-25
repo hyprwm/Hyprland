@@ -625,9 +625,9 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         CVarList vars{r.szRule, 0, 's', true};
 
         if (vars.size() == 2 && vars[0] == "tag")
-            applyTag(vars[1], true);
+            m_tags.applyTag(vars[1], true);
         else
-            Debug::log(ERR, "Rule tag invalid: {}", r.szRule);
+            Debug::log(ERR, "Tag rule invalid: {}", r.szRule);
     } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -809,7 +809,7 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.nearestNeighbor = false;
     m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
 
-    std::erase_if(m_tags, [](const auto& tag) { return tag.ends_with("*"); });
+    m_tags.removeDynamicTags();
 
     m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
     for (auto& r : m_vMatchedRules) {
@@ -859,59 +859,6 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     CPopup* popup = m_pPopupHead->at(pos);
 
     return popup && popup->m_sWLSurface.wlr();
-}
-
-bool CWindow::isTagged(const std::string& tag, bool strict) {
-    return m_tags.contains(tag) || (!strict && m_tags.contains(tag + "*"));
-}
-
-void CWindow::applyTag(const std::string& tag, bool dynamic) {
-
-    std::string tag_real = dynamic ? tag + "*" : tag;
-
-    bool        changed = true;
-    bool        setTag  = true;
-
-    if (tag_real.starts_with("-")) { // unset
-        tag_real = tag_real.substr(1);
-        changed  = isTagged(tag_real, true);
-        setTag   = false;
-    } else if (tag_real.starts_with("+")) { // set
-        tag_real = tag_real.substr(1);
-        changed  = !isTagged(tag_real, true);
-    } else // toggle if without prefix
-        setTag = !isTagged(tag_real, true);
-
-    if (!changed)
-        return;
-
-    if (setTag)
-        m_tags.emplace(tag_real);
-    else
-        m_tags.erase(tag_real);
-
-    // re run tag rules after update tag
-    queueScanForTagMatch();
-}
-
-void CWindow::queueScanForTagMatch() {
-    // TODO: assume single thread for window operation
-    if (!m_tagScanSource)
-        m_tagScanSource = wl_event_loop_add_idle(
-            g_pCompositor->m_sWLEventLoop,
-            [](void* data) {
-                auto w = static_cast<CWindow*>(data);
-
-                w->m_vMatchedRules = g_pConfigManager->getMatchingRules(w->m_pSelf.lock());
-                for (auto& r : w->m_vMatchedRules)
-                    if ((r.v2 && !r.szTag.empty() && w->isTagged(r.szTag)) || (!r.v2 && r.szValue.starts_with("tag:") && w->isTagged(r.szValue.substr(4))))
-                        w->applyDynamicRule(r);
-
-                // NOTE: if tag from tag, then the nested tag's rescan will be ignored
-                wl_event_source_remove(w->m_tagScanSource);
-                w->m_tagScanSource = nullptr;
-            },
-            this);
 }
 
 void CWindow::applyGroupRules() {
@@ -1434,6 +1381,7 @@ void CWindow::onUpdateState() {
 
 void CWindow::onUpdateMeta() {
     const auto NEWTITLE = fetchTitle();
+    bool       doUpdate = false;
 
     if (m_szTitle != NEWTITLE) {
         m_szTitle = NEWTITLE;
@@ -1446,11 +1394,8 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
-        updateDynamicRules();
-        g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
-        updateToplevel();
-
         Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
+        doUpdate = true;
     }
 
     const auto NEWCLASS = fetchClass();
@@ -1463,11 +1408,14 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
+        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
+        doUpdate = true;
+    }
+
+    if (doUpdate) {
         updateDynamicRules();
         g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
         updateToplevel();
-
-        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
     }
 }
 

@@ -1081,16 +1081,16 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     bool hasFloating   = pWindow->m_bIsFloating;
     bool hasFullscreen = pWindow->m_bIsFullscreen;
 
+    // local tags for dynamic tag rule match
+    auto tags = pWindow->m_tags;
+
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
-                if (rule.szValue.starts_with("tag:")) {
-                    const auto tag = rule.szValue.substr(4);
-
-                    if (!pWindow->isTagged(tag))
-                        continue;
-                } else if (rule.szValue.starts_with("title:")) {
+                if (rule.szValue.starts_with("tag:") && !tags.isTagged(rule.szValue.substr(4)))
+                    continue;
+                else if (rule.szValue.starts_with("title:")) {
                     std::regex RULECHECK(rule.szValue.substr(6));
 
                     if (!std::regex_search(title, RULECHECK))
@@ -1107,10 +1107,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
             }
         } else {
             try {
-                if (!rule.szTag.empty()) {
-                    if (!pWindow->isTagged(rule.szTag))
-                        continue;
-                }
+                if (!rule.szTag.empty() && !tags.isTagged(rule.szTag))
+                    continue;
 
                 if (!rule.szClass.empty()) {
                     std::regex RULECHECK(rule.szClass);
@@ -1201,6 +1199,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
         Debug::log(LOG, "Window rule {} -> {} matched {}", rule.szRule, rule.szValue, pWindow);
 
         returns.push_back(rule);
+
+        // apply tag with local tags
+        if (rule.szRule.starts_with("tag")) {
+            CVarList vars{rule.szRule, 0, 's', true};
+            if (vars.size() == 2 && vars[0] == "tag")
+                tags.applyTag(vars[1]);
+        }
 
         if (dynamic)
             continue;
@@ -2063,19 +2068,19 @@ bool windowRuleValid(const std::string& RULE) {
         "keepaspectratio", "maximize",       "nearestneighbor", "noanim",          "noblur",     "noborder",    "nodim",      "nofocus",
         "noinitialfocus",  "nomaxsize",      "noshadow",        "opaque",          "pin",        "stayfocused", "tile",       "windowdance",
     };
-    static const auto rules_prefix = std::vector<std::string>{
+    static const auto rulesPrefix = std::vector<std::string>{
         "animation", "bordercolor", "bordersize", "center",   "group", "idleinhibit",   "maxsize", "minsize",   "monitor", "move",
         "opacity",   "plugin:",     "pseudo",     "rounding", "size",  "suppressevent", "tag",     "workspace", "xray",
     };
 
-    return rules.contains(RULE) || std::any_of(rules_prefix.begin(), rules_prefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
+    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    static const auto rules        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
-    static const auto rules_prefix = std::vector<std::string>{"ignorealpha", "ignorezero", "xray", "animation"};
+    static const auto rules       = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
+    static const auto rulesPrefix = std::vector<std::string>{"ignorealpha", "ignorezero", "xray", "animation"};
 
-    return rules.contains(RULE) || std::any_of(rules_prefix.begin(), rules_prefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
+    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {

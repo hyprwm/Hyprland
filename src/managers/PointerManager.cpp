@@ -574,7 +574,7 @@ CBox CPointerManager::getCursorBoxLogicalForMonitor(SP<CMonitor> pMonitor) {
 }
 
 CBox CPointerManager::getCursorBoxGlobal() {
-    return CBox{pointerPos, currentCursorImage.size / currentCursorImage.scale}.translate(-currentCursorImage.hotspot / currentCursorImage.scale);
+    return CBox{pointerPos, currentCursorImage.size / currentCursorImage.scale}.translate(-currentCursorImage.hotspot);
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {

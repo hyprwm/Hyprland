@@ -1204,7 +1204,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
         if (rule.szRule.starts_with("tag")) {
             CVarList vars{rule.szRule, 0, 's', true};
             if (vars.size() == 2 && vars[0] == "tag")
-                tags.applyTag(vars[1]);
+                tags.applyTag(vars[1], true);
         }
 
         if (dynamic)

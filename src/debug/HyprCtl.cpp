@@ -23,6 +23,7 @@
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
+#include "config/ConfigManager.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -897,6 +898,12 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
         result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
     }
 
+    if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+        result += "\n======Config-Start======\n";
+        result += g_pConfigManager->getConfigString();
+        result += "\n======Config-End========\n";
+    }
+
     return result;
 }
 
@@ -1640,6 +1647,8 @@ std::string CHyprCtl::getReply(std::string request) {
                 reloadAll = true;
             else if (c == 'a')
                 m_sCurrentRequestParams.all = true;
+            else if (c == 'c')
+                m_sCurrentRequestParams.sysInfoConfig = true;
         }
 
         if (sepIndex < request.size())

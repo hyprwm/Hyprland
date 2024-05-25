@@ -12,8 +12,12 @@ body:
   - type: textarea
     id: ver
     attributes:
-      label: Hyprland Version
-      description: "Paste the output of `hyprctl systeminfo` here."
+      label: System Info and Version
+      description: |
+        Paste the output of `hyprctl systeminfo -c` here (If you are on a 
+        version that shows you help menu, omit the `-c` and attach config files
+        to the issue). If you have configs outside of the main config shown 
+        here, please attach.
       value: "<details>
         <summary>System/Version info</summary>
 

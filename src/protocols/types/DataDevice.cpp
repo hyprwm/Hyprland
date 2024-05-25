@@ -15,3 +15,7 @@ bool IDataSource::used() {
 void IDataSource::markUsed() {
     wasUsed = true;
 }
+
+eDataSourceType IDataSource::type() {
+    return DATA_SOURCE_TYPE_WAYLAND;
+}

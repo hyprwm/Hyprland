@@ -5,6 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -111,10 +112,10 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if (pWindow->m_vRealSize.goal().x <= 5 || pWindow->m_vRealSize.goal().y <= 5)
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
 
-        if (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect) {
+        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
 
-            if (pWindow->m_uSurface.xwayland->x != 0 && pWindow->m_uSurface.xwayland->y != 0)
-                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords({pWindow->m_uSurface.xwayland->x, pWindow->m_uSurface.xwayland->y});
+            if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
+                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
             else
                 pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goal().x) / 2.f,
                                                     PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goal().y) / 2.f);
@@ -161,7 +162,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
 
-    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
+    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2)) {
         pWindow->m_vRealPosition.warp();
         pWindow->m_vRealSize.warp();
     }

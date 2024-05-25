@@ -63,6 +63,7 @@ new_protocols = [
   [wl_protocol_dir, 'stable/presentation-time/presentation-time.xml'],
   [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
   [wl_protocol_dir, 'unstable/primary-selection/primary-selection-unstable-v1.xml'],
+  [wl_protocol_dir, 'staging/xwayland-shell/xwayland-shell-v1.xml'],
 ]
 
 wl_protos_src = []

@@ -633,6 +633,25 @@ std::string CConfigManager::getMainConfigPath() {
     return getConfigDir() + "/hypr/" + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
 }
 
+const std::string CConfigManager::getConfigString() {
+    std::string configString;
+    std::string currFileContent;
+
+    for (auto path : configPaths) {
+        std::ifstream configFile(path);
+        configString += ("\n\nConfig File: " + path + ": ");
+        if (!configFile.is_open()) {
+            Debug::log(LOG, "Config file not readable/found!");
+            configString += "Read Failed\n";
+            continue;
+        }
+        configString += "Read Succeeded\n";
+        currFileContent.assign(std::istreambuf_iterator<char>(configFile), std::istreambuf_iterator<char>());
+        configString.append(currFileContent);
+    }
+    return configString;
+}
+
 std::string CConfigManager::getErrors() {
     return m_szConfigErrors;
 }

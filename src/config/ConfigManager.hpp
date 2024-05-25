@@ -103,6 +103,7 @@ class CConfigManager {
     void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getConfigDir();
     static std::string                                              getMainConfigPath();
+    const std::string                                               getConfigString();
 
     SMonitorRule                                                    getMonitorRuleFor(const CMonitor&);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);

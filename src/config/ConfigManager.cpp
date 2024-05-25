@@ -638,7 +638,7 @@ const std::string CConfigManager::getConfigString() {
     std::string currFileContent;
 
     for (auto path : this->configPaths) {
-        std::ifstream configFile(path.c_str());
+        std::ifstream configFile(path);
         configString += ("\n\nConfig File: " + path + ": ");
         if (!configFile.is_open()) {
             Debug::log(LOG, "Config file not readable/found!");

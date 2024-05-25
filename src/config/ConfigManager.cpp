@@ -639,13 +639,13 @@ const std::string CConfigManager::getConfigString() {
 
     for (auto path : this->configPaths) {
         std::ifstream configFile(path.c_str());
-		configString += ("\n\nConfig File: " + path + ": ");
+        configString += ("\n\nConfig File: " + path + ": ");
         if (!configFile.is_open()) {
             Debug::log(LOG, "Config file not readable/found!");
-			configString += "Read Failed\n";
+            configString += "Read Failed\n";
             continue;
         }
-		configString += "Read Succeeded\n";
+        configString += "Read Succeeded\n";
         while (std::getline(configFile, line)) {
             configString.append(line);
         }

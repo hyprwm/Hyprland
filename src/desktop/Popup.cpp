@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include <ranges>
 
 CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
@@ -14,7 +15,8 @@ CPopup::CPopup(PHLLS pOwner) : m_pLayerOwner(pOwner) {
 }
 
 CPopup::CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner) : m_pParent(pOwner), m_pResource(popup) {
-    m_sWLSurface.assign(popup->surface->surface, this);
+    m_pWLSurface = CWLSurface::create();
+    m_pWLSurface->assign(popup->surface->surface.lock(), this);
 
     m_pLayerOwner  = pOwner->m_pLayerOwner;
     m_pWindowOwner = pOwner->m_pWindowOwner;
@@ -26,7 +28,8 @@ CPopup::CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner) : m_pParent(pOwner),
 }
 
 CPopup::~CPopup() {
-    m_sWLSurface.unassign();
+    if (m_pWLSurface)
+        m_pWLSurface->unassign();
 }
 
 void CPopup::initAllSignals() {
@@ -69,14 +72,14 @@ void CPopup::onMap() {
     if (m_bMapped)
         return;
 
-    m_bMapped           = true;
-    m_vLastSize         = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
+    m_bMapped   = true;
+    m_vLastSize = m_pResource->surface->surface->current.size;
+
     const auto COORDS   = coordsGlobal();
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
 
-    CBox       box;
-    wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
-    box.applyFromWlr().translate(COORDS).expand(4);
+    CBox       box = m_pWLSurface->resource()->extends();
+    box.translate(COORDS).expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     m_vLastPos = coordsRelativeToParent();
@@ -87,7 +90,7 @@ void CPopup::onMap() {
 
     //unconstrain();
     sendScale();
-    wlr_surface_send_enter(m_pResource->surface->surface, PMONITOR->output);
+    m_pResource->surface->surface->enter(PMONITOR->self.lock());
 
     if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
@@ -103,12 +106,12 @@ void CPopup::onUnmap() {
         return;
     }
 
-    m_vLastSize       = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
+    m_vLastSize = m_pResource->surface->surface->current.size;
+
     const auto COORDS = coordsGlobal();
 
-    CBox       box;
-    wlr_surface_get_extends(m_sWLSurface.wlr(), box.pWlr());
-    box.applyFromWlr().translate(COORDS).expand(4);
+    CBox       box = m_pWLSurface->resource()->extends();
+    box.translate(COORDS).expand(4);
     g_pHyprRenderer->damageBox(&box);
 
     m_pSubsurfaceHead.reset();
@@ -136,14 +139,14 @@ void CPopup::onCommit(bool ignoreSiblings) {
         onDestroy();
         return;
     }
-    
+
     if (m_pResource->surface->initialCommit) {
         m_pResource->surface->scheduleConfigure();
         return;
     }
 
     if (!m_pWindowOwner.expired() && (!m_pWindowOwner->m_bIsMapped || !m_pWindowOwner->m_pWorkspace->m_bVisible)) {
-        m_vLastSize = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
+        m_vLastSize = m_pResource->surface->surface->current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -157,11 +160,10 @@ void CPopup::onCommit(bool ignoreSiblings) {
     const auto COORDS      = coordsGlobal();
     const auto COORDSLOCAL = coordsRelativeToParent();
 
-    if (m_vLastSize != Vector2D{m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height} || m_bRequestedReposition ||
-        m_vLastPos != COORDSLOCAL) {
+    if (m_vLastSize != m_pResource->surface->surface->current.size || m_bRequestedReposition || m_vLastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_vLastPos), m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
-        m_vLastSize = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
+        m_vLastSize = m_pResource->surface->surface->current.size;
         box         = {COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
 
@@ -171,7 +173,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
     if (!ignoreSiblings && m_pSubsurfaceHead)
         m_pSubsurfaceHead->recheckDamageForSubsurfaces();
 
-    g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);
+    g_pHyprRenderer->damageSurface(m_pWLSurface->resource(), COORDS.x, COORDS.y);
 
     m_bRequestedReposition = false;
 
@@ -211,7 +213,7 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     while (current->m_pParent && current->m_pResource) {
 
-        offset += {current->m_sWLSurface.wlr()->current.dx, current->m_sWLSurface.wlr()->current.dy};
+        offset += current->m_pWLSurface->resource()->current.offset;
         offset += current->m_pResource->geometry.pos();
 
         current = current->m_pParent;
@@ -260,9 +262,9 @@ Vector2D CPopup::size() {
 
 void CPopup::sendScale() {
     if (!m_pWindowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pWindowOwner->m_pWLSurface.m_fLastScale);
+        g_pCompositor->setPreferredScaleForSurface(m_pWLSurface->resource(), m_pWindowOwner->m_pWLSurface->m_fLastScale);
     else if (!m_pLayerOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_sWLSurface.wlr(), m_pLayerOwner->surface.m_fLastScale);
+        g_pCompositor->setPreferredScaleForSurface(m_pWLSurface->resource(), m_pLayerOwner->surface->m_fLastScale);
     else
         UNREACHABLE();
 }
@@ -318,9 +320,8 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
                 return p;
         } else {
             const Vector2D offset = p->m_pResource ? (p->size() - p->m_pResource->geometry.size()) / 2.F : Vector2D{};
-            const auto     REGION = CRegion{&p->m_sWLSurface.wlr()->current.input}
-                                    .intersect(CBox{{}, {p->m_sWLSurface.wlr()->current.width, p->m_sWLSurface.wlr()->current.height}})
-                                    .translate(p->coordsGlobal() + offset);
+            const auto     REGION =
+                CRegion{p->m_pWLSurface->resource()->current.input}.intersect(CBox{{}, p->m_pWLSurface->resource()->current.size}).translate(p->coordsGlobal() + offset);
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

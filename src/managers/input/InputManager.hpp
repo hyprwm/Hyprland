@@ -44,10 +44,10 @@ enum eBorderIconDirection {
 };
 
 struct STouchData {
-    PHLWINDOWREF touchFocusWindow;
-    PHLLSREF     touchFocusLS;
-    wlr_surface* touchFocusSurface = nullptr;
-    Vector2D     touchSurfaceOrigin;
+    PHLWINDOWREF           touchFocusWindow;
+    PHLLSREF               touchFocusLS;
+    WP<CWLSurfaceResource> touchFocusSurface;
+    Vector2D               touchSurfaceOrigin;
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
@@ -236,9 +236,9 @@ class CInputManager {
     void               applyConfigToKeyboard(SP<IKeyboard>);
 
     // this will be set after a refocus()
-    wlr_surface* m_pFoundSurfaceToFocus = nullptr;
-    PHLLSREF     m_pFoundLSToFocus;
-    PHLWINDOWREF m_pFoundWindowToFocus;
+    WP<CWLSurfaceResource> m_pFoundSurfaceToFocus;
+    PHLLSREF               m_pFoundLSToFocus;
+    PHLWINDOWREF           m_pFoundWindowToFocus;
 
     // for holding focus on buttons held
     bool m_bFocusHeldByButtons   = false;
@@ -268,11 +268,11 @@ class CInputManager {
 
     // cursor surface
     struct cursorSI {
-        bool        hidden = false; // null surface = hidden
-        CWLSurface  wlSurface;
-        Vector2D    vHotspot;
-        std::string name; // if not empty, means set by name.
-        bool        inUse = false;
+        bool           hidden = false; // null surface = hidden
+        SP<CWLSurface> wlSurface;
+        Vector2D       vHotspot;
+        std::string    name; // if not empty, means set by name.
+        bool           inUse = false;
     } m_sCursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored

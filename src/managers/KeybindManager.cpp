@@ -1984,14 +1984,14 @@ void CKeybindManager::pass(std::string regexp) {
     }
 
     const auto XWTOXW  = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
-    const auto LASTSRF = g_pCompositor->m_pLastFocus;
+    const auto LASTSRF = g_pCompositor->m_pLastFocus.lock();
 
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_uLastCode != 0)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface.wlr());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface->resource(), {1, 1});
     }
 
     g_pSeatManager->sendKeyboardMods(g_pInputManager->accumulateModsFromAllKBs(), 0, 0, 0);
@@ -2025,10 +2025,10 @@ void CKeybindManager::pass(std::string regexp) {
     // please kill me
     if (PWINDOW->m_bIsX11) {
         if (g_pKeybindManager->m_uLastCode != 0) {
-            g_pSeatManager->state.keyboardFocus = nullptr;
+            g_pSeatManager->state.keyboardFocus.reset();
             g_pSeatManager->state.keyboardFocusResource.reset();
         } else {
-            g_pSeatManager->state.pointerFocus = nullptr;
+            g_pSeatManager->state.pointerFocus.reset();
             g_pSeatManager->state.pointerFocusResource.reset();
         }
     }
@@ -2038,7 +2038,7 @@ void CKeybindManager::pass(std::string regexp) {
     if (g_pKeybindManager->m_uLastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTSRF);
     else
-        g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), SL);
+        g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface->resource(), SL);
 }
 
 void CKeybindManager::sendshortcut(std::string args) {
@@ -2117,7 +2117,7 @@ void CKeybindManager::sendshortcut(std::string args) {
 
     const std::string regexp      = ARGS[2];
     PHLWINDOW         PWINDOW     = nullptr;
-    const auto        LASTSURFACE = g_pCompositor->m_pLastFocus;
+    const auto        LASTSURFACE = g_pCompositor->m_pLastFocus.lock();
 
     //if regexp is not empty, send shortcut to current window
     //else, dont change focus
@@ -2135,15 +2135,15 @@ void CKeybindManager::sendshortcut(std::string args) {
         }
 
         if (!isMouse)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface.wlr());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->m_pWLSurface->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface.wlr(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface->resource(), {1, 1});
     }
 
     //copied the rest from pass and modified it
     // if wl -> xwl, activate destination
     if (PWINDOW && PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsX11)
-        g_pXWaylandManager->activateSurface(PWINDOW->m_pWLSurface.wlr(), true);
+        g_pXWaylandManager->activateSurface(PWINDOW->m_pWLSurface->resource(), true);
     // if xwl -> xwl, send to current. Timing issues make this not work.
     if (PWINDOW && PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsX11)
         PWINDOW = nullptr;
@@ -2176,10 +2176,10 @@ void CKeybindManager::sendshortcut(std::string args) {
 
     if (PWINDOW->m_bIsX11) { //xwayland hack, see pass
         if (!isMouse) {
-            g_pSeatManager->state.keyboardFocus = nullptr;
+            g_pSeatManager->state.keyboardFocus.reset();
             g_pSeatManager->state.keyboardFocusResource.reset();
         } else {
-            g_pSeatManager->state.pointerFocus = nullptr;
+            g_pSeatManager->state.pointerFocus.reset();
             g_pSeatManager->state.pointerFocusResource.reset();
         }
     }

@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XWayland.hpp"
+#include "core/Output.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3
@@ -48,9 +49,9 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
-    const auto  OUTPUT = wlr_output_from_resource(outputResource);
+    const auto  OUTPUT = CWLOutputResource::fromResource(outputResource);
 
-    const auto  PMONITOR = g_pCompositor->getMonitorFromOutput(OUTPUT);
+    const auto  PMONITOR = OUTPUT->monitor.get();
 
     const auto  CLIENT = mgr->client();
 

@@ -5,6 +5,7 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/InputMethodV2.hpp"
+#include "../../protocols/core/Compositor.hpp"
 
 CTextInput::CTextInput(STextInputV1* ti) : pV1Input(ti) {
     ti->pTextInput = this;
@@ -56,8 +57,8 @@ void CTextInput::initCallbacks() {
                 hyprListener_textInputDestroy.removeCallback();
                 hyprListener_textInputDisable.removeCallback();
                 hyprListener_textInputEnable.removeCallback();
-                hyprListener_surfaceDestroyed.removeCallback();
-                hyprListener_surfaceUnmapped.removeCallback();
+                listeners.surfaceUnmap.reset();
+                listeners.surfaceDestroy.reset();
 
                 g_pInputManager->m_sIMERelay.removeTextInput(this);
             },
@@ -65,7 +66,7 @@ void CTextInput::initCallbacks() {
     }
 }
 
-void CTextInput::onEnabled(wlr_surface* surfV1) {
+void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
     Debug::log(LOG, "TI ENABLE");
 
     if (g_pInputManager->m_sIMERelay.m_pIME.expired()) {
@@ -75,7 +76,7 @@ void CTextInput::onEnabled(wlr_surface* surfV1) {
 
     // v1 only, map surface to PTI
     if (!isV3()) {
-        wlr_surface* pSurface = surfV1;
+        SP<CWLSurfaceResource> pSurface = surfV1;
         if (g_pCompositor->m_pLastFocus != pSurface || !pV1Input->active)
             return;
 
@@ -97,8 +98,8 @@ void CTextInput::onDisabled() {
     if (!isV3())
         leave();
 
-    hyprListener_surfaceDestroyed.removeCallback();
-    hyprListener_surfaceUnmapped.removeCallback();
+    listeners.surfaceUnmap.reset();
+    listeners.surfaceDestroy.reset();
 
     g_pInputManager->m_sIMERelay.deactivateIME(this);
 }
@@ -117,50 +118,44 @@ void CTextInput::onCommit() {
     g_pInputManager->m_sIMERelay.commitIMEState(this);
 }
 
-void CTextInput::setFocusedSurface(wlr_surface* pSurface) {
+void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     if (pSurface == pFocusedSurface)
         return;
 
     pFocusedSurface = pSurface;
 
-    hyprListener_surfaceUnmapped.removeCallback();
-    hyprListener_surfaceDestroyed.removeCallback();
+    listeners.surfaceUnmap.reset();
+    listeners.surfaceDestroy.reset();
 
     if (!pSurface)
         return;
 
-    hyprListener_surfaceUnmapped.initCallback(
-        &pSurface->events.unmap,
-        [this](void* owner, void* data) {
-            Debug::log(LOG, "Unmap TI owner1");
+    listeners.surfaceUnmap = pSurface->events.unmap.registerListener([this](std::any d) {
+        Debug::log(LOG, "Unmap TI owner1");
 
-            if (enterLocks)
-                enterLocks--;
-            pFocusedSurface = nullptr;
-            hyprListener_surfaceUnmapped.removeCallback();
-            hyprListener_surfaceDestroyed.removeCallback();
-        },
-        this, "CTextInput");
+        if (enterLocks)
+            enterLocks--;
+        pFocusedSurface.reset();
+        listeners.surfaceUnmap.reset();
+        listeners.surfaceDestroy.reset();
+    });
 
-    hyprListener_surfaceDestroyed.initCallback(
-        &pSurface->events.destroy,
-        [this](void* owner, void* data) {
-            Debug::log(LOG, "destroy TI owner1");
+    listeners.surfaceDestroy = pSurface->events.destroy.registerListener([this](std::any d) {
+        Debug::log(LOG, "Destroy TI owner1");
 
-            if (enterLocks)
-                enterLocks--;
-            pFocusedSurface = nullptr;
-            hyprListener_surfaceUnmapped.removeCallback();
-            hyprListener_surfaceDestroyed.removeCallback();
-        },
-        this, "CTextInput");
+        if (enterLocks)
+            enterLocks--;
+        pFocusedSurface.reset();
+        listeners.surfaceUnmap.reset();
+        listeners.surfaceDestroy.reset();
+    });
 }
 
 bool CTextInput::isV3() {
     return !pV1Input;
 }
 
-void CTextInput::enter(wlr_surface* pSurface) {
+void CTextInput::enter(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface || !pSurface->mapped)
         return;
 
@@ -182,7 +177,7 @@ void CTextInput::enter(wlr_surface* pSurface) {
     if (isV3())
         pV3Input->enter(pSurface);
     else {
-        zwp_text_input_v1_send_enter(pV1Input->resourceImpl, pSurface->resource);
+        zwp_text_input_v1_send_enter(pV1Input->resourceImpl, pSurface->getResource()->resource());
         pV1Input->active = true;
     }
 
@@ -211,8 +206,8 @@ void CTextInput::leave() {
     g_pInputManager->m_sIMERelay.deactivateIME(this);
 }
 
-wlr_surface* CTextInput::focusedSurface() {
-    return pFocusedSurface;
+SP<CWLSurfaceResource> CTextInput::focusedSurface() {
+    return pFocusedSurface.lock();
 }
 
 wl_client* CTextInput::client() {

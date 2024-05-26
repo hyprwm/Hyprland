@@ -20,6 +20,7 @@
 constexpr const char* HL_SEAT_NAME = "Hyprland";
 
 class IKeyboard;
+class CWLSurfaceResource;
 
 class CWLPointerResource;
 class CWLKeyboardResource;
@@ -31,7 +32,7 @@ class CWLTouchResource {
     CWLTouchResource(SP<CWlTouch> resource_, SP<CWLSeatResource> owner_);
 
     bool                good();
-    void                sendDown(wlr_surface* surface, uint32_t timeMs, int32_t id, const Vector2D& local);
+    void                sendDown(SP<CWLSurfaceResource> surface, uint32_t timeMs, int32_t id, const Vector2D& local);
     void                sendUp(uint32_t timeMs, int32_t id);
     void                sendMotion(uint32_t timeMs, int32_t id, const Vector2D& local);
     void                sendFrame();
@@ -42,10 +43,12 @@ class CWLTouchResource {
     WP<CWLSeatResource> owner;
 
   private:
-    SP<CWlTouch> resource;
-    wlr_surface* currentSurface = nullptr;
+    SP<CWlTouch>           resource;
+    WP<CWLSurfaceResource> currentSurface;
 
-    DYNLISTENER(surfaceDestroy);
+    struct {
+        CHyprSignalListener destroySurface;
+    } listeners;
 };
 
 class CWLPointerResource {
@@ -53,7 +56,7 @@ class CWLPointerResource {
     CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResource> owner_);
 
     bool                good();
-    void                sendEnter(wlr_surface* surface, const Vector2D& local);
+    void                sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local);
     void                sendLeave();
     void                sendMotion(uint32_t timeMs, const Vector2D& local);
     void                sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state);
@@ -68,10 +71,12 @@ class CWLPointerResource {
     WP<CWLSeatResource> owner;
 
   private:
-    SP<CWlPointer> resource;
-    wlr_surface*   currentSurface = nullptr;
+    SP<CWlPointer>         resource;
+    WP<CWLSurfaceResource> currentSurface;
 
-    DYNLISTENER(surfaceDestroy);
+    struct {
+        CHyprSignalListener destroySurface;
+    } listeners;
 };
 
 class CWLKeyboardResource {
@@ -80,7 +85,7 @@ class CWLKeyboardResource {
 
     bool                good();
     void                sendKeymap(SP<IKeyboard> keeb);
-    void                sendEnter(wlr_surface* surface);
+    void                sendEnter(SP<CWLSurfaceResource> surface);
     void                sendLeave();
     void                sendKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void                sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
@@ -89,10 +94,12 @@ class CWLKeyboardResource {
     WP<CWLSeatResource> owner;
 
   private:
-    SP<CWlKeyboard> resource;
-    wlr_surface*    currentSurface = nullptr;
+    SP<CWlKeyboard>        resource;
+    WP<CWLSurfaceResource> currentSurface;
 
-    DYNLISTENER(surfaceDestroy);
+    struct {
+        CHyprSignalListener destroySurface;
+    } listeners;
 };
 
 class CWLSeatResource {

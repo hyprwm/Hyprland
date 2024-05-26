@@ -213,7 +213,7 @@ class CWindow {
   public:
     ~CWindow();
 
-    CWLSurface m_pWLSurface;
+    SP<CWLSurface> m_pWLSurface;
 
     struct {
         CSignal destroy;
@@ -393,7 +393,7 @@ class CWindow {
     IHyprWindowDecoration*   getDecorationByType(eDecorationType);
     void                     removeDecorationByType(eDecorationType);
     void                     updateToplevel();
-    void                     updateSurfaceScaleTransformDetails();
+    void                     updateSurfaceScaleTransformDetails(bool force = false);
     void                     moveToWorkspace(PHLWORKSPACE);
     PHLWINDOW                X11TransientFor();
     void                     onUnmap();

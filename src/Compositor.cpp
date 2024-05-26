@@ -19,6 +19,8 @@
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
 #include "protocols/XDGShell.hpp"
+#include "protocols/core/Compositor.hpp"
+#include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
 #include "xwayland/XWayland.hpp"
 
@@ -184,7 +186,7 @@ void CCompositor::initServer() {
         &isHeadlessOnly);
 
     if (isHeadlessOnly) {
-        m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend);
+        m_sWLRRenderer = wlr_renderer_autocreate(m_sWLRBackend); // TODO: remove this, it's barely needed now.
     } else {
         m_iDRMFD = wlr_backend_get_drm_fd(m_sWLRBackend);
         if (m_iDRMFD < 0) {
@@ -198,15 +200,6 @@ void CCompositor::initServer() {
     if (!m_sWLRRenderer) {
         Debug::log(CRIT, "m_sWLRRenderer was NULL! This usually means wlroots could not find a GPU or enountered some issues.");
         throwError("wlr_gles2_renderer_create_with_drm_fd() failed!");
-    }
-
-    wlr_renderer_init_wl_shm(m_sWLRRenderer, m_sWLDisplay);
-
-    if (wlr_renderer_get_dmabuf_texture_formats(m_sWLRRenderer)) {
-        if (wlr_renderer_get_drm_fd(m_sWLRRenderer) >= 0)
-            wlr_drm_create(m_sWLDisplay, m_sWLRRenderer);
-
-        m_sWLRLinuxDMABuf = wlr_linux_dmabuf_v1_create_with_renderer(m_sWLDisplay, 4, m_sWLRRenderer);
     }
 
     m_sWLRAllocator = wlr_allocator_autocreate(m_sWLRBackend, m_sWLRRenderer);
@@ -223,13 +216,7 @@ void CCompositor::initServer() {
         throwError("wlr_gles2_renderer_get_egl() failed!");
     }
 
-    m_sWLRCompositor    = wlr_compositor_create(m_sWLDisplay, 6, m_sWLRRenderer);
-    m_sWLRSubCompositor = wlr_subcompositor_create(m_sWLDisplay);
-    // m_sWLRDataDevMgr    = wlr_data_device_manager_create(m_sWLDisplay);
-
-    // wlr_data_control_manager_v1_create(m_sWLDisplay);
-    // wlr_primary_selection_v1_device_manager_create(m_sWLDisplay);
-    wlr_viewporter_create(m_sWLDisplay);
+    initManagers(STAGE_BASICINIT);
 
     m_sWRLDRMLeaseMgr = wlr_drm_lease_v1_manager_create(m_sWLDisplay, m_sWLRBackend);
     if (!m_sWRLDRMLeaseMgr) {
@@ -243,8 +230,6 @@ void CCompositor::initServer() {
         Debug::log(CRIT, "Couldn't create the headless backend");
         throwError("wlr_headless_backend_create() failed!");
     }
-
-    wlr_single_pixel_buffer_manager_v1_create(m_sWLDisplay);
 
     wlr_multi_backend_add(m_sWLRBackend, m_sWLRHeadlessBackend);
 
@@ -320,7 +305,7 @@ void CCompositor::cleanup() {
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
 
-    m_pLastFocus = nullptr;
+    m_pLastFocus.reset();
     m_pLastWindow.reset();
 
     m_vWorkspaces.clear();
@@ -390,12 +375,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Debug::log(LOG, "Creating the HookSystem!");
             g_pHookSystem = std::make_unique<CHookSystemManager>();
 
-            Debug::log(LOG, "Creating the ProtocolManager!");
-            g_pProtocolManager = std::make_unique<CProtocolManager>();
-
-            Debug::log(LOG, "Creating the SeatManager!");
-            g_pSeatManager = std::make_unique<CSeatManager>();
-
             Debug::log(LOG, "Creating the KeybindManager!");
             g_pKeybindManager = std::make_unique<CKeybindManager>();
 
@@ -419,6 +398,13 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the PointerManager!");
             g_pPointerManager = std::make_unique<CPointerManager>();
+        } break;
+        case STAGE_BASICINIT: {
+            Debug::log(LOG, "Creating the ProtocolManager!");
+            g_pProtocolManager = std::make_unique<CProtocolManager>();
+
+            Debug::log(LOG, "Creating the SeatManager!");
+            g_pSeatManager = std::make_unique<CSeatManager>();
         } break;
         case STAGE_LATE: {
             Debug::log(LOG, "Creating the ThreadManager!");
@@ -570,6 +556,8 @@ void CCompositor::startCompositor() {
 #endif
 
     createLockFile();
+
+    EMIT_HOOK_EVENT("ready", nullptr);
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
@@ -786,47 +774,32 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     return windowForWorkspace(false);
 }
 
-wlr_surface* CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW pWindow, Vector2D& sl) {
+SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW pWindow, Vector2D& sl) {
 
     if (!validMapped(pWindow))
         return nullptr;
 
     RASSERT(!pWindow->m_bIsX11, "Cannot call vectorWindowToSurface on an X11 window!");
 
-    double subx, suby;
-
-    CBox   geom = pWindow->m_pXDGSurface->current.geometry;
-
     // try popups first
-    const auto   PPOPUP = pWindow->m_pPopupHead->at(pos);
+    const auto PPOPUP = pWindow->m_pPopupHead->at(pos);
 
-    wlr_surface* found = PPOPUP ? PPOPUP->m_sWLSurface.wlr() : nullptr;
-
-    if (!PPOPUP)
-        found = wlr_surface_surface_at(pWindow->m_pWLSurface.wlr(), pos.x - pWindow->m_vRealPosition.value().x + geom.x, pos.y - pWindow->m_vRealPosition.value().y + geom.y, &subx,
-                                       &suby);
-    else {
+    if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
-        subx           = pos.x - OFF.x + geom.x - pWindow->m_vRealPosition.goal().x;
-        suby           = pos.y - OFF.y + geom.y - pWindow->m_vRealPosition.goal().y;
+        sl             = pos - pWindow->m_vRealPosition.goal() - OFF;
+        return PPOPUP->m_pWLSurface->resource();
     }
 
-    if (found) {
-        sl.x = subx;
-        sl.y = suby;
-        return found;
+    auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition.goal(), true);
+    if (surf) {
+        sl = local;
+        return surf;
     }
 
-    sl.x = pos.x - pWindow->m_vRealPosition.value().x;
-    sl.y = pos.y - pWindow->m_vRealPosition.value().y;
-
-    sl.x += geom.x;
-    sl.y += geom.y;
-
-    return pWindow->m_pWLSurface.wlr();
+    return nullptr;
 }
 
-Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindow, wlr_surface* pSurface) {
+Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface) {
     if (!validMapped(pWindow))
         return {};
 
@@ -837,25 +810,22 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
     if (PPOPUP)
         return vec - PPOPUP->coordsGlobal();
 
-    std::tuple<wlr_surface*, int, int> iterData = {pSurface, -1337, -1337};
+    std::tuple<SP<CWLSurfaceResource>, Vector2D> iterData = {pSurface, {-1337, -1337}};
 
-    wlr_surface_for_each_surface(
-        pWindow->m_pWLSurface.wlr(),
-        [](wlr_surface* surf, int x, int y, void* data) {
-            const auto PDATA = (std::tuple<wlr_surface*, int, int>*)data;
-            if (surf == std::get<0>(*PDATA)) {
-                std::get<1>(*PDATA) = x;
-                std::get<2>(*PDATA) = y;
-            }
+    pWindow->m_pWLSurface->resource()->breadthfirst(
+        [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+            const auto PDATA = (std::tuple<SP<CWLSurfaceResource>, Vector2D>*)data;
+            if (surf == std::get<0>(*PDATA))
+                std::get<1>(*PDATA) = offset;
         },
         &iterData);
 
     CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
-    if (std::get<1>(iterData) == -1337 && std::get<2>(iterData) == -1337)
+    if (std::get<1>(iterData) == Vector2D{-1337, -1337})
         return vec - pWindow->m_vRealPosition.goal();
 
-    return vec - pWindow->m_vRealPosition.goal() - Vector2D{std::get<1>(iterData), std::get<2>(iterData)} + Vector2D{geom.x, geom.y};
+    return vec - pWindow->m_vRealPosition.goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
 }
 
 CMonitor* CCompositor::getMonitorFromOutput(wlr_output* out) {
@@ -878,7 +848,7 @@ CMonitor* CCompositor::getRealMonitorFromOutput(wlr_output* out) {
     return nullptr;
 }
 
-void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
+void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface) {
 
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
@@ -921,7 +891,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
 
         g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
-        m_pLastFocus = nullptr;
+        m_pLastFocus.reset();
 
         g_pInputManager->recheckIdleInhibitorStatus();
         return;
@@ -973,7 +943,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
 
     m_pLastWindow = PLASTWINDOW;
 
-    const auto PWINDOWSURFACE = pSurface ? pSurface : pWindow->m_pWLSurface.wlr();
+    const auto PWINDOWSURFACE = pSurface ? pSurface : pWindow->m_pWLSurface->resource();
 
     focusSurface(PWINDOWSURFACE, pWindow);
 
@@ -1008,9 +978,9 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
         g_pInputManager->sendMotionEventsToFocused();
 }
 
-void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
+void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
 
-    if (g_pSeatManager->state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->state.keyboardFocus == pWindowOwner->m_pWLSurface.wlr()))
+    if (g_pSeatManager->state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->state.keyboardFocus == pWindowOwner->m_pWLSurface->resource()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
@@ -1021,18 +991,18 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
         return;
     }
 
-    const auto PLASTSURF = m_pLastFocus;
+    const auto PLASTSURF = m_pLastFocus.lock();
 
     // Unfocus last surface if should
     if (m_pLastFocus && !pWindowOwner)
-        g_pXWaylandManager->activateSurface(m_pLastFocus, false);
+        g_pXWaylandManager->activateSurface(m_pLastFocus.lock(), false);
 
     if (!pSurface) {
         g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","}); // unfocused
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
-        EMIT_HOOK_EVENT("keyboardFocus", (wlr_surface*)nullptr);
-        m_pLastFocus = nullptr;
+        EMIT_HOOK_EVENT("keyboardFocus", (SP<CWLSurfaceResource>)nullptr);
+        m_pLastFocus.reset();
         return;
     }
 
@@ -1049,8 +1019,8 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
 
     EMIT_HOOK_EVENT("keyboardFocus", pSurface);
 
-    const auto SURF    = CWLSurface::surfaceFromWlr(pSurface);
-    const auto OLDSURF = CWLSurface::surfaceFromWlr(PLASTSURF);
+    const auto SURF    = CWLSurface::fromResource(pSurface);
+    const auto OLDSURF = CWLSurface::fromResource(PLASTSURF);
 
     if (OLDSURF && OLDSURF->constraint())
         OLDSURF->constraint()->deactivate();
@@ -1059,7 +1029,7 @@ void CCompositor::focusSurface(wlr_surface* pSurface, PHLWINDOW pWindowOwner) {
         SURF->constraint()->activate();
 }
 
-wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
+SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
         for (auto& ls : lsl | std::views::reverse) {
             if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha.value() == 0.f)
@@ -1070,7 +1040,7 @@ wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonito
             if (SURFACEAT) {
                 *ppLayerSurfaceFound = ls.lock();
                 *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->m_sWLSurface.wlr();
+                return SURFACEAT->m_pWLSurface->resource();
             }
         }
     }
@@ -1078,31 +1048,34 @@ wlr_surface* CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonito
     return nullptr;
 }
 
-wlr_surface* CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
+SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto& ls : *layerSurfaces | std::views::reverse) {
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
-        auto SURFACEAT = wlr_surface_surface_at(ls->layerSurface->surface, pos.x - ls->geometry.x, pos.y - ls->geometry.y, &sCoords->x, &sCoords->y);
+        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos());
 
-        if (SURFACEAT) {
-            if (!pixman_region32_not_empty(&SURFACEAT->input_region))
+        if (surf) {
+            if (surf->current.input.empty())
                 continue;
 
             *ppLayerSurfaceFound = ls.lock();
-            return SURFACEAT;
+
+            *sCoords = local;
+
+            return surf;
         }
     }
 
     return nullptr;
 }
 
-PHLWINDOW CCompositor::getWindowFromSurface(wlr_surface* pSurface) {
+PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
     for (auto& w : m_vWindows) {
         if (!w->m_bIsMapped || w->m_bFadingOut)
             continue;
 
-        if (w->m_pWLSurface.wlr() == pSurface)
+        if (w->m_pWLSurface->resource() == pSurface)
             return w;
     }
 
@@ -1241,7 +1214,7 @@ bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
     if (!pWindow->m_bIsMapped)
         return false;
 
-    const auto PSURFACE = pWindow->m_pWLSurface.wlr();
+    const auto PSURFACE = pWindow->m_pWLSurface->resource();
 
     return PSURFACE == m_pLastFocus || pWindow == m_pLastWindow.lock();
 }
@@ -1641,11 +1614,6 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const CMonitor* p
     const auto XY2 = PMONITOR->vecPosition + PMONITOR->vecSize - PMONITOR->vecReservedBottomRight;
 
     return !VECINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
-}
-
-void checkFocusSurfaceIter(wlr_surface* pSurface, int x, int y, void* data) {
-    auto pair    = (std::pair<wlr_surface*, bool>*)data;
-    pair->second = pair->second || pSurface == pair->first;
 }
 
 CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
@@ -2386,24 +2354,24 @@ void CCompositor::closeWindow(PHLWINDOW pWindow) {
     }
 }
 
-PHLLS CCompositor::getLayerSurfaceFromSurface(wlr_surface* pSurface) {
-    std::pair<wlr_surface*, bool> result = {pSurface, false};
+PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
+    std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto& ls : m_vLayers) {
         if (ls->layerSurface && ls->layerSurface->surface == pSurface)
             return ls;
 
-        static auto iter = [](wlr_surface* surf, int x, int y, void* data) -> void {
-            if (surf == ((std::pair<wlr_surface*, bool>*)data)->first) {
-                *(bool*)data = true;
-                return;
-            }
-        };
-
         if (!ls->layerSurface || !ls->mapped)
             continue;
 
-        wlr_surface_for_each_surface(ls->layerSurface->surface, iter, &result);
+        ls->layerSurface->surface->breadthfirst(
+            [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+                if (surf == ((std::pair<SP<CWLSurfaceResource>, bool>*)data)->first) {
+                    *(bool*)data = true;
+                    return;
+                }
+            },
+            &result);
 
         if (result.second)
             return ls;
@@ -2735,13 +2703,13 @@ void CCompositor::leaveUnsafeState() {
     }
 }
 
-void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scale) {
+void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
     PROTO::fractional->sendScale(pSurface, scale);
-    wlr_surface_set_preferred_buffer_scale(pSurface, static_cast<int32_t>(std::ceil(scale)));
+    pSurface->sendPreferredScale(std::ceil(scale));
 
-    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    const auto PSURFACE = CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
-        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredScaleForSurface", (uintptr_t)pSurface);
+        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredScaleForSurface", (uintptr_t)pSurface);
         return;
     }
 
@@ -2749,12 +2717,12 @@ void CCompositor::setPreferredScaleForSurface(wlr_surface* pSurface, double scal
     PSURFACE->m_iLastScale = static_cast<int32_t>(std::ceil(scale));
 }
 
-void CCompositor::setPreferredTransformForSurface(wlr_surface* pSurface, wl_output_transform transform) {
-    wlr_surface_set_preferred_buffer_transform(pSurface, transform);
+void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform) {
+    pSurface->sendPreferredTransform(transform);
 
-    const auto PSURFACE = CWLSurface::surfaceFromWlr(pSurface);
+    const auto PSURFACE = CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
-        Debug::log(WARN, "Orphaned wlr_surface {:x} in setPreferredTransformForSurface", (uintptr_t)pSurface);
+        Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredTransformForSurface", (uintptr_t)pSurface);
         return;
     }
 

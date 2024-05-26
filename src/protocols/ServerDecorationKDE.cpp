@@ -1,8 +1,9 @@
 #include "ServerDecorationKDE.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::serverDecorationKDE->protoLog
 
-CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, wlr_surface* surf) : resource(resource_) {
+CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf) : resource(resource_) {
     if (!good())
         return;
 
@@ -42,7 +43,8 @@ void CServerDecorationKDEProtocol::destroyResource(CServerDecorationKDE* hayperl
 void CServerDecorationKDEProtocol::createDecoration(COrgKdeKwinServerDecorationManager* pMgr, uint32_t id, wl_resource* surf) {
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_vDecos.emplace_back(std::make_unique<CServerDecorationKDE>(makeShared<COrgKdeKwinServerDecoration>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surf))).get();
+        m_vDecos.emplace_back(std::make_unique<CServerDecorationKDE>(makeShared<COrgKdeKwinServerDecoration>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)))
+            .get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

@@ -1,6 +1,7 @@
 #include "TextInputV1.hpp"
 
 #include "../Compositor.hpp"
+#include "core/Compositor.hpp"
 
 #define TEXT_INPUT_VERSION 1
 
@@ -168,7 +169,7 @@ void CTextInputV1ProtocolManager::handleActivate(wl_client* client, wl_resource*
         return;
     }
     PTI->active = true;
-    PTI->pTextInput->onEnabled(wlr_surface_from_resource(surface));
+    PTI->pTextInput->onEnabled(CWLSurfaceResource::fromResource(surface));
 }
 
 void CTextInputV1ProtocolManager::handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat) {

@@ -8,13 +8,14 @@
 
 class CSessionLockSurface;
 class CSessionLock;
+class CWLSurfaceResource;
 
 struct SSessionLockSurface {
     SSessionLockSurface(SP<CSessionLockSurface> surface_);
 
     WP<CSessionLockSurface> surface;
-    wlr_surface*            pWlrSurface = nullptr;
-    uint64_t                iMonitorID  = -1;
+    WP<CWLSurfaceResource>  pWlrSurface;
+    uint64_t                iMonitorID = -1;
 
     bool                    mapped = false;
 
@@ -49,7 +50,7 @@ class CSessionLockManager {
 
     bool                 isSessionLocked();
     bool                 isSessionLockPresent();
-    bool                 isSurfaceSessionLock(wlr_surface*);
+    bool                 isSurfaceSessionLock(SP<CWLSurfaceResource>);
 
     void                 removeSessionLockSurface(SSessionLockSurface*);
 

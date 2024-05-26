@@ -7,9 +7,11 @@
 #include "xwayland-shell-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+class CWLSurfaceResource;
+
 class CXWaylandSurfaceResource {
   public:
-    CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, wlr_surface* surface_);
+    CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, SP<CWLSurfaceResource> surface_);
     ~CXWaylandSurfaceResource();
 
     bool       good();
@@ -19,8 +21,8 @@ class CXWaylandSurfaceResource {
         CSignal destroy;
     } events;
 
-    uint64_t                     serial  = 0;
-    wlr_surface*                 surface = nullptr;
+    uint64_t                     serial = 0;
+    WP<CWLSurfaceResource>       surface;
 
     WP<CXWaylandSurfaceResource> self;
 

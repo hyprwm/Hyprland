@@ -3,22 +3,24 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/InputMethodV2.hpp"
+#include "../../protocols/core/Compositor.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : popup(popup_) {
     listeners.commit  = popup_->events.commit.registerListener([this](std::any d) { onCommit(); });
     listeners.map     = popup_->events.map.registerListener([this](std::any d) { onMap(); });
     listeners.unmap   = popup_->events.unmap.registerListener([this](std::any d) { onUnmap(); });
     listeners.destroy = popup_->events.destroy.registerListener([this](std::any d) { onDestroy(); });
-    surface.assign(popup_->surface());
+    surface           = CWLSurface::create();
+    surface->assign(popup_->surface());
 }
 
-CWLSurface* CInputPopup::queryOwner() {
+SP<CWLSurface> CInputPopup::queryOwner() {
     const auto FOCUSED = g_pInputManager->m_sIMERelay.getFocusedTextInput();
 
     if (!FOCUSED)
         return nullptr;
 
-    return CWLSurface::surfaceFromWlr(FOCUSED->focusedSurface());
+    return CWLSurface::fromResource(FOCUSED->focusedSurface());
 }
 
 void CInputPopup::onDestroy() {
@@ -36,7 +38,7 @@ void CInputPopup::onMap() {
     if (!PMONITOR)
         return;
 
-    PROTO::fractional->sendScale(surface.wlr(), PMONITOR->scale);
+    PROTO::fractional->sendScale(surface->resource(), PMONITOR->scale);
 }
 
 void CInputPopup::onUnmap() {
@@ -69,7 +71,7 @@ void CInputPopup::damageSurface() {
     }
 
     Vector2D pos = globalBox().pos();
-    g_pHyprRenderer->damageSurface(surface.wlr(), pos.x, pos.y);
+    g_pHyprRenderer->damageSurface(surface->resource(), pos.x, pos.y);
 }
 
 void CInputPopup::updateBox() {
@@ -98,7 +100,7 @@ void CInputPopup::updateBox() {
         cursorBoxParent = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D  currentPopupSize = surface.getViewporterCorrectedSize();
+    Vector2D  currentPopupSize = surface->getViewporterCorrectedSize();
 
     CMonitor* pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 
@@ -127,9 +129,9 @@ void CInputPopup::updateBox() {
         const auto PML = g_pCompositor->getMonitorFromID(lastMonitor);
 
         if (PML)
-            wlr_surface_send_leave(surface.wlr(), PML->output);
+            surface->resource()->leave(PML->self.lock());
 
-        wlr_surface_send_enter(surface.wlr(), PM->output);
+        surface->resource()->enter(PM->self.lock());
 
         lastMonitor = PM->ID;
     }
@@ -151,6 +153,6 @@ bool CInputPopup::isVecInPopup(const Vector2D& point) {
     return globalBox().containsPoint(point);
 }
 
-wlr_surface* CInputPopup::getWlrSurface() {
-    return surface.wlr();
+SP<CWLSurfaceResource> CInputPopup::getSurface() {
+    return surface->resource();
 }

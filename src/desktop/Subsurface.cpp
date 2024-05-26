@@ -2,29 +2,31 @@
 #include "../events/Events.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-
-static void onNewSubsurface(void* owner, void* data);
+#include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/Subcompositor.hpp"
 
 CSubsurface::CSubsurface(PHLWINDOW pOwner) : m_pWindowParent(pOwner) {
     initSignals();
-    initExistingSubsurfaces(pOwner->m_pWLSurface.wlr());
+    initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
 }
 
 CSubsurface::CSubsurface(CPopup* pOwner) : m_pPopupParent(pOwner) {
     initSignals();
-    initExistingSubsurfaces(pOwner->m_sWLSurface.wlr());
+    initExistingSubsurfaces(pOwner->m_pWLSurface->resource());
 }
 
-CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, PHLWINDOW pOwner) : m_pSubsurface(pSubsurface), m_pWindowParent(pOwner) {
-    m_sWLSurface.assign(pSubsurface->surface, this);
+CSubsurface::CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) : m_pSubsurface(pSubsurface), m_pWindowParent(pOwner) {
+    m_pWLSurface = CWLSurface::create();
+    m_pWLSurface->assign(pSubsurface->surface.lock(), this);
     initSignals();
-    initExistingSubsurfaces(pSubsurface->surface);
+    initExistingSubsurfaces(pSubsurface->surface.lock());
 }
 
-CSubsurface::CSubsurface(wlr_subsurface* pSubsurface, CPopup* pOwner) : m_pSubsurface(pSubsurface), m_pPopupParent(pOwner) {
-    m_sWLSurface.assign(pSubsurface->surface, this);
+CSubsurface::CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, CPopup* pOwner) : m_pSubsurface(pSubsurface), m_pPopupParent(pOwner) {
+    m_pWLSurface = CWLSurface::create();
+    m_pWLSurface->assign(pSubsurface->surface.lock(), this);
     initSignals();
-    initExistingSubsurfaces(pSubsurface->surface);
+    initExistingSubsurfaces(pSubsurface->surface.lock());
 }
 
 CSubsurface::~CSubsurface() {
@@ -33,52 +35,27 @@ CSubsurface::~CSubsurface() {
     if (!m_pSubsurface)
         return;
 
-    m_pSubsurface->data = nullptr;
-
     hyprListener_commitSubsurface.removeCallback();
     hyprListener_destroySubsurface.removeCallback();
 }
 
-static void onNewSubsurface(void* owner, void* data) {
-    const auto PSUBSURFACE = (CSubsurface*)owner;
-    PSUBSURFACE->onNewSubsurface((wlr_subsurface*)data);
-}
-
-static void onDestroySubsurface(void* owner, void* data) {
-    const auto PSUBSURFACE = (CSubsurface*)owner;
-    PSUBSURFACE->onDestroy();
-}
-
-static void onCommitSubsurface(void* owner, void* data) {
-    const auto PSUBSURFACE = (CSubsurface*)owner;
-    PSUBSURFACE->onCommit();
-}
-
-static void onMapSubsurface(void* owner, void* data) {
-    const auto PSUBSURFACE = (CSubsurface*)owner;
-    PSUBSURFACE->onMap();
-}
-
-static void onUnmapSubsurface(void* owner, void* data) {
-    const auto PSUBSURFACE = (CSubsurface*)owner;
-    PSUBSURFACE->onUnmap();
-}
-
 void CSubsurface::initSignals() {
     if (m_pSubsurface) {
-        m_pSubsurface->data = this;
-        hyprListener_commitSubsurface.initCallback(&m_pSubsurface->surface->events.commit, &onCommitSubsurface, this, "CSubsurface");
-        hyprListener_destroySubsurface.initCallback(&m_pSubsurface->events.destroy, &onDestroySubsurface, this, "CSubsurface");
-        hyprListener_newSubsurface.initCallback(&m_pSubsurface->surface->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface");
-        hyprListener_mapSubsurface.initCallback(&m_pSubsurface->surface->events.map, &onMapSubsurface, this, "CSubsurface");
-        hyprListener_unmapSubsurface.initCallback(&m_pSubsurface->surface->events.unmap, &onUnmapSubsurface, this, "CSubsurface");
+        listeners.commitSubsurface  = m_pSubsurface->surface->events.commit.registerListener([this](std::any d) { onCommit(); });
+        listeners.destroySubsurface = m_pSubsurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+        listeners.mapSubsurface     = m_pSubsurface->surface->events.map.registerListener([this](std::any d) { onMap(); });
+        listeners.unmapSubsurface   = m_pSubsurface->surface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
+        listeners.newSubsurface =
+            m_pSubsurface->surface->events.newSubsurface.registerListener([this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
     } else {
-        if (!m_pWindowParent.expired())
-            hyprListener_newSubsurface.initCallback(&m_pWindowParent->m_pWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
+        if (m_pWindowParent)
+            listeners.newSubsurface = m_pWindowParent->m_pWLSurface->resource()->events.newSubsurface.registerListener(
+                [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else if (m_pPopupParent)
-            hyprListener_newSubsurface.initCallback(&m_pPopupParent->m_sWLSurface.wlr()->events.new_subsurface, &::onNewSubsurface, this, "CSubsurface Head");
+            listeners.newSubsurface = m_pPopupParent->m_pWLSurface->resource()->events.newSubsurface.registerListener(
+                [this](std::any d) { onNewSubsurface(std::any_cast<SP<CWLSubsurfaceResource>>(d)); });
         else
-            RASSERT(false, "CSubsurface::initSignals empty subsurface");
+            ASSERT(false);
     }
 }
 
@@ -93,21 +70,21 @@ void CSubsurface::checkSiblingDamage() {
             continue;
 
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->m_sWLSurface.wlr(), COORDS.x, COORDS.y, SCALE);
+        g_pHyprRenderer->damageSurface(n->m_pWLSurface->resource(), COORDS.x, COORDS.y, SCALE);
     }
 }
 
 void CSubsurface::recheckDamageForSubsurfaces() {
     for (auto& n : m_vChildren) {
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->m_sWLSurface.wlr(), COORDS.x, COORDS.y);
+        g_pHyprRenderer->damageSurface(n->m_pWLSurface->resource(), COORDS.x, COORDS.y);
     }
 }
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
     if (!m_pWindowParent.expired() && (!m_pWindowParent->m_bIsMapped || !m_pWindowParent->m_pWorkspace->m_bVisible)) {
-        m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
+        m_vLastSize = m_pWLSurface->resource()->current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -117,7 +94,7 @@ void CSubsurface::onCommit() {
 
     const auto COORDS = coordsGlobal();
 
-    g_pHyprRenderer->damageSurface(m_sWLSurface.wlr(), COORDS.x, COORDS.y);
+    g_pHyprRenderer->damageSurface(m_pWLSurface->resource(), COORDS.x, COORDS.y);
 
     if (m_pPopupParent)
         m_pPopupParent->recheckTree();
@@ -127,10 +104,10 @@ void CSubsurface::onCommit() {
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
 
-    if (m_vLastSize != Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height}) {
+    if (m_vLastSize != m_pWLSurface->resource()->current.size) {
         CBox box{COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
-        m_vLastSize = Vector2D{m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
+        m_vLastSize = m_pWLSurface->resource()->current.size;
         box         = {COORDS, m_vLastSize};
         g_pHyprRenderer->damageBox(&box);
     }
@@ -149,20 +126,21 @@ void CSubsurface::onDestroy() {
     std::erase_if(m_pParent->m_vChildren, [this](const auto& other) { return other.get() == this; });
 }
 
-void CSubsurface::onNewSubsurface(wlr_subsurface* pSubsurface) {
+void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
     CSubsurface* PSUBSURFACE = nullptr;
 
     if (!m_pWindowParent.expired())
         PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pWindowParent.lock())).get();
     else if (m_pPopupParent)
         PSUBSURFACE = m_vChildren.emplace_back(std::make_unique<CSubsurface>(pSubsurface, m_pPopupParent)).get();
-    PSUBSURFACE->m_pParent = this;
 
     ASSERT(PSUBSURFACE);
+
+    PSUBSURFACE->m_pParent = this;
 }
 
 void CSubsurface::onMap() {
-    m_vLastSize = {m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
+    m_vLastSize = m_pWLSurface->resource()->current.size;
 
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_vLastSize};
@@ -179,7 +157,7 @@ void CSubsurface::onUnmap() {
     box.expand(4);
     g_pHyprRenderer->damageBox(&box);
 
-    if (m_sWLSurface.wlr() == g_pCompositor->m_pLastFocus)
+    if (m_pWLSurface->resource() == g_pCompositor->m_pLastFocus)
         g_pInputManager->releaseAllMouseButtons();
 
     g_pInputManager->simulateMouseMovement();
@@ -188,19 +166,9 @@ void CSubsurface::onUnmap() {
 }
 
 Vector2D CSubsurface::coordsRelativeToParent() {
-    Vector2D     offset;
-
-    CSubsurface* current = this;
-
-    while (current->m_pParent) {
-
-        offset += {current->m_sWLSurface.wlr()->current.dx, current->m_sWLSurface.wlr()->current.dy};
-        offset += {current->m_pSubsurface->current.x, current->m_pSubsurface->current.y};
-
-        current = current->m_pParent;
-    }
-
-    return offset;
+    if (!m_pSubsurface)
+        return {};
+    return m_pSubsurface->posRelativeToParent();
 }
 
 Vector2D CSubsurface::coordsGlobal() {
@@ -214,18 +182,16 @@ Vector2D CSubsurface::coordsGlobal() {
     return coords;
 }
 
-void CSubsurface::initExistingSubsurfaces(wlr_surface* pSurface) {
-    wlr_subsurface* wlrSubsurface;
-    wl_list_for_each(wlrSubsurface, &pSurface->current.subsurfaces_below, current.link) {
-        ::onNewSubsurface(this, wlrSubsurface);
-    }
-    wl_list_for_each(wlrSubsurface, &pSurface->current.subsurfaces_above, current.link) {
-        ::onNewSubsurface(this, wlrSubsurface);
+void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {
+    for (auto& s : pSurface->subsurfaces) {
+        if (!s || s->surface->hlSurface /* already assigned */)
+            continue;
+        onNewSubsurface(s.lock());
     }
 }
 
 Vector2D CSubsurface::size() {
-    return {m_sWLSurface.wlr()->current.width, m_sWLSurface.wlr()->current.height};
+    return m_pWLSurface->resource()->current.size;
 }
 
 bool CSubsurface::visible() {

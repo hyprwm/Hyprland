@@ -60,7 +60,7 @@ namespace CSharedPointer_ {
         bool _destroying = false;
 
         void _destroy() {
-            if (!_data)
+            if (!_data || _destroying)
                 return;
 
             // first, we destroy the data, but keep the pointer.
@@ -297,6 +297,6 @@ static CSharedPointer<U> makeShared(Args&&... args) {
 template <typename T>
 struct std::hash<CSharedPointer<T>> {
     std::size_t operator()(const CSharedPointer<T>& p) const noexcept {
-        return std::hash<void*>{}(p->impl_);
+        return std::hash<void*>{}(p.impl_);
     }
 };

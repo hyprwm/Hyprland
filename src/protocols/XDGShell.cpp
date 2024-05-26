@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::xdgShell->protoLog
 
@@ -288,7 +289,8 @@ void CXDGToplevelResource::close() {
     resource->sendClose();
 }
 
-CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, wlr_surface* surface_) : owner(owner_), surface(surface_), resource(resource_) {
+CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_) :
+    owner(owner_), surface(surface_), resource(resource_) {
     if (!good())
         return;
 
@@ -307,56 +309,50 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         PROTO::xdgShell->destroyResource(this);
     });
 
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy,
-        [this](void* owner, void* data) {
-            LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
-            hyprListener_surfaceDestroy.removeCallback();
-            hyprListener_surfaceCommit.removeCallback();
+    listeners.surfaceDestroy = surface->events.destroy.registerListener([this](std::any d) {
+        LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
+        listeners.surfaceDestroy.reset();
+        listeners.surfaceCommit.reset();
 
-            if (mapped)
-                events.unmap.emit();
+        if (mapped)
+            events.unmap.emit();
 
-            mapped  = false;
-            surface = nullptr;
-            events.destroy.emit();
-        },
-        nullptr, "CXDGSurfaceResource");
+        mapped = false;
+        surface.reset();
+        events.destroy.emit();
+    });
 
-    hyprListener_surfaceCommit.initCallback(
-        &surface->events.commit,
-        [this](void* owner, void* data) {
-            current = pending;
+    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+        current = pending;
+        if (toplevel)
+            toplevel->current = toplevel->pending;
+
+        if (initialCommit && surface->pending.buffer) {
+            resource->error(-1, "Buffer attached before initial commit");
+            return;
+        }
+
+        if (surface->current.buffer && !mapped) {
+            // this forces apps to not draw CSD.
             if (toplevel)
-                toplevel->current = toplevel->pending;
+                toplevel->setMaximized(true);
 
-            if (initialCommit && surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0) {
-                resource->error(-1, "Buffer attached before initial commit");
-                return;
-            }
+            mapped = true;
+            surface->map();
+            events.map.emit();
+            return;
+        }
 
-            if (surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0 && !mapped) {
-                // this forces apps to not draw CSD.
-                if (toplevel)
-                    toplevel->setMaximized(true);
+        if (!surface->current.buffer && mapped) {
+            mapped = false;
+            surface->unmap();
+            events.unmap.emit();
+            return;
+        }
 
-                mapped = true;
-                wlr_surface_map(surface);
-                events.map.emit();
-                return;
-            }
-
-            if (surface->pending.buffer_width <= 0 && surface->pending.buffer_height <= 0 && mapped) {
-                mapped = false;
-                wlr_surface_unmap(surface);
-                events.unmap.emit();
-                return;
-            }
-
-            events.commit.emit();
-            initialCommit = false;
-        },
-        nullptr, "CXDGSurfaceResource");
+        events.commit.emit();
+        initialCommit = false;
+    });
 
     resource->setGetToplevel([this](CXdgSurface* r, uint32_t id) {
         const auto RESOURCE = PROTO::xdgShell->m_vToplevels.emplace_back(makeShared<CXDGToplevelResource>(makeShared<CXdgToplevel>(r->client(), r->version(), id), self.lock()));
@@ -649,7 +645,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
 
     resource->setGetXdgSurface([this](CXdgWmBase* r, uint32_t id, wl_resource* surf) {
         const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(
-            makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surf)));
+            makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), CWLSurfaceResource::fromResource(surf)));
 
         if (!RESOURCE->good()) {
             r->noMemory();
@@ -724,9 +720,9 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
         grabOwner = popup;
         grabbed.clear();
         grab->clear();
-        grab->add(popup->surface->surface);
+        grab->add(popup->surface->surface.lock());
         if (popup->parent)
-            grab->add(popup->parent->surface);
+            grab->add(popup->parent->surface.lock());
         g_pSeatManager->setGrab(grab);
         grabbed.emplace_back(popup);
         return;
@@ -734,10 +730,10 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
 
     grabbed.emplace_back(popup);
 
-    grab->add(popup->surface->surface);
+    grab->add(popup->surface->surface.lock());
 
     if (popup->parent)
-        grab->add(popup->parent->surface);
+        grab->add(popup->parent->surface.lock());
 }
 
 void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
@@ -752,5 +748,5 @@ void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
 
     std::erase(grabbed, popup);
     if (popup->surface)
-        grab->remove(popup->surface->surface);
+        grab->remove(popup->surface->surface.lock());
 }

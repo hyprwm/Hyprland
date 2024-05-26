@@ -23,6 +23,7 @@ class CWLDataDeviceManagerResource;
 class CWLDataSourceResource;
 class CWLDataOfferResource;
 
+class CWLSurfaceResource;
 class CMonitor;
 
 class CWLDataOfferResource {
@@ -92,7 +93,7 @@ class CWLDataDeviceResource {
     wl_client*                client();
 
     void                      sendDataOffer(SP<CWLDataOfferResource> offer);
-    void                      sendEnter(uint32_t serial, wlr_surface* surf, const Vector2D& local, SP<CWLDataOfferResource> offer);
+    void                      sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CWLDataOfferResource> offer);
     void                      sendLeave();
     void                      sendMotion(uint32_t timeMs, const Vector2D& local);
     void                      sendDrop();
@@ -155,11 +156,11 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     struct {
         WP<CWLDataDeviceResource> focusedDevice;
         WP<CWLDataSourceResource> currentSource;
-        wlr_surface*              dndSurface       = nullptr;
-        wlr_surface*              originSurface    = nullptr; // READ-ONLY
+        WP<CWLSurfaceResource>    dndSurface;
+        WP<CWLSurfaceResource>    originSurface;
         bool                      overriddenCursor = false;
-        DYNLISTENER(dndSurfaceDestroy);
-        DYNLISTENER(dndSurfaceCommit);
+        CHyprSignalListener       dndSurfaceDestroy;
+        CHyprSignalListener       dndSurfaceCommit;
 
         // for ending a dnd
         SP<HOOK_CALLBACK_FN> mouseMove;
@@ -169,7 +170,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     } dnd;
 
     void abortDrag();
-    void initiateDrag(WP<CWLDataSourceResource> currentSource, wlr_surface* dragSurface, wlr_surface* origin);
+    void initiateDrag(WP<CWLDataSourceResource> currentSource, SP<CWLSurfaceResource> dragSurface, SP<CWLSurfaceResource> origin);
     void updateDrag();
     void dropDrag();
     void completeDrag();

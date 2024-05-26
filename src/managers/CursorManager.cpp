@@ -114,8 +114,8 @@ wlr_buffer* CCursorManager::getCursorBuffer() {
     return !m_vCursorBuffers.empty() ? &m_vCursorBuffers.back()->wlrBuffer.base : nullptr;
 }
 
-void CCursorManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot) {
-    if (!surf || !surf->wlr())
+void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
+    if (!surf || !surf->resource())
         g_pPointerManager->resetCursorImage();
     else
         g_pPointerManager->setCursorSurface(surf, hotspot);

@@ -10,10 +10,11 @@
 #include "../helpers/signal/Signal.hpp"
 
 class CMonitor;
+class CWLSurfaceResource;
 
 class CLayerShellResource {
   public:
-    CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, wlr_surface* surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
+    CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
     ~CLayerShellResource();
 
     bool good();
@@ -54,18 +55,20 @@ class CLayerShellResource {
         void reset();
     } current, pending;
 
-    Vector2D     size;
-    std::string  layerNamespace;
-    std::string  monitor    = "";
-    wlr_surface* surface    = nullptr;
-    bool         mapped     = false;
-    bool         configured = false;
+    Vector2D               size;
+    std::string            layerNamespace;
+    std::string            monitor = "";
+    WP<CWLSurfaceResource> surface;
+    bool                   mapped     = false;
+    bool                   configured = false;
 
   private:
     SP<CZwlrLayerSurfaceV1> resource;
 
-    DYNLISTENER(destroySurface);
-    DYNLISTENER(commitSurface);
+    struct {
+        CHyprSignalListener commitSurface;
+        CHyprSignalListener destroySurface;
+    } listeners;
 
     bool                                       closed = false;
 

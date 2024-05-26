@@ -22,6 +22,8 @@ CHyprError::CHyprError() {
         if (m_fFadeOpacity.isBeingAnimated() || m_bMonitorChanged)
             g_pHyprRenderer->damageBox(&m_bDamageBox);
     });
+
+    m_pTexture = makeShared<CTexture>();
 }
 
 CHyprError::~CHyprError() {
@@ -34,9 +36,8 @@ void CHyprError::queueCreate(std::string message, const CColor& color) {
 }
 
 void CHyprError::createQueued() {
-    if (m_bIsCreated) {
-        m_tTexture.destroyTexture();
-    }
+    if (m_bIsCreated)
+        m_pTexture->destroyTexture();
 
     m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
@@ -136,8 +137,8 @@ void CHyprError::createQueued() {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    m_tTexture.allocate();
-    glBindTexture(GL_TEXTURE_2D, m_tTexture.m_iTexID);
+    m_pTexture->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -170,7 +171,7 @@ void CHyprError::draw() {
         if (!m_fFadeOpacity.isBeingAnimated()) {
             if (m_fFadeOpacity.value() == 0.f) {
                 m_bQueuedDestroy = false;
-                m_tTexture.destroyTexture();
+                m_pTexture->destroyTexture();
                 m_bIsCreated = false;
                 m_szQueued   = "";
                 return;
@@ -193,7 +194,7 @@ void CHyprError::draw() {
 
     m_bMonitorChanged = false;
 
-    g_pHyprOpenGL->renderTexture(m_tTexture, &monbox, m_fFadeOpacity.value(), 0);
+    g_pHyprOpenGL->renderTexture(m_pTexture, &monbox, m_fFadeOpacity.value(), 0);
 }
 
 void CHyprError::destroy() {

@@ -185,6 +185,6 @@ class CWeakPointer {
 template <typename T>
 struct std::hash<CWeakPointer<T>> {
     std::size_t operator()(const CWeakPointer<T>& p) const noexcept {
-        return std::hash<void*>{}(p->impl_);
+        return std::hash<void*>{}(p.impl_);
     }
 };

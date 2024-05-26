@@ -70,6 +70,7 @@ const std::string_view HYPRPAPER_HELP = R"#(usage: hyprctl [flags] hyprpaper <re
 requests:
     listactive      → Lists all active images
     listloaded      → Lists all loaded images
+    listmonitors    → Lists all monitors
     preload <path>  → Preloads image
     unload <path>   → Unloads image. Pass 'all' as path to unload all images
     wallpaper       → Issue a wallpaper to call a config wallpaper dynamically
@@ -111,7 +112,7 @@ create <backend>:
 remove <name>:
     Removes virtual output. Pass the output's name, as found in
     'hyprctl monitors'
-    
+
 flags:
     See 'hyprctl --help')#";
 

@@ -1045,13 +1045,15 @@ std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
 
     nextItem();
 
+    const std::string DELIMITER = "\n\n\n";
+
     while (curitem != "" || request != "") {
-        reply += g_pHyprCtl->getReply(curitem);
+        reply += g_pHyprCtl->getReply(curitem) + DELIMITER;
 
         nextItem();
     }
 
-    return reply;
+    return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));
 }
 
 std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {

@@ -2366,8 +2366,12 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
-    if (*PNOWARPS && !force)
+    if (*PNOWARPS && !force) {
+        const auto PMONITORNEW = getMonitorFromVector(pos);
+        if (PMONITORNEW != m_pLastMonitor.get())
+            setActiveMonitor(PMONITORNEW);
         return;
+    }
 
     g_pPointerManager->warpTo(pos);
 

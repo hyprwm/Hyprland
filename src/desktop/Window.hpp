@@ -370,7 +370,7 @@ class CWindow {
     std::vector<SWindowRule> m_vMatchedRules;
 
     // window tags
-    TagKeeper m_tags;
+    CTagKeeper m_tags;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

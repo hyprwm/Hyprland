@@ -1,10 +1,10 @@
 #include "TagKeeper.hpp"
 
-bool TagKeeper::isTagged(const std::string& tag, bool strict) {
+bool CTagKeeper::isTagged(const std::string& tag, bool strict) {
     return m_tags.contains(tag) || (!strict && m_tags.contains(tag + "*"));
 }
 
-bool TagKeeper::applyTag(const std::string& tag, bool dynamic) {
+bool CTagKeeper::applyTag(const std::string& tag, bool dynamic) {
 
     std::string tagReal = tag;
 
@@ -35,6 +35,6 @@ bool TagKeeper::applyTag(const std::string& tag, bool dynamic) {
     return true;
 }
 
-bool TagKeeper::removeDynamicTags() {
+bool CTagKeeper::removeDynamicTags() {
     return std::erase_if(m_tags, [](const auto& tag) { return tag.ends_with("*"); });
 }

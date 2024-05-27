@@ -1090,7 +1090,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
             try {
                 if (rule.szValue.starts_with("tag:") && !tags.isTagged(rule.szValue.substr(4)))
                     continue;
-                else if (rule.szValue.starts_with("title:")) {
+
+                if (rule.szValue.starts_with("title:")) {
                     std::regex RULECHECK(rule.szValue.substr(6));
 
                     if (!std::regex_search(title, RULECHECK))

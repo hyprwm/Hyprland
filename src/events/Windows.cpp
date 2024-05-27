@@ -491,8 +491,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if ((requestsFullscreen && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN) || overridingNoFullscreen)) ||
         (requestsMaximize && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE) || overridingNoMaximize)) || requestsFakeFullscreen) {
         // fix fullscreen on requested (basically do a switcheroo)
-        if (PWORKSPACE->m_bHasFullscreenWindow) {
-            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow) {
+            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID);
             g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
         }
 

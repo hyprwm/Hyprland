@@ -1,17 +1,16 @@
-#include "KeybindManager.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
-#include "debug/Log.hpp"
-#include "helpers/VarList.hpp"
 #include "../config/ConfigValue.hpp"
-#include "TokenManager.hpp"
-#include "../protocols/ShortcutsInhibit.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/ShortcutsInhibit.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "KeybindManager.hpp"
+#include "TokenManager.hpp"
+#include "debug/Log.hpp"
+#include "helpers/VarList.hpp"
 
 #include <optional>
-#include <regex>
 #include <string>
-#include <tuple>
+#include <string_view>
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -87,6 +86,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["cyclenext"]                      = circleNext;
     m_mDispatchers["focuswindowbyclass"]             = focusWindow;
     m_mDispatchers["focuswindow"]                    = focusWindow;
+    m_mDispatchers["tagwindow"]                      = tagWindow;
     m_mDispatchers["submap"]                         = setSubmap;
     m_mDispatchers["pass"]                           = pass;
     m_mDispatchers["sendshortcut"]                   = sendshortcut;
@@ -1926,6 +1926,23 @@ void CKeybindManager::focusWindow(std::string regexp) {
         g_pCompositor->focusWindow(PWINDOW);
 
     g_pCompositor->warpCursorTo(PWINDOW->middle());
+}
+
+void CKeybindManager::tagWindow(std::string args) {
+    PHLWINDOW PWINDOW = nullptr;
+    CVarList  vars{args, 0, 's', true};
+
+    if (vars.size() == 1)
+        PWINDOW = g_pCompositor->m_pLastWindow.lock();
+    else if (vars.size() == 2)
+        PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    else
+        return;
+
+    if (PWINDOW && PWINDOW->m_tags.applyTag(vars[0])) {
+        PWINDOW->updateDynamicRules();
+        g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW->m_pSelf.lock());
+    }
 }
 
 void CKeybindManager::setSubmap(std::string submap) {

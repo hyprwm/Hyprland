@@ -1,18 +1,21 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "Subsurface.hpp"
-#include "../helpers/AnimatedVariable.hpp"
-#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include <string>
+
 #include "../config/ConfigDataValues.hpp"
+#include "../defines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/Vector2D.hpp"
-#include "WLSurface.hpp"
-#include "Popup.hpp"
+#include "../helpers/signal/Signal.hpp"
+#include "../helpers/TagKeeper.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "DesktopTypes.hpp"
-#include "../helpers/signal/Signal.hpp"
+#include "Popup.hpp"
+#include "Subsurface.hpp"
+#include "WLSurface.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -183,6 +186,7 @@ struct SWindowRule {
     std::string szClass;
     std::string szInitialTitle;
     std::string szInitialClass;
+    std::string szTag;
     int         bX11          = -1; // -1 means "ANY"
     int         bFloating     = -1;
     int         bFullscreen   = -1;
@@ -364,6 +368,9 @@ class CWindow {
 
     // stores the currently matched window rules
     std::vector<SWindowRule> m_vMatchedRules;
+
+    // window tags
+    CTagKeeper m_tags;
 
     // For the list lookup
     bool operator==(const CWindow& rhs) {

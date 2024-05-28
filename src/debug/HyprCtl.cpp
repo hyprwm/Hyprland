@@ -1074,7 +1074,8 @@ std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) 
     if (size <= 0)
         return "size not positive";
 
-    g_pCursorManager->changeTheme(theme, size);
+    if (!g_pCursorManager->changeTheme(theme, size))
+        return "failed to set cursor";
 
     return "ok";
 }

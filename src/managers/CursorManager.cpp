@@ -267,9 +267,6 @@ void CCursorManager::updateTheme() {
             highestScale = m->scale;
     }
 
-    if (std::round(highestScale * m_iSize) == m_sCurrentStyleInfo.size)
-        return;
-
     if (m_sCurrentStyleInfo.size && m_pHyprcursor->valid())
         m_pHyprcursor->cursorSurfaceStyleDone(m_sCurrentStyleInfo);
 
@@ -287,13 +284,52 @@ void CCursorManager::updateTheme() {
     }
 }
 
-void CCursorManager::changeTheme(const std::string& name, const int size) {
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), hcLogger);
-    m_szTheme     = name;
-    m_iSize       = size;
+bool CCursorManager::changeTheme(const std::string& name, const int size) {
+    auto options                 = Hyprcursor::SManagerOptions();
+    options.logFn                = hcLogger;
+    options.allowDefaultFallback = false;
 
-    if (!m_pHyprcursor->valid())
-        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", m_szTheme);
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(name.empty() ? "" : name.c_str(), options);
+    if (m_pHyprcursor->valid()) {
+        m_szTheme = name;
+        m_iSize   = size;
+        updateTheme();
+        return true;
+    }
+
+    Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", name);
+
+    if (m_pWLRXCursorMgr)
+        wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+
+    m_pWLRXCursorMgr = wlr_xcursor_manager_create(name.empty() ? "" : name.c_str(), size);
+    bool xSuccess    = wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0) == 1;
+
+    // this basically checks if xcursor changed used theme to default but better
+    bool                       diffTheme = false;
+    wlr_xcursor_manager_theme* theme;
+    wl_list_for_each(theme, &m_pWLRXCursorMgr->scaled_themes, link) {
+        if (std::string{theme->theme->name} != name) {
+            diffTheme = true;
+            break;
+        }
+    }
+
+    if (xSuccess && !diffTheme) {
+        m_szTheme = name;
+        m_iSize   = size;
+        updateTheme();
+        return true;
+    }
+
+    Debug::log(ERR, "X also failed loading theme \"{}\", falling back to previous theme.", name);
+
+    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.c_str(), hcLogger);
+
+    wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+    m_pWLRXCursorMgr = wlr_xcursor_manager_create(m_szTheme.c_str(), m_iSize);
+    wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0);
 
     updateTheme();
+    return false;
 }

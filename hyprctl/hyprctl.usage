@@ -117,6 +117,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (movewindowpixel)         	                      "Move a selected window"
                 |  (cyclenext)           	                          "Focus the next window on a workspace"
                 |  (swapnext)            	                          "Swap the focused window with the next window"
+                |  (tagwindow)           	                          "Apply a tag to the window"
                 |  (focuswindow)         	                          "Focus the first window matching"
                 |  (focusmonitor)            	                      "Focus a monitor"
                 |  (splitratio)          	                          "Change the split ratio"

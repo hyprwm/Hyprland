@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <ranges>
+#include <unordered_set>
 #include <xkbcommon/xkbcommon.h>
 
 extern "C" char**             environ;
@@ -994,7 +995,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
     Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
 
     for (auto& r : m_dMonitorRules) {
-        if (r.name == "") {
+        if (r.name.empty()) {
             return r;
         }
     }
@@ -1080,12 +1081,17 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     bool hasFloating   = pWindow->m_bIsFloating;
     bool hasFullscreen = pWindow->m_bIsFullscreen;
 
+    // local tags for dynamic tag rule match
+    auto tags = pWindow->m_tags;
+
     for (auto& rule : m_dWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
+                if (rule.szValue.starts_with("tag:") && !tags.isTagged(rule.szValue.substr(4)))
+                    continue;
+
                 if (rule.szValue.starts_with("title:")) {
-                    // we have a title rule.
                     std::regex RULECHECK(rule.szValue.substr(6));
 
                     if (!std::regex_search(title, RULECHECK))
@@ -1102,28 +1108,31 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
             }
         } else {
             try {
-                if (rule.szClass != "") {
+                if (!rule.szTag.empty() && !tags.isTagged(rule.szTag))
+                    continue;
+
+                if (!rule.szClass.empty()) {
                     std::regex RULECHECK(rule.szClass);
 
                     if (!std::regex_search(appidclass, RULECHECK))
                         continue;
                 }
 
-                if (rule.szTitle != "") {
+                if (!rule.szTitle.empty()) {
                     std::regex RULECHECK(rule.szTitle);
 
                     if (!std::regex_search(title, RULECHECK))
                         continue;
                 }
 
-                if (rule.szInitialTitle != "") {
+                if (!rule.szInitialTitle.empty()) {
                     std::regex RULECHECK(rule.szInitialTitle);
 
                     if (!std::regex_search(pWindow->m_szInitialTitle, RULECHECK))
                         continue;
                 }
 
-                if (rule.szInitialClass != "") {
+                if (!rule.szInitialClass.empty()) {
                     std::regex RULECHECK(rule.szInitialClass);
 
                     if (!std::regex_search(pWindow->m_szInitialClass, RULECHECK))
@@ -1191,6 +1200,13 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
         Debug::log(LOG, "Window rule {} -> {} matched {}", rule.szRule, rule.szValue, pWindow);
 
         returns.push_back(rule);
+
+        // apply tag with local tags
+        if (rule.szRule.starts_with("tag")) {
+            CVarList vars{rule.szRule, 0, 's', true};
+            if (vars.size() == 2 && vars[0] == "tag")
+                tags.applyTag(vars[1], true);
+        }
 
         if (dynamic)
             continue;
@@ -1696,7 +1712,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         newrule.resolution = Vector2D(-1, -2);
     } else if (parseModeLine(ARGS[1], newrule.drmMode)) {
         newrule.resolution  = Vector2D(newrule.drmMode.hdisplay, newrule.drmMode.vdisplay);
-        newrule.refreshRate = newrule.drmMode.vrefresh / 1000;
+        newrule.refreshRate = float(newrule.drmMode.vrefresh) / 1000;
     } else {
 
         if (!ARGS[1].contains("x")) {
@@ -2023,7 +2039,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if ((KEY != "") || multiKey) {
         SParsedKey parsedKey = parseKey(KEY);
 
-        if (parsedKey.catchAll && m_szCurrentSubmap == "") {
+        if (parsedKey.catchAll && m_szCurrentSubmap.empty()) {
             Debug::log(ERR, "Catchall not allowed outside of submap!");
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
@@ -2048,18 +2064,24 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 }
 
 bool windowRuleValid(const std::string& RULE) {
-    return RULE == "float" || RULE == "tile" || RULE.starts_with("opacity") || RULE.starts_with("move") || RULE.starts_with("size") || RULE.starts_with("minsize") ||
-        RULE.starts_with("maxsize") || RULE.starts_with("pseudo") || RULE.starts_with("monitor") || RULE.starts_with("idleinhibit") || RULE == "nofocus" || RULE == "noblur" ||
-        RULE == "noshadow" || RULE == "nodim" || RULE == "noborder" || RULE == "opaque" || RULE == "forceinput" || RULE == "fullscreen" || RULE == "fakefullscreen" ||
-        RULE == "nomaxsize" || RULE == "pin" || RULE == "noanim" || RULE == "dimaround" || RULE == "windowdance" || RULE == "maximize" || RULE == "keepaspectratio" ||
-        RULE == "focusonactivate" || RULE.starts_with("animation") || RULE.starts_with("rounding") || RULE.starts_with("workspace") || RULE.starts_with("bordercolor") ||
-        RULE == "forcergbx" || RULE == "noinitialfocus" || RULE == "stayfocused" || RULE.starts_with("bordersize") || RULE.starts_with("xray") || RULE.starts_with("center") ||
-        RULE.starts_with("group") || RULE == "immediate" || RULE == "nearestneighbor" || RULE.starts_with("suppressevent") || RULE.starts_with("plugin:");
+    static const auto rules = std::unordered_set<std::string>{
+        "dimaround",       "fakefullscreen", "float",           "focusonactivate", "forceinput", "forcergbx",   "fullscreen", "immediate",
+        "keepaspectratio", "maximize",       "nearestneighbor", "noanim",          "noblur",     "noborder",    "nodim",      "nofocus",
+        "noinitialfocus",  "nomaxsize",      "noshadow",        "opaque",          "pin",        "stayfocused", "tile",       "windowdance",
+    };
+    static const auto rulesPrefix = std::vector<std::string>{
+        "animation", "bordercolor", "bordersize", "center",   "group", "idleinhibit",   "maxsize", "minsize",   "monitor", "move",
+        "opacity",   "plugin:",     "pseudo",     "rounding", "size",  "suppressevent", "tag",     "workspace", "xray",
+    };
+
+    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
 }
 
 bool layerRuleValid(const std::string& RULE) {
-    return RULE == "noanim" || RULE == "blur" || RULE == "blurpopups" || RULE.starts_with("ignorealpha") || RULE.starts_with("ignorezero") || RULE == "dimaround" ||
-        RULE.starts_with("xray") || RULE.starts_with("animation");
+    static const auto rules       = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
+    static const auto rulesPrefix = std::vector<std::string>{"ignorealpha", "ignorezero", "xray", "animation"};
+
+    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
@@ -2067,7 +2089,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "")
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
     if (RULE == "unset") {
@@ -2094,7 +2116,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
     const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
-    if (RULE == "" || VALUE == "")
+    if (RULE.empty() || VALUE.empty())
         return "empty rule?";
 
     if (RULE == "unset") {
@@ -2132,6 +2154,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     rule.szRule  = RULE;
     rule.szValue = VALUE;
 
+    const auto TAGPOS          = VALUE.find("tag:");
     const auto TITLEPOS        = VALUE.find("title:");
     const auto CLASSPOS        = VALUE.find("class:");
     const auto INITIALTITLEPOS = VALUE.find("initialTitle:");
@@ -2154,9 +2177,10 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    if (TITLEPOS == std::string::npos && CLASSPOS == std::string::npos && INITIALTITLEPOS == std::string::npos && INITIALCLASSPOS == std::string::npos &&
-        X11POS == std::string::npos && FLOATPOS == std::string::npos && FULLSCREENPOS == std::string::npos && PINNEDPOS == std::string::npos && WORKSPACEPOS == std::string::npos &&
-        FOCUSPOS == std::string::npos && ONWORKSPACEPOS == std::string::npos) {
+    const auto checkPos = std::unordered_set{
+        TAGPOS, TITLEPOS, CLASSPOS, INITIALTITLEPOS, INITIALCLASSPOS, X11POS, FLOATPOS, FULLSCREENPOS, PINNEDPOS, WORKSPACEPOS, FOCUSPOS, ONWORKSPACEPOS,
+    };
+    if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
     }
@@ -2166,6 +2190,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         result = VALUE.substr(pos);
 
         size_t min = 999999;
+        if (TAGPOS > pos && TAGPOS < min)
+            min = TAGPOS;
         if (TITLEPOS > pos && TITLEPOS < min)
             min = TITLEPOS;
         if (CLASSPOS > pos && CLASSPOS < min)
@@ -2198,6 +2224,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
 
         return result;
     };
+
+    if (TAGPOS != std::string::npos)
+        rule.szTag = extract(TAGPOS + 4);
 
     if (CLASSPOS != std::string::npos)
         rule.szClass = extract(CLASSPOS + 6);
@@ -2237,6 +2266,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             if (!other.v2) {
                 return other.szClass == rule.szClass && !rule.szClass.empty();
             } else {
+                if (!rule.szTag.empty() && rule.szTag != other.szTag)
+                    return false;
+
                 if (!rule.szClass.empty() && rule.szClass != other.szClass)
                     return false;
 

@@ -1,10 +1,12 @@
+#include <any>
+#include <string_view>
+#include <algorithm>
 #include "Window.hpp"
 #include "../Compositor.hpp"
 #include "../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../render/decorations/CHyprBorderDecoration.hpp"
 #include "../config/ConfigValue.hpp"
-#include <any>
 #include "../managers/TokenManager.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../xwayland/XWayland.hpp"
@@ -619,6 +621,13 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         m_sAdditionalConfigData.forceTearing = true;
     } else if (r.szRule == "nearestneighbor") {
         m_sAdditionalConfigData.nearestNeighbor = true;
+    } else if (r.szRule.starts_with("tag")) {
+        CVarList vars{r.szRule, 0, 's', true};
+
+        if (vars.size() == 2 && vars[0] == "tag")
+            m_tags.applyTag(vars[1], true);
+        else
+            Debug::log(ERR, "Tag rule invalid: {}", r.szRule);
     } else if (r.szRule.starts_with("rounding")) {
         try {
             m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
@@ -799,6 +808,8 @@ void CWindow::updateDynamicRules() {
     m_sAdditionalConfigData.forceTearing    = false;
     m_sAdditionalConfigData.nearestNeighbor = false;
     m_eIdleInhibitMode                      = IDLEINHIBIT_NONE;
+
+    m_tags.removeDynamicTags();
 
     m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
     for (auto& r : m_vMatchedRules) {
@@ -1370,6 +1381,7 @@ void CWindow::onUpdateState() {
 
 void CWindow::onUpdateMeta() {
     const auto NEWTITLE = fetchTitle();
+    bool       doUpdate = false;
 
     if (m_szTitle != NEWTITLE) {
         m_szTitle = NEWTITLE;
@@ -1382,11 +1394,8 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
-        updateDynamicRules();
-        g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
-        updateToplevel();
-
         Debug::log(LOG, "Window {:x} set title to {}", (uintptr_t)this, m_szTitle);
+        doUpdate = true;
     }
 
     const auto NEWCLASS = fetchClass();
@@ -1399,11 +1408,14 @@ void CWindow::onUpdateMeta() {
             EMIT_HOOK_EVENT("activeWindow", m_pSelf.lock());
         }
 
+        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
+        doUpdate = true;
+    }
+
+    if (doUpdate) {
         updateDynamicRules();
         g_pCompositor->updateWindowAnimatedDecorationValues(m_pSelf.lock());
         updateToplevel();
-
-        Debug::log(LOG, "Window {:x} set class to {}", (uintptr_t)this, m_szClass);
     }
 }
 

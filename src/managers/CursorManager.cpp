@@ -305,8 +305,8 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
     bool xSuccess    = wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0) == 1;
 
     // this basically checks if xcursor changed used theme to default but better
-    bool                              diffTheme = false;
-    struct wlr_xcursor_manager_theme* theme;
+    bool                       diffTheme = false;
+    wlr_xcursor_manager_theme* theme;
     wl_list_for_each(theme, &m_pWLRXCursorMgr->scaled_themes, link) {
         if (std::string{theme->theme->name} != name) {
             diffTheme = true;

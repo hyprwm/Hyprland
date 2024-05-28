@@ -21,7 +21,7 @@ class CCursorManager {
     void             setCursorSurface(CWLSurface* surf, const Vector2D& hotspot);
     void             setXCursor(const std::string& name);
 
-    void             changeTheme(const std::string& name, const int size);
+    bool             changeTheme(const std::string& name, const int size);
     void             updateTheme();
     SCursorImageData dataFor(const std::string& name); // for xwayland
     void             setXWaylandCursor();

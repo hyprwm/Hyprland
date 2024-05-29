@@ -210,7 +210,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             const auto XID   = (xcb_window_t*)xcb_get_property_value(reply);
             XSURF->transient = XID;
             if (XID) {
-                if (const auto NEWXSURF = windowForXID(*XID); !lookupParentExists(XSURF, NEWXSURF)) {
+                if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
                     XSURF->parent = NEWXSURF;
                     NEWXSURF->children.push_back(XSURF);
                 } else

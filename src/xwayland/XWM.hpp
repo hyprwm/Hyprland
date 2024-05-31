@@ -60,6 +60,7 @@ struct SXSelection {
 class CXWM {
   public:
     CXWM();
+    ~CXWM();
 
     int onEvent(int fd, uint32_t mask);
 

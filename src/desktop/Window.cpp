@@ -1139,8 +1139,8 @@ bool CWindow::opaque() {
     if (PWORKSPACE->m_fAlpha.value() != 1.f)
         return false;
 
-    if (m_bIsX11)
-        return false;
+    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface)
+        return m_pXWaylandSurface->surface->opaque;
 
     if (m_pXDGSurface && m_pXDGSurface->surface->opaque)
         return true;

@@ -661,7 +661,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || w->m_iX11Type != 2)) {
         if (w && !w->m_bIsFullscreen) {
             const CBox real = {w->m_vRealPosition.value().x, w->m_vRealPosition.value().y, w->m_vRealSize.value().x, w->m_vRealSize.value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
@@ -674,7 +674,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     }
 
     switch (e.state) {
-        case WL_POINTER_BUTTON_STATE_PRESSED:
+        case WL_POINTER_BUTTON_STATE_PRESSED: {
             if (*PFOLLOWMOUSE == 3) // don't refocus on full loose
                 break;
 
@@ -692,10 +692,16 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
             }
 
             // if clicked on a floating window make it top
-            if (g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsFloating)
-                g_pCompositor->changeWindowZOrder(g_pCompositor->m_pLastWindow.lock(), true);
+            if (!g_pSeatManager->state.pointerFocus)
+                break;
+
+            auto HLSurf = CWLSurface::surfaceFromWlr(g_pSeatManager->state.pointerFocus);
+
+            if (HLSurf && HLSurf->getWindow())
+                g_pCompositor->changeWindowZOrder(HLSurf->getWindow(), true);
 
             break;
+        }
         case WL_POINTER_BUTTON_STATE_RELEASED: break;
     }
 
@@ -842,8 +848,10 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 
-            if (PKEEB == g_pSeatManager->keyboard)
+            if (PKEEB == g_pSeatManager->keyboard) {
                 g_pSeatManager->updateActiveKeyboardData();
+                g_pKeybindManager->m_mKeyToCodeCache.clear();
+            }
 
             g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->hlName + "," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
@@ -1674,6 +1682,10 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
         m_eBorderIconDirection = BORDERICON_NONE;
         return;
     }
+
+    // ignore X11 OR windows, they shouldn't be touched
+    if (w->m_bIsX11 && w->m_iX11Type == 2)
+        return;
 
     static auto PEXTENDBORDERGRAB = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     const int   BORDERSIZE        = w->getRealBorderSize();

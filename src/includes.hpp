@@ -82,10 +82,6 @@ extern "C" {
 #if WLR_HAS_X11_BACKEND
 #include <wlr/backend/x11.h>
 #endif
-
-#ifndef NO_XWAYLAND
-#include <wlr/xwayland.h>
-#endif
 }
 
 #undef delete
@@ -110,7 +106,6 @@ extern "C" {
 
 #ifdef NO_XWAYLAND
 #define XWAYLAND false
-#include "helpers/XWaylandStubs.hpp"
 #else
 #define XWAYLAND true
 #endif

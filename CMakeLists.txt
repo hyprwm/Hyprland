@@ -16,7 +16,7 @@ project(Hyprland
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
-configure_file(hyprland.pc.in hyprland.pc @ONLY) 
+configure_file(hyprland.pc.in hyprland.pc @ONLY)
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
@@ -90,9 +90,12 @@ include_directories(
   "protocols/")
 set(CMAKE_CXX_STANDARD 23)
 add_compile_definitions(WLR_USE_UNSTABLE)
-add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-value
+    -Wno-missing-field-initializers -Wno-narrowing -Wno-pointer-arith
+    -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 message(STATUS "Checking deps...")
 
@@ -189,12 +192,8 @@ if(NO_XWAYLAND)
     add_compile_definitions(NO_XWAYLAND)
 else()
     message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-    pkg_check_modules(xdeps REQUIRED IMPORTED_TARGET xcb xwayland xcb-util xcb-render xcb-xfixes xcb-icccm xcb-composite xcb-res xcb-ewmh)
-    pkg_check_modules(xcb_errors IMPORTED_TARGET xcb-errors)
+    pkg_check_modules(xdeps REQUIRED IMPORTED_TARGET xcb xwayland xcb-util xcb-render xcb-xfixes xcb-icccm xcb-composite xcb-res xcb-ewmh xcb-errors)
     target_link_libraries(Hyprland PkgConfig::xdeps)
-    if(xcb_errors_FOUND)
-        target_link_libraries(Hyprland PkgConfig::xcb_errors)
-    endif()
 endif()
 
 if(NO_SYSTEMD)
@@ -216,6 +215,9 @@ message(STATUS "Setting link libraries")
 
 target_link_libraries(Hyprland rt PkgConfig::deps)
 
+# used by `make installheaders`, to ensure the headers are generated
+add_custom_target(generate-protocol-headers)
+
 function(protocol protoPath protoName external)
     if (external)
         set(path ${CMAKE_SOURCE_DIR}/${protoPath})
@@ -233,9 +235,10 @@ function(protocol protoPath protoName external)
         COMMAND ${WaylandScanner} private-code ${path} protocols/${protoName}-protocol.c
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
-    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
+    target_sources(Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
 endfunction()
+
 function(protocolNew protoPath protoName external)
     if (external)
         set(path ${CMAKE_SOURCE_DIR}/${protoPath})
@@ -248,8 +251,8 @@ function(protocolNew protoPath protoName external)
         COMMAND hyprwayland-scanner ${path}/${protoName}.xml ${CMAKE_SOURCE_DIR}/protocols/
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp)
-    target_sources(Hyprland PRIVATE protocols/${protoName}.hpp)
+    target_sources(Hyprland PRIVATE protocols/${protoName}.cpp protocols/${protoName}.hpp)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp)
 endfunction()
 function(protocolWayland)
     add_custom_command(
@@ -258,8 +261,8 @@ function(protocolWayland)
         COMMAND hyprwayland-scanner --wayland-enums ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(Hyprland PRIVATE protocols/wayland.cpp)
-    target_sources(Hyprland PRIVATE protocols/wayland.hpp)
+    target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
+    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
 endfunction()
 
 target_link_libraries(Hyprland
@@ -308,6 +311,7 @@ protocolNew("stable/tablet" "tablet-v2" false)
 protocolNew("stable/presentation-time" "presentation-time" false)
 protocolNew("stable/xdg-shell" "xdg-shell" false)
 protocolNew("unstable/primary-selection" "primary-selection-unstable-v1" false)
+protocolNew("staging/xwayland-shell" "xwayland-shell-v1" false)
 
 protocolWayland()
 

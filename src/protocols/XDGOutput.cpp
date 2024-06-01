@@ -1,6 +1,7 @@
 #include "XDGOutput.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../xwayland/XWayland.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
 #define OUTPUT_DONE_DEPRECATED_SINCE_VERSION     3
@@ -55,7 +56,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
-    if (g_pXWaylandManager->m_sWLRXWayland && g_pXWaylandManager->m_sWLRXWayland->server && g_pXWaylandManager->m_sWLRXWayland->server->client == CLIENT)
+    if (g_pXWayland && g_pXWayland->pServer && g_pXWayland->pServer->xwaylandClient == CLIENT)
         pXDGOutput->isXWayland = true;
 #endif
     pXDGOutput->client = CLIENT;

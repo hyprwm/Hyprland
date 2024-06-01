@@ -106,6 +106,8 @@ class CSeatManager {
         CSignal pointerFocusChange;
         CSignal touchFocusChange;
         CSignal setCursor; // SSetCursorEvent
+        CSignal setSelection;
+        CSignal setPrimarySelection;
     } events;
 
     struct {

@@ -1,20 +1,24 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "Subsurface.hpp"
-#include "../helpers/AnimatedVariable.hpp"
-#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include <deque>
+#include <string>
+
 #include "../config/ConfigDataValues.hpp"
+#include "../defines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/Vector2D.hpp"
-#include "WLSurface.hpp"
-#include "Popup.hpp"
+#include "../helpers/signal/Signal.hpp"
+#include "../helpers/TagKeeper.hpp"
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "DesktopTypes.hpp"
-#include "../helpers/signal/Signal.hpp"
+#include "Popup.hpp"
+#include "Subsurface.hpp"
+#include "WLSurface.hpp"
 
 class CXDGSurfaceResource;
+class CXWaylandSurface;
 
 enum eIdleInhibitMode {
     IDLEINHIBIT_NONE = 0,
@@ -182,6 +186,7 @@ struct SWindowRule {
     std::string szClass;
     std::string szInitialTitle;
     std::string szInitialClass;
+    std::string szTag;
     int         bX11          = -1; // -1 means "ANY"
     int         bFloating     = -1;
     int         bFullscreen   = -1;
@@ -199,37 +204,14 @@ struct SInitialWorkspaceToken {
 class CWindow {
   public:
     static PHLWINDOW create(SP<CXDGSurfaceResource>);
-    // xwl
-    static PHLWINDOW create();
+    static PHLWINDOW create(SP<CXWaylandSurface>);
 
   private:
     CWindow(SP<CXDGSurfaceResource> resource);
-    CWindow();
+    CWindow(SP<CXWaylandSurface> surface);
 
   public:
     ~CWindow();
-
-    DYNLISTENER(commitWindow);
-    DYNLISTENER(mapWindow);
-    DYNLISTENER(unmapWindow);
-    DYNLISTENER(destroyWindow);
-    DYNLISTENER(setTitleWindow);
-    DYNLISTENER(setGeometryX11U);
-    DYNLISTENER(fullscreenWindow);
-    DYNLISTENER(requestMove);
-    DYNLISTENER(requestMinimize);
-    DYNLISTENER(requestMaximize);
-    DYNLISTENER(requestResize);
-    DYNLISTENER(activateX11);
-    DYNLISTENER(configureX11);
-    DYNLISTENER(toplevelClose);
-    DYNLISTENER(toplevelActivate);
-    DYNLISTENER(toplevelFullscreen);
-    DYNLISTENER(setOverrideRedirect);
-    DYNLISTENER(associateX11);
-    DYNLISTENER(dissociateX11);
-    DYNLISTENER(ackConfigure);
-    // DYNLISTENER(newSubsurfaceWindow);
 
     CWLSurface m_pWLSurface;
 
@@ -237,10 +219,8 @@ class CWindow {
         CSignal destroy;
     } events;
 
-    union {
-        wlr_xwayland_surface* xwayland;
-    } m_uSurface;
     WP<CXDGSurfaceResource> m_pXDGSurface;
+    WP<CXWaylandSurface>    m_pXWaylandSurface;
 
     // this is the position and size of the "bounding box"
     Vector2D m_vPosition = Vector2D(0, 0);
@@ -389,9 +369,12 @@ class CWindow {
     // stores the currently matched window rules
     std::vector<SWindowRule> m_vMatchedRules;
 
+    // window tags
+    CTagKeeper m_tags;
+
     // For the list lookup
     bool operator==(const CWindow& rhs) {
-        return m_pXDGSurface == rhs.m_pXDGSurface && m_uSurface.xwayland == rhs.m_uSurface.xwayland && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
+        return m_pXDGSurface == rhs.m_pXDGSurface && m_pXWaylandSurface == rhs.m_pXWaylandSurface && m_vPosition == rhs.m_vPosition && m_vSize == rhs.m_vSize &&
             m_bFadingOut == rhs.m_bFadingOut;
     }
 
@@ -459,6 +442,8 @@ class CWindow {
     void                     onWorkspaceAnimUpdate();
     void                     onUpdateState();
     void                     onUpdateMeta();
+    void                     onX11Configure(CBox box);
+    void                     onResourceChangeX11();
     std::string              fetchTitle();
     std::string              fetchClass();
 
@@ -478,8 +463,12 @@ class CWindow {
         CHyprSignalListener unmap;
         CHyprSignalListener commit;
         CHyprSignalListener destroy;
+        CHyprSignalListener activate;
+        CHyprSignalListener configure;
+        CHyprSignalListener setGeometry;
         CHyprSignalListener updateState;
         CHyprSignalListener updateMetadata;
+        CHyprSignalListener resourceChange;
     } listeners;
 
   private:

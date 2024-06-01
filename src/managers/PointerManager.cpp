@@ -119,7 +119,17 @@ static bool output_pick_cursor_format(struct wlr_output* output, struct wlr_drm_
         }
     }
 
-    return output_pick_format(output, display_formats, format, DRM_FORMAT_ARGB8888);
+    // Note: taken from https://gitlab.freedesktop.org/wlroots/wlroots/-/merge_requests/4596/diffs#diff-content-e3ea164da86650995728d70bd118f6aa8c386797
+    // If this fails to find a shared modifier try to use a linear
+    // modifier. This avoids a scenario where the hardware cannot render to
+    // linear textures but only linear textures are supported for cursors,
+    // as is the case with Nvidia and VmWare GPUs
+    if (!output_pick_format(output, display_formats, format, DRM_FORMAT_ARGB8888)) {
+        // Clear the format as output_pick_format doesn't zero it
+        memset(format, 0, sizeof(*format));
+        return output_pick_format(output, NULL, format, DRM_FORMAT_ARGB8888);
+    }
+    return true;
 }
 
 CPointerManager::CPointerManager() {
@@ -131,7 +141,11 @@ CPointerManager::CPointerManager() {
         PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
         PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
-            [this](void* owner, std::any data) { std::erase_if(monitorStates, [](const auto& other) { return other->monitor.expired(); }); }, nullptr);
+            [this](void* owner, std::any data) {
+                if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)
+                    std::erase_if(monitorStates, [](const auto& other) { return other->monitor.expired(); });
+            },
+            nullptr);
     });
 }
 
@@ -550,7 +564,7 @@ Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
     if (!pMonitor->output->cursor_swapchain)
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
-    return CBox{currentCursorImage.hotspot, {0, 0}}
+    return CBox{currentCursorImage.hotspot * pMonitor->scale, {0, 0}}
         .transform(wlr_output_transform_invert(pMonitor->transform), pMonitor->output->cursor_swapchain->width, pMonitor->output->cursor_swapchain->height)
         .pos();
 }
@@ -560,7 +574,7 @@ CBox CPointerManager::getCursorBoxLogicalForMonitor(SP<CMonitor> pMonitor) {
 }
 
 CBox CPointerManager::getCursorBoxGlobal() {
-    return CBox{pointerPos, currentCursorImage.size / currentCursorImage.scale}.translate(-currentCursorImage.hotspot / currentCursorImage.scale);
+    return CBox{pointerPos, currentCursorImage.size / currentCursorImage.scale}.translate(-currentCursorImage.hotspot);
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
@@ -696,8 +710,11 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
                 }
             }
 
-            if (!TAB->boundBox.empty())
-                mappedArea = TAB->boundBox.translate(currentMonitor->vecPosition);
+            mappedArea.translate(TAB->boundBox.pos());
+            if (!TAB->boundBox.empty()) {
+                mappedArea.w = TAB->boundBox.w;
+                mappedArea.h = TAB->boundBox.h;
+            }
             break;
         }
         case HID_TYPE_TOUCH: {

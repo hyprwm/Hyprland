@@ -20,6 +20,7 @@
 #include "protocols/LayerShell.hpp"
 #include "protocols/XDGShell.hpp"
 #include "desktop/LayerSurface.hpp"
+#include "xwayland/XWayland.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -332,12 +333,9 @@ void CCompositor::cleanup() {
         m->state.commit();
     }
 
-    m_vMonitors.clear();
+    g_pXWayland.reset();
 
-    if (g_pXWaylandManager->m_sWLRXWayland) {
-        wlr_xwayland_destroy(g_pXWaylandManager->m_sWLRXWayland);
-        g_pXWaylandManager->m_sWLRXWayland = nullptr;
-    }
+    m_vMonitors.clear();
 
     wl_display_destroy_clients(g_pCompositor->m_sWLDisplay);
     removeAllSignals();
@@ -462,6 +460,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the CursorManager!");
             g_pCursorManager = std::make_unique<CCursorManager>();
+
+            Debug::log(LOG, "Starting XWayland");
+            g_pXWayland = std::make_unique<CXWayland>();
         } break;
         default: UNREACHABLE();
     }
@@ -669,7 +670,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     if (properties & ALLOW_FLOATING) {
         for (auto& w : m_vWindows | std::views::reverse) {
             const auto BB  = w->getWindowBoxUnified(properties);
-            CBox       box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
+            CBox       box = BB.copy().expand(w->m_iX11Type == 2 ? BORDER_GRAB_AREA : 0);
             if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sAdditionalConfigData.noFocus && w != pIgnoreWindow) {
                 if (box.containsPoint(g_pPointerManager->position()))
                     return w;
@@ -698,7 +699,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x && BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
                     continue;
 
-                CBox box = {BB.x - BORDER_GRAB_AREA, BB.y - BORDER_GRAB_AREA, BB.width + 2 * BORDER_GRAB_AREA, BB.height + 2 * BORDER_GRAB_AREA};
+                CBox box = BB.copy().expand(w->m_iX11Type == 2 ? BORDER_GRAB_AREA : 0);
                 if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_pWorkspace) && !w->isHidden() && !w->m_bPinned && !w->m_sAdditionalConfigData.noFocus &&
                     w != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent
@@ -707,7 +708,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
                     if (box.containsPoint(g_pPointerManager->position())) {
 
-                        if (w->m_bIsX11 && w->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(w->m_uSurface.xwayland)) {
+                        if (w->m_bIsX11 && w->m_iX11Type == 2 && !w->m_pXWaylandSurface->wantsFocus()) {
                             // Override Redirect
                             return g_pCompositor->m_pLastWindow.lock(); // we kinda trick everything here.
                                 // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
@@ -892,7 +893,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, wlr_surface* pSurface) {
         return;
     }
 
-    if (pWindow && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2 && !wlr_xwayland_or_surface_wants_focus(pWindow->m_uSurface.xwayland))
+    if (pWindow && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2 && !pWindow->m_pXWaylandSurface->wantsFocus())
         return;
 
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
@@ -1273,10 +1274,9 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     if (top)
         pWindow->m_bCreatedOverFullscreen = true;
 
-    if (!pWindow->m_bIsX11) {
+    if (!pWindow->m_bIsX11)
         moveToZ(pWindow, top);
-        return;
-    } else {
+    else {
         // move X11 window stack
 
         std::deque<PHLWINDOW> toMove;
@@ -1288,7 +1288,7 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
                 toMove.emplace_front(pw);
 
             for (auto& w : m_vWindows) {
-                if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw) {
+                if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw && w != pw && std::find(toMove.begin(), toMove.end(), w) == toMove.end()) {
                     x11Stack(w, top, x11Stack);
                 }
             }
@@ -1386,7 +1386,8 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
         return nullptr;
 
     // 0 -> history, 1 -> shared length
-    static auto PMETHOD = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
+    static auto PMETHOD          = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
     const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
@@ -1414,6 +1415,9 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
                 continue;
 
             if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
+
+            if (!*PMONITORFALLBACK && pWindow->m_iMonitorID != w->m_iMonitorID)
                 continue;
 
             const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -1503,6 +1507,9 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
                 continue;
 
             if (PWORKSPACE->m_bHasFullscreenWindow && !w->m_bIsFullscreen && !w->m_bCreatedOverFullscreen)
+                continue;
+
+            if (!*PMONITORFALLBACK && pWindow->m_iMonitorID != w->m_iMonitorID)
                 continue;
 
             const auto DIST  = w->middle().distance(pWindow->middle());
@@ -2219,7 +2226,7 @@ PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
         if (!w->m_bIsX11)
             continue;
 
-        if (w->m_uSurface.xwayland == pWindow->m_uSurface.xwayland->parent)
+        if (w->m_pXWaylandSurface == pWindow->m_pXWaylandSurface->parent)
             return w;
     }
 
@@ -2359,8 +2366,12 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
-    if (*PNOWARPS && !force)
+    if (*PNOWARPS && !force) {
+        const auto PMONITORNEW = getMonitorFromVector(pos);
+        if (PMONITORNEW != m_pLastMonitor.get())
+            setActiveMonitor(PMONITORNEW);
         return;
+    }
 
     g_pPointerManager->warpTo(pos);
 
@@ -2659,6 +2670,7 @@ void CCompositor::arrangeMonitors() {
                 maxXOffsetLeft = newPosition.x;
                 break;
             case eAutoDirs::DIR_AUTO_RIGHT:
+            case eAutoDirs::DIR_AUTO_NONE:
                 newPosition.x = maxXOffsetRight;
                 maxXOffsetRight += m->vecSize.x;
                 break;

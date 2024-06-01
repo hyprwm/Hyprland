@@ -13,7 +13,8 @@
 #include "signal/Signal.hpp"
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
-enum class eAutoDirs {
+enum eAutoDirs {
+    DIR_AUTO_NONE = 0, /* None will be treated as right. */
     DIR_AUTO_UP,
     DIR_AUTO_DOWN,
     DIR_AUTO_LEFT,
@@ -21,7 +22,7 @@ enum class eAutoDirs {
 };
 
 struct SMonitorRule {
-    eAutoDirs           autoDir;
+    eAutoDirs           autoDir     = DIR_AUTO_NONE;
     std::string         name        = "";
     Vector2D            resolution  = Vector2D(1280, 720);
     Vector2D            offset      = Vector2D(0, 0);

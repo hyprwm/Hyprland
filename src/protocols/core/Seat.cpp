@@ -213,6 +213,9 @@ bool CWLKeyboardResource::good() {
 }
 
 void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
+    if (!keyboard)
+        return;
+
     wl_keyboard_keymap_format format = keyboard ? WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 : WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP;
     int                       fd;
     uint32_t                  size;

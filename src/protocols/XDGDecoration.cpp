@@ -26,6 +26,8 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
         LOGM(LOG, "unsetMode. Sending MODE_SERVER_SIDE.");
         resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     });
+
+    resource->sendConfigure(ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
 
 bool CXDGDecoration::good() {

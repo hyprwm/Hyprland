@@ -837,6 +837,17 @@ CXWM::CXWM() {
     xcb_flush(connection);
 }
 
+CXWM::~CXWM() {
+    if (errors)
+        xcb_errors_context_free(errors);
+
+    if (connection)
+        xcb_disconnect(connection);
+
+    if (eventSource)
+        wl_event_source_remove(eventSource);
+}
+
 void CXWM::setActiveWindow(xcb_window_t window) {
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, screen->root, HYPRATOMS["_NET_ACTIVE_WINDOW"], HYPRATOMS["WINDOW"], 32, 1, &window);
 }

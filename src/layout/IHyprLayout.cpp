@@ -147,7 +147,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
                 pWindow->m_vRealPosition = pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealPosition.goal() +
                     pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealSize.goal() / 2.F - desiredGeometry.size() / 2.F;
             else
-                pWindow->m_vRealPosition = PMONITOR->vecPosition + desiredGeometry.size() / 2.F;
+                pWindow->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.F - desiredGeometry.size() / 2.F;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups

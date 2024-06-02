@@ -1625,6 +1625,11 @@ CHyprCtl::CHyprCtl() {
     startHyprCtlSocket();
 }
 
+CHyprCtl::~CHyprCtl() {
+    if (m_eventSource)
+        wl_event_source_remove(m_eventSource);
+}
+
 SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
     return m_vCommands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
 }
@@ -1805,5 +1810,5 @@ void CHyprCtl::startHyprCtlSocket() {
 
     Debug::log(LOG, "Hypr socket started at {}", socketPath);
 
-    wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

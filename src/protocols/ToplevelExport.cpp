@@ -378,14 +378,14 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     CFramebuffer outFB;
     outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
-
     if (frame->overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
+    }
+
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
+        wlr_buffer_end_data_ptr_access(frame->buffer);
+        return false;
     }
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));

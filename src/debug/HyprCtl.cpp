@@ -1374,7 +1374,7 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-static bool addOutput(wlr_backend* backend, const std::string& type, std::string& name) {
+static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
     wlr_output* output = nullptr;
 
     if (type.empty() || type == "auto") {
@@ -1392,20 +1392,23 @@ static bool addOutput(wlr_backend* backend, const std::string& type, std::string
     if (output && !name.empty())
         g_pCompositor->getMonitorFromOutput(output)->szName = name;
 
-    if (!output)
-        return false;
-
-    return true;
+    return output != nullptr;
 }
 
-void createOutputIter(wlr_backend* backend, void* data) {
-    const auto DATA = (std::pair<std::pair<std::string, std::string>, bool>*)data;
+struct outputData {
+    std::string type;
+    std::string name;
+    bool        added;
+};
 
-    if (DATA->second)
+void createOutputIter(wlr_backend* backend, void* data) {
+    const auto DATA = static_cast<outputData*>(data);
+
+    if (DATA->added)
         return;
 
-    if (addOutput(backend, DATA->first.first, DATA->first.second))
-        DATA->second = true;
+    if (addOutput(backend, DATA->type, DATA->name))
+        DATA->added = true;
 }
 
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
@@ -1420,11 +1423,11 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        std::pair<std::pair<std::string, std::string>, bool> result = {{vars[2], vars[3]}, false};
+        outputData result{vars[2], vars[3], false};
 
         wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
 
-        if (!result.second)
+        if (!result.added)
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {

@@ -1375,7 +1375,7 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
 }
 
 static bool addOutput(wlr_backend* backend, const std::string& type, std::string& name) {
-    wlr_output *output = nullptr;
+    wlr_output* output = nullptr;
 
     if (type.empty() || type == "auto") {
         if (wlr_backend_is_wl(backend))

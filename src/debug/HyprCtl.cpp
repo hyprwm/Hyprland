@@ -1380,15 +1380,11 @@ static bool addOutput(wlr_backend* backend, const std::string& type, std::string
     if (type.empty() || type == "auto") {
         if (wlr_backend_is_wl(backend))
             output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_x11(backend))
-            wlr_x11_output_create(backend);
         else if (wlr_backend_is_headless(backend))
             output = wlr_headless_add_output(backend, 1920, 1080);
     } else {
         if (wlr_backend_is_wl(backend) && type == "wayland")
             output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_x11(backend) && type == "x11")
-            wlr_x11_output_create(backend);
         else if (wlr_backend_is_headless(backend) && type == "headless")
             output = wlr_headless_add_output(backend, 1920, 1080);
     }

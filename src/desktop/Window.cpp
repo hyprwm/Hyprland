@@ -176,11 +176,13 @@ CBox CWindow::getFullWindowBoundingBox() {
 }
 
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
-
     const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-    auto       POS  = m_vPosition;
-    auto       SIZE = m_vSize;
+    if (!PMONITOR)
+        return {m_vPosition, m_vSize};
+
+    auto POS  = m_vPosition;
+    auto SIZE = m_vSize;
 
     if (m_bIsFullscreen) {
         POS  = PMONITOR->vecPosition;
@@ -208,10 +210,10 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 }
 
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
-
     if (m_sAdditionalConfigData.dimAround) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+        if (PMONITOR)
+            return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
     SWindowDecorationExtents EXTENTS = {{0, 0}, {0, 0}};

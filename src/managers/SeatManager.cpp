@@ -290,7 +290,7 @@ void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
     }
 }
 
-void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, wl_pointer_axis_source source,
+void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, int32_t value120, wl_pointer_axis_source source,
                                    wl_pointer_axis_relative_direction relative) {
     if (!state.pointerFocusResource)
         return;
@@ -303,8 +303,10 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
         p->sendAxisSource(source);
         p->sendAxisRelativeDirection(axis, relative);
 
-        if (source == 0)
+        if (source == 0) {
+            p->sendAxisValue120(axis, value120);
             p->sendAxisDiscrete(axis, discrete);
+        }
 
         if (value == 0)
             p->sendAxisStop(timeMs, axis);

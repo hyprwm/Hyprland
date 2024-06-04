@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "wlr/types/wlr_switch.h"
+#include <cstdint>
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/Window.hpp"
@@ -782,8 +783,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
             }
         }
     }
-
-    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, std::round(factor * e.deltaDiscrete / 120), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+    double deltaDiscrete = factor * e.deltaDiscrete / std::abs(e.deltaDiscrete);
+    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, deltaDiscrete > 0 ? std::ceil(deltaDiscrete) : std::floor(deltaDiscrete),
+                                    std::round(factor * e.deltaDiscrete), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

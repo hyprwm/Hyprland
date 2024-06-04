@@ -262,8 +262,9 @@ void CXWaylandServer::die() {
     if (xwmFDs[1])
         close(xwmFDs[1]);
 
-    if (xwaylandClient)
-        wl_client_destroy(xwaylandClient);
+    // possible crash. Better to leak a bit.
+    //if (xwaylandClient)
+    //    wl_client_destroy(xwaylandClient);
 
     xwaylandClient = nullptr;
     waylandFDs     = {-1, -1};

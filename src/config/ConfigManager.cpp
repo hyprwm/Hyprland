@@ -1706,8 +1706,13 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
             newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
 
-            if (ARGS[1].contains("@"))
-                newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+            if (ARGS[1].contains("@")) {
+                try {
+                    newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+                } catch (...) {
+                    return "invalid argument for framerate";
+                }
+            }
         }
     }
 
@@ -1821,10 +1826,11 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
     const auto  ARGS = CVarList(args);
 
     std::string bezierName = ARGS[0];
-        if (ARGS[1] == "" || ARGS[2] == "" || ARGS[3] == "" || ARGS[4] == "")
-            return "too few arguments";
-        if (ARGS[5]!= "")
-            return "too many arguments";
+
+    if (ARGS.size() < 5)
+        return "too few arguments";
+    if (ARGS[5]!= "")
+        return "too many arguments";
 
     float p1x = 0, p1y = 0, p2x = 0, p2y = 0;
     try {

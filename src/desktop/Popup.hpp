@@ -56,7 +56,8 @@ class CPopup {
 
     bool                  m_bRequestedReposition = false;
 
-    bool                  m_bInert = false;
+    bool                  m_bInert  = false;
+    bool                  m_bMapped = false;
 
     //
     std::vector<std::unique_ptr<CPopup>> m_vChildren;

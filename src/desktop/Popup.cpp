@@ -45,7 +45,7 @@ void CPopup::initAllSignals() {
     listeners.reposition = m_pResource->events.reposition.registerListener([this](std::any d) { this->onReposition(); });
     listeners.map        = m_pResource->surface->events.map.registerListener([this](std::any d) { this->onMap(); });
     listeners.unmap      = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
-    listeners.dismissed  = m_pResource->surface->events.unmap.registerListener([this](std::any d) { this->onUnmap(); });
+    listeners.dismissed  = m_pResource->events.dismissed.registerListener([this](std::any d) { this->onUnmap(); });
     listeners.destroy    = m_pResource->surface->events.destroy.registerListener([this](std::any d) { this->onDestroy(); });
     listeners.commit     = m_pResource->surface->events.commit.registerListener([this](std::any d) { this->onCommit(); });
     listeners.newPopup   = m_pResource->surface->events.newPopup.registerListener([this](std::any d) { this->onNewPopup(std::any_cast<SP<CXDGPopupResource>>(d)); });
@@ -66,6 +66,10 @@ void CPopup::onDestroy() {
 }
 
 void CPopup::onMap() {
+    if (m_bMapped)
+        return;
+
+    m_bMapped           = true;
     m_vLastSize         = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
     const auto COORDS   = coordsGlobal();
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
@@ -90,8 +94,15 @@ void CPopup::onMap() {
 }
 
 void CPopup::onUnmap() {
-    if (!m_pResource || !m_pResource->surface)
+    if (!m_bMapped)
         return;
+
+    if (!m_pResource || !m_pResource->surface) {
+        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
+        onDestroy();
+        return;
+    }
+
     m_vLastSize       = {m_pResource->surface->surface->current.width, m_pResource->surface->surface->current.height};
     const auto COORDS = coordsGlobal();
 
@@ -109,7 +120,7 @@ void CPopup::onUnmap() {
 
     // damage all children
     breadthfirst(
-        [this](CPopup* p, void* data) {
+        [](CPopup* p, void* data) {
             if (!p->m_pResource)
                 return;
 
@@ -120,6 +131,12 @@ void CPopup::onUnmap() {
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {
+    if (!m_pResource || !m_pResource->surface) {
+        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
+        onDestroy();
+        return;
+    }
+    
     if (m_pResource->surface->initialCommit) {
         m_pResource->surface->scheduleConfigure();
         return;

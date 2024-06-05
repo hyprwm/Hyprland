@@ -9,6 +9,7 @@
 #include "helpers/VarList.hpp"
 
 #include <optional>
+#include <iterator>
 #include <string>
 #include <string_view>
 

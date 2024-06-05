@@ -1374,73 +1374,64 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-void createOutputIter(wlr_backend* backend, void* data) {
-    const auto DATA = (std::pair<std::string, bool>*)data;
+static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
+    wlr_output* output = nullptr;
 
-    if (DATA->second)
+    if (type.empty() || type == "auto") {
+        if (wlr_backend_is_wl(backend))
+            output = wlr_wl_output_create(backend);
+        else if (wlr_backend_is_headless(backend))
+            output = wlr_headless_add_output(backend, 1920, 1080);
+    } else {
+        if (wlr_backend_is_wl(backend) && type == "wayland")
+            output = wlr_wl_output_create(backend);
+        else if (wlr_backend_is_headless(backend) && type == "headless")
+            output = wlr_headless_add_output(backend, 1920, 1080);
+    }
+
+    if (output && !name.empty())
+        g_pCompositor->getMonitorFromOutput(output)->szName = name;
+
+    return output != nullptr;
+}
+
+struct outputData {
+    std::string type;
+    std::string name;
+    bool        added;
+};
+
+void createOutputIter(wlr_backend* backend, void* data) {
+    const auto DATA = static_cast<outputData*>(data);
+
+    if (DATA->added)
         return;
 
-    if (DATA->first.empty() || DATA->first == "auto") {
-        if (wlr_backend_is_wl(backend)) {
-            wlr_wl_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_x11(backend)) {
-            wlr_x11_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_headless(backend)) {
-            wlr_headless_add_output(backend, 1920, 1080);
-            DATA->second = true;
-        }
-    } else {
-        if (wlr_backend_is_wl(backend) && DATA->first == "wayland") {
-            wlr_wl_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_x11(backend) && DATA->first == "x11") {
-            wlr_x11_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_headless(backend) && DATA->first == "headless") {
-            wlr_headless_add_output(backend, 1920, 1080);
-            DATA->second = true;
-        }
-    }
+    if (addOutput(backend, DATA->type, DATA->name))
+        DATA->added = true;
 }
 
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
-    std::string curitem = "";
+    CVarList vars(request, 0, ' ');
 
-    auto        nextItem = [&]() {
-        auto idx = request.find_first_of(' ');
+    if (vars.size() < 2)
+        return "not enough args";
 
-        if (idx != std::string::npos) {
-            curitem = request.substr(0, idx);
-            request = request.substr(idx + 1);
-        } else {
-            curitem = request;
-            request = "";
-        }
-
-        curitem = removeBeginEndSpacesTabs(curitem);
-    };
-
-    nextItem();
-    nextItem();
-
-    const auto MODE = curitem;
-
-    nextItem();
-
-    const auto NAME = curitem;
+    const auto MODE = vars[1];
 
     if (MODE == "create" || MODE == "add") {
-        std::pair<std::string, bool> result = {NAME, false};
+        if (g_pCompositor->getMonitorFromName(vars[3]))
+            return "A real monitor already uses that name.";
+
+        outputData result{vars[2], vars[3], false};
 
         wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
 
-        if (!result.second)
+        if (!result.added)
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
-        const auto PMONITOR = g_pCompositor->getMonitorFromName(NAME);
+        const auto PMONITOR = g_pCompositor->getMonitorFromName(vars[2]);
 
         if (!PMONITOR)
             return "output not found";

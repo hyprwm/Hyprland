@@ -1532,13 +1532,11 @@ void CWindow::onX11Configure(CBox box) {
 }
 
 void CWindow::warpCursor() {
-    const auto coords = m_vRelativeCursorCoordsOnLastWarp;
+    static auto PERSISTENTWARPS         = CConfigValue<Hyprlang::INT>("cursor:persistent_warps");
+    const auto  coords                  = m_vRelativeCursorCoordsOnLastWarp;
+    m_vRelativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
-    // effectivly reset m_vRelativeCursorCoordsOnLastWarp
-    m_vRelativeCursorCoordsOnLastWarp.x = -1;
-
-    // we don't wanna warp cursor outside the window
-    if (true && coords.x > 0 && coords.y > 0 && coords < m_vSize) {
+    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_vSize) { // don't warp cursor outside the window
         g_pCompositor->warpCursorTo(m_vPosition + coords);
     } else
         g_pCompositor->warpCursorTo(middle());

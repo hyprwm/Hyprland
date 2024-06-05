@@ -1538,7 +1538,7 @@ void CWindow::warpCursor() {
     m_vRelativeCursorCoordsOnLastWarp.x = -1;
 
     // we don't wanna warp cursor outside the window
-    if (true && coords.x >= 0 && coords.y >= 0 && coords < m_vSize) {
+    if (true && coords.x > 0 && coords.y > 0 && coords < m_vSize) {
         g_pCompositor->warpCursorTo(m_vPosition + coords);
     } else
         g_pCompositor->warpCursorTo(middle());

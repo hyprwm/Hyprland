@@ -1356,7 +1356,7 @@ void CWindow::activate(bool force) {
         g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
 
     g_pCompositor->focusWindow(m_pSelf.lock());
-    g_pCompositor->warpCursorTo(middle());
+    warpCursor();
 }
 
 void CWindow::onUpdateState() {
@@ -1529,4 +1529,17 @@ void CWindow::onX11Configure(CBox box) {
         g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
+}
+
+void CWindow::warpCursor() {
+    const auto coords = m_vRelativeCursorCoordsOnLastWarp;
+
+    // effectivly reset m_vRelativeCursorCoordsOnLastWarp
+    m_vRelativeCursorCoordsOnLastWarp.x = -1;
+
+    // we don't wanna warp cursor outside the window
+    if (true && coords.x >= 0 && coords.y >= 0 && coords < m_vSize) {
+        g_pCompositor->warpCursorTo(m_vPosition + coords);
+    } else
+        g_pCompositor->warpCursorTo(middle());
 }

@@ -278,7 +278,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         g_pCompositor->focusWindow(PNEWWINDOW);
-        g_pCompositor->warpCursorTo(PNEWWINDOW->middle());
+        PNEWWINDOW->warpCursor();
 
         g_pInputManager->m_pForcedFocus = PNEWWINDOW;
         g_pInputManager->simulateMouseMovement();
@@ -314,7 +314,7 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
             g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
     } else {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        g_pCompositor->warpCursorTo(PWINDOWTOCHANGETO->middle());
+        PWINDOWTOCHANGETO->warpCursor();
 
         g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
         g_pInputManager->simulateMouseMovement();
@@ -1171,7 +1171,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     pMonitor->changeWorkspace(pWorkspace);
 
     g_pCompositor->focusWindow(PWINDOW);
-    g_pCompositor->warpCursorTo(PWINDOW->middle());
+    PWINDOW->warpCursor();
 }
 
 void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
@@ -1304,7 +1304,7 @@ void CKeybindManager::swapActive(std::string args) {
         return;
 
     g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
-    g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
+    PLASTWINDOW->warpCursor();
 }
 
 void CKeybindManager::moveActiveTo(std::string args) {
@@ -1359,7 +1359,7 @@ void CKeybindManager::moveActiveTo(std::string args) {
     if (PWINDOWTOCHANGETO) {
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args, silent);
         if (!silent)
-            g_pCompositor->warpCursorTo(PLASTWINDOW->middle());
+            PLASTWINDOW->warpCursor();
         return;
     }
 
@@ -1926,7 +1926,7 @@ void CKeybindManager::focusWindow(std::string regexp) {
     } else
         g_pCompositor->focusWindow(PWINDOW);
 
-    g_pCompositor->warpCursorTo(PWINDOW->middle());
+    PWINDOW->warpCursor();
 }
 
 void CKeybindManager::tagWindow(std::string args) {
@@ -2455,7 +2455,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
     pWindow->updateWindowDecos();
     g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     g_pCompositor->focusWindow(pWindow);
-    g_pCompositor->warpCursorTo(pWindow->middle());
+    pWindow->warpCursor();
 
     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
         pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
@@ -2493,10 +2493,10 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
 
     if (*BFOCUSREMOVEDWINDOW) {
         g_pCompositor->focusWindow(pWindow);
-        g_pCompositor->warpCursorTo(pWindow->middle());
+        pWindow->warpCursor();
     } else {
         g_pCompositor->focusWindow(PWINDOWPREV);
-        g_pCompositor->warpCursorTo(PWINDOWPREV->middle());
+        PWINDOWPREV->warpCursor();
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveoutofgroup", std::format("{:x}", (uintptr_t)pWindow.get())});
@@ -2580,20 +2580,20 @@ void CKeybindManager::moveWindowOrGroup(std::string args) {
     if (PWINDOWINDIR && PWINDOWINDIR->m_sGroupData.pNextWindow) { // target is group
         if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_sGroupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_sGroupData.deny)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
-            g_pCompositor->warpCursorTo(PWINDOW->middle());
+            PWINDOW->warpCursor();
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) { // target is regular window
         if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_eGroupRules & GROUP_SET_ALWAYS)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
-            g_pCompositor->warpCursorTo(PWINDOW->middle());
+            PWINDOW->warpCursor();
         } else
             moveWindowOutOfGroup(PWINDOW, args);
     } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) { // no target window
         moveWindowOutOfGroup(PWINDOW, args);
     } else if (!PWINDOWINDIR && !ISWINDOWGROUP) { // no target in dir and not in group
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
-        g_pCompositor->warpCursorTo(PWINDOW->middle());
+        PWINDOW->warpCursor();
     }
 
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);

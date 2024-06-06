@@ -146,6 +146,11 @@ class CPointerManager {
 
     struct SMonitorPointerState {
         SMonitorPointerState(SP<CMonitor> m) : monitor(m) {}
+        ~SMonitorPointerState() {
+            if (cursorFrontBuffer)
+                wlr_buffer_unlock(cursorFrontBuffer);
+        }
+
         WP<CMonitor> monitor;
 
         int          softwareLocks  = 0;

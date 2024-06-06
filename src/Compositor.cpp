@@ -147,7 +147,7 @@ void CCompositor::initServer() {
     m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);
 
     // register crit signal handler
-    wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
+    m_critSigSource = wl_event_loop_add_signal(m_sWLEventLoop, SIGTERM, handleCritSignal, nullptr);
 
     if (!envEnabled("HYPRLAND_NO_CRASHREPORTER")) {
         signal(SIGSEGV, handleUnrecoverableSignal);
@@ -372,6 +372,9 @@ void CCompositor::cleanup() {
 
     if (m_sWLRBackend)
         wlr_backend_destroy(m_sWLRBackend);
+
+    if (m_critSigSource)
+        wl_event_source_remove(m_critSigSource);
 
     wl_display_terminate(m_sWLDisplay);
     m_sWLDisplay = nullptr;

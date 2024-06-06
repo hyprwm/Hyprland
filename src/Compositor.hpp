@@ -178,14 +178,15 @@ class CCompositor {
     std::string  explicitConfigPath;
 
   private:
-    void     initAllSignals();
-    void     removeAllSignals();
-    void     cleanEnvironment();
-    void     setRandomSplash();
-    void     initManagers(eManagersInitStage stage);
-    void     prepareFallbackOutput();
+    void             initAllSignals();
+    void             removeAllSignals();
+    void             cleanEnvironment();
+    void             setRandomSplash();
+    void             initManagers(eManagersInitStage stage);
+    void             prepareFallbackOutput();
 
-    uint64_t m_iHyprlandPID = 0;
+    uint64_t         m_iHyprlandPID  = 0;
+    wl_event_source* m_critSigSource = nullptr;
 };
 
 inline std::unique_ptr<CCompositor> g_pCompositor;

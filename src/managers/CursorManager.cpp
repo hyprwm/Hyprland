@@ -58,6 +58,9 @@ CCursorManager::CCursorManager() {
 CCursorManager::~CCursorManager() {
     if (m_pWLRXCursorMgr)
         wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+
+    if (m_pAnimationTimer)
+        wl_event_source_remove(m_pAnimationTimer);
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {

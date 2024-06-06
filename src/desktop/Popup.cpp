@@ -136,7 +136,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         onDestroy();
         return;
     }
-    
+
     if (m_pResource->surface->initialCommit) {
         m_pResource->surface->scheduleConfigure();
         return;

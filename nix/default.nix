@@ -102,7 +102,6 @@ in
         ninja
         pkg-config
         python3 # for udis86
-        wayland-scanner
       ];
 
       outputs = [
@@ -130,6 +129,7 @@ in
           tomlplusplus
           wayland
           wayland-protocols
+          wayland-scanner
           xorg.libXcursor
         ]
         (optionals customStdenv.hostPlatform.isMusl [libexecinfo])

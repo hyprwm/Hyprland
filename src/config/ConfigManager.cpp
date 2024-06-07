@@ -500,6 +500,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("gestures:workspace_swipe", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
+    m_pConfig->addConfigValue("gestures:workspace_swipe_min_fingers", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_distance", Hyprlang::INT{300});
     m_pConfig->addConfigValue("gestures:workspace_swipe_invert", Hyprlang::INT{1});
     m_pConfig->addConfigValue("gestures:workspace_swipe_min_speed_to_force", Hyprlang::INT{30});

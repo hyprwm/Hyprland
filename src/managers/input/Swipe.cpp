@@ -3,13 +3,14 @@
 #include "../../config/ConfigValue.hpp"
 
 void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
-    static auto PSWIPE        = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe");
-    static auto PSWIPEFINGERS = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_fingers");
-    static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
+    static auto PSWIPE           = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe");
+    static auto PSWIPEFINGERS    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_fingers");
+    static auto PSWIPEMINFINGERS = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_min_fingers");
+    static auto PSWIPENEW        = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
 
     EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
 
-    if (e.fingers != *PSWIPEFINGERS || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
+    if ((!*PSWIPEMINFINGERS && e.fingers != *PSWIPEFINGERS) || (*PSWIPEMINFINGERS && e.fingers < *PSWIPEFINGERS) || *PSWIPE == 0 || g_pSessionLockManager->isSessionLocked())
         return;
 
     int onMonitor = 0;

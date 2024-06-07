@@ -1991,11 +1991,17 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
 
-    const auto ARGS = CVarList(value, 4);
+    auto ARGS = CVarList(value, 4);
 
+    const bool HAS_DESCRIPTION = ARGS[2].starts_with("\"") && ARGS[2].ends_with("\"");
+
+    if (HAS_DESCRIPTION) {
+        ARGS = CVarList(value, 5);
+    }
+    const int DESCR_OFFSET = HAS_DESCRIPTION ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
+    else if ((ARGS.size() > 4 + DESCR_OFFSET && !mouse) || (ARGS.size() > 3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2014,12 +2020,14 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    auto       HANDLER = ARGS[2];
+    const auto DESCRIPTION = HAS_DESCRIPTION ? ARGS[2] : "";
 
-    const auto COMMAND = mouse ? HANDLER : ARGS[3];
+    auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 
-    if (mouse)
-        HANDLER = "mouse";
+    const auto COMMAND = mouse ? HANDLER : ARGS[3 + DESCR_OFFSET];
+
+    // const auto HAS_DESCRIPTION = mouse ? ARGS.size() == 4 : ARGS.size() == 5;
+    //
 
     // to lower
     std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
@@ -2044,8 +2052,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
-                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
+                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
     }
 
     return {};

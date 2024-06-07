@@ -24,6 +24,7 @@ struct SKeybind {
     std::string            arg          = "";
     bool                   locked       = false;
     std::string            submap       = "";
+    std::string            description  = "";
     bool                   release      = false;
     bool                   repeat       = false;
     bool                   mouse        = false;

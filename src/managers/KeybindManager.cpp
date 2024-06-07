@@ -263,8 +263,8 @@ void updateRelativeCursorCoords() {
     if (*PNOWARPS)
         return;
 
-    if (const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock(); PLASTWINDOW)
-        PLASTWINDOW->m_vRelativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - PLASTWINDOW->m_vPosition;
+    if (g_pCompositor->m_pLastWindow)
+        g_pCompositor->m_pLastWindow->m_vRelativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - g_pCompositor->m_pLastWindow->m_vPosition;
 }
 
 bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {

@@ -1536,8 +1536,8 @@ void CWindow::warpCursor() {
     const auto  coords                  = m_vRelativeCursorCoordsOnLastWarp;
     m_vRelativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
-    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_vSize) { // don't warp cursor outside the window
+    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_vSize) // don't warp cursor outside the window
         g_pCompositor->warpCursorTo(m_vPosition + coords);
-    } else
+    else
         g_pCompositor->warpCursorTo(middle());
 }

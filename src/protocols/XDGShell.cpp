@@ -575,11 +575,11 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         if (leftEdgeOut && slideX)
             test.x = constraint.x + EDGE_PADDING;
         if (rightEdgeOut && slideX)
-            test.x = constraint.x + constraint.w - predictedBox.w - EDGE_PADDING;
+            test.x = std::clamp((double)(constraint.x + constraint.w - test.w), (double)(constraint.x + EDGE_PADDING), (double)INFINITY);
         if (topEdgeOut && slideY)
             test.y = constraint.y + EDGE_PADDING;
         if (bottomEdgeOut && slideY)
-            test.y = constraint.y + constraint.h - predictedBox.y - EDGE_PADDING;
+            test.y = std::clamp((double)(constraint.y + constraint.h - test.h), (double)(constraint.y + EDGE_PADDING), (double)INFINITY);
 
         success = test.copy().expand(-1).inside(constraint);
 

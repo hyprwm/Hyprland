@@ -110,12 +110,6 @@ void CSeatManager::setKeyboardFocus(wlr_surface* surf) {
     hyprListener_keyboardSurfaceDestroy.removeCallback();
 
     if (state.keyboardFocusResource) {
-        // we will iterate over all bound wl_seat
-        // resources here, because some idiotic apps (e.g. those based on smithay)
-        // tend to bind wl_seat twice.
-        // I can't be arsed to actually pass all events to all seat resources, so we will
-        // only pass enter and leave.
-        // If you have an issue with that, fix your app.
         auto client = state.keyboardFocusResource->client();
         for (auto& s : seatResources) {
             if (s->resource->client() != client)
@@ -163,11 +157,16 @@ void CSeatManager::sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_ke
     if (!state.keyboardFocusResource)
         return;
 
-    for (auto& k : state.keyboardFocusResource->keyboards) {
-        if (!k)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.keyboardFocusResource->client())
             continue;
 
-        k->sendKey(timeMs, key, state_);
+        for (auto& k : s->resource->keyboards) {
+            if (!k)
+                continue;
+
+            k->sendKey(timeMs, key, state_);
+        }
     }
 }
 
@@ -175,11 +174,16 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
     if (!state.keyboardFocusResource)
         return;
 
-    for (auto& k : state.keyboardFocusResource->keyboards) {
-        if (!k)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.keyboardFocusResource->client())
             continue;
 
-        k->sendMods(depressed, latched, locked, group);
+        for (auto& k : s->resource->keyboards) {
+            if (!k)
+                continue;
+
+            k->sendMods(depressed, latched, locked, group);
+        }
     }
 }
 
@@ -249,11 +253,16 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendMotion(timeMs, local);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendMotion(timeMs, local);
+        }
     }
 
     lastLocalCoords = local;
@@ -263,11 +272,16 @@ void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_b
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendButton(timeMs, key, state_);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendButton(timeMs, key, state_);
+        }
     }
 }
 
@@ -282,11 +296,19 @@ void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
     if (!pResource)
         return;
 
-    for (auto& p : pResource->pointers) {
-        if (!p)
+    if (!state.pointerFocusResource)
+        return;
+
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendFrame();
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendFrame();
+        }
     }
 }
 
@@ -295,21 +317,26 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendAxis(timeMs, axis, value);
-        p->sendAxisSource(source);
-        p->sendAxisRelativeDirection(axis, relative);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
 
-        if (source == 0) {
-            p->sendAxisValue120(axis, value120);
-            p->sendAxisDiscrete(axis, discrete);
+            p->sendAxis(timeMs, axis, value);
+            p->sendAxisSource(source);
+            p->sendAxisRelativeDirection(axis, relative);
+
+            if (source == 0) {
+                p->sendAxisValue120(axis, value120);
+                p->sendAxisDiscrete(axis, discrete);
+            }
+
+            if (value == 0)
+                p->sendAxisStop(timeMs, axis);
         }
-
-        if (value == 0)
-            p->sendAxisStop(timeMs, axis);
     }
 }
 
@@ -370,11 +397,16 @@ void CSeatManager::sendTouchMotion(uint32_t timeMs, int32_t id, const Vector2D& 
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendMotion(timeMs, id, local);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendMotion(timeMs, id, local);
+        }
     }
 }
 
@@ -382,11 +414,16 @@ void CSeatManager::sendTouchFrame() {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendFrame();
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendFrame();
+        }
     }
 }
 
@@ -394,11 +431,16 @@ void CSeatManager::sendTouchCancel() {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendCancel();
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendCancel();
+        }
     }
 }
 
@@ -406,11 +448,16 @@ void CSeatManager::sendTouchShape(int32_t id, const Vector2D& shape) {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendShape(id, shape);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendShape(id, shape);
+        }
     }
 }
 
@@ -418,11 +465,16 @@ void CSeatManager::sendTouchOrientation(int32_t id, double angle) {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendOrientation(id, angle);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendOrientation(id, angle);
+        }
     }
 }
 

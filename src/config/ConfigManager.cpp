@@ -521,6 +521,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{1});
     m_pConfig->addConfigValue("cursor:inactive_timeout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:no_warps", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:persistent_warps", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:default_monitor", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("cursor:zoom_factor", {1.f});
     m_pConfig->addConfigValue("cursor:zoom_rigid", Hyprlang::INT{0});

@@ -528,7 +528,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
     bool success = predictedBox.inside(constraint);
 
     if (success)
-        return predictedBox.translate(-parentCoord - constraint.pos());
+        return predictedBox;
 
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
         // attempt to flip
@@ -547,7 +547,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
             success = false;
 
         if (success)
-            return test.translate(-parentCoord - constraint.pos());
+            return test;
     }
 
     // if flips fail, we will slide and remember.
@@ -584,7 +584,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         success = test.copy().expand(-1).inside(constraint);
 
         if (success)
-            return test.translate(-parentCoord - constraint.pos());
+            return test;
     }
 
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y)) {
@@ -602,18 +602,18 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
             test.x = constraint.x + EDGE_PADDING;
         }
         if (rightEdgeOut && resizeX)
-            test.w = -(constraint.w + constraint.x - test.w - test.x + EDGE_PADDING);
+            test.w = constraint.w - (test.x - constraint.w) - EDGE_PADDING;
         if (topEdgeOut && resizeY) {
             test.h = test.y + test.h - constraint.y - EDGE_PADDING;
             test.y = constraint.y + EDGE_PADDING;
         }
         if (bottomEdgeOut && resizeY)
-            test.h = -(constraint.h + constraint.y - test.h - test.y + EDGE_PADDING);
+            test.h = constraint.h - (test.y - constraint.y) - EDGE_PADDING;
 
         success = test.copy().expand(-1).inside(constraint);
 
         if (success)
-            return test.translate(parentCoord - constraint.pos());
+            return test;
     }
 
     LOGM(WARN, "Compositor/client bug: xdg_positioner couldn't find a place");

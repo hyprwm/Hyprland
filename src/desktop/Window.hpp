@@ -245,8 +245,11 @@ class CWindow {
     Vector2D m_vFloatingOffset = Vector2D(0, 0);
 
     // this is used for pseudotiling
-    bool         m_bIsPseudotiled = false;
-    Vector2D     m_vPseudoSize    = Vector2D(1280, 720);
+    bool     m_bIsPseudotiled = false;
+    Vector2D m_vPseudoSize    = Vector2D(1280, 720);
+
+    // for recovering relative cursor position
+    Vector2D     m_vRelativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
     bool         m_bFirstMap           = false; // for layouts
     bool         m_bIsFloating         = false;
@@ -446,6 +449,7 @@ class CWindow {
     void                     onResourceChangeX11();
     std::string              fetchTitle();
     std::string              fetchClass();
+    void                     warpCursor();
 
     // listeners
     void onAck(uint32_t serial);

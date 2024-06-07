@@ -528,7 +528,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
     bool success = predictedBox.inside(constraint);
 
     if (success)
-        return predictedBox;
+        return predictedBox.translate(-parentCoord - constraint.pos());
 
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
         // attempt to flip
@@ -547,7 +547,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
             success = false;
 
         if (success)
-            return test;
+            return test.translate(-parentCoord - constraint.pos());
     }
 
     // if flips fail, we will slide and remember.
@@ -584,7 +584,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         success = test.copy().expand(-1).inside(constraint);
 
         if (success)
-            return test;
+            return test.translate(-parentCoord - constraint.pos());
     }
 
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y)) {
@@ -613,7 +613,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         success = test.copy().expand(-1).inside(constraint);
 
         if (success)
-            return test;
+            return test.translate(-parentCoord - constraint.pos());
     }
 
     LOGM(WARN, "Compositor/client bug: xdg_positioner couldn't find a place");

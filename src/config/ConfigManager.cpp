@@ -6,6 +6,7 @@
 #include "helpers/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <string.h>
 #include <string>
@@ -1991,9 +1992,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
 
-    auto ARGS = CVarList(value, 4);
+    auto       ARGS = CVarList(value, 4);
 
-    const bool HAS_DESCRIPTION = ARGS[2].starts_with("\"") && ARGS[2].ends_with("\"");
+    const bool HAS_DESCRIPTION = ARGS[2].length() > 1 && ARGS[2].starts_with("\"") && ARGS[2].ends_with("\"");
 
     if (HAS_DESCRIPTION) {
         ARGS = CVarList(value, 5);
@@ -2001,7 +2002,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     const int DESCR_OFFSET = HAS_DESCRIPTION ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > 4 + DESCR_OFFSET && !mouse) || (ARGS.size() > 3 + DESCR_OFFSET && mouse))
+    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2020,7 +2021,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    const auto DESCRIPTION = HAS_DESCRIPTION ? ARGS[2] : "";
+    const auto DESCRIPTION = HAS_DESCRIPTION ? ARGS[2].substr(1, ARGS.size() - 1) : "";
 
     auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 

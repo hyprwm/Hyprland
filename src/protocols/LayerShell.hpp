@@ -8,18 +8,20 @@
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include "../helpers/Vector2D.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "types/SurfaceRole.hpp"
 
 class CMonitor;
 class CWLSurfaceResource;
 
-class CLayerShellResource {
+class CLayerShellResource : public ISurfaceRole {
   public:
     CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
     ~CLayerShellResource();
 
-    bool good();
-    void configure(const Vector2D& size);
-    void sendClosed();
+    bool                 good();
+    void                 configure(const Vector2D& size);
+    void                 sendClosed();
+    virtual eSurfaceRole role();
 
     enum eCommittedState {
         STATE_SIZE          = (1 << 0),

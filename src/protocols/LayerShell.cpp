@@ -159,6 +159,12 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
 
 CLayerShellResource::~CLayerShellResource() {
     events.destroy.emit();
+    if (surface)
+        surface->resetRole();
+}
+
+eSurfaceRole CLayerShellResource::role() {
+    return SURFACE_ROLE_LAYER_SHELL;
 }
 
 bool CLayerShellResource::good() {
@@ -207,8 +213,19 @@ void CLayerShellProtocol::destroyResource(CLayerShellResource* surf) {
 void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_) {
     const auto CLIENT   = pMgr->client();
     const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.get() : nullptr;
-    const auto RESOURCE = m_vLayers.emplace_back(
-        makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surface), namespace_, PMONITOR, layer));
+    auto       SURF     = CWLSurfaceResource::fromResource(surface);
+
+    if (!SURF) {
+        pMgr->error(-1, "Invalid surface");
+        return;
+    }
+
+    if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+        pMgr->error(-1, "Surface already has a different role");
+        return;
+    }
+
+    const auto RESOURCE = m_vLayers.emplace_back(makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), SURF, namespace_, PMONITOR, layer));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -216,6 +233,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
+    SURF->role = RESOURCE;
     g_pCompositor->m_vLayers.emplace_back(CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());

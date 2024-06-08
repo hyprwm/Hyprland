@@ -419,6 +419,12 @@ CXDGSurfaceResource::~CXDGSurfaceResource() {
     events.destroy.emit();
     if (configureSource)
         wl_event_source_remove(configureSource);
+    if (surface)
+        surface->resetRole();
+}
+
+eSurfaceRole CXDGSurfaceResource::role() {
+    return SURFACE_ROLE_XDG_SHELL;
 }
 
 bool CXDGSurfaceResource::good() {
@@ -646,8 +652,19 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
     });
 
     resource->setGetXdgSurface([this](CXdgWmBase* r, uint32_t id, wl_resource* surf) {
-        const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(
-            makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), CWLSurfaceResource::fromResource(surf)));
+        auto SURF = CWLSurfaceResource::fromResource(surf);
+
+        if (!SURF) {
+            r->error(-1, "Invalid surface passed");
+            return;
+        }
+
+        if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+            r->error(-1, "Surface already has a different role");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), SURF));
 
         if (!RESOURCE->good()) {
             r->noMemory();
@@ -656,6 +673,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
         }
 
         RESOURCE->self = RESOURCE;
+        SURF->role     = RESOURCE;
 
         surfaces.emplace_back(RESOURCE);
 

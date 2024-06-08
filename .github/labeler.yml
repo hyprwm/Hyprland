@@ -1,0 +1,29 @@
+assets:
+  - all:
+      - changed-files:
+          - any-glob-to-any-file: "assets/**"
+
+docs:
+  - all:
+      - changed-files:
+          - any-glob-to-any-file: "docs/**"
+
+hyprctl:
+  - changed-files:
+      - any-glob-to-any-file: "hyprctl/**"
+
+hyprpm:
+  - changed-files:
+      - any-glob-to-any-file: "hyprpm/**"
+
+nix:
+  - changed-files:
+      - any-glob-to-any-file: "nix/**"
+
+protocols:
+  - changed-files:
+      - any-glob-to-any-file: "protocols/**"
+
+core:
+  - changed-files:
+      - any-glob-to-any-file: "src/**"

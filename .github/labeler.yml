@@ -22,7 +22,7 @@ nix:
 
 protocols:
   - changed-files:
-      - any-glob-to-any-file: "protocols/**"
+      - any-glob-to-any-file: ["protocols/**", "src/protocols/**"]
 
 core:
   - changed-files:

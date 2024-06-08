@@ -1954,16 +1954,16 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked       = false;
-    bool       release      = false;
-    bool       repeat       = false;
-    bool       mouse        = false;
-    bool       nonConsuming = false;
-    bool       transparent  = false;
-    bool       ignoreMods   = false;
-    bool       multiKey     = false;
-    bool       description  = false;
-    const auto BINDARGS     = command.substr(4);
+    bool       locked          = false;
+    bool       release         = false;
+    bool       repeat          = false;
+    bool       mouse           = false;
+    bool       nonConsuming    = false;
+    bool       transparent     = false;
+    bool       ignoreMods      = false;
+    bool       multiKey        = false;
+    bool       has_description = false;
+    const auto BINDARGS        = command.substr(4);
 
     for (auto& arg : BINDARGS) {
         if (arg == 'l') {
@@ -1983,7 +1983,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         } else if (arg == 's') {
             multiKey = true;
         } else if (arg == 'd') {
-            description = true;
+            has_description = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1994,14 +1994,14 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
-    
-    const int numbArgs = description ? 5 : 4;
-        const auto ARGS = CVarList(value, numbArgs);
 
-    const int DESCR_OFFSET = description ? 1 : 0;
+    const int  numbArgs = has_description ? 5 : 4;
+    const auto ARGS     = CVarList(value, numbArgs);
+
+    const int  DESCR_OFFSET = has_description ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > (size_t) 4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t) 3 + DESCR_OFFSET && mouse))
+    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2020,7 +2020,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    const auto DESCRIPTION = description ? ARGS[2] : "";
+    const auto DESCRIPTION = has_description ? ARGS[2] : "";
 
     auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 
@@ -2053,7 +2053,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         }
 
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
-                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey, has_description});
     }
 
     return {};

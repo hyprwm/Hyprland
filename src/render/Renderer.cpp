@@ -208,12 +208,12 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         if (RDATA->blur)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     } else {
         if (RDATA->blur && RDATA->popup)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, true, RDATA->fadeAlpha);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {

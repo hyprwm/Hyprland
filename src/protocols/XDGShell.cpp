@@ -403,8 +403,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
     });
 
     resource->setAckConfigure([this](CXdgSurface* r, uint32_t serial) {
+        if (serial < lastConfigureSerial)
+            return;
+        lastConfigureSerial = serial;
         events.ack.emit(serial);
-        ; // TODO: verify it
     });
 
     resource->setSetWindowGeometry([this](CXdgSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {

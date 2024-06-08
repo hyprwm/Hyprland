@@ -133,6 +133,11 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
             return;
         }
 
+        if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+            r->error(-1, "Surface already has a different role");
+            return;
+        }
+
         SP<CWLSurfaceResource> t1Parent = nullptr;
 
         if (PARENT->role->role() == SURFACE_ROLE_SUBSURFACE) {

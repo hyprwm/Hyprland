@@ -9,6 +9,7 @@
 #include "../helpers/Vector2D.hpp"
 #include "../helpers/Box.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "types/SurfaceRole.hpp"
 
 class CXDGWMBase;
 class CXDGPositionerResource;
@@ -137,12 +138,14 @@ class CXDGToplevelResource {
     void             applyState();
 };
 
-class CXDGSurfaceResource {
+class CXDGSurfaceResource : public ISurfaceRole {
   public:
     CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_);
     ~CXDGSurfaceResource();
 
     static SP<CXDGSurfaceResource> fromResource(wl_resource*);
+
+    virtual eSurfaceRole           role();
 
     bool                           good();
 

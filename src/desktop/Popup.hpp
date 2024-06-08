@@ -39,7 +39,7 @@ class CPopup {
     CPopup* at(const Vector2D& globalCoords, bool allowsInput = false);
 
     //
-    CWLSurface m_sWLSurface;
+    SP<CWLSurface> m_pWLSurface;
 
   private:
     // T1 owners, each popup has to have one of these

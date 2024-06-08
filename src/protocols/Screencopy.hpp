@@ -10,6 +10,7 @@
 #include "../managers/eventLoop/EventLoopTimer.hpp"
 
 class CMonitor;
+class IWLBuffer;
 
 enum eClientOwners {
     CLIENT_SCREENCOPY = 0,
@@ -53,9 +54,9 @@ struct SScreencopyFrame {
     bool               withDamage      = false;
     bool               lockedSWCursors = false;
 
-    wlr_buffer_cap     bufferCap = WLR_BUFFER_CAP_SHM;
+    bool               bufferDMA = false;
 
-    wlr_buffer*        buffer = nullptr;
+    WP<IWLBuffer>      buffer;
 
     CMonitor*          pMonitor = nullptr;
     PHLWINDOWREF       pWindow;

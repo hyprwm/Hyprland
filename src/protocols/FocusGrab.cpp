@@ -1,21 +1,21 @@
 #include "FocusGrab.hpp"
-#include "Compositor.hpp"
+#include "../Compositor.hpp"
 #include <hyprland-focus-grab-v1.hpp>
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
+#include "core/Compositor.hpp"
 #include <cstdint>
 #include <memory>
 #include <wayland-server.h>
 
 #define LOGM PROTO::focusGrab->protoLog
 
-CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, wlr_surface* surface) {
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy, [=](void*, void*) { grab->eraseSurface(surface); }, this, "CFocusGrab");
+CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
+    listeners.destroy = surface->events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
 }
 
 CFocusGrabSurfaceState::~CFocusGrabSurfaceState() {
-    hyprListener_surfaceDestroy.removeCallback();
+    ;
 }
 
 CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_) {
@@ -29,8 +29,8 @@ CFocusGrab::CFocusGrab(SP<CHyprlandFocusGrabV1> resource_) : resource(resource_)
 
     resource->setDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
     resource->setOnDestroy([this](CHyprlandFocusGrabV1* pMgr) { PROTO::focusGrab->destroyGrab(this); });
-    resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { addSurface(wlr_surface_from_resource(surface)); });
-    resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { removeSurface(wlr_surface_from_resource(surface)); });
+    resource->setAddSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { addSurface(CWLSurfaceResource::fromResource(surface)); });
+    resource->setRemoveSurface([this](CHyprlandFocusGrabV1* pMgr, wl_resource* surface) { removeSurface(CWLSurfaceResource::fromResource(surface)); });
     resource->setCommit([this](CHyprlandFocusGrabV1* pMgr) { commit(); });
 }
 
@@ -42,8 +42,8 @@ bool CFocusGrab::good() {
     return resource->resource();
 }
 
-bool CFocusGrab::isSurfaceComitted(wlr_surface* surface) {
-    auto iter = m_mSurfaces.find(surface);
+bool CFocusGrab::isSurfaceComitted(SP<CWLSurfaceResource> surface) {
+    auto iter = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [surface](const auto& o) { return o.first == surface; });
     if (iter == m_mSurfaces.end())
         return false;
 
@@ -77,14 +77,14 @@ void CFocusGrab::finish(bool sendCleared) {
     }
 }
 
-void CFocusGrab::addSurface(wlr_surface* surface) {
-    auto iter = m_mSurfaces.find(surface);
+void CFocusGrab::addSurface(SP<CWLSurfaceResource> surface) {
+    auto iter = std::find_if(m_mSurfaces.begin(), m_mSurfaces.end(), [surface](const auto& e) { return e.first == surface; });
     if (iter == m_mSurfaces.end()) {
         m_mSurfaces.emplace(surface, std::make_unique<CFocusGrabSurfaceState>(this, surface));
     }
 }
 
-void CFocusGrab::removeSurface(wlr_surface* surface) {
+void CFocusGrab::removeSurface(SP<CWLSurfaceResource> surface) {
     auto iter = m_mSurfaces.find(surface);
     if (iter != m_mSurfaces.end()) {
         if (iter->second->state == CFocusGrabSurfaceState::PendingAddition) {
@@ -94,20 +94,20 @@ void CFocusGrab::removeSurface(wlr_surface* surface) {
     }
 }
 
-void CFocusGrab::eraseSurface(wlr_surface* surface) {
+void CFocusGrab::eraseSurface(SP<CWLSurfaceResource> surface) {
     removeSurface(surface);
     commit(true);
 }
 
 void CFocusGrab::refocusKeyboard() {
     auto keyboardSurface = g_pSeatManager->state.keyboardFocus;
-    if (keyboardSurface != nullptr && isSurfaceComitted(keyboardSurface))
+    if (keyboardSurface && isSurfaceComitted(keyboardSurface.lock()))
         return;
 
-    wlr_surface* surface = nullptr;
+    SP<CWLSurfaceResource> surface = nullptr;
     for (auto& [surf, state] : m_mSurfaces) {
         if (state->state == CFocusGrabSurfaceState::Comitted) {
-            surface = surf;
+            surface = surf.lock();
             break;
         }
     }
@@ -124,14 +124,14 @@ void CFocusGrab::commit(bool removeOnly) {
     for (auto iter = m_mSurfaces.begin(); iter != m_mSurfaces.end();) {
         switch (iter->second->state) {
             case CFocusGrabSurfaceState::PendingRemoval:
-                grab->remove(iter->first);
+                grab->remove(iter->first.lock());
                 iter            = m_mSurfaces.erase(iter);
                 surfacesChanged = true;
                 continue;
             case CFocusGrabSurfaceState::PendingAddition:
                 if (!removeOnly) {
                     iter->second->state = CFocusGrabSurfaceState::Comitted;
-                    grab->add(iter->first);
+                    grab->add(iter->first.lock());
                     surfacesChanged = true;
                     anyComitted     = true;
                 }

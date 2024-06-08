@@ -2,12 +2,15 @@
 #include "../Compositor.hpp"
 #include "../events/Events.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
     CMonitor* pMonitor = resource->monitor.empty() ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->getMonitorFromName(resource->monitor);
+
+    pLS->surface->assign(resource->surface.lock(), pLS);
 
     if (!pMonitor) {
         Debug::log(ERR, "New LS has no monitor??");
@@ -39,8 +42,6 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->alpha.setValueAndWarp(0.f);
 
-    pLS->surface.assign(resource->surface, pLS);
-
     Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", (uintptr_t)resource.get(), resource->layerNamespace, (int)pLS->layer, pMonitor->szName);
 
     return pLS;
@@ -58,13 +59,16 @@ CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : layerSurface(r
     listeners.map     = layerSurface->events.map.registerListener([this](std::any d) { onMap(); });
     listeners.unmap   = layerSurface->events.unmap.registerListener([this](std::any d) { onUnmap(); });
     listeners.destroy = layerSurface->events.destroy.registerListener([this](std::any d) { onDestroy(); });
+
+    surface = CWLSurface::create();
 }
 
 CLayerSurface::~CLayerSurface() {
     if (!g_pHyprOpenGL)
         return;
 
-    surface.unassign();
+    if (surface)
+        surface->unassign();
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == self.lock(); });
 }
@@ -105,7 +109,8 @@ void CLayerSurface::onDestroy() {
 
     readyToDelete = true;
     layerSurface.reset();
-    surface.unassign();
+    if (surface)
+        surface->unassign();
 }
 
 void CLayerSurface::onMap() {
@@ -126,7 +131,7 @@ void CLayerSurface::onMap() {
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
-    wlr_surface_send_enter(surface.wlr(), PMONITOR->output);
+    surface->resource()->enter(PMONITOR->self.lock());
 
     if (layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
         g_pInputManager->m_dExclusiveLSes.push_back(self);
@@ -139,10 +144,10 @@ void CLayerSurface::onMap() {
         // TODO: use the new superb really very cool grab
         g_pSeatManager->setGrab(nullptr);
         g_pInputManager->releaseAllMouseButtons();
-        g_pCompositor->focusSurface(surface.wlr());
+        g_pCompositor->focusSurface(surface->resource());
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        g_pSeatManager->setPointerFocus(surface.wlr(), LOCAL);
+        g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
     }
 
@@ -160,8 +165,8 @@ void CLayerSurface::onMap() {
     g_pEventManager->postEvent(SHyprIPCEvent{"openlayer", szNamespace});
     EMIT_HOOK_EVENT("openLayer", self.lock());
 
-    g_pCompositor->setPreferredScaleForSurface(surface.wlr(), PMONITOR->scale);
-    g_pCompositor->setPreferredTransformForSurface(surface.wlr(), PMONITOR->transform);
+    g_pCompositor->setPreferredScaleForSurface(surface->resource(), PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(surface->resource(), PMONITOR->transform);
 }
 
 void CLayerSurface::onUnmap() {
@@ -173,7 +178,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
     if (!g_pInputManager->m_dExclusiveLSes.empty())
-        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->layerSurface->surface);
+        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->surface->resource());
 
     if (!g_pCompositor->getMonitorFromID(monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
@@ -197,9 +202,9 @@ void CLayerSurface::onUnmap() {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
-    const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == layerSurface->surface;
+    const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
 
-    surface = nullptr;
+    surface.reset();
 
     if (!PMONITOR)
         return;
@@ -208,11 +213,11 @@ void CLayerSurface::onUnmap() {
     if (WASLASTFOCUS) {
         g_pInputManager->releaseAllMouseButtons();
 
-        Vector2D     surfaceCoords;
-        PHLLS        pFoundLayerSurface;
-        wlr_surface* foundSurface = nullptr;
+        Vector2D               surfaceCoords;
+        PHLLS                  pFoundLayerSurface;
+        SP<CWLSurfaceResource> foundSurface = nullptr;
 
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
 
         // find LS-es to focus
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
@@ -236,8 +241,8 @@ void CLayerSurface::onUnmap() {
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
 
-    geomFixed = {geometry.x + (int)PMONITOR->vecPosition.x, geometry.y + (int)PMONITOR->vecPosition.y, (int)layerSurface->surface->current.width,
-                 (int)layerSurface->surface->current.height};
+    geomFixed = {geometry.x + (int)PMONITOR->vecPosition.x, geometry.y + (int)PMONITOR->vecPosition.y, (int)layerSurface->surface->current.size.x,
+                 (int)layerSurface->surface->current.size.y};
     g_pHyprRenderer->damageBox(&geomFixed);
 
     g_pInputManager->sendMotionEventsToFocused();
@@ -284,12 +289,12 @@ void CLayerSurface::onCommit() {
         position = Vector2D(geometry.x, geometry.y);
 
         // update geom if it changed
-        if (layerSurface->surface->current.scale == 1 && PMONITOR->scale != 1.f && layerSurface->surface->current.viewport.has_dst) {
+        if (layerSurface->surface->current.scale == 1 && PMONITOR->scale != 1.f && layerSurface->surface->current.viewport.hasDestination) {
             // fractional scaling. Dirty hack.
-            geometry = {geometry.x, geometry.y, (int)(layerSurface->surface->current.viewport.dst_width), (int)(layerSurface->surface->current.viewport.dst_height)};
+            geometry = {geometry.pos(), layerSurface->surface->current.viewport.destination};
         } else {
             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
-            geometry = {geometry.x, geometry.y, (int)layerSurface->surface->current.width, (int)layerSurface->surface->current.height};
+            geometry = {geometry.pos(), layerSurface->surface->current.size};
         }
     }
 
@@ -308,10 +313,10 @@ void CLayerSurface::onCommit() {
 
     if (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
         && !keyboardExclusive && mapped) {
-        g_pCompositor->focusSurface(layerSurface->surface);
+        g_pCompositor->focusSurface(surface->resource());
 
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        g_pSeatManager->setPointerFocus(layerSurface->surface, LOCAL);
+        g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
         g_pInputManager->m_bEmptyFocusCursorSet = false;
     } else if (!layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
         g_pInputManager->refocus();
@@ -319,10 +324,10 @@ void CLayerSurface::onCommit() {
 
     keyboardExclusive = layerSurface->current.interactivity;
 
-    g_pHyprRenderer->damageSurface(layerSurface->surface, position.x, position.y);
+    g_pHyprRenderer->damageSurface(surface->resource(), position.x, position.y);
 
-    g_pCompositor->setPreferredScaleForSurface(layerSurface->surface, PMONITOR->scale);
-    g_pCompositor->setPreferredTransformForSurface(layerSurface->surface, PMONITOR->transform);
+    g_pCompositor->setPreferredScaleForSurface(surface->resource(), PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(surface->resource(), PMONITOR->transform);
 }
 
 void CLayerSurface::applyRules() {

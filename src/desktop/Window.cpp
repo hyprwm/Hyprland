@@ -9,6 +9,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
@@ -51,12 +52,14 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
 
-    pWindow->m_pWLSurface.assign(pWindow->m_pXDGSurface->surface, pWindow);
+    pWindow->m_pWLSurface->assign(pWindow->m_pXDGSurface->surface.lock(), pWindow);
 
     return pWindow;
 }
 
 CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_pXDGSurface(resource) {
+    m_pWLSurface = CWLSurface::create();
+
     listeners.map            = m_pXDGSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
     listeners.ack            = m_pXDGSurface->events.ack.registerListener([this](std::any d) { onAck(std::any_cast<uint32_t>(d)); });
     listeners.unmap          = m_pXDGSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
@@ -67,6 +70,8 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : m_pXDGSurface(resource) {
 }
 
 CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
+    m_pWLSurface = CWLSurface::create();
+
     listeners.map            = m_pXWaylandSurface->events.map.registerListener([this](std::any d) { Events::listener_mapWindow(this, nullptr); });
     listeners.unmap          = m_pXWaylandSurface->events.unmap.registerListener([this](std::any d) { Events::listener_unmapWindow(this, nullptr); });
     listeners.destroy        = m_pXWaylandSurface->events.destroy.registerListener([this](std::any d) { Events::listener_destroyWindow(this, nullptr); });
@@ -83,7 +88,7 @@ CWindow::CWindow(SP<CXWaylandSurface> surface) : m_pXWaylandSurface(surface) {
 
 CWindow::~CWindow() {
     if (g_pCompositor->m_pLastWindow.lock().get() == this) {
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
         g_pCompositor->m_pLastWindow.reset();
     }
 
@@ -124,12 +129,12 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
     if (EXTENTS.bottomRight.y > maxExtents.bottomRight.y)
         maxExtents.bottomRight.y = EXTENTS.bottomRight.y;
 
-    if (m_pWLSurface.exists() && !m_bIsX11 && m_pPopupHead) {
+    if (m_pWLSurface->exists() && !m_bIsX11 && m_pPopupHead) {
         CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         m_pPopupHead->breadthfirst(
             [](CPopup* popup, void* data) {
-                if (!popup->m_sWLSurface.wlr())
+                if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
                     return;
 
                 CBox* pSurfaceExtents = (CBox*)data;
@@ -151,11 +156,11 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
         if (-surfaceExtents.y > maxExtents.topLeft.y)
             maxExtents.topLeft.y = -surfaceExtents.y;
 
-        if (surfaceExtents.x + surfaceExtents.width > m_pWLSurface.wlr()->current.width + maxExtents.bottomRight.x)
-            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_pWLSurface.wlr()->current.width;
+        if (surfaceExtents.x + surfaceExtents.width > m_pWLSurface->resource()->current.size.x + maxExtents.bottomRight.x)
+            maxExtents.bottomRight.x = surfaceExtents.x + surfaceExtents.width - m_pWLSurface->resource()->current.size.x;
 
-        if (surfaceExtents.y + surfaceExtents.height > m_pWLSurface.wlr()->current.height + maxExtents.bottomRight.y)
-            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_pWLSurface.wlr()->current.height;
+        if (surfaceExtents.y + surfaceExtents.height > m_pWLSurface->resource()->current.size.y + maxExtents.bottomRight.y)
+            maxExtents.bottomRight.y = surfaceExtents.y + surfaceExtents.height - m_pWLSurface->resource()->current.size.y;
     }
 
     return maxExtents;
@@ -340,17 +345,7 @@ void CWindow::updateToplevel() {
     updateSurfaceScaleTransformDetails();
 }
 
-void sendEnterIter(wlr_surface* pSurface, int x, int y, void* data) {
-    const auto OUTPUT = (wlr_output*)data;
-    wlr_surface_send_enter(pSurface, OUTPUT);
-}
-
-void sendLeaveIter(wlr_surface* pSurface, int x, int y, void* data) {
-    const auto OUTPUT = (wlr_output*)data;
-    wlr_surface_send_leave(pSurface, OUTPUT);
-}
-
-void CWindow::updateSurfaceScaleTransformDetails() {
+void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     if (!m_bIsMapped || m_bHidden || g_pCompositor->m_bUnsafeState)
         return;
 
@@ -363,26 +358,25 @@ void CWindow::updateSurfaceScaleTransformDetails() {
     if (!PNEWMONITOR)
         return;
 
-    if (PNEWMONITOR != PLASTMONITOR) {
-        if (PLASTMONITOR && PLASTMONITOR->m_bEnabled)
-            wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendLeaveIter, PLASTMONITOR->output);
+    if (PNEWMONITOR != PLASTMONITOR || force) {
+        if (PLASTMONITOR && PLASTMONITOR->m_bEnabled && PNEWMONITOR != PLASTMONITOR)
+            m_pWLSurface->resource()->breadthfirst([PLASTMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->leave(PLASTMONITOR->self.lock()); }, nullptr);
 
-        wlr_surface_for_each_surface(m_pWLSurface.wlr(), sendEnterIter, PNEWMONITOR->output);
+        m_pWLSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->self.lock()); }, nullptr);
     }
 
-    wlr_surface_for_each_surface(
-        m_pWLSurface.wlr(),
-        [](wlr_surface* surf, int x, int y, void* data) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(((CWindow*)data)->m_iMonitorID);
+    m_pWLSurface->resource()->breadthfirst(
+        [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+            const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
 
-            const auto PSURFACE = CWLSurface::surfaceFromWlr(surf);
+            const auto PSURFACE = CWLSurface::fromResource(s);
             if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
                 return;
 
-            g_pCompositor->setPreferredScaleForSurface(surf, PMONITOR->scale);
-            g_pCompositor->setPreferredTransformForSurface(surf, PMONITOR->transform);
+            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->scale);
+            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->transform);
         },
-        this);
+        nullptr);
 }
 
 void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
@@ -567,6 +561,8 @@ void CWindow::onMap() {
 
     m_vReportedSize = m_vPendingReportedSize;
     m_bAnimatingIn  = true;
+
+    updateSurfaceScaleTransformDetails(true);
 
     if (m_bIsX11)
         return;
@@ -860,7 +856,7 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
 
     CPopup* popup = m_pPopupHead->at(pos);
 
-    return popup && popup->m_sWLSurface.wlr();
+    return popup && popup->m_pWLSurface->resource();
 }
 
 void CWindow::applyGroupRules() {
@@ -1135,23 +1131,24 @@ bool CWindow::opaque() {
 
     const auto PWORKSPACE = m_pWorkspace;
 
-    if (m_pWLSurface.small() && !m_pWLSurface.m_bFillIgnoreSmall)
+    if (m_pWLSurface->small() && !m_pWLSurface->m_bFillIgnoreSmall)
         return false;
 
     if (PWORKSPACE->m_fAlpha.value() != 1.f)
         return false;
 
-    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface)
-        return m_pXWaylandSurface->surface->opaque;
+    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.buffer)
+        return m_pXWaylandSurface->surface->current.buffer->opaque;
 
-    if (m_pXDGSurface && m_pXDGSurface->surface->opaque)
+    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.buffer)
+        return false;
+
+    // TODO: this is wrong
+    const auto EXTENTS = m_pXDGSurface->surface->current.opaque.getExtents();
+    if (EXTENTS.w >= m_pXDGSurface->surface->current.buffer->size.x && EXTENTS.h >= m_pXDGSurface->surface->current.buffer->size.y)
         return true;
 
-    const auto EXTENTS = pixman_region32_extents(&m_pXDGSurface->surface->opaque_region);
-    if (EXTENTS->x2 - EXTENTS->x1 >= m_pXDGSurface->surface->current.buffer_width && EXTENTS->y2 - EXTENTS->y1 >= m_pXDGSurface->surface->current.buffer_height)
-        return true;
-
-    return false;
+    return m_pWLSurface->resource()->current.buffer->opaque;
 }
 
 float CWindow::rounding() {
@@ -1282,8 +1279,7 @@ int CWindow::surfacesCount() {
         return 1;
 
     int no = 0;
-    wlr_surface_for_each_surface(
-        m_pWLSurface.wlr(), [](wlr_surface* surf, int x, int y, void* data) { *((int*)data) += 1; }, &no);
+    m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
     return no;
 }
 
@@ -1456,16 +1452,16 @@ void CWindow::onAck(uint32_t serial) {
 }
 
 void CWindow::onResourceChangeX11() {
-    if (m_pXWaylandSurface->surface && !m_pWLSurface.wlr())
-        m_pWLSurface.assign(m_pXWaylandSurface->surface, m_pSelf.lock());
-    else if (!m_pXWaylandSurface->surface && m_pWLSurface.wlr())
-        m_pWLSurface.unassign();
+    if (m_pXWaylandSurface->surface && !m_pWLSurface->resource())
+        m_pWLSurface->assign(m_pXWaylandSurface->surface.lock(), m_pSelf.lock());
+    else if (!m_pXWaylandSurface->surface && m_pWLSurface->resource())
+        m_pWLSurface->unassign();
 
     // update metadata as well,
     // could be first assoc and we need to catch the class
     onUpdateMeta();
 
-    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface.wlr());
+    Debug::log(LOG, "xwayland window {:x} -> association to {:x}", (uintptr_t)m_pXWaylandSurface.get(), (uintptr_t)m_pWLSurface->resource().get());
 }
 
 void CWindow::onX11Configure(CBox box) {

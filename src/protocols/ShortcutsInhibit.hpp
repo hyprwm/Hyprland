@@ -6,17 +6,19 @@
 #include "WaylandProtocol.hpp"
 #include "keyboard-shortcuts-inhibit-unstable-v1.hpp"
 
+class CWLSurfaceResource;
+
 class CKeyboardShortcutsInhibitor {
   public:
-    CKeyboardShortcutsInhibitor(SP<CZwpKeyboardShortcutsInhibitorV1> resource_, wlr_surface* surf);
+    CKeyboardShortcutsInhibitor(SP<CZwpKeyboardShortcutsInhibitorV1> resource_, SP<CWLSurfaceResource> surf);
 
     // read-only pointer, may be invalid
-    wlr_surface* surface();
-    bool         good();
+    SP<CWLSurfaceResource> surface();
+    bool                   good();
 
   private:
     SP<CZwpKeyboardShortcutsInhibitorV1> resource;
-    wlr_surface*                         pSurface = nullptr;
+    WP<CWLSurfaceResource>               pSurface;
 };
 
 class CKeyboardShortcutsInhibitProtocol : public IWaylandProtocol {

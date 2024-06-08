@@ -3,10 +3,12 @@
 #include "Framebuffer.hpp"
 
 class CMonitor;
+class IWLBuffer;
 
 class CRenderbuffer {
   public:
     CRenderbuffer(wlr_buffer* buffer, uint32_t format);
+    CRenderbuffer(SP<IWLBuffer> buffer, uint32_t format);
     ~CRenderbuffer();
 
     void          bind();
@@ -16,6 +18,7 @@ class CRenderbuffer {
     uint32_t      getFormat();
 
     wlr_buffer*   m_pWlrBuffer = nullptr;
+    WP<IWLBuffer> m_pHLBuffer  = {};
 
     DYNLISTENER(destroyBuffer);
 

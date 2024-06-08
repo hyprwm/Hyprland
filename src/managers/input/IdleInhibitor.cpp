@@ -14,7 +14,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
         recheckIdleInhibitorStatus();
     });
 
-    auto WLSurface = CWLSurface::surfaceFromWlr(PINHIBIT->inhibitor->surface);
+    auto WLSurface = CWLSurface::fromResource(PINHIBIT->inhibitor->surface.lock());
 
     if (!WLSurface) {
         Debug::log(LOG, "Inhibitor has no HL Surface attached to it, likely meaning it's a non-desktop element. Assuming it's visible.");
@@ -37,7 +37,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
             return;
         }
 
-        auto WLSurface = CWLSurface::surfaceFromWlr(ii->inhibitor->surface);
+        auto WLSurface = CWLSurface::fromResource(ii->inhibitor->surface.lock());
 
         if (!WLSurface)
             continue;

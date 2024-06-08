@@ -23,6 +23,8 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
 
         g_pHyprRenderer->damageBox(&m_bLastDamage);
     });
+
+    m_pTexture = makeShared<CTexture>();
 }
 
 CHyprNotificationOverlay::~CHyprNotificationOverlay() {
@@ -227,8 +229,8 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_pCairoSurface);
-    m_tTexture.allocate();
-    glBindTexture(GL_TEXTURE_2D, m_tTexture.m_iTexID);
+    m_pTexture->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -240,7 +242,7 @@ void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MONSIZE.x, MONSIZE.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     CBox pMonBox = {0, 0, MONSIZE.x, MONSIZE.y};
-    g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
+    g_pHyprOpenGL->renderTexture(m_pTexture, &pMonBox, 1.f);
 }
 
 bool CHyprNotificationOverlay::hasAny() {

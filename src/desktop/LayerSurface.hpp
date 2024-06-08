@@ -36,7 +36,7 @@ class CLayerSurface {
 
     bool                        keyboardExclusive = false;
 
-    CWLSurface                  surface;
+    SP<CWLSurface>              surface;
 
     bool                        mapped = false;
     uint32_t                    layer  = 0;

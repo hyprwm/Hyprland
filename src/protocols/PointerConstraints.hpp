@@ -12,31 +12,32 @@
 #include "../helpers/signal/Listener.hpp"
 
 class CWLSurface;
+class CWLSurfaceResource;
 
 class CPointerConstraint {
   public:
-    CPointerConstraint(SP<CZwpLockedPointerV1> resource_, wlr_surface* surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
-    CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, wlr_surface* surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
+    CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
+    CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
     ~CPointerConstraint();
 
-    bool        good();
+    bool           good();
 
-    void        deactivate();
-    void        activate();
-    bool        isActive();
+    void           deactivate();
+    void           activate();
+    bool           isActive();
 
-    CWLSurface* owner();
+    SP<CWLSurface> owner();
 
-    CRegion     logicConstraintRegion();
-    bool        isLocked();
-    Vector2D    logicPositionHint();
+    CRegion        logicConstraintRegion();
+    bool           isLocked();
+    Vector2D       logicPositionHint();
 
   private:
     SP<CZwpLockedPointerV1>         resourceL;
     SP<CZwpConfinedPointerV1>       resourceC;
     wl_client*                      pClient = nullptr;
 
-    CWLSurface*                     pHLSurface = nullptr;
+    WP<CWLSurface>                  pHLSurface;
 
     CRegion                         region;
     bool                            hintSet             = false;

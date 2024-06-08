@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "../Compositor.hpp"
 #include "../protocols/XWaylandShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../protocols/core/Seat.hpp"
 #include <ranges>
@@ -296,7 +297,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         auto id       = e->data.data32[0];
         auto resource = wl_client_get_object(g_pXWayland->pServer->xwaylandClient, id);
         if (resource) {
-            auto wlrSurface = wlr_surface_from_resource(resource);
+            auto wlrSurface = CWLSurfaceResource::fromResource(resource);
             associate(XSURF, wlrSurface);
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"]) {
@@ -318,7 +319,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
             if (res->serial != XSURF->wlSerial || !XSURF->wlSerial)
                 continue;
 
-            associate(XSURF, res->surface);
+            associate(XSURF, res->surface.lock());
             break;
         }
 
@@ -827,9 +828,7 @@ CXWM::CXWM() {
 
     initSelection();
 
-    hyprListener_newSurface.initCallback(
-        &g_pCompositor->m_sWLRCompositor->events.new_surface, [this](void* owner, void* data) { onNewSurface((wlr_surface*)data); }, nullptr, "XWM");
-
+    listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
     listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();
@@ -903,13 +902,13 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, surf->xID, HYPRATOMS["_NET_WM_STATE"], XCB_ATOM_ATOM, 32, props.size(), props.data());
 }
 
-void CXWM::onNewSurface(wlr_surface* surf) {
-    if (wl_resource_get_client(surf->resource) != g_pXWayland->pServer->xwaylandClient)
+void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
+    if (surf->client() != g_pXWayland->pServer->xwaylandClient)
         return;
 
     Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf);
 
-    const auto WLID = wl_resource_get_id(surf->resource);
+    const auto WLID = surf->id();
 
     for (auto& sr : surfaces) {
         if (sr->surface || sr->wlID != WLID)
@@ -932,7 +931,7 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
         if (surf->resource || surf->wlSerial != resource->serial)
             continue;
 
-        associate(surf, resource->surface);
+        associate(surf, resource->surface.lock());
         break;
     }
 }
@@ -955,7 +954,7 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     }
 }
 
-void CXWM::associate(SP<CXWaylandSurface> surf, wlr_surface* wlSurf) {
+void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     if (surf->surface)
         return;
 
@@ -981,7 +980,7 @@ void CXWM::dissociate(SP<CXWaylandSurface> surf) {
     if (surf->mapped)
         surf->unmap();
 
-    surf->surface = nullptr;
+    surf->surface.reset();
     surf->events.resourceChange.emit();
 
     Debug::log(LOG, "Dissociate for {:x}", (uintptr_t)surf.get());

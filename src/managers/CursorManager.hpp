@@ -18,7 +18,7 @@ class CCursorManager {
     wlr_buffer*      getCursorBuffer();
 
     void             setCursorFromName(const std::string& name);
-    void             setCursorSurface(CWLSurface* surf, const Vector2D& hotspot);
+    void             setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot);
     void             setXCursor(const std::string& name);
 
     bool             changeTheme(const std::string& name, const int size);

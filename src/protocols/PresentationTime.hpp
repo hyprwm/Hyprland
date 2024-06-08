@@ -7,10 +7,11 @@
 #include "presentation-time.hpp"
 
 class CMonitor;
+class CWLSurfaceResource;
 
 class CQueuedPresentationData {
   public:
-    CQueuedPresentationData(wlr_surface* surf);
+    CQueuedPresentationData(SP<CWLSurfaceResource> surf);
 
     void setPresentationType(bool zeroCopy);
     void attachMonitor(CMonitor* pMonitor);
@@ -19,10 +20,10 @@ class CQueuedPresentationData {
     void discarded();
 
   private:
-    bool         wasPresented = false;
-    bool         zeroCopy     = false;
-    CMonitor*    pMonitor     = nullptr;
-    wlr_surface* surface      = nullptr; // READ-ONLY
+    bool                   wasPresented = false;
+    bool                   zeroCopy     = false;
+    CMonitor*              pMonitor     = nullptr;
+    WP<CWLSurfaceResource> surface;
 
     DYNLISTENER(destroySurface);
 
@@ -32,7 +33,7 @@ class CQueuedPresentationData {
 
 class CPresentationFeedback {
   public:
-    CPresentationFeedback(SP<CWpPresentationFeedback> resource_, wlr_surface* surf);
+    CPresentationFeedback(SP<CWpPresentationFeedback> resource_, SP<CWLSurfaceResource> surf);
 
     bool good();
 
@@ -40,8 +41,8 @@ class CPresentationFeedback {
 
   private:
     SP<CWpPresentationFeedback> resource;
-    wlr_surface*                surface = nullptr; // READ-ONLY
-    bool                        done    = false;
+    WP<CWLSurfaceResource>      surface;
+    bool                        done = false;
 
     friend class CPresentationProtocol;
 };

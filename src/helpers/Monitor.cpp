@@ -216,7 +216,6 @@ void CMonitor::onConnect(bool noRule) {
     PROTO::gamma->applyGammaToState(this);
 
     events.connect.emit();
-    updateGlobal();
 }
 
 void CMonitor::onDisconnect(bool destroy) {
@@ -284,8 +283,6 @@ void CMonitor::onDisconnect(bool destroy) {
     m_bEnabled             = false;
     m_bRenderingInitPassed = false;
 
-    updateGlobal();
-
     if (BACKUPMON) {
         // snap cursor
         g_pCompositor->warpCursorTo(BACKUPMON->vecPosition + BACKUPMON->vecTransformedSize / 2.F, true);
@@ -304,7 +301,7 @@ void CMonitor::onDisconnect(bool destroy) {
             w->startAnim(true, true, true);
         }
     } else {
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
         g_pCompositor->m_pLastWindow.reset();
         g_pCompositor->m_pLastMonitor.reset();
     }
@@ -748,13 +745,6 @@ int64_t CMonitor::activeSpecialWorkspaceID() {
 
 CBox CMonitor::logicalBox() {
     return {vecPosition, vecSize};
-}
-
-void CMonitor::updateGlobal() {
-    if (output->width > 0 && output->height > 0 && m_bEnabled)
-        wlr_output_create_global(output, g_pCompositor->m_sWLDisplay);
-    else
-        wlr_output_destroy_global(output);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

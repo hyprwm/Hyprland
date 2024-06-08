@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
+#include "core/Compositor.hpp"
 #include <algorithm>
 
 #define LOGM PROTO::tablet->protoLog
@@ -160,11 +161,11 @@ CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<
     resource->setDestroy([this](CZwpTabletToolV2* r) { PROTO::tablet->destroyResource(this); });
     resource->setOnDestroy([this](CZwpTabletToolV2* r) { PROTO::tablet->destroyResource(this); });
 
-    resource->setSetCursor([this](CZwpTabletToolV2* r, uint32_t serial, wl_resource* surf, int32_t hot_x, int32_t hot_y) {
+    resource->setSetCursor([](CZwpTabletToolV2* r, uint32_t serial, wl_resource* surf, int32_t hot_x, int32_t hot_y) {
         if (!g_pSeatManager->state.pointerFocusResource || g_pSeatManager->state.pointerFocusResource->client() != r->client())
             return;
 
-        g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{surf ? wlr_surface_from_resource(surf) : nullptr, {hot_x, hot_y}});
+        g_pInputManager->processMouseRequest(CSeatManager::SSetCursorEvent{surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hot_x, hot_y}});
     });
 }
 
@@ -448,7 +449,7 @@ void CTabletV2Protocol::recheckRegisteredDevices() {
         if (t->current) {
             t->resource->sendProximityOut();
             t->sendFrame();
-            t->lastSurf = nullptr;
+            t->lastSurf.reset();
         }
 
         t->resource->sendRemoved();
@@ -545,9 +546,9 @@ void CTabletV2Protocol::down(SP<CTabletTool> tool) {
     }
 }
 
-void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* surf) {
+void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceResource> surf) {
     proximityOut(tool);
-    const auto                CLIENT = wl_resource_get_client(surf->resource);
+    const auto                CLIENT = surf->client();
 
     SP<CTabletToolV2Resource> toolResource;
     SP<CTabletV2Resource>     tabletResource;
@@ -587,7 +588,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, wl
     toolResource->lastSurf = surf;
 
     auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(toolResource->resource->client()));
-    toolResource->resource->sendProximityIn(serial, tabletResource->resource.get(), surf->resource);
+    toolResource->resource->sendProximityIn(serial, tabletResource->resource.get(), surf->getResource()->resource());
     toolResource->queueFrame();
 
     LOGM(ERR, "proximityIn: found no resource to send enter");
@@ -598,8 +599,8 @@ void CTabletV2Protocol::proximityOut(SP<CTabletTool> tool) {
         if (t->tool != tool || !t->current)
             continue;
 
-        t->current  = false;
-        t->lastSurf = nullptr;
+        t->current = false;
+        t->lastSurf.reset();
         t->resource->sendProximityOut();
         t->sendFrame();
     }

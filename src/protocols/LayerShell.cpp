@@ -1,6 +1,8 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
 #include "XDGShell.hpp"
+#include "core/Compositor.hpp"
+#include "core/Output.hpp"
 
 #define LOGM PROTO::layerShell->protoLog
 
@@ -14,7 +16,7 @@ void CLayerShellResource::SState::reset() {
     margin        = {0, 0, 0, 0};
 }
 
-CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, wlr_surface* surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer) :
+CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer) :
     layerNamespace(namespace_), surface(surf_), resource(resource_) {
     if (!good())
         return;
@@ -31,57 +33,52 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, wlr_
         PROTO::layerShell->destroyResource(this);
     });
 
-    hyprListener_destroySurface.initCallback(
-        &surf_->events.destroy,
-        [this](void* owner, void* data) {
-            events.destroy.emit();
-            PROTO::layerShell->destroyResource(this);
-        },
-        this, "CLayerShellResource");
+    listeners.destroySurface = surf_->events.destroy.registerListener([this](std::any d) {
+        events.destroy.emit();
+        PROTO::layerShell->destroyResource(this);
+    });
 
-    hyprListener_commitSurface.initCallback(
-        &surf_->events.commit,
-        [this](void* owner, void* data) {
-            current           = pending;
-            pending.committed = 0;
+    listeners.commitSurface = surf_->events.commit.registerListener([this](std::any d) {
+        current           = pending;
+        pending.committed = 0;
 
-            bool attachedBuffer = surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0;
+        bool attachedBuffer = surface->current.buffer;
 
-            if (attachedBuffer && !configured) {
-                wlr_surface_reject_pending(surface, resource->resource(), -1, "layerSurface was not configured, but a buffer was attached");
-                return;
-            }
+        if (attachedBuffer && !configured) {
+            surface->error(-1, "layerSurface was not configured, but a buffer was attached");
+            return;
+        }
 
-            constexpr uint32_t horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
-            constexpr uint32_t vert  = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+        constexpr uint32_t horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
+        constexpr uint32_t vert  = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
 
-            if (current.desiredSize.x <= 0 && (current.anchor & horiz) != horiz) {
-                wlr_surface_reject_pending(surface, resource->resource(), -1, "x == 0 but anchor doesn't have left and right");
-                return;
-            }
+        if (current.desiredSize.x <= 0 && (current.anchor & horiz) != horiz) {
+            surface->error(-1, "x == 0 but anchor doesn't have left and right");
+            return;
+        }
 
-            if (current.desiredSize.y <= 0 && (current.anchor & vert) != vert) {
-                wlr_surface_reject_pending(surface, resource->resource(), -1, "y == 0 but anchor doesn't have top and bottom");
-                return;
-            }
+        if (current.desiredSize.y <= 0 && (current.anchor & vert) != vert) {
+            surface->error(-1, "y == 0 but anchor doesn't have top and bottom");
+            return;
+        }
 
-            if (attachedBuffer && !mapped) {
-                mapped = true;
-                wlr_surface_map(surface);
-                events.map.emit();
-                return;
-            }
+        if (attachedBuffer && !mapped) {
+            mapped = true;
+            surface->map();
+            events.map.emit();
+            return;
+        }
 
-            if (!attachedBuffer && mapped) {
-                mapped = false;
-                wlr_surface_unmap(surface);
-                events.unmap.emit();
-                return;
-            }
+        if (!attachedBuffer && mapped) {
+            mapped = false;
+            surface->unmap();
+            events.unmap.emit();
+            configured = false;
+            return;
+        }
 
-            events.commit.emit();
-        },
-        this, "CLayerShellResource");
+        events.commit.emit();
+    });
 
     resource->setSetSize([this](CZwlrLayerSurfaceV1* r, uint32_t x, uint32_t y) {
         pending.committed |= STATE_SIZE;
@@ -209,9 +206,9 @@ void CLayerShellProtocol::destroyResource(CLayerShellResource* surf) {
 
 void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_) {
     const auto CLIENT   = pMgr->client();
-    const auto PMONITOR = output ? g_pCompositor->getMonitorFromOutput(wlr_output_from_resource(output)) : nullptr;
+    const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.get() : nullptr;
     const auto RESOURCE = m_vLayers.emplace_back(
-        makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surface), namespace_, PMONITOR, layer));
+        makeShared<CLayerShellResource>(makeShared<CZwlrLayerSurfaceV1>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surface), namespace_, PMONITOR, layer));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

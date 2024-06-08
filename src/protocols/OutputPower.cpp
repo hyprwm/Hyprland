@@ -1,5 +1,6 @@
 #include "OutputPower.hpp"
 #include "../Compositor.hpp"
+#include "core/Output.hpp"
 
 #define LOGM PROTO::outputPower->protoLog
 
@@ -61,15 +62,15 @@ void COutputPowerProtocol::destroyOutputPower(COutputPower* power) {
 
 void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uint32_t id, wl_resource* output) {
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromOutput(wlr_output_from_resource(output));
+    const auto OUTPUT = CWLOutputResource::fromResource(output);
 
-    if (!PMONITOR) {
+    if (!OUTPUT) {
         pMgr->error(0, "Invalid output resource");
         return;
     }
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), PMONITOR)).get();
+    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.get())).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

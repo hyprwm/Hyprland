@@ -1962,6 +1962,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       transparent  = false;
     bool       ignoreMods   = false;
     bool       multiKey     = false;
+    bool       description  = false;
     const auto BINDARGS     = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -1981,6 +1982,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
+        } else if (arg == 'd') {
+            description = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1991,18 +1994,14 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
+    
+    const int numbArgs = description ? 5 : 4;
+        const auto ARGS = CVarList(value, numbArgs);
 
-    auto       ARGS = CVarList(value, 4);
-
-    const bool HAS_DESCRIPTION = ARGS[2].length() > 1 && ARGS[2].starts_with("\"") && ARGS[2].ends_with("\"");
-
-    if (HAS_DESCRIPTION) {
-        ARGS = CVarList(value, 5);
-    }
-    const int DESCR_OFFSET = HAS_DESCRIPTION ? 1 : 0;
+    const int DESCR_OFFSET = description ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
+    else if ((ARGS.size() > (size_t) 4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t) 3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2021,7 +2020,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    const auto DESCRIPTION = HAS_DESCRIPTION ? ARGS[2].substr(1, ARGS.size() - 1) : "";
+    const auto DESCRIPTION = description ? ARGS[2] : "";
 
     auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 

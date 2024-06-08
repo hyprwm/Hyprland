@@ -1,12 +1,10 @@
 assets:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "assets/**"
+  - changed-files:
+      - any-glob-to-any-file: "assets/**"
 
 docs:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: "docs/**"
+  - changed-files:
+      - any-glob-to-any-file: "docs/**"
 
 hyprctl:
   - changed-files:
@@ -27,3 +25,59 @@ protocols:
 core:
   - changed-files:
       - any-glob-to-any-file: "src/**"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file: "src/config/**"
+
+debug:
+  - changed-files:
+      - any-glob-to-any-file: "src/debug/**"
+
+desktop:
+  - changed-files:
+      - any-glob-to-any-file: "src/desktop/**"
+
+devices:
+  - changed-files:
+      - any-glob-to-any-file: "src/devices/**"
+
+events:
+  - changed-files:
+      - any-glob-to-any-file: "src/events/**"
+
+helpers:
+  - changed-files:
+      - any-glob-to-any-file: "src/helpers/**"
+
+hyprerror:
+  - changed-files:
+      - any-glob-to-any-file: "src/hyprerror/**"
+
+init:
+  - changed-files:
+      - any-glob-to-any-file: "src/init/**"
+
+layout:
+  - changed-files:
+      - any-glob-to-any-file: "src/layout/**"
+
+managers:
+  - changed-files:
+      - any-glob-to-any-file: "src/managers/**"
+
+pch:
+  - changed-files:
+      - any-glob-to-any-file: "src/pch/**"
+
+plugins:
+  - changed-files:
+      - any-glob-to-any-file: "src/plugins/**"
+
+render:
+  - changed-files:
+      - any-glob-to-any-file: "src/render/**"
+
+xwayland:
+  - changed-files:
+      - any-glob-to-any-file: "src/xwayland/**"

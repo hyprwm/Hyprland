@@ -107,6 +107,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         pending.damage.intersect(CBox{{}, pending.size});
 
+        auto    previousBuffer       = current.buffer;
         CRegion previousBufferDamage = accumulateCurrentBufferDamage();
 
         current = pending;
@@ -119,11 +120,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             //    current.damage.copy().scale(current.scale).transform(current.transform, current.size.x, current.size.y).add(current.bufferDamage).add(previousBufferDamage);
             current.buffer->update(CBox{{}, {INT32_MAX, INT32_MAX}}); // FIXME: figure this out to not use this hack. QT apps are wonky without this.
 
-            // release the buffer, glTexImage2D is synchronous (as in, data is consumed after the call returns)
+            // release the buffer if it's synchronous as update() has done everything thats needed
             // so we can let the app know we're done.
-            // for dma buffers, this doesn't matter.
-            current.buffer->sendRelease();
-            bufferReleased = true;
+            if (current.buffer->isSynchronous()) {
+                current.buffer->sendRelease();
+                bufferReleased = true;
+            }
         }
 
         // TODO: we should _accumulate_ and not replace above if sync
@@ -145,6 +147,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
                     surf->events.commit.emit();
                 },
                 nullptr);
+        }
+
+        // for async buffers, we can only release the buffer once we are unrefing it from current.
+        if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
+            previousBuffer->sendRelease();
+            bufferReleased = true;
         }
     });
 

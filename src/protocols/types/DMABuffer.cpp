@@ -43,6 +43,10 @@ void CDMABuffer::update(const CRegion& damage) {
     ;
 }
 
+bool CDMABuffer::isSynchronous() {
+    return false;
+}
+
 SDMABUFAttrs CDMABuffer::dmabuf() {
     return attrs;
 }

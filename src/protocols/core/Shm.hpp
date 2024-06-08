@@ -37,6 +37,7 @@ class CWLSHMBuffer : public IWLBuffer {
     virtual eBufferCapability                      caps();
     virtual eBufferType                            type();
     virtual void                                   update(const CRegion& damage);
+    virtual bool                                   isSynchronous();
     virtual SSHMAttrs                              shm();
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
     virtual void                                   endDataPtr();

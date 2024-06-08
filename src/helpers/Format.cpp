@@ -1,6 +1,7 @@
 #include "Format.hpp"
 #include <vector>
 #include "../includes.hpp"
+#include "debug/Log.hpp"
 
 /*
     DRM formats are LE, while OGL is BE. The two primary formats

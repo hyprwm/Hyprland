@@ -49,6 +49,7 @@ class IWLBuffer {
     virtual eBufferCapability                      caps()                        = 0;
     virtual eBufferType                            type()                        = 0;
     virtual void                                   update(const CRegion& damage) = 0;
+    virtual bool                                   isSynchronous()               = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
     virtual SDMABUFAttrs                           dmabuf();
     virtual SSHMAttrs                              shm();
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);

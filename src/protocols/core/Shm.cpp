@@ -49,6 +49,10 @@ eBufferType CWLSHMBuffer::type() {
     return BUFFER_TYPE_SHM;
 }
 
+bool CWLSHMBuffer::isSynchronous() {
+    return true;
+}
+
 SSHMAttrs CWLSHMBuffer::shm() {
     SSHMAttrs attrs;
     attrs.success = true;

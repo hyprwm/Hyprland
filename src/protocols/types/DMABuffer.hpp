@@ -9,6 +9,7 @@ class CDMABuffer : public IWLBuffer {
 
     virtual eBufferCapability                      caps();
     virtual eBufferType                            type();
+    virtual bool                                   isSynchronous();
     virtual void                                   update(const CRegion& damage);
     virtual SDMABUFAttrs                           dmabuf();
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);

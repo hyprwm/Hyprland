@@ -3,6 +3,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include <sys/mman.h>
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::ime->protoLog
 
@@ -83,51 +84,45 @@ wl_client* CInputMethodKeyboardGrabV2::client() {
     return resource->client();
 }
 
-CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, wlr_surface* wlrSurface) : resource(resource_), owner(owner_) {
+CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, SP<CWLSurfaceResource> surface) : resource(resource_), owner(owner_) {
     if (!resource->resource())
         return;
 
     resource->setDestroy([this](CZwpInputPopupSurfaceV2* r) { PROTO::ime->destroyResource(this); });
     resource->setOnDestroy([this](CZwpInputPopupSurfaceV2* r) { PROTO::ime->destroyResource(this); });
 
-    pSurface = wlrSurface;
+    pSurface = surface;
 
-    hyprListener_destroySurface.initCallback(
-        &wlrSurface->events.destroy,
-        [this](void* owner, void* data) {
-            if (mapped)
-                events.unmap.emit();
+    listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+        if (mapped)
+            events.unmap.emit();
 
-            hyprListener_commitSurface.removeCallback();
-            hyprListener_destroySurface.removeCallback();
+        listeners.destroySurface.reset();
+        listeners.commitSurface.reset();
 
-            if (g_pCompositor->m_pLastFocus == pSurface)
-                g_pCompositor->m_pLastFocus = nullptr;
+        if (g_pCompositor->m_pLastFocus == pSurface)
+            g_pCompositor->m_pLastFocus.reset();
 
-            pSurface = nullptr;
-        },
-        this, "IMEPopup");
+        pSurface.reset();
+    });
 
-    hyprListener_commitSurface.initCallback(
-        &wlrSurface->events.commit,
-        [this](void* owner, void* data) {
-            if (pSurface->pending.buffer_width > 0 && pSurface->pending.buffer_height > 0 && !mapped) {
-                mapped = true;
-                wlr_surface_map(pSurface);
-                events.map.emit();
-                return;
-            }
+    listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
+        if (pSurface->current.buffer && !mapped) {
+            mapped = true;
+            pSurface->map();
+            events.map.emit();
+            return;
+        }
 
-            if (pSurface->pending.buffer_width <= 0 && pSurface->pending.buffer_height <= 0 && mapped) {
-                mapped = false;
-                wlr_surface_unmap(pSurface);
-                events.unmap.emit();
-                return;
-            }
+        if (!pSurface->current.buffer && mapped) {
+            mapped = false;
+            pSurface->unmap();
+            events.unmap.emit();
+            return;
+        }
 
-            events.commit.emit();
-        },
-        this, "IMEPopup");
+        events.commit.emit();
+    });
 }
 
 CInputMethodPopupV2::~CInputMethodPopupV2() {
@@ -145,8 +140,8 @@ void CInputMethodPopupV2::sendInputRectangle(const CBox& box) {
     resource->sendTextInputRectangle(box.x, box.y, box.w, box.h);
 }
 
-wlr_surface* CInputMethodPopupV2::surface() {
-    return pSurface;
+SP<CWLSurfaceResource> CInputMethodPopupV2::surface() {
+    return pSurface.lock();
 }
 
 void CInputMethodV2::SState::reset() {
@@ -194,7 +189,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : resource(resou
 
     resource->setGetInputPopupSurface([this](CZwpInputMethodV2* r, uint32_t id, wl_resource* surface) {
         const auto RESOURCE = PROTO::ime->m_vPopups.emplace_back(
-            makeShared<CInputMethodPopupV2>(makeShared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surface)));
+            makeShared<CInputMethodPopupV2>(makeShared<CZwpInputPopupSurfaceV2>(r->client(), r->version(), id), self.lock(), CWLSurfaceResource::fromResource(surface)));
 
         if (!RESOURCE->good()) {
             r->noMemory();

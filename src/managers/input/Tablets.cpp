@@ -20,7 +20,7 @@ static void unfocusTool(SP<CTabletTool> tool) {
     PROTO::tablet->proximityOut(tool);
 }
 
-static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* surf) {
+static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceResource> surf) {
     if (tool->getSurface() == surf || !surf)
         return;
 
@@ -37,7 +37,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* sur
 }
 
 static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
-    const auto LASTHLSURFACE = CWLSurface::surfaceFromWlr(g_pSeatManager->state.pointerFocus);
+    const auto LASTHLSURFACE = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
 
     if (!LASTHLSURFACE || !tool->active) {
         if (tool->getSurface())
@@ -57,7 +57,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal();
 
-    focusTool(tool, tab, g_pSeatManager->state.pointerFocus);
+    focusTool(tool, tab, g_pSeatManager->state.pointerFocus.lock());
 
     if (!motion)
         return;

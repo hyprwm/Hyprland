@@ -50,6 +50,7 @@ class CRegion {
     CRegion&                    invert(const CBox& box);
     CRegion&                    scale(float scale);
     CRegion&                    scale(const Vector2D& scale);
+    CRegion&                    rationalize();
     CBox                        getExtents();
     bool                        containsPoint(const Vector2D& vec) const;
     bool                        empty() const;

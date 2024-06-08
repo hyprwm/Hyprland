@@ -1,26 +1,23 @@
 #include "IdleInhibit.hpp"
+#include "core/Compositor.hpp"
 
-CIdleInhibitor::CIdleInhibitor(SP<CIdleInhibitorResource> resource_, wlr_surface* surf_) : resource(resource_), surface(surf_) {
+CIdleInhibitor::CIdleInhibitor(SP<CIdleInhibitorResource> resource_, SP<CWLSurfaceResource> surf_) : resource(resource_), surface(surf_) {
     ;
 }
 
-CIdleInhibitorResource::CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_, wlr_surface* surface_) : resource(resource_), surface(surface_) {
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy,
-        [this](void* owner, void* data) {
-            surface = nullptr;
-            hyprListener_surfaceDestroy.removeCallback();
-            destroySent = true;
-            events.destroy.emit();
-        },
-        this, "CIdleInhibitorResource");
+CIdleInhibitorResource::CIdleInhibitorResource(SP<CZwpIdleInhibitorV1> resource_, SP<CWLSurfaceResource> surface_) : resource(resource_), surface(surface_) {
+    listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+        surface.reset();
+        listeners.destroySurface.reset();
+        destroySent = true;
+        events.destroy.emit();
+    });
 
     resource->setOnDestroy([this](CZwpIdleInhibitorV1* p) { PROTO::idleInhibit->removeInhibitor(this); });
     resource->setDestroy([this](CZwpIdleInhibitorV1* p) { PROTO::idleInhibit->removeInhibitor(this); });
 }
 
 CIdleInhibitorResource::~CIdleInhibitorResource() {
-    hyprListener_surfaceDestroy.removeCallback();
     if (!destroySent)
         events.destroy.emit();
 }
@@ -39,14 +36,14 @@ void CIdleInhibitProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
     RESOURCE->setDestroy([this](CZwpIdleInhibitManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setCreateInhibitor(
-        [this](CZwpIdleInhibitManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onCreateInhibitor(pMgr, id, wlr_surface_from_resource(surface)); });
+        [this](CZwpIdleInhibitManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onCreateInhibitor(pMgr, id, CWLSurfaceResource::fromResource(surface)); });
 }
 
 void CIdleInhibitProtocol::removeInhibitor(CIdleInhibitorResource* resource) {
     std::erase_if(m_vInhibitors, [resource](const auto& el) { return el.get() == resource; });
 }
 
-void CIdleInhibitProtocol::onCreateInhibitor(CZwpIdleInhibitManagerV1* pMgr, uint32_t id, wlr_surface* surface) {
+void CIdleInhibitProtocol::onCreateInhibitor(CZwpIdleInhibitManagerV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surface) {
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vInhibitors.emplace_back(makeShared<CIdleInhibitorResource>(makeShared<CZwpIdleInhibitorV1>(CLIENT, pMgr->version(), id), surface));
 

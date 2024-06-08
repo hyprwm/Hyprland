@@ -1,6 +1,7 @@
 #include "Tablet.hpp"
 #include "../defines.hpp"
 #include "../protocols/Tablet.hpp"
+#include "../protocols/core/Compositor.hpp"
 
 SP<CTablet> CTablet::create(wlr_tablet* tablet) {
     SP<CTablet> pTab = SP<CTablet>(new CTablet(tablet));
@@ -295,32 +296,29 @@ CTabletTool::~CTabletTool() {
 
 void CTabletTool::disconnectCallbacks() {
     hyprListener_destroy.removeCallback();
-    hyprListener_destroySurface.removeCallback();
+    listeners.destroySurface.reset();
 }
 
-wlr_surface* CTabletTool::getSurface() {
-    return pSurface;
+SP<CWLSurfaceResource> CTabletTool::getSurface() {
+    return pSurface.lock();
 }
 
-void CTabletTool::setSurface(wlr_surface* surf) {
+void CTabletTool::setSurface(SP<CWLSurfaceResource> surf) {
     if (surf == pSurface)
         return;
 
     if (pSurface) {
-        hyprListener_destroySurface.removeCallback();
-        pSurface = nullptr;
+        listeners.destroySurface.reset();
+        pSurface.reset();
     }
 
     pSurface = surf;
 
     if (surf) {
-        hyprListener_destroySurface.initCallback(
-            &surf->events.destroy,
-            [this](void* owner, void* data) {
-                PROTO::tablet->proximityOut(self.lock());
-                pSurface = nullptr;
-                hyprListener_destroySurface.removeCallback();
-            },
-            this, "CTabletTool");
+        listeners.destroySurface = surf->events.destroy.registerListener([this](std::any d) {
+            PROTO::tablet->proximityOut(self.lock());
+            pSurface.reset();
+            listeners.destroySurface.reset();
+        });
     }
 }

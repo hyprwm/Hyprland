@@ -14,9 +14,10 @@
 class IWaylandProtocol {
   public:
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
-    ~IWaylandProtocol();
+    virtual ~IWaylandProtocol();
 
     virtual void onDisplayDestroy();
+    virtual void removeGlobal();
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
 

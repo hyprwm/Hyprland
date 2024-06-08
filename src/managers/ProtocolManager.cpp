@@ -32,17 +32,45 @@
 #include "../protocols/DataDeviceWlr.hpp"
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/XWaylandShell.hpp"
+#include "../protocols/Viewporter.hpp"
+#include "../protocols/MesaDRM.hpp"
+#include "../protocols/LinuxDMABUF.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
+#include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/Subcompositor.hpp"
+#include "../protocols/core/Output.hpp"
+#include "../protocols/core/Shm.hpp"
+
+#include "../helpers/Monitor.hpp"
 
 CProtocolManager::CProtocolManager() {
 
+    // Outputs are a bit dumb, we have to agree.
+    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [](void* self, SCallbackInfo& info, std::any param) {
+        auto M = std::any_cast<CMonitor*>(param);
+        if (PROTO::outputs.contains(M->szName))
+            PROTO::outputs.erase(M->szName);
+        PROTO::outputs.emplace(M->szName, std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock()));
+    });
+
+    static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [](void* self, SCallbackInfo& info, std::any param) {
+        auto M = std::any_cast<CMonitor*>(param);
+        if (!PROTO::outputs.contains(M->szName))
+            return;
+        PROTO::outputs.at(M->szName)->remove();
+    });
+
     // Core
-    PROTO::seat = std::make_unique<CWLSeatProtocol>(&wl_seat_interface, 9, "WLSeat");
-    PROTO::data = std::make_unique<CWLDataDeviceProtocol>(&wl_data_device_manager_interface, 3, "WLDataDevice");
+    PROTO::seat          = std::make_unique<CWLSeatProtocol>(&wl_seat_interface, 9, "WLSeat");
+    PROTO::data          = std::make_unique<CWLDataDeviceProtocol>(&wl_data_device_manager_interface, 3, "WLDataDevice");
+    PROTO::compositor    = std::make_unique<CWLCompositorProtocol>(&wl_compositor_interface, 6, "WLCompositor");
+    PROTO::subcompositor = std::make_unique<CWLSubcompositorProtocol>(&wl_subcompositor_interface, 1, "WLSubcompositor");
+    PROTO::shm           = std::make_unique<CWLSHMProtocol>(&wl_shm_interface, 1, "WLSHM");
 
     // Extensions
+    PROTO::viewport            = std::make_unique<CViewporterProtocol>(&wp_viewporter_interface, 1, "Viewporter");
     PROTO::tearing             = std::make_unique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
     PROTO::fractional          = std::make_unique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
     PROTO::xdgOutput           = std::make_unique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
@@ -75,6 +103,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
+    PROTO::mesaDRM             = std::make_unique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
+    PROTO::linuxDma            = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

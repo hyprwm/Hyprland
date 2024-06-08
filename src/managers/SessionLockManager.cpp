@@ -20,7 +20,7 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
 
     listeners.destroy = surface_->events.destroy.registerListener([this](std::any data) {
         if (pWlrSurface == g_pCompositor->m_pLastFocus)
-            g_pCompositor->m_pLastFocus = nullptr;
+            g_pCompositor->m_pLastFocus.reset();
 
         g_pSessionLockManager->removeSessionLockSurface(this);
     });
@@ -70,7 +70,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
-    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([this](std::any data) {
+    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([](std::any data) {
         g_pCompositor->focusSurface(nullptr);
 
         for (auto& m : g_pCompositor->m_vMonitors)
@@ -117,7 +117,7 @@ float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
     return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds() - /* delay for screencopy */ 0.5f, 0.f, 1.f);
 }
 
-bool CSessionLockManager::isSurfaceSessionLock(wlr_surface* pSurface) {
+bool CSessionLockManager::isSurfaceSessionLock(SP<CWLSurfaceResource> pSurface) {
     // TODO: this has some edge cases when it's wrong (e.g. destroyed lock but not yet surfaces)
     // but can be easily fixed when I rewrite wlr_surface
 

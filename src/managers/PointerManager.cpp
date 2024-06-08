@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "SeatManager.hpp"
 #include <wlr/interfaces/wlr_output.h>
 #include <wlr/render/interface.h>
@@ -212,13 +213,13 @@ void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, 
     damageIfSoftware();
 }
 
-void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot) {
+void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
     damageIfSoftware();
 
     if (surf == currentCursorImage.surface) {
-        if (hotspot != currentCursorImage.hotspot || (surf && surf->wlr() ? surf->wlr()->current.scale : 1.F) != currentCursorImage.scale) {
+        if (hotspot != currentCursorImage.hotspot || (surf && surf->resource() ? surf->resource()->current.scale : 1.F) != currentCursorImage.scale) {
             currentCursorImage.hotspot = hotspot;
-            currentCursorImage.scale   = surf && surf->wlr() ? surf->wlr()->current.scale : 1.F;
+            currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->current.scale : 1.F;
             updateCursorBackend();
             damageIfSoftware();
         }
@@ -229,27 +230,24 @@ void CPointerManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot
     resetCursorImage(false);
 
     if (surf) {
-        currentCursorImage.size    = {surf->wlr()->current.buffer_width, surf->wlr()->current.buffer_height};
         currentCursorImage.surface = surf;
-        currentCursorImage.scale   = surf->wlr()->current.scale;
+        currentCursorImage.scale   = surf->resource()->current.scale;
 
         currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
-        currentCursorImage.hyprListener_commitSurface.initCallback(
-            &surf->wlr()->events.commit,
-            [this](void* owner, void* data) {
-                damageIfSoftware();
-                currentCursorImage.size  = {currentCursorImage.surface->wlr()->current.buffer_width, currentCursorImage.surface->wlr()->current.buffer_height};
-                currentCursorImage.scale = currentCursorImage.surface && currentCursorImage.surface->wlr() ? currentCursorImage.surface->wlr()->current.scale : 1.F;
-                recheckEnteredOutputs();
-                updateCursorBackend();
-                damageIfSoftware();
-            },
-            nullptr, "CPointerManager");
+        currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
+            damageIfSoftware();
+            currentCursorImage.size  = currentCursorImage.surface->resource()->current.buffer ? currentCursorImage.surface->resource()->current.buffer->size : Vector2D{};
+            currentCursorImage.scale = currentCursorImage.surface ? currentCursorImage.surface->resource()->current.scale : 1.F;
+            recheckEnteredOutputs();
+            updateCursorBackend();
+            damageIfSoftware();
+        });
 
-        if (wlr_surface_has_buffer(surf->wlr())) {
+        if (surf->resource()->current.buffer) {
+            currentCursorImage.size = surf->resource()->current.buffer->size;
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
-            wlr_surface_send_frame_done(surf->wlr(), &now);
+            surf->resource()->frame(&now);
         }
     }
 
@@ -278,9 +276,9 @@ void CPointerManager::recheckEnteredOutputs() {
             if (!currentCursorImage.surface)
                 continue;
 
-            wlr_surface_send_enter(currentCursorImage.surface->wlr(), s->monitor->output);
-            PROTO::fractional->sendScale(currentCursorImage.surface->wlr(), s->monitor->scale);
-            g_pCompositor->setPreferredScaleForSurface(currentCursorImage.surface->wlr(), s->monitor->scale);
+            currentCursorImage.surface->resource()->enter(s->monitor.lock());
+            PROTO::fractional->sendScale(currentCursorImage.surface->resource(), s->monitor->scale);
+            g_pCompositor->setPreferredScaleForSurface(currentCursorImage.surface->resource(), s->monitor->scale);
         } else if (s->entered && !overlaps) {
             s->entered = false;
 
@@ -293,7 +291,7 @@ void CPointerManager::recheckEnteredOutputs() {
             if (!currentCursorImage.surface)
                 continue;
 
-            wlr_surface_send_leave(currentCursorImage.surface->wlr(), s->monitor->output);
+            currentCursorImage.surface->resource()->leave(s->monitor.lock());
         }
     }
 }
@@ -303,12 +301,12 @@ void CPointerManager::resetCursorImage(bool apply) {
 
     if (currentCursorImage.surface) {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            wlr_surface_send_leave(currentCursorImage.surface->wlr(), m->output);
+            currentCursorImage.surface->resource()->leave(m);
         }
 
         currentCursorImage.destroySurface.reset();
-        currentCursorImage.hyprListener_commitSurface.removeCallback();
-        currentCursorImage.surface = nullptr;
+        currentCursorImage.commitSurface.reset();
+        currentCursorImage.surface.reset();
     } else if (currentCursorImage.pBuffer) {
         wlr_buffer_unlock(currentCursorImage.pBuffer);
         currentCursorImage.hyprListener_destroyBuffer.removeCallback();
@@ -451,7 +449,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, wlr_buff
     return true;
 }
 
-wlr_buffer* CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, wlr_texture* texture) {
+wlr_buffer* CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
     auto output = state->monitor->output;
 
     int  w = currentCursorImage.size.x, h = currentCursorImage.size.y;
@@ -528,7 +526,7 @@ void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* 
 
     if ((!state->hardwareFailed && state->softwareLocks == 0)) {
         if (currentCursorImage.surface)
-            wlr_surface_send_frame_done(currentCursorImage.surface->wlr(), now);
+            currentCursorImage.surface->resource()->frame(now);
         return;
     }
 
@@ -550,7 +548,7 @@ void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* 
     g_pHyprOpenGL->renderTextureWithDamage(texture, &box, &damage, 1.F);
 
     if (currentCursorImage.surface)
-        wlr_surface_send_frame_done(currentCursorImage.surface->wlr(), now);
+        currentCursorImage.surface->resource()->frame(now);
 }
 
 Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
@@ -762,17 +760,19 @@ void CPointerManager::onMonitorLayoutChange() {
     damageIfSoftware();
 }
 
-wlr_texture* CPointerManager::getCurrentCursorTexture() {
-    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !wlr_surface_get_texture(currentCursorImage.surface->wlr())))
+SP<CTexture> CPointerManager::getCurrentCursorTexture() {
+    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.buffer))
         return nullptr;
 
     if (currentCursorImage.pBuffer) {
-        if (!currentCursorImage.pBufferTexture)
+        if (!currentCursorImage.pBufferTexture) {
             currentCursorImage.pBufferTexture = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, currentCursorImage.pBuffer);
-        return currentCursorImage.pBufferTexture;
+            currentCursorImage.bufferTex      = makeShared<CTexture>(currentCursorImage.pBufferTexture);
+        }
+        return currentCursorImage.bufferTex;
     }
 
-    return wlr_surface_get_texture(currentCursorImage.surface->wlr());
+    return currentCursorImage.surface->resource()->current.buffer->texture;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {

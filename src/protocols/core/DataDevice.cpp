@@ -4,6 +4,7 @@
 #include "../../managers/PointerManager.hpp"
 #include "../../Compositor.hpp"
 #include "Seat.hpp"
+#include "Compositor.hpp"
 
 #define LOGM PROTO::data->protoLog
 
@@ -233,7 +234,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : reso
 
         source->dnd = true;
 
-        PROTO::data->initiateDrag(source, icon ? wlr_surface_from_resource(icon) : nullptr, wlr_surface_from_resource(origin));
+        PROTO::data->initiateDrag(source, icon ? CWLSurfaceResource::fromResource(icon) : nullptr, CWLSurfaceResource::fromResource(origin));
     });
 }
 
@@ -252,8 +253,8 @@ void CWLDataDeviceResource::sendDataOffer(SP<CWLDataOfferResource> offer) {
         resource->sendDataOfferRaw(nullptr);
 }
 
-void CWLDataDeviceResource::sendEnter(uint32_t serial, wlr_surface* surf, const Vector2D& local, SP<CWLDataOfferResource> offer) {
-    resource->sendEnterRaw(serial, surf->resource, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), offer->resource->resource());
+void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CWLDataOfferResource> offer) {
+    resource->sendEnterRaw(serial, surf->getResource()->resource(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), offer->resource->resource());
 }
 
 void CWLDataDeviceResource::sendLeave() {
@@ -454,7 +455,7 @@ void CWLDataDeviceProtocol::onKeyboardFocus() {
     updateDrag();
 }
 
-void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource, wlr_surface* dragSurface, wlr_surface* origin) {
+void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource, SP<CWLSurfaceResource> dragSurface, SP<CWLSurfaceResource> origin) {
 
     if (dnd.currentSource) {
         LOGM(WARN, "New drag started while old drag still active??");
@@ -472,22 +473,18 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     dnd.originSurface = origin;
     dnd.dndSurface    = dragSurface;
     if (dragSurface) {
-        dnd.hyprListener_dndSurfaceDestroy.initCallback(
-            &dragSurface->events.destroy, [this](void* owner, void* data) { abortDrag(); }, nullptr, "CWLDataDeviceProtocol::drag");
-        dnd.hyprListener_dndSurfaceCommit.initCallback(
-            &dragSurface->events.commit,
-            [this](void* owner, void* data) {
-                if (dnd.dndSurface->pending.buffer_width > 0 && dnd.dndSurface->pending.buffer_height > 0 && !dnd.dndSurface->mapped) {
-                    wlr_surface_map(dnd.dndSurface);
-                    return;
-                }
+        dnd.dndSurfaceDestroy = dragSurface->events.destroy.registerListener([this](std::any d) { abortDrag(); });
+        dnd.dndSurfaceCommit  = dragSurface->events.commit.registerListener([this](std::any d) {
+            if (dnd.dndSurface->current.buffer && !dnd.dndSurface->mapped) {
+                dnd.dndSurface->map();
+                return;
+            }
 
-                if (dnd.dndSurface->pending.buffer_width <= 0 && dnd.dndSurface->pending.buffer_height <= 0 && dnd.dndSurface->mapped) {
-                    wlr_surface_unmap(dnd.dndSurface);
-                    return;
-                }
-            },
-            nullptr, "CWLDataDeviceProtocol::drag");
+            if (dnd.dndSurface->current.buffer <= 0 && dnd.dndSurface->mapped) {
+                dnd.dndSurface->unmap();
+                return;
+            }
+        });
     }
 
     dnd.mouseButton = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any e) {
@@ -506,7 +503,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     dnd.mouseMove = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto V = std::any_cast<const Vector2D>(e);
         if (dnd.focusedDevice && g_pSeatManager->state.keyboardFocus) {
-            auto surf = CWLSurface::surfaceFromWlr(g_pSeatManager->state.keyboardFocus);
+            auto surf = CWLSurface::fromResource(g_pSeatManager->state.keyboardFocus.lock());
 
             if (!surf)
                 return;
@@ -524,7 +521,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     dnd.touchMove = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<ITouch::SMotionEvent>(e);
         if (dnd.focusedDevice && g_pSeatManager->state.keyboardFocus) {
-            auto surf = CWLSurface::surfaceFromWlr(g_pSeatManager->state.keyboardFocus);
+            auto surf = CWLSurface::fromResource(g_pSeatManager->state.keyboardFocus.lock());
 
             if (!surf)
                 return;
@@ -572,14 +569,14 @@ void CWLDataDeviceProtocol::updateDrag() {
 
     dnd.focusedDevice->sendDataOffer(OFFER);
     OFFER->sendData();
-    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.keyboardFocus,
-                                 Vector2D{g_pSeatManager->state.keyboardFocus->current.width, g_pSeatManager->state.keyboardFocus->current.height} / 2.F, OFFER);
+    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.keyboardFocus.lock(),
+                                 g_pSeatManager->state.keyboardFocus->current.size / 2.F, OFFER);
 }
 
 void CWLDataDeviceProtocol::resetDndState() {
-    dnd.dndSurface = nullptr;
-    dnd.hyprListener_dndSurfaceDestroy.removeCallback();
-    dnd.hyprListener_dndSurfaceCommit.removeCallback();
+    dnd.dndSurface.reset();
+    dnd.dndSurfaceCommit.reset();
+    dnd.dndSurfaceDestroy.reset();
     dnd.mouseButton.reset();
     dnd.mouseMove.reset();
     dnd.touchUp.reset();
@@ -638,20 +635,18 @@ void CWLDataDeviceProtocol::abortDrag() {
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
-    if (!dnd.dndSurface || !wlr_surface_get_texture(dnd.dndSurface))
+    if (!dnd.dndSurface || !dnd.dndSurface->current.buffer || !dnd.dndSurface->current.buffer->texture)
         return;
 
     const auto POS = g_pInputManager->getMouseCoordsInternal();
 
-    CBox       box = CBox{POS, {dnd.dndSurface->current.width, dnd.dndSurface->current.height}}
-                   .translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F)
-                   .scale(pMonitor->scale);
-    g_pHyprOpenGL->renderTexture(wlr_surface_get_texture(dnd.dndSurface), &box, 1.F);
+    CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
+    g_pHyprOpenGL->renderTexture(dnd.dndSurface->current.buffer->texture, &box, 1.F);
 
-    box = CBox{POS, {dnd.dndSurface->current.width, dnd.dndSurface->current.height}}.translate(g_pPointerManager->cursorSizeLogical() / 2.F);
+    box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F);
     g_pHyprRenderer->damageBox(&box);
 
-    wlr_surface_send_frame_done(dnd.dndSurface, when);
+    dnd.dndSurface->frame(when);
 }
 
 bool CWLDataDeviceProtocol::dndActive() {

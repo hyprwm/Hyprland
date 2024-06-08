@@ -5,7 +5,7 @@
 #include "../helpers/Box.hpp"
 #include <vector>
 
-struct wlr_surface;
+class CWLSurfaceResource;
 class CXWaylandSurfaceResource;
 
 #ifdef NO_XWAYLAND
@@ -39,7 +39,7 @@ typedef struct {
 
 class CXWaylandSurface {
   public:
-    wlr_surface*                 surface = nullptr;
+    WP<CWLSurfaceResource>       surface;
     WP<CXWaylandSurfaceResource> resource;
 
     struct {
@@ -109,11 +109,10 @@ class CXWaylandSurface {
     void considerMap();
     void setWithdrawn(bool withdrawn);
 
-    DYNLISTENER(surfaceDestroy);
-    DYNLISTENER(surfaceCommit);
-
     struct {
         CHyprSignalListener destroyResource;
+        CHyprSignalListener destroySurface;
+        CHyprSignalListener commitSurface;
     } listeners;
 
     friend class CXWM;

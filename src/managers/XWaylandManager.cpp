@@ -3,6 +3,7 @@
 #include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
@@ -19,11 +20,11 @@ CHyprXWaylandManager::~CHyprXWaylandManager() {
 #endif
 }
 
-wlr_surface* CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
-    return pWindow->m_pWLSurface.wlr();
+SP<CWLSurfaceResource> CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
+    return pWindow->m_pWLSurface->resource();
 }
 
-void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate) {
+void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool activate) {
     if (!pSurface)
         return;
 
@@ -33,7 +34,7 @@ void CHyprXWaylandManager::activateSurface(wlr_surface* pSurface, bool activate)
         if (!w->m_bIsMapped)
             continue;
 
-        if (w->m_pWLSurface.wlr() != pSurface)
+        if (w->m_pWLSurface->resource() != pSurface)
             continue;
 
         if (w->m_bIsX11) {
@@ -129,10 +130,6 @@ void CHyprXWaylandManager::setWindowSize(PHLWINDOW pWindow, Vector2D size, bool 
         pWindow->m_pXWaylandSurface->configure({windowPos, size});
     else if (pWindow->m_pXDGSurface->toplevel)
         pWindow->m_vPendingSizeAcks.push_back(std::make_pair<>(pWindow->m_pXDGSurface->toplevel->setSize(size), size.floor()));
-}
-
-wlr_surface* CHyprXWaylandManager::surfaceAt(PHLWINDOW pWindow, const Vector2D& client, Vector2D& surface) {
-    return wlr_surface_surface_at(pWindow->m_pWLSurface.wlr(), client.x, client.y, &surface.x, &surface.y);
 }
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {

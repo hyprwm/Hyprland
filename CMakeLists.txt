@@ -116,7 +116,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
-find_package(hyprwayland-scanner 0.3.8 REQUIRED)
+find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
@@ -277,7 +277,6 @@ target_link_libraries(Hyprland
 protocol("protocols/wlr-screencopy-unstable-v1.xml" "wlr-screencopy-unstable-v1" true)
 protocol("subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml" "hyprland-global-shortcuts-v1" true)
 protocol("subprojects/hyprland-protocols/protocols/hyprland-toplevel-export-v1.xml" "hyprland-toplevel-export-v1" true)
-protocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml" "linux-dmabuf-unstable-v1" false)
 protocol("unstable/text-input/text-input-unstable-v1.xml" "text-input-unstable-v1" false)
 
 protocolNew("protocols" "wlr-gamma-control-unstable-v1" true)
@@ -291,6 +290,7 @@ protocolNew("protocols" "kde-server-decoration" true)
 protocolNew("protocols" "wlr-data-control-unstable-v1" true)
 protocolNew("subprojects/hyprland-protocols/protocols" "hyprland-focus-grab-v1" true)
 protocolNew("protocols" "wlr-layer-shell-unstable-v1" true)
+protocolNew("protocols" "wayland-drm" true)
 protocolNew("staging/tearing-control" "tearing-control-v1" false)
 protocolNew("staging/fractional-scale" "fractional-scale-v1" false)
 protocolNew("unstable/xdg-output" "xdg-output-unstable-v1" false)
@@ -312,6 +312,8 @@ protocolNew("stable/presentation-time" "presentation-time" false)
 protocolNew("stable/xdg-shell" "xdg-shell" false)
 protocolNew("unstable/primary-selection" "primary-selection-unstable-v1" false)
 protocolNew("staging/xwayland-shell" "xwayland-shell-v1" false)
+protocolNew("stable/viewporter" "viewporter" false)
+protocolNew("stable/linux-dmabuf" "linux-dmabuf-v1" false)
 
 protocolWayland()
 

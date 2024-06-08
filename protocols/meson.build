@@ -24,7 +24,6 @@ hyprwayland_scanner = find_program(
 )
 
 protocols = [
-  [wl_protocol_dir, 'unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml'],
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
   ['wlr-screencopy-unstable-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
@@ -41,6 +40,7 @@ new_protocols = [
   ['wlr-output-management-unstable-v1.xml'],
   ['kde-server-decoration.xml'],
   ['wlr-layer-shell-unstable-v1.xml'],
+  ['wayland-drm.xml'],
   ['wlr-data-control-unstable-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
@@ -64,6 +64,8 @@ new_protocols = [
   [wl_protocol_dir, 'stable/xdg-shell/xdg-shell.xml'],
   [wl_protocol_dir, 'unstable/primary-selection/primary-selection-unstable-v1.xml'],
   [wl_protocol_dir, 'staging/xwayland-shell/xwayland-shell-v1.xml'],
+  [wl_protocol_dir, 'stable/viewporter/viewporter.xml'],
+  [wl_protocol_dir, 'stable/linux-dmabuf/linux-dmabuf-v1.xml'],
 ]
 
 wl_protos_src = []

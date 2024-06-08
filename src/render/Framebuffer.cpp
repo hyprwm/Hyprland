@@ -1,22 +1,26 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
 
+CFramebuffer::CFramebuffer() {
+    m_cTex = makeShared<CTexture>();
+}
+
 bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 1 && h > 1), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    uint32_t glFormat = drmFormatToGL(drmFormat);
-    uint32_t glType   = glFormatToType(glFormat);
+    uint32_t glFormat = FormatUtils::drmFormatToGL(drmFormat);
+    uint32_t glType   = FormatUtils::glFormatToType(glFormat);
 
     if (m_iFb == (uint32_t)-1) {
         firstAlloc = true;
         glGenFramebuffers(1, &m_iFb);
     }
 
-    if (m_cTex.m_iTexID == 0) {
+    if (m_cTex->m_iTexID == 0) {
         firstAlloc = true;
-        glGenTextures(1, &m_cTex.m_iTexID);
-        glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
+        m_cTex->allocate();
+        glBindTexture(GL_TEXTURE_2D, m_cTex->m_iTexID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -24,11 +28,11 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     }
 
     if (firstAlloc || m_vSize != Vector2D(w, h)) {
-        glBindTexture(GL_TEXTURE_2D, m_cTex.m_iTexID);
+        glBindTexture(GL_TEXTURE_2D, m_cTex->m_iTexID);
         glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, 0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex.m_iTexID, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex->m_iTexID, 0);
 
 // TODO: Allow this with gles2
 #ifndef GLES2
@@ -87,12 +91,9 @@ void CFramebuffer::release() {
     if (m_iFb != (uint32_t)-1 && m_iFb)
         glDeleteFramebuffers(1, &m_iFb);
 
-    if (m_cTex.m_iTexID)
-        glDeleteTextures(1, &m_cTex.m_iTexID);
-
-    m_cTex.m_iTexID = 0;
-    m_iFb           = -1;
-    m_vSize         = Vector2D();
+    m_cTex->destroyTexture();
+    m_iFb   = -1;
+    m_vSize = Vector2D();
 }
 
 CFramebuffer::~CFramebuffer() {

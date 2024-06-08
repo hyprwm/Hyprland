@@ -3,10 +3,11 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::constraints->protoLog
 
-CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, wlr_surface* surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
+CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
     resourceL(resource_), locked(true) {
     if (!resource_->resource())
         return;
@@ -14,13 +15,13 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, wlr_su
     resource_->setOnDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    pHLSurface = CWLSurface::surfaceFromWlr(surf);
+    pHLSurface = CWLSurface::fromResource(surf);
 
     if (!pHLSurface)
         return;
 
     if (region_)
-        region.set(wlr_region_from_resource(region_));
+        region.set(CWLRegionResource::fromResource(region_)->region);
 
     resource_->setSetRegion([this](CZwpLockedPointerV1* p, wl_resource* region) { onSetRegion(region); });
     resource_->setSetCursorPositionHint([this](CZwpLockedPointerV1* p, wl_fixed_t x, wl_fixed_t y) {
@@ -45,7 +46,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, wlr_su
     sharedConstructions();
 }
 
-CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, wlr_surface* surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
+CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
     resourceC(resource_), locked(false) {
     if (!resource_->resource())
         return;
@@ -53,13 +54,13 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, wlr_
     resource_->setOnDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    pHLSurface = CWLSurface::surfaceFromWlr(surf);
+    pHLSurface = CWLSurface::fromResource(surf);
 
     if (!pHLSurface)
         return;
 
     if (region_)
-        region.set(wlr_region_from_resource(region_));
+        region.set(CWLRegionResource::fromResource(region_)->region);
 
     resource_->setSetRegion([this](CZwpConfinedPointerV1* p, wl_resource* region) { onSetRegion(region); });
 
@@ -79,7 +80,7 @@ CPointerConstraint::~CPointerConstraint() {
 void CPointerConstraint::sharedConstructions() {
     if (pHLSurface) {
         listeners.destroySurface = pHLSurface->events.destroy.registerListener([this](std::any d) {
-            pHLSurface = nullptr;
+            pHLSurface.reset();
             if (active)
                 deactivate();
 
@@ -92,7 +93,7 @@ void CPointerConstraint::sharedConstructions() {
 
     cursorPosOnActivate = g_pInputManager->getMouseCoordsInternal();
 
-    if (g_pCompositor->m_pLastFocus == pHLSurface->wlr())
+    if (g_pCompositor->m_pLastFocus == pHLSurface->resource())
         activate();
 }
 
@@ -126,10 +127,10 @@ void CPointerConstraint::activate() {
         return;
 
     // TODO: hack, probably not a super duper great idea
-    if (g_pSeatManager->state.pointerFocus != pHLSurface->wlr()) {
+    if (g_pSeatManager->state.pointerFocus != pHLSurface->resource()) {
         const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
         const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        g_pSeatManager->setPointerFocus(pHLSurface->wlr(), LOCAL);
+        g_pSeatManager->setPointerFocus(pHLSurface->resource(), LOCAL);
     }
 
     if (locked)
@@ -152,15 +153,15 @@ void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
         return;
     }
 
-    const auto REGION = wlr_region_from_resource(wlRegion);
+    const auto REGION = region.set(CWLRegionResource::fromResource(wlRegion)->region);
 
     region.set(REGION);
     positionHint = region.closestPoint(positionHint);
     g_pInputManager->simulateMouseMovement(); // to warp the cursor if anything's amiss
 }
 
-CWLSurface* CPointerConstraint::owner() {
-    return pHLSurface;
+SP<CWLSurface> CPointerConstraint::owner() {
+    return pHLSurface.lock();
 }
 
 CRegion CPointerConstraint::logicConstraintRegion() {
@@ -241,7 +242,7 @@ void CPointerConstraintsProtocol::onLockPointer(CZwpPointerConstraintsV1* pMgr, 
                                                 zwpPointerConstraintsV1Lifetime lifetime) {
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vConstraints.emplace_back(
-        makeShared<CPointerConstraint>(makeShared<CZwpLockedPointerV1>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surface), region, lifetime));
+        makeShared<CPointerConstraint>(makeShared<CZwpLockedPointerV1>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surface), region, lifetime));
 
     onNewConstraint(RESOURCE, pMgr);
 }
@@ -250,7 +251,7 @@ void CPointerConstraintsProtocol::onConfinePointer(CZwpPointerConstraintsV1* pMg
                                                    zwpPointerConstraintsV1Lifetime lifetime) {
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_vConstraints.emplace_back(
-        makeShared<CPointerConstraint>(makeShared<CZwpConfinedPointerV1>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surface), region, lifetime));
+        makeShared<CPointerConstraint>(makeShared<CZwpConfinedPointerV1>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surface), region, lifetime));
 
     onNewConstraint(RESOURCE, pMgr);
 }

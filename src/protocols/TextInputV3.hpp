@@ -9,13 +9,15 @@
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/Box.hpp"
 
+class CWLSurfaceResource;
+
 class CTextInputV3 {
   public:
     CTextInputV3(SP<CZwpTextInputV3> resource_);
     ~CTextInputV3();
 
-    void       enter(wlr_surface* surf);
-    void       leave(wlr_surface* surf);
+    void       enter(SP<CWLSurfaceResource> surf);
+    void       leave(SP<CWLSurfaceResource> surf);
     void       preeditString(const std::string& text, int32_t cursorBegin, int32_t cursorEnd);
     void       commitString(const std::string& text);
     void       deleteSurroundingText(uint32_t beforeLength, uint32_t afterLength);

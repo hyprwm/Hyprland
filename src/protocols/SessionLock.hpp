@@ -9,16 +9,17 @@
 
 class CMonitor;
 class CSessionLock;
+class CWLSurfaceResource;
 
 class CSessionLockSurface {
   public:
-    CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, wlr_surface* surface_, CMonitor* pMonitor_, WP<CSessionLock> owner_);
+    CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, CMonitor* pMonitor_, WP<CSessionLock> owner_);
     ~CSessionLockSurface();
 
-    bool         good();
-    bool         inert();
-    CMonitor*    monitor();
-    wlr_surface* surface();
+    bool                   good();
+    bool                   inert();
+    CMonitor*              monitor();
+    SP<CWLSurfaceResource> surface();
 
     struct {
         CSignal map;
@@ -29,7 +30,7 @@ class CSessionLockSurface {
   private:
     SP<CExtSessionLockSurfaceV1> resource;
     WP<CSessionLock>             sessionLock;
-    wlr_surface*                 pSurface = nullptr;
+    WP<CWLSurfaceResource>       pSurface;
     CMonitor*                    pMonitor = nullptr;
 
     bool                         ackdConfigure = false;
@@ -37,11 +38,10 @@ class CSessionLockSurface {
 
     void                         sendConfigure();
 
-    DYNLISTENER(surfaceCommit);
-    DYNLISTENER(surfaceDestroy);
-
     struct {
         CHyprSignalListener monitorMode;
+        CHyprSignalListener surfaceCommit;
+        CHyprSignalListener surfaceDestroy;
     } listeners;
 };
 

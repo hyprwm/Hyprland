@@ -16,6 +16,7 @@ class CXDGSurfaceResource;
 class CXDGToplevelResource;
 class CXDGPopupResource;
 class CSeatGrab;
+class CWLSurfaceResource;
 
 struct SXDGPositionerState {
     Vector2D             requestedSize;
@@ -138,7 +139,7 @@ class CXDGToplevelResource {
 
 class CXDGSurfaceResource {
   public:
-    CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, wlr_surface* surface_);
+    CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_);
     ~CXDGSurfaceResource();
 
     static SP<CXDGSurfaceResource> fromResource(wl_resource*);
@@ -146,7 +147,7 @@ class CXDGSurfaceResource {
     bool                           good();
 
     WP<CXDGWMBase>                 owner;
-    wlr_surface*                   surface = nullptr;
+    WP<CWLSurfaceResource>         surface;
 
     WP<CXDGToplevelResource>       toplevel;
     WP<CXDGPopupResource>          popup;
@@ -184,8 +185,10 @@ class CXDGSurfaceResource {
     //
     std::vector<WP<CXDGPopupResource>> popups;
 
-    DYNLISTENER(surfaceDestroy);
-    DYNLISTENER(surfaceCommit);
+    struct {
+        CHyprSignalListener surfaceDestroy;
+        CHyprSignalListener surfaceCommit;
+    } listeners;
 
     friend class CXDGPopupResource;
     friend class CXDGToplevelResource;

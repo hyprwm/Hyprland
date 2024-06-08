@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include "../helpers/Monitor.hpp"
 #include "../Compositor.hpp"
+#include "../protocols/core/Output.hpp"
 
 #define LOGM PROTO::gamma->protoLog
 
@@ -10,15 +11,15 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     if (!resource_->resource())
         return;
 
-    wlr_output* wlrOutput = wlr_output_from_resource(output);
+    auto OUTPUTRES = CWLOutputResource::fromResource(output);
 
-    if (!wlrOutput) {
-        LOGM(ERR, "No wlr_output in CGammaControl");
+    if (!OUTPUTRES) {
+        LOGM(ERR, "No output in CGammaControl");
         resource->sendFailed();
         return;
     }
 
-    pMonitor = g_pCompositor->getRealMonitorFromOutput(wlrOutput);
+    pMonitor = OUTPUTRES->monitor.get();
 
     if (!pMonitor) {
         LOGM(ERR, "No CMonitor");
@@ -33,7 +34,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         }
     }
 
-    gammaSize = wlr_output_get_gamma_size(wlrOutput);
+    gammaSize = wlr_output_get_gamma_size(pMonitor->output);
 
     if (gammaSize <= 0) {
         LOGM(ERR, "Output {} doesn't support gamma", pMonitor->szName);

@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
-#include "linux-dmabuf-unstable-v1-protocol.h"
 #include "../helpers/Region.hpp"
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
@@ -13,6 +12,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/core/DataDevice.hpp"
+#include "../protocols/core/Compositor.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -90,19 +90,24 @@ CHyprRenderer::CHyprRenderer() {
     wl_event_source_timer_update(m_pCursorTicker, 500);
 }
 
-static void renderSurface(struct wlr_surface* surface, int x, int y, void* data) {
-    const auto TEXTURE                     = wlr_surface_get_texture(surface);
-    const auto RDATA                       = (SRenderData*)data;
-    const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
+    if (!surface->current.buffer || !surface->current.buffer->texture)
+        return;
 
-    if (!TEXTURE)
+    const auto& TEXTURE                     = surface->current.buffer->texture;
+    const auto  RDATA                       = (SRenderData*)data;
+    const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+
+    // this is bad, probably has been logged elsewhere. Means the texture failed
+    // uploading to the GPU.
+    if (!TEXTURE->m_iTexID)
         return;
 
     TRACY_GPU_ZONE("RenderSurface");
 
     double      outputX = -RDATA->pMonitor->vecPosition.x, outputY = -RDATA->pMonitor->vecPosition.y;
 
-    auto* const PSURFACE = CWLSurface::surfaceFromWlr(surface);
+    auto        PSURFACE = CWLSurface::fromResource(surface);
 
     const float ALPHA = RDATA->alpha * RDATA->fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
 
@@ -140,7 +145,7 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::max(surface->current.width, 2), std::max(surface->current.height, 2)};
+        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::max((float)surface->current.size.x, 2.F), std::max((float)surface->current.size.y, 2.F)};
         if (RDATA->pWindow && RDATA->pWindow->m_vRealSize.isBeingAnimated() && RDATA->surface && RDATA->surface != surface && RDATA->squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
             windowBox.width  = (windowBox.width / RDATA->pWindow->m_vReportedSize.x) * RDATA->pWindow->m_vRealSize.value().x;
@@ -155,15 +160,23 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
             windowBox.height = RDATA->h - y;
     }
 
-    if (windowBox.width <= 1 || windowBox.height <= 1)
+    if (windowBox.width <= 1 || windowBox.height <= 1) {
+        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+            surface->frame(RDATA->when);
+            auto FEEDBACK = makeShared<CQueuedPresentationData>(surface);
+            FEEDBACK->attachMonitor(RDATA->pMonitor);
+            FEEDBACK->discarded();
+            PROTO::presentation->queueData(FEEDBACK);
+        }
         return; // invisible
+    }
 
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();
 
     const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != Vector2D{surface->current.buffer_width, surface->current.buffer_height} /* misaligned */ &&
-        DELTALESSTHAN(windowBox.width, surface->current.buffer_width, 3) && DELTALESSTHAN(windowBox.height, surface->current.buffer_height, 3) /* off by one-or-two */ &&
+        windowBox.size() != surface->current.buffer->size /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.buffer->size.x, 3) &&
+        DELTALESSTHAN(windowBox.height, surface->current.buffer->size.y, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), MISALIGNEDFSV1);
@@ -183,8 +196,8 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
     if (RDATA->dontRound)
         rounding = 0;
 
-    const bool WINDOWOPAQUE    = RDATA->pWindow && RDATA->pWindow->m_pWLSurface.wlr() == surface ? RDATA->pWindow->opaque() : false;
-    const bool CANDISABLEBLEND = ALPHA >= 1.f && rounding == 0 && (WINDOWOPAQUE || surface->opaque);
+    const bool WINDOWOPAQUE    = RDATA->pWindow && RDATA->pWindow->m_pWLSurface->resource() == surface ? RDATA->pWindow->opaque() : false;
+    const bool CANDISABLEBLEND = ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
         g_pHyprOpenGL->blend(false);
@@ -195,16 +208,16 @@ static void renderSurface(struct wlr_surface* surface, int x, int y, void* data)
         if (RDATA->blur)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding);
     } else {
         if (RDATA->blur && RDATA->popup)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, true, RDATA->fadeAlpha);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-        wlr_surface_send_frame_done(surface, RDATA->when);
+        surface->frame(RDATA->when);
         auto FEEDBACK = makeShared<CQueuedPresentationData>(surface);
         FEEDBACK->attachMonitor(RDATA->pMonitor);
         FEEDBACK->presented();
@@ -506,7 +519,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     if (ignoreAllGeometry)
         decorate = false;
 
-    renderdata.surface   = pWindow->m_pWLSurface.wlr();
+    renderdata.surface   = pWindow->m_pWLSurface->resource();
     renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
     renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.value());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.value();
@@ -576,7 +589,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
         if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-        if (!pWindow->m_sAdditionalConfigData.forceNoBlur && pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (!pWindow->m_sAdditionalConfigData.forceNoBlur && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
             CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
             g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
@@ -584,7 +597,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
             renderdata.blur = false;
         }
 
-        wlr_surface_for_each_surface(pWindow->m_pWLSurface.wlr(), renderSurface, &renderdata);
+        pWindow->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
+                                                        &renderdata);
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
@@ -641,14 +655,15 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
 
             pWindow->m_pPopupHead->breadthfirst(
                 [](CPopup* popup, void* data) {
-                    if (!popup->m_sWLSurface.wlr())
+                    if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
                         return;
                     auto     pos    = popup->coordsRelativeToParent();
                     auto     rd     = (SRenderData*)data;
                     Vector2D oldPos = {rd->x, rd->y};
                     rd->x += pos.x;
                     rd->y += pos.y;
-                    wlr_surface_for_each_surface(popup->m_sWLSurface.wlr(), renderSurface, rd);
+                    popup->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
+                                                                  data);
                     rd->x = oldPos.x;
                     rd->y = oldPos.y;
                 },
@@ -698,7 +713,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     SRenderData renderdata           = {pMonitor, time, REALPOS.x, REALPOS.y};
     renderdata.fadeAlpha             = pLayer->alpha.value();
     renderdata.blur                  = pLayer->forceBlur;
-    renderdata.surface               = pLayer->layerSurface->surface;
+    renderdata.surface               = pLayer->surface->resource();
     renderdata.decorate              = false;
     renderdata.w                     = REALSIZ.x;
     renderdata.h                     = REALSIZ.y;
@@ -717,7 +732,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     }
 
     if (!popups)
-        wlr_surface_for_each_surface(pLayer->layerSurface->surface, renderSurface, &renderdata);
+        pLayer->surface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
@@ -726,11 +741,11 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     if (popups) {
         pLayer->popupHead->breadthfirst(
             [](CPopup* popup, void* data) {
-                if (!popup->m_sWLSurface.wlr())
+                if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
                     return;
 
                 Vector2D pos = popup->coordsRelativeToParent();
-                renderSurface(popup->m_sWLSurface.wlr(), pos.x, pos.y, data);
+                renderSurface(popup->m_pWLSurface->resource(), pos.x, pos.y, data);
             },
             &renderdata);
     }
@@ -746,15 +761,15 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, CMonitor* pMonitor, time
 
     SRenderData renderdata = {pMonitor, time, POS.x, POS.y};
 
-    const auto  SURF = pPopup->getWlrSurface();
+    const auto  SURF = pPopup->getSurface();
 
     renderdata.blur     = false;
     renderdata.surface  = SURF;
     renderdata.decorate = false;
-    renderdata.w        = SURF->current.width;
-    renderdata.h        = SURF->current.height;
+    renderdata.w        = SURF->current.size.x;
+    renderdata.h        = SURF->current.size.y;
 
-    wlr_surface_for_each_surface(SURF, renderSurface, &renderdata);
+    SURF->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMonitor* pMonitor, timespec* time) {
@@ -766,7 +781,7 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     renderdata.w        = pMonitor->vecSize.x;
     renderdata.h        = pMonitor->vecSize.y;
 
-    wlr_surface_for_each_surface(pSurface->surface->surface(), renderSurface, &renderdata);
+    renderdata.surface->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
@@ -966,17 +981,15 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
     }
 }
 
-void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
+void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
 
-        if (pSurface->current.viewport.has_src) {
+        if (pSurface->current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
-            wlr_fbox bufferSource;
-            wlr_surface_get_buffer_source_box(pSurface, &bufferSource);
-
-            Vector2D bufferSize = Vector2D(pSurface->buffer->texture->width, pSurface->buffer->texture->height);
+            Vector2D bufferSize   = pSurface->current.buffer->size;
+            auto     bufferSource = pSurface->current.viewport.source;
 
             // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);
@@ -991,8 +1004,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurfa
         if (projSize != Vector2D{} && fixMisalignedFSV1) {
             // instead of nearest_neighbor (we will repeat / skip)
             // just cut off / expand surface
-            const Vector2D PIXELASUV    = Vector2D{1, 1} / Vector2D{pSurface->buffer->texture->width, pSurface->buffer->texture->height};
-            const Vector2D MISALIGNMENT = Vector2D{pSurface->buffer->texture->width, pSurface->buffer->texture->height} - projSize;
+            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.buffer->size;
+            const Vector2D MISALIGNMENT = pSurface->current.buffer->size - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
         }
@@ -1013,10 +1026,10 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurfa
 
         // ignore X and Y, adjust uv
         if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.value().x || geom.height > pWindow->m_vRealSize.value().y) {
-            const auto XPERC = (double)geom.x / (double)pSurface->current.width;
-            const auto YPERC = (double)geom.y / (double)pSurface->current.height;
-            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.width;
-            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.height;
+            const auto XPERC = (double)geom.x / (double)pSurface->current.size.x;
+            const auto YPERC = (double)geom.y / (double)pSurface->current.size.y;
+            const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.size.x;
+            const auto HPERC = (double)(geom.y + geom.height) / (double)pSurface->current.size.y;
 
             const auto TOADDTL = Vector2D(XPERC * (uvBR.x - uvTL.x), YPERC * (uvBR.y - uvTL.y));
             uvBR               = uvBR - Vector2D(1.0 - WPERC * (uvBR.x - uvTL.x), 1.0 - HPERC * (uvBR.y - uvTL.y));
@@ -1025,8 +1038,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurfa
             // TODO: make this passed to the func. Might break in the future.
             auto maxSize = pWindow->m_vRealSize.value();
 
-            if (pWindow->m_pWLSurface.small() && !pWindow->m_pWLSurface.m_bFillIgnoreSmall)
-                maxSize = pWindow->m_pWLSurface.getViewporterCorrectedSize();
+            if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
+                maxSize = pWindow->m_pWLSurface->getViewporterCorrectedSize();
 
             if (geom.width > maxSize.x)
                 uvBR.x = uvBR.x * (maxSize.x / geom.width);
@@ -1048,53 +1061,51 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, wlr_surface* pSurfa
     }
 }
 
-void countSubsurfacesIter(wlr_surface* pSurface, int x, int y, void* data) {
-    *(int*)data += 1;
-}
-
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+    return false; // FIXME: fix when we move to new lib for backend.
 
-    if (!wlr_output_is_direct_scanout_allowed(pMonitor->output))
-        return false;
+    // if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
+    //     return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
-    const auto PCANDIDATE = pMonitor->solitaryClient.lock();
+    // if (!wlr_output_is_direct_scanout_allowed(pMonitor->output))
+    //     return false;
 
-    if (!PCANDIDATE)
-        return false;
+    // const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    // if (!PCANDIDATE)
+    //     return false;
 
-    if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
-        return false;
+    // const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    // finally, we should be GTG.
-    wlr_output_state_set_buffer(pMonitor->state.wlr(), &PSURFACE->buffer->base);
+    // if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
+    //     return false;
 
-    if (!wlr_output_test_state(pMonitor->output, pMonitor->state.wlr()))
-        return false;
+    // // finally, we should be GTG.
+    // wlr_output_state_set_buffer(pMonitor->state.wlr(), &PSURFACE->buffer->base);
 
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    wlr_surface_send_frame_done(PSURFACE, &now);
-    auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
-    FEEDBACK->attachMonitor(pMonitor);
-    FEEDBACK->presented();
-    FEEDBACK->setPresentationType(true);
-    PROTO::presentation->queueData(FEEDBACK);
+    // if (!wlr_output_test_state(pMonitor->output, pMonitor->state.wlr()))
+    //     return false;
 
-    if (pMonitor->state.commit()) {
-        if (m_pLastScanout.expired()) {
-            m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
-        }
-    } else {
-        m_pLastScanout.reset();
-        return false;
-    }
+    // timespec now;
+    // clock_gettime(CLOCK_MONOTONIC, &now);
+    // PSURFACE->frame(&now);
+    // auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
+    // FEEDBACK->attachMonitor(pMonitor);
+    // FEEDBACK->presented();
+    // FEEDBACK->setPresentationType(true);
+    // PROTO::presentation->queueData(FEEDBACK);
 
-    return true;
+    // if (pMonitor->state.commit()) {
+    //     if (m_pLastScanout.expired()) {
+    //         m_pLastScanout = PCANDIDATE;
+    //         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+    //     }
+    // } else {
+    //     m_pLastScanout.reset();
+    //     return false;
+    // }
+
+    // return true;
 }
 
 void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
@@ -1430,53 +1441,52 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace,
 
 void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface.wlr())
+        if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface->resource())
             continue;
 
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
-        wlr_surface_for_each_surface(
-            w->m_pWLSurface.wlr(), [](wlr_surface* s, int x, int y, void* data) { wlr_surface_send_frame_done(s, (timespec*)data); }, now);
+        w->m_pWLSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
     }
 
     for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
         for (auto& ls : lsl) {
-            if (ls->fadingOut || !ls->surface.wlr())
+            if (ls->fadingOut || !ls->surface->resource())
                 continue;
 
-            wlr_surface_for_each_surface(
-                ls->surface.wlr(), [](wlr_surface* s, int x, int y, void* data) { wlr_surface_send_frame_done(s, (timespec*)data); }, now);
+            ls->surface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
         }
     }
 }
 
 void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
-    if (!g_pCompositor->m_sWLRLinuxDMABuf || g_pSessionLockManager->isSessionLocked())
-        return;
+    // FIXME: fix when moved to new impl
+    // if (!g_pCompositor->m_sWLRLinuxDMABuf || g_pSessionLockManager->isSessionLocked())
+    //     return;
 
-    if (!pWindow->m_bIsFullscreen) {
-        wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), nullptr);
-        Debug::log(LOG, "Scanout mode OFF set for {}", pWindow);
-        return;
-    }
+    // if (!pWindow->m_bIsFullscreen) {
+    //     wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface->resource(), nullptr);
+    //     Debug::log(LOG, "Scanout mode OFF set for {}", pWindow);
+    //     return;
+    // }
 
-    const auto                                      PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    // const auto                                      PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    const wlr_linux_dmabuf_feedback_v1_init_options INIT_OPTIONS = {
-        .main_renderer          = g_pCompositor->m_sWLRRenderer,
-        .scanout_primary_output = PMONITOR->output,
-    };
+    // const wlr_linux_dmabuf_feedback_v1_init_options INIT_OPTIONS = {
+    //     .main_renderer          = g_pCompositor->m_sWLRRenderer,
+    //     .scanout_primary_output = PMONITOR->output,
+    // };
 
-    wlr_linux_dmabuf_feedback_v1 feedback = {0};
+    // wlr_linux_dmabuf_feedback_v1 feedback = {0};
 
-    if (!wlr_linux_dmabuf_feedback_v1_init_with_options(&feedback, &INIT_OPTIONS))
-        return;
+    // if (!wlr_linux_dmabuf_feedback_v1_init_with_options(&feedback, &INIT_OPTIONS))
+    //     return;
 
-    wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface.wlr(), &feedback);
-    wlr_linux_dmabuf_feedback_v1_finish(&feedback);
+    // wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface->resource(), &feedback);
+    // wlr_linux_dmabuf_feedback_v1_finish(&feedback);
 
-    Debug::log(LOG, "Scanout mode ON set for {}", pWindow);
+    // Debug::log(LOG, "Scanout mode ON set for {}", pWindow);
 }
 
 // taken from Sway.
@@ -1662,26 +1672,25 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
 }
 
-void CHyprRenderer::damageSurface(wlr_surface* pSurface, double x, double y, double scale) {
+void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {
     if (!pSurface)
         return; // wut?
 
     if (g_pCompositor->m_bUnsafeState)
         return;
 
-    const auto WLSURF    = CWLSurface::surfaceFromWlr(pSurface);
+    const auto WLSURF    = CWLSurface::fromResource(pSurface);
     CRegion    damageBox = WLSURF ? WLSURF->logicalDamage() : CRegion{};
     if (!WLSURF) {
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
-        wlr_surface_get_effective_damage(pSurface, damageBox.pixman());
+        return;
     }
 
     if (scale != 1.0)
         damageBox.scale(scale);
 
     // schedule frame events
-    if (!wl_list_empty(&pSurface->current.frame_callback_list))
-        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
+    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
 
     if (damageBox.empty())
         return;
@@ -1836,7 +1845,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             pMonitor->onDisconnect();
 
         pMonitor->events.modeChanged.emit();
-        pMonitor->updateGlobal();
 
         return true;
     }
@@ -2242,12 +2250,11 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
     pMonitor->events.modeChanged.emit();
-    pMonitor->updateGlobal();
 
     return true;
 }
 
-void CHyprRenderer::setCursorSurface(CWLSurface* surf, int hotspotX, int hotspotY, bool force) {
+void CHyprRenderer::setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
     m_bCursorHasSurface = surf;
 
     m_sLastCursorData.name     = "";
@@ -2464,8 +2471,8 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
             continue;
 
         // TODO: cache maybe?
-        CRegion opaque = &ls->layerSurface->surface->opaque_region;
-        CBox    lsbox  = {0, 0, ls->layerSurface->surface->current.buffer_width, ls->layerSurface->surface->current.buffer_height};
+        CRegion opaque = ls->layerSurface->surface->current.opaque;
+        CBox    lsbox  = {{}, ls->layerSurface->surface->current.size};
         opaque.invert(lsbox);
 
         if (!opaque.empty())
@@ -2544,6 +2551,15 @@ CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32
     return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
 }
 
+CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(SP<IWLBuffer> buffer, uint32_t fmt) {
+    auto it = std::find_if(m_vRenderbuffers.begin(), m_vRenderbuffers.end(), [&](const auto& other) { return other->m_pHLBuffer == buffer; });
+
+    if (it != m_vRenderbuffers.end())
+        return it->get();
+
+    return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
+}
+
 void CHyprRenderer::makeEGLCurrent() {
     if (!g_pCompositor)
         return;
@@ -2556,7 +2572,7 @@ void CHyprRenderer::unsetEGL() {
     eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, wlr_buffer* buffer, CFramebuffer* fb, bool simple) {
+bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, SP<IWLBuffer> buffer, CFramebuffer* fb, bool simple) {
 
     makeEGLCurrent();
 
@@ -2586,10 +2602,13 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
             return false;
         }
     } else
-        m_pCurrentWlrBuffer = wlr_buffer_lock(buffer);
+        m_pCurrentHLBuffer = buffer;
 
     try {
-        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat);
+        if (m_pCurrentWlrBuffer)
+            m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat);
+        else
+            m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentHLBuffer.lock(), pMonitor->drmFormat);
     } catch (std::exception& e) {
         Debug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->szName);
         wlr_buffer_unlock(m_pCurrentWlrBuffer);

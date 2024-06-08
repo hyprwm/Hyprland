@@ -12,6 +12,7 @@ struct SMonitorRule;
 class CWorkspace;
 class CWindow;
 class CInputPopup;
+class IWLBuffer;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {
@@ -44,7 +45,7 @@ class CHyprRenderer {
 
     void                            renderMonitor(CMonitor* pMonitor);
     void                            arrangeLayersForMonitor(const int&);
-    void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
+    void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
     void                            damageWindow(PHLWINDOW, bool forceFull = false);
     void                            damageBox(CBox*);
     void                            damageBox(const int& x, const int& y, const int& w, const int& h);
@@ -57,14 +58,14 @@ class CHyprRenderer {
     void                            ensureCursorRenderingMode();
     bool                            shouldRenderCursor();
     void                            setCursorHidden(bool hide);
-    void                            calculateUVForSurface(PHLWINDOW, wlr_surface*, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
+    void                            calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry);
     void                            setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace);
     void                            setOccludedForMainWorkspace(CRegion& region, PHLWORKSPACE pWorkspace); // TODO: merge occlusion methods
     bool                            canSkipBackBufferClear(CMonitor* pMonitor);
     void                            recheckSolitaryForMonitor(CMonitor* pMonitor);
-    void                            setCursorSurface(CWLSurface* surf, int hotspotX, int hotspotY, bool force = false);
+    void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
     CRenderbuffer*                  getCurrentRBO();
@@ -74,7 +75,7 @@ class CHyprRenderer {
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
-    bool beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, wlr_buffer* buffer = nullptr, CFramebuffer* fb = nullptr, bool simple = false);
+    bool beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IWLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender();
 
     bool m_bBlockSurfaceFeedback = false;
@@ -98,10 +99,10 @@ class CHyprRenderer {
     CTimer           m_tRenderTimer;
 
     struct {
-        int                        hotspotX;
-        int                        hotspotY;
-        std::optional<CWLSurface*> surf = nullptr;
-        std::string                name;
+        int                           hotspotX;
+        int                           hotspotY;
+        std::optional<SP<CWLSurface>> surf;
+        std::string                   name;
     } m_sLastCursorData;
 
   private:
@@ -121,6 +122,7 @@ class CHyprRenderer {
     bool           m_bCursorHasSurface    = false;
     CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
     wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
+    WP<IWLBuffer>  m_pCurrentHLBuffer     = {};
     eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
 
     bool           m_bNvidia = false;
@@ -132,6 +134,7 @@ class CHyprRenderer {
     } m_sCursorHiddenConditions;
 
     CRenderbuffer*                              getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
+    CRenderbuffer*                              getOrCreateRenderbuffer(SP<IWLBuffer> buffer, uint32_t fmt);
     std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;

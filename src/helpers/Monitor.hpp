@@ -172,7 +172,6 @@ class CMonitor {
     int64_t  activeWorkspaceID();
     int64_t  activeSpecialWorkspaceID();
     CBox     logicalBox();
-    void     updateGlobal();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

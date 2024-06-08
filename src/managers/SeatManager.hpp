@@ -11,7 +11,7 @@
 
 constexpr size_t MAX_SERIAL_STORE_LEN = 100;
 
-struct wlr_surface;
+class CWLSurfaceResource;
 class CWLSeatResource;
 class IPointer;
 class IKeyboard;
@@ -29,9 +29,9 @@ class IKeyboard;
 */
 class CSeatGrab {
   public:
-    bool accepts(wlr_surface* surf);
-    void add(wlr_surface* surf);
-    void remove(wlr_surface* surf);
+    bool accepts(SP<CWLSurfaceResource> surf);
+    void add(SP<CWLSurfaceResource> surf);
+    void remove(SP<CWLSurfaceResource> surf);
     void setCallback(std::function<void()> onEnd_);
     void clear();
 
@@ -42,8 +42,8 @@ class CSeatGrab {
     bool removeOnInput = true; // on hard input e.g. click outside, remove
 
   private:
-    std::vector<wlr_surface*> surfs; // read-only
-    std::function<void()>     onEnd;
+    std::vector<WP<CWLSurfaceResource>> surfs;
+    std::function<void()>               onEnd;
     friend class CSeatManager;
 };
 
@@ -57,11 +57,11 @@ class CSeatManager {
     void     setKeyboard(SP<IKeyboard> keeb);
     void     updateActiveKeyboardData(); // updates the clients with the keymap and repeat info
 
-    void     setKeyboardFocus(wlr_surface* surf);
+    void     setKeyboardFocus(SP<CWLSurfaceResource> surf);
     void     sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void     sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
 
-    void     setPointerFocus(wlr_surface* surf, const Vector2D& local);
+    void     setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local);
     void     sendPointerMotion(uint32_t timeMs, const Vector2D& local);
     void     sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state);
     void     sendPointerFrame();
@@ -69,7 +69,7 @@ class CSeatManager {
     void     sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, int32_t value120, wl_pointer_axis_source source,
                              wl_pointer_axis_relative_direction relative);
 
-    void     sendTouchDown(wlr_surface* surf, uint32_t timeMs, int32_t id, const Vector2D& local);
+    void     sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, int32_t id, const Vector2D& local);
     void     sendTouchUp(uint32_t timeMs, int32_t id);
     void     sendTouchMotion(uint32_t timeMs, int32_t id, const Vector2D& local);
     void     sendTouchFrame();
@@ -83,24 +83,24 @@ class CSeatManager {
     // pops the serial if it was valid, meaning it is consumed.
     bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial);
 
-    void                onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, wlr_surface* surf, const Vector2D& hotspot);
+    void                onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot);
 
     SP<CWLSeatResource> seatResourceForClient(wl_client* client);
 
     struct {
-        wlr_surface*        keyboardFocus = nullptr;
-        WP<CWLSeatResource> keyboardFocusResource;
+        WP<CWLSurfaceResource> keyboardFocus;
+        WP<CWLSeatResource>    keyboardFocusResource;
 
-        wlr_surface*        pointerFocus = nullptr;
-        WP<CWLSeatResource> pointerFocusResource;
+        WP<CWLSurfaceResource> pointerFocus;
+        WP<CWLSeatResource>    pointerFocusResource;
 
-        wlr_surface*        touchFocus = nullptr;
-        WP<CWLSeatResource> touchFocusResource;
+        WP<CWLSurfaceResource> touchFocus;
+        WP<CWLSeatResource>    touchFocusResource;
     } state;
 
     struct SSetCursorEvent {
-        wlr_surface* surf = nullptr;
-        Vector2D     hotspot;
+        SP<CWLSurfaceResource> surf = nullptr;
+        Vector2D               hotspot;
     };
 
     struct {
@@ -149,13 +149,12 @@ class CSeatManager {
 
     struct {
         CHyprSignalListener newSeatResource;
+        CHyprSignalListener keyboardSurfaceDestroy;
+        CHyprSignalListener pointerSurfaceDestroy;
+        CHyprSignalListener touchSurfaceDestroy;
     } listeners;
 
     Vector2D lastLocalCoords;
-
-    DYNLISTENER(keyboardSurfaceDestroy);
-    DYNLISTENER(pointerSurfaceDestroy);
-    DYNLISTENER(touchSurfaceDestroy);
 
     friend struct SSeatResourceContainer;
     friend class CSeatGrab;

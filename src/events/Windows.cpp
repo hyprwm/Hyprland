@@ -9,6 +9,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
 
 // ------------------------------------------------------------ //
@@ -104,7 +105,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // registers the animated vars and stuff
     PWINDOW->onMap();
 
-    const auto PWINDOWSURFACE = PWINDOW->m_pWLSurface.wlr();
+    const auto PWINDOWSURFACE = PWINDOW->m_pWLSurface->resource();
 
     if (!PWINDOWSURFACE) {
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW);
@@ -463,7 +464,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // check LS focus grab
     const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
-    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus);
+    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus.lock());
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_bNoInitialFocus = true;
     if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow && !requestsFullscreen && !PWINDOW->m_bIsFloating) {
@@ -618,8 +619,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFullscreen && !PWINDOW->m_bIsFloating)
         PWINDOW->m_fAlpha.setValueAndWarp(0.f);
 
-    g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->scale);
-    g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface.wlr(), PMONITOR->transform);
+    g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->scale);
+    g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->transform);
 
     if (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
@@ -638,7 +639,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
-    if (!PWINDOW->m_pWLSurface.exists() || !PWINDOW->m_bIsMapped) {
+    if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_bFadingOut = false;
         return;
@@ -674,7 +675,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
         wasLastWindow = true;
         g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
 
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -788,7 +789,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_pWorkspace->m_bVisible)
         return;
 
-    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface.wlr(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
+    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
     if (!PWINDOW->m_bIsX11) {
@@ -798,9 +799,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     // tearing: if solitary, redraw it. This still might be a single surface window
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
-    if (PMONITOR && PMONITOR->solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->tearingState.canTear &&
-        PWINDOW->m_pWLSurface.wlr()->current.committed & WLR_SURFACE_STATE_BUFFER) {
-        CRegion damageBox{&PWINDOW->m_pWLSurface.wlr()->buffer_damage};
+    if (PMONITOR && PMONITOR->solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->tearingState.canTear && PWINDOW->m_pWLSurface->resource()->current.buffer) {
+        CRegion damageBox{PWINDOW->m_pWLSurface->resource()->current.bufferDamage};
 
         if (!damageBox.empty()) {
             if (PMONITOR->tearingState.busy) {
@@ -820,10 +820,10 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     if (PWINDOW == g_pCompositor->m_pLastWindow.lock()) {
         g_pCompositor->m_pLastWindow.reset();
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
     }
 
-    PWINDOW->m_pWLSurface.unassign();
+    PWINDOW->m_pWLSurface->unassign();
 
     PWINDOW->listeners = {};
 

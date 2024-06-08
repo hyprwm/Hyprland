@@ -52,12 +52,16 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
     });
 
-    m_sListeners.newIdleInhibitor = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_sListeners.newVirtualKeyboard =
-        PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) { this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data)); });
-    m_sListeners.newVirtualMouse =
-        PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) { this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data)); });
-    m_sListeners.setCursor = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
+    m_sListeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+    m_sListeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
+        this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
+        updateCapabilities();
+    });
+    m_sListeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
+        this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
+        updateCapabilities();
+    });
+    m_sListeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
 
     m_sCursorSurfaceInfo.wlSurface = CWLSurface::create();
 }

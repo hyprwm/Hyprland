@@ -403,6 +403,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pPointerManager = std::make_unique<CPointerManager>();
         } break;
         case STAGE_BASICINIT: {
+            Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
+            g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
+
             Debug::log(LOG, "Creating the ProtocolManager!");
             g_pProtocolManager = std::make_unique<CProtocolManager>();
 
@@ -418,9 +421,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the InputManager!");
             g_pInputManager = std::make_unique<CInputManager>();
-
-            Debug::log(LOG, "Creating the CHyprOpenGLImpl!");
-            g_pHyprOpenGL = std::make_unique<CHyprOpenGLImpl>();
 
             Debug::log(LOG, "Creating the HyprRenderer!");
             g_pHyprRenderer = std::make_unique<CHyprRenderer>();

@@ -60,6 +60,7 @@ flags:
     --batch             → Execute a batch of commands, separated by ';'
     --instance (-i)     → use a specific instance. Can be either signature or
                           index in hyprctl instances (0, 1, etc)
+    --quiet (-q)        → Disable the output of hyprctl
 
 --help:
     Can be used to print command's arguments that did not fit into this page

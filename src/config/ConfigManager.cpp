@@ -3,7 +3,7 @@
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
 #include <cstdint>
@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <glob.h>
+#include <xkbcommon/xkbcommon.h>
 
 #include <algorithm>
 #include <fstream>
@@ -20,7 +21,8 @@
 #include <sstream>
 #include <ranges>
 #include <unordered_set>
-#include <xkbcommon/xkbcommon.h>
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 extern "C" char**             environ;
 
@@ -2087,8 +2089,8 @@ bool layerRuleValid(const std::string& RULE) {
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
     if (RULE.empty() || VALUE.empty())
@@ -2114,8 +2116,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
     if (RULE.empty() || VALUE.empty())
@@ -2142,7 +2144,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 }
 
 std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
@@ -2219,7 +2221,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
 
         result = result.substr(0, min - pos);
 
-        result = removeBeginEndSpacesTabs(result);
+        result = trim(result);
 
         if (!result.empty() && result.back() == ',')
             result.pop_back();
@@ -2341,7 +2343,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
 
 std::optional<std::string> CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.starts_with("remove,")) {
-        const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
+        const auto TOREMOVE = trim(value.substr(7));
         if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
             updateBlurredLS(TOREMOVE, false);
         return {};
@@ -2358,7 +2360,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     const auto     FIRST_DELIM = value.find_first_of(',');
 
     std::string    name        = "";
-    auto           first_ident = removeBeginEndSpacesTabs(value.substr(0, FIRST_DELIM));
+    auto           first_ident = trim(value.substr(0, FIRST_DELIM));
     int            id          = getWorkspaceIDFromString(first_ident, name);
 
     auto           rules = value.substr(FIRST_DELIM + 1);

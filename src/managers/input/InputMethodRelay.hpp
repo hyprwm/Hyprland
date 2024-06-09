@@ -3,7 +3,7 @@
 #include <list>
 #include "../../defines.hpp"
 #include "../../helpers/WLClasses.hpp"
-#include "../../helpers/signal/Listener.hpp"
+#include "../../helpers/signal/Signal.hpp"
 #include "TextInput.hpp"
 #include "InputMethodPopup.hpp"
 #include <any>

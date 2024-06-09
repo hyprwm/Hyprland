@@ -6,6 +6,8 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -71,8 +73,7 @@ void CMonitor::onConnect(bool noRule) {
     std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
-    szShortDescription =
-        removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    szShortDescription = trim(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
     std::erase(szShortDescription, ',');
 
     if (!wlr_backend_is_drm(output->backend))

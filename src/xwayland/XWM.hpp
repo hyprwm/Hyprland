@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
 

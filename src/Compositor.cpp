@@ -14,7 +14,7 @@
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
 #include <ranges>
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
@@ -23,6 +23,9 @@
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
 #include "xwayland/XWayland.hpp"
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include <sys/types.h>
 #include <sys/stat.h>

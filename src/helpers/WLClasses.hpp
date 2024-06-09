@@ -7,7 +7,7 @@
 #include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
-#include "signal/Listener.hpp"
+#include "signal/Signal.hpp"
 #include "Region.hpp"
 
 class CMonitor;

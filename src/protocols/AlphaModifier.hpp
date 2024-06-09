@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "alpha-modifier-v1.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CWLSurfaceResource;
 

@@ -44,6 +44,7 @@
 #include "../protocols/core/Shm.hpp"
 
 #include "../helpers/Monitor.hpp"
+#include "../render/Renderer.hpp"
 
 CProtocolManager::CProtocolManager() {
 
@@ -103,8 +104,12 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
-    PROTO::mesaDRM             = std::make_unique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
-    PROTO::linuxDma            = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
+
+    if (g_pHyprOpenGL->getDRMFormats().size() > 0) {
+        PROTO::mesaDRM  = std::make_unique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
+        PROTO::linuxDma = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
+    } else
+        Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.

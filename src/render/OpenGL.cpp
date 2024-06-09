@@ -92,7 +92,7 @@ std::vector<uint64_t> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
     }
 
     if (len <= 0)
-        return {};
+        return {DRM_FORMAT_MOD_LINEAR, DRM_FORMAT_MOD_INVALID}; // assume the driver can do linear and implicit.
 
     std::vector<uint64_t>   mods;
     std::vector<EGLBoolean> external;
@@ -189,6 +189,10 @@ void CHyprOpenGLImpl::initDRMFormats() {
     }
 
     Debug::log(LOG, "EGL: {} formats found in total. Some modifiers may be omitted as they are external-only.", dmaFormats.size());
+
+    if (dmaFormats.size() == 0)
+        Debug::log(WARN,
+                   "EGL: WARNING: No dmabuf formats were found, dmabuf will be disabled. This will degrade performance, but is most likely a driver issue or a very old GPU.");
 
     drmFormats = dmaFormats;
 }

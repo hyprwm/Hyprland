@@ -1,0 +1,83 @@
+assets:
+  - changed-files:
+      - any-glob-to-any-file: "assets/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: "docs/**"
+
+hyprctl:
+  - changed-files:
+      - any-glob-to-any-file: "hyprctl/**"
+
+hyprpm:
+  - changed-files:
+      - any-glob-to-any-file: "hyprpm/**"
+
+nix:
+  - changed-files:
+      - any-glob-to-any-file: "nix/**"
+
+protocols:
+  - changed-files:
+      - any-glob-to-any-file: ["protocols/**", "src/protocols/**"]
+
+core:
+  - changed-files:
+      - any-glob-to-any-file: "src/**"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file: "src/config/**"
+
+debug:
+  - changed-files:
+      - any-glob-to-any-file: "src/debug/**"
+
+desktop:
+  - changed-files:
+      - any-glob-to-any-file: "src/desktop/**"
+
+devices:
+  - changed-files:
+      - any-glob-to-any-file: "src/devices/**"
+
+events:
+  - changed-files:
+      - any-glob-to-any-file: "src/events/**"
+
+helpers:
+  - changed-files:
+      - any-glob-to-any-file: "src/helpers/**"
+
+hyprerror:
+  - changed-files:
+      - any-glob-to-any-file: "src/hyprerror/**"
+
+init:
+  - changed-files:
+      - any-glob-to-any-file: "src/init/**"
+
+layout:
+  - changed-files:
+      - any-glob-to-any-file: "src/layout/**"
+
+managers:
+  - changed-files:
+      - any-glob-to-any-file: "src/managers/**"
+
+pch:
+  - changed-files:
+      - any-glob-to-any-file: "src/pch/**"
+
+plugins:
+  - changed-files:
+      - any-glob-to-any-file: "src/plugins/**"
+
+render:
+  - changed-files:
+      - any-glob-to-any-file: "src/render/**"
+
+xwayland:
+  - changed-files:
+      - any-glob-to-any-file: "src/xwayland/**"

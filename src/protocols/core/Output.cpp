@@ -105,3 +105,7 @@ void CWLOutputProtocol::remove() {
     defunct = true;
     removeGlobal();
 }
+
+bool CWLOutputProtocol::isDefunct() {
+    return defunct;
+}

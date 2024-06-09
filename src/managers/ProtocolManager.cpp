@@ -46,21 +46,47 @@
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 
+void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
+    const bool ISMIRROR = pMonitor->isMirror();
+
+    // onModeChanged we check if the current mirror status matches the global.
+    // mirrored outputs should have their global removed, as they are not physical parts of the
+    // layout.
+
+    if (ISMIRROR && PROTO::outputs.contains(pMonitor->szName))
+        PROTO::outputs.at(pMonitor->szName)->remove();
+    else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->szName) || PROTO::outputs.at(pMonitor->szName)->isDefunct())) {
+        if (PROTO::outputs.contains(pMonitor->szName))
+            PROTO::outputs.erase(pMonitor->szName);
+        PROTO::outputs.emplace(pMonitor->szName,
+                               std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
+    }
+}
+
 CProtocolManager::CProtocolManager() {
 
     // Outputs are a bit dumb, we have to agree.
-    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<CMonitor*>(param);
+
+        // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
+        // this event is emitted iirc.
+        if (M->isMirror())
+            return;
+
         if (PROTO::outputs.contains(M->szName))
             PROTO::outputs.erase(M->szName);
         PROTO::outputs.emplace(M->szName, std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock()));
+
+        m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [](void* self, SCallbackInfo& info, std::any param) {
+    static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<CMonitor*>(param);
         if (!PROTO::outputs.contains(M->szName))
             return;
         PROTO::outputs.at(M->szName)->remove();
+        m_mModeChangeListeners.erase(M->szName);
     });
 
     // Core

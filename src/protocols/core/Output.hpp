@@ -40,6 +40,7 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();
+    bool isDefunct(); // true if above was called
 
   private:
     void destroyResource(CWLOutputResource* resource);

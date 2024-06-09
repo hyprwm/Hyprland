@@ -1353,7 +1353,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             }
         } else
             g_pHyprRenderer->renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
-    } else {
+    } else if (!pMonitor->isMirror()) {
         sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
         if (pMonitor->activeSpecialWorkspace)
             sendFrameEventsToWorkspace(pMonitor, pMonitor->activeSpecialWorkspace, &now);
@@ -1869,6 +1869,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         !memcmp(&pMonitor->customDrmMode, &RULE->drmMode, sizeof(pMonitor->customDrmMode))) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", pMonitor->szName);
+
+        pMonitor->setMirror(RULE->mirrorOf);
+
         return true;
     }
 

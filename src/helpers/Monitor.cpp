@@ -184,6 +184,9 @@ void CMonitor::onConnect(bool noRule) {
     forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
 
+    if (!activeMonitorRule.mirrorOf.empty())
+        setMirror(activeMonitorRule.mirrorOf);
+
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
     EMIT_HOOK_EVENT("monitorAdded", this);
@@ -517,6 +520,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         g_pCompositor->sanityCheckWorkspaces();
     }
+
+    events.modeChanged.emit();
 }
 
 float CMonitor::getDefaultScale() {

@@ -295,11 +295,8 @@ void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
     if (!pResource)
         return;
 
-    if (!state.pointerFocusResource)
-        return;
-
     for (auto& s : seatResources) {
-        if (s->resource->client() != state.pointerFocusResource->client())
+        if (s->resource->client() != pResource->client())
             continue;
 
         for (auto& p : s->resource->pointers) {

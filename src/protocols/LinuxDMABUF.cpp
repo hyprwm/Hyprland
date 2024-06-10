@@ -38,7 +38,7 @@ CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMAB
 
     auto arr = (SDMABUFFeedbackTableEntry*)mmap(nullptr, tableLen, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0], 0);
 
-    if (!arr) {
+    if (arr == MAP_FAILED) {
         LOGM(ERR, "mmap failed");
         close(fds[0]);
         close(fds[1]);

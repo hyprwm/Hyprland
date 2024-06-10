@@ -4,7 +4,6 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
-#include "managers/input/InputManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
@@ -211,7 +210,8 @@ void CLayerSurface::onUnmap() {
         return;
 
     // refocus if needed
-    if (WASLASTFOCUS) g_pInputManager->refocusLastWindow(PMONITOR);
+    if (WASLASTFOCUS)
+        g_pInputManager->refocusLastWindow(PMONITOR);
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -296,11 +296,11 @@ void CLayerSurface::onCommit() {
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
             std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
-				// if the surface was focused and interactive but now isn't, refocus
-				if (WASLASTFOCUS && !layerSurface->current.interactivity) {
-						g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
-				} else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
-						// if not focused last and exclusive or accepting input + unconstrained
+        // if the surface was focused and interactive but now isn't, refocus
+        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+            g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
+        } else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+            // if not focused last and exclusive or accepting input + unconstrained
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
             g_pCompositor->focusSurface(surface->resource());

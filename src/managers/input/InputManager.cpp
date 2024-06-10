@@ -1410,7 +1410,6 @@ void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
     if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
-        g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PLASTWINDOW);
     } else {
         // otherwise fall back to a normal refocus.

@@ -14,6 +14,9 @@ class CTitleTex {
 
     SP<CTexture> tex;
     std::string  szContent;
+    int          textWidth;
+    int          textHeight;
+
     PHLWINDOWREF pWindowOwner;
 };
 

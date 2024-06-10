@@ -34,7 +34,8 @@ class CLayerSurface {
     WP<CLayerShellResource>     layerSurface;
     wl_list                     link;
 
-    bool                        keyboardExclusive = false;
+    // the header providing the enum type cannot be imported here
+    int                         interactivity = 0;
 
     SP<CWLSurface>              surface;
 

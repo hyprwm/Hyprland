@@ -4,6 +4,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "managers/input/InputManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
@@ -116,8 +117,8 @@ void CLayerSurface::onDestroy() {
 void CLayerSurface::onMap() {
     Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface);
 
-    mapped            = true;
-    keyboardExclusive = layerSurface->current.interactivity;
+    mapped        = true;
+    interactivity = layerSurface->current.interactivity;
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
@@ -133,12 +134,12 @@ void CLayerSurface::onMap() {
 
     surface->resource()->enter(PMONITOR->self.lock());
 
-    const bool isExclusive = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+    const bool ISEXCLUSIVE = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
-    if (isExclusive)
+    if (ISEXCLUSIVE)
         g_pInputManager->m_dExclusiveLSes.push_back(self);
 
-    const bool GRABSFOCUS = isExclusive ||
+    const bool GRABSFOCUS = ISEXCLUSIVE ||
         (layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
          // don't focus if constrained
          (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()));
@@ -315,18 +316,32 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
-        && !keyboardExclusive && mapped) {
-        g_pCompositor->focusSurface(surface->resource());
+    if (mapped) {
+        const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
+        const bool WASEXCLUSIVE = interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool ISEXCLUSIVE  = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
-        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
-        g_pInputManager->m_bEmptyFocusCursorSet = false;
-    } else if (!layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
-        g_pInputManager->refocus();
+        if (!WASEXCLUSIVE && ISEXCLUSIVE)
+            g_pInputManager->m_dExclusiveLSes.push_back(self);
+        else if (WASEXCLUSIVE && !ISEXCLUSIVE)
+            std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
+
+        // if the surface was focused and interactive but now isn't, refocus
+        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+            g_pInputManager->refocus();
+        } else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+            // if not focused last and exclusive or accepting input + unconstrained
+            g_pSeatManager->setGrab(nullptr);
+            g_pInputManager->releaseAllMouseButtons();
+            g_pCompositor->focusSurface(surface->resource());
+
+            const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
+            g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
+            g_pInputManager->m_bEmptyFocusCursorSet = false;
+        }
     }
 
-    keyboardExclusive = layerSurface->current.interactivity;
+    interactivity = layerSurface->current.interactivity;
 
     g_pHyprRenderer->damageSurface(surface->resource(), position.x, position.y);
 

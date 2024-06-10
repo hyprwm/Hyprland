@@ -1392,7 +1392,6 @@ void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
     SP<CWLSurfaceResource> foundSurface = nullptr;
 
     g_pInputManager->releaseAllMouseButtons();
-    g_pCompositor->m_pLastFocus.reset();
 
     // first try for an exclusive layer
     if (!m_dExclusiveLSes.empty())

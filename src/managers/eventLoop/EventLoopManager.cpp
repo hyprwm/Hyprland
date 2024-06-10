@@ -13,6 +13,11 @@ CEventLoopManager::CEventLoopManager() {
     m_sTimers.timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
 }
 
+CEventLoopManager::~CEventLoopManager() {
+    if (m_sWayland.eventSource)
+        wl_event_source_remove(m_sWayland.eventSource);
+}
+
 static int timerWrite(int fd, uint32_t mask, void* data) {
     g_pEventLoopManager->onTimerFire();
     return 1;
@@ -22,7 +27,7 @@ void CEventLoopManager::enterLoop(wl_display* display, wl_event_loop* wlEventLoo
     m_sWayland.loop    = wlEventLoop;
     m_sWayland.display = display;
 
-    wl_event_loop_add_fd(wlEventLoop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
+    m_sWayland.eventSource = wl_event_loop_add_fd(wlEventLoop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
 
     wl_display_run(display);
 

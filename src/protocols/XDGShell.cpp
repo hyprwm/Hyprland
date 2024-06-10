@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::xdgShell->protoLog
 
@@ -288,7 +289,8 @@ void CXDGToplevelResource::close() {
     resource->sendClose();
 }
 
-CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, wlr_surface* surface_) : owner(owner_), surface(surface_), resource(resource_) {
+CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_) :
+    owner(owner_), surface(surface_), resource(resource_) {
     if (!good())
         return;
 
@@ -307,56 +309,50 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         PROTO::xdgShell->destroyResource(this);
     });
 
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy,
-        [this](void* owner, void* data) {
-            LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
-            hyprListener_surfaceDestroy.removeCallback();
-            hyprListener_surfaceCommit.removeCallback();
+    listeners.surfaceDestroy = surface->events.destroy.registerListener([this](std::any d) {
+        LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
+        listeners.surfaceDestroy.reset();
+        listeners.surfaceCommit.reset();
 
-            if (mapped)
-                events.unmap.emit();
+        if (mapped)
+            events.unmap.emit();
 
-            mapped  = false;
-            surface = nullptr;
-            events.destroy.emit();
-        },
-        nullptr, "CXDGSurfaceResource");
+        mapped = false;
+        surface.reset();
+        events.destroy.emit();
+    });
 
-    hyprListener_surfaceCommit.initCallback(
-        &surface->events.commit,
-        [this](void* owner, void* data) {
-            current = pending;
+    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+        current = pending;
+        if (toplevel)
+            toplevel->current = toplevel->pending;
+
+        if (initialCommit && surface->pending.buffer) {
+            resource->error(-1, "Buffer attached before initial commit");
+            return;
+        }
+
+        if (surface->current.buffer && !mapped) {
+            // this forces apps to not draw CSD.
             if (toplevel)
-                toplevel->current = toplevel->pending;
+                toplevel->setMaximized(true);
 
-            if (initialCommit && surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0) {
-                resource->error(-1, "Buffer attached before initial commit");
-                return;
-            }
+            mapped = true;
+            surface->map();
+            events.map.emit();
+            return;
+        }
 
-            if (surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0 && !mapped) {
-                // this forces apps to not draw CSD.
-                if (toplevel)
-                    toplevel->setMaximized(true);
+        if (!surface->current.buffer && mapped) {
+            mapped = false;
+            surface->unmap();
+            events.unmap.emit();
+            return;
+        }
 
-                mapped = true;
-                wlr_surface_map(surface);
-                events.map.emit();
-                return;
-            }
-
-            if (surface->pending.buffer_width <= 0 && surface->pending.buffer_height <= 0 && mapped) {
-                mapped = false;
-                wlr_surface_unmap(surface);
-                events.unmap.emit();
-                return;
-            }
-
-            events.commit.emit();
-            initialCommit = false;
-        },
-        nullptr, "CXDGSurfaceResource");
+        events.commit.emit();
+        initialCommit = false;
+    });
 
     resource->setGetToplevel([this](CXdgSurface* r, uint32_t id) {
         const auto RESOURCE = PROTO::xdgShell->m_vToplevels.emplace_back(makeShared<CXDGToplevelResource>(makeShared<CXdgToplevel>(r->client(), r->version(), id), self.lock()));
@@ -407,8 +403,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
     });
 
     resource->setAckConfigure([this](CXdgSurface* r, uint32_t serial) {
+        if (serial < lastConfigureSerial)
+            return;
+        lastConfigureSerial = serial;
         events.ack.emit(serial);
-        ; // TODO: verify it
     });
 
     resource->setSetWindowGeometry([this](CXdgSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -421,6 +419,12 @@ CXDGSurfaceResource::~CXDGSurfaceResource() {
     events.destroy.emit();
     if (configureSource)
         wl_event_source_remove(configureSource);
+    if (surface)
+        surface->resetRole();
+}
+
+eSurfaceRole CXDGSurfaceResource::role() {
+    return SURFACE_ROLE_XDG_SHELL;
 }
 
 bool CXDGSurfaceResource::good() {
@@ -575,11 +579,11 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         if (leftEdgeOut && slideX)
             test.x = constraint.x + EDGE_PADDING;
         if (rightEdgeOut && slideX)
-            test.x = constraint.x + constraint.w - predictedBox.w - EDGE_PADDING;
+            test.x = std::clamp((double)(constraint.x + constraint.w - test.w), (double)(constraint.x + EDGE_PADDING), (double)INFINITY);
         if (topEdgeOut && slideY)
             test.y = constraint.y + EDGE_PADDING;
         if (bottomEdgeOut && slideY)
-            test.y = constraint.y + constraint.h - predictedBox.y - EDGE_PADDING;
+            test.y = std::clamp((double)(constraint.y + constraint.h - test.h), (double)(constraint.y + EDGE_PADDING), (double)INFINITY);
 
         success = test.copy().expand(-1).inside(constraint);
 
@@ -602,18 +606,18 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
             test.x = constraint.x + EDGE_PADDING;
         }
         if (rightEdgeOut && resizeX)
-            test.w = -(constraint.w + constraint.x - test.w - test.x + EDGE_PADDING);
+            test.w = constraint.w - (test.x - constraint.w) - EDGE_PADDING;
         if (topEdgeOut && resizeY) {
             test.h = test.y + test.h - constraint.y - EDGE_PADDING;
             test.y = constraint.y + EDGE_PADDING;
         }
         if (bottomEdgeOut && resizeY)
-            test.h = -(constraint.h + constraint.y - test.h - test.y + EDGE_PADDING);
+            test.h = constraint.h - (test.y - constraint.y) - EDGE_PADDING;
 
         success = test.copy().expand(-1).inside(constraint);
 
         if (success)
-            return test.translate(parentCoord - constraint.pos());
+            return test.translate(-parentCoord - constraint.pos());
     }
 
     LOGM(WARN, "Compositor/client bug: xdg_positioner couldn't find a place");
@@ -648,8 +652,19 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
     });
 
     resource->setGetXdgSurface([this](CXdgWmBase* r, uint32_t id, wl_resource* surf) {
-        const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(
-            makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), wlr_surface_from_resource(surf)));
+        auto SURF = CWLSurfaceResource::fromResource(surf);
+
+        if (!SURF) {
+            r->error(-1, "Invalid surface passed");
+            return;
+        }
+
+        if (SURF->role->role() != SURFACE_ROLE_UNASSIGNED) {
+            r->error(-1, "Surface already has a different role");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::xdgShell->m_vSurfaces.emplace_back(makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(r->client(), r->version(), id), self.lock(), SURF));
 
         if (!RESOURCE->good()) {
             r->noMemory();
@@ -658,6 +673,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
         }
 
         RESOURCE->self = RESOURCE;
+        SURF->role     = RESOURCE;
 
         surfaces.emplace_back(RESOURCE);
 
@@ -724,9 +740,9 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
         grabOwner = popup;
         grabbed.clear();
         grab->clear();
-        grab->add(popup->surface->surface);
+        grab->add(popup->surface->surface.lock());
         if (popup->parent)
-            grab->add(popup->parent->surface);
+            grab->add(popup->parent->surface.lock());
         g_pSeatManager->setGrab(grab);
         grabbed.emplace_back(popup);
         return;
@@ -734,10 +750,10 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
 
     grabbed.emplace_back(popup);
 
-    grab->add(popup->surface->surface);
+    grab->add(popup->surface->surface.lock());
 
     if (popup->parent)
-        grab->add(popup->parent->surface);
+        grab->add(popup->parent->surface.lock());
 }
 
 void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
@@ -752,5 +768,5 @@ void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
 
     std::erase(grabbed, popup);
     if (popup->surface)
-        grab->remove(popup->surface->surface);
+        grab->remove(popup->surface->surface.lock());
 }

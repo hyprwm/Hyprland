@@ -10,6 +10,7 @@
 class CEventLoopManager {
   public:
     CEventLoopManager();
+    ~CEventLoopManager();
 
     void enterLoop(wl_display* display, wl_event_loop* wlEventLoop);
 
@@ -24,8 +25,9 @@ class CEventLoopManager {
 
   private:
     struct {
-        wl_event_loop* loop    = nullptr;
-        wl_display*    display = nullptr;
+        wl_event_loop*   loop        = nullptr;
+        wl_display*      display     = nullptr;
+        wl_event_source* eventSource = nullptr;
     } m_sWayland;
 
     struct {

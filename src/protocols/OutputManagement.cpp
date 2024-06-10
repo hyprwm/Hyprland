@@ -106,6 +106,9 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) :
         }
 
         pMonitor = nullptr;
+        for (auto& m : PROTO::outputManagement->m_vManagers) {
+            m->sendDone();
+        }
     });
 
     listeners.monitorModeChange = pMonitor->events.modeChanged.registerListener([this](std::any d) { updateMode(); });
@@ -305,6 +308,8 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         LOGM(LOG, "disableHead on {}", PMONITOR->szName);
 
         PMONITOR->activeMonitorRule.disabled = true;
+        if (!g_pConfigManager->replaceMonitorRule(PMONITOR->activeMonitorRule))
+            g_pConfigManager->appendMonitorRule(PMONITOR->activeMonitorRule);
         g_pHyprRenderer->applyMonitorRule(PMONITOR, &PMONITOR->activeMonitorRule, false);
     });
 
@@ -356,6 +361,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
 
         SMonitorRule newRule = PMONITOR->activeMonitorRule;
         newRule.name         = PMONITOR->szName;
+        newRule.disabled     = false;
 
         if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE) {
             newRule.resolution  = {head->state.mode->getMode()->width, head->state.mode->getMode()->height};
@@ -380,7 +386,8 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         // reset properties for next set.
         head->committedProperties = 0;
 
-        g_pConfigManager->appendMonitorRule(newRule);
+        if (!g_pConfigManager->replaceMonitorRule(newRule))
+            g_pConfigManager->appendMonitorRule(newRule);
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 

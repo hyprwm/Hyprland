@@ -1,5 +1,6 @@
 #include "TextInputV3.hpp"
 #include <algorithm>
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::textInputV3->protoLog
 
@@ -66,12 +67,12 @@ CTextInputV3::~CTextInputV3() {
     events.destroy.emit();
 }
 
-void CTextInputV3::enter(wlr_surface* surf) {
-    resource->sendEnter(surf->resource);
+void CTextInputV3::enter(SP<CWLSurfaceResource> surf) {
+    resource->sendEnter(surf->getResource()->resource());
 }
 
-void CTextInputV3::leave(wlr_surface* surf) {
-    resource->sendLeave(surf->resource);
+void CTextInputV3::leave(SP<CWLSurfaceResource> surf) {
+    resource->sendLeave(surf->getResource()->resource());
 }
 
 void CTextInputV3::preeditString(const std::string& text, int32_t cursorBegin, int32_t cursorEnd) {

@@ -495,6 +495,16 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
 
+    if (ret.contains("required packages were not found")) {
+        // missing deps, let the user know.
+        std::string missing = ret.substr(ret.find("The following required packages were not found:"));
+        missing             = missing.substr(0, missing.find("Call Stack"));
+        missing             = missing.substr(0, missing.find_last_of('\n'));
+
+        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n" << missing << "\n";
+        return false;
+    }
+
     // le hack. Wlroots has to generate its build/include
     ret = execAndGet("cd " + WORKINGDIR + "/subprojects/wlroots-hyprland && meson setup -Drenderers=gles2 -Dexamples=false build");
     if (m_bVerbose)

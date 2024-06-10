@@ -6,10 +6,11 @@
 
 class CWindow;
 class CTearingControlProtocol;
+class CWLSurfaceResource;
 
 class CTearingControl {
   public:
-    CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_);
+    CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfaceResource> surf_);
 
     void onHint(wpTearingControlV1PresentationHint hint_);
 
@@ -42,7 +43,7 @@ class CTearingControlProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(wl_resource* res);
     void onControllerDestroy(CTearingControl* control);
-    void onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, wlr_surface* surf);
+    void onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surf);
     void onWindowDestroy(PHLWINDOW pWindow);
 
     //

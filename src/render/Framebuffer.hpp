@@ -5,19 +5,20 @@
 
 class CFramebuffer {
   public:
+    CFramebuffer();
     ~CFramebuffer();
 
-    bool      alloc(int w, int h, uint32_t format = GL_RGBA);
-    void      addStencil();
-    void      bind();
-    void      release();
-    void      reset();
-    bool      isAllocated();
+    bool         alloc(int w, int h, uint32_t format = GL_RGBA);
+    void         addStencil();
+    void         bind();
+    void         release();
+    void         reset();
+    bool         isAllocated();
 
-    Vector2D  m_vSize;
+    Vector2D     m_vSize;
 
-    CTexture  m_cTex;
-    GLuint    m_iFb = -1;
+    SP<CTexture> m_cTex;
+    GLuint       m_iFb = -1;
 
-    CTexture* m_pStencilTex = nullptr;
+    SP<CTexture> m_pStencilTex;
 };

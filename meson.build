@@ -27,6 +27,12 @@ endif
 wlroots = subproject('wlroots-hyprland', default_options: ['examples=false', 'renderers=gles2'])
 have_xwlr = wlroots.get_variable('features').get('xwayland')
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
+xcb_composite_dep = dependency('xcb-composite', required: get_option('xwayland'))
+xcb_errors_dep = dependency('xcb-errors', required: get_option('xwayland'))
+xcb_icccm_dep = dependency('xcb-icccm', required: get_option('xwayland'))
+xcb_render_dep = dependency('xcb-render', required: get_option('xwayland'))
+xcb_res_dep = dependency('xcb-res', required: get_option('xwayland'))
+xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
 
 cmake = import('cmake')
 udis = cmake.subproject('udis86')

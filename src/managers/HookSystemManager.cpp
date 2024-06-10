@@ -28,7 +28,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
         return;
 
     std::vector<HANDLE> faultyHandles;
-    bool                needsDeadCleanup = false;
+    volatile bool       needsDeadCleanup = false;
 
     for (auto& cb : *callbacks) {
 

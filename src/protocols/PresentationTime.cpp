@@ -2,10 +2,11 @@
 #include <algorithm>
 #include "../helpers/Monitor.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::presentation->protoLog
 
-CQueuedPresentationData::CQueuedPresentationData(wlr_surface* surf) : surface(surf) {
+CQueuedPresentationData::CQueuedPresentationData(SP<CWLSurfaceResource> surf) : surface(surf) {
     ;
 }
 
@@ -25,7 +26,7 @@ void CQueuedPresentationData::discarded() {
     wasPresented = false;
 }
 
-CPresentationFeedback::CPresentationFeedback(SP<CWpPresentationFeedback> resource_, wlr_surface* surf) : resource(resource_), surface(surf) {
+CPresentationFeedback::CPresentationFeedback(SP<CWpPresentationFeedback> resource_, SP<CWLSurfaceResource> surf) : resource(resource_), surface(surf) {
     if (!good())
         return;
 
@@ -69,7 +70,7 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        std::erase_if(m_vQueue, [PMONITOR, this](const auto& other) { return !other->surface || other->pMonitor == PMONITOR; });
+        std::erase_if(m_vQueue, [PMONITOR](const auto& other) { return !other->surface || other->pMonitor == PMONITOR; });
     });
 }
 
@@ -92,7 +93,8 @@ void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {
     const auto CLIENT = pMgr->client();
     const auto RESOURCE =
-        m_vFeedbacks.emplace_back(makeShared<CPresentationFeedback>(makeShared<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), wlr_surface_from_resource(surf))).get();
+        m_vFeedbacks.emplace_back(makeShared<CPresentationFeedback>(makeShared<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)))
+            .get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -116,8 +118,8 @@ void CPresentationProtocol::onPresented(CMonitor* pMonitor, timespec* when, uint
         }
     }
 
-    std::erase_if(m_vFeedbacks, [pMonitor, this](const auto& other) { return !other->surface || other->done; });
-    std::erase_if(m_vQueue, [pMonitor, this](const auto& other) { return !other->surface || other->pMonitor == pMonitor || !other->pMonitor; });
+    std::erase_if(m_vFeedbacks, [](const auto& other) { return !other->surface || other->done; });
+    std::erase_if(m_vQueue, [pMonitor](const auto& other) { return !other->surface || other->pMonitor == pMonitor || !other->pMonitor; });
 }
 
 void CPresentationProtocol::queueData(SP<CQueuedPresentationData> data) {

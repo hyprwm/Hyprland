@@ -2,10 +2,11 @@
 #include <algorithm>
 #include "../desktop/WLSurface.hpp"
 #include "../render/Renderer.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::alphaModifier->protoLog
 
-CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surface* surface_) : resource(resource_), pSurface(surface_) {
+CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : resource(resource_), pSurface(surface_) {
     if (!resource->resource())
         return;
 
@@ -18,8 +19,7 @@ CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surf
         setSurfaceAlpha(1.F);
     });
 
-    hyprListener_surfaceDestroy.initCallback(
-        &surface_->events.destroy, [this](void* owner, void* data) { onSurfaceDestroy(); }, this, "CAlphaModifier");
+    listeners.destroySurface = pSurface->events.destroy.registerListener([this](std::any d) { onSurfaceDestroy(); });
 
     resource->setSetMultiplier([this](CWpAlphaModifierSurfaceV1* mod, uint32_t alpha) {
         if (!pSurface) {
@@ -35,19 +35,19 @@ CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surf
 }
 
 CAlphaModifier::~CAlphaModifier() {
-    hyprListener_surfaceDestroy.removeCallback();
+    ;
 }
 
 bool CAlphaModifier::good() {
     return resource->resource();
 }
 
-wlr_surface* CAlphaModifier::getSurface() {
-    return pSurface;
+SP<CWLSurfaceResource> CAlphaModifier::getSurface() {
+    return pSurface.lock();
 }
 
 void CAlphaModifier::setSurfaceAlpha(float a) {
-    CWLSurface* surf = CWLSurface::surfaceFromWlr(pSurface);
+    auto surf = CWLSurface::fromResource(pSurface.lock());
 
     if (!surf) {
         LOGM(ERR, "CAlphaModifier::setSurfaceAlpha: No CWLSurface for given surface??");
@@ -62,8 +62,7 @@ void CAlphaModifier::setSurfaceAlpha(float a) {
 }
 
 void CAlphaModifier::onSurfaceDestroy() {
-    hyprListener_surfaceDestroy.removeCallback();
-    pSurface = nullptr;
+    pSurface.reset();
 }
 
 CAlphaModifierProtocol::CAlphaModifierProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -75,7 +74,7 @@ void CAlphaModifierProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setOnDestroy([this](CWpAlphaModifierV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpAlphaModifierV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
-    RESOURCE->setGetSurface([this](CWpAlphaModifierV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetSurface(pMgr, id, wlr_surface_from_resource(surface)); });
+    RESOURCE->setGetSurface([this](CWpAlphaModifierV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetSurface(pMgr, id, CWLSurfaceResource::fromResource(surface)); });
 }
 
 void CAlphaModifierProtocol::onManagerResourceDestroy(wl_resource* res) {
@@ -83,29 +82,11 @@ void CAlphaModifierProtocol::onManagerResourceDestroy(wl_resource* res) {
 }
 
 void CAlphaModifierProtocol::destroyModifier(CAlphaModifier* modifier) {
-    if (modifier->getSurface())
-        m_mAlphaModifiers.erase(modifier->getSurface());
-    else {
-        // find it first
-        wlr_surface* deadptr = nullptr;
-        for (auto& [k, v] : m_mAlphaModifiers) {
-            if (v.get() == modifier) {
-                deadptr = k;
-                break;
-            }
-        }
-
-        if (!deadptr) {
-            LOGM(ERR, "CAlphaModifierProtocol::destroyModifier: dead resource but no deadptr???");
-            return;
-        }
-
-        m_mAlphaModifiers.erase(deadptr);
-    }
+    std::erase_if(m_mAlphaModifiers, [](const auto& e) { return e.first.expired(); });
 }
 
-void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, wlr_surface* surface) {
-    if (m_mAlphaModifiers.contains(surface)) {
+void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surface) {
+    if (std::find_if(m_mAlphaModifiers.begin(), m_mAlphaModifiers.end(), [surface](const auto& e) { return e.first == surface; }) != m_mAlphaModifiers.end()) {
         LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface);
         pMgr->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
         return;

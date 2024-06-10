@@ -1,36 +1,37 @@
 #include "WLSurface.hpp"
 #include "../Compositor.hpp"
+#include "../protocols/core/Compositor.hpp"
 
-void CWLSurface::assign(wlr_surface* pSurface) {
-    m_pWLRSurface = pSurface;
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface) {
+    m_pResource = pSurface;
     init();
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, PHLWINDOW pOwner) {
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner) {
     m_pWindowOwner = pOwner;
-    m_pWLRSurface  = pSurface;
+    m_pResource    = pSurface;
     init();
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, PHLLS pOwner) {
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner) {
     m_pLayerOwner = pOwner;
-    m_pWLRSurface = pSurface;
+    m_pResource   = pSurface;
     init();
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, CSubsurface* pOwner) {
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner) {
     m_pSubsurfaceOwner = pOwner;
-    m_pWLRSurface      = pSurface;
+    m_pResource        = pSurface;
     init();
     m_bInert = false;
 }
 
-void CWLSurface::assign(wlr_surface* pSurface, CPopup* pOwner) {
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner) {
     m_pPopupOwner = pOwner;
-    m_pWLRSurface = pSurface;
+    m_pResource   = pSurface;
     init();
     m_bInert = false;
 }
@@ -44,20 +45,23 @@ CWLSurface::~CWLSurface() {
 }
 
 bool CWLSurface::exists() const {
-    return m_pWLRSurface;
+    return m_pResource;
 }
 
-wlr_surface* CWLSurface::wlr() const {
-    return m_pWLRSurface;
+SP<CWLSurfaceResource> CWLSurface::resource() const {
+    return m_pResource.lock();
 }
 
 bool CWLSurface::small() const {
     if (!validMapped(m_pWindowOwner) || !exists())
         return false;
 
+    if (!m_pResource->current.buffer)
+        return false;
+
     const auto O = m_pWindowOwner.lock();
 
-    return O->m_vReportedSize.x > m_pWLRSurface->current.buffer_width + 1 || O->m_vReportedSize.y > m_pWLRSurface->current.buffer_height + 1;
+    return O->m_vReportedSize.x > m_pResource->current.buffer->size.x + 1 || O->m_vReportedSize.y > m_pResource->current.buffer->size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -71,29 +75,28 @@ Vector2D CWLSurface::correctSmallVec() const {
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
-    if (!exists())
+    if (!exists() || !m_pResource->current.buffer)
         return {};
 
-    return m_pWLRSurface->current.viewport.has_dst ? Vector2D{m_pWLRSurface->current.viewport.dst_width, m_pWLRSurface->current.viewport.dst_height} :
-                                                     Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
+    return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.buffer->size;
 }
 
 CRegion CWLSurface::logicalDamage() const {
-    CRegion damage{&m_pWLRSurface->buffer_damage};
-    damage.transform(m_pWLRSurface->current.transform, m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height);
-    damage.scale(1.0 / m_pWLRSurface->current.scale);
+    if (!m_pResource->current.buffer)
+        return {};
+
+    CRegion damage = m_pResource->accumulateCurrentBufferDamage();
+    damage.transform(m_pResource->current.transform, m_pResource->current.buffer->size.x, m_pResource->current.buffer->size.y);
+    damage.scale(1.0 / m_pResource->current.scale);
 
     const auto VPSIZE     = getViewporterCorrectedSize();
     const auto CORRECTVEC = correctSmallVec();
 
-    if (m_pWLRSurface->current.viewport.has_src) {
-        damage.intersect(CBox{std::floor(m_pWLRSurface->current.viewport.src.x), std::floor(m_pWLRSurface->current.viewport.src.y),
-                              std::ceil(m_pWLRSurface->current.viewport.src.width), std::ceil(m_pWLRSurface->current.viewport.src.height)});
-    }
+    if (m_pResource->current.viewport.hasSource)
+        damage.intersect(m_pResource->current.viewport.source);
 
-    const auto SCALEDSRCSIZE = m_pWLRSurface->current.viewport.has_src ?
-        Vector2D{m_pWLRSurface->current.viewport.src.width, m_pWLRSurface->current.viewport.src.height} * m_pWLRSurface->current.scale :
-        Vector2D{m_pWLRSurface->current.buffer_width, m_pWLRSurface->current.buffer_height};
+    const auto SCALEDSRCSIZE =
+        m_pResource->current.viewport.hasSource ? m_pResource->current.viewport.source.size() * m_pResource->current.scale : m_pResource->current.buffer->size;
 
     damage.scale({VPSIZE.x / SCALEDSRCSIZE.x, VPSIZE.y / SCALEDSRCSIZE.y});
     damage.translate(CORRECTVEC);
@@ -102,48 +105,38 @@ CRegion CWLSurface::logicalDamage() const {
 }
 
 void CWLSurface::destroy() {
-    if (!m_pWLRSurface)
+    if (!m_pResource)
         return;
 
     events.destroy.emit();
 
     m_pConstraint.reset();
 
-    hyprListener_destroy.removeCallback();
-    hyprListener_commit.removeCallback();
-    m_pWLRSurface->data = nullptr;
+    listeners.destroy.reset();
+    m_pResource->hlSurface.reset();
     m_pWindowOwner.reset();
     m_pLayerOwner.reset();
     m_pPopupOwner      = nullptr;
     m_pSubsurfaceOwner = nullptr;
     m_bInert           = true;
 
-    if (g_pCompositor && g_pCompositor->m_pLastFocus == m_pWLRSurface)
-        g_pCompositor->m_pLastFocus = nullptr;
-    if (g_pHyprRenderer && g_pHyprRenderer->m_sLastCursorData.surf == this)
+    if (g_pHyprRenderer && g_pHyprRenderer->m_sLastCursorData.surf && g_pHyprRenderer->m_sLastCursorData.surf->get() == this)
         g_pHyprRenderer->m_sLastCursorData.surf.reset();
 
-    m_pWLRSurface = nullptr;
+    m_pResource.reset();
 
     Debug::log(LOG, "CWLSurface {:x} called destroy()", (uintptr_t)this);
 }
 
-static void onCommit(void* owner, void* data) {
-    const auto SURF = (CWLSurface*)owner;
-    SURF->onCommit();
-}
-
 void CWLSurface::init() {
-    if (!m_pWLRSurface)
+    if (!m_pResource)
         return;
 
-    RASSERT(!m_pWLRSurface->data, "Attempted to duplicate CWLSurface ownership!");
+    RASSERT(!m_pResource->hlSurface, "Attempted to duplicate CWLSurface ownership!");
 
-    m_pWLRSurface->data = this;
+    m_pResource->hlSurface = self.lock();
 
-    hyprListener_destroy.initCallback(
-        &m_pWLRSurface->events.destroy, [&](void* owner, void* data) { destroy(); }, this, "CWLSurface");
-    hyprListener_commit.initCallback(&m_pWLRSurface->events.commit, ::onCommit, this, "CWLSurface");
+    listeners.destroy = m_pResource->events.destroy.registerListener([this](std::any d) { destroy(); });
 
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
@@ -188,10 +181,6 @@ void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
     m_pConstraint = constraint;
 }
 
-void CWLSurface::onCommit() {
-    ;
-}
-
 SP<CPointerConstraint> CWLSurface::constraint() {
     return m_pConstraint.lock();
 }
@@ -206,4 +195,10 @@ bool CWLSurface::visible() {
     if (m_pSubsurfaceOwner)
         return m_pSubsurfaceOwner->visible();
     return true; // non-desktop, we don't know much.
+}
+
+SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
+    if (!pSurface)
+        return nullptr;
+    return pSurface->hlSurface.lock();
 }

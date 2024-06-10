@@ -1,6 +1,8 @@
 #include "ForeignToplevelWlr.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "protocols/core/Output.hpp"
+#include "render/Renderer.hpp"
 
 #define LOGM PROTO::foreignToplevelWlr->protoLog
 
@@ -36,7 +38,21 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
         }
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, true);
+        if (output) {
+            const auto wpMonitor = CWLOutputResource::fromResource(output)->monitor;
+
+            if (!wpMonitor.expired()) {
+                const auto monitor = wpMonitor.lock();
+
+                if (PWINDOW->m_pWorkspace != monitor->activeWorkspace) {
+                    g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->activeWorkspace);
+                    g_pCompositor->setActiveMonitor(monitor.get());
+                }
+            }
+        }
+
+        g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
+        g_pHyprRenderer->damageWindow(PWINDOW);
     });
 
     resource->setUnsetFullscreen([this](CZwlrForeignToplevelHandleV1* p) {

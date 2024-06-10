@@ -77,7 +77,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     } else
         return; // oops, nothing found.
 
-    g_pSeatManager->sendTouchDown(m_sTouchData.touchFocusSurface, e.timeMs, e.touchID, local);
+    g_pSeatManager->sendTouchDown(m_sTouchData.touchFocusSurface.lock(), e.timeMs, e.touchID, local);
 
     PROTO::idle->onActivity();
 }

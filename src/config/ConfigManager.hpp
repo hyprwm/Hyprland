@@ -103,6 +103,7 @@ class CConfigManager {
     void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getConfigDir();
     static std::string                                              getMainConfigPath();
+    const std::string                                               getConfigString();
 
     SMonitorRule                                                    getMonitorRuleFor(const CMonitor&);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
@@ -128,6 +129,7 @@ class CConfigManager {
 
     void                      performMonitorReload();
     void                      appendMonitorRule(const SMonitorRule&);
+    bool                      replaceMonitorRule(const SMonitorRule&);
     bool                      m_bWantsMonitorReload = false;
     bool                      m_bForceReload        = false;
     bool                      m_bNoMonitorReload    = false;

@@ -2,10 +2,11 @@
 #include "../Compositor.hpp"
 #include "ForeignToplevelWlr.hpp"
 #include "../managers/PointerManager.hpp"
+#include "types/WLBuffer.hpp"
+#include "types/Buffer.hpp"
+#include "../helpers/Format.hpp"
 
 #include <algorithm>
-
-#include "ToplevelExportWlrFuncs.hpp"
 
 #define TOPLEVEL_EXPORT_VERSION 2
 
@@ -131,8 +132,8 @@ void CToplevelExportProtocolManager::removeFrame(SScreencopyFrame* frame, bool f
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
 
     wl_resource_set_user_data(frame->resource, nullptr);
-    if (frame->buffer && frame->buffer->n_locks > 0)
-        wlr_buffer_unlock(frame->buffer);
+    if (frame->buffer && frame->buffer->locked() > 0)
+        frame->buffer->unlock();
     removeClient(frame->client, force);
     m_lFrames.remove(*frame);
 }
@@ -184,7 +185,7 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
         return;
     }
 
-    const auto PSHMINFO = drm_get_pixel_format_info(PFRAME->shmFormat);
+    const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(PFRAME->shmFormat);
     if (!PSHMINFO) {
         Debug::log(ERR, "No pixel format supported by renderer in capture toplevel");
         hyprland_toplevel_export_frame_v1_send_failed(resource);
@@ -203,9 +204,9 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
     wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
     PFRAME->box.transform(PMONITOR->transform, ow, oh).round();
 
-    PFRAME->shmStride = pixel_format_info_min_stride(PSHMINFO, PFRAME->box.w);
+    PFRAME->shmStride = FormatUtils::minStride(PSHMINFO, PFRAME->box.w);
 
-    hyprland_toplevel_export_frame_v1_send_buffer(PFRAME->resource, convert_drm_format_to_wl_shm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
+    hyprland_toplevel_export_frame_v1_send_buffer(PFRAME->resource, FormatUtils::drmToShm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
 
     if (PFRAME->dmabufFormat != DRM_FORMAT_INVALID) {
         hyprland_toplevel_export_frame_v1_send_linux_dmabuf(PFRAME->resource, PFRAME->dmabufFormat, PFRAME->box.width, PFRAME->box.height);
@@ -238,14 +239,16 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
         return;
     }
 
-    const auto PBUFFER = wlr_buffer_try_from_resource(buffer);
+    const auto PBUFFER = CWLBufferResource::fromResource(buffer);
     if (!PBUFFER) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
         removeFrame(PFRAME);
         return;
     }
 
-    if (PBUFFER->width != PFRAME->box.width || PBUFFER->height != PFRAME->box.height) {
+    PBUFFER->buffer->lock();
+
+    if (PBUFFER->buffer->size != PFRAME->box.size()) {
         wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
         removeFrame(PFRAME);
         return;
@@ -257,26 +260,20 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
         return;
     }
 
-    wlr_dmabuf_attributes dmabufAttrs;
-    void*                 wlrBufferAccessData;
-    uint32_t              wlrBufferAccessFormat;
-    size_t                wlrBufferAccessStride;
-    if (wlr_buffer_get_dmabuf(PBUFFER, &dmabufAttrs)) {
-        PFRAME->bufferCap = WLR_BUFFER_CAP_DMABUF;
+    if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
+        PFRAME->bufferDMA = true;
 
-        if (dmabufAttrs.format != PFRAME->dmabufFormat) {
+        if (attrs.format != PFRAME->dmabufFormat) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
         }
-    } else if (wlr_buffer_begin_data_ptr_access(PBUFFER, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &wlrBufferAccessData, &wlrBufferAccessFormat, &wlrBufferAccessStride)) {
-        wlr_buffer_end_data_ptr_access(PBUFFER);
-
-        if (wlrBufferAccessFormat != PFRAME->shmFormat) {
+    } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
+        if (attrs.format != PFRAME->shmFormat) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
             removeFrame(PFRAME);
             return;
-        } else if ((int)wlrBufferAccessStride != PFRAME->shmStride) {
+        } else if ((int)attrs.stride != PFRAME->shmStride) {
             wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
             removeFrame(PFRAME);
             return;
@@ -287,7 +284,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
         return;
     }
 
-    PFRAME->buffer = PBUFFER;
+    PFRAME->buffer = PBUFFER->buffer;
 
     m_vFramesAwaitingWrite.emplace_back(PFRAME);
 }
@@ -338,7 +335,7 @@ void CToplevelExportProtocolManager::shareFrame(SScreencopyFrame* frame) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     uint32_t flags = 0;
-    if (frame->bufferCap == WLR_BUFFER_CAP_DMABUF) {
+    if (frame->bufferDMA) {
         if (!copyFrameDmabuf(frame, &now)) {
             hyprland_toplevel_export_frame_v1_send_failed(frame->resource);
             return;
@@ -363,11 +360,8 @@ void CToplevelExportProtocolManager::sendDamage(SScreencopyFrame* frame) {
 }
 
 bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
-    void*    data;
-    uint32_t format;
-    size_t   stride;
-    if (!wlr_buffer_begin_data_ptr_access(frame->buffer, WLR_BUFFER_DATA_PTR_ACCESS_WRITE, &data, &format, &stride))
-        return false;
+    auto shm                      = frame->buffer->shm();
+    auto [pixelData, fmt, bufLen] = frame->buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     // render the client
     const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
@@ -378,15 +372,13 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     CFramebuffer outFB;
     outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB)) {
-        wlr_buffer_end_data_ptr_access(frame->buffer);
-        return false;
-    }
-
     if (frame->overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
+
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
+        return false;
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
@@ -398,10 +390,9 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     if (frame->overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
 
-    const auto PFORMAT = g_pHyprOpenGL->getPixelFormatFromDRM(format);
+    const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         g_pHyprRenderer->endRender();
-        wlr_buffer_end_data_ptr_access(frame->buffer);
         return false;
     }
 
@@ -418,9 +409,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, data);
-
-    wlr_buffer_end_data_ptr_access(frame->buffer);
+    glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, pixelData);
 
     if (frame->overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
@@ -435,7 +424,7 @@ bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, ti
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer))
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock()))
         return false;
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));

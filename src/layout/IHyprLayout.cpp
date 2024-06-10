@@ -5,6 +5,8 @@
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
+#include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -98,8 +100,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-        const auto PWINDOWSURFACE = pWindow->m_pWLSurface.wlr();
-        pWindow->m_vRealSize      = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+        const auto PWINDOWSURFACE = pWindow->m_pWLSurface->resource();
+        pWindow->m_vRealSize      = PWINDOWSURFACE->current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
             pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
@@ -111,10 +113,10 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if (pWindow->m_vRealSize.goal().x <= 5 || pWindow->m_vRealSize.goal().y <= 5)
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
 
-        if (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect) {
+        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
 
-            if (pWindow->m_uSurface.xwayland->x != 0 && pWindow->m_uSurface.xwayland->y != 0)
-                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords({pWindow->m_uSurface.xwayland->x, pWindow->m_uSurface.xwayland->y});
+            if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
+                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
             else
                 pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goal().x) / 2.f,
                                                     PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goal().y) / 2.f);
@@ -146,7 +148,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
                 pWindow->m_vRealPosition = pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealPosition.goal() +
                     pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealSize.goal() / 2.F - desiredGeometry.size() / 2.F;
             else
-                pWindow->m_vRealPosition = PMONITOR->vecPosition + desiredGeometry.size() / 2.F;
+                pWindow->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.F - desiredGeometry.size() / 2.F;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
@@ -161,7 +163,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
 
-    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_uSurface.xwayland->override_redirect)) {
+    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2)) {
         pWindow->m_vRealPosition.warp();
         pWindow->m_vRealSize.warp();
     }

@@ -5,6 +5,7 @@
 #include "../helpers/Color.hpp"
 #include "../helpers/Timer.hpp"
 #include "../helpers/Region.hpp"
+#include "../helpers/Format.hpp"
 #include <list>
 #include <unordered_map>
 #include <map>
@@ -54,14 +55,6 @@ struct SRenderModifData {
     bool                                               enabled = true;
 };
 
-struct SGLPixelFormat {
-    uint32_t drmFormat        = DRM_FORMAT_INVALID;
-    GLint    glInternalFormat = 0;
-    GLint    glFormat         = 0;
-    GLint    glType           = 0;
-    bool     withAlpha        = false;
-};
-
 struct SMonitorRenderData {
     CFramebuffer offloadFB;
     CFramebuffer mirrorFB;     // these are used for some effects,
@@ -70,7 +63,7 @@ struct SMonitorRenderData {
 
     CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
 
-    CTexture     stencilTex;
+    SP<CTexture> stencilTex = makeShared<CTexture>();
 
     CFramebuffer blurFB;
     bool         blurFBDirty        = true;
@@ -132,74 +125,73 @@ class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
 
-    void                  begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void                  beginSimple(CMonitor*, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
-    void                  end();
+    void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void     beginSimple(CMonitor*, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
+    void     end();
 
-    void                  renderRect(CBox*, const CColor&, int round = 0);
-    void                  renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
-    void                  renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
-    void                  renderTexture(wlr_texture*, CBox*, float a, int round = 0, bool allowCustomUV = false);
-    void                  renderTextureWithDamage(wlr_texture*, CBox*, CRegion* damage, float a, int round = 0, bool allowCustomUV = false);
-    void                  renderTexture(const CTexture&, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
-    void                  renderTextureWithDamage(const CTexture&, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
-    void                  renderTextureWithBlur(const CTexture&, CBox*, float a, wlr_surface* pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
-    void                  renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
-    void                  renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
-    void                  renderTextureMatte(const CTexture& tex, CBox* pBox, CFramebuffer& matte);
+    void     renderRect(CBox*, const CColor&, int round = 0);
+    void     renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
+    void     renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
+    void     renderTexture(SP<CTexture>, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
+    void     renderTextureWithDamage(SP<CTexture>, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
+    void     renderTextureWithBlur(SP<CTexture>, CBox*, float a, SP<CWLSurfaceResource> pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
+    void     renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
+    void     renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
+    void     renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuffer& matte);
 
-    void                  setMonitorTransformEnabled(bool enabled);
-    void                  setRenderModifEnabled(bool enabled);
+    void     setMonitorTransformEnabled(bool enabled);
+    void     setRenderModifEnabled(bool enabled);
 
-    void                  saveMatrix();
-    void                  setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void                  restoreMatrix();
+    void     saveMatrix();
+    void     setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
+    void     restoreMatrix();
 
-    void                  blend(bool enabled);
+    void     blend(bool enabled);
 
-    void                  makeWindowSnapshot(PHLWINDOW);
-    void                  makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
-    void                  makeLayerSnapshot(PHLLS);
-    void                  renderSnapshot(PHLWINDOW);
-    void                  renderSnapshot(PHLLS);
-    bool                  shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    void     makeWindowSnapshot(PHLWINDOW);
+    void     makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
+    void     makeLayerSnapshot(PHLLS);
+    void     renderSnapshot(PHLWINDOW);
+    void     renderSnapshot(PHLLS);
+    bool     shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
-    void                  clear(const CColor&);
-    void                  clearWithTex();
-    void                  scissor(const CBox*, bool transform = true);
-    void                  scissor(const pixman_box32*, bool transform = true);
-    void                  scissor(const int x, const int y, const int w, const int h, bool transform = true);
+    void     clear(const CColor&);
+    void     clearWithTex();
+    void     scissor(const CBox*, bool transform = true);
+    void     scissor(const pixman_box32*, bool transform = true);
+    void     scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void                  destroyMonitorResources(CMonitor*);
+    void     destroyMonitorResources(CMonitor*);
 
-    void                  markBlurDirtyForMonitor(CMonitor*);
+    void     markBlurDirtyForMonitor(CMonitor*);
 
-    void                  preWindowPass();
-    bool                  preBlurQueued();
-    void                  preRender(CMonitor*);
+    void     preWindowPass();
+    bool     preBlurQueued();
+    void     preRender(CMonitor*);
 
-    void                  saveBufferForMirror(CBox*);
-    void                  renderMirrored();
+    void     saveBufferForMirror(CBox*);
+    void     renderMirrored();
 
-    void                  applyScreenShader(const std::string& path);
+    void     applyScreenShader(const std::string& path);
 
-    void                  bindOffMain();
-    void                  renderOffToMain(CFramebuffer* off);
-    void                  bindBackOnMain();
+    void     bindOffMain();
+    void     renderOffToMain(CFramebuffer* off);
+    void     bindBackOnMain();
 
-    void                  setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    void     setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t              getPreferredReadFormat(CMonitor* pMonitor);
-    const SGLPixelFormat* getPixelFormatFromDRM(uint32_t drmFormat);
+    uint32_t getPreferredReadFormat(CMonitor* pMonitor);
+    std::vector<SDRMFormat>                           getDRMFormats();
+    EGLImageKHR                                       createEGLImage(const SDMABUFAttrs& attrs);
 
-    SCurrentRenderData    m_RenderData;
+    SCurrentRenderData                                m_RenderData;
 
-    GLint                 m_iCurrentOutputFb = 0;
+    GLint                                             m_iCurrentOutputFb = 0;
 
-    bool                  m_bReloadScreenShader = true; // at launch it can be set
+    bool                                              m_bReloadScreenShader = true; // at launch it can be set
 
-    PHLWINDOWREF          m_pCurrentWindow; // hack to get the current rendered window
-    PHLLS                 m_pCurrentLayer;  // hack to get the current rendered layer
+    PHLWINDOWREF                                      m_pCurrentWindow; // hack to get the current rendered window
+    PHLLS                                             m_pCurrentLayer;  // hack to get the current rendered layer
 
     std::map<PHLWINDOWREF, CFramebuffer>              m_mWindowFramebuffers;
     std::map<PHLLSREF, CFramebuffer>                  m_mLayerFramebuffers;
@@ -208,41 +200,52 @@ class CHyprOpenGLImpl {
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
+        PFNGLEGLIMAGETARGETTEXTURE2DOESPROC           glEGLImageTargetTexture2DOES           = nullptr;
+        PFNEGLCREATEIMAGEKHRPROC                      eglCreateImageKHR                      = nullptr;
         PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR                     = nullptr;
+        PFNEGLQUERYDMABUFFORMATSEXTPROC               eglQueryDmaBufFormatsEXT               = nullptr;
+        PFNEGLQUERYDMABUFMODIFIERSEXTPROC             eglQueryDmaBufModifiersEXT             = nullptr;
     } m_sProc;
 
     struct {
-        bool EXT_read_format_bgra = false;
+        bool EXT_read_format_bgra               = false;
+        bool EXT_image_dma_buf_import           = false;
+        bool EXT_image_dma_buf_import_modifiers = false;
     } m_sExts;
 
   private:
-    std::list<GLuint> m_lBuffers;
-    std::list<GLuint> m_lTextures;
+    std::list<GLuint>       m_lBuffers;
+    std::list<GLuint>       m_lTextures;
 
-    int               m_iDRMFD;
-    std::string       m_szExtensions;
+    std::vector<SDRMFormat> drmFormats;
+    bool                    m_bHasModifiers = false;
 
-    bool              m_bFakeFrame            = false;
-    bool              m_bEndFrame             = false;
-    bool              m_bApplyFinalShader     = false;
-    bool              m_bBlend                = false;
-    bool              m_bOffloadedFramebuffer = false;
+    int                     m_iDRMFD;
+    std::string             m_szExtensions;
 
-    CShader           m_sFinalScreenShader;
-    CTimer            m_tGlobalTimer;
+    bool                    m_bFakeFrame            = false;
+    bool                    m_bEndFrame             = false;
+    bool                    m_bApplyFinalShader     = false;
+    bool                    m_bBlend                = false;
+    bool                    m_bOffloadedFramebuffer = false;
 
-    void              logShaderError(const GLuint&, bool program = false);
-    GLuint            createProgram(const std::string&, const std::string&, bool dynamic = false);
-    GLuint            compileShader(const GLuint&, std::string, bool dynamic = false);
-    void              createBGTextureForMonitor(CMonitor*);
-    void              initShaders();
+    CShader                 m_sFinalScreenShader;
+    CTimer                  m_tGlobalTimer;
+
+    void                    logShaderError(const GLuint&, bool program = false);
+    GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
+    GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
+    void                    createBGTextureForMonitor(CMonitor*);
+    void                    initShaders();
+    void                    initDRMFormats();
+    std::vector<uint64_t>   getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
-    void          renderTextureInternalWithDamage(const CTexture&, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
+    void          renderTextureInternalWithDamage(SP<CTexture>, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
                                                   bool allowCustomUV = false, bool allowDim = false);
-    void          renderTexturePrimitive(const CTexture& tex, CBox* pBox);
+    void          renderTexturePrimitive(SP<CTexture> tex, CBox* pBox);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 
     void          preBlurForCurrentMonitor();

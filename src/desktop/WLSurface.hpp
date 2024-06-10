@@ -7,33 +7,37 @@
 class CSubsurface;
 class CPopup;
 class CPointerConstraint;
+class CWLSurfaceResource;
 
 class CWLSurface {
   public:
-    CWLSurface() = default;
+    static SP<CWLSurface> create() {
+        auto p  = SP<CWLSurface>(new CWLSurface);
+        p->self = p;
+        return p;
+    }
     ~CWLSurface();
 
     // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
-    void assign(wlr_surface* pSurface);
-    void assign(wlr_surface* pSurface, PHLWINDOW pOwner);
-    void assign(wlr_surface* pSurface, PHLLS pOwner);
-    void assign(wlr_surface* pSurface, CSubsurface* pOwner);
-    void assign(wlr_surface* pSurface, CPopup* pOwner);
+    void assign(SP<CWLSurfaceResource> pSurface);
+    void assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner);
+    void assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner);
+    void assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner);
+    void assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner);
     void unassign();
 
-    CWLSurface(const CWLSurface&)             = delete;
-    CWLSurface(CWLSurface&&)                  = delete;
-    CWLSurface&  operator=(const CWLSurface&) = delete;
-    CWLSurface&  operator=(CWLSurface&&)      = delete;
+    CWLSurface(const CWLSurface&)                       = delete;
+    CWLSurface(CWLSurface&&)                            = delete;
+    CWLSurface&            operator=(const CWLSurface&) = delete;
+    CWLSurface&            operator=(CWLSurface&&)      = delete;
 
-    wlr_surface* wlr() const;
-    bool         exists() const;
-    bool         small() const;           // means surface is smaller than the requested size
-    Vector2D     correctSmallVec() const; // returns a corrective vector for small() surfaces
-    Vector2D     getViewporterCorrectedSize() const;
-    CRegion      logicalDamage() const;
-    void         onCommit();
-    bool         visible();
+    SP<CWLSurfaceResource> resource() const;
+    bool                   exists() const;
+    bool                   small() const;           // means surface is smaller than the requested size
+    Vector2D               correctSmallVec() const; // returns a corrective vector for small() surfaces
+    Vector2D               getViewporterCorrectedSize() const;
+    CRegion                logicalDamage() const;
+    bool                   visible();
 
     // getters for owners.
     PHLWINDOW    getWindow();
@@ -55,31 +59,27 @@ class CWLSurface {
     wl_output_transform m_eLastTransform = (wl_output_transform)-1;
 
     //
-    CWLSurface& operator=(wlr_surface* pSurface) {
+    CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {
         destroy();
-        m_pWLRSurface = pSurface;
+        m_pResource = pSurface;
         init();
 
         return *this;
     }
 
     bool operator==(const CWLSurface& other) const {
-        return other.wlr() == wlr();
+        return other.resource() == resource();
     }
 
-    bool operator==(const wlr_surface* other) const {
-        return other == wlr();
+    bool operator==(const SP<CWLSurfaceResource> other) const {
+        return other == resource();
     }
 
     explicit operator bool() const {
         return exists();
     }
 
-    static CWLSurface* surfaceFromWlr(wlr_surface* pSurface) {
-        if (!pSurface)
-            return nullptr;
-        return (CWLSurface*)pSurface->data;
-    }
+    static SP<CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
 
     // used by the alpha-modifier protocol
     float m_pAlphaModifier = 1.F;
@@ -88,15 +88,19 @@ class CWLSurface {
         CSignal destroy;
     } events;
 
+    WP<CWLSurface> self;
+
   private:
-    bool         m_bInert = true;
+    CWLSurface() = default;
 
-    wlr_surface* m_pWLRSurface = nullptr;
+    bool                   m_bInert = true;
 
-    PHLWINDOWREF m_pWindowOwner;
-    PHLLSREF     m_pLayerOwner;
-    CPopup*      m_pPopupOwner      = nullptr;
-    CSubsurface* m_pSubsurfaceOwner = nullptr;
+    WP<CWLSurfaceResource> m_pResource;
+
+    PHLWINDOWREF           m_pWindowOwner;
+    PHLLSREF               m_pLayerOwner;
+    CPopup*                m_pPopupOwner      = nullptr;
+    CSubsurface*           m_pSubsurfaceOwner = nullptr;
 
     //
     WP<CPointerConstraint> m_pConstraint;
@@ -105,8 +109,9 @@ class CWLSurface {
     void                   init();
     bool                   desktopComponent();
 
-    DYNLISTENER(destroy);
-    DYNLISTENER(commit);
+    struct {
+        CHyprSignalListener destroy;
+    } listeners;
 
     friend class CPointerConstraint;
 };

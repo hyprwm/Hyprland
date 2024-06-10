@@ -3,6 +3,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/DataDeviceWlr.hpp"
 #include "../protocols/PrimarySelection.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include <algorithm>
@@ -98,7 +99,7 @@ void CSeatManager::updateActiveKeyboardData() {
     PROTO::seat->updateKeymap();
 }
 
-void CSeatManager::setKeyboardFocus(wlr_surface* surf) {
+void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     if (state.keyboardFocus == surf)
         return;
 
@@ -107,15 +108,9 @@ void CSeatManager::setKeyboardFocus(wlr_surface* surf) {
         return;
     }
 
-    hyprListener_keyboardSurfaceDestroy.removeCallback();
+    listeners.keyboardSurfaceDestroy.reset();
 
     if (state.keyboardFocusResource) {
-        // we will iterate over all bound wl_seat
-        // resources here, because some idiotic apps (e.g. those based on smithay)
-        // tend to bind wl_seat twice.
-        // I can't be arsed to actually pass all events to all seat resources, so we will
-        // only pass enter and leave.
-        // If you have an issue with that, fix your app.
         auto client = state.keyboardFocusResource->client();
         for (auto& s : seatResources) {
             if (s->resource->client() != client)
@@ -138,7 +133,7 @@ void CSeatManager::setKeyboardFocus(wlr_surface* surf) {
         return;
     }
 
-    auto client = wl_resource_get_client(surf->resource);
+    auto client = surf->client();
     for (auto& r : seatResources | std::views::reverse) {
         if (r->resource->client() != client)
             continue;
@@ -153,8 +148,7 @@ void CSeatManager::setKeyboardFocus(wlr_surface* surf) {
         }
     }
 
-    hyprListener_keyboardSurfaceDestroy.initCallback(
-        &surf->events.destroy, [this](void* owner, void* data) { setKeyboardFocus(nullptr); }, nullptr, "CSeatManager");
+    listeners.keyboardSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setKeyboardFocus(nullptr); });
 
     events.keyboardFocusChange.emit();
 }
@@ -163,11 +157,16 @@ void CSeatManager::sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_ke
     if (!state.keyboardFocusResource)
         return;
 
-    for (auto& k : state.keyboardFocusResource->keyboards) {
-        if (!k)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.keyboardFocusResource->client())
             continue;
 
-        k->sendKey(timeMs, key, state_);
+        for (auto& k : s->resource->keyboards) {
+            if (!k)
+                continue;
+
+            k->sendKey(timeMs, key, state_);
+        }
     }
 }
 
@@ -175,15 +174,20 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
     if (!state.keyboardFocusResource)
         return;
 
-    for (auto& k : state.keyboardFocusResource->keyboards) {
-        if (!k)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.keyboardFocusResource->client())
             continue;
 
-        k->sendMods(depressed, latched, locked, group);
+        for (auto& k : s->resource->keyboards) {
+            if (!k)
+                continue;
+
+            k->sendMods(depressed, latched, locked, group);
+        }
     }
 }
 
-void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
+void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local) {
     if (state.pointerFocus == surf)
         return;
 
@@ -192,7 +196,7 @@ void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
         return;
     }
 
-    hyprListener_pointerSurfaceDestroy.removeCallback();
+    listeners.pointerSurfaceDestroy.reset();
 
     if (state.pointerFocusResource) {
         auto client = state.pointerFocusResource->client();
@@ -220,7 +224,7 @@ void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
         return;
     }
 
-    auto client = wl_resource_get_client(surf->resource);
+    auto client = surf->client();
     for (auto& r : seatResources | std::views::reverse) {
         if (r->resource->client() != client)
             continue;
@@ -239,8 +243,7 @@ void CSeatManager::setPointerFocus(wlr_surface* surf, const Vector2D& local) {
 
     sendPointerFrame();
 
-    hyprListener_pointerSurfaceDestroy.initCallback(
-        &surf->events.destroy, [this](void* owner, void* data) { setPointerFocus(nullptr, {}); }, nullptr, "CSeatManager");
+    listeners.pointerSurfaceDestroy = surf->events.destroy.registerListener([this](std::any d) { setPointerFocus(nullptr, {}); });
 
     events.pointerFocusChange.emit();
 }
@@ -249,11 +252,16 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendMotion(timeMs, local);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendMotion(timeMs, local);
+        }
     }
 
     lastLocalCoords = local;
@@ -263,11 +271,16 @@ void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_b
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendButton(timeMs, key, state_);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendButton(timeMs, key, state_);
+        }
     }
 }
 
@@ -282,40 +295,52 @@ void CSeatManager::sendPointerFrame(WP<CWLSeatResource> pResource) {
     if (!pResource)
         return;
 
-    for (auto& p : pResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != pResource->client())
             continue;
 
-        p->sendFrame();
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
+
+            p->sendFrame();
+        }
     }
 }
 
-void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, wl_pointer_axis_source source,
+void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double value, int32_t discrete, int32_t value120, wl_pointer_axis_source source,
                                    wl_pointer_axis_relative_direction relative) {
     if (!state.pointerFocusResource)
         return;
 
-    for (auto& p : state.pointerFocusResource->pointers) {
-        if (!p)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.pointerFocusResource->client())
             continue;
 
-        p->sendAxis(timeMs, axis, value);
-        p->sendAxisSource(source);
-        p->sendAxisRelativeDirection(axis, relative);
+        for (auto& p : s->resource->pointers) {
+            if (!p)
+                continue;
 
-        if (source == 0)
-            p->sendAxisDiscrete(axis, discrete);
+            p->sendAxis(timeMs, axis, value);
+            p->sendAxisSource(source);
+            p->sendAxisRelativeDirection(axis, relative);
 
-        if (value == 0)
-            p->sendAxisStop(timeMs, axis);
+            if (source == 0) {
+                p->sendAxisValue120(axis, value120);
+                p->sendAxisDiscrete(axis, discrete);
+            }
+
+            if (value == 0)
+                p->sendAxisStop(timeMs, axis);
+        }
     }
 }
 
-void CSeatManager::sendTouchDown(wlr_surface* surf, uint32_t timeMs, int32_t id, const Vector2D& local) {
+void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, int32_t id, const Vector2D& local) {
     if (state.touchFocus == surf)
         return;
 
-    hyprListener_touchSurfaceDestroy.removeCallback();
+    listeners.touchSurfaceDestroy.reset();
 
     if (state.touchFocusResource) {
         auto client = state.touchFocusResource->client();
@@ -340,7 +365,7 @@ void CSeatManager::sendTouchDown(wlr_surface* surf, uint32_t timeMs, int32_t id,
         return;
     }
 
-    auto client = wl_resource_get_client(surf->resource);
+    auto client = surf->client();
     for (auto& r : seatResources | std::views::reverse) {
         if (r->resource->client() != client)
             continue;
@@ -354,8 +379,7 @@ void CSeatManager::sendTouchDown(wlr_surface* surf, uint32_t timeMs, int32_t id,
         }
     }
 
-    hyprListener_touchSurfaceDestroy.initCallback(
-        &surf->events.destroy, [this, timeMs, id](void* owner, void* data) { sendTouchUp(timeMs + 10, id); }, nullptr, "CSeatManager");
+    listeners.touchSurfaceDestroy = surf->events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
 
     events.touchFocusChange.emit();
 }
@@ -368,11 +392,16 @@ void CSeatManager::sendTouchMotion(uint32_t timeMs, int32_t id, const Vector2D& 
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendMotion(timeMs, id, local);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendMotion(timeMs, id, local);
+        }
     }
 }
 
@@ -380,11 +409,16 @@ void CSeatManager::sendTouchFrame() {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendFrame();
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendFrame();
+        }
     }
 }
 
@@ -392,11 +426,16 @@ void CSeatManager::sendTouchCancel() {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendCancel();
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendCancel();
+        }
     }
 }
 
@@ -404,11 +443,16 @@ void CSeatManager::sendTouchShape(int32_t id, const Vector2D& shape) {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendShape(id, shape);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendShape(id, shape);
+        }
     }
 }
 
@@ -416,11 +460,16 @@ void CSeatManager::sendTouchOrientation(int32_t id, double angle) {
     if (!state.touchFocusResource)
         return;
 
-    for (auto& t : state.touchFocusResource->touches) {
-        if (!t)
+    for (auto& s : seatResources) {
+        if (s->resource->client() != state.touchFocusResource->client())
             continue;
 
-        t->sendOrientation(id, angle);
+        for (auto& t : s->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendOrientation(id, angle);
+        }
     }
 }
 
@@ -432,7 +481,7 @@ void CSeatManager::refocusGrab() {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
         for (auto& s : seatGrab->surfs) {
-            auto hlSurf = CWLSurface::surfaceFromWlr(s);
+            auto hlSurf = CWLSurface::fromResource(s.lock());
             if (!hlSurf)
                 continue;
 
@@ -444,13 +493,13 @@ void CSeatManager::refocusGrab() {
                 continue;
 
             if (seatGrab->keyboard)
-                setKeyboardFocus(s);
+                setKeyboardFocus(s.lock());
             if (seatGrab->pointer)
-                setPointerFocus(s, MOUSE - b->pos());
+                setPointerFocus(s.lock(), MOUSE - b->pos());
             return;
         }
 
-        wlr_surface* surf = seatGrab->surfs.at(0);
+        SP<CWLSurfaceResource> surf = seatGrab->surfs.at(0).lock();
         if (seatGrab->keyboard)
             setKeyboardFocus(surf);
         if (seatGrab->pointer)
@@ -458,7 +507,7 @@ void CSeatManager::refocusGrab() {
     }
 }
 
-void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, wlr_surface* surf, const Vector2D& hotspot) {
+void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot) {
     if (!state.pointerFocusResource || !seatResource || seatResource->client() != state.pointerFocusResource->client()) {
         Debug::log(LOG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
         return;
@@ -498,6 +547,8 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
         PROTO::data->setSelection(source);
         PROTO::dataWlr->setSelection(source, false);
     }
+
+    events.setSelection.emit();
 }
 
 void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
@@ -521,6 +572,8 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
         PROTO::primarySelection->setSelection(source);
         PROTO::dataWlr->setSelection(source, true);
     }
+
+    events.setPrimarySelection.emit();
 }
 
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {
@@ -541,10 +594,10 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 }
 
 void CSeatManager::resendEnterEvents() {
-    wlr_surface* kb = state.keyboardFocus;
-    wlr_surface* pt = state.pointerFocus;
+    SP<CWLSurfaceResource> kb = state.keyboardFocus.lock();
+    SP<CWLSurfaceResource> pt = state.pointerFocus.lock();
 
-    auto         last = lastLocalCoords;
+    auto                   last = lastLocalCoords;
 
     setKeyboardFocus(nullptr);
     setPointerFocus(nullptr, {});
@@ -553,15 +606,15 @@ void CSeatManager::resendEnterEvents() {
     setPointerFocus(pt, last);
 }
 
-bool CSeatGrab::accepts(wlr_surface* surf) {
+bool CSeatGrab::accepts(SP<CWLSurfaceResource> surf) {
     return std::find(surfs.begin(), surfs.end(), surf) != surfs.end();
 }
 
-void CSeatGrab::add(wlr_surface* surf) {
+void CSeatGrab::add(SP<CWLSurfaceResource> surf) {
     surfs.push_back(surf);
 }
 
-void CSeatGrab::remove(wlr_surface* surf) {
+void CSeatGrab::remove(SP<CWLSurfaceResource> surf) {
     std::erase(surfs, surf);
     if ((keyboard && g_pSeatManager->state.keyboardFocus == surf) || (pointer && g_pSeatManager->state.pointerFocus == surf))
         g_pSeatManager->refocusGrab();

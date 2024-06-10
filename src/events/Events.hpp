@@ -33,8 +33,6 @@ namespace Events {
     DYNLISTENFUNC(requestMinimize);
     DYNLISTENFUNC(requestMaximize);
     DYNLISTENFUNC(setOverrideRedirect);
-    DYNLISTENFUNC(associateX11);
-    DYNLISTENFUNC(dissociateX11);
     DYNLISTENFUNC(ackConfigure);
 
     LISTENER(newInput);
@@ -56,7 +54,6 @@ namespace Events {
     DYNLISTENFUNC(monitorBind);
 
     // XWayland
-    LISTENER(readyXWayland);
     LISTENER(surfaceXWayland);
 
     // Renderer destroy

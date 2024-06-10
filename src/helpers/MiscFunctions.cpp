@@ -649,6 +649,8 @@ void logSystemInfo() {
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#elif defined(__arm__) || defined(__aarch64__)
+    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
@@ -855,33 +857,6 @@ void throwError(const std::string& err) {
     throw std::runtime_error(err);
 }
 
-uint32_t drmFormatToGL(uint32_t drm) {
-    switch (drm) {
-        case DRM_FORMAT_XRGB8888:
-        case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
-        case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010:
-#ifdef GLES2
-            return GL_RGB10_A2_EXT;
-#else
-            return GL_RGB10_A2;
-#endif
-        default: return GL_RGBA;
-    }
-    UNREACHABLE();
-    return GL_RGBA;
-}
-
-uint32_t glFormatToType(uint32_t gl) {
-    return gl != GL_RGBA ?
-#ifdef GLES2
-        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
-#else
-        GL_UNSIGNED_INT_2_10_10_10_REV :
-#endif
-        GL_UNSIGNED_BYTE;
-}
-
 bool envEnabled(const std::string& env) {
     const auto ENV = getenv(env.c_str());
     if (!ENV)
@@ -919,4 +894,43 @@ int allocateSHMFile(size_t len) {
     }
 
     return fd;
+}
+
+bool allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr) {
+    auto [fd, name] = openExclusiveShm();
+    if (fd < 0) {
+        return false;
+    }
+
+    // CLOEXEC is guaranteed to be set by shm_open
+    int ro_fd = shm_open(name.c_str(), O_RDONLY, 0);
+    if (ro_fd < 0) {
+        shm_unlink(name.c_str());
+        close(fd);
+        return false;
+    }
+
+    shm_unlink(name.c_str());
+
+    // Make sure the file cannot be re-opened in read-write mode (e.g. via
+    // "/proc/self/fd/" on Linux)
+    if (fchmod(fd, 0) != 0) {
+        close(fd);
+        close(ro_fd);
+        return false;
+    }
+
+    int ret;
+    do {
+        ret = ftruncate(fd, size);
+    } while (ret < 0 && errno == EINTR);
+    if (ret < 0) {
+        close(fd);
+        close(ro_fd);
+        return false;
+    }
+
+    *rw_fd_ptr = fd;
+    *ro_fd_ptr = ro_fd;
+    return true;
 }

@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <typeindex>
+#include <numeric>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"
@@ -23,6 +24,7 @@
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
+#include "config/ConfigManager.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -130,10 +132,9 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 continue;
 
             result += std::format(
-                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\tspecial "
-                "workspace: {} ({})\n\treserved: {} "
-                "{} {} {}\n\tscale: {:.2f}\n\ttransform: "
-                "{}\n\tfocused: {}\n\tdpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
                 m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
                 (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspaceID(),
                 (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
@@ -144,6 +145,16 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     }
 
     return result;
+}
+
+static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+    const auto tags = w->m_tags.getTags();
+
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+        return std::accumulate(tags.begin(), tags.end(), std::string(),
+                               [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
+    else
+        return std::accumulate(tags.begin(), tags.end(), std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
@@ -204,6 +215,7 @@ static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "fullscreenMode": {},
     "fakeFullscreen": {},
     "grouped": [{}],
+    "tags": [{}],
     "swallowing": "0x{:x}",
     "focusHistoryID": {}
 }},)#",
@@ -213,18 +225,18 @@ static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
             ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
             (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0), w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format),
-            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     } else {
         return std::format("Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
                            "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
                            "{}\n\txwayland: {}\n\tpinned: "
-                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
                            (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
                            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
                            (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass,
                            w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
                            (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
-                           (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+                           getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     }
 }
 
@@ -883,6 +895,8 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
+#elif defined(__arm__) || defined(__aarch64__)
+    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
@@ -893,6 +907,12 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "plugins:\n";
     for (auto& pl : g_pPluginSystem->getAllPlugins()) {
         result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+    }
+
+    if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+        result += "\n======Config-Start======\n";
+        result += g_pConfigManager->getConfigString();
+        result += "\n======Config-End========\n";
     }
 
     return result;
@@ -1036,13 +1056,15 @@ std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
 
     nextItem();
 
+    const std::string DELIMITER = "\n\n\n";
+
     while (curitem != "" || request != "") {
-        reply += g_pHyprCtl->getReply(curitem);
+        reply += g_pHyprCtl->getReply(curitem) + DELIMITER;
 
         nextItem();
     }
 
-    return reply;
+    return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));
 }
 
 std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {
@@ -1063,7 +1085,8 @@ std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) 
     if (size <= 0)
         return "size not positive";
 
-    g_pCursorManager->changeTheme(theme, size);
+    if (!g_pCursorManager->changeTheme(theme, size))
+        return "failed to set cursor";
 
     return "ok";
 }
@@ -1351,73 +1374,64 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-void createOutputIter(wlr_backend* backend, void* data) {
-    const auto DATA = (std::pair<std::string, bool>*)data;
+static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
+    wlr_output* output = nullptr;
 
-    if (DATA->second)
+    if (type.empty() || type == "auto") {
+        if (wlr_backend_is_wl(backend))
+            output = wlr_wl_output_create(backend);
+        else if (wlr_backend_is_headless(backend))
+            output = wlr_headless_add_output(backend, 1920, 1080);
+    } else {
+        if (wlr_backend_is_wl(backend) && type == "wayland")
+            output = wlr_wl_output_create(backend);
+        else if (wlr_backend_is_headless(backend) && type == "headless")
+            output = wlr_headless_add_output(backend, 1920, 1080);
+    }
+
+    if (output && !name.empty())
+        g_pCompositor->getMonitorFromOutput(output)->szName = name;
+
+    return output != nullptr;
+}
+
+struct outputData {
+    std::string type;
+    std::string name;
+    bool        added;
+};
+
+void createOutputIter(wlr_backend* backend, void* data) {
+    const auto DATA = static_cast<outputData*>(data);
+
+    if (DATA->added)
         return;
 
-    if (DATA->first.empty() || DATA->first == "auto") {
-        if (wlr_backend_is_wl(backend)) {
-            wlr_wl_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_x11(backend)) {
-            wlr_x11_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_headless(backend)) {
-            wlr_headless_add_output(backend, 1920, 1080);
-            DATA->second = true;
-        }
-    } else {
-        if (wlr_backend_is_wl(backend) && DATA->first == "wayland") {
-            wlr_wl_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_x11(backend) && DATA->first == "x11") {
-            wlr_x11_output_create(backend);
-            DATA->second = true;
-        } else if (wlr_backend_is_headless(backend) && DATA->first == "headless") {
-            wlr_headless_add_output(backend, 1920, 1080);
-            DATA->second = true;
-        }
-    }
+    if (addOutput(backend, DATA->type, DATA->name))
+        DATA->added = true;
 }
 
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
-    std::string curitem = "";
+    CVarList vars(request, 0, ' ');
 
-    auto        nextItem = [&]() {
-        auto idx = request.find_first_of(' ');
+    if (vars.size() < 2)
+        return "not enough args";
 
-        if (idx != std::string::npos) {
-            curitem = request.substr(0, idx);
-            request = request.substr(idx + 1);
-        } else {
-            curitem = request;
-            request = "";
-        }
-
-        curitem = removeBeginEndSpacesTabs(curitem);
-    };
-
-    nextItem();
-    nextItem();
-
-    const auto MODE = curitem;
-
-    nextItem();
-
-    const auto NAME = curitem;
+    const auto MODE = vars[1];
 
     if (MODE == "create" || MODE == "add") {
-        std::pair<std::string, bool> result = {NAME, false};
+        if (g_pCompositor->getMonitorFromName(vars[3]))
+            return "A real monitor already uses that name.";
+
+        outputData result{vars[2], vars[3], false};
 
         wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
 
-        if (!result.second)
+        if (!result.added)
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
-        const auto PMONITOR = g_pCompositor->getMonitorFromName(NAME);
+        const auto PMONITOR = g_pCompositor->getMonitorFromName(vars[2]);
 
         if (!PMONITOR)
             return "output not found";
@@ -1602,6 +1616,11 @@ CHyprCtl::CHyprCtl() {
     startHyprCtlSocket();
 }
 
+CHyprCtl::~CHyprCtl() {
+    if (m_eventSource)
+        wl_event_source_remove(m_eventSource);
+}
+
 SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
     return m_vCommands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
 }
@@ -1638,6 +1657,8 @@ std::string CHyprCtl::getReply(std::string request) {
                 reloadAll = true;
             else if (c == 'a')
                 m_sCurrentRequestParams.all = true;
+            else if (c == 'c')
+                m_sCurrentRequestParams.sysInfoConfig = true;
         }
 
         if (sepIndex < request.size())
@@ -1780,5 +1801,5 @@ void CHyprCtl::startHyprCtlSocket() {
 
     Debug::log(LOG, "Hypr socket started at {}", socketPath);
 
-    wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

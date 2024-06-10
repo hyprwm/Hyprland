@@ -5,23 +5,28 @@
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "alpha-modifier-v1.hpp"
+#include "../helpers/signal/Listener.hpp"
+
+class CWLSurfaceResource;
 
 class CAlphaModifier {
   public:
-    CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, wlr_surface* surface);
+    CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, SP<CWLSurfaceResource> surface);
     ~CAlphaModifier();
 
-    bool         good();
-    wlr_surface* getSurface();
-    void         onSurfaceDestroy();
+    bool                   good();
+    SP<CWLSurfaceResource> getSurface();
+    void                   onSurfaceDestroy();
 
   private:
     SP<CWpAlphaModifierSurfaceV1> resource;
-    wlr_surface*                  pSurface = nullptr;
+    WP<CWLSurfaceResource>        pSurface;
 
     void                          setSurfaceAlpha(float a);
 
-    DYNLISTENER(surfaceDestroy);
+    struct {
+        CHyprSignalListener destroySurface;
+    } listeners;
 };
 
 class CAlphaModifierProtocol : public IWaylandProtocol {
@@ -33,11 +38,11 @@ class CAlphaModifierProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(wl_resource* res);
     void destroyModifier(CAlphaModifier* decoration);
-    void onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, wlr_surface* surface);
+    void onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surface);
 
     //
-    std::vector<UP<CWpAlphaModifierV1>>                  m_vManagers;
-    std::unordered_map<wlr_surface*, UP<CAlphaModifier>> m_mAlphaModifiers; // xdg_toplevel -> deco
+    std::vector<UP<CWpAlphaModifierV1>>                            m_vManagers;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CAlphaModifier>> m_mAlphaModifiers; // xdg_toplevel -> deco
 
     friend class CAlphaModifier;
 };

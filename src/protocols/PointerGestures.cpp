@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
+#include "core/Compositor.hpp"
 
 #define LOGM PROTO::pointerGestures->protoLog
 
@@ -116,7 +117,7 @@ void CPointerGesturesProtocol::swipeBegin(uint32_t timeMs, uint32_t fingers) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->resource, fingers);
+        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 
@@ -162,7 +163,7 @@ void CPointerGesturesProtocol::pinchBegin(uint32_t timeMs, uint32_t fingers) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->resource, fingers);
+        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 
@@ -208,7 +209,7 @@ void CPointerGesturesProtocol::holdBegin(uint32_t timeMs, uint32_t fingers) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
-        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->resource, fingers);
+        sw->resource->sendBegin(SERIAL, timeMs, g_pSeatManager->state.pointerFocus->getResource()->resource(), fingers);
     }
 }
 

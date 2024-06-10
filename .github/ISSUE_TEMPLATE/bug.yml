@@ -9,6 +9,17 @@ body:
 
         ---
 
+  - type: dropdown
+    id: type
+    attributes:
+      label: Bug or Regression?
+      description: Is this a bug or a regression?
+      options:
+        - Bug
+        - Regression
+    validations:
+      required: true
+
   - type: textarea
     id: ver
     attributes:
@@ -30,17 +41,6 @@ body:
 
 
         </details>"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: type
-    attributes:
-      label: Bug or Regression?
-      description: Is this a bug or a regression?
-      options:
-        - Bug
-        - Regression
     validations:
       required: true
 

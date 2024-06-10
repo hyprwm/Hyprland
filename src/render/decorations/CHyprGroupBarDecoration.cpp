@@ -172,9 +172,11 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
                         .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                   Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                         .get();
-
-            rect.y += (*PHEIGHT / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
-            rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
+            rect.y += ((rect.height - pTitleTex->textHeight) / 2.0) * pMonitor->scale;
+            rect.height = (pTitleTex->textHeight) * pMonitor->scale;
+            rect.width  = pTitleTex->textWidth * pMonitor->scale;
+            rect.x += m_fBarWidth / 2.0 - (pTitleTex->textWidth / 2.0) * pMonitor->scale;
+            rect.round();
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
         }
@@ -203,11 +205,11 @@ void CHyprGroupBarDecoration::invalidateTextures() {
 }
 
 CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) {
-    tex                       = makeShared<CTexture>();
-    szContent                 = pWindow->m_szTitle;
-    pWindowOwner              = pWindow;
-    const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto   CAIRO        = cairo_create(CAIROSURFACE);
+    tex                        = makeShared<CTexture>();
+    szContent                  = pWindow->m_szTitle;
+    pWindowOwner               = pWindow;
+    const auto   LAYOUTSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
+    const auto   LAYOUTCAIRO   = cairo_create(LAYOUTSURFACE);
 
     static auto  FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
     static auto  PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
@@ -217,14 +219,11 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const CColor COLOR      = CColor(*PTEXTCOLOR);
     const auto   FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    // clear the pixmap
-    cairo_save(CAIRO);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(CAIRO);
-    cairo_restore(CAIRO);
+    cairo_surface_destroy(LAYOUTSURFACE);
 
     // draw title using Pango
-    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    PangoLayout* layout = pango_cairo_create_layout(LAYOUTCAIRO);
+    pango_layout_set_alignment(layout, PANGO_ALIGN_LEFT);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_new();
@@ -238,14 +237,23 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
+    int            layoutWidth, layoutHeight;
+    PangoRectangle inkRect;
+    PangoRectangle logicalRect;
+    pango_layout_get_pixel_extents(layout, &inkRect, &logicalRect);
+    layoutWidth  = inkRect.width;
+    layoutHeight = inkRect.height;
+
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, layoutWidth, layoutHeight);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    // clear the pixmap
+    cairo_save(CAIRO);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
+    cairo_move_to(CAIRO, -inkRect.x, -inkRect.y);
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int layoutWidth, layoutHeight;
-    pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
-    const int xOffset = std::round((bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
-    const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
-
-    cairo_move_to(CAIRO, xOffset, yOffset);
     pango_cairo_show_layout(CAIRO, layout);
 
     g_object_unref(layout);
@@ -264,9 +272,12 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 #endif
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, layoutWidth, layoutHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo
+    textWidth  = layoutWidth;
+    textHeight = layoutHeight;
+    cairo_destroy(LAYOUTCAIRO);
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
 }

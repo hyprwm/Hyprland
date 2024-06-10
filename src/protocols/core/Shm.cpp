@@ -97,7 +97,7 @@ void CSHMPool::resize(size_t size_) {
     size = size_;
     data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if (!data)
+    if (data == MAP_FAILED)
         LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd);
 }
 
@@ -146,7 +146,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
         RESOURCE->resource->buffer = RESOURCE;
     });
 
-    if (!pool->data)
+    if (pool->data == MAP_FAILED)
         resource->error(WL_SHM_ERROR_INVALID_FD, "Couldn't mmap from fd");
 }
 

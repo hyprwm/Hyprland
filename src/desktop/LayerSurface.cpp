@@ -297,10 +297,13 @@ void CLayerSurface::onCommit() {
             std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
         // if the surface was focused and interactive but now isn't, refocus
-        if (WASLASTFOCUS && !layerSurface->current.interactivity)
+        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+            // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
+            // so unfocus the surface here.
+            g_pCompositor->focusSurface(nullptr);
             g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
-        else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
-                 (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+        } else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
+                   (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
             // if not focused last and exclusive or accepting input + unconstrained
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();

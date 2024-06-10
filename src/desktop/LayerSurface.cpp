@@ -299,7 +299,8 @@ void CLayerSurface::onCommit() {
         // if the surface was focused and interactive but now isn't, refocus
         if (WASLASTFOCUS && !layerSurface->current.interactivity)
             g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
-        else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+        else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
+                 (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
             // if not focused last and exclusive or accepting input + unconstrained
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();

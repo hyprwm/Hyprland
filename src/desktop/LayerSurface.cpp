@@ -211,37 +211,7 @@ void CLayerSurface::onUnmap() {
         return;
 
     // refocus if needed
-    if (WASLASTFOCUS) {
-        g_pInputManager->releaseAllMouseButtons();
-
-        Vector2D               surfaceCoords;
-        PHLLS                  pFoundLayerSurface;
-        SP<CWLSurfaceResource> foundSurface = nullptr;
-
-        g_pCompositor->m_pLastFocus.reset();
-
-        // try to focus the last exclusive ls first
-        if (!g_pInputManager->m_dExclusiveLSes.empty())
-            g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[g_pInputManager->m_dExclusiveLSes.size() - 1]->surface->resource());
-
-        // find LS-es to focus
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
-                                                           &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
-                                                               &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
-            // if there isn't any, focus the last window
-            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
-            g_pCompositor->focusWindow(nullptr);
-            g_pCompositor->focusWindow(PLASTWINDOW);
-        } else {
-            // otherwise, full refocus
-            g_pInputManager->refocus();
-        }
-    }
+    if (WASLASTFOCUS) g_pInputManager->refocusLastWindow(PMONITOR);
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -326,11 +296,11 @@ void CLayerSurface::onCommit() {
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
             std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
-        // if the surface was focused and interactive but now isn't, refocus
-        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
-            g_pInputManager->refocus();
-        } else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
-            // if not focused last and exclusive or accepting input + unconstrained
+				// if the surface was focused and interactive but now isn't, refocus
+				if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+						g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
+				} else if (!WASLASTFOCUS && (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+						// if not focused last and exclusive or accepting input + unconstrained
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
             g_pCompositor->focusSurface(surface->resource());

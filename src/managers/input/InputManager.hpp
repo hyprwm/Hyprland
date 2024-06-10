@@ -103,8 +103,9 @@ class CInputManager {
     bool               isConstrained();
 
     Vector2D           getMouseCoordsInternal();
-    void               refocus();
-    void               simulateMouseMovement();
+		void               refocus();
+		void               refocusLastWindow(CMonitor* pMonitor);
+		void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
 
     void               setKeyboardLayout();

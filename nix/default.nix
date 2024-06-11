@@ -11,32 +11,35 @@
   expat,
   fribidi,
   git,
+  hwdata,
   hyprcursor,
   hyprlang,
   hyprwayland-scanner,
   jq,
   libGL,
   libdatrie,
+  libdisplay-info,
   libdrm,
   libexecinfo,
   libinput,
+  libliftoff,
   libselinux,
   libsepol,
   libthai,
   libuuid,
   libxkbcommon,
   mesa,
+  meson,
   pango,
   pciutils,
   pcre2,
   python3,
+  seatd,
   systemd,
   tomlplusplus,
-  udis86,
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots,
   xorg,
   xwayland,
   debug ? false,
@@ -73,25 +76,27 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
       # Remove extra @PREFIX@ to fix pkg-config paths
       sed -i "s#@PREFIX@/##g" hyprland.pc.in
+
+      realpath ${hyprwayland-scanner}
     '';
 
     DATE = date;
     HASH = commit;
-    DIRTY = if commit == "" then "dirty" else "";
+    DIRTY =
+      if commit == ""
+      then "dirty"
+      else "";
 
-    nativeBuildInputs = lib.concatLists [
-      [
-        hyprwayland-scanner
-        jq
-        makeWrapper
-        cmake
-        ninja
-        pkg-config
-        python3
-        wayland-scanner
-      ]
-      # introduce this later so that cmake takes precedence
-      wlroots.nativeBuildInputs
+    nativeBuildInputs = [
+      hyprwayland-scanner
+      jq
+      makeWrapper
+      cmake
+      meson # for wlroots
+      ninja
+      pkg-config
+      wayland-scanner
+      python3 # for udis
     ];
 
     outputs = [
@@ -101,14 +106,13 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     ];
 
     buildInputs = lib.concatLists [
-      wlroots.buildInputs
-      udis86.buildInputs
       [
+        hwdata
         cairo
         expat
         fribidi
         git
-        hyprcursor.dev
+        hyprcursor
         hyprlang
         libGL
         libdrm
@@ -126,6 +130,12 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         tomlplusplus
         wayland
         wayland-protocols
+        # for wlroots
+        seatd
+        libdisplay-info
+        libliftoff
+        xorg.xcbutilerrors
+        xorg.xcbutilrenderutil
       ]
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [
@@ -166,7 +176,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       homepage = "https://github.com/hyprwm/Hyprland";
       description = "A dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
       license = licenses.bsd3;
-      platforms = wlroots.meta.platforms;
+      platforms = lib.platforms.linux;
       mainProgram = "Hyprland";
     };
   }

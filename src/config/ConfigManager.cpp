@@ -2028,9 +2028,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 
-    if (mouse) {
+    if (mouse)
         HANDLER = "mouse";
-    }
 
     const auto COMMAND = mouse ? HANDLER : ARGS[3 + DESCR_OFFSET];
 

@@ -2030,6 +2030,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto COMMAND = mouse ? HANDLER : ARGS[3 + DESCR_OFFSET];
 
+    if (mouse)
+        HANDLER = "mouse";
+
     // to lower
     std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
 

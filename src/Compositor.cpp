@@ -1056,7 +1056,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
-        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos());
+        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos(), true);
 
         if (surf) {
             if (surf->current.input.empty())

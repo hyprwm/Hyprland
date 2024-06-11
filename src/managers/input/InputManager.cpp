@@ -509,7 +509,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         if (pFoundLayerSurface && (pFoundLayerSurface->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            allowKeyboardRefocus) {
+            (allowKeyboardRefocus || pFoundLayerSurface->layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 

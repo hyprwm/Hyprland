@@ -8,6 +8,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../xwayland/XWayland.hpp"
 
 CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     m_resourceLocked(resource_), m_locked(true), m_lifetime(lifetime_) {
@@ -38,7 +39,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         const auto PWINDOW = Desktop::View::CWindow::fromView(m_hlSurface->view());
         if (PWINDOW) {
             const auto ISXWL = PWINDOW->m_isX11;
-            scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;
+            scale            = ISXWL ? (*PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : g_pXWayland->m_wm->getScale()) : 1.f;
         }
 
         m_positionHint = {wl_fixed_to_double(x) / scale, wl_fixed_to_double(y) / scale};

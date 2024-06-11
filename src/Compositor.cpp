@@ -1111,6 +1111,17 @@ bool CCompositor::isWorkspaceVisible(PHLWORKSPACE w) {
     return valid(w) && w->m_bVisible;
 }
 
+bool CCompositor::isWorkspaceVisibleNotCovered(PHLWORKSPACE w) {
+    if (!valid(w))
+        return false;
+
+    const auto PMONITOR = getMonitorFromID(w->m_iMonitorID);
+    if (PMONITOR->activeSpecialWorkspace)
+        return PMONITOR->activeSpecialWorkspace->m_iID == w->m_iID;
+
+    return PMONITOR->activeWorkspace->m_iID == w->m_iID;
+}
+
 PHLWORKSPACE CCompositor::getWorkspaceByID(const int& id) {
     for (auto& w : m_vWorkspaces) {
         if (w->m_iID == id && !w->inert())

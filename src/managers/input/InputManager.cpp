@@ -1409,7 +1409,7 @@ void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                            &surfaceCoords, &pFoundLayerSurface);
 
-    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
+    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisibleNotCovered(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
         g_pCompositor->focusWindow(PLASTWINDOW);

@@ -172,10 +172,10 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
                         .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                   Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                         .get();
-            rect.y += ((rect.height - pTitleTex->textHeight) / 2.0) * pMonitor->scale;
-            rect.height = (pTitleTex->textHeight) * pMonitor->scale;
-            rect.width  = pTitleTex->textWidth * pMonitor->scale;
-            rect.x += m_fBarWidth / 2.0 - (pTitleTex->textWidth / 2.0) * pMonitor->scale;
+            rect.y += (rect.height - pTitleTex->textHeight) / 2.0;
+            rect.height = pTitleTex->textHeight;
+            rect.width  = pTitleTex->textWidth;
+            rect.x += (m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->textWidth / 2.0);
             rect.round();
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);

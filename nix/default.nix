@@ -13,6 +13,7 @@
   git,
   hyprcursor,
   hyprlang,
+  hyprutils,
   hyprwayland-scanner,
   jq,
   libGL,
@@ -110,6 +111,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         git
         hyprcursor.dev
         hyprlang
+        hyprutils
         libGL
         libdrm
         libdatrie

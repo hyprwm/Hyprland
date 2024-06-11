@@ -4,7 +4,7 @@
 #include "../../desktop/WLSurface.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/Box.hpp"
-#include "../../helpers/signal/Listener.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 class CInputMethodPopupV2;
 

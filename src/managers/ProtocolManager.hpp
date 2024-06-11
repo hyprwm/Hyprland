@@ -5,8 +5,8 @@
 #include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/Screencopy.hpp"
-#include "../helpers/memory/WeakPtr.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include <unordered_map>
 
 class CProtocolManager {

@@ -16,6 +16,9 @@
 #include <typeindex>
 #include <numeric>
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 #include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -826,7 +829,7 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
 
 std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 
-    auto commitMsg = removeBeginEndSpacesTabs(GIT_COMMIT_MESSAGE);
+    auto commitMsg = trim(GIT_COMMIT_MESSAGE);
     std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -1051,7 +1054,7 @@ std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
             request = "";
         }
 
-        curitem = removeBeginEndSpacesTabs(curitem);
+        curitem = trim(curitem);
     };
 
     nextItem();
@@ -1305,7 +1308,7 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             request = "";
         }
 
-        curitem = removeBeginEndSpacesTabs(curitem);
+        curitem = trim(curitem);
     };
 
     nextItem();

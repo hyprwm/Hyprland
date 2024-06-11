@@ -19,24 +19,8 @@
 
 #include <toml++/toml.hpp>
 
-static std::string removeBeginEndSpacesTabs(std::string str) {
-    if (str.empty())
-        return str;
-
-    int countBefore = 0;
-    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
-        countBefore++;
-    }
-
-    int countAfter = 0;
-    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
-        countAfter++;
-    }
-
-    str = str.substr(countBefore, str.length() - countBefore - countAfter);
-
-    return str;
-}
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
@@ -374,7 +358,7 @@ eHeadersErrors CPluginManager::headersValid() {
         if (PATH.ends_with("protocols") || PATH.ends_with("wlroots-hyprland"))
             continue;
 
-        verHeader = removeBeginEndSpacesTabs(PATH.substr(2)) + "/hyprland/src/version.h";
+        verHeader = trim(PATH.substr(2)) + "/hyprland/src/version.h";
         break;
     }
 
@@ -447,7 +431,7 @@ bool CPluginManager::updateHeaders(bool force) {
     // let us give a bit of leg-room for shallowing
     // due to timezones, etc.
     const std::string SHALLOW_DATE =
-        removeBeginEndSpacesTabs(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
+        trim(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
 
     if (m_bVerbose && bShallow)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "will shallow since: " + SHALLOW_DATE);

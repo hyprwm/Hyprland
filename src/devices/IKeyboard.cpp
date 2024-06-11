@@ -1,6 +1,6 @@
 #include "IKeyboard.hpp"
 #include "../defines.hpp"
-#include "../helpers/VarList.hpp"
+#include "../helpers/varlist/VarList.hpp"
 #include "../managers/input/InputManager.hpp"
 
 uint32_t IKeyboard::getCapabilities() {

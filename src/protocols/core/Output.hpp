@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "wayland.hpp"
-#include "../../helpers/signal/Listener.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 class CMonitor;
 

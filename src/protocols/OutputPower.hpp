@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "wlr-output-power-management-unstable-v1.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CMonitor;
 

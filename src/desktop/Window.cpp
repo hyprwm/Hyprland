@@ -12,6 +12,9 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
@@ -687,7 +690,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             CGradientValueData activeBorderGradient   = {};
             CGradientValueData inactiveBorderGradient = {};
             bool               active                 = true;
-            CVarList           colorsAndAngles        = CVarList(removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
+            CVarList           colorsAndAngles        = CVarList(trim(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), 0, 's', true);
 
             // Basic form has only two colors, everything else can be parsed as a gradient
             if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {

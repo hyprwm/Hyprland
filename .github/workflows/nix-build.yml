@@ -12,6 +12,7 @@ jobs:
       matrix:
         package:
           - hyprland
+          - hyprland-cross
           - xdg-desktop-portal-hyprland
 
     runs-on: ubuntu-latest

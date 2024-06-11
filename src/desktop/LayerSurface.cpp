@@ -116,8 +116,8 @@ void CLayerSurface::onDestroy() {
 void CLayerSurface::onMap() {
     Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface);
 
-    mapped            = true;
-    keyboardExclusive = layerSurface->current.interactivity;
+    mapped        = true;
+    interactivity = layerSurface->current.interactivity;
 
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
@@ -133,12 +133,15 @@ void CLayerSurface::onMap() {
 
     surface->resource()->enter(PMONITOR->self.lock());
 
-    if (layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
+    const bool ISEXCLUSIVE = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+
+    if (ISEXCLUSIVE)
         g_pInputManager->m_dExclusiveLSes.push_back(self);
 
-    const bool GRABSFOCUS = layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
-        // don't focus if constrained
-        (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained());
+    const bool GRABSFOCUS = ISEXCLUSIVE ||
+        (layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
+         // don't focus if constrained
+         (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()));
 
     if (GRABSFOCUS) {
         // TODO: use the new superb really very cool grab
@@ -177,9 +180,6 @@ void CLayerSurface::onUnmap() {
 
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
-    if (!g_pInputManager->m_dExclusiveLSes.empty())
-        g_pCompositor->focusSurface(g_pInputManager->m_dExclusiveLSes[0]->surface->resource());
-
     if (!g_pCompositor->getMonitorFromID(monitorID) || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
@@ -210,33 +210,8 @@ void CLayerSurface::onUnmap() {
         return;
 
     // refocus if needed
-    if (WASLASTFOCUS) {
-        g_pInputManager->releaseAllMouseButtons();
-
-        Vector2D               surfaceCoords;
-        PHLLS                  pFoundLayerSurface;
-        SP<CWLSurfaceResource> foundSurface = nullptr;
-
-        g_pCompositor->m_pLastFocus.reset();
-
-        // find LS-es to focus
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
-                                                           &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
-                                                               &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
-            // if there isn't any, focus the last window
-            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
-            g_pCompositor->focusWindow(nullptr);
-            g_pCompositor->focusWindow(PLASTWINDOW);
-        } else {
-            // otherwise, full refocus
-            g_pInputManager->refocus();
-        }
-    }
+    if (WASLASTFOCUS)
+        g_pInputManager->refocusLastWindow(PMONITOR);
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -311,18 +286,36 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) // don't focus if constrained
-        && !keyboardExclusive && mapped) {
-        g_pCompositor->focusSurface(surface->resource());
+    if (mapped) {
+        const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
+        const bool WASEXCLUSIVE = interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool ISEXCLUSIVE  = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
-        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
-        g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
-        g_pInputManager->m_bEmptyFocusCursorSet = false;
-    } else if (!layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()) && keyboardExclusive) {
-        g_pInputManager->refocus();
+        if (!WASEXCLUSIVE && ISEXCLUSIVE)
+            g_pInputManager->m_dExclusiveLSes.push_back(self);
+        else if (WASEXCLUSIVE && !ISEXCLUSIVE)
+            std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
+
+        // if the surface was focused and interactive but now isn't, refocus
+        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+            // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
+            // so unfocus the surface here.
+            g_pCompositor->focusSurface(nullptr);
+            g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
+        } else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
+                   (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
+            // if not focused last and exclusive or accepting input + unconstrained
+            g_pSeatManager->setGrab(nullptr);
+            g_pInputManager->releaseAllMouseButtons();
+            g_pCompositor->focusSurface(surface->resource());
+
+            const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y);
+            g_pSeatManager->setPointerFocus(surface->resource(), LOCAL);
+            g_pInputManager->m_bEmptyFocusCursorSet = false;
+        }
     }
 
-    keyboardExclusive = layerSurface->current.interactivity;
+    interactivity = layerSurface->current.interactivity;
 
     g_pHyprRenderer->damageSurface(surface->resource(), position.x, position.y);
 

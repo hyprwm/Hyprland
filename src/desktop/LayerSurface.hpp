@@ -34,40 +34,41 @@ class CLayerSurface {
     WP<CLayerShellResource>     layerSurface;
     wl_list                     link;
 
-    bool                        keyboardExclusive = false;
+    // the header providing the enum type cannot be imported here
+    int                        interactivity = 0;
 
-    SP<CWLSurface>              surface;
+    SP<CWLSurface>             surface;
 
-    bool                        mapped = false;
-    uint32_t                    layer  = 0;
+    bool                       mapped = false;
+    uint32_t                   layer  = 0;
 
-    int                         monitorID = -1;
+    int                        monitorID = -1;
 
-    bool                        fadingOut     = false;
-    bool                        readyToDelete = false;
-    bool                        noProcess     = false;
-    bool                        noAnimations  = false;
+    bool                       fadingOut     = false;
+    bool                       readyToDelete = false;
+    bool                       noProcess     = false;
+    bool                       noAnimations  = false;
 
-    bool                        forceBlur        = false;
-    bool                        forceBlurPopups  = false;
-    int                         xray             = -1;
-    bool                        ignoreAlpha      = false;
-    float                       ignoreAlphaValue = 0.f;
-    bool                        dimAround        = false;
+    bool                       forceBlur        = false;
+    bool                       forceBlurPopups  = false;
+    int                        xray             = -1;
+    bool                       ignoreAlpha      = false;
+    float                      ignoreAlphaValue = 0.f;
+    bool                       dimAround        = false;
 
-    std::optional<std::string>  animationStyle;
+    std::optional<std::string> animationStyle;
 
-    PHLLSREF                    self;
+    PHLLSREF                   self;
 
-    CBox                        geometry = {0, 0, 0, 0};
-    Vector2D                    position;
-    std::string                 szNamespace = "";
-    std::unique_ptr<CPopup>     popupHead;
+    CBox                       geometry = {0, 0, 0, 0};
+    Vector2D                   position;
+    std::string                szNamespace = "";
+    std::unique_ptr<CPopup>    popupHead;
 
-    void                        onDestroy();
-    void                        onMap();
-    void                        onUnmap();
-    void                        onCommit();
+    void                       onDestroy();
+    void                       onMap();
+    void                       onUnmap();
+    void                       onCommit();
 
   private:
     struct {

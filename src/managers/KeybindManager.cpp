@@ -6,12 +6,15 @@
 #include "KeybindManager.hpp"
 #include "TokenManager.hpp"
 #include "debug/Log.hpp"
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 
 #include <optional>
 #include <iterator>
 #include <string>
 #include <string_view>
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -836,7 +839,7 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 
 void CKeybindManager::spawn(std::string args) {
 
-    args = removeBeginEndSpacesTabs(args);
+    args = trim(args);
 
     std::string RULES = "";
 

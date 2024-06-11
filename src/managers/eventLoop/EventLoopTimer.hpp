@@ -4,7 +4,7 @@
 #include <functional>
 #include <optional>
 
-#include "../../helpers/memory/SharedPtr.hpp"
+#include "../../helpers/memory/Memory.hpp"
 
 class CEventLoopTimer {
   public:

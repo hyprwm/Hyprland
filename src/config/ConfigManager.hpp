@@ -15,7 +15,7 @@
 #include <xf86drmMode.h>
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
-#include "../helpers/VarList.hpp"
+#include "../helpers/varlist/VarList.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 

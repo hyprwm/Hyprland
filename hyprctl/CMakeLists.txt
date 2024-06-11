@@ -5,7 +5,11 @@ project(
     DESCRIPTION "Control utility for Hyprland"
 )
 
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprutils>=0.1.1)
+
 add_executable(hyprctl "main.cpp")
+
+target_link_libraries(hyprctl PUBLIC PkgConfig::deps)
 
 # binary
 install(TARGETS hyprctl)

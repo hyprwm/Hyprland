@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CFocusGrab;
 class CSeatGrab;

@@ -24,6 +24,8 @@
 #include <filesystem>
 #include <stdarg.h>
 #include <regex>
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include "Strings.hpp"
 
@@ -268,12 +270,6 @@ std::deque<std::string> splitArgs(int argc, char** argv) {
         result.push_back(std::string(argv[i]));
 
     return result;
-}
-
-bool isNumber(const std::string& str, bool allowfloat) {
-    if (str.empty())
-        return false;
-    return std::ranges::all_of(str.begin(), str.end(), [&](char c) { return isdigit(c) != 0 || c == '-' || (allowfloat && c == '.'); });
 }
 
 int main(int argc, char** argv) {

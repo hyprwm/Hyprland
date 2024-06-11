@@ -12,6 +12,9 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //
 //  \ \        / /_   _| \ | |  __ \ / __ \ \        / / ____|  //
@@ -140,7 +143,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
-                const auto MONITORSTR = removeBeginEndSpacesTabs(r.szRule.substr(r.szRule.find(' ')));
+                const auto MONITORSTR = trim(r.szRule.substr(r.szRule.find(' ')));
 
                 if (MONITORSTR == "unset") {
                     PWINDOW->m_iMonitorID = PMONITOR->ID;
@@ -235,7 +238,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 continue;
 
             // `group` is a shorthand of `group set`
-            if (removeBeginEndSpacesTabs(r.szRule) == "group") {
+            if (trim(r.szRule) == "group") {
                 PWINDOW->m_eGroupRules |= GROUP_SET;
                 continue;
             }

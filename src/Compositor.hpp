@@ -118,6 +118,7 @@ class CCompositor {
     PHLWINDOW              getWindowFromSurface(SP<CWLSurfaceResource>);
     PHLWINDOW              getWindowFromHandle(uint32_t);
     bool                   isWorkspaceVisible(PHLWORKSPACE);
+    bool                   isWorkspaceVisibleNotCovered(PHLWORKSPACE);
     PHLWORKSPACE           getWorkspaceByID(const int&);
     PHLWORKSPACE           getWorkspaceByName(const std::string&);
     PHLWORKSPACE           getWorkspaceByString(const std::string&);

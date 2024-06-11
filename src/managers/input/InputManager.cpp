@@ -512,7 +512,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         if (pFoundLayerSurface && (pFoundLayerSurface->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            allowKeyboardRefocus) {
+            (allowKeyboardRefocus || pFoundLayerSurface->layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 
@@ -1382,6 +1382,41 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
 
 void CInputManager::refocus() {
     mouseMoveUnified(0, true);
+}
+
+void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
+    if (!pMonitor) {
+        refocus();
+        return;
+    }
+
+    Vector2D               surfaceCoords;
+    PHLLS                  pFoundLayerSurface;
+    SP<CWLSurfaceResource> foundSurface = nullptr;
+
+    g_pInputManager->releaseAllMouseButtons();
+
+    // first try for an exclusive layer
+    if (!m_dExclusiveLSes.empty())
+        foundSurface = m_dExclusiveLSes[m_dExclusiveLSes.size() - 1]->surface->resource();
+
+    // then any surfaces above windows on the same monitor
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+                                                           &surfaceCoords, &pFoundLayerSurface);
+
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+                                                           &surfaceCoords, &pFoundLayerSurface);
+
+    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisible(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
+        // then the last focused window if we're on the same workspace as it
+        const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+        g_pCompositor->focusWindow(PLASTWINDOW);
+    } else {
+        // otherwise fall back to a normal refocus.
+        refocus();
+    }
 }
 
 void CInputManager::unconstrainMouse() {

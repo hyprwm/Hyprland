@@ -104,6 +104,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
+    void               refocusLastWindow(CMonitor* pMonitor);
     void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
 

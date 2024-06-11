@@ -57,6 +57,15 @@
           hyprland-extras
         ];
       });
+    pkgsCrossFor = eachSystem (system: crossSystem:
+      import nixpkgs {
+        localSystem = system;
+        crossSystem = crossSystem;
+        overlays = with self.overlays; [
+          hyprland-packages
+          hyprland-extras
+        ];
+      });
   in {
     overlays = import ./nix/overlays.nix {inherit self lib inputs;};
 
@@ -82,6 +91,7 @@
         
         xdg-desktop-portal-hyprland
         ;
+      hyprland-cross = (pkgsCrossFor.${system} "aarch64-linux").hyprland;
     });
 
     devShells = eachSystem (system: {

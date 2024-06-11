@@ -57,8 +57,9 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
     if (isWMWindow(e->window))
         return;
 
-    const auto XSURF = m_surfaces.emplace_back(SP<CXWaylandSurface>(new CXWaylandSurface(e->window, CBox{e->x, e->y, e->width, e->height}, e->override_redirect)));
-    XSURF->m_self    = XSURF;
+    const auto XSURF = m_surfaces.emplace_back(
+        SP<CXWaylandSurface>(new CXWaylandSurface(e->window, CBox{applyUnScale(e->x), applyUnScale(e->y), applyUnScale(e->width), applyUnScale(e->height)}, e->override_redirect)));
+    XSURF->m_self = XSURF;
     Log::logger->log(Log::DEBUG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), e->window);
 
     const auto WINDOW = Desktop::View::CWindow::create(XSURF);
@@ -89,9 +90,9 @@ void CXWM::handleConfigureRequest(xcb_configure_request_event_t* e) {
     if (!(MASK & GEOMETRY))
         return;
 
-    XSURF->m_events.configureRequest.emit(CBox{MASK & XCB_CONFIG_WINDOW_X ? e->x : XSURF->m_geometry.x, MASK & XCB_CONFIG_WINDOW_Y ? e->y : XSURF->m_geometry.y,
-                                               MASK & XCB_CONFIG_WINDOW_WIDTH ? e->width : XSURF->m_geometry.width,
-                                               MASK & XCB_CONFIG_WINDOW_HEIGHT ? e->height : XSURF->m_geometry.height});
+    XSURF->m_events.configureRequest.emit(CBox{
+        MASK & XCB_CONFIG_WINDOW_X ? applyUnScale(e->x) : XSURF->m_geometry.x, MASK & XCB_CONFIG_WINDOW_Y ? applyUnScale(e->y) : XSURF->m_geometry.y,
+        MASK & XCB_CONFIG_WINDOW_WIDTH ? applyUnScale(e->width) : XSURF->m_geometry.width, MASK & XCB_CONFIG_WINDOW_HEIGHT ? applyUnScale(e->height) : XSURF->m_geometry.height});
 }
 
 void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
@@ -100,10 +101,11 @@ void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
     if (!XSURF)
         return;
 
-    if (XSURF->m_geometry == CBox{e->x, e->y, e->width, e->height})
+    const auto GEOM = CBox{applyUnScale(e->x), applyUnScale(e->y), applyUnScale(e->width), applyUnScale(e->height)};
+    if (XSURF->m_geometry == GEOM)
         return;
 
-    XSURF->m_geometry = {e->x, e->y, e->width, e->height};
+    XSURF->m_geometry = GEOM;
     updateOverrideRedirect(XSURF, e->override_redirect);
     XSURF->m_events.setGeometry.emit();
 }
@@ -293,6 +295,27 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
         const bool    HASMIN  = FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
         const bool    HASBASE = FLAGS & XCB_ICCCM_SIZE_HINT_BASE_SIZE;
 
+        if (FLAGS & XCB_ICCCM_SIZE_HINT_US_POSITION || FLAGS & XCB_ICCCM_SIZE_HINT_P_POSITION) {
+            XSURF->m_sizeHints->x = applyUnScale(XSURF->m_sizeHints->x);
+            XSURF->m_sizeHints->y = applyUnScale(XSURF->m_sizeHints->y);
+        }
+        if (FLAGS & XCB_ICCCM_SIZE_HINT_US_SIZE || FLAGS & XCB_ICCCM_SIZE_HINT_P_SIZE) {
+            XSURF->m_sizeHints->width  = applyUnScale(XSURF->m_sizeHints->width);
+            XSURF->m_sizeHints->height = applyUnScale(XSURF->m_sizeHints->height);
+        }
+        if (HASMIN) {
+            XSURF->m_sizeHints->min_width  = applyUnScale(XSURF->m_sizeHints->min_width);
+            XSURF->m_sizeHints->min_height = applyUnScale(XSURF->m_sizeHints->min_height);
+        }
+        if (FLAGS & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+            XSURF->m_sizeHints->max_width  = applyUnScale(XSURF->m_sizeHints->max_width);
+            XSURF->m_sizeHints->max_height = applyUnScale(XSURF->m_sizeHints->max_height);
+        }
+        if (HASBASE) {
+            XSURF->m_sizeHints->base_width  = applyUnScale(XSURF->m_sizeHints->base_width);
+            XSURF->m_sizeHints->base_height = applyUnScale(XSURF->m_sizeHints->base_height);
+        }
+
         if (!HASMIN && !HASBASE) {
             XSURF->m_sizeHints->min_width = XSURF->m_sizeHints->min_height = -1;
             XSURF->m_sizeHints->base_width = XSURF->m_sizeHints->base_height = -1;
@@ -346,6 +369,15 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
 
     if (!XSURF) {
         removeTransfersForWindow(e->window);
+        if (e->atom == HYPRATOMS["_XWAYLAND_GLOBAL_OUTPUT_SCALE"]) {
+            xcb_get_property_cookie_t             cookie = xcb_get_property(getConnection(), 0, e->window, e->atom, XCB_ATOM_ANY, 0, 1);
+            XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
+            if (!reply)
+                return;
+
+            if (reply->type == XCB_ATOM_CARDINAL && xcb_get_property_value_length(reply.get()) >= sc<int>(sizeof(uint32_t)))
+                m_scale = *rc<uint32_t*>(xcb_get_property_value(reply.get()));
+        }
         return;
     }
 
@@ -1226,6 +1258,11 @@ void CXWM::updateWorkArea(int x, int y, int w, int h) {
         return;
     }
 
+    x = applyScale(x);
+    y = applyScale(y);
+    w = applyScale(w);
+    h = applyScale(h);
+
     uint32_t values[4] = {sc<uint32_t>(x), sc<uint32_t>(y), sc<uint32_t>(w), sc<uint32_t>(h)};
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_WORKAREA"], XCB_ATOM_CARDINAL, 32, 4, values);
     xcb_flush(connection);
@@ -1411,6 +1448,14 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
     offer->m_source          = source;
 
     return offer;
+}
+
+int32_t CXWM::applyScale(double val) {
+    return sc<int32_t>(std::floor(val * m_scale));
+}
+
+int32_t CXWM::applyUnScale(double val) {
+    return sc<int32_t>(std::ceil(val / m_scale));
 }
 
 void SXSelection::onSelection() {

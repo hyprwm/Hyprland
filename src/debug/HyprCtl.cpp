@@ -1,5 +1,6 @@
 #include "HyprCtl.hpp"
 
+#include <format>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,7 @@ using namespace Hyprutils::String;
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
 #include "config/ConfigManager.hpp"
+#include "helpers/MiscFunctions.hpp"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -792,9 +794,11 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
                 ret += "e";
             if (kb.nonConsuming)
                 ret += "n";
+            if (kb.hasDescription)
+                ret += "d";
 
-            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap, kb.key,
-                               kb.keycode, kb.catchAll, kb.handler, kb.arg);
+            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap,
+                               kb.key, kb.keycode, kb.catchAll, kb.description, kb.handler, kb.arg);
         }
     } else {
         // json
@@ -808,17 +812,19 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "release": {},
     "repeat": {},
     "non_consuming": {},
+    "has_description": {},
     "modmask": {},
     "submap": "{}",
     "key": "{}",
     "keycode": {},
     "catch_all": {},
+    "description": "{}",
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
                 kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.nonConsuming ? "true" : "false",
-                kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, kb.catchAll ? "true" : "false", escapeJSONStrings(kb.handler),
-                escapeJSONStrings(kb.arg));
+                kb.hasDescription ? "true" : "false", kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, kb.catchAll ? "true" : "false",
+                escapeJSONStrings(kb.description), escapeJSONStrings(kb.handler), escapeJSONStrings(kb.arg));
         }
         trimTrailingComma(ret);
         ret += "]";

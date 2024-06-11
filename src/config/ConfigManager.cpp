@@ -6,6 +6,7 @@
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <string.h>
 #include <string>
@@ -1957,15 +1958,16 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked       = false;
-    bool       release      = false;
-    bool       repeat       = false;
-    bool       mouse        = false;
-    bool       nonConsuming = false;
-    bool       transparent  = false;
-    bool       ignoreMods   = false;
-    bool       multiKey     = false;
-    const auto BINDARGS     = command.substr(4);
+    bool       locked         = false;
+    bool       release        = false;
+    bool       repeat         = false;
+    bool       mouse          = false;
+    bool       nonConsuming   = false;
+    bool       transparent    = false;
+    bool       ignoreMods     = false;
+    bool       multiKey       = false;
+    bool       hasDescription = false;
+    const auto BINDARGS       = command.substr(4);
 
     for (auto& arg : BINDARGS) {
         if (arg == 'l') {
@@ -1984,6 +1986,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
+        } else if (arg == 'd') {
+            hasDescription = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1995,11 +1999,13 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
 
-    const auto ARGS = CVarList(value, 4);
+    const int  numbArgs = hasDescription ? 5 : 4;
+    const auto ARGS     = CVarList(value, numbArgs);
 
+    const int  DESCR_OFFSET = hasDescription ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
+    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2018,12 +2024,11 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    auto       HANDLER = ARGS[2];
+    const auto DESCRIPTION = hasDescription ? ARGS[2] : "";
 
-    const auto COMMAND = mouse ? HANDLER : ARGS[3];
+    auto       HANDLER = ARGS[2 + DESCR_OFFSET];
 
-    if (mouse)
-        HANDLER = "mouse";
+    const auto COMMAND = mouse ? HANDLER : ARGS[3 + DESCR_OFFSET];
 
     // to lower
     std::transform(HANDLER.begin(), HANDLER.end(), HANDLER.begin(), ::tolower);
@@ -2048,8 +2053,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
-                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
+                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey, hasDescription});
     }
 
     return {};

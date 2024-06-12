@@ -1361,6 +1361,10 @@ void CCompositor::addToFadingOutSafe(PHLLS pLS) {
     m_vSurfacesFadingOut.emplace_back(pLS);
 }
 
+void CCompositor::removeFromFadingOutSafe(PHLLS ls) {
+    std::erase(m_vSurfacesFadingOut, ls);
+}
+
 void CCompositor::addToFadingOutSafe(PHLWINDOW pWindow) {
     const auto FOUND = std::find_if(m_vWindowsFadingOut.begin(), m_vWindowsFadingOut.end(), [&](PHLWINDOWREF& other) { return other.lock() == pWindow; });
 

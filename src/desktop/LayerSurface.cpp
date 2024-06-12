@@ -119,6 +119,10 @@ void CLayerSurface::onMap() {
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
 
+    // this layer might be re-mapped.
+    fadingOut = false;
+    g_pCompositor->removeFromFadingOutSafe(self.lock());
+
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
@@ -204,8 +208,6 @@ void CLayerSurface::onUnmap() {
 
     const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
 
-    surface.reset();
-
     if (!PMONITOR)
         return;
 
@@ -221,11 +223,24 @@ void CLayerSurface::onUnmap() {
     g_pHyprRenderer->damageBox(&geomFixed);
 
     g_pInputManager->sendMotionEventsToFocused();
+
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 }
 
 void CLayerSurface::onCommit() {
     if (!layerSurface)
         return;
+
+    if (!mapped) {
+        // we're re-mapping if this is the case
+        if (layerSurface->surface && !layerSurface->surface->current.buffer) {
+            fadingOut = false;
+            geometry  = {};
+            g_pHyprRenderer->arrangeLayersForMonitor(monitorID);
+        }
+
+        return;
+    }
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 

@@ -351,6 +351,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (pFoundWindow) {
             if (!pFoundWindow->m_bIsX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                if (!foundSurface) {
+                    foundSurface = pFoundWindow->m_pWLSurface->resource();
+                    surfacePos   = pFoundWindow->m_vRealPosition.value();
+                }
             } else {
                 foundSurface = pFoundWindow->m_pWLSurface->resource();
                 surfacePos   = pFoundWindow->m_vRealPosition.value();

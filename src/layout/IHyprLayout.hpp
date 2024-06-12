@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "hyprutils/math/Box.hpp"
+#include "hyprutils/math/Vector2D.hpp"
 #include <any>
+#include <cstdint>
 
 class CWindow;
 class CGradientValueData;
@@ -22,7 +25,11 @@ enum eRectCorner {
     CORNER_TOPLEFT,
     CORNER_TOPRIGHT,
     CORNER_BOTTOMRIGHT,
-    CORNER_BOTTOMLEFT
+    CORNER_BOTTOMLEFT,
+    EDGE_TOP,
+    EDGE_RIGHT,
+    EDGE_BOTTOM,
+    EDGE_LEFT
 };
 
 enum eDirection {
@@ -75,6 +82,13 @@ class IHyprLayout {
         Called when a window is requested to be floated
     */
     virtual void changeWindowFloatingMode(PHLWINDOW);
+
+    /*
+        Called when cursor position on a window is requested. Returns a value between from 0 to 23
+        depending on the parameters given or the raw uint8_t to be interpreted by its bit composition.
+    */
+    virtual int getWindowRegion(Vector2D cursor, CBox window, CBox edge = 0, bool raw = false);
+
     /*
         Called when a window is clicked on, beginning a drag
         this might be a resize, move, whatever the layout defines it
@@ -201,6 +215,8 @@ class IHyprLayout {
     Vector2D     m_vLastDragXY;
     Vector2D     m_vBeginDragPositionXY;
     Vector2D     m_vBeginDragSizeXY;
+    Vector2D     m_vBeginDragFullPosXY;
+    Vector2D     m_vBeginDragFullSizeXY;
     Vector2D     m_vDraggingWindowOriginalFloatSize;
     eRectCorner  m_eGrabbedCorner = CORNER_TOPLEFT;
 

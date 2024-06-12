@@ -763,8 +763,8 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const bool   DISPLAYTOP    = STICKS(PWINDOW->m_vPosition.y, PMONITOR->vecPosition.y + PMONITOR->vecReservedTopLeft.y);
     const bool   DISPLAYLEFT   = STICKS(PWINDOW->m_vPosition.x, PMONITOR->vecPosition.x + PMONITOR->vecReservedTopLeft.x);
 
-    const bool   LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool   TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool   LEFT = corner == EDGE_LEFT || corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const bool   TOP  = corner == EDGE_TOP || corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
     const bool   NONE = corner == CORNER_NONE;
 
     const auto   MASTERS      = getMastersOnWorkspace(PNODE->workspaceID);

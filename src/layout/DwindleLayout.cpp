@@ -2,6 +2,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "debug/Log.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -624,29 +625,60 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         if (!m_PseudoDragFlags.started) {
             m_PseudoDragFlags.started = true;
 
-            const auto pseudoSize  = PWINDOW->m_vRealSize.goal();
-            const auto mouseOffset = g_pInputManager->getMouseCoordsInternal() - (PNODE->box.pos() + ((PNODE->box.size() / 2) - (pseudoSize / 2)));
+            // I know this appears like 4 times...
+            static auto b = CConfigValue<Hyprlang::INT>("general:border_size");
+            static auto r = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+            static auto e = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+            const CBox  h = {-(*b + *e * (*r != 0)), -(*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0)) + 1, 2 * (*b + *e * (*r != 0)) + 1}; // why weird vs IHyprlayout:432 ?
+            const CBox  p = {PWINDOW->m_vRealPosition.goal() + h.pos(), PWINDOW->m_vRealSize.goal() + h.size()};
 
-            if (mouseOffset.x > 0 && mouseOffset.x < pseudoSize.x && mouseOffset.y > 0 && mouseOffset.y < pseudoSize.y) {
-                m_PseudoDragFlags.pseudo  = true;
-                m_PseudoDragFlags.xExtent = mouseOffset.x > pseudoSize.x / 2;
-                m_PseudoDragFlags.yExtent = mouseOffset.y > pseudoSize.y / 2;
+            if (p.containsPoint(g_pInputManager->getMouseCoordsInternal())) {
+                m_PseudoDragFlags.pseudo = true;
 
-                PWINDOW->m_vPseudoSize = pseudoSize;
-            } else {
+                switch (corner) {
+                    case CORNER_TOPLEFT:
+                        m_PseudoDragFlags.xExtent = -1;
+                        m_PseudoDragFlags.yExtent = -1;
+                        break;
+                    case CORNER_TOPRIGHT:
+                        m_PseudoDragFlags.xExtent = 1;
+                        m_PseudoDragFlags.yExtent = -1;
+                        break;
+                    case CORNER_BOTTOMRIGHT:
+                        m_PseudoDragFlags.xExtent = 1;
+                        m_PseudoDragFlags.yExtent = 1;
+                        break;
+                    case CORNER_BOTTOMLEFT:
+                        m_PseudoDragFlags.xExtent = -1;
+                        m_PseudoDragFlags.yExtent = 1;
+                        break;
+                    case EDGE_TOP:
+                        m_PseudoDragFlags.xExtent = 0;
+                        m_PseudoDragFlags.yExtent = -1;
+                        break;
+                    case EDGE_RIGHT:
+                        m_PseudoDragFlags.xExtent = 1;
+                        m_PseudoDragFlags.yExtent = 0;
+                        break;
+                    case EDGE_BOTTOM:
+                        m_PseudoDragFlags.xExtent = 0;
+                        m_PseudoDragFlags.yExtent = 1;
+                        break;
+                    case EDGE_LEFT:
+                        m_PseudoDragFlags.xExtent = -1;
+                        m_PseudoDragFlags.yExtent = 0;
+                        break;
+                    default: break; // idk future problem
+                }
+
+                PWINDOW->m_vPseudoSize = pWindow->m_vRealSize.goal();
+            } else
                 m_PseudoDragFlags.pseudo = false;
-            }
         }
 
         if (m_PseudoDragFlags.pseudo) {
-            if (m_PseudoDragFlags.xExtent)
-                PWINDOW->m_vPseudoSize.x += pixResize.x * 2;
-            else
-                PWINDOW->m_vPseudoSize.x -= pixResize.x * 2;
-            if (m_PseudoDragFlags.yExtent)
-                PWINDOW->m_vPseudoSize.y += pixResize.y * 2;
-            else
-                PWINDOW->m_vPseudoSize.y -= pixResize.y * 2;
+            PWINDOW->m_vPseudoSize.x += 2 * pixResize.x * m_PseudoDragFlags.xExtent;
+            PWINDOW->m_vPseudoSize.y += 2 * pixResize.y * m_PseudoDragFlags.yExtent;
 
             CBox wbox = PNODE->box;
             wbox.round();
@@ -675,10 +707,10 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         SDwindleNodeData* PHOUTER = nullptr;
         SDwindleNodeData* PHINNER = nullptr;
 
-        const auto        LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
-        const auto        TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
-        const auto        RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
-        const auto        BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        const auto        LEFT   = corner == EDGE_LEFT || corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT /*|| DISPLAYRIGHT*/;
+        const auto        TOP    = corner == EDGE_TOP || corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT /*|| DISPLAYBOTTOM*/;
+        const auto        RIGHT  = corner == EDGE_RIGHT || corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT /*|| DISPLAYLEFT*/;
+        const auto        BOTTOM = corner == EDGE_BOTTOM || corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT /*|| DISPLAYTOP*/;
         const auto        NONE   = corner == CORNER_NONE;
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent) {

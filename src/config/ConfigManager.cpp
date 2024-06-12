@@ -324,6 +324,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:layout", {"dwindle"});
     m_pConfig->addConfigValue("general:allow_tearing", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_corner", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("general:edge_depth", {0.0f});
+    m_pConfig->addConfigValue("general:resize_mouse_bind_pattern", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});

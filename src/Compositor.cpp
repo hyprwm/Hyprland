@@ -781,7 +781,6 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 }
 
 SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW pWindow, Vector2D& sl) {
-
     if (!validMapped(pWindow))
         return nullptr;
 
@@ -802,7 +801,12 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
         return surf;
     }
 
-    return nullptr;
+    sl = pos - pWindow->m_vRealPosition.value();
+
+    sl.x += pWindow->m_pXDGSurface->current.geometry.x;
+    sl.y += pWindow->m_pXDGSurface->current.geometry.y;
+
+    return pWindow->m_pWLSurface->resource();
 }
 
 Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface) {

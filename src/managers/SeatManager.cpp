@@ -94,7 +94,7 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
 }
 
 void CSeatManager::updateActiveKeyboardData() {
-    if (keyboard)
+    if (keyboard && keyboard->wlr())
         PROTO::seat->updateRepeatInfo(keyboard->wlr()->repeat_info.rate, keyboard->wlr()->repeat_info.delay);
     PROTO::seat->updateKeymap();
 }

@@ -122,25 +122,19 @@ void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
     if (lastMonitorID == (int64_t)pMonitor->ID)
         return;
 
-    const auto          CLIENT = resource->client();
-
-    struct wl_resource* outputResource;
+    const auto CLIENT = resource->client();
 
     if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR) {
-        wl_resource_for_each(outputResource, &PLASTMONITOR->output->resources) {
-            if (wl_resource_get_client(outputResource) != CLIENT)
-                continue;
+        const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->szName)->outputResourceFrom(CLIENT);
 
-            resource->sendOutputLeave(outputResource);
-        }
+        if (OLDRESOURCE)
+            resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
     }
 
-    wl_resource_for_each(outputResource, &pMonitor->output->resources) {
-        if (wl_resource_get_client(outputResource) != CLIENT)
-            continue;
+    const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->szName)->outputResourceFrom(CLIENT);
 
-        resource->sendOutputEnter(outputResource);
-    }
+    if (NEWRESOURCE)
+        resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
 
     lastMonitorID = pMonitor->ID;
 }

@@ -2098,9 +2098,11 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
     if (POLDMON) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
+        updateSuspendedStates();
     }
 
     updateFullscreenFadeOnWorkspace(pWorkspace);
+    updateSuspendedStates();
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});

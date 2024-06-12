@@ -150,6 +150,20 @@ CPointerManager::CPointerManager() {
     });
 }
 
+void CPointerManager::lockSoftwareAll() {
+    for (auto& state : monitorStates)
+        state->softwareLocks++;
+
+    updateCursorBackend();
+}
+
+void CPointerManager::unlockSoftwareAll() {
+    for (auto& state : monitorStates)
+        state->softwareLocks--;
+
+    updateCursorBackend();
+}
+
 void CPointerManager::lockSoftwareForMonitor(SP<CMonitor> mon) {
     auto state = stateFor(mon);
     state->softwareLocks++;

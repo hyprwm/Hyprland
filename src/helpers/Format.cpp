@@ -93,70 +93,100 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .bytesPerBlock = 2,
     },
     {
-        .drmFormat     = DRM_FORMAT_XBGR2101010,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
+        .drmFormat = DRM_FORMAT_XBGR2101010,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
+#else
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+#endif
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat     = DRM_FORMAT_ABGR2101010,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
+        .drmFormat = DRM_FORMAT_ABGR2101010,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
+#else
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+#endif
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat     = DRM_FORMAT_XRGB2101010,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
+        .drmFormat = DRM_FORMAT_XRGB2101010,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
+#else
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+#endif
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat     = DRM_FORMAT_ARGB2101010,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_UNSIGNED_INT_2_10_10_10_REV,
+        .drmFormat = DRM_FORMAT_ARGB2101010,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV,
+#else
+        .glType = GL_UNSIGNED_INT_2_10_10_10_REV_EXT,
+#endif
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat     = DRM_FORMAT_XBGR16161616F,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_HALF_FLOAT,
+        .drmFormat = DRM_FORMAT_XBGR16161616F,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_HALF_FLOAT,
+#else
+        .glType = GL_HALF_FLOAT_OES,
+#endif
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock = 8,
     },
     {
-        .drmFormat     = DRM_FORMAT_ABGR16161616F,
-        .glFormat      = GL_RGBA,
-        .glType        = GL_HALF_FLOAT,
+        .drmFormat = DRM_FORMAT_ABGR16161616F,
+        .glFormat  = GL_RGBA,
+#ifndef GLES2
+        .glType = GL_HALF_FLOAT,
+#else
+        .glType = GL_HALF_FLOAT_OES,
+#endif
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock = 8,
     },
     {
-        .drmFormat        = DRM_FORMAT_XBGR16161616,
-        .glInternalFormat = GL_RGBA16UI,
-        .glFormat         = GL_RGBA,
-        .glType           = GL_UNSIGNED_SHORT,
-        .withAlpha        = false,
-        .alphaStripped    = DRM_FORMAT_XBGR16161616,
-        .bytesPerBlock    = 8,
+        .drmFormat = DRM_FORMAT_XBGR16161616,
+#ifndef GLES2
+        .glFormat = GL_RGBA16UI,
+#else
+        .glFormat = GL_RGBA16_EXT,
+#endif
+        .glType        = GL_UNSIGNED_SHORT,
+        .withAlpha     = false,
+        .alphaStripped = DRM_FORMAT_XBGR16161616,
+        .bytesPerBlock = 8,
     },
     {
-        .drmFormat        = DRM_FORMAT_ABGR16161616,
-        .glInternalFormat = GL_RGBA16UI,
-        .glFormat         = GL_RGBA,
-        .glType           = GL_UNSIGNED_SHORT,
-        .withAlpha        = true,
-        .alphaStripped    = DRM_FORMAT_XBGR16161616,
-        .bytesPerBlock    = 8,
+        .drmFormat = DRM_FORMAT_ABGR16161616,
+#ifndef GLES2
+        .glFormat = GL_RGBA16UI,
+#else
+        .glFormat = GL_RGBA16_EXT,
+#endif
+        .glType        = GL_UNSIGNED_SHORT,
+        .withAlpha     = true,
+        .alphaStripped = DRM_FORMAT_XBGR16161616,
+        .bytesPerBlock = 8,
     },
     {
         .drmFormat     = DRM_FORMAT_YVYU,

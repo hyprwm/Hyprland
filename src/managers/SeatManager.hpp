@@ -155,6 +155,7 @@ class CSeatManager {
     } listeners;
 
     Vector2D lastLocalCoords;
+    int      touchLocks = 0; // we assume there aint like 20 touch devices at once...
 
     friend struct SSeatResourceContainer;
     friend class CSeatGrab;

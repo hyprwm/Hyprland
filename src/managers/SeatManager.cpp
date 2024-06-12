@@ -337,33 +337,10 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
 }
 
 void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, int32_t id, const Vector2D& local) {
-    if (state.touchFocus == surf)
-        return;
-
     listeners.touchSurfaceDestroy.reset();
-
-    if (state.touchFocusResource) {
-        auto client = state.touchFocusResource->client();
-        for (auto& s : seatResources) {
-            if (s->resource->client() != client)
-                continue;
-
-            for (auto& t : s->resource->touches) {
-                if (!t)
-                    continue;
-
-                t->sendUp(timeMs, id);
-            }
-        }
-    }
 
     state.touchFocusResource.reset();
     state.touchFocus = surf;
-
-    if (!surf) {
-        events.touchFocusChange.emit();
-        return;
-    }
 
     auto client = surf->client();
     for (auto& r : seatResources | std::views::reverse) {
@@ -381,11 +358,34 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
 
     listeners.touchSurfaceDestroy = surf->events.destroy.registerListener([this, timeMs, id](std::any d) { sendTouchUp(timeMs + 10, id); });
 
-    events.touchFocusChange.emit();
+    touchLocks++;
+
+    if (touchLocks <= 1)
+        events.touchFocusChange.emit();
 }
 
 void CSeatManager::sendTouchUp(uint32_t timeMs, int32_t id) {
-    sendTouchDown(nullptr, timeMs, id, {});
+    if (!state.touchFocusResource || touchLocks <= 0)
+        return;
+
+    auto client = state.touchFocusResource->client();
+    for (auto& r : seatResources | std::views::reverse) {
+        if (r->resource->client() != client)
+            continue;
+
+        state.touchFocusResource = r->resource;
+        for (auto& t : r->resource->touches) {
+            if (!t)
+                continue;
+
+            t->sendUp(timeMs, id);
+        }
+    }
+
+    touchLocks--;
+
+    if (touchLocks <= 0)
+        events.touchFocusChange.emit();
 }
 
 void CSeatManager::sendTouchMotion(uint32_t timeMs, int32_t id, const Vector2D& local) {

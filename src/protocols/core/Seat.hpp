@@ -46,6 +46,8 @@ class CWLTouchResource {
     SP<CWlTouch>           resource;
     WP<CWLSurfaceResource> currentSurface;
 
+    int                    fingers = 0;
+
     struct {
         CHyprSignalListener destroySurface;
     } listeners;

@@ -37,7 +37,6 @@ static std::string execAndGet(std::string cmd) {
     return result;
 }
 
-
 SHyprlandVersion CPluginManager::getHyprlandVersion() {
     static SHyprlandVersion ver;
     static bool             once = false;

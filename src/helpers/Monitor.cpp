@@ -351,15 +351,29 @@ void CMonitor::addDamage(const CRegion* rg) {
     addDamage(const_cast<CRegion*>(rg)->pixman());
 }
 
-void CMonitor::addDamage(const CBox* box) {
+void CMonitor::addDamage(const CBox* box, bool skipFrameSchedule) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         wlr_damage_ring_add_whole(&damage);
-        g_pCompositor->scheduleFrameForMonitor(this);
+        if (!skipFrameSchedule)
+            g_pCompositor->scheduleFrameForMonitor(this);
     }
 
     if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        if (!skipFrameSchedule)
+            g_pCompositor->scheduleFrameForMonitor(this);
+}
+
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
+    
+    // skip scheduling extra frames for fullsreen apps with vrr
+    if (*PNOBREAK && this->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
+        const auto PWORKSPACE = this->activeWorkspace;
+        return PWORKSPACE && PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+    }
+
+    return false;
 }
 
 bool CMonitor::isMirror() {

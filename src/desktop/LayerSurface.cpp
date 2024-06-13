@@ -311,15 +311,23 @@ void CLayerSurface::onCommit() {
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
             std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
+        auto interactivityRank = [](int interactivity) {
+            switch (interactivity) {
+                case ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE: return 0;
+                case ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND: return 1;
+                case ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE: return 2;
+            }
+        };
+
         // if the surface was focused and interactive but now isn't, refocus
         if (WASLASTFOCUS && !layerSurface->current.interactivity) {
             // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
             // so unfocus the surface here.
             g_pCompositor->focusSurface(nullptr);
             g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
-        } else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
-                   (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
-            // if not focused last and exclusive or accepting input + unconstrained
+        } else if (!WASLASTFOCUS && interactivityRank(layerSurface->current.interactivity) > interactivityRank(interactivity) &&
+                   (ISEXCLUSIVE || (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained()))) {
+            // if kb interactivity > last kb interactivity
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
             g_pCompositor->focusSurface(surface->resource());

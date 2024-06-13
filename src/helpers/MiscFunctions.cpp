@@ -13,6 +13,8 @@
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -195,25 +197,6 @@ std::string escapeJSONStrings(const std::string& str) {
     return oss.str();
 }
 
-std::string removeBeginEndSpacesTabs(std::string str) {
-    if (str.empty())
-        return str;
-
-    int countBefore = 0;
-    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
-        countBefore++;
-    }
-
-    int countAfter = 0;
-    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
-        countAfter++;
-    }
-
-    str = str.substr(countBefore, str.length() - countBefore - countAfter);
-
-    return str;
-}
-
 std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
@@ -221,31 +204,6 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
         Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};
     }
-}
-
-bool isNumber(const std::string& str, bool allowfloat) {
-
-    std::string copy = str;
-    if (*copy.begin() == '-')
-        copy = copy.substr(1);
-
-    if (copy.empty())
-        return false;
-
-    bool point = !allowfloat;
-    for (auto& c : copy) {
-        if (c == '.') {
-            if (point)
-                return false;
-            point = true;
-            continue;
-        }
-
-        if (!std::isdigit(c))
-            return false;
-    }
-
-    return true;
 }
 
 bool isDirection(const std::string& arg) {
@@ -579,7 +537,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
 std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
-    std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
+    std::string cmd = trim(dirtyCmd);
 
     if (!cmd.empty()) {
         std::string       rules;
@@ -748,7 +706,7 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
-        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
+        if (trim(VALUEWITHOUTFUNC).length() != 8) {
             Debug::log(WARN, "invalid length {} for rgba", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
         }
@@ -760,7 +718,7 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
-        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
+        if (trim(VALUEWITHOUTFUNC).length() != 6) {
             Debug::log(WARN, "invalid length {} for rgb", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
         }
@@ -822,15 +780,6 @@ double normalizeAngleRad(double ang) {
     return ang;
 }
 
-std::string replaceInString(std::string subject, const std::string& search, const std::string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos) {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-    return subject;
-}
-
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
@@ -857,33 +806,6 @@ void throwError(const std::string& err) {
     throw std::runtime_error(err);
 }
 
-uint32_t drmFormatToGL(uint32_t drm) {
-    switch (drm) {
-        case DRM_FORMAT_XRGB8888:
-        case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
-        case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010:
-#ifdef GLES2
-            return GL_RGB10_A2_EXT;
-#else
-            return GL_RGB10_A2;
-#endif
-        default: return GL_RGBA;
-    }
-    UNREACHABLE();
-    return GL_RGBA;
-}
-
-uint32_t glFormatToType(uint32_t gl) {
-    return gl != GL_RGBA ?
-#ifdef GLES2
-        GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
-#else
-        GL_UNSIGNED_INT_2_10_10_10_REV :
-#endif
-        GL_UNSIGNED_BYTE;
-}
-
 bool envEnabled(const std::string& env) {
     const auto ENV = getenv(env.c_str());
     if (!ENV)
@@ -892,7 +814,8 @@ bool envEnabled(const std::string& env) {
 }
 
 std::pair<int, std::string> openExclusiveShm() {
-    std::string name = g_pTokenManager->getRandomUUID();
+    // Only absolute paths can be shared across different shm_open() calls
+    std::string name = "/" + g_pTokenManager->getRandomUUID();
 
     for (size_t i = 0; i < 69; ++i) {
         int fd = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
@@ -921,4 +844,43 @@ int allocateSHMFile(size_t len) {
     }
 
     return fd;
+}
+
+bool allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr) {
+    auto [fd, name] = openExclusiveShm();
+    if (fd < 0) {
+        return false;
+    }
+
+    // CLOEXEC is guaranteed to be set by shm_open
+    int ro_fd = shm_open(name.c_str(), O_RDONLY, 0);
+    if (ro_fd < 0) {
+        shm_unlink(name.c_str());
+        close(fd);
+        return false;
+    }
+
+    shm_unlink(name.c_str());
+
+    // Make sure the file cannot be re-opened in read-write mode (e.g. via
+    // "/proc/self/fd/" on Linux)
+    if (fchmod(fd, 0) != 0) {
+        close(fd);
+        close(ro_fd);
+        return false;
+    }
+
+    int ret;
+    do {
+        ret = ftruncate(fd, size);
+    } while (ret < 0 && errno == EINTR);
+    if (ret < 0) {
+        close(fd);
+        close(ro_fd);
+        return false;
+    }
+
+    *rw_fd_ptr = fd;
+    *ro_fd_ptr = ro_fd;
+    return true;
 }

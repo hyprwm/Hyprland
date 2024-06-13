@@ -3,9 +3,10 @@
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <string.h>
 #include <string>
@@ -13,6 +14,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <glob.h>
+#include <xkbcommon/xkbcommon.h>
 
 #include <algorithm>
 #include <fstream>
@@ -20,7 +22,8 @@
 #include <sstream>
 #include <ranges>
 #include <unordered_set>
-#include <xkbcommon/xkbcommon.h>
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 extern "C" char**             environ;
 
@@ -500,6 +503,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("gestures:workspace_swipe", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_fingers", Hyprlang::INT{3});
+    m_pConfig->addConfigValue("gestures:workspace_swipe_min_fingers", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_distance", Hyprlang::INT{300});
     m_pConfig->addConfigValue("gestures:workspace_swipe_invert", Hyprlang::INT{1});
     m_pConfig->addConfigValue("gestures:workspace_swipe_min_speed_to_force", Hyprlang::INT{30});
@@ -521,6 +525,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{1});
     m_pConfig->addConfigValue("cursor:inactive_timeout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:no_warps", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:persistent_warps", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:default_monitor", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("cursor:zoom_factor", {1.f});
     m_pConfig->addConfigValue("cursor:zoom_rigid", Hyprlang::INT{0});
@@ -1953,15 +1958,16 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked       = false;
-    bool       release      = false;
-    bool       repeat       = false;
-    bool       mouse        = false;
-    bool       nonConsuming = false;
-    bool       transparent  = false;
-    bool       ignoreMods   = false;
-    bool       multiKey     = false;
-    const auto BINDARGS     = command.substr(4);
+    bool       locked         = false;
+    bool       release        = false;
+    bool       repeat         = false;
+    bool       mouse          = false;
+    bool       nonConsuming   = false;
+    bool       transparent    = false;
+    bool       ignoreMods     = false;
+    bool       multiKey       = false;
+    bool       hasDescription = false;
+    const auto BINDARGS       = command.substr(4);
 
     for (auto& arg : BINDARGS) {
         if (arg == 'l') {
@@ -1980,6 +1986,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
+        } else if (arg == 'd') {
+            hasDescription = true;
         } else {
             return "bind: invalid flag";
         }
@@ -1991,11 +1999,13 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
 
-    const auto ARGS = CVarList(value, 4);
+    const int  numbArgs = hasDescription ? 5 : 4;
+    const auto ARGS     = CVarList(value, numbArgs);
 
+    const int  DESCR_OFFSET = hasDescription ? 1 : 0;
     if ((ARGS.size() < 3 && !mouse) || (ARGS.size() < 3 && mouse))
         return "bind: too few args";
-    else if ((ARGS.size() > 4 && !mouse) || (ARGS.size() > 3 && mouse))
+    else if ((ARGS.size() > (size_t)4 + DESCR_OFFSET && !mouse) || (ARGS.size() > (size_t)3 + DESCR_OFFSET && mouse))
         return "bind: too many args";
 
     std::set<xkb_keysym_t> KEYSYMS;
@@ -2014,9 +2024,11 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
     const auto KEY = multiKey ? "" : ARGS[1];
 
-    auto       HANDLER = ARGS[2];
+    const auto DESCRIPTION = hasDescription ? ARGS[2] : "";
 
-    const auto COMMAND = mouse ? HANDLER : ARGS[3];
+    auto       HANDLER = ARGS[2 + DESCR_OFFSET];
+
+    const auto COMMAND = mouse ? HANDLER : ARGS[3 + DESCR_OFFSET];
 
     if (mouse)
         HANDLER = "mouse";
@@ -2044,8 +2056,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, release,
-                                               repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
+                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey, hasDescription});
     }
 
     return {};
@@ -2085,8 +2097,8 @@ bool layerRuleValid(const std::string& RULE) {
 }
 
 std::optional<std::string> CConfigManager::handleWindowRule(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
     if (RULE.empty() || VALUE.empty())
@@ -2112,8 +2124,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
 }
 
 std::optional<std::string> CConfigManager::handleLayerRule(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
-    const auto VALUE = removeBeginEndSpacesTabs(value.substr(value.find_first_of(',') + 1));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
+    const auto VALUE = trim(value.substr(value.find_first_of(',') + 1));
 
     // check rule and value
     if (RULE.empty() || VALUE.empty())
@@ -2140,7 +2152,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 }
 
 std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string& command, const std::string& value) {
-    const auto RULE  = removeBeginEndSpacesTabs(value.substr(0, value.find_first_of(',')));
+    const auto RULE  = trim(value.substr(0, value.find_first_of(',')));
     const auto VALUE = value.substr(value.find_first_of(',') + 1);
 
     if (!windowRuleValid(RULE) && RULE != "unset") {
@@ -2217,7 +2229,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
 
         result = result.substr(0, min - pos);
 
-        result = removeBeginEndSpacesTabs(result);
+        result = trim(result);
 
         if (!result.empty() && result.back() == ',')
             result.pop_back();
@@ -2339,7 +2351,7 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
 
 std::optional<std::string> CConfigManager::handleBlurLS(const std::string& command, const std::string& value) {
     if (value.starts_with("remove,")) {
-        const auto TOREMOVE = removeBeginEndSpacesTabs(value.substr(7));
+        const auto TOREMOVE = trim(value.substr(7));
         if (std::erase_if(m_dBlurLSNamespaces, [&](const auto& other) { return other == TOREMOVE; }))
             updateBlurredLS(TOREMOVE, false);
         return {};
@@ -2356,7 +2368,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     const auto     FIRST_DELIM = value.find_first_of(',');
 
     std::string    name        = "";
-    auto           first_ident = removeBeginEndSpacesTabs(value.substr(0, FIRST_DELIM));
+    auto           first_ident = trim(value.substr(0, FIRST_DELIM));
     int            id          = getWorkspaceIDFromString(first_ident, name);
 
     auto           rules = value.substr(FIRST_DELIM + 1);

@@ -6,23 +6,23 @@
 #include <pango/pangocairo.h>
 
 // shared things to conserve VRAM
-static CTexture m_tGradientActive;
-static CTexture m_tGradientInactive;
-static CTexture m_tGradientLockedActive;
-static CTexture m_tGradientLockedInactive;
+static SP<CTexture> m_tGradientActive         = makeShared<CTexture>();
+static SP<CTexture> m_tGradientInactive       = makeShared<CTexture>();
+static SP<CTexture> m_tGradientLockedActive   = makeShared<CTexture>();
+static SP<CTexture> m_tGradientLockedInactive = makeShared<CTexture>();
 
-constexpr int   BAR_INDICATOR_HEIGHT   = 3;
-constexpr int   BAR_PADDING_OUTER_VERT = 2;
-constexpr int   BAR_PADDING_OUTER_HORZ = 2;
-constexpr int   BAR_TEXT_PAD           = 2;
-constexpr int   BAR_HORIZONTAL_PADDING = 2;
+constexpr int       BAR_INDICATOR_HEIGHT   = 3;
+constexpr int       BAR_PADDING_OUTER_VERT = 2;
+constexpr int       BAR_PADDING_OUTER_HORZ = 2;
+constexpr int       BAR_TEXT_PAD           = 2;
+constexpr int       BAR_HORIZONTAL_PADDING = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     m_pWindow              = pWindow;
 
-    if (m_tGradientActive.m_iTexID == 0 && *PENABLED && *PGRADIENTS)
+    if (m_tGradientActive->m_iTexID == 0 && *PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
@@ -119,15 +119,15 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
         g_pDecorationPositioner->repositionDeco(this);
     }
 
-    int xoff = 0;
-    int yoff = 0;
+    float xoff = 0;
+    float yoff = 0;
 
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
-                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - yoff - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
-                           BAR_INDICATOR_HEIGHT};
+        CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y,
+                           m_fBarWidth, BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -151,16 +151,15 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
-        rect = {ASSIGNEDBOX.x + xoff - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
-                ASSIGNEDBOX.y + ASSIGNEDBOX.h - yoff - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
+        rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+                ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
         rect.scale(pMonitor->scale);
 
         if (*PGRADIENTS) {
-            const auto& GRADIENTTEX =
-                (m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                               (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
-            if (GRADIENTTEX.m_iTexID != 0)
+            const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                      (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+            if (GRADIENTTEX->m_iTexID != 0)
                 g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
         }
 
@@ -173,9 +172,11 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
                         .emplace_back(std::make_unique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
                                                                   Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale}, pMonitor->scale))
                         .get();
-
-            rect.y += (*PHEIGHT / 2.0 - (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) / 2.0) * pMonitor->scale;
-            rect.height = (*PTITLEFONTSIZE + 2 * BAR_TEXT_PAD) * pMonitor->scale;
+            rect.y += (rect.height - pTitleTex->textHeight) / 2.0;
+            rect.height = pTitleTex->textHeight;
+            rect.width  = pTitleTex->textWidth;
+            rect.x += (m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->textWidth / 2.0);
+            rect.round();
 
             g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
         }
@@ -204,10 +205,11 @@ void CHyprGroupBarDecoration::invalidateTextures() {
 }
 
 CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) {
-    szContent                 = pWindow->m_szTitle;
-    pWindowOwner              = pWindow;
-    const auto   CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
-    const auto   CAIRO        = cairo_create(CAIROSURFACE);
+    tex                        = makeShared<CTexture>();
+    szContent                  = pWindow->m_szTitle;
+    pWindowOwner               = pWindow;
+    const auto   LAYOUTSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
+    const auto   LAYOUTCAIRO   = cairo_create(LAYOUTSURFACE);
 
     static auto  FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
     static auto  PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
@@ -217,14 +219,11 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const CColor COLOR      = CColor(*PTEXTCOLOR);
     const auto   FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    // clear the pixmap
-    cairo_save(CAIRO);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(CAIRO);
-    cairo_restore(CAIRO);
+    cairo_surface_destroy(LAYOUTSURFACE);
 
     // draw title using Pango
-    PangoLayout* layout = pango_cairo_create_layout(CAIRO);
+    PangoLayout* layout = pango_cairo_create_layout(LAYOUTCAIRO);
+    pango_layout_set_alignment(layout, PANGO_ALIGN_LEFT);
     pango_layout_set_text(layout, szContent.c_str(), -1);
 
     PangoFontDescription* fontDesc = pango_font_description_new();
@@ -238,14 +237,23 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
+    int            layoutWidth, layoutHeight;
+    PangoRectangle inkRect;
+    PangoRectangle logicalRect;
+    pango_layout_get_pixel_extents(layout, &inkRect, &logicalRect);
+    layoutWidth  = inkRect.width;
+    layoutHeight = inkRect.height;
+
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, layoutWidth, layoutHeight);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    // clear the pixmap
+    cairo_save(CAIRO);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
+    cairo_move_to(CAIRO, -inkRect.x, -inkRect.y);
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int layoutWidth, layoutHeight;
-    pango_layout_get_size(layout, &layoutWidth, &layoutHeight);
-    const int xOffset = std::round((bufferSize.x / 2.0 - layoutWidth / PANGO_SCALE / 2.0));
-    const int yOffset = std::round((bufferSize.y / 2.0 - layoutHeight / PANGO_SCALE / 2.0));
-
-    cairo_move_to(CAIRO, xOffset, yOffset);
     pango_cairo_show_layout(CAIRO, layout);
 
     g_object_unref(layout);
@@ -254,8 +262,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex.allocate();
-    glBindTexture(GL_TEXTURE_2D, tex.m_iTexID);
+    tex->allocate();
+    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -264,18 +272,21 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 #endif
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, layoutWidth, layoutHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo
+    textWidth  = layoutWidth;
+    textHeight = layoutHeight;
+    cairo_destroy(LAYOUTCAIRO);
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
 }
 
 CTitleTex::~CTitleTex() {
-    tex.destroyTexture();
+    tex->destroyTexture();
 }
 
-void renderGradientTo(CTexture& tex, CGradientValueData* grad) {
+void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
 
     if (!g_pCompositor->m_pLastMonitor)
         return;
@@ -308,8 +319,8 @@ void renderGradientTo(CTexture& tex, CGradientValueData* grad) {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex.allocate();
-    glBindTexture(GL_TEXTURE_2D, tex.m_iTexID);
+    tex->allocate();
+    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -340,11 +351,11 @@ void refreshGroupBarGradients() {
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    if (m_tGradientActive.m_iTexID != 0) {
-        m_tGradientActive.destroyTexture();
-        m_tGradientInactive.destroyTexture();
-        m_tGradientLockedActive.destroyTexture();
-        m_tGradientLockedInactive.destroyTexture();
+    if (m_tGradientActive->m_iTexID != 0) {
+        m_tGradientActive->destroyTexture();
+        m_tGradientInactive->destroyTexture();
+        m_tGradientLockedActive->destroyTexture();
+        m_tGradientLockedInactive->destroyTexture();
     }
 
     if (!*PENABLED || !*PGRADIENTS)

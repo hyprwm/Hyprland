@@ -58,6 +58,9 @@ CCursorManager::CCursorManager() {
 CCursorManager::~CCursorManager() {
     if (m_pWLRXCursorMgr)
         wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+
+    if (m_pAnimationTimer)
+        wl_event_source_remove(m_pAnimationTimer);
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
@@ -114,8 +117,8 @@ wlr_buffer* CCursorManager::getCursorBuffer() {
     return !m_vCursorBuffers.empty() ? &m_vCursorBuffers.back()->wlrBuffer.base : nullptr;
 }
 
-void CCursorManager::setCursorSurface(CWLSurface* surf, const Vector2D& hotspot) {
-    if (!surf || !surf->wlr())
+void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
+    if (!surf || !surf->resource())
         g_pPointerManager->resetCursorImage();
     else
         g_pPointerManager->setCursorSurface(surf, hotspot);

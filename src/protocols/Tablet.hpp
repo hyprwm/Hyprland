@@ -12,6 +12,7 @@ class CTabletTool;
 class CTabletPad;
 class CEventLoopTimer;
 class CTabletSeat;
+class CWLSurfaceResource;
 
 class CTabletPadStripV2Resource {
   public:
@@ -112,19 +113,19 @@ class CTabletToolV2Resource {
     CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<CTabletTool> tool_, SP<CTabletSeat> seat_);
     ~CTabletToolV2Resource();
 
-    bool             good();
-    void             sendData();
-    void             queueFrame();
-    void             sendFrame(bool removeSource = true);
+    bool                   good();
+    void                   sendData();
+    void                   queueFrame();
+    void                   sendFrame(bool removeSource = true);
 
-    bool             current  = false;
-    wlr_surface*     lastSurf = nullptr; // READ-ONLY
+    bool                   current = false;
+    WP<CWLSurfaceResource> lastSurf;
 
-    WP<CTabletTool>  tool;
-    WP<CTabletSeat>  seat;
-    wl_event_source* frameSource = nullptr;
+    WP<CTabletTool>        tool;
+    WP<CTabletSeat>        seat;
+    wl_event_source*       frameSource = nullptr;
 
-    bool             inert = false; // removed was sent
+    bool                   inert = false; // removed was sent
 
   private:
     SP<CZwpTabletToolV2> resource;
@@ -180,7 +181,7 @@ class CTabletV2Protocol : public IWaylandProtocol {
     void tilt(SP<CTabletTool> tool, const Vector2D& value);
     void up(SP<CTabletTool> tool);
     void down(SP<CTabletTool> tool);
-    void proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, wlr_surface* surf);
+    void proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceResource> surf);
     void proximityOut(SP<CTabletTool> tool);
     void buttonTool(SP<CTabletTool> tool, uint32_t button, uint32_t state);
     void motion(SP<CTabletTool> tool, const Vector2D& value);

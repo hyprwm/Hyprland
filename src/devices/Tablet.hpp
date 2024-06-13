@@ -12,6 +12,7 @@ struct wlr_tablet_pad;
 
 class CTabletTool;
 class CTabletPad;
+class CWLSurfaceResource;
 
 /*
     A tablet device
@@ -197,32 +198,35 @@ class CTabletTool : public IHID {
         HID_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
     };
 
-    virtual uint32_t      getCapabilities();
-    wlr_tablet_tool*      wlr();
-    virtual eHIDType      getType();
-    wlr_surface*          getSurface();
-    void                  setSurface(wlr_surface*);
+    virtual uint32_t       getCapabilities();
+    wlr_tablet_tool*       wlr();
+    virtual eHIDType       getType();
+    SP<CWLSurfaceResource> getSurface();
+    void                   setSurface(SP<CWLSurfaceResource>);
 
-    WP<CTabletTool>       self;
-    Vector2D              tilt;
-    bool                  active           = false; // true if in proximity
-    uint32_t              toolCapabilities = 0;
+    WP<CTabletTool>        self;
+    Vector2D               tilt;
+    bool                   active           = false; // true if in proximity
+    uint32_t               toolCapabilities = 0;
 
-    bool                  isDown = false;
-    std::vector<uint32_t> buttonsDown;
-    Vector2D              absolutePos; // last known absolute position.
+    bool                   isDown = false;
+    std::vector<uint32_t>  buttonsDown;
+    Vector2D               absolutePos; // last known absolute position.
 
-    std::string           hlName;
+    std::string            hlName;
 
   private:
     CTabletTool(wlr_tablet_tool* tool);
 
-    void             disconnectCallbacks();
+    void                   disconnectCallbacks();
 
-    wlr_surface*     pSurface = nullptr;
+    WP<CWLSurfaceResource> pSurface;
 
-    wlr_tablet_tool* tool = nullptr;
+    wlr_tablet_tool*       tool = nullptr;
 
     DYNLISTENER(destroy);
-    DYNLISTENER(destroySurface);
+
+    struct {
+        CHyprSignalListener destroySurface;
+    } listeners;
 };

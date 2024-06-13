@@ -8,6 +8,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
             |   (-j)                                                  "Output in JSON format"
             |   (-r)                                                  "Refresh state after issuing the command"
             |   (--batch)                                             "Execute a batch of commands separated by ;"
+            |   (-q | --quiet)                                        "Disable output"
             ;
 
 <WINDOWS> ::= {{{ hyprctl clients | grep class | awk '{print $2}' }}};

@@ -7,12 +7,13 @@
 #include "../desktop/Popup.hpp"
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
-#include "signal/Listener.hpp"
+#include "signal/Signal.hpp"
 #include "Region.hpp"
 
 class CMonitor;
 class IPointer;
 class IKeyboard;
+class CWLSurfaceResource;
 
 struct SRenderData {
     CMonitor* pMonitor;
@@ -20,9 +21,9 @@ struct SRenderData {
     double    x, y;
 
     // for iters
-    void*        data    = nullptr;
-    wlr_surface* surface = nullptr;
-    double       w, h;
+    void*                  data    = nullptr;
+    SP<CWLSurfaceResource> surface = nullptr;
+    double                 w, h;
 
     // for rounding
     bool dontRound = true;
@@ -50,12 +51,6 @@ struct SRenderData {
     PHLWINDOW pWindow;
 
     bool      popup = false;
-};
-
-struct SExtensionFindingData {
-    Vector2D      origin;
-    Vector2D      vec;
-    wlr_surface** found;
 };
 
 struct SSwipeGesture {

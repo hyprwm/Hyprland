@@ -5,6 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../desktop/Window.hpp"
 #include "../protocols/XDGShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
@@ -99,8 +100,8 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     }
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-        const auto PWINDOWSURFACE = pWindow->m_pWLSurface.wlr();
-        pWindow->m_vRealSize      = Vector2D(PWINDOWSURFACE->current.width, PWINDOWSURFACE->current.height);
+        const auto PWINDOWSURFACE = pWindow->m_pWLSurface->resource();
+        pWindow->m_vRealSize      = PWINDOWSURFACE->current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
             pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?

@@ -4,6 +4,8 @@ extern "C" {
 #include <wlr/util/region.h>
 }
 
+constexpr const int64_t MAX_REGION_SIDE = 10000000;
+
 CRegion::CRegion() {
     pixman_region32_init(&m_rRegion);
 }
@@ -100,6 +102,11 @@ CRegion& CRegion::translate(const Vector2D& vec) {
 
 CRegion& CRegion::transform(const wl_output_transform t, double w, double h) {
     wlr_region_transform(&m_rRegion, &m_rRegion, t, w, h);
+    return *this;
+}
+
+CRegion& CRegion::rationalize() {
+    intersect(CBox{-MAX_REGION_SIDE, -MAX_REGION_SIDE, MAX_REGION_SIDE * 2, MAX_REGION_SIDE * 2});
     return *this;
 }
 

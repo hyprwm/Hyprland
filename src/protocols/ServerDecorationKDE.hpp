@@ -6,9 +6,11 @@
 #include "WaylandProtocol.hpp"
 #include "kde-server-decoration.hpp"
 
+class CWLSurfaceResource;
+
 class CServerDecorationKDE {
   public:
-    CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, wlr_surface* surf);
+    CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf);
 
     bool good();
 

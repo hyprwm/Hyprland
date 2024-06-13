@@ -3,6 +3,7 @@ src = globber.stdout().strip().split('\n')
 
 executable('hyprpm', src,
   dependencies: [
+    dependency('hyprutils', version: '>= 0.1.1'),
     dependency('threads'),
     dependency('tomlplusplus')
   ],

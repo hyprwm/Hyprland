@@ -14,23 +14,25 @@ class CPluginSystem;
 class IKeyboard;
 
 struct SKeybind {
-    std::string            key          = "";
-    std::set<xkb_keysym_t> sMkKeys      = {};
-    uint32_t               keycode      = 0;
-    bool                   catchAll     = false;
-    uint32_t               modmask      = 0;
-    std::set<xkb_keysym_t> sMkMods      = {};
-    std::string            handler      = "";
-    std::string            arg          = "";
-    bool                   locked       = false;
-    std::string            submap       = "";
-    bool                   release      = false;
-    bool                   repeat       = false;
-    bool                   mouse        = false;
-    bool                   nonConsuming = false;
-    bool                   transparent  = false;
-    bool                   ignoreMods   = false;
-    bool                   multiKey     = false;
+    std::string            key            = "";
+    std::set<xkb_keysym_t> sMkKeys        = {};
+    uint32_t               keycode        = 0;
+    bool                   catchAll       = false;
+    uint32_t               modmask        = 0;
+    std::set<xkb_keysym_t> sMkMods        = {};
+    std::string            handler        = "";
+    std::string            arg            = "";
+    bool                   locked         = false;
+    std::string            submap         = "";
+    std::string            description    = "";
+    bool                   release        = false;
+    bool                   repeat         = false;
+    bool                   mouse          = false;
+    bool                   nonConsuming   = false;
+    bool                   transparent    = false;
+    bool                   ignoreMods     = false;
+    bool                   multiKey       = false;
+    bool                   hasDescription = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;

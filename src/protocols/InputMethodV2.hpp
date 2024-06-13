@@ -101,12 +101,12 @@ class CInputMethodKeyboardGrabV2 {
 
 class CInputMethodPopupV2 {
   public:
-    CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, wlr_surface* surface);
+    CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, SP<CWLSurfaceResource> surface);
     ~CInputMethodPopupV2();
 
-    bool         good();
-    void         sendInputRectangle(const CBox& box);
-    wlr_surface* surface();
+    bool                   good();
+    void                   sendInputRectangle(const CBox& box);
+    SP<CWLSurfaceResource> surface();
 
     struct {
         CSignal map;
@@ -120,10 +120,12 @@ class CInputMethodPopupV2 {
   private:
     SP<CZwpInputPopupSurfaceV2> resource;
     WP<CInputMethodV2>          owner;
-    wlr_surface*                pSurface = nullptr;
+    WP<CWLSurfaceResource>      pSurface;
 
-    DYNLISTENER(commitSurface);
-    DYNLISTENER(destroySurface);
+    struct {
+        CHyprSignalListener destroySurface;
+        CHyprSignalListener commitSurface;
+    } listeners;
 };
 
 class CInputMethodV2Protocol : public IWaylandProtocol {

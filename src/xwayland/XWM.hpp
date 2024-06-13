@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
 
@@ -73,7 +73,7 @@ class CXWM {
     void                 createWMWindow();
     void                 initSelection();
 
-    void                 onNewSurface(wlr_surface* surf);
+    void                 onNewSurface(SP<CWLSurfaceResource> surf);
     void                 onNewResource(SP<CXWaylandSurfaceResource> resource);
 
     void                 setActiveWindow(xcb_window_t window);
@@ -87,7 +87,7 @@ class CXWM {
     SP<CXWaylandSurface> windowForXID(xcb_window_t wid);
 
     void                 readWindowData(SP<CXWaylandSurface> surf);
-    void                 associate(SP<CXWaylandSurface> surf, wlr_surface* wlSurf);
+    void                 associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf);
     void                 dissociate(SP<CXWaylandSurface> surf);
 
     void                 updateClientList();
@@ -147,9 +147,8 @@ class CXWM {
 
     SXSelection                               clipboard;
 
-    DYNLISTENER(newSurface);
-
     struct {
+        CHyprSignalListener newWLSurface;
         CHyprSignalListener newXShellSurface;
     } listeners;
 

@@ -6,6 +6,8 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -71,8 +73,7 @@ void CMonitor::onConnect(bool noRule) {
     std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
-    szShortDescription =
-        removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    szShortDescription = trim(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
     std::erase(szShortDescription, ',');
 
     if (!wlr_backend_is_drm(output->backend))
@@ -184,6 +185,9 @@ void CMonitor::onConnect(bool noRule) {
     forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
     //
 
+    if (!activeMonitorRule.mirrorOf.empty())
+        setMirror(activeMonitorRule.mirrorOf);
+
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
     EMIT_HOOK_EVENT("monitorAdded", this);
@@ -216,7 +220,6 @@ void CMonitor::onConnect(bool noRule) {
     PROTO::gamma->applyGammaToState(this);
 
     events.connect.emit();
-    updateGlobal();
 }
 
 void CMonitor::onDisconnect(bool destroy) {
@@ -284,8 +287,6 @@ void CMonitor::onDisconnect(bool destroy) {
     m_bEnabled             = false;
     m_bRenderingInitPassed = false;
 
-    updateGlobal();
-
     if (BACKUPMON) {
         // snap cursor
         g_pCompositor->warpCursorTo(BACKUPMON->vecPosition + BACKUPMON->vecTransformedSize / 2.F, true);
@@ -304,7 +305,7 @@ void CMonitor::onDisconnect(bool destroy) {
             w->startAnim(true, true, true);
         }
     } else {
-        g_pCompositor->m_pLastFocus = nullptr;
+        g_pCompositor->m_pLastFocus.reset();
         g_pCompositor->m_pLastWindow.reset();
         g_pCompositor->m_pLastMonitor.reset();
     }
@@ -520,6 +521,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         g_pCompositor->sanityCheckWorkspaces();
     }
+
+    events.modeChanged.emit();
 }
 
 float CMonitor::getDefaultScale() {
@@ -748,13 +751,6 @@ int64_t CMonitor::activeSpecialWorkspaceID() {
 
 CBox CMonitor::logicalBox() {
     return {vecPosition, vecSize};
-}
-
-void CMonitor::updateGlobal() {
-    if (output->width > 0 && output->height > 0 && m_bEnabled)
-        wlr_output_create_global(output, g_pCompositor->m_sWLDisplay);
-    else
-        wlr_output_destroy_global(output);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

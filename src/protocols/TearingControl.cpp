@@ -2,6 +2,7 @@
 #include "../managers/ProtocolManager.hpp"
 #include "../desktop/Window.hpp"
 #include "../Compositor.hpp"
+#include "core/Compositor.hpp"
 
 CTearingControlProtocol::CTearingControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P =
@@ -13,15 +14,16 @@ void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_
     RESOURCE->setOnDestroy([this](CWpTearingControlManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
     RESOURCE->setDestroy([this](CWpTearingControlManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
-    RESOURCE->setGetTearingControl(
-        [this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) { this->onGetController(pMgr->client(), pMgr, id, wlr_surface_from_resource(surface)); });
+    RESOURCE->setGetTearingControl([this](CWpTearingControlManagerV1* pMgr, uint32_t id, wl_resource* surface) {
+        this->onGetController(pMgr->client(), pMgr, id, CWLSurfaceResource::fromResource(surface));
+    });
 }
 
 void CTearingControlProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
 }
 
-void CTearingControlProtocol::onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, wlr_surface* surf) {
+void CTearingControlProtocol::onGetController(wl_client* client, CWpTearingControlManagerV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surf) {
     const auto CONTROLLER = m_vTearingControllers.emplace_back(std::make_unique<CTearingControl>(makeShared<CWpTearingControlV1>(client, pMgr->version(), id), surf)).get();
 
     if (!CONTROLLER->good()) {
@@ -44,14 +46,14 @@ void CTearingControlProtocol::onWindowDestroy(PHLWINDOW pWindow) {
 
 //
 
-CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, wlr_surface* surf_) : resource(resource_) {
+CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfaceResource> surf_) : resource(resource_) {
     resource->setData(this);
     resource->setOnDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     resource->setDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_pWLSurface.wlr() == surf_) {
+        if (w->m_pWLSurface->resource() == surf_) {
             pWindow = w;
             break;
         }

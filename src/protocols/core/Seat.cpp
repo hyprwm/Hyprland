@@ -1,4 +1,5 @@
 #include "Seat.hpp"
+#include "Compositor.hpp"
 #include "../../devices/IKeyboard.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -20,44 +21,42 @@ bool CWLTouchResource::good() {
     return resource->resource();
 }
 
-void CWLTouchResource::sendDown(wlr_surface* surface, uint32_t timeMs, int32_t id, const Vector2D& local) {
+void CWLTouchResource::sendDown(SP<CWLSurfaceResource> surface, uint32_t timeMs, int32_t id, const Vector2D& local) {
     if (!owner)
         return;
 
-    if (currentSurface) {
-        LOGM(WARN, "requested CWLTouchResource::sendDown without sendUp first.");
-        sendUp(timeMs, id);
-    }
+    ASSERT(surface->client() == owner->client());
 
-    ASSERT(wl_resource_get_client(surface->resource) == owner->client());
+    currentSurface           = surface;
+    listeners.destroySurface = surface->events.destroy.registerListener([this, timeMs, id](std::any d) { sendUp(timeMs + 10 /* hack */, id); });
 
-    currentSurface = surface;
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy, [this, id, timeMs](void* owner, void* data) { sendUp(timeMs + 10 /* hack */, id); }, this, "CWLTouchResource");
+    resource->sendDown(g_pSeatManager->nextSerial(owner.lock()), timeMs, surface->getResource().get(), id, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
 
-    // FIXME:
-    // fix this once we get our own wlr_surface, this is horrible
-    resource->sendDownRaw(g_pSeatManager->nextSerial(owner.lock()), timeMs, surface->resource, id, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
+    fingers++;
 }
 
 void CWLTouchResource::sendUp(uint32_t timeMs, int32_t id) {
-    if (!owner || !currentSurface)
+    if (!owner)
         return;
 
     resource->sendUp(g_pSeatManager->nextSerial(owner.lock()), timeMs, id);
-    currentSurface = nullptr;
-    hyprListener_surfaceDestroy.removeCallback();
+    fingers--;
+    if (fingers <= 0) {
+        currentSurface.reset();
+        listeners.destroySurface.reset();
+        fingers = 0;
+    }
 }
 
 void CWLTouchResource::sendMotion(uint32_t timeMs, int32_t id, const Vector2D& local) {
-    if (!owner || !currentSurface)
+    if (!owner)
         return;
 
     resource->sendMotion(timeMs, id, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
 }
 
 void CWLTouchResource::sendFrame() {
-    if (!owner || !currentSurface)
+    if (!owner)
         return;
 
     resource->sendFrame();
@@ -97,7 +96,7 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
             return;
         }
 
-        g_pSeatManager->onSetCursor(owner.lock(), serial, surf ? wlr_surface_from_resource(surf) : nullptr, {hotX, hotY});
+        g_pSeatManager->onSetCursor(owner.lock(), serial, surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hotX, hotY});
     });
 }
 
@@ -105,7 +104,7 @@ bool CWLPointerResource::good() {
     return resource->resource();
 }
 
-void CWLPointerResource::sendEnter(wlr_surface* surface, const Vector2D& local) {
+void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local) {
     if (!owner || currentSurface == surface)
         return;
 
@@ -114,22 +113,21 @@ void CWLPointerResource::sendEnter(wlr_surface* surface, const Vector2D& local) 
         sendLeave();
     }
 
-    ASSERT(wl_resource_get_client(surface->resource) == owner->client());
+    ASSERT(surface->client() == owner->client());
 
-    currentSurface = surface;
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy, [this](void* owner, void* data) { sendLeave(); }, this, "CWLPointerResource");
+    currentSurface           = surface;
+    listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) { sendLeave(); });
 
-    resource->sendEnterRaw(g_pSeatManager->nextSerial(owner.lock()), surface->resource, wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
+    resource->sendEnter(g_pSeatManager->nextSerial(owner.lock()), surface->getResource().get(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y));
 }
 
 void CWLPointerResource::sendLeave() {
     if (!owner || !currentSurface)
         return;
 
-    resource->sendLeaveRaw(g_pSeatManager->nextSerial(owner.lock()), currentSurface->resource);
-    currentSurface = nullptr;
-    hyprListener_surfaceDestroy.removeCallback();
+    resource->sendLeave(g_pSeatManager->nextSerial(owner.lock()), currentSurface->getResource().get());
+    currentSurface.reset();
+    listeners.destroySurface.reset();
 }
 
 void CWLPointerResource::sendMotion(uint32_t timeMs, const Vector2D& local) {
@@ -237,7 +235,7 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
         close(fd);
 }
 
-void CWLKeyboardResource::sendEnter(wlr_surface* surface) {
+void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface) {
     if (!owner || currentSurface == surface)
         return;
 
@@ -246,16 +244,15 @@ void CWLKeyboardResource::sendEnter(wlr_surface* surface) {
         sendLeave();
     }
 
-    ASSERT(wl_resource_get_client(surface->resource) == owner->client());
+    ASSERT(surface->client() == owner->client());
 
-    currentSurface = surface;
-    hyprListener_surfaceDestroy.initCallback(
-        &surface->events.destroy, [this](void* owner, void* data) { sendLeave(); }, this, "CWLKeyboardResource");
+    currentSurface           = surface;
+    listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) { sendLeave(); });
 
     wl_array arr;
     wl_array_init(&arr);
 
-    resource->sendEnterRaw(g_pSeatManager->nextSerial(owner.lock()), surface->resource, &arr);
+    resource->sendEnter(g_pSeatManager->nextSerial(owner.lock()), surface->getResource().get(), &arr);
 
     wl_array_release(&arr);
 }
@@ -264,9 +261,9 @@ void CWLKeyboardResource::sendLeave() {
     if (!owner || !currentSurface)
         return;
 
-    resource->sendLeaveRaw(g_pSeatManager->nextSerial(owner.lock()), currentSurface->resource);
-    currentSurface = nullptr;
-    hyprListener_surfaceDestroy.removeCallback();
+    resource->sendLeave(g_pSeatManager->nextSerial(owner.lock()), currentSurface->getResource().get());
+    currentSurface.reset();
+    listeners.destroySurface.reset();
 }
 
 void CWLKeyboardResource::sendKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state) {

@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "../Compositor.hpp"
 #include "../protocols/XWaylandShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../protocols/core/Seat.hpp"
 #include <ranges>
@@ -247,11 +248,11 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             }
         }
     } else {
-        Debug::log(LOG, "[xwm] Unhandled prop {} -> {}", atom, propName);
+        Debug::log(TRACE, "[xwm] Unhandled prop {} -> {}", atom, propName);
         return;
     }
 
-    Debug::log(LOG, "[xwm] Handled prop {} -> {}", atom, propName);
+    Debug::log(TRACE, "[xwm] Handled prop {} -> {}", atom, propName);
 }
 
 void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
@@ -296,7 +297,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         auto id       = e->data.data32[0];
         auto resource = wl_client_get_object(g_pXWayland->pServer->xwaylandClient, id);
         if (resource) {
-            auto wlrSurface = wlr_surface_from_resource(resource);
+            auto wlrSurface = CWLSurfaceResource::fromResource(resource);
             associate(XSURF, wlrSurface);
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"]) {
@@ -318,7 +319,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
             if (res->serial != XSURF->wlSerial || !XSURF->wlSerial)
                 continue;
 
-            associate(XSURF, res->surface);
+            associate(XSURF, res->surface.lock());
             break;
         }
 
@@ -353,11 +354,11 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
     } else if (e->type == HYPRATOMS["_NET_ACTIVE_WINDOW"]) {
         XSURF->events.activate.emit();
     } else {
-        Debug::log(LOG, "[xwm] Unhandled message prop {} -> {}", e->type, propName);
+        Debug::log(TRACE, "[xwm] Unhandled message prop {} -> {}", e->type, propName);
         return;
     }
 
-    Debug::log(LOG, "[xwm] Handled message prop {} -> {}", e->type, propName);
+    Debug::log(TRACE, "[xwm] Handled message prop {} -> {}", e->type, propName);
 }
 
 void CXWM::handleFocusIn(xcb_focus_in_event_t* e) {
@@ -489,18 +490,18 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
 }
 
 void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection notify for {} prop {} target {}", e->selection, e->property, e->target);
+    Debug::log(TRACE, "[xwm] Selection notify for {} prop {} target {}", e->selection, e->property, e->target);
 
     SXSelection& sel = clipboard;
 
     if (e->property == XCB_ATOM_NONE) {
         if (sel.transfer) {
-            Debug::log(ERR, "[xwm] converting selection failed");
+            Debug::log(TRACE, "[xwm] converting selection failed");
             sel.transfer.reset();
         }
     } else if (e->target == HYPRATOMS["TARGETS"]) {
         if (!focusedSurface) {
-            Debug::log(LOG, "[xwm] denying access to write to clipboard because no X client is in focus");
+            Debug::log(TRACE, "[xwm] denying access to write to clipboard because no X client is in focus");
             return;
         }
 
@@ -518,7 +519,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection request for {} prop {} target {} time {} requestor {} selection {}", e->selection, e->property, e->target, e->time, e->requestor,
+    Debug::log(TRACE, "[xwm] Selection request for {} prop {} target {} time {} requestor {} selection {}", e->selection, e->property, e->target, e->time, e->requestor,
                e->selection);
 
     SXSelection& sel = clipboard;
@@ -541,7 +542,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
     }
 
     if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient) {
-        Debug::log(LOG, "[xwm] Ignoring clipboard access: xwayland not in focus");
+        Debug::log(TRACE, "[xwm] Ignoring clipboard access: xwayland not in focus");
         selectionSendNotify(e, false);
         return;
     }
@@ -584,7 +585,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
 }
 
 bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection xfixes notify for {}", e->selection);
+    Debug::log(TRACE, "[xwm] Selection xfixes notify for {}", e->selection);
 
     // IMPORTANT: mind the g_pSeatManager below
     SXSelection& sel = clipboard;
@@ -827,9 +828,7 @@ CXWM::CXWM() {
 
     initSelection();
 
-    hyprListener_newSurface.initCallback(
-        &g_pCompositor->m_sWLRCompositor->events.new_surface, [this](void* owner, void* data) { onNewSurface((wlr_surface*)data); }, nullptr, "XWM");
-
+    listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
     listeners.newXShellSurface = PROTO::xwaylandShell->events.newSurface.registerListener([this](std::any d) { onNewResource(std::any_cast<SP<CXWaylandSurfaceResource>>(d)); });
 
     createWMWindow();
@@ -903,13 +902,13 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, surf->xID, HYPRATOMS["_NET_WM_STATE"], XCB_ATOM_ATOM, 32, props.size(), props.data());
 }
 
-void CXWM::onNewSurface(wlr_surface* surf) {
-    if (wl_resource_get_client(surf->resource) != g_pXWayland->pServer->xwaylandClient)
+void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
+    if (surf->client() != g_pXWayland->pServer->xwaylandClient)
         return;
 
     Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf);
 
-    const auto WLID = wl_resource_get_id(surf->resource);
+    const auto WLID = surf->id();
 
     for (auto& sr : surfaces) {
         if (sr->surface || sr->wlID != WLID)
@@ -932,7 +931,7 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
         if (surf->resource || surf->wlSerial != resource->serial)
             continue;
 
-        associate(surf, resource->surface);
+        associate(surf, resource->surface.lock());
         break;
     }
 }
@@ -955,7 +954,7 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     }
 }
 
-void CXWM::associate(SP<CXWaylandSurface> surf, wlr_surface* wlSurf) {
+void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     if (surf->surface)
         return;
 
@@ -981,7 +980,7 @@ void CXWM::dissociate(SP<CXWaylandSurface> surf) {
     if (surf->mapped)
         surf->unmap();
 
-    surf->surface = nullptr;
+    surf->surface.reset();
     surf->events.resourceChange.emit();
 
     Debug::log(LOG, "Dissociate for {:x}", (uintptr_t)surf.get());

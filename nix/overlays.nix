@@ -23,6 +23,7 @@ in {
     # Dependencies
     inputs.hyprcursor.overlays.default
     inputs.hyprlang.overlays.default
+    inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
     self.overlays.xwayland
 

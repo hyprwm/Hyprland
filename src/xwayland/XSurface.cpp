@@ -1,6 +1,7 @@
 #include "XSurface.hpp"
 #include "XWayland.hpp"
 #include "../protocols/XWaylandShell.hpp"
+#include "../protocols/core/Compositor.hpp"
 
 #ifndef NO_XWAYLAND
 
@@ -44,46 +45,41 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
 }
 
 void CXWaylandSurface::ensureListeners() {
-    bool connected = hyprListener_surfaceDestroy.isConnected();
+    bool connected = listeners.destroySurface;
 
     if (connected && !surface) {
-        hyprListener_surfaceDestroy.removeCallback();
-        hyprListener_surfaceCommit.removeCallback();
+        listeners.destroySurface.reset();
+        listeners.commitSurface.reset();
     } else if (!connected && surface) {
-        hyprListener_surfaceDestroy.initCallback(
-            &surface->events.destroy,
-            [this](void* owner, void* data) {
-                if (mapped)
-                    unmap();
+        listeners.destroySurface = surface->events.destroy.registerListener([this](std::any d) {
+            if (mapped)
+                unmap();
 
-                surface = nullptr;
-                hyprListener_surfaceDestroy.removeCallback();
-                hyprListener_surfaceCommit.removeCallback();
-                events.resourceChange.emit();
-            },
-            nullptr, "CXWaylandSurface");
-        hyprListener_surfaceCommit.initCallback(
-            &surface->events.commit,
-            [this](void* owner, void* data) {
-                if (surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0 && !mapped) {
-                    map();
-                    return;
-                }
+            surface.reset();
+            listeners.destroySurface.reset();
+            listeners.commitSurface.reset();
+            events.resourceChange.emit();
+        });
 
-                if (surface->pending.buffer_width <= 0 && surface->pending.buffer_height <= 0 && mapped) {
-                    unmap();
-                    return;
-                }
+        listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
+            if (surface->pending.buffer && !mapped) {
+                map();
+                return;
+            }
 
-                events.commit.emit();
-            },
-            nullptr, "CXWaylandSurface");
+            if (!surface->pending.buffer && mapped) {
+                unmap();
+                return;
+            }
+
+            events.commit.emit();
+        });
     }
 
     if (resource) {
         listeners.destroyResource = resource->events.destroy.registerListener([this](std::any d) {
             unmap();
-            surface = nullptr;
+            surface.reset();
             events.resourceChange.emit();
         });
     }
@@ -99,7 +95,7 @@ void CXWaylandSurface::map() {
     g_pXWayland->pWM->mappedSurfacesStacking.emplace_back(self);
 
     mapped = true;
-    wlr_surface_map(surface);
+    surface->map();
 
     Debug::log(LOG, "XWayland surface {:x} mapping", (uintptr_t)this);
 
@@ -118,7 +114,7 @@ void CXWaylandSurface::unmap() {
     std::erase(g_pXWayland->pWM->mappedSurfacesStacking, self);
 
     mapped = false;
-    wlr_surface_unmap(surface);
+    surface->unmap();
 
     Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
 
@@ -136,7 +132,7 @@ void CXWaylandSurface::considerMap() {
         return;
     }
 
-    if (surface->pending.buffer_width > 0 && surface->pending.buffer_height > 0) {
+    if (surface->pending.buffer) {
         Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;

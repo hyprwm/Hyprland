@@ -1,6 +1,6 @@
 #include "HookSystem.hpp"
 #include "../debug/Log.hpp"
-#include "../helpers/VarList.hpp"
+#include "../helpers/varlist/VarList.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../Compositor.hpp"
 

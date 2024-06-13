@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include "Subsurface.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CXDGPopupResource;
 
@@ -39,7 +39,7 @@ class CPopup {
     CPopup* at(const Vector2D& globalCoords, bool allowsInput = false);
 
     //
-    CWLSurface m_sWLSurface;
+    SP<CWLSurface> m_pWLSurface;
 
   private:
     // T1 owners, each popup has to have one of these
@@ -56,7 +56,8 @@ class CPopup {
 
     bool                  m_bRequestedReposition = false;
 
-    bool                  m_bInert = false;
+    bool                  m_bInert  = false;
+    bool                  m_bMapped = false;
 
     //
     std::vector<std::unique_ptr<CPopup>> m_vChildren;

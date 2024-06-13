@@ -1,9 +1,10 @@
 #include "XWaylandShell.hpp"
+#include "core/Compositor.hpp"
 #include <algorithm>
 
 #define LOGM PROTO::xwaylandShell->protoLog
 
-CXWaylandSurfaceResource::CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, wlr_surface* surface_) : surface(surface_), resource(resource_) {
+CXWaylandSurfaceResource::CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;
 
@@ -45,7 +46,7 @@ CXWaylandShellResource::CXWaylandShellResource(SP<CXwaylandShellV1> resource_) :
 
     resource->setGetXwaylandSurface([this](CXwaylandShellV1* r, uint32_t id, wl_resource* surface) {
         const auto RESOURCE = PROTO::xwaylandShell->m_vSurfaces.emplace_back(
-            makeShared<CXWaylandSurfaceResource>(makeShared<CXwaylandSurfaceV1>(r->client(), r->version(), id), wlr_surface_from_resource(surface)));
+            makeShared<CXWaylandSurfaceResource>(makeShared<CXwaylandSurfaceV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surface)));
 
         if (!RESOURCE->good()) {
             r->noMemory();

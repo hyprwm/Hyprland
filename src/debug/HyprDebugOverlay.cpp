@@ -3,6 +3,10 @@
 #include "config/ConfigValue.hpp"
 #include "../Compositor.hpp"
 
+CHyprDebugOverlay::CHyprDebugOverlay() {
+    m_pTexture = makeShared<CTexture>();
+}
+
 void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
     m_dLastRenderTimes.push_back(µs / 1000.f);
 
@@ -222,8 +226,8 @@ void CHyprDebugOverlay::draw() {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_pCairoSurface);
-    m_tTexture.allocate();
-    glBindTexture(GL_TEXTURE_2D, m_tTexture.m_iTexID);
+    m_pTexture->allocate();
+    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -235,5 +239,5 @@ void CHyprDebugOverlay::draw() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     CBox pMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-    g_pHyprOpenGL->renderTexture(m_tTexture, &pMonBox, 1.f);
+    g_pHyprOpenGL->renderTexture(m_pTexture, &pMonBox, 1.f);
 }

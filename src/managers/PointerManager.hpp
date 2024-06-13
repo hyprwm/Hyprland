@@ -11,6 +11,7 @@
 class CMonitor;
 struct wlr_input_device;
 class IHID;
+class CTexture;
 
 /*
     The naming here is a bit confusing.
@@ -37,11 +38,13 @@ class CPointerManager {
     void warpAbsolute(Vector2D abs, SP<IHID> dev);
 
     void setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, const float& scale);
-    void setCursorSurface(CWLSurface* buf, const Vector2D& hotspot);
+    void setCursorSurface(SP<CWLSurface> buf, const Vector2D& hotspot);
     void resetCursorImage(bool apply = true);
 
     void lockSoftwareForMonitor(SP<CMonitor> pMonitor);
     void unlockSoftwareForMonitor(SP<CMonitor> pMonitor);
+    void lockSoftwareAll();
+    void unlockSoftwareAll();
 
     void renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */);
 
@@ -76,7 +79,7 @@ class CPointerManager {
 
     Vector2D     transformedHotspot(SP<CMonitor> pMonitor);
 
-    wlr_texture* getCurrentCursorTexture();
+    SP<CTexture> getCurrentCursorTexture();
 
     struct SPointerListener {
         CHyprSignalListener destroy;
@@ -129,8 +132,9 @@ class CPointerManager {
     } currentMonitorLayout;
 
     struct {
-        wlr_buffer*         pBuffer        = nullptr;
-        CWLSurface*         surface        = nullptr;
+        wlr_buffer*         pBuffer = nullptr;
+        SP<CTexture>        bufferTex;
+        WP<CWLSurface>      surface;
         wlr_texture*        pBufferTexture = nullptr;
 
         Vector2D            hotspot;
@@ -138,7 +142,7 @@ class CPointerManager {
         float               scale = 1.F;
 
         CHyprSignalListener destroySurface;
-        DYNLISTENER(commitSurface);
+        CHyprSignalListener commitSurface;
         DYNLISTENER(destroyBuffer);
     } currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
@@ -146,6 +150,11 @@ class CPointerManager {
 
     struct SMonitorPointerState {
         SMonitorPointerState(SP<CMonitor> m) : monitor(m) {}
+        ~SMonitorPointerState() {
+            if (cursorFrontBuffer)
+                wlr_buffer_unlock(cursorFrontBuffer);
+        }
+
         WP<CMonitor> monitor;
 
         int          softwareLocks  = 0;
@@ -160,7 +169,7 @@ class CPointerManager {
     std::vector<SP<SMonitorPointerState>> monitorStates;
     SP<SMonitorPointerState>              stateFor(SP<CMonitor> mon);
     bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
-    wlr_buffer*                           renderHWCursorBuffer(SP<SMonitorPointerState> state, wlr_texture* texture);
+    wlr_buffer*                           renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<CTexture> texture);
     bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, wlr_buffer* buf);
 
     struct {

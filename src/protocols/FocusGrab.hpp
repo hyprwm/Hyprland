@@ -6,13 +6,15 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include "../helpers/signal/Signal.hpp"
 
 class CFocusGrab;
 class CSeatGrab;
+class CWLSurfaceResource;
 
 class CFocusGrabSurfaceState {
   public:
-    CFocusGrabSurfaceState(CFocusGrab* grab, wlr_surface* surface);
+    CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface);
     ~CFocusGrabSurfaceState();
 
     enum State {
@@ -22,7 +24,9 @@ class CFocusGrabSurfaceState {
     } state = PendingAddition;
 
   private:
-    DYNLISTENER(surfaceDestroy);
+    struct {
+        CHyprSignalListener destroy;
+    } listeners;
 };
 
 class CFocusGrab {
@@ -31,23 +35,23 @@ class CFocusGrab {
     ~CFocusGrab();
 
     bool good();
-    bool isSurfaceComitted(wlr_surface* surface);
+    bool isSurfaceComitted(SP<CWLSurfaceResource> surface);
 
     void start();
     void finish(bool sendCleared);
 
   private:
-    void                                                         addSurface(wlr_surface* surface);
-    void                                                         removeSurface(wlr_surface* surface);
-    void                                                         eraseSurface(wlr_surface* surface);
-    void                                                         refocusKeyboard();
-    void                                                         commit(bool removeOnly = false);
+    void                                                                   addSurface(SP<CWLSurfaceResource> surface);
+    void                                                                   removeSurface(SP<CWLSurfaceResource> surface);
+    void                                                                   eraseSurface(SP<CWLSurfaceResource> surface);
+    void                                                                   refocusKeyboard();
+    void                                                                   commit(bool removeOnly = false);
 
-    SP<CHyprlandFocusGrabV1>                                     resource;
-    std::unordered_map<wlr_surface*, UP<CFocusGrabSurfaceState>> m_mSurfaces;
-    SP<CSeatGrab>                                                grab;
+    SP<CHyprlandFocusGrabV1>                                               resource;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CFocusGrabSurfaceState>> m_mSurfaces;
+    SP<CSeatGrab>                                                          grab;
 
-    bool                                                         m_bGrabActive = false;
+    bool                                                                   m_bGrabActive = false;
 
     DYNLISTENER(pointerGrabStarted);
     DYNLISTENER(keyboardGrabStarted);

@@ -363,15 +363,12 @@ void CMonitor::addDamage(const CBox* box) {
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
-    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
+    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");    
     
     // skip scheduling extra frames for fullsreen apps with vrr
-    if (*PNOBREAK && this->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
-        const auto PWORKSPACE = this->activeWorkspace;
-        return PWORKSPACE && PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
-    }
-
-    return false;
+    return *PNOBREAK
+        && output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED
+        && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
 }
 
 bool CMonitor::isMirror() {

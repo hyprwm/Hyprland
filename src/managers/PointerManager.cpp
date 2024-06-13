@@ -387,6 +387,17 @@ void CPointerManager::updateCursorBackend() {
     }
 }
 
+void CPointerManager::moveCursorOnMirrors(SP<CMonitor> pMonitor) {
+    if (!pMonitor->mirrors.size())
+        return;
+
+    const auto CURSORPOS = getCursorPosForMonitor(pMonitor);
+    for (auto& mirror : pMonitor->mirrors) {
+        const Vector2D MIRRORPOS = {CURSORPOS.x / pMonitor->vecSize.x * mirror->vecSize.x, CURSORPOS.y / pMonitor->vecSize.y * mirror->vecSize.y};
+        mirror->output->impl->move_cursor(mirror->output, MIRRORPOS.x, MIRRORPOS.y);
+    }
+}
+
 void CPointerManager::onCursorMoved() {
     if (!hasCursor())
         return;
@@ -401,6 +412,8 @@ void CPointerManager::onCursorMoved() {
 
         const auto CURSORPOS = getCursorPosForMonitor(m);
         m->output->impl->move_cursor(m->output, CURSORPOS.x, CURSORPOS.y);
+        // manifest the cursor on the mirrors
+        moveCursorOnMirrors(m);
     }
 }
 
@@ -412,6 +425,8 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
 
     const auto CURSORPOS = getCursorPosForMonitor(state->monitor.lock());
     state->monitor->output->impl->move_cursor(state->monitor->output, CURSORPOS.x, CURSORPOS.y);
+    // manifest the cursor on the mirrors
+    moveCursorOnMirrors(state->monitor.lock());
 
     auto texture = getCurrentCursorTexture();
 

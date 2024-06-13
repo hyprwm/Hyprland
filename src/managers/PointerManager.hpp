@@ -62,6 +62,7 @@ class CPointerManager {
     void onMonitorLayoutChange();
     void onMonitorDisconnect();
     void updateCursorBackend();
+    void moveCursorOnMirrors(SP<CMonitor> monitor);
     void onCursorMoved();
     bool hasCursor();
     void damageIfSoftware();

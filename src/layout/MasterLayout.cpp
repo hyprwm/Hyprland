@@ -87,12 +87,12 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
 
     const auto  PNODE = [&]() {
         if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {
-            const auto PLASTNODE = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
-            if (PLASTNODE && !(PLASTNODE->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
-                auto OPENINGONIT = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PLASTNODE);
+            const auto pLastNode = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
+            if (pLastNode && !(pLastNode->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
+                auto it = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *pLastNode);
                 if (!BNEWBEFOREACTIVE)
-                    ++OPENINGONIT;
-                return &(*m_lMasterNodesData.emplace(OPENINGONIT));
+                    ++it;
+                return &(*m_lMasterNodesData.emplace(it));
             }
         }
         return *PNEWONTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();

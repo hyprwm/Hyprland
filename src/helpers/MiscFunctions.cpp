@@ -580,9 +580,10 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
 
 // Execute a shell command and get the output
 std::string execAndGet(const char* cmd) {
-    std::array<char, 128>                          buffer;
-    std::string                                    result;
-    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    std::array<char, 128> buffer;
+    std::string           result;
+    using PcloseType = int (*)(FILE*);
+    const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd, "r"), static_cast<PcloseType>(pclose));
     if (!pipe) {
         Debug::log(ERR, "execAndGet: failed in pipe");
         return "";

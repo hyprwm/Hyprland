@@ -94,7 +94,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(&box);
 }
 
-void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
+void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float a) {
     // get how many bars we will draw
     int         barsToDraw = m_dwGroupMembers.size();
 

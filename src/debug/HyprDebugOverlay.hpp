@@ -13,9 +13,9 @@ class CHyprMonitorDebugOverlay {
   public:
     int  draw(int offset);
 
-    void renderData(CMonitor* pMonitor, float µs);
-    void renderDataNoOverlay(CMonitor* pMonitor, float µs);
-    void frameData(CMonitor* pMonitor);
+    void renderData(PHLMONITOR pMonitor, float µs);
+    void renderDataNoOverlay(PHLMONITOR pMonitor, float µs);
+    void frameData(PHLMONITOR pMonitor);
 
   private:
     std::deque<float>                              m_dLastFrametimes;
@@ -23,7 +23,7 @@ class CHyprMonitorDebugOverlay {
     std::deque<float>                              m_dLastRenderTimesNoOverlay;
     std::deque<float>                              m_dLastAnimationTicks;
     std::chrono::high_resolution_clock::time_point m_tpLastFrame;
-    CMonitor*                                      m_pMonitor = nullptr;
+    PHLMONITORREF                                  m_pMonitor;
     CBox                                           m_wbLastDrawnBox;
 
     friend class CHyprRenderer;
@@ -33,17 +33,17 @@ class CHyprDebugOverlay {
   public:
     CHyprDebugOverlay();
     void draw();
-    void renderData(CMonitor*, float µs);
-    void renderDataNoOverlay(CMonitor*, float µs);
-    void frameData(CMonitor*);
+    void renderData(PHLMONITOR, float µs);
+    void renderDataNoOverlay(PHLMONITOR, float µs);
+    void frameData(PHLMONITOR);
 
   private:
-    std::unordered_map<CMonitor*, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
+    std::unordered_map<PHLMONITOR, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
 
-    cairo_surface_t*                                        m_pCairoSurface = nullptr;
-    cairo_t*                                                m_pCairo        = nullptr;
+    cairo_surface_t*                                         m_pCairoSurface = nullptr;
+    cairo_t*                                                 m_pCairo        = nullptr;
 
-    SP<CTexture>                                            m_pTexture;
+    SP<CTexture>                                             m_pTexture;
 
     friend class CHyprMonitorDebugOverlay;
     friend class CHyprRenderer;

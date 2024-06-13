@@ -58,7 +58,7 @@ struct SScreencopyFrame {
 
     WP<IWLBuffer>      buffer;
 
-    CMonitor*          pMonitor = nullptr;
+    PHLMONITORREF      pMonitor;
     PHLWINDOWREF       pWindow;
 
     bool               operator==(const SScreencopyFrame& other) const {
@@ -79,7 +79,7 @@ class CScreencopyProtocolManager {
 
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 
-    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
+    void onOutputCommit(PHLMONITOR pMonitor, wlr_output_event_commit* e);
 
   private:
     wl_global*                     m_pGlobal = nullptr;
@@ -95,7 +95,7 @@ class CScreencopyProtocolManager {
 
     wlr_buffer*                    m_pLastMonitorBackBuffer = nullptr;
 
-    void                           shareAllFrames(CMonitor* pMonitor);
+    void                           shareAllFrames(PHLMONITOR pMonitor);
     void                           shareFrame(SScreencopyFrame* frame);
     void                           sendFrameDamage(SScreencopyFrame* frame);
     bool                           copyFrameDmabuf(SScreencopyFrame* frame);

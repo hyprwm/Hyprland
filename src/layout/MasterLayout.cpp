@@ -586,12 +586,12 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
-    CMonitor* PMONITOR = nullptr;
+    PHLMONITOR PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
-                PMONITOR = m.get();
+                PMONITOR = m;
                 break;
             }
         }

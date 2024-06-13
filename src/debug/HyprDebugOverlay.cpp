@@ -7,7 +7,7 @@ CHyprDebugOverlay::CHyprDebugOverlay() {
     m_pTexture = makeShared<CTexture>();
 }
 
-void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
+void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float µs) {
     m_dLastRenderTimes.push_back(µs / 1000.f);
 
     if (m_dLastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
@@ -17,7 +17,7 @@ void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
         m_pMonitor = pMonitor;
 }
 
-void CHyprMonitorDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
+void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float µs) {
     m_dLastRenderTimesNoOverlay.push_back(µs / 1000.f);
 
     if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
@@ -27,7 +27,7 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs
         m_pMonitor = pMonitor;
 }
 
-void CHyprMonitorDebugOverlay::frameData(CMonitor* pMonitor) {
+void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
     m_dLastFrametimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
 
     if (m_dLastFrametimes.size() > (long unsigned int)pMonitor->refreshRate)
@@ -39,7 +39,7 @@ void CHyprMonitorDebugOverlay::frameData(CMonitor* pMonitor) {
         m_pMonitor = pMonitor;
 
     // anim data too
-    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor : g_pCompositor->m_pLastMonitor.get();
+    const auto PMONITORFORTICKS = g_pHyprRenderer->m_pMostHzMonitor ? g_pHyprRenderer->m_pMostHzMonitor : g_pCompositor->m_pLastMonitor;
     if (PMONITORFORTICKS) {
         if (m_dLastAnimationTicks.size() > (long unsigned int)PMONITORFORTICKS->refreshRate)
             m_dLastAnimationTicks.pop_front();
@@ -188,15 +188,15 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     return posY - offset;
 }
 
-void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
+void CHyprDebugOverlay::renderData(PHLMONITOR pMonitor, float µs) {
     m_mMonitorOverlays[pMonitor].renderData(pMonitor, µs);
 }
 
-void CHyprDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
+void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float µs) {
     m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, µs);
 }
 
-void CHyprDebugOverlay::frameData(CMonitor* pMonitor) {
+void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
     m_mMonitorOverlays[pMonitor].frameData(pMonitor);
 }
 
@@ -218,7 +218,7 @@ void CHyprDebugOverlay::draw() {
     // draw the things
     int offsetY = 0;
     for (auto& m : g_pCompositor->m_vMonitors) {
-        offsetY += m_mMonitorOverlays[m.get()].draw(offsetY);
+        offsetY += m_mMonitorOverlays[m].draw(offsetY);
         offsetY += 5; // for padding between mons
     }
 

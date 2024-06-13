@@ -270,11 +270,11 @@ void updateRelativeCursorCoords() {
         g_pCompositor->m_pLastWindow->m_vRelativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - g_pCompositor->m_pLastWindow->m_vPosition;
 }
 
-bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
+bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     if (!monitor)
         return false;
 
-    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor.get();
+    const auto LASTMONITOR = g_pCompositor->m_pLastMonitor.lock();
     if (LASTMONITOR == monitor) {
         Debug::log(LOG, "Tried to move to active monitor");
         return false;
@@ -1029,7 +1029,7 @@ void CKeybindManager::changeworkspace(std::string args) {
     static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
     static auto PWORKSPACECENTERON    = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
 
-    const auto  PMONITOR = g_pCompositor->m_pLastMonitor.get();
+    const auto  PMONITOR = g_pCompositor->m_pLastMonitor.lock();
 
     if (!PMONITOR)
         return;
@@ -1157,7 +1157,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     }
 
     auto        pWorkspace            = g_pCompositor->getWorkspaceByID(WORKSPACEID);
-    CMonitor*   pMonitor              = nullptr;
+    PHLMONITOR  pMonitor              = nullptr;
     const auto  POLDWS                = PWINDOW->m_pWorkspace;
     static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
 
@@ -1643,7 +1643,7 @@ void CKeybindManager::exitHyprland(std::string argz) {
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
-    CMonitor* PMONITOR = g_pCompositor->getMonitorFromString(args);
+    PHLMONITOR PMONITOR = g_pCompositor->getMonitorFromString(args);
 
     if (!PMONITOR) {
         Debug::log(ERR, "Ignoring moveCurrentWorkspaceToMonitor: monitor doesnt exist");
@@ -1702,7 +1702,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
         return;
     }
 
-    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor.get();
+    const auto PCURRMONITOR = g_pCompositor->m_pLastMonitor.lock();
 
     if (!PCURRMONITOR) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor monitor doesn't exist!");
@@ -1791,7 +1791,7 @@ void CKeybindManager::forceRendererReload(std::string args) {
             continue;
 
         auto rule = g_pConfigManager->getMonitorRuleFor(*m);
-        if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
+        if (!g_pHyprRenderer->applyMonitorRule(m, &rule, true)) {
             overAgain = true;
             break;
         }
@@ -2255,7 +2255,7 @@ void CKeybindManager::dpms(std::string arg) {
         }
 
         if (enable)
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
 
         m->events.dpmsChanged.emit();
     }

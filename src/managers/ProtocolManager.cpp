@@ -46,7 +46,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 
-void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
+void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();
 
     // onModeChanged we check if the current mirror status matches the global.
@@ -67,7 +67,7 @@ CProtocolManager::CProtocolManager() {
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<CMonitor*>(param);
+        auto M = std::any_cast<PHLMONITOR>(param);
 
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
@@ -82,7 +82,7 @@ CProtocolManager::CProtocolManager() {
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<CMonitor*>(param);
+        auto M = std::any_cast<PHLMONITOR>(param);
         if (!PROTO::outputs.contains(M->szName))
             return;
         PROTO::outputs.at(M->szName)->remove();

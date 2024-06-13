@@ -1,7 +1,7 @@
 #include "Output.hpp"
 #include "../../helpers/Monitor.hpp"
 
-CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMonitor) : monitor(pMonitor), resource(resource_) {
+CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonitor) : monitor(pMonitor), resource(resource_) {
     if (!good())
         return;
 
@@ -58,7 +58,7 @@ void CWLOutputResource::updateState() {
         resource->sendDone();
 }
 
-CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name, SP<CMonitor> pMonitor) :
+CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name, PHLMONITOR pMonitor) :
     IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
 
     listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {

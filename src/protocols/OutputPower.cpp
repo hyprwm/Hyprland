@@ -4,7 +4,7 @@
 
 #define LOGM PROTO::outputPower->protoLog
 
-COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, CMonitor* pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
+COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     if (!resource->resource())
         return;
 
@@ -26,7 +26,7 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, CMonitor* pMonitor_
     resource->sendMode(pMonitor->dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 
     listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any v) {
-        pMonitor = nullptr;
+        pMonitor.reset();
         resource->sendFailed();
     });
 
@@ -70,7 +70,7 @@ void COutputPowerProtocol::onGetOutputPower(CZwlrOutputPowerManagerV1* pMgr, uin
     }
 
     const auto CLIENT   = pMgr->client();
-    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.get())).get();
+    const auto RESOURCE = m_vOutputPowers.emplace_back(std::make_unique<COutputPower>(makeShared<CZwlrOutputPowerV1>(CLIENT, pMgr->version(), id), OUTPUT->monitor.lock())).get();
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

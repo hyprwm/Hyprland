@@ -258,7 +258,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
+    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor.lock() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -370,8 +370,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface =
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0)
-        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
+    if (g_pPointerManager->isSoftwareLockedFor(g_pCompositor->m_pLastMonitor.lock()) > 0)
+        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.lock());
 
     // grabs
     if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface)) {
@@ -722,7 +722,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     // notify app if we didnt handle it
     g_pSeatManager->sendPointerButton(e.timeMs, e.button, e.state);
 
-    if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_pLastMonitor.get() && PMON)
+    if (const auto PMON = g_pCompositor->getMonitorFromVector(mouseCoords); PMON != g_pCompositor->m_pLastMonitor.lock() && PMON)
         g_pCompositor->setActiveMonitor(PMON);
 
     if (g_pSeatManager->seatGrab && e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -1396,7 +1396,7 @@ void CInputManager::refocus() {
     mouseMoveUnified(0, true);
 }
 
-void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
+void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     if (!pMonitor) {
         refocus();
         return;

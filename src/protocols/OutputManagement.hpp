@@ -17,7 +17,7 @@ class COutputManager {
     COutputManager(SP<CZwlrOutputManagerV1> resource_);
 
     bool good();
-    void ensureMonitorSent(CMonitor* pMonitor);
+    void ensureMonitorSent(PHLMONITOR pMonitor);
     void sendDone();
 
   private:
@@ -28,7 +28,7 @@ class COutputManager {
 
     std::vector<WP<COutputHead>> heads;
 
-    void                         makeAndSendNewHead(CMonitor* pMonitor);
+    void                         makeAndSendNewHead(PHLMONITOR pMonitor);
     friend class COutputManagementProtocol;
 };
 
@@ -50,16 +50,16 @@ class COutputMode {
 
 class COutputHead {
   public:
-    COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_);
+    COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_);
 
-    bool      good();
-    void      sendAllData(); // this has to be separate as we need to send the head first, then set the data
-    void      updateMode();
-    CMonitor* monitor();
+    bool       good();
+    void       sendAllData(); // this has to be separate as we need to send the head first, then set the data
+    void       updateMode();
+    PHLMONITOR monitor();
 
   private:
     SP<CZwlrOutputHeadV1>        resource;
-    CMonitor*                    pMonitor = nullptr;
+    PHLMONITORREF                pMonitor;
 
     void                         makeAndSendNewMode(wlr_output_mode* mode);
     void                         sendCurrentMode();
@@ -77,7 +77,7 @@ class COutputHead {
 
 class COutputConfigurationHead {
   public:
-    COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, CMonitor* pMonitor_);
+    COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, PHLMONITOR pMonitor_);
 
     bool good();
 
@@ -106,7 +106,7 @@ class COutputConfigurationHead {
 
   private:
     SP<CZwlrOutputConfigurationHeadV1> resource;
-    CMonitor*                          pMonitor = nullptr;
+    PHLMONITOR                         pMonitor = nullptr;
 
     struct {
         CHyprSignalListener monitorDestroy;

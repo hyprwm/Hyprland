@@ -16,7 +16,7 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitorName) {
+static void checkDefaultCursorWarp(PHLMONITOR PNEWMONITOR, std::string monitorName) {
 
     static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
     static auto firstMonitorAdded = std::chrono::system_clock::now();
@@ -62,7 +62,7 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // add it to real
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
     if (std::string("HEADLESS-1") == OUTPUT->name)
-        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
+        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR;
 
     PNEWMONITOR->output           = OUTPUT;
     PNEWMONITOR->self             = PNEWMONITOR;
@@ -81,12 +81,12 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
     // ready to process if we have a real monitor
 
     if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
-        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR.get();
+        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
     g_pCompositor->m_bReadyToProcess = true;
 
     g_pConfigManager->m_bWantsMonitorReload = true;
-    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get());
+    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR);
 
     checkDefaultCursorWarp(PNEWMONITOR, OUTPUT->name);
 
@@ -96,149 +96,4 @@ void Events::listener_newOutput(wl_listener* listener, void* data) {
             w->updateSurfaceScaleTransformDetails();
         }
     }
-}
-
-void Events::listener_monitorFrame(void* owner, void* data) {
-    if (g_pCompositor->m_bExitTriggered) {
-        // Only signal cleanup once
-        g_pCompositor->m_bExitTriggered = false;
-        g_pCompositor->cleanup();
-        return;
-    }
-
-    CMonitor* const PMONITOR = (CMonitor*)owner;
-
-    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Attempted to render frame on inactive session!");
-
-        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
-                return m->output != g_pCompositor->m_pUnsafeOutput->output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
-
-        return; // cannot draw on session inactive (different tty)
-    }
-
-    if (!PMONITOR->m_bEnabled)
-        return;
-
-    g_pHyprRenderer->recheckSolitaryForMonitor(PMONITOR);
-
-    PMONITOR->tearingState.busy = false;
-
-    if (PMONITOR->tearingState.activelyTearing && PMONITOR->solitaryClient.lock() /* can be invalidated by a recheck */) {
-
-        if (!PMONITOR->tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        PMONITOR->tearingState.nextRenderTorn          = true;
-        PMONITOR->tearingState.frameScheduledWhileBusy = false;
-    }
-
-    static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
-    static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
-
-    PMONITOR->lastPresentationTimer.reset();
-
-    if (*PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
-        if (!PMONITOR->RATScheduled) {
-            // render
-            g_pHyprRenderer->renderMonitor(PMONITOR);
-        }
-
-        PMONITOR->RATScheduled = false;
-
-        const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(PMONITOR);
-
-        if (max + *PRATSAFE > 1000.0 / PMONITOR->refreshRate)
-            return;
-
-        const auto MSLEFT = 1000.0 / PMONITOR->refreshRate - PMONITOR->lastPresentationTimer.getMillis();
-
-        PMONITOR->RATScheduled = true;
-
-        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
-        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
-
-        if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
-            g_pHyprRenderer->renderMonitor(PMONITOR);
-        else
-            wl_event_source_timer_update(PMONITOR->renderTimer, TIMETOSLEEP);
-    } else {
-        g_pHyprRenderer->renderMonitor(PMONITOR);
-    }
-}
-
-void Events::listener_monitorDestroy(void* owner, void* data) {
-    const auto OUTPUT = (wlr_output*)data;
-
-    CMonitor*  pMonitor = nullptr;
-
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (m->output == OUTPUT) {
-            pMonitor = m.get();
-            break;
-        }
-    }
-
-    if (!pMonitor)
-        return;
-
-    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
-
-    pMonitor->onDisconnect(true);
-
-    pMonitor->output                 = nullptr;
-    pMonitor->m_bRenderingInitPassed = false;
-
-    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
-
-    std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == pMonitor; });
-}
-
-void Events::listener_monitorStateRequest(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    const auto E        = (wlr_output_event_request_state*)data;
-
-    if (!PMONITOR->createdByUser)
-        return;
-
-    const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
-
-    PMONITOR->forceSize = SIZE;
-
-    SMonitorRule rule = PMONITOR->activeMonitorRule;
-    rule.resolution   = SIZE;
-
-    g_pHyprRenderer->applyMonitorRule(PMONITOR, &rule);
-}
-
-void Events::listener_monitorDamage(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    const auto E        = (wlr_output_event_damage*)data;
-
-    PMONITOR->addDamage(E->damage);
-}
-
-void Events::listener_monitorNeedsFrame(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
-}
-
-void Events::listener_monitorCommit(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-
-    const auto E = (wlr_output_event_commit*)data;
-
-    if (E->state->committed & WLR_OUTPUT_STATE_BUFFER) {
-        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
-        g_pProtocolManager->m_pToplevelExportProtocolManager->onOutputCommit(PMONITOR, E);
-    }
-}
-
-void Events::listener_monitorBind(void* owner, void* data) {
-    ;
 }

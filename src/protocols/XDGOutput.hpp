@@ -9,12 +9,12 @@ class CXDGOutputProtocol;
 
 class CXDGOutput {
   public:
-    CXDGOutput(SP<CZxdgOutputV1> resource, CMonitor* monitor_);
+    CXDGOutput(SP<CZxdgOutputV1> resource, PHLMONITOR monitor_);
 
     void sendDetails();
 
   private:
-    CMonitor*               monitor = nullptr;
+    PHLMONITORREF           monitor;
     SP<CZxdgOutputV1>       resource;
 
     std::optional<Vector2D> overridePosition;

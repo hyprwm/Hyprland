@@ -33,7 +33,7 @@ void CInputManager::beginWorkspaceSwipe() {
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
-    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor.get();
+    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor.lock();
     m_sActiveSwipe.avgSpeed        = 0;
     m_sActiveSwipe.speedPoints     = 0;
 

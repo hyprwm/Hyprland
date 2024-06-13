@@ -16,9 +16,9 @@ class IKeyboard;
 class CWLSurfaceResource;
 
 struct SRenderData {
-    CMonitor* pMonitor;
-    timespec* when;
-    double    x, y;
+    PHLMONITOR pMonitor;
+    timespec*  when;
+    double     x, y;
 
     // for iters
     void*                  data    = nullptr;
@@ -63,7 +63,7 @@ struct SSwipeGesture {
     int          speedPoints      = 0;
     int          touch_id         = 0;
 
-    CMonitor*    pMonitor = nullptr;
+    PHLMONITOR   pMonitor = nullptr;
 };
 
 struct SSwitchDevice {

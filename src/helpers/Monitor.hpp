@@ -115,11 +115,11 @@ class CMonitor {
 
     SMonitorRule            activeMonitorRule;
 
-    WP<CMonitor>            self;
+    PHLMONITORREF           self;
 
     // mirroring
-    CMonitor*              pMirrorOf = nullptr;
-    std::vector<CMonitor*> mirrors;
+    PHLMONITORREF              pMirrorOf;
+    std::vector<PHLMONITORREF> mirrors;
 
     // for tearing
     PHLWINDOWREF solitaryClient;
@@ -185,4 +185,13 @@ class CMonitor {
   private:
     void setupDefaultWS(const SMonitorRule&);
     int  findAvailableDefaultWS();
+
+    void onFrame(void* data);
+    void onStateRequest(void* data);
+    void onDamage(void* data);
+    void onCommit(void* data);
+    void onNeedsFrame(void* data);
+    void onBind(void* data);
+    void onDestroy(void* data);
+    void onPresented(void* data);
 };

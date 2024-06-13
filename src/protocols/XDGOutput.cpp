@@ -40,10 +40,10 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     static auto P  = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
     static auto P2 = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
     static auto P3 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = std::any_cast<CMonitor*>(param);
+        const auto PMONITOR = std::any_cast<PHLMONITOR>(param);
         for (auto& o : m_vXDGOutputs) {
             if (o->monitor == PMONITOR)
-                o->monitor = nullptr;
+                o->monitor.reset();
         }
     });
 }
@@ -51,7 +51,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
     const auto  OUTPUT = CWLOutputResource::fromResource(outputResource);
 
-    const auto  PMONITOR = OUTPUT->monitor.get();
+    const auto  PMONITOR = OUTPUT->monitor.lock();
 
     const auto  CLIENT = mgr->client();
 
@@ -99,7 +99,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
 
 //
 
-CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, CMonitor* monitor_) : monitor(monitor_), resource(resource_) {
+CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
     if (!resource->resource())
         return;
 

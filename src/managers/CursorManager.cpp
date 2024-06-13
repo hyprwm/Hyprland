@@ -283,7 +283,7 @@ void CCursorManager::updateTheme() {
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         m->forceFullFrames = 5;
-        g_pCompositor->scheduleFrameForMonitor(m.get());
+        g_pCompositor->scheduleFrameForMonitor(m);
     }
 }
 

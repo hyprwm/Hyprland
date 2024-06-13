@@ -46,7 +46,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
 
                 if (PWINDOW->m_pWorkspace != monitor->activeWorkspace) {
                     g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->activeWorkspace);
-                    g_pCompositor->setActiveMonitor(monitor.get());
+                    g_pCompositor->setActiveMonitor(monitor);
                 }
             }
         }
@@ -118,7 +118,7 @@ wl_resource* CForeignToplevelHandleWlr::res() {
     return resource->resource();
 }
 
-void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
+void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
     if (lastMonitorID == (int64_t)pMonitor->ID)
         return;
 

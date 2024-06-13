@@ -289,7 +289,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     m_vFramesAwaitingWrite.emplace_back(PFRAME);
 }
 
-void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
+void CToplevelExportProtocolManager::onOutputCommit(PHLMONITOR pMonitor, wlr_output_event_commit* e) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 

@@ -211,7 +211,7 @@ wl_client* CWLSurfaceResource::client() {
     return pClient;
 }
 
-void CWLSurfaceResource::enter(SP<CMonitor> monitor) {
+void CWLSurfaceResource::enter(PHLMONITOR monitor) {
     if (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) != enteredOutputs.end())
         return;
 
@@ -233,7 +233,7 @@ void CWLSurfaceResource::enter(SP<CMonitor> monitor) {
     resource->sendEnter(output->getResource().get());
 }
 
-void CWLSurfaceResource::leave(SP<CMonitor> monitor) {
+void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     if (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) == enteredOutputs.end())
         return;
 

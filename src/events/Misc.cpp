@@ -35,8 +35,8 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
     g_pCompositor->m_bSessionActive = true;
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        g_pCompositor->scheduleFrameForMonitor(m.get());
-        g_pHyprRenderer->applyMonitorRule(m.get(), &m->activeMonitorRule, true);
+        g_pCompositor->scheduleFrameForMonitor(m);
+        g_pHyprRenderer->applyMonitorRule(m, &m->activeMonitorRule, true);
     }
 
     g_pConfigManager->m_bWantsMonitorReload = true;

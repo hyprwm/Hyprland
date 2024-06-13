@@ -19,7 +19,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         return;
     }
 
-    pMonitor = OUTPUTRES->monitor.get();
+    pMonitor = OUTPUTRES->monitor.lock();
 
     if (!pMonitor) {
         LOGM(ERR, "No CMonitor");
@@ -124,16 +124,16 @@ void CGammaControl::applyToMonitor() {
         wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
     }
 
-    g_pHyprRenderer->damageMonitor(pMonitor);
+    g_pHyprRenderer->damageMonitor(pMonitor.lock());
 }
 
-CMonitor* CGammaControl::getMonitor() {
-    return pMonitor;
+PHLMONITOR CGammaControl::getMonitor() {
+    return pMonitor.lock();
 }
 
 void CGammaControl::onMonitorDestroy() {
     resource->sendFailed();
-    pMonitor = nullptr;
+    pMonitor.reset();
 }
 
 CGammaControlProtocol::CGammaControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -167,7 +167,7 @@ void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, 
     }
 }
 
-void CGammaControlProtocol::applyGammaToState(CMonitor* pMonitor) {
+void CGammaControlProtocol::applyGammaToState(PHLMONITOR pMonitor) {
     for (auto& g : m_vGammaControllers) {
         if (g->getMonitor() != pMonitor)
             continue;

@@ -412,7 +412,7 @@ class CWindow {
     bool                     canBeTorn();
     bool                     shouldSendFullscreenState();
     void                     setSuspended(bool suspend);
-    bool                     visibleOnMonitor(CMonitor* pMonitor);
+    bool                     visibleOnMonitor(PHLMONITOR pMonitor);
     int                      workspaceID();
     bool                     onSpecialWorkspace();
     void                     activate(bool force = false);

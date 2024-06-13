@@ -88,7 +88,7 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    CMonitor*            pMonitor   = nullptr;
+    PHLMONITORREF        pMonitor;
     PHLWORKSPACE         pWorkspace = nullptr;
     float                projection[9];
     float                savedProjection[9];
@@ -125,8 +125,8 @@ class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
 
-    void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void     beginSimple(CMonitor*, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
+    void     begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void     beginSimple(PHLMONITOR, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
     void     end();
 
     void     renderRect(CBox*, const CColor&, int round = 0);
@@ -161,13 +161,13 @@ class CHyprOpenGLImpl {
     void     scissor(const pixman_box32*, bool transform = true);
     void     scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void     destroyMonitorResources(CMonitor*);
+    void     destroyMonitorResources(PHLMONITOR);
 
-    void     markBlurDirtyForMonitor(CMonitor*);
+    void     markBlurDirtyForMonitor(PHLMONITOR);
 
     void     preWindowPass();
     bool     preBlurQueued();
-    void     preRender(CMonitor*);
+    void     preRender(PHLMONITOR);
 
     void     saveBufferForMirror(CBox*);
     void     renderMirrored();
@@ -180,23 +180,23 @@ class CHyprOpenGLImpl {
 
     void     setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t getPreferredReadFormat(CMonitor* pMonitor);
-    std::vector<SDRMFormat>                           getDRMFormats();
-    EGLImageKHR                                       createEGLImage(const SDMABUFAttrs& attrs);
+    uint32_t getPreferredReadFormat(PHLMONITOR pMonitor);
+    std::vector<SDRMFormat>                     getDRMFormats();
+    EGLImageKHR                                 createEGLImage(const SDMABUFAttrs& attrs);
 
-    SCurrentRenderData                                m_RenderData;
+    SCurrentRenderData                          m_RenderData;
 
-    GLint                                             m_iCurrentOutputFb = 0;
+    GLint                                       m_iCurrentOutputFb = 0;
 
-    bool                                              m_bReloadScreenShader = true; // at launch it can be set
+    bool                                        m_bReloadScreenShader = true; // at launch it can be set
 
-    PHLWINDOWREF                                      m_pCurrentWindow; // hack to get the current rendered window
-    PHLLS                                             m_pCurrentLayer;  // hack to get the current rendered layer
+    PHLWINDOWREF                                m_pCurrentWindow; // hack to get the current rendered window
+    PHLLS                                       m_pCurrentLayer;  // hack to get the current rendered layer
 
-    std::map<PHLWINDOWREF, CFramebuffer>              m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>                  m_mLayerFramebuffers;
-    std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer>        m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>            m_mLayerFramebuffers;
+    std::map<PHLMONITORREF, SMonitorRenderData> m_mMonitorRenderResources;
+    std::map<PHLMONITORREF, CFramebuffer>       m_mMonitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -235,7 +235,7 @@ class CHyprOpenGLImpl {
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
     GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
-    void                    createBGTextureForMonitor(CMonitor*);
+    void                    createBGTextureForMonitor(PHLMONITOR);
     void                    initShaders();
     void                    initDRMFormats();
     std::vector<uint64_t>   getModsForFormat(EGLint format);
@@ -250,7 +250,7 @@ class CHyprOpenGLImpl {
 
     void          preBlurForCurrentMonitor();
 
-    bool          passRequiresIntrospection(CMonitor* pMonitor);
+    bool          passRequiresIntrospection(PHLMONITOR pMonitor);
 
     friend class CHyprRenderer;
 };

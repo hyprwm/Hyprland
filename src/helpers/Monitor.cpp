@@ -10,7 +10,7 @@
 using namespace Hyprutils::String;
 
 int ratHandler(void* data) {
-    g_pHyprRenderer->renderMonitor((CMonitor*)data);
+    g_pHyprRenderer->renderMonitor(((CMonitor*)data)->self.lock());
 
     return 1;
 }
@@ -33,13 +33,6 @@ CMonitor::~CMonitor() {
     events.destroy.emit();
 }
 
-static void onPresented(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    auto       E        = (wlr_output_event_present*)data;
-
-    PROTO::presentation->onPresented(PMONITOR, E->when, E->refresh, E->seq, E->flags);
-}
-
 void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
@@ -49,14 +42,22 @@ void CMonitor::onConnect(bool noRule) {
     hyprListener_monitorCommit.removeCallback();
     hyprListener_monitorBind.removeCallback();
     hyprListener_monitorPresented.removeCallback();
-    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this, "CMonitor");
-    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this, "CMonitor");
-    hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this, "CMonitor");
-    hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this, "CMonitor");
-    hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this, "CMonitor");
-    hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this, "CMonitor");
-    hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this, "CMonitor");
-    hyprListener_monitorPresented.initCallback(&output->events.present, ::onPresented, this, "CMonitor");
+    hyprListener_monitorFrame.initCallback(
+        &output->events.frame, [this](void* owner, void* data) { this->onFrame(data); }, this, "CMonitor");
+    hyprListener_monitorDestroy.initCallback(
+        &output->events.destroy, [this](void* owner, void* data) { this->onDestroy(data); }, this, "CMonitor");
+    hyprListener_monitorStateRequest.initCallback(
+        &output->events.request_state, [this](void* owner, void* data) { this->onStateRequest(data); }, this, "CMonitor");
+    hyprListener_monitorDamage.initCallback(
+        &output->events.damage, [this](void* owner, void* data) { this->onDamage(data); }, this, "CMonitor");
+    hyprListener_monitorNeedsFrame.initCallback(
+        &output->events.needs_frame, [this](void* owner, void* data) { this->onNeedsFrame(data); }, this, "CMonitor");
+    hyprListener_monitorCommit.initCallback(
+        &output->events.commit, [this](void* owner, void* data) { this->onCommit(data); }, this, "CMonitor");
+    hyprListener_monitorBind.initCallback(
+        &output->events.bind, [this](void* owner, void* data) { this->onBind(data); }, this, "CMonitor");
+    hyprListener_monitorPresented.initCallback(
+        &output->events.present, [this](void* owner, void* data) { this->onPresented(data); }, this, "CMonitor");
 
     tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
 
@@ -135,7 +136,7 @@ void CMonitor::onConnect(bool noRule) {
         m_bRenderingInitPassed = true;
     }
 
-    SP<CMonitor>* thisWrapper = nullptr;
+    PHLMONITOR* thisWrapper = nullptr;
 
     // find the wrap
     for (auto& m : g_pCompositor->m_vRealMonitors) {
@@ -156,7 +157,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // set mode, also applies
     if (!noRule)
-        g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
+        g_pHyprRenderer->applyMonitorRule(self.lock(), &monitorRule, true);
 
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
@@ -172,7 +173,7 @@ void CMonitor::onConnect(bool noRule) {
             continue;
 
         if (ws->m_szLastMonitor == szName || g_pCompositor->m_vMonitors.size() == 1 /* avoid lost workspaces on recover */) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, this);
+            g_pCompositor->moveWorkspaceToMonitor(ws, self.lock());
             ws->startAnim(true, true, true);
             ws->m_szLastMonitor = "";
         }
@@ -190,16 +191,16 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
     g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
-    EMIT_HOOK_EVENT("monitorAdded", this);
+    EMIT_HOOK_EVENT("monitorAdded", self.lock());
 
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
-        g_pCompositor->setActiveMonitor(this);
+        g_pCompositor->setActiveMonitor(self.lock());
 
     g_pHyprRenderer->arrangeLayersForMonitor(ID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
 
     // ensure VRR (will enable if necessary)
-    g_pConfigManager->ensureVRR(this);
+    g_pConfigManager->ensureVRR(self.lock());
 
     // verify last mon valid
     bool found = false;
@@ -211,13 +212,13 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     if (!found)
-        g_pCompositor->setActiveMonitor(this);
+        g_pCompositor->setActiveMonitor(self.lock());
 
     renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 
-    g_pCompositor->scheduleFrameForMonitor(this);
+    g_pCompositor->scheduleFrameForMonitor(self.lock());
 
-    PROTO::gamma->applyGammaToState(this);
+    PROTO::gamma->applyGammaToState(self.lock());
 
     events.connect.emit();
 }
@@ -237,18 +238,18 @@ void CMonitor::onDisconnect(bool destroy) {
     events.disconnect.emit();
 
     // Cleanup everything. Move windows back, snap cursor, shit.
-    CMonitor* BACKUPMON = nullptr;
+    PHLMONITOR BACKUPMON = nullptr;
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (m.get() != this) {
-            BACKUPMON = m.get();
+            BACKUPMON = m;
             break;
         }
     }
 
     // remove mirror
     if (pMirrorOf) {
-        pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
-        pMirrorOf = nullptr;
+        pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [this](const auto& other) { return other.get() == this || !other; }));
+        pMirrorOf.reset();
     }
 
     if (!mirrors.empty()) {
@@ -320,31 +321,31 @@ void CMonitor::onDisconnect(bool destroy) {
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor.get() == this)
-        g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput);
+        g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput.lock());
 
-    if (g_pHyprRenderer->m_pMostHzMonitor == this) {
-        int       mostHz         = 0;
-        CMonitor* pMonitorMostHz = nullptr;
+    if (g_pHyprRenderer->m_pMostHzMonitor == self) {
+        int        mostHz         = 0;
+        PHLMONITOR pMonitorMostHz = nullptr;
 
         for (auto& m : g_pCompositor->m_vMonitors) {
             if (m->refreshRate > mostHz && m.get() != this) {
-                pMonitorMostHz = m.get();
+                pMonitorMostHz = m;
                 mostHz         = m->refreshRate;
             }
         }
 
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
-    std::erase_if(g_pCompositor->m_vMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
+    std::erase_if(g_pCompositor->m_vMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == self.lock()) {
         wlr_damage_ring_add_whole(&damage);
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(self.lock());
     } else if (wlr_damage_ring_add(&damage, rg))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(self.lock());
 }
 
 void CMonitor::addDamage(const CRegion* rg) {
@@ -353,13 +354,13 @@ void CMonitor::addDamage(const CRegion* rg) {
 
 void CMonitor::addDamage(const CBox* box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
-    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
+    if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == self.lock()) {
         wlr_damage_ring_add_whole(&damage);
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(self.lock());
     }
 
     if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(self.lock());
 }
 
 bool CMonitor::isMirror() {
@@ -412,7 +413,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
-        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, this);
+        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, self.lock());
         activeWorkspace = PNEWWORKSPACE;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(ID);
         PNEWWORKSPACE->startAnim(true, true, true);
@@ -441,7 +442,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         return;
     }
 
-    if (PMIRRORMON == this) {
+    if (PMIRRORMON == self) {
         Debug::log(ERR, "Cannot mirror self!");
         return;
     }
@@ -449,11 +450,10 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
     if (!PMIRRORMON) {
         // disable mirroring
 
-        if (pMirrorOf) {
-            pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
-        }
+        if (pMirrorOf)
+            pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [this](const auto& other) { return other.get() == this; }));
 
-        pMirrorOf = nullptr;
+        pMirrorOf.reset();
 
         // set rule
         const auto RULE = g_pConfigManager->getMonitorRuleFor(*this);
@@ -462,7 +462,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // push to mvmonitors
 
-        SP<CMonitor>* thisWrapper = nullptr;
+        PHLMONITOR* thisWrapper = nullptr;
 
         // find the wrap
         for (auto& m : g_pCompositor->m_vRealMonitors) {
@@ -481,12 +481,12 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         setupDefaultWS(RULE);
 
-        g_pHyprRenderer->applyMonitorRule(this, (SMonitorRule*)&RULE, true); // will apply the offset and stuff
+        g_pHyprRenderer->applyMonitorRule(self.lock(), (SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
-        CMonitor* BACKUPMON = nullptr;
+        PHLMONITOR BACKUPMON = nullptr;
         for (auto& m : g_pCompositor->m_vMonitors) {
             if (m.get() != this) {
-                BACKUPMON = m.get();
+                BACKUPMON = m;
                 break;
             }
         }
@@ -510,14 +510,14 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         pMirrorOf = PMIRRORMON;
 
-        pMirrorOf->mirrors.push_back(this);
+        pMirrorOf->mirrors.push_back(self);
 
         // remove from mvmonitors
         std::erase_if(g_pCompositor->m_vMonitors, [&](const auto& other) { return other.get() == this; });
 
         g_pCompositor->arrangeMonitors();
 
-        g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
+        g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front());
 
         g_pCompositor->sanityCheckWorkspaces();
     }
@@ -604,11 +604,11 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 
-    g_pHyprRenderer->damageMonitor(this);
+    g_pHyprRenderer->damageMonitor(self.lock());
 
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
 
-    g_pConfigManager->ensureVRR(this);
+    g_pConfigManager->ensureVRR(self.lock());
 
     g_pCompositor->updateSuspendedStates();
 
@@ -621,7 +621,7 @@ void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, b
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
-    g_pHyprRenderer->damageMonitor(this);
+    g_pHyprRenderer->damageMonitor(self.lock());
 
     if (!pWorkspace) {
         // remove special if exists
@@ -643,7 +643,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pCompositor->updateFullscreenFadeOnWorkspace(activeWorkspace);
 
-        g_pConfigManager->ensureVRR(this);
+        g_pConfigManager->ensureVRR(self.lock());
 
         g_pCompositor->updateSuspendedStates();
 
@@ -711,13 +711,143 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_szName + "," + szName});
 
-    g_pHyprRenderer->damageMonitor(this);
+    g_pHyprRenderer->damageMonitor(self.lock());
 
     g_pCompositor->updateFullscreenFadeOnWorkspace(pWorkspace);
 
-    g_pConfigManager->ensureVRR(this);
+    g_pConfigManager->ensureVRR(self.lock());
 
     g_pCompositor->updateSuspendedStates();
+}
+
+void CMonitor::onPresented(void* data) {
+    auto E = (wlr_output_event_present*)data;
+
+    PROTO::presentation->onPresented(self.lock(), E->when, E->refresh, E->seq, E->flags);
+}
+
+void CMonitor::onFrame(void* data) {
+    if (g_pCompositor->m_bExitTriggered) {
+        // Only signal cleanup once
+        g_pCompositor->m_bExitTriggered = false;
+        g_pCompositor->cleanup();
+        return;
+    }
+
+    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
+
+        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
+                return m->output != g_pCompositor->m_pUnsafeOutput->output;
+            })) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
+
+        return; // cannot draw on session inactive (different tty)
+    }
+
+    if (!m_bEnabled)
+        return;
+
+    g_pHyprRenderer->recheckSolitaryForMonitor(self.lock());
+
+    tearingState.busy = false;
+
+    if (tearingState.activelyTearing && solitaryClient.lock() /* can be invalidated by a recheck */) {
+
+        if (!tearingState.frameScheduledWhileBusy)
+            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
+
+        tearingState.nextRenderTorn          = true;
+        tearingState.frameScheduledWhileBusy = false;
+    }
+
+    static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
+    static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
+
+    lastPresentationTimer.reset();
+
+    if (*PENABLERAT && !tearingState.nextRenderTorn) {
+        if (!RATScheduled) {
+            // render
+            g_pHyprRenderer->renderMonitor(self.lock());
+        }
+
+        RATScheduled = false;
+
+        const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(self.lock());
+
+        if (max + *PRATSAFE > 1000.0 / refreshRate)
+            return;
+
+        const auto MSLEFT = 1000.0 / refreshRate - lastPresentationTimer.getMillis();
+
+        RATScheduled = true;
+
+        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
+        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
+
+        if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
+            g_pHyprRenderer->renderMonitor(self.lock());
+        else
+            wl_event_source_timer_update(renderTimer, TIMETOSLEEP);
+    } else
+        g_pHyprRenderer->renderMonitor(self.lock());
+}
+
+void CMonitor::onStateRequest(void* data) {
+    const auto E = (wlr_output_event_request_state*)data;
+
+    if (!createdByUser)
+        return;
+
+    const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
+
+    forceSize = SIZE;
+
+    SMonitorRule rule = activeMonitorRule;
+    rule.resolution   = SIZE;
+
+    g_pHyprRenderer->applyMonitorRule(self.lock(), &rule);
+}
+
+void CMonitor::onDamage(void* data) {
+    const auto E = (wlr_output_event_damage*)data;
+
+    addDamage(E->damage);
+}
+
+void CMonitor::onCommit(void* data) {
+    const auto E = (wlr_output_event_commit*)data;
+
+    if (E->state->committed & WLR_OUTPUT_STATE_BUFFER) {
+        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(self.lock(), E);
+        g_pProtocolManager->m_pToplevelExportProtocolManager->onOutputCommit(self.lock(), E);
+    }
+}
+
+void CMonitor::onNeedsFrame(void* data) {
+    g_pCompositor->scheduleFrameForMonitor(self.lock());
+}
+
+void CMonitor::onBind(void* data) {
+    ; // noop
+}
+
+void CMonitor::onDestroy(void* data) {
+
+    Debug::log(LOG, "Destroy called for monitor {}", szName);
+
+    onDisconnect(true);
+
+    output                 = nullptr;
+    m_bRenderingInitPassed = false;
+
+    Debug::log(LOG, "Removing monitor {} from realMonitors", szName);
+
+    std::erase_if(g_pCompositor->m_vMonitors, [this](PHLMONITOR& el) { return el.get() == this; });
+    std::erase_if(g_pCompositor->m_vRealMonitors, [this](PHLMONITOR& el) { return el.get() == this; });
 }
 
 void CMonitor::setSpecialWorkspace(const int& id) {

@@ -216,7 +216,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     const auto PFRAME     = &m_lFrames.emplace_back();
     PFRAME->overlayCursor = !!overlay_cursor;
     PFRAME->resource      = wl_resource_create(client, &zwlr_screencopy_frame_v1_interface, wl_resource_get_version(resource), frame);
-    PFRAME->pMonitor      = CWLOutputResource::fromResource(output)->monitor.get();
+    PFRAME->pMonitor      = CWLOutputResource::fromResource(output)->monitor.lock();
 
     if (!PFRAME->pMonitor) {
         Debug::log(ERR, "client requested sharing of a monitor that doesnt exist");
@@ -250,7 +250,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     } else
         Debug::log(ERR, "No RDATA in screencopy???");
 
-    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor);
+    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PFRAME->pMonitor.lock());
     if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
         Debug::log(ERR, "No format supported by renderer in capture output");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
@@ -302,7 +302,7 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         return;
     }
 
-    if (!g_pCompositor->monitorExists(PFRAME->pMonitor)) {
+    if (PFRAME->pMonitor.expired()) {
         Debug::log(ERR, "client requested sharing of a monitor that is gone");
         zwlr_screencopy_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
@@ -380,16 +380,16 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
     }
 
     if (!PFRAME->withDamage)
-        g_pHyprRenderer->damageMonitor(PFRAME->pMonitor);
+        g_pHyprRenderer->damageMonitor(PFRAME->pMonitor.lock());
 }
 
-void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
+void CScreencopyProtocolManager::onOutputCommit(PHLMONITOR pMonitor, wlr_output_event_commit* e) {
     m_pLastMonitorBackBuffer = e->state->buffer;
     shareAllFrames(pMonitor);
     m_pLastMonitorBackBuffer = nullptr;
 }
 
-void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor) {
+void CScreencopyProtocolManager::shareAllFrames(PHLMONITOR pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 
@@ -489,7 +489,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     CFramebuffer fb;
     fb.alloc(frame->box.w, frame->box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : frame->pMonitor->drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         wlr_texture_destroy(sourceTex);
         return false;
     }
@@ -537,7 +537,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
         }
     }
 
-    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+    g_pHyprOpenGL->m_RenderData.pMonitor.reset();
 
     wlr_texture_destroy(sourceTex);
 
@@ -553,7 +553,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true))
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true))
         return false;
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}

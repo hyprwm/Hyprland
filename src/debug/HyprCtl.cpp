@@ -48,8 +48,11 @@ static std::string formatToString(uint32_t drmFormat) {
     return "Invalid";
 }
 
-static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
+static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
+
+    if (!pMonitor || !pMonitor->output)
+        return "";
 
     if (!wl_list_empty(&pMonitor->output->modes)) {
         wlr_output_mode* mode;
@@ -125,7 +128,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
                 (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+                (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m, format));
         }
 
         trimTrailingComma(result);
@@ -145,7 +148,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
                 (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
                 (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
                 (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED),
-                m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+                m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m, format));
         }
     }
 
@@ -542,7 +545,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "name": "{}",
         "defaultSpeed": {:.5f}
     }},)#",
-                (uintptr_t)m.get(), escapeJSONStrings(m->hlName),
+                (uintptr_t)m, escapeJSONStrings(m->hlName),
                 wlr_input_device_is_libinput(&m->wlr()->base) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
                                                                 0.f);
         }
@@ -644,7 +647,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "mice:\n";
 
         for (auto& m : g_pInputManager->m_vPointers) {
-            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m, m->hlName,
                                   (wlr_input_device_is_libinput(&m->wlr()->base) ?
                                        libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
                                        0.f));
@@ -986,7 +989,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         for (auto& m : g_pCompositor->m_vMonitors) {
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
     }
@@ -1720,7 +1723,7 @@ std::string CHyprCtl::getReply(std::string request) {
         }
 
         for (auto& m : g_pCompositor->m_vMonitors) {
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
     }

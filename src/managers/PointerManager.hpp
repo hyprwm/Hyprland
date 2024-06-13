@@ -41,17 +41,18 @@ class CPointerManager {
     void setCursorSurface(SP<CWLSurface> buf, const Vector2D& hotspot);
     void resetCursorImage(bool apply = true);
 
-    void lockSoftwareForMonitor(SP<CMonitor> pMonitor);
-    void unlockSoftwareForMonitor(SP<CMonitor> pMonitor);
+    void lockSoftwareForMonitor(PHLMONITOR pMonitor);
+    void unlockSoftwareForMonitor(PHLMONITOR pMonitor);
     void lockSoftwareAll();
     void unlockSoftwareAll();
+    bool isSoftwareLockedFor(PHLMONITOR pMonitor);
 
-    void renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */);
+    void renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */);
 
     // this is needed e.g. during screensharing where
     // the software cursors aren't locked during the cursor move, but they
     // are rendered later.
-    void damageCursor(SP<CMonitor> pMonitor);
+    void damageCursor(PHLMONITOR pMonitor);
 
     //
     Vector2D position();
@@ -71,13 +72,13 @@ class CPointerManager {
     Vector2D closestValid(const Vector2D& pos);
 
     // returns the thing in device coordinates. Is NOT offset by the hotspot, relies on set_cursor with hotspot.
-    Vector2D getCursorPosForMonitor(SP<CMonitor> pMonitor);
+    Vector2D getCursorPosForMonitor(PHLMONITOR pMonitor);
     // returns the thing in logical coordinates of the monitor
-    CBox getCursorBoxLogicalForMonitor(SP<CMonitor> pMonitor);
+    CBox getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor);
     // returns the thing in global coords
     CBox         getCursorBoxGlobal();
 
-    Vector2D     transformedHotspot(SP<CMonitor> pMonitor);
+    Vector2D     transformedHotspot(PHLMONITOR pMonitor);
 
     SP<CTexture> getCurrentCursorTexture();
 
@@ -149,25 +150,25 @@ class CPointerManager {
     Vector2D pointerPos = {0, 0};
 
     struct SMonitorPointerState {
-        SMonitorPointerState(SP<CMonitor> m) : monitor(m) {}
+        SMonitorPointerState(PHLMONITOR m) : monitor(m) {}
         ~SMonitorPointerState() {
             if (cursorFrontBuffer)
                 wlr_buffer_unlock(cursorFrontBuffer);
         }
 
-        WP<CMonitor> monitor;
+        PHLMONITORREF monitor;
 
-        int          softwareLocks  = 0;
-        bool         hardwareFailed = false;
-        CBox         box; // logical
-        bool         entered   = false;
-        bool         hwApplied = false;
+        int           softwareLocks  = 0;
+        bool          hardwareFailed = false;
+        CBox          box; // logical
+        bool          entered   = false;
+        bool          hwApplied = false;
 
-        wlr_buffer*  cursorFrontBuffer = nullptr;
+        wlr_buffer*   cursorFrontBuffer = nullptr;
     };
 
     std::vector<SP<SMonitorPointerState>> monitorStates;
-    SP<SMonitorPointerState>              stateFor(SP<CMonitor> mon);
+    SP<SMonitorPointerState>              stateFor(PHLMONITOR mon);
     bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
     wlr_buffer*                           renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<CTexture> texture);
     bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, wlr_buffer* buf);

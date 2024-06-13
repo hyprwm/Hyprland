@@ -1773,7 +1773,8 @@ void CHyprRenderer::damageBox(CBox* pBox, bool skipFrameSchedule) {
 
         CBox damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         damageBox.scale(m->scale);
-        m->addDamage(&damageBox, skipFrameSchedule);
+        if (!skipFrameSchedule)
+            m->addDamage(&damageBox);
     }
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");

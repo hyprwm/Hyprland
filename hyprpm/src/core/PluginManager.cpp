@@ -479,13 +479,16 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
 
-    if (ret.contains("required packages were not found")) {
+    if (ret.contains("CMake Error at")) {
         // missing deps, let the user know.
-        std::string missing = ret.substr(ret.find("The following required packages were not found:"));
-        missing             = missing.substr(0, missing.find("Call Stack"));
+        std::string missing = ret.substr(ret.find("CMake Error at"));
+        missing             = ret.substr(ret.find_first_of('\n') + 1);
+        missing             = missing.substr(0, missing.find("-- Configuring incomplete"));
         missing             = missing.substr(0, missing.find_last_of('\n'));
 
-        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n" << missing << "\n";
+        std::cerr << "\n"
+                  << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n"
+                  << missing << "\n\nThis likely means that you are missing the above dependencies or they are out of date.\n";
         return false;
     }
 

@@ -352,6 +352,7 @@ void CCompositor::cleanup() {
     g_pPointerManager.reset();
     g_pSeatManager.reset();
     g_pHyprCtl.reset();
+    g_pEventLoopManager.reset();
 
     if (m_sWLRRenderer)
         wlr_renderer_destroy(m_sWLRRenderer);

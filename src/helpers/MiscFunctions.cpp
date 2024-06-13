@@ -814,7 +814,8 @@ bool envEnabled(const std::string& env) {
 }
 
 std::pair<int, std::string> openExclusiveShm() {
-    std::string name = g_pTokenManager->getRandomUUID();
+    // Only absolute paths can be shared across different shm_open() calls
+    std::string name = "/" + g_pTokenManager->getRandomUUID();
 
     for (size_t i = 0; i < 69; ++i) {
         int fd = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);

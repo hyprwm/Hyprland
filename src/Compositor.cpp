@@ -351,6 +351,7 @@ void CCompositor::cleanup() {
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
     g_pSeatManager.reset();
+    g_pHyprCtl.reset();
 
     if (m_sWLRRenderer)
         wlr_renderer_destroy(m_sWLRRenderer);
@@ -364,6 +365,7 @@ void CCompositor::cleanup() {
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
 
+    wl_event_loop_destroy(m_sWLEventLoop);
     wl_display_terminate(m_sWLDisplay);
     m_sWLDisplay = nullptr;
 

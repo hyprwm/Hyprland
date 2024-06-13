@@ -248,11 +248,11 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             }
         }
     } else {
-        Debug::log(LOG, "[xwm] Unhandled prop {} -> {}", atom, propName);
+        Debug::log(TRACE, "[xwm] Unhandled prop {} -> {}", atom, propName);
         return;
     }
 
-    Debug::log(LOG, "[xwm] Handled prop {} -> {}", atom, propName);
+    Debug::log(TRACE, "[xwm] Handled prop {} -> {}", atom, propName);
 }
 
 void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
@@ -354,11 +354,11 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
     } else if (e->type == HYPRATOMS["_NET_ACTIVE_WINDOW"]) {
         XSURF->events.activate.emit();
     } else {
-        Debug::log(LOG, "[xwm] Unhandled message prop {} -> {}", e->type, propName);
+        Debug::log(TRACE, "[xwm] Unhandled message prop {} -> {}", e->type, propName);
         return;
     }
 
-    Debug::log(LOG, "[xwm] Handled message prop {} -> {}", e->type, propName);
+    Debug::log(TRACE, "[xwm] Handled message prop {} -> {}", e->type, propName);
 }
 
 void CXWM::handleFocusIn(xcb_focus_in_event_t* e) {
@@ -490,18 +490,18 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
 }
 
 void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection notify for {} prop {} target {}", e->selection, e->property, e->target);
+    Debug::log(TRACE, "[xwm] Selection notify for {} prop {} target {}", e->selection, e->property, e->target);
 
     SXSelection& sel = clipboard;
 
     if (e->property == XCB_ATOM_NONE) {
         if (sel.transfer) {
-            Debug::log(ERR, "[xwm] converting selection failed");
+            Debug::log(TRACE, "[xwm] converting selection failed");
             sel.transfer.reset();
         }
     } else if (e->target == HYPRATOMS["TARGETS"]) {
         if (!focusedSurface) {
-            Debug::log(LOG, "[xwm] denying access to write to clipboard because no X client is in focus");
+            Debug::log(TRACE, "[xwm] denying access to write to clipboard because no X client is in focus");
             return;
         }
 
@@ -519,7 +519,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection request for {} prop {} target {} time {} requestor {} selection {}", e->selection, e->property, e->target, e->time, e->requestor,
+    Debug::log(TRACE, "[xwm] Selection request for {} prop {} target {} time {} requestor {} selection {}", e->selection, e->property, e->target, e->time, e->requestor,
                e->selection);
 
     SXSelection& sel = clipboard;
@@ -542,7 +542,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
     }
 
     if (!g_pSeatManager->state.keyboardFocusResource || g_pSeatManager->state.keyboardFocusResource->client() != g_pXWayland->pServer->xwaylandClient) {
-        Debug::log(LOG, "[xwm] Ignoring clipboard access: xwayland not in focus");
+        Debug::log(TRACE, "[xwm] Ignoring clipboard access: xwayland not in focus");
         selectionSendNotify(e, false);
         return;
     }
@@ -585,7 +585,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
 }
 
 bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
-    Debug::log(LOG, "[xwm] Selection xfixes notify for {}", e->selection);
+    Debug::log(TRACE, "[xwm] Selection xfixes notify for {}", e->selection);
 
     // IMPORTANT: mind the g_pSeatManager below
     SXSelection& sel = clipboard;

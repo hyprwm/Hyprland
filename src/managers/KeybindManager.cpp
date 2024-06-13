@@ -1,6 +1,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
@@ -1086,6 +1087,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (!PMONITORWORKSPACEOWNER)
         return;
 
+    updateRelativeCursorCoords();
+
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
     if (BISWORKSPACECURRENT) {
@@ -1113,6 +1116,19 @@ void CKeybindManager::changeworkspace(std::string args) {
             g_pInputManager->sendMotionEventsToFocused();
         else
             g_pInputManager->simulateMouseMovement();
+    }
+
+    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+
+    if (*PWARPONWORKSPACECHANGE) {
+        Vector2D surfaceCoords;
+        PHLLS    pFoundLayerSurface;
+        auto     PLAST = pWorkspaceToChangeTo->getLastFocusedWindow();
+
+        if (PLAST &&
+            !g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords,
+                                                 &pFoundLayerSurface))
+            PLAST->warpCursor();
     }
 }
 

@@ -42,6 +42,7 @@ struct SSessionLockSurface;
 class CHyprRenderer {
   public:
     CHyprRenderer();
+    ~CHyprRenderer();
 
     void                            renderMonitor(CMonitor* pMonitor);
     void                            arrangeLayersForMonitor(const int&);

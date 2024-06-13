@@ -188,6 +188,9 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 
     Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
 
+    if (pMonitor->output->idle_frame)
+        wl_event_source_remove(pMonitor->output->idle_frame);
+
     pMonitor->onDisconnect(true);
 
     pMonitor->output                 = nullptr;

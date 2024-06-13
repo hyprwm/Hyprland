@@ -90,6 +90,11 @@ CHyprRenderer::CHyprRenderer() {
     wl_event_source_timer_update(m_pCursorTicker, 500);
 }
 
+CHyprRenderer::~CHyprRenderer() {
+    if (m_pCursorTicker)
+        wl_event_source_remove(m_pCursorTicker);
+}
+
 static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
     if (!surface->current.buffer || !surface->current.buffer->texture)
         return;

@@ -26,7 +26,8 @@ static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
     std::array<char, 128>                          buffer;
     std::string                                    result;
-    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    using PcloseType = int(*)(FILE*);
+    const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd.c_str(), "r"), static_cast<PcloseType>(pclose));
     if (!pipe)
         return "";
 
@@ -35,6 +36,7 @@ static std::string execAndGet(std::string cmd) {
     }
     return result;
 }
+
 
 SHyprlandVersion CPluginManager::getHyprlandVersion() {
     static SHyprlandVersion ver;

@@ -1,6 +1,7 @@
 #include "Log.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
+#include "RollingLogFollow.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -72,6 +73,9 @@ void Debug::log(LogLevel level, std::string str) {
     rollingLog += str + "\n";
     if (rollingLog.size() > ROLLING_LOG_SIZE)
         rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
+
+    if (RollingLogFollow::Get().IsRunning())
+        RollingLogFollow::Get().AddLog(str);
 
     if (!disableLogs || !**disableLogs) {
         // log to a file

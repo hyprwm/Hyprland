@@ -24,8 +24,8 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .bytesPerBlock = 4,
     },
     {
-        .drmFormat     = DRM_FORMAT_XRGB8888,
-        .flipRB        = true,
+        .drmFormat = DRM_FORMAT_XRGB8888,
+        .flipRB    = true,
 #ifndef GLES2
         .glFormat = GL_RGBA,
 #else

@@ -11,9 +11,13 @@
 */
 inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
-        .drmFormat     = DRM_FORMAT_ARGB8888,
-        .flipRB        = true,
-        .glFormat      = GL_RGBA,
+        .drmFormat = DRM_FORMAT_ARGB8888,
+        .flipRB    = true,
+#ifndef GLES2
+        .glFormat = GL_RGBA,
+#else
+        .glFormat = GL_BGRA_EXT,
+#endif
         .glType        = GL_UNSIGNED_BYTE,
         .withAlpha     = true,
         .alphaStripped = DRM_FORMAT_XRGB8888,
@@ -22,7 +26,11 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
         .drmFormat     = DRM_FORMAT_XRGB8888,
         .flipRB        = true,
-        .glFormat      = GL_RGBA,
+#ifndef GLES2
+        .glFormat = GL_RGBA,
+#else
+        .glFormat = GL_BGRA_EXT,
+#endif
         .glType        = GL_UNSIGNED_BYTE,
         .withAlpha     = false,
         .alphaStripped = DRM_FORMAT_XRGB8888,

@@ -317,9 +317,8 @@ void CLayerSurface::onCommit() {
             // so unfocus the surface here.
             g_pCompositor->focusSurface(nullptr);
             g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
-        } else if (!WASEXCLUSIVE && !WASLASTFOCUS &&
-                   (ISEXCLUSIVE || (layerSurface->current.interactivity && (g_pSeatManager->mouse.expired() || !g_pInputManager->isConstrained())))) {
-            // if not focused last and exclusive or accepting input + unconstrained
+        } else if (!WASEXCLUSIVE && ISEXCLUSIVE) {
+            // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
             g_pCompositor->focusSurface(surface->resource());

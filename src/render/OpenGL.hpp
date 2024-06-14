@@ -238,7 +238,9 @@ class CHyprOpenGLImpl {
     void                    createBGTextureForMonitor(CMonitor*);
     void                    initShaders();
     void                    initDRMFormats();
-    std::vector<uint64_t>   getModsForFormat(EGLint format);
+
+    //
+    std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);

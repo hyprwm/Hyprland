@@ -158,6 +158,7 @@ class CMonitor {
     void     addDamage(const pixman_region32_t* rg);
     void     addDamage(const CRegion* rg);
     void     addDamage(const CBox* box);
+    bool     shouldSkipScheduleFrameOnMouseEvent();
     void     setMirror(const std::string&);
     bool     isMirror();
     bool     matchesStaticSelector(const std::string& selector) const;

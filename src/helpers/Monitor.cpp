@@ -362,6 +362,24 @@ void CMonitor::addDamage(const CBox* box) {
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
+    static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
+
+    // skip scheduling extra frames for fullsreen apps with vrr
+    bool shouldSkip = *PNOBREAK && output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow &&
+        activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
+
+    // keep requested minimum refresh rate
+    if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
+        // damage whole screen because some previous cursor box damages were skipped
+        wlr_damage_ring_add_whole(&damage);
+        return false;
+    }
+
+    return shouldSkip;
+}
+
 bool CMonitor::isMirror() {
     return pMirrorOf != nullptr;
 }

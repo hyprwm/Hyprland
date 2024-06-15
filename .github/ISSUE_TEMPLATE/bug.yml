@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before opening a new issue, take a moment to search through the current open and closed issues, to check if it already exists.
+        Before opening a new issue, take a moment to search through the current open and closed issues to check if it already exists.
 
         ---
 
@@ -15,7 +15,7 @@ body:
       label: Regression?
       description: |
         Regression means that this bug is absent in a previous version of Hyprland.
-        "PLEASE, check if it is a regression or not before continuing, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue"
+        PLEASE, check if it is a regression or not before continuing, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
       options:
         - "Yes"
         - "No"

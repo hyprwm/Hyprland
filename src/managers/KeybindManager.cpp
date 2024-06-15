@@ -1121,13 +1121,10 @@ void CKeybindManager::changeworkspace(std::string args) {
     const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
 
     if (*PWARPONWORKSPACECHANGE) {
-        Vector2D surfaceCoords;
-        PHLLS    pFoundLayerSurface;
-        auto     PLAST = pWorkspaceToChangeTo->getLastFocusedWindow();
+        auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
 
-        if (PLAST &&
-            !g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords,
-                                                 &pFoundLayerSurface))
+        if (PLAST && (!HLSurface || HLSurface->getWindow()))
             PLAST->warpCursor();
     }
 }

@@ -360,30 +360,39 @@ void CPointerManager::resetCursorImage(bool apply) {
     }
 }
 
+void CPointerManager::updateCursorBackendForMonitor(CSharedPointer<CMonitor>& m, Hyprlang::INT PNOHW) {
+    auto state = stateFor(m);
+
+    if (!m->m_bEnabled || !m->dpmsStatus) {
+        Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+        return;
+    }
+
+    if (state->softwareLocks > 0 || PNOHW || !attemptHardwareCursor(state)) {
+        Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
+        state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
+        state->hardwareFailed = true;
+
+        if (state->hwApplied)
+            setHWCursorBuffer(state, nullptr);
+
+        state->hwApplied = false;
+        return;
+    }
+
+    state->hardwareFailed = false;
+}
+
 void CPointerManager::updateCursorBackend() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        auto state = stateFor(m);
-
-        if (!m->m_bEnabled || !m->dpmsStatus) {
-            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
-            continue;
-        }
-
-        if (state->softwareLocks > 0 || *PNOHW || !attemptHardwareCursor(state)) {
-            Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
-            state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
-            state->hardwareFailed = true;
-
-            if (state->hwApplied)
-                setHWCursorBuffer(state, nullptr);
-
-            state->hwApplied = false;
-            continue;
-        }
-
-        state->hardwareFailed = false;
+        updateCursorBackendForMonitor(m, *PNOHW);
+        for (auto& mirror : m->mirrors)
+            for (auto& M : g_pCompositor->m_vRealMonitors)
+                // update backend for mirrors when using hardware cursor
+                if (M->ID == mirror->ID && !*PNOHW)
+                    updateCursorBackendForMonitor(M, *PNOHW);
     }
 }
 

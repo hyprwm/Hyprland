@@ -12,11 +12,12 @@ body:
   - type: dropdown
     id: type
     attributes:
-      label: Bug or Regression?
-      description: Is this a bug or a regression?
+      label: Regression?
+      description: Is this bug present in a previous version of Hyprland?
       options:
-        - Bug
-        - Regression
+        - I don't know
+        - Yes
+        - No
     validations:
       required: true
 

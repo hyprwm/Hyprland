@@ -1540,3 +1540,58 @@ void CWindow::warpCursor() {
     else
         g_pCompositor->warpCursorTo(middle());
 }
+
+PHLWINDOW CWindow::getSwallower() {
+    static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
+    static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
+    static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
+
+    if (!*PSWALLOW || (*PSWALLOWREGEX).empty())
+        return nullptr;
+
+    // check parent
+    std::vector<PHLWINDOW> candidates;
+    pid_t                  currentPid = getPID();
+    // walk up the tree until we find someone, 25 iterations max.
+    for (size_t i = 0; i < 25; ++i) {
+        currentPid = getPPIDof(currentPid);
+
+        if (!currentPid)
+            break;
+
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped || w->isHidden())
+                continue;
+
+            if (w->getPID() == currentPid)
+                candidates.push_back(w);
+        }
+    }
+
+    if (!(*PSWALLOWREGEX).empty())
+        std::erase_if(candidates, [&](const auto& other) { return !std::regex_match(other->m_szClass, std::regex(*PSWALLOWREGEX)); });
+
+    if (candidates.size() <= 0)
+        return nullptr;
+
+    if (!(*PSWALLOWEXREGEX).empty())
+        std::erase_if(candidates, [&](const auto& other) { return std::regex_match(other->m_szTitle, std::regex(*PSWALLOWEXREGEX)); });
+
+    if (candidates.size() <= 0)
+        return nullptr;
+
+    if (candidates.size() == 1)
+        return candidates.at(0);
+
+    // walk up the focus history and find the last focused
+    for (auto& w : g_pCompositor->m_vWindowFocusHistory) {
+        if (!w)
+            continue;
+
+        if (std::find(candidates.begin(), candidates.end(), w.lock()) != candidates.end())
+            return w.lock();
+    }
+
+    // if none are found (??) then just return the first one
+    return candidates.at(0);
+}

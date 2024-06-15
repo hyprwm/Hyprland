@@ -6,6 +6,7 @@
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../helpers/varlist/VarList.hpp"
 
 int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
@@ -396,6 +397,8 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     auto ANIMSTYLE = pWindow->m_vRealPosition.m_pConfig->pValues->internalStyle;
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
+    CVarList animList(ANIMSTYLE, 0, 's');
+
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
     if (!pWindow->m_vRealPosition.isBeingAnimated() && !pWindow->m_vRealSize.isBeingAnimated())
         return;
@@ -407,12 +410,8 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
         // the window has config'd special anim
         if (pWindow->m_sAdditionalConfigData.animationStyle.starts_with("slide")) {
-            if (pWindow->m_sAdditionalConfigData.animationStyle.contains(' ')) {
-                // has a direction
-                animationSlide(pWindow, pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find(' ') + 1), close);
-            } else {
-                animationSlide(pWindow, "", close);
-            }
+            CVarList animList2(pWindow->m_sAdditionalConfigData.animationStyle, 0, 's');
+            animationSlide(pWindow, animList2[1], close);
         } else {
             // anim popin, fallback
 
@@ -429,9 +428,9 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
             animationPopin(pWindow, close, minPerc / 100.f);
         }
     } else {
-        if (ANIMSTYLE == "slide") {
-            animationSlide(pWindow, "", close);
-        } else {
+        if (animList[0] == "slide")
+            animationSlide(pWindow, animList[1], close);
+        else {
             // anim popin, fallback
 
             float minPerc = 0.f;
@@ -451,9 +450,9 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
 
 std::string CAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
-        if (style == "slide") {
+        if (style.starts_with("slide"))
             return "";
-        } else if (style.starts_with("popin")) {
+        else if (style.starts_with("popin")) {
             // try parsing
             float minPerc = 0.f;
             if (style.find("%") != std::string::npos) {

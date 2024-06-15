@@ -534,29 +534,25 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
     if (success)
         return predictedBox.translate(-parentCoord - constraint.pos());
 
+    CBox test = predictedBox;
+
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
         // attempt to flip
         const bool flipX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
         const bool flipY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
 
-        CBox       test = predictedBox;
-        success         = true;
-        if (flipX && test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0}).expand(-1).inside(constraint))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        else if (flipY && test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h}).expand(-1).inside(constraint))
-            test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
-        else if (flipX && flipY && test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h}).expand(-1).inside(constraint))
+        if (flipX && flipY)
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h});
-        else
-            success = false;
+        else if (flipX)
+            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
+        else if (flipY)
+            test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
+
+        success = test.copy().expand(-1).inside(constraint);
 
         if (success)
             return test.translate(-parentCoord - constraint.pos());
     }
-
-    // if flips fail, we will slide and remember.
-    // if the positioner is allowed to resize, then resize the slid thing.
-    CBox test = predictedBox;
 
     // for slide and resize, defines the padding around the edge for the positioned
     // surface.
@@ -570,10 +566,10 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         //const bool gravityLeft = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_BOTTOM_LEFT;
         //const bool gravityTop = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_TOP || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_RIGHT;
 
-        const bool leftEdgeOut   = predictedBox.x < constraint.x;
-        const bool topEdgeOut    = predictedBox.y < constraint.y;
-        const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
+        const bool leftEdgeOut   = test.x < constraint.x;
+        const bool topEdgeOut    = test.y < constraint.y;
+        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
+        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
 
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && slideX)
@@ -595,10 +591,10 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         const bool resizeX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X;
         const bool resizeY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y;
 
-        const bool leftEdgeOut   = predictedBox.x < constraint.x;
-        const bool topEdgeOut    = predictedBox.y < constraint.y;
-        const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
+        const bool leftEdgeOut   = test.x < constraint.x;
+        const bool topEdgeOut    = test.y < constraint.y;
+        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
+        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
 
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && resizeX) {

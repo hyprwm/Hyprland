@@ -541,11 +541,14 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         const bool flipX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
         const bool flipY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
 
-        if (flipX && flipY)
+        const bool horizontalEdgeOut = test.x < constraint.x || test.x + test.w > constraint.x + constraint.w;
+        const bool verticalEdgeOut   = test.y < constraint.y || test.y + test.h > constraint.y + constraint.h;
+
+        if (flipX && horizontalEdgeOut && flipY && verticalEdgeOut)
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h});
-        else if (flipX)
+        else if (flipX && horizontalEdgeOut)
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        else if (flipY)
+        else if (flipY && verticalEdgeOut)
             test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
 
         success = test.copy().expand(-1).inside(constraint);

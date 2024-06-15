@@ -507,12 +507,12 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
     state = positioner->state;
 }
 
-static Vector2D pointForAnchor(const CBox& box, xdgPositionerAnchor anchor) {
+static Vector2D pointForAnchor(const CBox& box, const Vector2D& predictionSize, xdgPositionerAnchor anchor) {
     switch (anchor) {
-        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.F, 0};
-        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.F, box.size().y};
-        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0, box.size().y / 2.F};
-        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F};
+        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.F - predictionSize.x / 2.F, 0};
+        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.F - predictionSize.x / 2.F, box.size().y};
+        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0, box.size().y / 2.F - predictionSize.y / 2.F};
+        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F - predictionSize.y / 2.F};
         case XDG_POSITIONER_ANCHOR_TOP_LEFT: return box.pos();
         case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0, box.size().y};
         case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0};
@@ -527,7 +527,7 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
 
     Debug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
 
-    CBox predictedBox = {parentCoord + constraint.pos() + pointForAnchor(state.anchorRect, state.anchor) + state.offset, state.requestedSize};
+    CBox predictedBox = {parentCoord + constraint.pos() + pointForAnchor(state.anchorRect, state.requestedSize, state.anchor) + state.offset, state.requestedSize};
 
     bool success = predictedBox.inside(constraint);
 

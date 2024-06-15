@@ -44,7 +44,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PSWALLOW           = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
     static auto PSWALLOWREGEX      = CConfigValue<std::string>("misc:swallow_regex");
-    static auto PSWALLOWEXREGEX    = CConfigValue<std::string>("misc:swallow_exception_regex");
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
@@ -527,71 +526,17 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // verify swallowing
     if (*PSWALLOW && std::string{*PSWALLOWREGEX} != STRVAL_EMPTY) {
-        // don't swallow ourselves
-        std::regex rgx(*PSWALLOWREGEX);
-        if (!std::regex_match(PWINDOW->m_szClass, rgx)) {
-            // check parent
-            int ppid = getPPIDof(PWINDOW->getPID());
+        const auto SWALLOWER = PWINDOW->getSwallower();
 
-            int curppid = 0;
+        if (SWALLOWER) {
+            // swallow
+            PWINDOW->m_pSwallowed = SWALLOWER;
 
-            for (int i = 0; i < 5; ++i) {
-                curppid = getPPIDof(ppid);
+            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
 
-                if (curppid < 10) {
-                    break;
-                }
+            SWALLOWER->setHidden(true);
 
-                ppid = curppid;
-            }
-
-            if (ppid) {
-                // get window by pid
-                std::vector<PHLWINDOW> found;
-                PHLWINDOW              finalFound;
-                for (auto& w : g_pCompositor->m_vWindows) {
-                    if (!w->m_bIsMapped || w->isHidden())
-                        continue;
-
-                    if (w->getPID() == ppid) {
-                        found.push_back(w);
-                    }
-                }
-
-                if (found.size() > 1) {
-                    for (auto& w : found) {
-                        // try get the focus, otherwise we'll ignore to avoid swallowing incorrect windows
-                        if (w == PFOCUSEDWINDOWPREV) {
-                            finalFound = w;
-                            break;
-                        }
-                    }
-                } else if (found.size() == 1) {
-                    finalFound = found[0];
-                }
-
-                if (finalFound) {
-                    bool valid = std::regex_match(PWINDOW->m_szClass, rgx);
-
-                    if (std::string{*PSWALLOWEXREGEX} != STRVAL_EMPTY) {
-                        std::regex exc(*PSWALLOWEXREGEX);
-
-                        valid = valid && !std::regex_match(PWINDOW->m_szTitle, exc);
-                    }
-
-                    // check if it's the window we want & not exempt from getting swallowed
-                    if (valid) {
-                        // swallow
-                        PWINDOW->m_pSwallowed = finalFound;
-
-                        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(finalFound);
-
-                        finalFound->setHidden(true);
-
-                        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
-                    }
-                }
-            }
+            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
         }
     }
 

@@ -450,6 +450,7 @@ class CWindow {
     std::string              fetchTitle();
     std::string              fetchClass();
     void                     warpCursor();
+    PHLWINDOW                getSwallower();
 
     // listeners
     void onAck(uint32_t serial);

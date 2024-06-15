@@ -13,13 +13,17 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         return;
 
     resource->setDestroy([this](CWlDataOffer* r) {
-        if (!dead)
+        if (!dead && (recvd || accepted))
             PROTO::data->completeDrag();
+        else
+            PROTO::data->abortDrag();
         PROTO::data->destroyResource(this);
     });
     resource->setOnDestroy([this](CWlDataOffer* r) {
-        if (!dead)
+        if (!dead && (recvd || accepted))
             PROTO::data->completeDrag();
+        else
+            PROTO::data->abortDrag();
         PROTO::data->destroyResource(this);
     });
 
@@ -592,6 +596,11 @@ void CWLDataDeviceProtocol::dropDrag() {
         return;
     }
 
+    if (!wasDragSuccessful()) {
+        abortDrag();
+        return;
+    }
+
     dnd.currentSource->sendDndDropPerformed();
     dnd.focusedDevice->sendDrop();
     dnd.focusedDevice->sendLeave();
@@ -601,6 +610,21 @@ void CWLDataDeviceProtocol::dropDrag() {
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
+}
+
+bool CWLDataDeviceProtocol::wasDragSuccessful() {
+    if (!dnd.focusedDevice || !dnd.currentSource)
+        return false;
+
+    for (auto& o : m_vOffers) {
+        if (o->dead || !o->source || !o->source->hasDnd())
+            continue;
+
+        if (o->recvd || o->accepted)
+            return true;
+    }
+
+    return false;
 }
 
 void CWLDataDeviceProtocol::completeDrag() {

@@ -76,16 +76,30 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     if (pWindow->m_bIsFloating)
         return;
 
-    static auto PNEWTOP = CConfigValue<Hyprlang::INT>("master:new_on_top");
+    static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
+    static auto PNEWONTOP    = CConfigValue<Hyprlang::INT>("master:new_on_top");
+    static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");
 
     const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
-    const auto  PNODE = *PNEWTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
+    const bool  BNEWBEFOREACTIVE = *PNEWONACTIVE == "before";
+    const bool  BNEWISMASTER     = *PNEWSTATUS == "master";
+
+    const auto  PNODE = [&]() {
+        if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {
+            const auto pLastNode = getNodeFromWindow(g_pCompositor->m_pLastWindow.lock());
+            if (pLastNode && !(pLastNode->isMaster && (getMastersOnWorkspace(pWindow->workspaceID()) == 1 || *PNEWSTATUS == "slave"))) {
+                auto it = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *pLastNode);
+                if (!BNEWBEFOREACTIVE)
+                    ++it;
+                return &(*m_lMasterNodesData.emplace(it));
+            }
+        }
+        return *PNEWONTOP ? &m_lMasterNodesData.emplace_front() : &m_lMasterNodesData.emplace_back();
+    }();
 
     PNODE->workspaceID = pWindow->workspaceID();
     PNODE->pWindow     = pWindow;
-
-    static auto PNEWISMASTER = CConfigValue<Hyprlang::INT>("master:new_is_master");
 
     const auto  WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
     static auto PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
@@ -186,13 +200,27 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         }
     }
 
-    if ((*PNEWISMASTER && g_pInputManager->dragMode != MBIND_MOVE) || WINDOWSONWORKSPACE == 1 || (WINDOWSONWORKSPACE > 2 && !pWindow->m_bFirstMap && OPENINGON->isMaster) ||
-        forceDropAsMaster) {
-        for (auto& nd : m_lMasterNodesData) {
-            if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
-                nd.isMaster      = false;
-                lastSplitPercent = nd.percMaster;
-                break;
+    if ((BNEWISMASTER && g_pInputManager->dragMode != MBIND_MOVE)                   //
+        || WINDOWSONWORKSPACE == 1                                                  //
+        || (WINDOWSONWORKSPACE > 2 && !pWindow->m_bFirstMap && OPENINGON->isMaster) //
+        || forceDropAsMaster                                                        //
+        || (*PNEWSTATUS == "inherit" && OPENINGON && OPENINGON->isMaster && g_pInputManager->dragMode != MBIND_MOVE)) {
+
+        if (BNEWBEFOREACTIVE) {
+            for (auto& nd : m_lMasterNodesData | std::views::reverse) {
+                if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
+                    nd.isMaster      = false;
+                    lastSplitPercent = nd.percMaster;
+                    break;
+                }
+            }
+        } else {
+            for (auto& nd : m_lMasterNodesData) {
+                if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
+                    nd.isMaster      = false;
+                    lastSplitPercent = nd.percMaster;
+                    break;
+                }
             }
         }
 
@@ -1440,7 +1468,7 @@ void CHyprMasterLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {
 }
 
 Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
-    static auto PNEWISMASTER = CConfigValue<Hyprlang::INT>("master:new_is_master");
+    static auto PNEWSTATUS = CConfigValue<std::string>("master:new_status");
 
     if (!g_pCompositor->m_pLastMonitor)
         return {};
@@ -1454,7 +1482,7 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     if (!MASTER) // wtf
         return {};
 
-    if (*PNEWISMASTER) {
+    if (*PNEWSTATUS == "master") {
         return MASTER->size;
     } else {
         const auto SLAVES = NODES - getMastersOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);

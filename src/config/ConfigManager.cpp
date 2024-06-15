@@ -431,8 +431,9 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("master:special_scale_factor", {1.f});
     m_pConfig->addConfigValue("master:mfact", {0.55f});
-    m_pConfig->addConfigValue("master:new_is_master", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("master:new_status", {"slave"});
     m_pConfig->addConfigValue("master:always_center_master", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("master:new_on_active", {"none"});
     m_pConfig->addConfigValue("master:new_on_top", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:no_gaps_when_only", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:orientation", {"left"});

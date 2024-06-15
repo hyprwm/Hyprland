@@ -79,20 +79,20 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
-std::vector<uint64_t> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
+std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
     // TODO: return std::expected when clang supports it
 
     if (!m_sExts.EXT_image_dma_buf_import_modifiers)
-        return {};
+        return std::nullopt;
 
     EGLint len = 0;
     if (!m_sProc.eglQueryDmaBufModifiersEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), format, 0, nullptr, nullptr, &len)) {
         Debug::log(ERR, "EGL: Failed to query mods");
-        return {};
+        return std::nullopt;
     }
 
     if (len <= 0)
-        return {DRM_FORMAT_MOD_LINEAR, DRM_FORMAT_MOD_INVALID}; // assume the driver can do linear and implicit.
+        return std::vector<uint64_t>{};
 
     std::vector<uint64_t>   mods;
     std::vector<EGLBoolean> external;
@@ -103,12 +103,20 @@ std::vector<uint64_t> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
     m_sProc.eglQueryDmaBufModifiersEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), format, len, mods.data(), external.data(), &len);
 
     std::vector<uint64_t> result;
+    bool                  linearIsExternal = false;
     for (size_t i = 0; i < mods.size(); ++i) {
-        if (external.at(i))
+        if (external.at(i)) {
+            if (mods.at(i) == DRM_FORMAT_MOD_LINEAR)
+                linearIsExternal = true;
             continue;
+        }
 
         result.push_back(mods.at(i));
     }
+
+    // if the driver doesn't mark linear as external, add it. It's allowed unless the driver says otherwise. (e.g. nvidia)
+    if (!linearIsExternal && std::find(mods.begin(), mods.end(), DRM_FORMAT_MOD_LINEAR) == mods.end() && mods.size() == 0)
+        mods.push_back(DRM_FORMAT_MOD_LINEAR);
 
     return result;
 }
@@ -147,15 +155,19 @@ void CHyprOpenGLImpl::initDRMFormats() {
 
     for (auto& fmt : formats) {
         std::vector<uint64_t> mods;
-        if (!DISABLE_MODS)
-            mods = getModsForFormat(fmt);
-        else
+        if (!DISABLE_MODS) {
+            auto ret = getModsForFormat(fmt);
+            if (!ret.has_value())
+                continue;
+
+            mods = *ret;
+        } else
             mods = {DRM_FORMAT_MOD_LINEAR};
 
         m_bHasModifiers = m_bHasModifiers || mods.size() > 0;
 
-        if (mods.size() == 0)
-            continue;
+        // EGL can always do implicit modifiers.
+        mods.push_back(DRM_FORMAT_MOD_INVALID);
 
         dmaFormats.push_back(SDRMFormat{
             .format = fmt,

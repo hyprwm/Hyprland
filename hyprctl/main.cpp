@@ -1,9 +1,9 @@
-#include <ctype.h>
+#include <cctype>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <ranges>
 #include <algorithm>
-#include <signal.h>
+#include <csignal>
 #include <format>
 
 #include <iostream>
@@ -22,8 +22,9 @@
 #include <vector>
 #include <deque>
 #include <filesystem>
-#include <stdarg.h>
+#include <cstdarg>
 #include <regex>
+#include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -100,13 +101,53 @@ std::vector<SInstanceData> instances() {
     return result;
 }
 
-int request(std::string arg, int minArgs = 0) {
+static volatile bool sigintReceived = false;
+void                 intHandler(int sig) {
+    sigintReceived = true;
+    std::cout << "[hyprctl] SIGINT received, closing connection" << std::endl;
+}
+
+int rollingRead(const int socket) {
+    sigintReceived = false;
+    signal(SIGINT, intHandler);
+
+    constexpr size_t              BUFFER_SIZE = 8192;
+    std::array<char, BUFFER_SIZE> buffer      = {0};
+    int                           sizeWritten = 0;
+    std::cout << "[hyprctl] reading from socket following up log:" << std::endl;
+    while (!sigintReceived) {
+        sizeWritten = read(socket, buffer.data(), BUFFER_SIZE);
+        if (sizeWritten < 0 && errno != EAGAIN) {
+            if (errno != EINTR)
+                std::cout << "Couldn't read (5) " << strerror(errno) << ":" << errno << std::endl;
+            close(socket);
+            return 5;
+        }
+
+        if (sizeWritten == 0)
+            break;
+
+        if (sizeWritten > 0) {
+            std::cout << std::string(buffer.data(), sizeWritten);
+            buffer.fill('\0');
+        }
+
+        usleep(100000);
+    }
+    close(socket);
+    return 0;
+}
+
+int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    auto       t = timeval{.tv_sec = 0, .tv_usec = 100000};
+    setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
 
     if (ARGS < minArgs) {
-        log("Not enough arguments, expected at least " + minArgs);
+        log(std::format("Not enough arguments in '{}', expected at least {}", arg, minArgs));
         return -1;
     }
 
@@ -140,6 +181,9 @@ int request(std::string arg, int minArgs = 0) {
         log("Couldn't write (4)");
         return 4;
     }
+
+    if (needRoll)
+        return rollingRead(SERVERSOCKET);
 
     std::string reply        = "";
     char        buffer[8192] = {0};
@@ -284,6 +328,7 @@ int main(int argc, char** argv) {
     std::string fullArgs         = "";
     const auto  ARGS             = splitArgs(argc, argv);
     bool        json             = false;
+    bool        needRoll         = false;
     std::string overrideInstance = "";
 
     for (std::size_t i = 0; i < ARGS.size(); ++i) {
@@ -303,6 +348,9 @@ int main(int argc, char** argv) {
                 fullArgs += "a";
             } else if ((ARGS[i] == "-c" || ARGS[i] == "--config") && !fullArgs.contains("c")) {
                 fullArgs += "c";
+            } else if ((ARGS[i] == "-f" || ARGS[i] == "--follow") && !fullArgs.contains("f")) {
+                fullArgs += "f";
+                needRoll = true;
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -360,6 +408,11 @@ int main(int argc, char** argv) {
     if (fullRequest.contains("/instances")) {
         instancesRequest(json);
         return 0;
+    }
+
+    if (needRoll && !fullRequest.contains("/rollinglog")) {
+        log("only 'rollinglog' command supports '--follow' option");
+        return 1;
     }
 
     if (overrideInstance.contains("_"))
@@ -421,6 +474,8 @@ int main(int argc, char** argv) {
         exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
+    else if (fullRequest.contains("/rollinglog") && needRoll)
+        exitStatus = request(fullRequest, 0, true);
     else {
         exitStatus = request(fullRequest);
     }

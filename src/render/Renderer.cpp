@@ -1763,7 +1763,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
         Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
-void CHyprRenderer::damageBox(CBox* pBox) {
+void CHyprRenderer::damageBox(CBox* pBox, bool skipFrameSchedule) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1773,7 +1773,8 @@ void CHyprRenderer::damageBox(CBox* pBox) {
 
         CBox damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         damageBox.scale(m->scale);
-        m->addDamage(&damageBox);
+        if (!skipFrameSchedule)
+            m->addDamage(&damageBox);
     }
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");

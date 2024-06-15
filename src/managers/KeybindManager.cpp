@@ -114,6 +114,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movewindoworgroup"]              = moveWindowOrGroup;
     m_mDispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
     m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
+    m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
 
     m_tScrollTimer.reset();
@@ -2679,4 +2680,8 @@ void CKeybindManager::moveGroupWindow(std::string args) {
         PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_sGroupData.pNextWindow.lock());
 
     PLASTWINDOW->updateWindowDecos();
+}
+
+void CKeybindManager::event(std::string args) {
+    g_pEventManager->postEvent(SHyprIPCEvent{"custom", args});
 }

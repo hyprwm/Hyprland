@@ -13,7 +13,7 @@ body:
     id: type
     attributes:
       label: Regression?
-      description: Is this bug present in a previous version of Hyprland?
+      description: Is this bug absent in a previous version of Hyprland?
       options:
         - I don't know
         - Yes

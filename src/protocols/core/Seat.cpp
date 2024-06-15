@@ -200,10 +200,13 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     resource->setRelease([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
     resource->setOnDestroy([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
 
-    static auto REPEAT = CConfigValue<Hyprlang::INT>("input:repeat_rate");
-    static auto DELAY  = CConfigValue<Hyprlang::INT>("input:repeat_delay");
+    if (!g_pSeatManager->keyboard) {
+        LOGM(ERR, "No keyboard on bound wl_keyboard??");
+        return;
+    }
+
     sendKeymap(g_pSeatManager->keyboard.lock());
-    repeatInfo(*REPEAT, *DELAY);
+    repeatInfo(g_pSeatManager->keyboard->repeatRate, g_pSeatManager->keyboard->repeatDelay);
 }
 
 bool CWLKeyboardResource::good() {

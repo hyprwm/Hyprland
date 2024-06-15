@@ -16,8 +16,8 @@ body:
       description: Is this bug absent in a previous version of Hyprland?
       options:
         - I don't know
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 

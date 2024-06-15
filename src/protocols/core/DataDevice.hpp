@@ -175,6 +175,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void dropDrag();
     void completeDrag();
     void resetDndState();
+    bool wasDragSuccessful();
 
     //
     SP<CWLDataDeviceResource> dataDeviceForClient(wl_client*);

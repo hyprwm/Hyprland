@@ -13,7 +13,7 @@ body:
     id: type
     attributes:
       label: Regression?
-      description: Is this bug absent in a previous version of Hyprland?
+      description: Regression means that this bug is absent in a previous version of Hyprland. If it is, in order to fix it we need you to bisect it with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue 
       options:
         - I don't know
         - "Yes"

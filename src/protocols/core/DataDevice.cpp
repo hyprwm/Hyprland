@@ -606,15 +606,15 @@ void CWLDataDeviceProtocol::dropDrag() {
         return;
     }
 
-    dnd.currentSource->sendDndDropPerformed();
     dnd.focusedDevice->sendDrop();
-    dnd.focusedDevice->sendLeave();
 
     resetDndState();
 
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
+
+    g_pInputManager->simulateMouseMovement();
 }
 
 bool CWLDataDeviceProtocol::wasDragSuccessful() {
@@ -638,6 +638,7 @@ void CWLDataDeviceProtocol::completeDrag() {
     if (!dnd.focusedDevice || !dnd.currentSource)
         return;
 
+    dnd.currentSource->sendDndDropPerformed();
     dnd.currentSource->sendDndFinished();
 
     dnd.focusedDevice.reset();
@@ -681,5 +682,5 @@ void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
 }
 
 bool CWLDataDeviceProtocol::dndActive() {
-    return dnd.currentSource;
+    return dnd.currentSource && dnd.mouseButton /* test a member of the state to ensure it's also present */;
 }

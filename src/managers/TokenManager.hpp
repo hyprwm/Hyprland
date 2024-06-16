@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "../helpers/memory/SharedPtr.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 class CUUIDToken {
   public:

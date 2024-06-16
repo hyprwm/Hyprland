@@ -118,6 +118,7 @@ class CCompositor {
     PHLWINDOW              getWindowFromSurface(SP<CWLSurfaceResource>);
     PHLWINDOW              getWindowFromHandle(uint32_t);
     bool                   isWorkspaceVisible(PHLWORKSPACE);
+    bool                   isWorkspaceVisibleNotCovered(PHLWORKSPACE);
     PHLWORKSPACE           getWorkspaceByID(const int&);
     PHLWORKSPACE           getWorkspaceByName(const std::string&);
     PHLWORKSPACE           getWorkspaceByString(const std::string&);
@@ -155,6 +156,7 @@ class CCompositor {
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   scheduleFrameForMonitor(CMonitor*);
     void                   addToFadingOutSafe(PHLLS);
+    void                   removeFromFadingOutSafe(PHLLS);
     void                   addToFadingOutSafe(PHLWINDOW);
     PHLWINDOW              getWindowByRegex(const std::string&);
     void                   warpCursorTo(const Vector2D&, bool force = false);

@@ -155,6 +155,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D               surfacePos = Vector2D(-1337, -1337);
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
+    SSessionLockSurface*   pSessionLock = nullptr;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
@@ -186,7 +187,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0)
+    bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+
+    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     PHLWINDOW forcedFocus = m_pForcedFocus.lock();
@@ -261,12 +264,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         g_pCompositor->setActiveMonitor(PMONITOR);
 
     if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSLS = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
+        pSessionLock = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
 
-        if (!PSLS)
+        if (!pSessionLock)
             return;
 
-        foundSurface = PSLS->surface->surface();
+        foundSurface = pSessionLock->surface->surface();
         surfacePos   = PMONITOR->vecPosition;
     }
 
@@ -350,6 +353,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         if (pFoundWindow) {
             if (!pFoundWindow->m_bIsX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                if (!foundSurface) {
+                    foundSurface = pFoundWindow->m_pWLSurface->resource();
+                    surfacePos   = pFoundWindow->m_vRealPosition.value();
+                }
             } else {
                 foundSurface = pFoundWindow->m_pWLSurface->resource();
                 surfacePos   = pFoundWindow->m_vRealPosition.value();
@@ -365,7 +372,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface =
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0)
+    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
 
     // grabs
@@ -455,7 +462,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             restoreCursorIconToApp();
     }
 
-    if (pFoundWindow) {
+    if (pSessionLock != nullptr)
+        g_pCompositor->focusSurface(foundSurface);
+    else if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
             if (!pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
@@ -509,7 +518,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
 
         if (pFoundLayerSurface && (pFoundLayerSurface->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
-            allowKeyboardRefocus) {
+            (allowKeyboardRefocus || pFoundLayerSurface->layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)) {
             g_pCompositor->focusSurface(foundSurface);
         }
 
@@ -1223,12 +1232,20 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (m_vKeyboards.size() > 0) {
-        const auto PNEWKEYBOARD = m_vKeyboards.back();
-        g_pSeatManager->setKeyboard(PNEWKEYBOARD);
-        PNEWKEYBOARD->active = true;
-    } else {
+        bool found = false;
+        for (auto& k : m_vKeyboards | std::views::reverse) {
+            if (!k->wlr())
+                continue;
+
+            g_pSeatManager->setKeyboard(k);
+            found = true;
+            break;
+        }
+
+        if (!found)
+            g_pSeatManager->setKeyboard(nullptr);
+    } else
         g_pSeatManager->setKeyboard(nullptr);
-    }
 
     removeFromHIDs(pKeyboard);
 }
@@ -1379,6 +1396,41 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
 
 void CInputManager::refocus() {
     mouseMoveUnified(0, true);
+}
+
+void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
+    if (!pMonitor) {
+        refocus();
+        return;
+    }
+
+    Vector2D               surfaceCoords;
+    PHLLS                  pFoundLayerSurface;
+    SP<CWLSurfaceResource> foundSurface = nullptr;
+
+    g_pInputManager->releaseAllMouseButtons();
+
+    // first try for an exclusive layer
+    if (!m_dExclusiveLSes.empty())
+        foundSurface = m_dExclusiveLSes[m_dExclusiveLSes.size() - 1]->surface->resource();
+
+    // then any surfaces above windows on the same monitor
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+                                                           &surfaceCoords, &pFoundLayerSurface);
+
+    if (!foundSurface)
+        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+                                                           &surfaceCoords, &pFoundLayerSurface);
+
+    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisibleNotCovered(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
+        // then the last focused window if we're on the same workspace as it
+        const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+        g_pCompositor->focusWindow(PLASTWINDOW);
+    } else {
+        // otherwise fall back to a normal refocus.
+        refocus();
+    }
 }
 
 void CInputManager::unconstrainMouse() {

@@ -1,4 +1,7 @@
 executable('hyprctl', 'main.cpp',
+  dependencies: [
+    dependency('hyprutils', version: '>= 0.1.1'),
+  ],
   install: true
 )
 

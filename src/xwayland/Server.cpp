@@ -155,6 +155,14 @@ static int xwaylandReady(int fd, uint32_t mask, void* data) {
     return g_pXWayland->pServer->ready(fd, mask);
 }
 
+static bool safeRemove(const std::string& path) {
+    try {
+        return std::filesystem::remove(path);
+    } catch (std::exception& e) { Debug::log(ERR, "[XWayland] failed to remove {}", path); }
+
+    return false;
+}
+
 bool CXWaylandServer::tryOpenSockets() {
     for (size_t i = 0; i <= 32; ++i) {
         auto LOCK = std::format("/tmp/.X{}-lock", i);
@@ -162,7 +170,7 @@ bool CXWaylandServer::tryOpenSockets() {
         if (int fd = open(LOCK.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0444); fd >= 0) {
             // we managed to open the lock
             if (!openSockets(xFDs, i)) {
-                std::filesystem::remove(LOCK);
+                safeRemove(LOCK);
                 close(fd);
                 continue;
             }
@@ -170,7 +178,7 @@ bool CXWaylandServer::tryOpenSockets() {
             const auto PIDSTR = std::format("{}", getpid());
 
             if (write(fd, PIDSTR.c_str(), PIDSTR.length()) != (long)PIDSTR.length()) {
-                std::filesystem::remove(LOCK);
+                safeRemove(LOCK);
                 close(fd);
                 continue;
             }
@@ -197,7 +205,7 @@ bool CXWaylandServer::tryOpenSockets() {
         } catch (...) { continue; }
 
         if (kill(pid, 0) != 0 && errno == ESRCH) {
-            if (!std::filesystem::remove(LOCK))
+            if (!safeRemove(LOCK))
                 continue;
 
             i--;
@@ -228,7 +236,7 @@ CXWaylandServer::~CXWaylandServer() {
         close(xFDs[1]);
 
     auto LOCK = std::format("/tmp/.X{}-lock", display);
-    std::filesystem::remove(LOCK);
+    safeRemove(LOCK);
 
     std::string path;
 #ifdef __linux__
@@ -236,7 +244,7 @@ CXWaylandServer::~CXWaylandServer() {
 #else
     path = std::format("/tmp/.X11-unix/X{}_", display);
 #endif
-    std::filesystem::remove(path);
+    safeRemove(path);
 }
 
 void CXWaylandServer::die() {

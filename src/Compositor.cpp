@@ -14,7 +14,7 @@
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
 #include <ranges>
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
@@ -23,6 +23,9 @@
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
 #include "xwayland/XWayland.hpp"
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -348,6 +351,8 @@ void CCompositor::cleanup() {
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
     g_pSeatManager.reset();
+    g_pHyprCtl.reset();
+    g_pEventLoopManager.reset();
 
     if (m_sWLRRenderer)
         wlr_renderer_destroy(m_sWLRRenderer);
@@ -361,6 +366,7 @@ void CCompositor::cleanup() {
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
 
+    wl_event_loop_destroy(m_sWLEventLoop);
     wl_display_terminate(m_sWLDisplay);
     m_sWLDisplay = nullptr;
 
@@ -1056,7 +1062,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
-        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos());
+        auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos(), true);
 
         if (surf) {
             if (surf->current.input.empty())
@@ -1106,6 +1112,17 @@ PHLWINDOW CCompositor::getFullscreenWindowOnWorkspace(const int& ID) {
 
 bool CCompositor::isWorkspaceVisible(PHLWORKSPACE w) {
     return valid(w) && w->m_bVisible;
+}
+
+bool CCompositor::isWorkspaceVisibleNotCovered(PHLWORKSPACE w) {
+    if (!valid(w))
+        return false;
+
+    const auto PMONITOR = getMonitorFromID(w->m_iMonitorID);
+    if (PMONITOR->activeSpecialWorkspace)
+        return PMONITOR->activeSpecialWorkspace->m_iID == w->m_iID;
+
+    return PMONITOR->activeWorkspace->m_iID == w->m_iID;
 }
 
 PHLWORKSPACE CCompositor::getWorkspaceByID(const int& id) {
@@ -1345,6 +1362,10 @@ void CCompositor::addToFadingOutSafe(PHLLS pLS) {
         return; // if it's already added, don't add it.
 
     m_vSurfacesFadingOut.emplace_back(pLS);
+}
+
+void CCompositor::removeFromFadingOutSafe(PHLLS ls) {
+    std::erase(m_vSurfacesFadingOut, ls);
 }
 
 void CCompositor::addToFadingOutSafe(PHLWINDOW pWindow) {
@@ -2084,9 +2105,11 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
     if (POLDMON) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
+        updateSuspendedStates();
     }
 
     updateFullscreenFadeOnWorkspace(pWorkspace);
+    updateSuspendedStates();
 
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{"moveworkspace", pWorkspace->m_szName + "," + pMonitor->szName});

@@ -13,6 +13,8 @@
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -195,25 +197,6 @@ std::string escapeJSONStrings(const std::string& str) {
     return oss.str();
 }
 
-std::string removeBeginEndSpacesTabs(std::string str) {
-    if (str.empty())
-        return str;
-
-    int countBefore = 0;
-    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
-        countBefore++;
-    }
-
-    int countAfter = 0;
-    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
-        countAfter++;
-    }
-
-    str = str.substr(countBefore, str.length() - countBefore - countAfter);
-
-    return str;
-}
-
 std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {
     try {
         return relative + stof(source);
@@ -221,31 +204,6 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
         Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};
     }
-}
-
-bool isNumber(const std::string& str, bool allowfloat) {
-
-    std::string copy = str;
-    if (*copy.begin() == '-')
-        copy = copy.substr(1);
-
-    if (copy.empty())
-        return false;
-
-    bool point = !allowfloat;
-    for (auto& c : copy) {
-        if (c == '.') {
-            if (point)
-                return false;
-            point = true;
-            continue;
-        }
-
-        if (!std::isdigit(c))
-            return false;
-    }
-
-    return true;
 }
 
 bool isDirection(const std::string& arg) {
@@ -579,7 +537,7 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
 std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceName, std::string dirtyCmd) {
 
-    std::string cmd = removeBeginEndSpacesTabs(dirtyCmd);
+    std::string cmd = trim(dirtyCmd);
 
     if (!cmd.empty()) {
         std::string       rules;
@@ -622,9 +580,10 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
 
 // Execute a shell command and get the output
 std::string execAndGet(const char* cmd) {
-    std::array<char, 128>                          buffer;
-    std::string                                    result;
-    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    std::array<char, 128> buffer;
+    std::string           result;
+    using PcloseType = int (*)(FILE*);
+    const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd, "r"), static_cast<PcloseType>(pclose));
     if (!pipe) {
         Debug::log(ERR, "execAndGet: failed in pipe");
         return "";
@@ -748,7 +707,7 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
 
-        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 8) {
+        if (trim(VALUEWITHOUTFUNC).length() != 8) {
             Debug::log(WARN, "invalid length {} for rgba", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
         }
@@ -760,7 +719,7 @@ int64_t configStringToInt(const std::string& VALUE) {
     } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
 
-        if (removeBeginEndSpacesTabs(VALUEWITHOUTFUNC).length() != 6) {
+        if (trim(VALUEWITHOUTFUNC).length() != 6) {
             Debug::log(WARN, "invalid length {} for rgb", VALUEWITHOUTFUNC.length());
             throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
         }
@@ -822,15 +781,6 @@ double normalizeAngleRad(double ang) {
     return ang;
 }
 
-std::string replaceInString(std::string subject, const std::string& search, const std::string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos) {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-    return subject;
-}
-
 std::vector<SCallstackFrameInfo> getBacktrace() {
     std::vector<SCallstackFrameInfo> callstack;
 
@@ -865,7 +815,8 @@ bool envEnabled(const std::string& env) {
 }
 
 std::pair<int, std::string> openExclusiveShm() {
-    std::string name = g_pTokenManager->getRandomUUID();
+    // Only absolute paths can be shared across different shm_open() calls
+    std::string name = "/" + g_pTokenManager->getRandomUUID();
 
     for (size_t i = 0; i < 69; ++i) {
         int fd = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);

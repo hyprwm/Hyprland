@@ -13,13 +13,17 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         return;
 
     resource->setDestroy([this](CWlDataOffer* r) {
-        if (!dead)
+        if (!dead && (recvd || accepted))
             PROTO::data->completeDrag();
+        else
+            PROTO::data->abortDrag();
         PROTO::data->destroyResource(this);
     });
     resource->setOnDestroy([this](CWlDataOffer* r) {
-        if (!dead)
+        if (!dead && (recvd || accepted))
             PROTO::data->completeDrag();
+        else
+            PROTO::data->abortDrag();
         PROTO::data->destroyResource(this);
     });
 
@@ -85,8 +89,10 @@ void CWLDataOfferResource::sendData() {
     if (!source)
         return;
 
-    resource->sendSourceActions(7);
-    resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+    if (resource->version() >= 3) {
+        resource->sendSourceActions(7);
+        resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+    }
 
     for (auto& m : source->mimes()) {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
@@ -536,6 +542,11 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
         }
     });
 
+    // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
+    // BTW, the spec does NOT require this explicitly...
+    // Fuck you gtk.
+    g_pSeatManager->setPointerFocus(nullptr, {});
+
     // make a new offer, etc
     updateDrag();
 }
@@ -590,15 +601,35 @@ void CWLDataDeviceProtocol::dropDrag() {
         return;
     }
 
-    dnd.currentSource->sendDndDropPerformed();
+    if (!wasDragSuccessful()) {
+        abortDrag();
+        return;
+    }
+
     dnd.focusedDevice->sendDrop();
-    dnd.focusedDevice->sendLeave();
 
     resetDndState();
 
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
+
+    g_pInputManager->simulateMouseMovement();
+}
+
+bool CWLDataDeviceProtocol::wasDragSuccessful() {
+    if (!dnd.focusedDevice || !dnd.currentSource)
+        return false;
+
+    for (auto& o : m_vOffers) {
+        if (o->dead || !o->source || !o->source->hasDnd())
+            continue;
+
+        if (o->recvd || o->accepted)
+            return true;
+    }
+
+    return false;
 }
 
 void CWLDataDeviceProtocol::completeDrag() {
@@ -607,12 +638,13 @@ void CWLDataDeviceProtocol::completeDrag() {
     if (!dnd.focusedDevice || !dnd.currentSource)
         return;
 
+    dnd.currentSource->sendDndDropPerformed();
     dnd.currentSource->sendDndFinished();
 
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();
 
-    g_pSeatManager->resendEnterEvents();
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CWLDataDeviceProtocol::abortDrag() {
@@ -631,7 +663,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();
 
-    g_pSeatManager->resendEnterEvents();
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
@@ -650,5 +682,5 @@ void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
 }
 
 bool CWLDataDeviceProtocol::dndActive() {
-    return dnd.currentSource;
+    return dnd.currentSource && dnd.mouseButton /* test a member of the state to ensure it's also present */;
 }

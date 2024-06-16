@@ -2,7 +2,7 @@
 
 #include "../defines.hpp"
 #include "../helpers/Timer.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include <cstdint>
 #include <unordered_map>
 

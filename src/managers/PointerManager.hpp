@@ -43,6 +43,8 @@ class CPointerManager {
 
     void lockSoftwareForMonitor(SP<CMonitor> pMonitor);
     void unlockSoftwareForMonitor(SP<CMonitor> pMonitor);
+    void lockSoftwareAll();
+    void unlockSoftwareAll();
 
     void renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */);
 

@@ -1,17 +1,21 @@
 #include "../config/ConfigValue.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
 #include "TokenManager.hpp"
 #include "debug/Log.hpp"
-#include "helpers/VarList.hpp"
+#include "helpers/varlist/VarList.hpp"
 
 #include <optional>
 #include <iterator>
 #include <string>
 #include <string_view>
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -111,6 +115,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["movewindoworgroup"]              = moveWindowOrGroup;
     m_mDispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
     m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
+    m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
 
     m_tScrollTimer.reset();
@@ -836,7 +841,7 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 
 void CKeybindManager::spawn(std::string args) {
 
-    args = removeBeginEndSpacesTabs(args);
+    args = trim(args);
 
     std::string RULES = "";
 
@@ -1083,6 +1088,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (!PMONITORWORKSPACEOWNER)
         return;
 
+    updateRelativeCursorCoords();
+
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
     if (BISWORKSPACECURRENT) {
@@ -1110,6 +1117,16 @@ void CKeybindManager::changeworkspace(std::string args) {
             g_pInputManager->sendMotionEventsToFocused();
         else
             g_pInputManager->simulateMouseMovement();
+    }
+
+    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+
+    if (*PWARPONWORKSPACECHANGE) {
+        auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+
+        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+            PLAST->warpCursor();
     }
 }
 
@@ -2676,4 +2693,8 @@ void CKeybindManager::moveGroupWindow(std::string args) {
         PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_sGroupData.pNextWindow.lock());
 
     PLASTWINDOW->updateWindowDecos();
+}
+
+void CKeybindManager::event(std::string args) {
+    g_pEventManager->postEvent(SHyprIPCEvent{"custom", args});
 }

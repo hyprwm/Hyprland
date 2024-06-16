@@ -150,6 +150,20 @@ CPointerManager::CPointerManager() {
     });
 }
 
+void CPointerManager::lockSoftwareAll() {
+    for (auto& state : monitorStates)
+        state->softwareLocks++;
+
+    updateCursorBackend();
+}
+
+void CPointerManager::unlockSoftwareAll() {
+    for (auto& state : monitorStates)
+        state->softwareLocks--;
+
+    updateCursorBackend();
+}
+
 void CPointerManager::lockSoftwareForMonitor(SP<CMonitor> mon) {
     auto state = stateFor(mon);
     state->softwareLocks++;
@@ -661,7 +675,7 @@ void CPointerManager::damageIfSoftware() {
             continue;
 
         if ((mw->softwareLocks > 0 || mw->hardwareFailed || *PNOHW) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
-            g_pHyprRenderer->damageBox(&b);
+            g_pHyprRenderer->damageBox(&b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
             break;
         }
     }

@@ -114,9 +114,11 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : resource(resource_
             return;
         }
 
-        events.unlockAndDestroy.emit();
-        inert                      = true;
         PROTO::sessionLock->locked = false;
+
+        events.unlockAndDestroy.emit();
+
+        inert = true;
         PROTO::sessionLock->destroyResource(this);
     });
 }

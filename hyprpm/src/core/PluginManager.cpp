@@ -19,30 +19,15 @@
 
 #include <toml++/toml.hpp>
 
-static std::string removeBeginEndSpacesTabs(std::string str) {
-    if (str.empty())
-        return str;
-
-    int countBefore = 0;
-    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
-        countBefore++;
-    }
-
-    int countAfter = 0;
-    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
-        countAfter++;
-    }
-
-    str = str.substr(countBefore, str.length() - countBefore - countAfter);
-
-    return str;
-}
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
-    std::array<char, 128>                          buffer;
-    std::string                                    result;
-    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    std::array<char, 128> buffer;
+    std::string           result;
+    using PcloseType = int (*)(FILE*);
+    const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd.c_str(), "r"), static_cast<PcloseType>(pclose));
     if (!pipe)
         return "";
 
@@ -374,7 +359,7 @@ eHeadersErrors CPluginManager::headersValid() {
         if (PATH.ends_with("protocols") || PATH.ends_with("wlroots-hyprland"))
             continue;
 
-        verHeader = removeBeginEndSpacesTabs(PATH.substr(2)) + "/hyprland/src/version.h";
+        verHeader = trim(PATH.substr(2)) + "/hyprland/src/version.h";
         break;
     }
 
@@ -442,12 +427,12 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " Cloning https://github.com/hyprwm/hyprland, this might take a moment.");
 
-    const bool bShallow = HLVER.branch == "main" || HLVER.branch == "";
+    const bool bShallow = (HLVER.branch == "main" || HLVER.branch == "") && !m_bNoShallow;
 
     // let us give a bit of leg-room for shallowing
     // due to timezones, etc.
     const std::string SHALLOW_DATE =
-        removeBeginEndSpacesTabs(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
+        trim(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
 
     if (m_bVerbose && bShallow)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "will shallow since: " + SHALLOW_DATE);
@@ -495,13 +480,16 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "cmake returned: " + ret);
 
-    if (ret.contains("required packages were not found")) {
+    if (ret.contains("CMake Error at")) {
         // missing deps, let the user know.
-        std::string missing = ret.substr(ret.find("The following required packages were not found:"));
-        missing             = missing.substr(0, missing.find("Call Stack"));
+        std::string missing = ret.substr(ret.find("CMake Error at"));
+        missing             = ret.substr(ret.find_first_of('\n') + 1);
+        missing             = missing.substr(0, missing.find("-- Configuring incomplete"));
         missing             = missing.substr(0, missing.find_last_of('\n'));
 
-        std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n" << missing << "\n";
+        std::cerr << "\n"
+                  << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n"
+                  << missing << "\n\nThis likely means that you are missing the above dependencies or they are out of date.\n";
         return false;
     }
 

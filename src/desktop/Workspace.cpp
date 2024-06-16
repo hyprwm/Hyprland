@@ -2,6 +2,9 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special, bool isEmtpy) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmtpy);
     workspace->init(workspace);
@@ -219,7 +222,7 @@ std::string CWorkspace::getConfigName() {
 }
 
 bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
-    auto selector = removeBeginEndSpacesTabs(selector_);
+    auto selector = trim(selector_);
 
     if (selector.empty())
         return true;

@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include "Subsurface.hpp"
-#include "../helpers/signal/Listener.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 class CXDGPopupResource;
 

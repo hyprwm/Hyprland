@@ -90,6 +90,11 @@ CHyprRenderer::CHyprRenderer() {
     wl_event_source_timer_update(m_pCursorTicker, 500);
 }
 
+CHyprRenderer::~CHyprRenderer() {
+    if (m_pCursorTicker)
+        wl_event_source_remove(m_pCursorTicker);
+}
+
 static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
     if (!surface->current.buffer || !surface->current.buffer->texture)
         return;
@@ -1253,6 +1258,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     TRACY_GPU_ZONE("Render");
 
+    static bool zoomLock = false;
+    if (zoomLock && *PZOOMFACTOR == 1.f) {
+        g_pPointerManager->unlockSoftwareAll();
+        zoomLock = false;
+    } else if (!zoomLock && *PZOOMFACTOR != 1.f) {
+        g_pPointerManager->lockSoftwareAll();
+        zoomLock = true;
+    }
+
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor = std::clamp(*PZOOMFACTOR, 1.f, INFINITY);
     else
@@ -1264,10 +1278,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
         pMonitor->forceFullFrames                      = 10;
     }
-
-    bool lockSoftware = pMonitor == g_pCompositor->getMonitorFromCursor() && *PZOOMFACTOR != 1.f;
-    if (lockSoftware)
-        g_pPointerManager->lockSoftwareForMonitor(pMonitor->self.lock());
 
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
@@ -1369,9 +1379,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     endRender();
-
-    if (lockSoftware)
-        g_pPointerManager->unlockSoftwareForMonitor(pMonitor->self.lock());
 
     TRACY_GPU_COLLECT;
 
@@ -1756,7 +1763,7 @@ void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
         Debug::log(LOG, "Damage: Monitor {}", pMonitor->szName);
 }
 
-void CHyprRenderer::damageBox(CBox* pBox) {
+void CHyprRenderer::damageBox(CBox* pBox, bool skipFrameSchedule) {
     if (g_pCompositor->m_bUnsafeState)
         return;
 
@@ -1766,7 +1773,8 @@ void CHyprRenderer::damageBox(CBox* pBox) {
 
         CBox damageBox = {pBox->x - m->vecPosition.x, pBox->y - m->vecPosition.y, pBox->width, pBox->height};
         damageBox.scale(m->scale);
-        m->addDamage(&damageBox);
+        if (!skipFrameSchedule)
+            m->addDamage(&damageBox);
     }
 
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");

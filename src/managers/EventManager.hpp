@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "../defines.hpp"
-#include "../helpers/memory/SharedPtr.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 struct SHyprIPCEvent {
     std::string event;

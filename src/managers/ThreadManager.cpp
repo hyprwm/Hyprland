@@ -25,5 +25,6 @@ CThreadManager::CThreadManager() {
 }
 
 CThreadManager::~CThreadManager() {
-    //
+    if (m_esConfigTimer)
+        wl_event_source_remove(m_esConfigTimer);
 }

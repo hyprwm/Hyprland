@@ -6,7 +6,7 @@
 #include "../../helpers/WLClasses.hpp"
 #include "../../helpers/Timer.hpp"
 #include "InputMethodRelay.hpp"
-#include "../../helpers/signal/Listener.hpp"
+#include "../../helpers/signal/Signal.hpp"
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../devices/Tablet.hpp"
@@ -104,6 +104,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
+    void               refocusLastWindow(CMonitor* pMonitor);
     void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
 

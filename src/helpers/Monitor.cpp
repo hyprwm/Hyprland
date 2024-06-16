@@ -6,6 +6,8 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -71,8 +73,7 @@ void CMonitor::onConnect(bool noRule) {
     std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
-    szShortDescription =
-        removeBeginEndSpacesTabs(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    szShortDescription = trim(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
     std::erase(szShortDescription, ',');
 
     if (!wlr_backend_is_drm(output->backend))
@@ -359,6 +360,24 @@ void CMonitor::addDamage(const CBox* box) {
 
     if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
         g_pCompositor->scheduleFrameForMonitor(this);
+}
+
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
+    static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
+
+    // skip scheduling extra frames for fullsreen apps with vrr
+    bool shouldSkip = *PNOBREAK && output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow &&
+        activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
+
+    // keep requested minimum refresh rate
+    if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
+        // damage whole screen because some previous cursor box damages were skipped
+        wlr_damage_ring_add_whole(&damage);
+        return false;
+    }
+
+    return shouldSkip;
 }
 
 bool CMonitor::isMirror() {

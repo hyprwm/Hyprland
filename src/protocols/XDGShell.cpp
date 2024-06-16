@@ -550,12 +550,9 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         };
         int edgeCount = countEdges(test);
 
-        // -1 as we want 2 edges to be resolved with the flip, otherwise move on to only x or only y
-        if (flipX && flipY && edgeCount - 1 > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h})))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h});
-        else if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0})))
+        if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0})))
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        else if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h})))
+        if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h})))
             test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
 
         success = test.copy().expand(-1).inside(constraint);

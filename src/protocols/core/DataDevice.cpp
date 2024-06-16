@@ -542,6 +542,11 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
         }
     });
 
+    // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
+    // BTW, the spec does NOT require this explicitly...
+    // Fuck you gtk.
+    g_pSeatManager->setPointerFocus(nullptr, {});
+
     // make a new offer, etc
     updateDrag();
 }
@@ -638,7 +643,7 @@ void CWLDataDeviceProtocol::completeDrag() {
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();
 
-    g_pSeatManager->resendEnterEvents();
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CWLDataDeviceProtocol::abortDrag() {
@@ -657,7 +662,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();
 
-    g_pSeatManager->resendEnterEvents();
+    g_pInputManager->simulateMouseMovement();
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {

@@ -14,8 +14,8 @@ body:
     attributes:
       label: Regression?
       description: |
-        Regression means that this bug is absent in a previous version of Hyprland.
-        PLEASE, check if it is a regression or not before continuing, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
+        Regression means that something no longer works in newer versions of Hyprland.
+        PLEASE, before continuing check if this bug is a regression or not, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
       options:
         - "Yes"
         - "No"

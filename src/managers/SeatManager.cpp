@@ -191,6 +191,11 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
     if (state.pointerFocus == surf)
         return;
 
+    if (PROTO::data->dndActive() && surf) {
+        Debug::log(LOG, "[seatmgr] Refusing pointer focus during an active dnd");
+        return;
+    }
+
     if (!mouse || !mouse->wlr()) {
         Debug::log(ERR, "BUG THIS: setPointerFocus without a valid mouse set");
         return;

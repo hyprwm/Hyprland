@@ -98,6 +98,9 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
 
         g_pSeatManager->onSetCursor(owner.lock(), serial, surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hotX, hotY});
     });
+
+    if (g_pSeatManager->state.pointerFocus && g_pSeatManager->state.pointerFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->state.pointerFocus.lock(), {-1, -1} /* Coords don't really matter that much, they will be updated next move */);
 }
 
 bool CWLPointerResource::good() {
@@ -207,6 +210,9 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
 
     sendKeymap(g_pSeatManager->keyboard.lock());
     repeatInfo(g_pSeatManager->keyboard->repeatRate, g_pSeatManager->keyboard->repeatDelay);
+
+    if (g_pSeatManager->state.keyboardFocus && g_pSeatManager->state.keyboardFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->state.keyboardFocus.lock());
 }
 
 bool CWLKeyboardResource::good() {

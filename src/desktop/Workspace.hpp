@@ -63,21 +63,23 @@ class CWorkspace {
     bool        m_bPersistent = false;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool        inert();
+    bool         inert();
 
-    void        startAnim(bool in, bool left, bool instant = false);
-    void        setActive(bool on);
+    void         startAnim(bool in, bool left, bool instant = false);
+    void         setActive(bool on);
 
-    void        moveToMonitor(const int&);
+    void         moveToMonitor(const int&);
 
-    PHLWINDOW   getLastFocusedWindow();
-    void        rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
+    PHLWINDOW    getLastFocusedWindow();
+    void         rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
 
-    std::string getConfigName();
+    std::string  getConfigName();
 
-    bool        matchesStaticSelector(const std::string& selector);
+    bool         matchesStaticSelector(const std::string& selector);
 
-    void        markInert();
+    void         markInert();
+
+    IHyprLayout* getCurrentLayout();
 
   private:
     void                 init(PHLWORKSPACE self);

@@ -1,6 +1,7 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "managers/LayoutManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -507,4 +508,8 @@ void CWorkspace::markInert() {
 
 bool CWorkspace::inert() {
     return m_bInert;
+}
+
+IHyprLayout* CWorkspace::getCurrentLayout() {
+    return g_pLayoutManager->getCurrentLayout();
 }

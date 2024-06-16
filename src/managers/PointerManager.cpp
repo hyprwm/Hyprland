@@ -388,11 +388,15 @@ void CPointerManager::updateCursorBackend() {
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         updateCursorBackendForMonitor(m, *PNOHW);
-        for (auto& mirror : m->mirrors)
-            for (auto& M : g_pCompositor->m_vRealMonitors)
+        for (auto& mirror : m->mirrors) {
+            for (auto& M : g_pCompositor->m_vRealMonitors) {
                 // update backend for mirrors when using hardware cursor
-                if (M->ID == mirror->ID && !*PNOHW)
-                    updateCursorBackendForMonitor(M, *PNOHW);
+                if (M->ID == mirror->ID && !*PNOHW) {
+                    updateCursorBackendForMonitor(M, true);
+                    break;
+                }
+            }
+        }
     }
 }
 

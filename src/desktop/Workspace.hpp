@@ -4,6 +4,7 @@
 #include <string>
 #include "../defines.hpp"
 #include "DesktopTypes.hpp"
+#include "../layout/IHyprLayout.hpp"
 
 enum eFullscreenMode : int8_t {
     FULLSCREEN_INVALID = -1,

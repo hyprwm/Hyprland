@@ -258,7 +258,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         }
     }
 
-    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
+    PMONITOR->activeWorkspace->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);

@@ -112,7 +112,7 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, 
 
     pWindow->addWindowDeco(std::move(pDecoration));
 
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    pWindow->m_pWorkspace->getCurrentLayout()->recalculateWindow(pWindow);
 
     return true;
 }

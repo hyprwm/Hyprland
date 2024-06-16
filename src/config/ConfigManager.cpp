@@ -791,7 +791,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
     for (auto& m : g_pCompositor->m_vMonitors)
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+        m->activeWorkspace->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!isFirstLaunch) {
@@ -909,7 +909,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
         for (auto& m : g_pCompositor->m_vMonitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+            m->activeWorkspace->getCurrentLayout()->recalculateMonitor(m->ID);
     }
 
     // Update window border colors

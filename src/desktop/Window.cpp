@@ -284,14 +284,14 @@ void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
     m_dWindowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
+    m_pWorkspace->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
 }
 
 void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
     m_vDecosToRemove.push_back(deco);
     g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
+    m_pWorkspace->getCurrentLayout()->recalculateWindow(m_pSelf.lock());
 }
 
 void CWindow::uncacheWindowDecos() {
@@ -412,11 +412,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
     g_pCompositor->updateWorkspaceSpecialRenderData(OLDWORKSPACE->m_iID);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->m_iMonitorID);
+    OLDWORKSPACE->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->m_iMonitorID);
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -523,7 +523,7 @@ void CWindow::onUnmap() {
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_pWorkspace.reset();
@@ -819,7 +819,7 @@ void CWindow::updateDynamicRules() {
 
     EMIT_HOOK_EVENT("windowUpdateRules", m_pSelf.lock());
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -886,7 +886,7 @@ void CWindow::createGroup() {
 
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+        m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("1,{:x}", (uintptr_t)this)});
@@ -904,7 +904,7 @@ void CWindow::destroyGroup() {
         updateWindowDecos();
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+        m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{:x}", (uintptr_t)this)});
@@ -926,21 +926,21 @@ void CWindow::destroyGroup() {
 
     for (auto& w : members) {
         if (w->m_sGroupData.head)
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
+            m_pWorkspace->getCurrentLayout()->onWindowRemoved(curr);
         w->m_sGroupData.head = false;
     }
 
     const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
     g_pKeybindManager->m_bGroupsLocked = true;
     for (auto& w : members) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+        m_pWorkspace->getCurrentLayout()->onWindowCreated(w);
         w->updateWindowDecos();
     }
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    m_pWorkspace->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (!addresses.empty())
@@ -1028,7 +1028,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
 
-    g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
+    m_pWorkspace->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
     if (PCURRENT->m_bIsFloating) {
         pWindow->m_vRealPosition.setValueAndWarp(PWINDOWPOS);

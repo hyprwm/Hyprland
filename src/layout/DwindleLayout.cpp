@@ -308,7 +308,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         // we can't continue. make it floating.
         pWindow->m_bIsFloating = true;
         m_lDwindleNodesData.remove(*PNODE);
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+        onWindowCreatedFloating(pWindow);
         return;
     }
 

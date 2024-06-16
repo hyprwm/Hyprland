@@ -325,7 +325,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->updateSpecialRenderData();
 
     if (PWINDOW->m_bIsFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+        PWINDOW->m_pWorkspace->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
@@ -450,7 +450,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
     } else {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
+        PWINDOW->m_pWorkspace->getCurrentLayout()->onWindowCreated(PWINDOW);
 
         // Set the pseudo size here too so that it doesnt end up being 0x0
         PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
@@ -532,11 +532,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
             // swallow
             PWINDOW->m_pSwallowed = SWALLOWER;
 
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
+            SWALLOWER->m_pWorkspace->getCurrentLayout()->onWindowRemoved(SWALLOWER);
 
             SWALLOWER->setHidden(true);
 
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
+            PWINDOW->m_pWorkspace->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
         }
     }
 
@@ -551,7 +551,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(PWINDOW);
     PWINDOW->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+    PWINDOW->m_pWorkspace->getCurrentLayout()->recalculateWindow(PWINDOW);
 
     // do animations
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
@@ -614,7 +614,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // swallowing
     if (valid(PWINDOW->m_pSwallowed)) {
         PWINDOW->m_pSwallowed->setHidden(false);
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
+        PWINDOW->m_pWorkspace->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
         PWINDOW->m_pSwallowed.reset();
     }
 
@@ -634,14 +634,14 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->m_bIsFullscreen)
         PWORKSPACE->m_bHasFullscreenWindow = false;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+    PWORKSPACE->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     PWINDOW->m_bIsMapped = false;
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        const auto PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
+        const auto PWINDOWCANDIDATE = PWORKSPACE->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
@@ -690,7 +690,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 
     if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface->initialCommit) {
-        Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
+        Vector2D predSize = PWINDOW->m_pWorkspace->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
 
         Debug::log(LOG, "Layout predicts size {} for {}", predSize, PWINDOW);
 
@@ -775,7 +775,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 
     PWINDOW->listeners = {};
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
+    PWINDOW->m_pWorkspace->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
     PWINDOW->m_bReadyToDelete = true;
 

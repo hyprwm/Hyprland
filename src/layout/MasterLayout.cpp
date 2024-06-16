@@ -232,7 +232,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             // we can't continue. make it floating.
             pWindow->m_bIsFloating = true;
             m_lMasterNodesData.remove(*PNODE);
-            g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+            onWindowCreatedFloating(pWindow);
             return;
         }
     } else {
@@ -245,7 +245,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             // we can't continue. make it floating.
             pWindow->m_bIsFloating = true;
             m_lMasterNodesData.remove(*PNODE);
-            g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+            onWindowCreatedFloating(pWindow);
             return;
         }
     }

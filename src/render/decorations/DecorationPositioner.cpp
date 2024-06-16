@@ -273,7 +273,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     if (WINDOWDATA->extents != SWindowDecorationExtents{{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}}) {
         WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+        pWindow->m_pWorkspace->getCurrentLayout()->recalculateWindow(pWindow);
     }
 }
 

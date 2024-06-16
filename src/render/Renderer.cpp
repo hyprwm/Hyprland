@@ -1168,7 +1168,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         else
             Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
 
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
+        pMonitor->activeWorkspace->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
         if (pMonitor->framesToSkip > 10)
             pMonitor->framesToSkip = 0;
@@ -1189,7 +1189,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     if (pMonitor->scheduledRecalc) {
         pMonitor->scheduledRecalc = false;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
+        pMonitor->activeWorkspace->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
     }
 
     // tearing and DS first
@@ -1642,8 +1642,8 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
     }
 }
 
-void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
+void CHyprRenderer::arrangeLayersForMonitor(const int& monitorID) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
     if (!PMONITOR)
         return;
@@ -1676,7 +1676,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
     // damage the monitor if can
     damageMonitor(PMONITOR);
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
+    PMONITOR->activeWorkspace->getCurrentLayout()->recalculateMonitor(monitorID);
 }
 
 void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {

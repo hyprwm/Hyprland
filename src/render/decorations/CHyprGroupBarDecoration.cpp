@@ -55,7 +55,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
 
 void CHyprGroupBarDecoration::onPositioningReply(const SDecorationPositioningReply& reply) {
     m_bAssignedBox = reply.assignedGeometry;
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_pWindow.lock());
+    m_pWindow->m_pWorkspace->getCurrentLayout()->recalculateWindow(m_pWindow.lock());
 }
 
 eDecorationType CHyprGroupBarDecoration::getDecorationType() {
@@ -385,11 +385,11 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     PHLWINDOW pWindow = m_pWindow->getGroupWindowByIndex(WINDOWINDEX);
 
     // hack
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    pWindow->m_pWorkspace->getCurrentLayout()->onWindowRemoved(pWindow);
     if (!pWindow->m_bIsFloating) {
         const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
         g_pKeybindManager->m_bGroupsLocked = true;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        pWindow->m_pWorkspace->getCurrentLayout()->onWindowCreated(pWindow);
         g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
     }
 
@@ -430,7 +430,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
             w->m_sGroupData.pNextWindow.reset();
             w->m_sGroupData.head   = false;
             w->m_sGroupData.locked = false;
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+            w->m_pWorkspace->getCurrentLayout()->onWindowRemoved(w);
         }
 
         // restores the group
@@ -443,7 +443,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
         members[0]->m_sGroupData.head   = true;
         members[0]->m_sGroupData.locked = WASLOCKED;
     } else {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+        pDraggedWindow->m_pWorkspace->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
     }
 
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
@@ -454,7 +454,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     m_pWindow->setGroupCurrent(pDraggedWindow);
     pDraggedWindow->applyGroupRules();
     pDraggedWindow->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
+    pDraggedWindow->m_pWorkspace->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
     if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
         pDraggedWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pDraggedWindow));

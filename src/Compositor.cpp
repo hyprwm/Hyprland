@@ -875,7 +875,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
     if (pWindow && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2 && !pWindow->m_pXWaylandSurface->wantsFocus())
         return;
 
-    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
+    if (pWindow)
+        pWindow->m_pWorkspace->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -898,7 +899,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
         EMIT_HOOK_EVENT("activeWindow", (PHLWINDOW) nullptr);
 
-        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
+        if (m_pLastMonitor)
+            m_pLastMonitor->activeWorkspace->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_pLastFocus.reset();
 
@@ -971,7 +973,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
+    pWindow->m_pWorkspace->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
@@ -1764,7 +1766,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     };
 
     // border
-    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
+    const auto RENDERDATA = pWindow->m_pWorkspace->getCurrentLayout()->requestRenderHints(pWindow);
     if (RENDERDATA.isBorderGradient)
         setBorderColor(*RENDERDATA.borderGradient);
     else {
@@ -1905,8 +1907,8 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
     PWORKSPACEA->rememberPrevWorkspace(PWORKSPACEB);
     PWORKSPACEB->rememberPrevWorkspace(PWORKSPACEA);
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->ID);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
+    PWORKSPACEA->getCurrentLayout()->recalculateMonitor(pMonitorB->ID);
+    PWORKSPACEB->getCurrentLayout()->recalculateMonitor(pMonitorA->ID);
 
     updateFullscreenFadeOnWorkspace(PWORKSPACEB);
     updateFullscreenFadeOnWorkspace(PWORKSPACEA);
@@ -2090,7 +2092,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
 
         setActiveMonitor(pMonitor);
         pMonitor->activeWorkspace = pWorkspace;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
+        pWorkspace->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
 
         pWorkspace->startAnim(true, true, true);
         pWorkspace->m_bVisible = true;
@@ -2103,7 +2105,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
 
     // finalize
     if (POLDMON) {
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
+        POLDMON->activeWorkspace->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         updateFullscreenFadeOnWorkspace(POLDMON->activeWorkspace);
         updateSuspendedStates();
     }
@@ -2187,7 +2189,7 @@ void CCompositor::setWindowFullscreen(PHLWINDOW pWindow, bool on, eFullscreenMod
         return;
     }
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(pWindow, MODE, on);
+    PWORKSPACE->getCurrentLayout()->fullscreenRequestForWindow(pWindow, MODE, on);
 
     g_pXWaylandManager->setWindowFullscreen(pWindow, pWindow->shouldSendFullscreenState());
 
@@ -2304,7 +2306,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
     }
 
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || (w->isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w)))
+        if (!w->m_bIsMapped || (w->isHidden() && !w->m_pWorkspace->getCurrentLayout()->isWindowReachable(w)))
             continue;
 
         switch (mode) {
@@ -2546,10 +2548,10 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
     if (!pWindow->m_bIsFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
+        pWindow->m_pWorkspace->getCurrentLayout()->onWindowRemovedTiling(pWindow);
         pWindow->moveToWorkspace(pWorkspace);
         pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+        pWindow->m_pWorkspace->getCurrentLayout()->onWindowCreatedTiling(pWindow);
     } else {
         const auto PWINDOWMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
         const auto POSTOMON       = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;

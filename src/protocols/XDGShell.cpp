@@ -136,10 +136,12 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         wl_array_release(&arr);
     }
 
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_LEFT);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_RIGHT);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_TOP);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_BOTTOM);
+    if (resource->version() >= 2) {
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_LEFT);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_RIGHT);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_TOP);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_BOTTOM);
+    }
 
     resource->setSetTitle([this](CXdgToplevel* r, const char* t) {
         state.title = t;
@@ -261,6 +263,9 @@ uint32_t CXDGToplevelResource::setActive(bool active) {
 }
 
 uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
+    if (resource->version() < 6)
+        return owner->scheduleConfigure(); // SUSPENDED is since 6
+
     bool set = std::find(pendingApply.states.begin(), pendingApply.states.end(), XDG_TOPLEVEL_STATE_SUSPENDED) != pendingApply.states.end();
 
     if (sus == set)

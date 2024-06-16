@@ -1,6 +1,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
@@ -1087,6 +1088,8 @@ void CKeybindManager::changeworkspace(std::string args) {
     if (!PMONITORWORKSPACEOWNER)
         return;
 
+    updateRelativeCursorCoords();
+
     g_pCompositor->setActiveMonitor(PMONITORWORKSPACEOWNER);
 
     if (BISWORKSPACECURRENT) {
@@ -1114,6 +1117,16 @@ void CKeybindManager::changeworkspace(std::string args) {
             g_pInputManager->sendMotionEventsToFocused();
         else
             g_pInputManager->simulateMouseMovement();
+    }
+
+    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+
+    if (*PWARPONWORKSPACECHANGE) {
+        auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
+        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
+
+        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+            PLAST->warpCursor();
     }
 }
 

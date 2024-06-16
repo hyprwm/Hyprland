@@ -538,17 +538,24 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
 
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
         // attempt to flip
-        const bool flipX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
-        const bool flipY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
+        const bool flipX      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
+        const bool flipY      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
+        auto       countEdges = [constraint](const CBox& test) -> int {
+            int edgeCount = 0;
+            edgeCount += test.x < constraint.x ? 1 : 0;
+            edgeCount += test.x + test.w > constraint.x + constraint.w ? 1 : 0;
+            edgeCount += test.y < constraint.y ? 1 : 0;
+            edgeCount += test.y + test.h > constraint.y + constraint.h ? 1 : 0;
+            return edgeCount;
+        };
+        int edgeCount = countEdges(test);
 
-        const bool horizontalEdgeOut = test.x < constraint.x || test.x + test.w > constraint.x + constraint.w;
-        const bool verticalEdgeOut   = test.y < constraint.y || test.y + test.h > constraint.y + constraint.h;
-
-        if (flipX && horizontalEdgeOut && flipY && verticalEdgeOut)
+        // -1 as we want 2 edges to be resolved with the flip, otherwise move on to only x or only y
+        if (flipX && flipY && edgeCount - 1 > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h})))
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h});
-        else if (flipX && horizontalEdgeOut)
+        else if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0})))
             test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        else if (flipY && verticalEdgeOut)
+        else if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h})))
             test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
 
         success = test.copy().expand(-1).inside(constraint);

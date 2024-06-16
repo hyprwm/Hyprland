@@ -12,20 +12,8 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     if (!good())
         return;
 
-    resource->setDestroy([this](CWlDataOffer* r) {
-        if (!dead && (recvd || accepted))
-            PROTO::data->completeDrag();
-        else
-            PROTO::data->abortDrag();
-        PROTO::data->destroyResource(this);
-    });
-    resource->setOnDestroy([this](CWlDataOffer* r) {
-        if (!dead && (recvd || accepted))
-            PROTO::data->completeDrag();
-        else
-            PROTO::data->abortDrag();
-        PROTO::data->destroyResource(this);
-    });
+    resource->setDestroy([this](CWlDataOffer* r) { PROTO::data->destroyResource(this); });
+    resource->setOnDestroy([this](CWlDataOffer* r) { PROTO::data->destroyResource(this); });
 
     resource->setAccept([this](CWlDataOffer* r, uint32_t serial, const char* mime) {
         if (!source) {
@@ -210,7 +198,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : reso
 
     pClient = resource->client();
 
-    resource->setSetSelection([this](CWlDataDevice* r, wl_resource* sourceR, uint32_t serial) {
+    resource->setSetSelection([](CWlDataDevice* r, wl_resource* sourceR, uint32_t serial) {
         auto source = sourceR ? CWLDataSourceResource::fromResource(sourceR) : CSharedPointer<CWLDataSourceResource>{};
         if (!source) {
             LOGM(LOG, "Reset selection received");
@@ -226,7 +214,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : reso
         g_pSeatManager->setCurrentSelection(source);
     });
 
-    resource->setStartDrag([this](CWlDataDevice* r, wl_resource* sourceR, wl_resource* origin, wl_resource* icon, uint32_t serial) {
+    resource->setStartDrag([](CWlDataDevice* r, wl_resource* sourceR, wl_resource* origin, wl_resource* icon, uint32_t serial) {
         auto source = CWLDataSourceResource::fromResource(sourceR);
         if (!source) {
             LOGM(ERR, "No source in drag");
@@ -615,6 +603,7 @@ void CWLDataDeviceProtocol::dropDrag() {
     dnd.overriddenCursor = false;
 
     g_pInputManager->simulateMouseMovement();
+    g_pSeatManager->resendEnterEvents();
 }
 
 bool CWLDataDeviceProtocol::wasDragSuccessful() {
@@ -645,6 +634,7 @@ void CWLDataDeviceProtocol::completeDrag() {
     dnd.currentSource.reset();
 
     g_pInputManager->simulateMouseMovement();
+    g_pSeatManager->resendEnterEvents();
 }
 
 void CWLDataDeviceProtocol::abortDrag() {
@@ -664,6 +654,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     dnd.currentSource.reset();
 
     g_pInputManager->simulateMouseMovement();
+    g_pSeatManager->resendEnterEvents();
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {

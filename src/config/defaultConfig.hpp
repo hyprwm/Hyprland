@@ -138,7 +138,7 @@ dwindle {
 
 # See https://wiki.hyprland.org/Configuring/Master-Layout/ for more
 master {
-    new_is_master = true
+    new_status = master
 }
 
 # https://wiki.hyprland.org/Configuring/Variables/#misc

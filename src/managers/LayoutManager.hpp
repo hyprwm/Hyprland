@@ -7,7 +7,7 @@ class CLayoutManager {
   public:
     CLayoutManager();
 
-    IHyprLayout*             getCurrentLayout();
+    IHyprLayout*             getCurrentGlobalLayout();
 
     void                     switchToLayout(std::string);
 

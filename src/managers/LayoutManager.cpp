@@ -5,7 +5,7 @@ CLayoutManager::CLayoutManager() {
     m_vLayouts.emplace_back(std::make_pair<>("master", &m_cMasterLayout));
 }
 
-IHyprLayout* CLayoutManager::getCurrentLayout() {
+IHyprLayout* CLayoutManager::getCurrentGlobalLayout() {
     return m_vLayouts[m_iCurrentLayoutID].second;
 }
 
@@ -15,9 +15,9 @@ void CLayoutManager::switchToLayout(std::string layout) {
             if (i == (size_t)m_iCurrentLayoutID)
                 return;
 
-            getCurrentLayout()->onDisable();
+            getCurrentGlobalLayout()->onDisable();
             m_iCurrentLayoutID = i;
-            getCurrentLayout()->onEnable();
+            getCurrentGlobalLayout()->onEnable();
             return;
         }
     }

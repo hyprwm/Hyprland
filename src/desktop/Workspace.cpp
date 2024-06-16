@@ -511,5 +511,5 @@ bool CWorkspace::inert() {
 }
 
 IHyprLayout* CWorkspace::getCurrentLayout() {
-    return g_pLayoutManager->getCurrentLayout();
+    return g_pLayoutManager->getCurrentGlobalLayout();
 }

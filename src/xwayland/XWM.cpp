@@ -1034,16 +1034,16 @@ void CXWM::initSelection() {
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
-    sel.dataSource = makeShared<CXDataSource>(sel);
-    if (sel.dataSource->mimes().empty()) {
+    auto source = makeShared<CXDataSource>(sel);
+    if (source->mimes().empty()) {
         Debug::log(ERR, "[xwm] can't set clipboard: no MIMEs");
-        sel.dataSource.reset();
+        return;
     }
 
-    if (sel.dataSource) {
-        Debug::log(LOG, "[xwm] X clipboard at {:x} takes clipboard", (uintptr_t)sel.dataSource.get());
-        g_pSeatManager->setCurrentSelection(sel.dataSource);
-    }
+    sel.dataSource = source;
+
+    Debug::log(LOG, "[xwm] X clipboard at {:x} takes clipboard", (uintptr_t)sel.dataSource.get());
+    g_pSeatManager->setCurrentSelection(sel.dataSource);
 }
 
 void CXWM::getTransferData(SXSelection& sel) {

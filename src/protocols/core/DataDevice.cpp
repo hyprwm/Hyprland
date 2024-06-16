@@ -644,11 +644,13 @@ void CWLDataDeviceProtocol::abortDrag() {
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
 
-    if (!dnd.focusedDevice || !dnd.currentSource)
+    if (!dnd.focusedDevice && !dnd.currentSource)
         return;
 
-    dnd.focusedDevice->sendLeave();
-    dnd.currentSource->cancelled();
+    if (dnd.focusedDevice)
+        dnd.focusedDevice->sendLeave();
+    if (dnd.currentSource)
+        dnd.currentSource->cancelled();
 
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();

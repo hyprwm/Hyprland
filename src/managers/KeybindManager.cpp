@@ -636,6 +636,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
+            // in this case, we only have the keysym to go off.
+            // if the keysym failed resolving, we can't do anything. It's likely missing
+            // from the keymap.
+            if (key.keysym == 0)
+                return false;
+
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);

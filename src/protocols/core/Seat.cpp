@@ -1,5 +1,6 @@
 #include "Seat.hpp"
 #include "Compositor.hpp"
+#include "DataDevice.hpp"
 #include "../../devices/IKeyboard.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -128,6 +129,18 @@ void CWLPointerResource::sendLeave() {
     if (!owner || !currentSurface)
         return;
 
+    // release all buttons unless we have a dnd going on in which case
+    // the events shall be lost.
+    if (!PROTO::data->dndActive()) {
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        for (auto& b : pressedButtons) {
+            sendButton(now.tv_sec * 1000 + now.tv_nsec / 1000000, b, WL_POINTER_BUTTON_STATE_RELEASED);
+        }
+    }
+
+    pressedButtons.clear();
+
     resource->sendLeave(g_pSeatManager->nextSerial(owner.lock()), currentSurface->getResource().get());
     currentSurface.reset();
     listeners.destroySurface.reset();
@@ -143,6 +156,19 @@ void CWLPointerResource::sendMotion(uint32_t timeMs, const Vector2D& local) {
 void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state) {
     if (!owner || !currentSurface)
         return;
+
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED && std::find(pressedButtons.begin(), pressedButtons.end(), button) == pressedButtons.end()) {
+        LOGM(ERR, "sendButton release on a non-pressed button");
+        return;
+    } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::find(pressedButtons.begin(), pressedButtons.end(), button) != pressedButtons.end()) {
+        LOGM(ERR, "sendButton press on a non-pressed button");
+        return;
+    }
+
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED)
+        std::erase(pressedButtons, button);
+    else if (state == WL_POINTER_BUTTON_STATE_PRESSED)
+        pressedButtons.emplace_back(button);
 
     resource->sendButton(g_pSeatManager->nextSerial(owner.lock()), timeMs, button, state);
 }

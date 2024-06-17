@@ -277,8 +277,26 @@ void CWLSurfaceResource::resetRole() {
 }
 
 void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
-    for (auto& n : nodes) {
 
+    std::vector<SP<CWLSurfaceResource>> nodes2;
+
+    // first, gather all nodes below
+    for (auto& n : nodes) {
+        std::erase_if(n->subsurfaces, [](const auto& e) { return e.expired(); });
+        // subsurfaces is sorted lowest -> highest
+        for (auto& c : n->subsurfaces) {
+            if (c->zIndex >= 0)
+                break;
+            nodes2.push_back(c->surface.lock());
+        }
+    }
+
+    if (!nodes2.empty())
+        bfHelper(nodes2, fn, data);
+
+    nodes2.clear();
+
+    for (auto& n : nodes) {
         Vector2D offset = {};
         if (n->role->role() == SURFACE_ROLE_SUBSURFACE) {
             auto subsurface = (CWLSubsurfaceResource*)n->role.get();
@@ -288,11 +306,10 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
         fn(n, offset, data);
     }
 
-    std::vector<SP<CWLSurfaceResource>> nodes2;
-
     for (auto& n : nodes) {
-        std::erase_if(n->subsurfaces, [](const auto& e) { return e.expired(); });
         for (auto& c : n->subsurfaces) {
+            if (c->zIndex < 0)
+                continue;
             nodes2.push_back(c->surface.lock());
         }
     }

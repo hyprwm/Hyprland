@@ -209,7 +209,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     else
         g_pHyprOpenGL->blend(true);
 
-    if (RDATA->surface && surface == RDATA->surface) {
+    // FIXME: This is wrong and will bug the blur out as shit if the first surface
+    // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
+    // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
+    if (RDATA->surfaceCounter == 0) {
         if (RDATA->blur)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else
@@ -235,6 +238,9 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
+
+    // up the counter so that we dont blur any surfaces above this one
+    RDATA->surfaceCounter++;
 }
 
 bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
@@ -602,6 +608,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
             renderdata.blur = false;
         }
 
+        renderdata.surfaceCounter = 0;
         pWindow->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
                                                         &renderdata);
 
@@ -657,6 +664,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
 
             if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
+            renderdata.surfaceCounter = 0;
 
             pWindow->m_pPopupHead->breadthfirst(
                 [](CPopup* popup, void* data) {
@@ -743,6 +752,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     renderdata.dontRound       = true;
     renderdata.popup           = true;
     renderdata.blur            = pLayer->forceBlurPopups;
+    renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->popupHead->breadthfirst(
             [](CPopup* popup, void* data) {

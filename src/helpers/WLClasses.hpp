@@ -51,6 +51,9 @@ struct SRenderData {
     PHLWINDOW pWindow;
 
     bool      popup = false;
+
+    // counts how many surfaces this pass has rendered
+    int surfaceCounter = 0;
 };
 
 struct SSwipeGesture {

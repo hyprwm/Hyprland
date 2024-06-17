@@ -76,6 +76,8 @@ class CWLPointerResource {
     SP<CWlPointer>         resource;
     WP<CWLSurfaceResource> currentSurface;
 
+    std::vector<uint32_t>  pressedButtons;
+
     struct {
         CHyprSignalListener destroySurface;
     } listeners;

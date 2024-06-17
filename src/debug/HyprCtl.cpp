@@ -1753,7 +1753,6 @@ void runWritingDebugLogThread(const int conn) {
     std::thread([conn]() {
         while (Debug::RollingLogFollow::Get().IsRunning()) {
             if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
-                std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
@@ -1762,7 +1761,7 @@ void runWritingDebugLogThread(const int conn) {
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
 
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(1ms);
         }
         close(conn);
         Debug::RollingLogFollow::Get().StopFor(conn);

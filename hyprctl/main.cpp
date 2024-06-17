@@ -132,7 +132,7 @@ int rollingRead(const int socket) {
             buffer.fill('\0');
         }
 
-        usleep(100000);
+        usleep(1000);
     }
     close(socket);
     return 0;

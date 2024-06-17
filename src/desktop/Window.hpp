@@ -62,18 +62,22 @@ class IWindowTransformer;
 template <typename T>
 class CWindowOverridableVar {
   public:
-    CWindowOverridableVar(T val) {
+    CWindowOverridableVar(T const& val) {
         value = val;
     }
 
     ~CWindowOverridableVar() = default;
 
-    CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> other) {
-        if (locked)
+    CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> const& other) {
+        // Self-assignment check
+        if (this == &other)
             return *this;
 
-        locked = other.locked;
-        value  = other.value;
+        // Check if the current object is locked
+        if (!locked) {
+            locked = other.locked;
+            value  = other.value;
+        }
 
         return *this;
     }
@@ -85,36 +89,36 @@ class CWindowOverridableVar {
         return other;
     }
 
-    void forceSetIgnoreLocked(T val, bool lock = false) {
+    void forceSetIgnoreLocked(T const& val, bool lock = false) {
         value  = val;
         locked = lock;
     }
 
-    T operator*(T& other) {
+    T operator*(T const& other) {
         return value * other;
     }
 
-    T operator+(T& other) {
+    T operator+(T const& other) {
         return value + other;
     }
 
-    bool operator==(T& other) {
+    bool operator==(T const& other) {
         return other == value;
     }
 
-    bool operator>=(T& other) {
+    bool operator>=(T const& other) {
         return value >= other;
     }
 
-    bool operator<=(T& other) {
+    bool operator<=(T const& other) {
         return value <= other;
     }
 
-    bool operator>(T& other) {
+    bool operator>(T const& other) {
         return value > other;
     }
 
-    bool operator<(T& other) {
+    bool operator<(T const& other) {
         return value < other;
     }
 

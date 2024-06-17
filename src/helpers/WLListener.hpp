@@ -6,7 +6,7 @@
 
 class CHyprWLListener {
   public:
-    CHyprWLListener(wl_signal*, std::function<void(void*, void*)>, void* owner);
+    CHyprWLListener(wl_signal*, std::function<void(void*, void*)> const&, void* owner);
     CHyprWLListener();
     ~CHyprWLListener();
 
@@ -15,7 +15,7 @@ class CHyprWLListener {
     CHyprWLListener& operator=(const CHyprWLListener&) = delete;
     CHyprWLListener& operator=(CHyprWLListener&&)      = delete;
 
-    void             initCallback(wl_signal*, std::function<void(void*, void*)>, void* owner, std::string author = "");
+    void             initCallback(wl_signal*, std::function<void(void*, void*)> const&, void* owner, std::string author = "");
 
     void             removeCallback();
 

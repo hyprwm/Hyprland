@@ -18,7 +18,7 @@ void handleWrapped(wl_listener* listener, void* data) {
         g_pWatchdog->endWatching();
 }
 
-CHyprWLListener::CHyprWLListener(wl_signal* pSignal, std::function<void(void*, void*)> callback, void* pOwner) {
+CHyprWLListener::CHyprWLListener(wl_signal* pSignal, std::function<void(void*, void*)> const& callback, void* pOwner) {
     initCallback(pSignal, callback, pOwner);
 }
 
@@ -44,7 +44,7 @@ bool CHyprWLListener::isConnected() {
     return !wl_list_empty(&m_swWrapper.m_sListener.link);
 }
 
-void CHyprWLListener::initCallback(wl_signal* pSignal, std::function<void(void*, void*)> callback, void* pOwner, std::string author) {
+void CHyprWLListener::initCallback(wl_signal* pSignal, std::function<void(void*, void*)> const& callback, void* pOwner, std::string author) {
     if (isConnected()) {
         Debug::log(ERR, "Tried to connect a listener twice?!");
         return;

@@ -152,7 +152,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       else "RelWithDebInfo";
 
     # we want as much debug info as possible
-    dontStrip = true;
+    dontStrip = debug;
 
     cmakeFlags = [
       (lib.cmakeBool "NO_XWAYLAND" (!enableXWayland))

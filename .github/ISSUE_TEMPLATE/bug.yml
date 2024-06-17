@@ -16,6 +16,7 @@ body:
       description: |
         Regression means that something used to work but no longer does.
         **BEFORE CONTINUING**, please check if this bug is a regression or not, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
+      multiple: true
       options:
         - "Yes"
         - "No"

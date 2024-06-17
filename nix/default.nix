@@ -11,6 +11,7 @@
   expat,
   fribidi,
   git,
+  hwdata,
   hyprcursor,
   hyprlang,
   hyprutils,
@@ -18,26 +19,28 @@
   jq,
   libGL,
   libdatrie,
+  libdisplay-info,
   libdrm,
   libexecinfo,
   libinput,
+  libliftoff,
   libselinux,
   libsepol,
   libthai,
   libuuid,
   libxkbcommon,
   mesa,
+  meson,
   pango,
   pciutils,
   pcre2,
   python3,
+  seatd,
   systemd,
   tomlplusplus,
-  udis86,
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots,
   xorg,
   xwayland,
   debug ? false,
@@ -76,23 +79,21 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       sed -i "s#@PREFIX@/##g" hyprland.pc.in
     '';
 
+    COMMITS = commit;
     DATE = date;
+    DIRTY = lib.optionalString (commit == "") "dirty";
     HASH = commit;
-    DIRTY = if commit == "" then "dirty" else "";
 
-    nativeBuildInputs = lib.concatLists [
-      [
-        hyprwayland-scanner
-        jq
-        makeWrapper
-        cmake
-        ninja
-        pkg-config
-        python3
-        wayland-scanner
-      ]
-      # introduce this later so that cmake takes precedence
-      wlroots.nativeBuildInputs
+    nativeBuildInputs = [
+      hyprwayland-scanner
+      jq
+      makeWrapper
+      cmake
+      meson # for wlroots
+      ninja
+      pkg-config
+      python3 # for udis86
+      wayland-scanner
     ];
 
     outputs = [
@@ -102,14 +103,13 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     ];
 
     buildInputs = lib.concatLists [
-      wlroots.buildInputs
-      udis86.buildInputs
       [
         cairo
         expat
         fribidi
         git
-        hyprcursor.dev
+        hwdata
+        hyprcursor
         hyprlang
         hyprutils
         libGL
@@ -128,12 +128,18 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         tomlplusplus
         wayland
         wayland-protocols
+        # for wlroots
+        seatd
+        libdisplay-info
+        libliftoff
       ]
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [
         xorg.libxcb
         xorg.libXdmcp
         xorg.xcbutil
+        xorg.xcbutilerrors
+        xorg.xcbutilrenderutil
         xorg.xcbutilwm
         xwayland
       ])
@@ -144,6 +150,9 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       if debug
       then "Debug"
       else "RelWithDebInfo";
+
+    # we want as much debug info as possible
+    dontStrip = true;
 
     cmakeFlags = [
       (lib.cmakeBool "NO_XWAYLAND" (!enableXWayland))
@@ -164,11 +173,11 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     passthru.providedSessions = ["hyprland"];
 
-    meta = with lib; {
+    meta = {
       homepage = "https://github.com/hyprwm/Hyprland";
-      description = "A dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
-      license = licenses.bsd3;
-      platforms = wlroots.meta.platforms;
+      description = "Dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
+      license = lib.licenses.bsd3;
+      platforms = lib.platforms.linux;
       mainProgram = "Hyprland";
     };
   }

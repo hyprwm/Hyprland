@@ -540,7 +540,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 }
 
 void CWLDataDeviceProtocol::updateDrag() {
-    if (!dnd.currentSource)
+    if (!dndActive())
         return;
 
     if (dnd.focusedDevice)
@@ -595,15 +595,13 @@ void CWLDataDeviceProtocol::dropDrag() {
     }
 
     dnd.focusedDevice->sendDrop();
+    dnd.focusedDevice->sendLeave();
 
     resetDndState();
 
     if (dnd.overriddenCursor)
         g_pInputManager->unsetCursorImage();
     dnd.overriddenCursor = false;
-
-    g_pInputManager->simulateMouseMovement();
-    g_pSeatManager->resendEnterEvents();
 }
 
 bool CWLDataDeviceProtocol::wasDragSuccessful() {
@@ -624,11 +622,13 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
 void CWLDataDeviceProtocol::completeDrag() {
     resetDndState();
 
-    if (!dnd.focusedDevice || !dnd.currentSource)
+    if (!dnd.focusedDevice && !dnd.currentSource)
         return;
 
-    dnd.currentSource->sendDndDropPerformed();
-    dnd.currentSource->sendDndFinished();
+    if (dnd.currentSource) {
+        dnd.currentSource->sendDndDropPerformed();
+        dnd.currentSource->sendDndFinished();
+    }
 
     dnd.focusedDevice.reset();
     dnd.currentSource.reset();

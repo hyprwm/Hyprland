@@ -3,7 +3,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 
-CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs_) : attrs(attrs_) {
+CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs const& attrs_) : attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
     listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {

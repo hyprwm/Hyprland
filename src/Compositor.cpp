@@ -29,6 +29,7 @@ using namespace Hyprutils::String;
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -68,6 +69,46 @@ void handleUserSignal(int sig) {
         // means we have to unwind a timed out event
         throw std::exception();
     }
+}
+
+static void bumpNofile() {
+    unsigned long limit = 1024;
+
+    try {
+        std::ifstream f("/proc/sys/fs/nr_open");
+        if (!f.good())
+            limit = 1073741816;
+        else {
+            std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
+            f.close();
+
+            limit = std::stoll(content);
+        }
+
+    } catch (...) { limit = 1073741816; }
+
+    struct rlimit rlimit_;
+    if (!getrlimit(RLIMIT_NOFILE, &rlimit_))
+        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", rlimit_.rlim_cur, rlimit_.rlim_max);
+
+    if (rlimit_.rlim_max <= 1024)
+        rlimit_.rlim_max = limit;
+
+    unsigned long oldHardLimit = rlimit_.rlim_max;
+
+    rlimit_.rlim_max = limit;
+
+    if (setrlimit(RLIMIT_NOFILE, &rlimit_) < 0) {
+        Debug::log(LOG, "Failed bumping NOFILE limits higher, retrying with previous hard.");
+        rlimit_.rlim_max = oldHardLimit;
+        rlimit_.rlim_cur = std::clamp((unsigned long)limit, 1UL, (unsigned long)rlimit_.rlim_max);
+
+        if (setrlimit(RLIMIT_NOFILE, &rlimit_) < 0)
+            Debug::log(LOG, "Failed bumping NOFILE limits higher for the second time.");
+    }
+
+    if (!getrlimit(RLIMIT_NOFILE, &rlimit_))
+        Debug::log(LOG, "New rlimit: soft -> {}, hard -> {}", rlimit_.rlim_cur, rlimit_.rlim_max);
 }
 
 CCompositor::CCompositor() {
@@ -131,6 +172,8 @@ CCompositor::CCompositor() {
     setRandomSplash();
 
     Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
+
+    bumpNofile();
 }
 
 CCompositor::~CCompositor() {

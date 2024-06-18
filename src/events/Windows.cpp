@@ -737,6 +737,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_pWorkspace->m_bVisible)
         return;
 
+    PWINDOW->updateSurfaceScaleTransformDetails();
+
     g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
                                    PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 

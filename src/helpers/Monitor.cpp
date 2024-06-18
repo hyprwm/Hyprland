@@ -6,7 +6,7 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
-#include "managers/PointerManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 

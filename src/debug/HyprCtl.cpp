@@ -11,6 +11,7 @@
 #include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <sys/poll.h>
 
 #include <sstream>
 #include <string>
@@ -1784,13 +1785,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     std::array<char, 1024> readBuffer;
 
-    fd_set                 fdset;
-    FD_ZERO(&fdset);
-    FD_SET(ACCEPTEDCONNECTION, &fdset);
-    timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
-    auto    success = select(ACCEPTEDCONNECTION + 1, &fdset, nullptr, nullptr, &timeout);
+    //
+    pollfd pollfds[1] = {
+        {
+            .fd     = ACCEPTEDCONNECTION,
+            .events = POLLIN,
+        },
+    };
 
-    if (success <= 0) {
+    int ret = poll(pollfds, 1, 5000);
+
+    if (ret <= 0) {
         close(ACCEPTEDCONNECTION);
         return 0;
     }

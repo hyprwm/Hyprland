@@ -17,12 +17,10 @@ int ratHandler(void* data) {
 }
 
 CMonitor::CMonitor() : state(this) {
-    wlr_damage_ring_init(&damage);
+    ;
 }
 
 CMonitor::~CMonitor() {
-    wlr_damage_ring_finish(&damage);
-
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
     hyprListener_monitorStateRequest.removeCallback();
@@ -162,7 +160,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 
-    wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
+    damage.setSize(vecTransformedSize);
 
     Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
@@ -345,9 +343,9 @@ void CMonitor::onDisconnect(bool destroy) {
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(this);
-    } else if (wlr_damage_ring_add(&damage, rg))
+    } else if (damage.damage(rg))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
@@ -358,13 +356,11 @@ void CMonitor::addDamage(const CRegion* rg) {
 void CMonitor::addDamage(const CBox* box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(this);
     }
 
-    wlr_box damageBox = {(int)box->x, (int)box->y, (int)box->w, (int)box->h};
-
-    if (wlr_damage_ring_add_box(&damage, &damageBox))
+    if (damage.damage(*box))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
@@ -379,7 +375,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
         // damage whole screen because some previous cursor box damages were skipped
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         return false;
     }
 

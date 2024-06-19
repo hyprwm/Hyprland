@@ -234,16 +234,16 @@ static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             (w->m_bIsFullscreen ? "true" : "false"), (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
             w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     } else {
-        return std::format("Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
-                           "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
-                           "{}\n\txwayland: {}\n\tpinned: "
-                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
-                           (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
-                           (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
-                           (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass,
-                           w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
-                           (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
-                           getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+        return std::format(
+            "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
+            "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
+            "{}\n\txwayland: {}\n\tpinned: "
+            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+            (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
+            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName),
+            (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
+            (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen, (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
+            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     }
 }
 

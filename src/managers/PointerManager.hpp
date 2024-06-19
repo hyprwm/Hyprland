@@ -3,8 +3,8 @@
 #include "../devices/IPointer.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
-#include "../helpers/Box.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../desktop/WLSurface.hpp"
 #include <tuple>
 

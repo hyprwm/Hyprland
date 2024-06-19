@@ -7,7 +7,7 @@
 #include "WaylandProtocol.hpp"
 #include "text-input-unstable-v3.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "../helpers/Box.hpp"
+#include "../helpers/math/Math.hpp"
 
 class CWLSurfaceResource;
 

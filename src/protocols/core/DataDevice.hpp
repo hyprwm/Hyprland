@@ -15,7 +15,7 @@
 #include <wayland-server-protocol.h>
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
-#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/math/Math.hpp"
 #include "../types/DataDevice.hpp"
 
 class CWLDataDeviceResource;

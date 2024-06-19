@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 
 class CSubsurface;

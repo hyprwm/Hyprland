@@ -6,7 +6,7 @@
 #include <tuple>
 #include "WaylandProtocol.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceRole.hpp"
 

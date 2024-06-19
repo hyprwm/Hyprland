@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -1508,15 +1508,15 @@ void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
 
 // taken from Sway.
 // this is just too much of a spaghetti for me to understand
-static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
+static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
     if (exclusive <= 0) {
         return;
     }
     struct {
         uint32_t singular_anchor;
         uint32_t anchor_triplet;
-        int*     positive_axis;
-        int*     negative_axis;
+        double*  positive_axis;
+        double*  negative_axis;
         int      margin;
     } edges[] = {
         // Top
@@ -1640,9 +1640,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
         // Apply
         ls->geometry = box;
 
-        applyExclusive(*usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
-
-        usableArea->applyFromWlr();
+        applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             ls->layerSurface->configure(box.size());
@@ -1820,7 +1818,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
         monbox.y      = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
         wlr_region_scale(transformed.pixman(), transformed.pixman(), scale);
-        transformed.transform(mirrored->transform, mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
+        transformed.transform(wlTransformToHyprutils(mirrored->transform), mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
         mirror->addDamage(&transformed);
@@ -2234,7 +2232,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (pMonitor->createdByUser) {
         CBox transformedBox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-        transformedBox.transform(wlr_output_transform_invert(pMonitor->output->transform), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+        transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(pMonitor->output->transform)), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }

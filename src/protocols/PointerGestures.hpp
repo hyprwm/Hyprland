@@ -4,7 +4,7 @@
 #include <vector>
 #include "WaylandProtocol.hpp"
 #include "pointer-gestures-unstable-v1.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 
 class CPointerGestureSwipe {
   public:

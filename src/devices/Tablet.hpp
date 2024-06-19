@@ -3,8 +3,8 @@
 #include "IHID.hpp"
 #include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
-#include "../helpers/Vector2D.hpp"
-#include "../helpers/Box.hpp"
+#include "../helpers/math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 
 struct wlr_tablet;
 struct wlr_tablet_tool;

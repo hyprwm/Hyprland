@@ -98,3 +98,10 @@
                        ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                              \
         }                                                                                                                                                                          \
     }
+
+#define HYPRUTILS_FORWARD(ns, name)                                                                                                                                                \
+    namespace Hyprutils {                                                                                                                                                          \
+        namespace ns {                                                                                                                                                             \
+            class name;                                                                                                                                                            \
+        }                                                                                                                                                                          \
+    }

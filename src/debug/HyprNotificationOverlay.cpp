@@ -131,7 +131,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
         textW /= PANGO_SCALE;
         textH /= PANGO_SCALE;
 
-        const auto NOTIFSIZE = Vector2D{textW + 20 + iconW + 2 * ICONPADFORNOTIF, textH + 10};
+        const auto NOTIFSIZE = Vector2D{textW + 20.0 + iconW + 2 * ICONPADFORNOTIF, textH + 10.0};
 
         // draw rects
         cairo_set_source_rgba(m_pCairo, notif->color.r, notif->color.g, notif->color.b, notif->color.a);

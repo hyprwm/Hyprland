@@ -514,13 +514,13 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
 
 static Vector2D pointForAnchor(const CBox& box, const Vector2D& predictionSize, xdgPositionerAnchor anchor) {
     switch (anchor) {
-        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.F - predictionSize.x / 2.F, 0};
-        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.F - predictionSize.x / 2.F, box.size().y};
-        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0, box.size().y / 2.F - predictionSize.y / 2.F};
-        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F - predictionSize.y / 2.F};
+        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, 0.0};
+        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, box.size().y};
+        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0.0, box.size().y / 2.0 - predictionSize.y / 2.0};
+        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F - predictionSize.y / 2.0};
         case XDG_POSITIONER_ANCHOR_TOP_LEFT: return box.pos();
-        case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0, box.size().y};
-        case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0};
+        case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0.0, box.size().y};
+        case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0.0};
         case XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y};
         default: return box.pos();
     }
@@ -555,10 +555,10 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         };
         int edgeCount = countEdges(test);
 
-        if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0})))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h})))
-            test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
+        if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0})))
+            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0});
+        if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h})))
+            test.translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h});
 
         success = test.copy().expand(-1).inside(constraint);
 

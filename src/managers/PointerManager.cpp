@@ -577,7 +577,7 @@ Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
     return CBox{currentCursorImage.hotspot * pMonitor->scale, {0, 0}}
-        .transform(wlr_output_transform_invert(pMonitor->transform), pMonitor->output->cursor_swapchain->width, pMonitor->output->cursor_swapchain->height)
+        .transform(wlTransformToHyprutils(wlr_output_transform_invert(pMonitor->transform)), pMonitor->output->cursor_swapchain->width, pMonitor->output->cursor_swapchain->height)
         .pos();
 }
 

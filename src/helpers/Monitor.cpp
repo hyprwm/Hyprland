@@ -358,7 +358,9 @@ void CMonitor::addDamage(const CBox* box) {
         g_pCompositor->scheduleFrameForMonitor(this);
     }
 
-    if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
+    wlr_box damageBox = {(int)box->x, (int)box->y, (int)box->w, (int)box->h};
+
+    if (wlr_damage_ring_add_box(&damage, &damageBox))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 

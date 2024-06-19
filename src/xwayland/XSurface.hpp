@@ -2,7 +2,7 @@
 
 #include "../helpers/WLListener.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "../helpers/Box.hpp"
+#include "../helpers/math/Math.hpp"
 #include <vector>
 
 class CWLSurfaceResource;

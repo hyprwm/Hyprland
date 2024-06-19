@@ -762,7 +762,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    return Vector2D(x, y);
+    return Vector2D((double)x, (double)y);
 }
 
 double normalizeAngleRad(double ang) {

@@ -110,6 +110,4 @@ extern "C" {
 #define XWAYLAND true
 #endif
 
-#include "helpers/Vector2D.hpp"
-#include "helpers/Box.hpp"
 #include "SharedDefs.hpp"

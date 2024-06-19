@@ -8,7 +8,7 @@
 #include <memory>
 #include <xf86drmMode.h>
 #include "Timer.hpp"
-#include "Region.hpp"
+#include "math/Math.hpp"
 #include <optional>
 #include "signal/Signal.hpp"
 

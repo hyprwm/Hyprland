@@ -4,7 +4,7 @@
 #include <hyprcursor/hyprcursor.hpp>
 #include <memory>
 #include "../includes.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 
 struct wlr_buffer;
 struct wlr_xcursor_manager;

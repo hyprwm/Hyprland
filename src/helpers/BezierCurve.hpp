@@ -3,7 +3,7 @@
 #include <deque>
 #include <array>
 #include <vector>
-#include "Vector2D.hpp"
+#include "math/Math.hpp"
 
 constexpr int   BAKEDPOINTS    = 255;
 constexpr float INVBAKEDPOINTS = 1.f / BAKEDPOINTS;

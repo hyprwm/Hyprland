@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
-#include "../../helpers/Box.hpp"
+#include "../../helpers/math/Math.hpp"
 #include "../../desktop/DesktopTypes.hpp"
 
 class CWindow;
@@ -37,7 +37,7 @@ struct SDecorationPositioningInfo {
     eDecorationPositioningPolicy policy   = DECORATION_POSITION_ABSOLUTE;
     uint32_t                     edges    = 0;  // enum eDecorationEdges
     uint32_t                     priority = 10; // priority, decos will be evaluated high -> low
-    SWindowDecorationExtents     desiredExtents;
+    SBoxExtents                  desiredExtents;
     bool                         reserved = false; // if true, geometry will use reserved area
 };
 
@@ -62,14 +62,14 @@ class CDecorationPositioner {
     Vector2D getEdgeDefinedPoint(uint32_t edges, PHLWINDOW pWindow);
 
     // called on resize, or insert/removal of a new deco
-    void                     onWindowUpdate(PHLWINDOW pWindow);
-    void                     uncacheDecoration(IHyprWindowDecoration* deco);
-    SWindowDecorationExtents getWindowDecorationReserved(PHLWINDOW pWindow);
-    SWindowDecorationExtents getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly = false);
-    CBox                     getBoxWithIncludedDecos(PHLWINDOW pWindow);
-    void                     repositionDeco(IHyprWindowDecoration* deco);
-    CBox                     getWindowDecorationBox(IHyprWindowDecoration* deco);
-    void                     forceRecalcFor(PHLWINDOW pWindow);
+    void        onWindowUpdate(PHLWINDOW pWindow);
+    void        uncacheDecoration(IHyprWindowDecoration* deco);
+    SBoxExtents getWindowDecorationReserved(PHLWINDOW pWindow);
+    SBoxExtents getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly = false);
+    CBox        getBoxWithIncludedDecos(PHLWINDOW pWindow);
+    void        repositionDeco(IHyprWindowDecoration* deco);
+    CBox        getWindowDecorationBox(IHyprWindowDecoration* deco);
+    void        forceRecalcFor(PHLWINDOW pWindow);
 
   private:
     struct SWindowPositioningData {
@@ -81,10 +81,10 @@ class CDecorationPositioner {
     };
 
     struct SWindowData {
-        Vector2D                 lastWindowSize = {};
-        SWindowDecorationExtents reserved       = {};
-        SWindowDecorationExtents extents        = {};
-        bool                     needsRecalc    = false;
+        Vector2D    lastWindowSize = {};
+        SBoxExtents reserved       = {};
+        SBoxExtents extents        = {};
+        bool        needsRecalc    = false;
     };
 
     std::map<PHLWINDOWREF, SWindowData>                  m_mWindowDatas;

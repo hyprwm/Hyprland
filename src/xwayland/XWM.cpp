@@ -1,4 +1,4 @@
-#include "helpers/Vector2D.hpp"
+#include "helpers/math/Math.hpp"
 #ifndef NO_XWAYLAND
 
 #include "XWayland.hpp"

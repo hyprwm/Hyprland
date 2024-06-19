@@ -8,7 +8,7 @@
 #include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "signal/Signal.hpp"
-#include "Region.hpp"
+#include "math/Math.hpp"
 
 class CMonitor;
 class IPointer;

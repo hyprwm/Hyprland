@@ -104,24 +104,24 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         if (ANIMSTYLE.starts_with("slidefadevert")) {
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D(0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
+                m_vRenderOffset.setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
                 m_fAlpha        = 1.f;
                 m_vRenderOffset = Vector2D(0, 0);
             } else {
                 m_fAlpha.setValueAndWarp(1.f);
                 m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D(0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
+                m_vRenderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
             }
         } else {
             if (in) {
                 m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0));
+                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
                 m_fAlpha        = 1.f;
                 m_vRenderOffset = Vector2D(0, 0);
             } else {
                 m_fAlpha.setValueAndWarp(1.f);
                 m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0);
+                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
             }
         }
     } else if (ANIMSTYLE == "fade") {
@@ -142,10 +142,10 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0, left ? YDISTANCE : -YDISTANCE));
+            m_vRenderOffset.setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(0, left ? -YDISTANCE : YDISTANCE);
+            m_vRenderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
         }
     } else {
         // fallback is slide
@@ -155,10 +155,10 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0));
+            m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
             m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0);
+            m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
         }
     }
 

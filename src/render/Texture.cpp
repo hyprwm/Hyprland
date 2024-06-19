@@ -55,7 +55,7 @@ CTexture::CTexture(wlr_texture* tex) {
     else
         m_iType = TEXTURE_EXTERNAL;
 
-    m_vSize = Vector2D(tex->width, tex->height);
+    m_vSize = Vector2D((int)tex->width, (int)tex->height);
 }
 
 CTexture::CTexture(const SDMABUFAttrs& attrs, void* image) {

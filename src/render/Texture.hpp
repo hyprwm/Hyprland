@@ -4,7 +4,7 @@
 
 class IWLBuffer;
 struct SDMABUFAttrs;
-class CRegion;
+HYPRUTILS_FORWARD(Math, CRegion);
 
 enum TEXTURETYPE {
     TEXTURE_INVALID,  // Invalid

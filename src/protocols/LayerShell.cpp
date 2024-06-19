@@ -82,7 +82,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
 
     resource->setSetSize([this](CZwlrLayerSurfaceV1* r, uint32_t x, uint32_t y) {
         pending.committed |= STATE_SIZE;
-        pending.desiredSize = {x, y};
+        pending.desiredSize = {(int)x, (int)y};
     });
 
     resource->setSetAnchor([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {

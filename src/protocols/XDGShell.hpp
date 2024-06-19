@@ -6,8 +6,8 @@
 #include <optional>
 #include "WaylandProtocol.hpp"
 #include "xdg-shell.hpp"
-#include "../helpers/Vector2D.hpp"
-#include "../helpers/Box.hpp"
+#include "../helpers/math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceRole.hpp"
 

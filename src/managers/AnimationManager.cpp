@@ -25,7 +25,7 @@ int wlTick(SP<CEventLoopTimer> self, void* data) {
 }
 
 CAnimationManager::CAnimationManager() {
-    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
+    std::vector<Vector2D> points = {Vector2D(0.0, 0.75), Vector2D(0.15, 1.0)};
     m_mBezierCurves["default"].setup(&points);
 
     m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
@@ -36,7 +36,7 @@ void CAnimationManager::removeAllBeziers() {
     m_mBezierCurves.clear();
 
     // add the default one
-    std::vector<Vector2D> points = {Vector2D(0, 0.75f), Vector2D(0.15f, 1.f)};
+    std::vector<Vector2D> points = {Vector2D(0.0, 0.75), Vector2D(0.15, 1.0)};
     m_mBezierCurves["default"].setup(&points);
 }
 
@@ -336,9 +336,9 @@ void CAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, boo
         if (force == "bottom")
             posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);
         else if (force == "left")
-            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0.0);
         else if (force == "right")
-            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0.0);
         else
             posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
 
@@ -360,16 +360,16 @@ void CAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, boo
 
     if (DISPLAYBOTTOM && DISPLAYTOP) {
         if (DISPLAYLEFT && DISPLAYRIGHT) {
-            posOffset = GOALPOS + Vector2D(0, GOALSIZE.y);
+            posOffset = GOALPOS + Vector2D(0.0, GOALSIZE.y);
         } else if (DISPLAYLEFT) {
-            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0);
+            posOffset = GOALPOS - Vector2D(GOALSIZE.x, 0.0);
         } else {
-            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0);
+            posOffset = GOALPOS + Vector2D(GOALSIZE.x, 0.0);
         }
     } else if (DISPLAYTOP) {
-        posOffset = GOALPOS - Vector2D(0, GOALSIZE.y);
+        posOffset = GOALPOS - Vector2D(0.0, GOALSIZE.y);
     } else if (DISPLAYBOTTOM) {
-        posOffset = GOALPOS + Vector2D(0, GOALSIZE.y);
+        posOffset = GOALPOS + Vector2D(0.0, GOALSIZE.y);
     } else {
         if (MIDPOINT.y > PMONITOR->vecPosition.y + PMONITOR->vecSize.y / 2.f)
             posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y + PMONITOR->vecSize.y);

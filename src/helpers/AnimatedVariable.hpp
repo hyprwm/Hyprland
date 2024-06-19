@@ -4,7 +4,7 @@
 #include <any>
 #include <chrono>
 #include <type_traits>
-#include "Vector2D.hpp"
+#include "math/Math.hpp"
 #include "Color.hpp"
 #include "../defines.hpp"
 #include "../debug/Log.hpp"

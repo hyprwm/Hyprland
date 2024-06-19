@@ -415,20 +415,25 @@ int CMonitor::findAvailableDefaultWS() {
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    int64_t     WORKSPACEID             = g_pConfigManager->getDefaultWorkspaceFor(szName).empty() ?
-                        findAvailableDefaultWS() :
-                        getWorkspaceIDFromString(g_pConfigManager->getDefaultWorkspaceFor(szName), newDefaultWorkspaceName);
+    int64_t     wsID                    = WORKSPACE_INVALID;
+    if (g_pConfigManager->getDefaultWorkspaceFor(szName).empty())
+        wsID = findAvailableDefaultWS();
+    else {
+        const auto ws           = getWorkspaceIDNameFromString(g_pConfigManager->getDefaultWorkspaceFor(szName));
+        wsID                    = ws.id;
+        newDefaultWorkspaceName = ws.name;
+    }
 
-    if (WORKSPACEID == WORKSPACE_INVALID || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
-        WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
-        newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+    if (wsID == WORKSPACE_INVALID || (wsID >= SPECIAL_WORKSPACE_START && wsID <= -2)) {
+        wsID                    = g_pCompositor->m_vWorkspaces.size() + 1;
+        newDefaultWorkspaceName = std::to_string(wsID);
 
         Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
     }
 
-    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
 
-    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
+    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, (int)(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -438,9 +443,9 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         PNEWWORKSPACE->startAnim(true, true, true);
     } else {
         if (newDefaultWorkspaceName == "")
-            newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+            newDefaultWorkspaceName = std::to_string(wsID);
 
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(CWorkspace::create(WORKSPACEID, ID, newDefaultWorkspaceName));
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(CWorkspace::create(wsID, ID, newDefaultWorkspaceName));
     }
 
     activeWorkspace = PNEWWORKSPACE;

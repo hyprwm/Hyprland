@@ -24,7 +24,8 @@
 
 #define STRVAL_EMPTY "[[EMPTY]]"
 
-#define WORKSPACE_INVALID -1L
+#define WORKSPACE_INVALID     -1L
+#define WORKSPACE_NOT_CHANGED -101
 
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \

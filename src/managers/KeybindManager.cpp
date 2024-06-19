@@ -890,6 +890,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
     }
     if (child == 0) {
         // run in child
+        g_pCompositor->restoreNofile();
 
         sigset_t set;
         sigemptyset(&set);

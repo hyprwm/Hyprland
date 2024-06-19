@@ -71,44 +71,35 @@ void handleUserSignal(int sig) {
     }
 }
 
-static void bumpNofile() {
-    unsigned long limit = 1024;
-
-    try {
-        std::ifstream f("/proc/sys/fs/nr_open");
-        if (!f.good())
-            limit = 1073741816;
-        else {
-            std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
-            f.close();
-
-            limit = std::stoll(content);
-        }
-
-    } catch (...) { limit = 1073741816; }
-
-    struct rlimit rlimit_;
-    if (!getrlimit(RLIMIT_NOFILE, &rlimit_))
-        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", rlimit_.rlim_cur, rlimit_.rlim_max);
-
-    if (rlimit_.rlim_max <= 1024)
-        rlimit_.rlim_max = limit;
-
-    unsigned long oldHardLimit = rlimit_.rlim_max;
-
-    rlimit_.rlim_max = limit;
-
-    if (setrlimit(RLIMIT_NOFILE, &rlimit_) < 0) {
-        Debug::log(LOG, "Failed bumping NOFILE limits higher, retrying with previous hard.");
-        rlimit_.rlim_max = oldHardLimit;
-        rlimit_.rlim_cur = std::clamp((unsigned long)limit, 1UL, (unsigned long)rlimit_.rlim_max);
-
-        if (setrlimit(RLIMIT_NOFILE, &rlimit_) < 0)
-            Debug::log(LOG, "Failed bumping NOFILE limits higher for the second time.");
+void CCompositor::bumpNofile() {
+    if (!getrlimit(RLIMIT_NOFILE, &m_sOriginalNofile))
+        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", m_sOriginalNofile.rlim_cur, m_sOriginalNofile.rlim_max);
+    else {
+        Debug::log(ERR, "Failed to get NOFILE rlimits");
+        m_sOriginalNofile.rlim_max = 0;
+        return;
     }
 
-    if (!getrlimit(RLIMIT_NOFILE, &rlimit_))
-        Debug::log(LOG, "New rlimit: soft -> {}, hard -> {}", rlimit_.rlim_cur, rlimit_.rlim_max);
+    rlimit newLimit = m_sOriginalNofile;
+
+    newLimit.rlim_cur = newLimit.rlim_max;
+
+    if (setrlimit(RLIMIT_NOFILE, &newLimit) < 0) {
+        Debug::log(ERR, "Failed bumping NOFILE limits higher");
+        m_sOriginalNofile.rlim_max = 0;
+        return;
+    }
+
+    if (!getrlimit(RLIMIT_NOFILE, &newLimit))
+        Debug::log(LOG, "New rlimit: soft -> {}, hard -> {}", newLimit.rlim_cur, newLimit.rlim_max);
+}
+
+void CCompositor::restoreNofile() {
+    if (m_sOriginalNofile.rlim_max <= 0)
+        return;
+
+    if (setrlimit(RLIMIT_NOFILE, &m_sOriginalNofile) < 0)
+        Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
 CCompositor::CCompositor() {

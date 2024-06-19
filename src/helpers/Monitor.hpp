@@ -11,6 +11,7 @@
 #include "math/Math.hpp"
 #include <optional>
 #include "signal/Signal.hpp"
+#include "DamageRing.hpp"
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs {
@@ -60,33 +61,32 @@ class CMonitor {
     CMonitor();
     ~CMonitor();
 
-    Vector2D        vecPosition         = Vector2D(-1, -1); // means unset
-    Vector2D        vecXWaylandPosition = Vector2D(-1, -1); // means unset
-    Vector2D        vecSize             = Vector2D(0, 0);
-    Vector2D        vecPixelSize        = Vector2D(0, 0);
-    Vector2D        vecTransformedSize  = Vector2D(0, 0);
+    Vector2D                vecPosition         = Vector2D(-1, -1); // means unset
+    Vector2D                vecXWaylandPosition = Vector2D(-1, -1); // means unset
+    Vector2D                vecSize             = Vector2D(0, 0);
+    Vector2D                vecPixelSize        = Vector2D(0, 0);
+    Vector2D                vecTransformedSize  = Vector2D(0, 0);
 
-    bool            primary = false;
+    bool                    primary = false;
 
-    uint64_t        ID                     = -1;
-    PHLWORKSPACE    activeWorkspace        = nullptr;
-    PHLWORKSPACE    activeSpecialWorkspace = nullptr;
-    float           setScale               = 1; // scale set by cfg
-    float           scale                  = 1; // real scale
+    uint64_t                ID                     = -1;
+    PHLWORKSPACE            activeWorkspace        = nullptr;
+    PHLWORKSPACE            activeSpecialWorkspace = nullptr;
+    float                   setScale               = 1; // scale set by cfg
+    float                   scale                  = 1; // real scale
 
-    std::string     szName             = "";
-    std::string     szDescription      = "";
-    std::string     szShortDescription = "";
+    std::string             szName             = "";
+    std::string             szDescription      = "";
+    std::string             szShortDescription = "";
 
-    Vector2D        vecReservedTopLeft     = Vector2D(0, 0);
-    Vector2D        vecReservedBottomRight = Vector2D(0, 0);
+    Vector2D                vecReservedTopLeft     = Vector2D(0, 0);
+    Vector2D                vecReservedBottomRight = Vector2D(0, 0);
 
-    drmModeModeInfo customDrmMode = {};
+    drmModeModeInfo         customDrmMode = {};
 
-    CMonitorState   state;
+    CMonitorState           state;
+    CDamageRing             damage;
 
-    // WLR stuff
-    wlr_damage_ring         damage;
     wlr_output*             output          = nullptr;
     float                   refreshRate     = 60;
     int                     framesToSkip    = 0;

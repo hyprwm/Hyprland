@@ -1246,7 +1246,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    bool hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
+    bool hasChanged = pMonitor->output->needs_frame || pMonitor->damage.hasChanged();
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
@@ -1414,7 +1414,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pMonitor->state.wlr()->tearing_page_flip = shouldTear;
 
     if (!pMonitor->state.commit()) {
-        wlr_damage_ring_add_whole(&pMonitor->damage);
+        pMonitor->damage.damageEntire();
         return;
     }
 
@@ -2245,7 +2245,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // updato wlroots
     g_pCompositor->arrangeMonitors();
 
-    wlr_damage_ring_set_bounds(&pMonitor->damage, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+    pMonitor->damage.setSize(pMonitor->vecTransformedSize);
 
     // Set scale for all surfaces on this monitor, needed for some clients
     // but not on unsafe state to avoid crashes
@@ -2609,13 +2609,15 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return true;
     }
 
+    int bufferAge = 0;
+
     if (!buffer) {
         if (!wlr_output_configure_primary_swapchain(pMonitor->output, pMonitor->state.wlr(), &pMonitor->output->swapchain)) {
             Debug::log(ERR, "Failed to configure primary swapchain for {}", pMonitor->szName);
             return false;
         }
 
-        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, nullptr);
+        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, &bufferAge);
         if (!m_pCurrentWlrBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);
             return false;
@@ -2634,8 +2636,10 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return false;
     }
 
-    if (mode == RENDER_MODE_NORMAL)
-        wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
+    if (mode == RENDER_MODE_NORMAL) {
+        damage = pMonitor->damage.getBufferDamage(bufferAge);
+        pMonitor->damage.rotate();
+    }
 
     m_pCurrentRenderbuffer->bind();
     if (simple)

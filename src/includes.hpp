@@ -53,7 +53,6 @@ extern "C" {
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_subcompositor.h>
-#include <wlr/types/wlr_damage_ring.h>
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 #include <wlr/util/edges.h>

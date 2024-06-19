@@ -107,7 +107,7 @@ void                 intHandler(int sig) {
     std::cout << "[hyprctl] SIGINT received, closing connection" << std::endl;
 }
 
-int rollingRead(const int socket) {
+int rollingRead(const int socket, int delay) {
     sigintReceived = false;
     signal(SIGINT, intHandler);
 
@@ -132,13 +132,13 @@ int rollingRead(const int socket) {
             buffer.fill('\0');
         }
 
-        usleep(1000);
+        usleep(delay * 1000);
     }
     close(socket);
     return 0;
 }
 
-int request(std::string arg, int minArgs = 0, bool needRoll = false) {
+int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollDelay = 50) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     auto       t = timeval{.tv_sec = 0, .tv_usec = 100000};
@@ -183,7 +183,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     }
 
     if (needRoll)
-        return rollingRead(SERVERSOCKET);
+        return rollingRead(SERVERSOCKET, rollDelay);
 
     std::string reply        = "";
     char        buffer[8192] = {0};
@@ -329,6 +329,7 @@ int main(int argc, char** argv) {
     const auto  ARGS             = splitArgs(argc, argv);
     bool        json             = false;
     bool        needRoll         = false;
+    int         rollDelay        = 50;
     std::string overrideInstance = "";
 
     for (std::size_t i = 0; i < ARGS.size(); ++i) {
@@ -351,6 +352,8 @@ int main(int argc, char** argv) {
             } else if ((ARGS[i] == "-f" || ARGS[i] == "--follow") && !fullArgs.contains("f")) {
                 fullArgs += "f";
                 needRoll = true;
+                if (ARGS.size() >= 3)
+                    rollDelay = std::stoi(ARGS[2]);
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -475,7 +478,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
     else if (fullRequest.contains("/rollinglog") && needRoll)
-        exitStatus = request(fullRequest, 0, true);
+        exitStatus = request(fullRequest, 0, true, rollDelay);
     else {
         exitStatus = request(fullRequest);
     }

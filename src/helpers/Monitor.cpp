@@ -6,6 +6,7 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../managers/PointerManager.hpp"
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -248,6 +249,9 @@ void CMonitor::onDisconnect(bool destroy) {
     // remove mirror
     if (pMirrorOf) {
         pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+
+        // unlock software for mirrored monitor
+        g_pPointerManager->unlockSoftwareForMonitor(pMirrorOf);
         pMirrorOf = nullptr;
     }
 
@@ -471,6 +475,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         if (pMirrorOf) {
             pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+
+            // unlock software for mirrored monitor
+            g_pPointerManager->unlockSoftwareForMonitor(pMirrorOf);
         }
 
         pMirrorOf = nullptr;
@@ -540,6 +547,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
 
         g_pCompositor->sanityCheckWorkspaces();
+
+        // Software lock mirrored monitor
+        g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
     }
 
     events.modeChanged.emit();

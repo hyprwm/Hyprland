@@ -5,6 +5,7 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
+#include "Compositor.hpp"
 #include "TokenManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
@@ -1017,15 +1018,20 @@ void CKeybindManager::centerWindow(std::string args) {
 }
 
 void CKeybindManager::toggleActivePseudo(std::string args) {
-    const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow.lock();
+    PHLWINDOW PWINDOW = nullptr;
 
-    if (!ACTIVEWINDOW)
+    if (args != "active" && args.length() > 1)
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    else
+        PWINDOW = g_pCompositor->m_pLastWindow.lock();
+
+    if (!PWINDOW)
         return;
 
-    ACTIVEWINDOW->m_bIsPseudotiled = !ACTIVEWINDOW->m_bIsPseudotiled;
+    PWINDOW->m_bIsPseudotiled = !PWINDOW->m_bIsPseudotiled;
 
-    if (!ACTIVEWINDOW->m_bIsFullscreen)
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
+    if (!PWINDOW->m_bIsFullscreen)
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
 }
 
 void CKeybindManager::changeworkspace(std::string args) {

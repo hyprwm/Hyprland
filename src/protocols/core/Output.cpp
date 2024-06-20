@@ -21,8 +21,8 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMoni
             PROTO::outputs.at(monitor->szName)->destroyResource(this);
     });
 
-    resource->sendGeometry(0, 0, monitor->output->phys_width, monitor->output->phys_height, monitor->output->subpixel, monitor->output->make ? monitor->output->make : "null",
-                           monitor->output->model ? monitor->output->model : "null", monitor->transform);
+    resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
+                           monitor->output->model.c_str(), monitor->transform);
     if (resource->version() >= 4) {
         resource->sendName(monitor->szName.c_str());
         resource->sendDescription(monitor->szDescription.c_str());
@@ -114,4 +114,10 @@ void CWLOutputProtocol::remove() {
 
 bool CWLOutputProtocol::isDefunct() {
     return defunct;
+}
+
+void CWLOutputProtocol::sendDone() {
+    for (auto& r : m_vOutputs) {
+        r->resource->sendDone();
+    }
 }

@@ -1284,7 +1284,7 @@ void CConfigManager::dispatchExecOnce() {
         return;
 
     // update dbus env
-    if (g_pCompositor->m_sWLRSession)
+    if (g_pCompositor->m_pAqBackend->hasSession())
         handleRawExec("",
 #ifdef USES_SYSTEMD
                       "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -1409,7 +1409,8 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
         if (USEVRR == 0) {
             if (m->vrrActive) {
-                wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 0);
+
+                m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);
@@ -1418,11 +1419,11 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             return;
         } else if (USEVRR == 1) {
             if (!m->vrrActive) {
-                wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 1);
+                m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
                     Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
-                    wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 0);
+                    m->output->state->setAdaptiveSync(false);
                 }
 
                 if (!m->state.commit())
@@ -1441,19 +1442,19 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
             const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
 
-            if (WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED) {
-                wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 1);
+            if (WORKSPACEFULL) {
+                m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
                     Debug::log(LOG, "Pending output {} does not accept VRR.", m->output->name);
-                    wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 0);
+                    m->output->state->setAdaptiveSync(false);
                 }
 
                 if (!m->state.commit())
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
-            } else if (!WORKSPACEFULL && m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED) {
-                wlr_output_state_set_adaptive_sync_enabled(m->state.wlr(), 0);
+            } else if (!WORKSPACEFULL) {
+                m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> false", m->output->name);

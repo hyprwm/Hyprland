@@ -266,20 +266,17 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
         return;
     }
 
-    if (PFRAME->pMonitor->output->allocator && (PFRAME->pMonitor->output->allocator->buffer_caps & WLR_BUFFER_CAP_DMABUF)) {
-        PFRAME->dmabufFormat = PFRAME->pMonitor->output->render_format;
-    } else {
-        PFRAME->dmabufFormat = DRM_FORMAT_INVALID;
-    }
+    PFRAME->dmabufFormat = PFRAME->pMonitor->output->state->state().drmFormat;
 
     if (box.width == 0 && box.height == 0)
         PFRAME->box = {0, 0, (int)(PFRAME->pMonitor->vecSize.x), (int)(PFRAME->pMonitor->vecSize.y)};
     else {
         PFRAME->box = box;
     }
-    int ow, oh;
-    wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
-    PFRAME->box.transform(wlTransformToHyprutils(PFRAME->pMonitor->transform), ow, oh).scale(PFRAME->pMonitor->scale).round();
+
+    PFRAME->box.transform(wlTransformToHyprutils(PFRAME->pMonitor->transform), PFRAME->pMonitor->vecTransformedSize.x, PFRAME->pMonitor->vecTransformedSize.y)
+        .scale(PFRAME->pMonitor->scale)
+        .round();
 
     PFRAME->shmStride = FormatUtils::minStride(PSHMINFO, PFRAME->box.w);
 
@@ -383,10 +380,10 @@ void CScreencopyProtocolManager::copyFrame(wl_client* client, wl_resource* resou
         g_pHyprRenderer->damageMonitor(PFRAME->pMonitor);
 }
 
-void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
-    m_pLastMonitorBackBuffer = e->state->buffer;
+void CScreencopyProtocolManager::onOutputCommit(CMonitor* pMonitor) {
+    m_pLastMonitorBackBuffer = pMonitor->output->state->state().buffer;
     shareAllFrames(pMonitor);
-    m_pLastMonitorBackBuffer = nullptr;
+    m_pLastMonitorBackBuffer.reset();
 }
 
 void CScreencopyProtocolManager::shareAllFrames(CMonitor* pMonitor) {
@@ -473,11 +470,7 @@ void CScreencopyProtocolManager::sendFrameDamage(SScreencopyFrame* frame) {
 }
 
 bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
-    wlr_texture* sourceTex = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer);
-    if (!sourceTex)
-        return false;
-
-    auto TEXTURE = makeShared<CTexture>(sourceTex);
+    auto TEXTURE = makeShared<CTexture>(m_pLastMonitorBackBuffer);
 
     auto shm                      = frame->buffer->shm();
     auto [pixelData, fmt, bufLen] = frame->buffer->beginDataPtr(0); // no need for end, cuz it's shm
@@ -489,10 +482,8 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     CFramebuffer fb;
     fb.alloc(frame->box.w, frame->box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : frame->pMonitor->drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
-        wlr_texture_destroy(sourceTex);
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true))
         return false;
-    }
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecTransformedSize.x, frame->pMonitor->vecTransformedSize.y}.translate({-frame->box.x, -frame->box.y});
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
@@ -510,7 +501,6 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         g_pHyprRenderer->endRender();
-        wlr_texture_destroy(sourceTex);
         return false;
     }
 
@@ -539,27 +529,20 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 
-    wlr_texture_destroy(sourceTex);
-
     return true;
 }
 
 bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
-    wlr_texture* sourceTex = wlr_texture_from_buffer(g_pCompositor->m_sWLRRenderer, m_pLastMonitorBackBuffer);
-    if (!sourceTex)
-        return false;
-
-    auto    TEXTURE = makeShared<CTexture>(sourceTex);
+    auto    TEXTURE = makeShared<CTexture>(m_pLastMonitorBackBuffer);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true))
         return false;
 
-    CBox monbox =
-        CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
-            .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-            .transform(wlTransformToHyprutils(wlr_output_transform_invert(frame->pMonitor->output->transform)), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
+                      .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+                      .transform(wlTransformToHyprutils(wlr_output_transform_invert(frame->pMonitor->transform)), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, &monbox, 1);
@@ -568,8 +551,6 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
-
-    wlr_texture_destroy(sourceTex);
 
     return true;
 }

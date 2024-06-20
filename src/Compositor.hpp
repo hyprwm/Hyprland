@@ -30,6 +30,9 @@
 #include "plugins/PluginSystem.hpp"
 #include "helpers/Watchdog.hpp"
 
+#include <aquamarine/backend/Backend.hpp>
+#include <aquamarine/output/Output.hpp>
+
 class CWLSurfaceResource;
 
 enum eManagersInitStage {
@@ -43,22 +46,11 @@ class CCompositor {
     CCompositor();
     ~CCompositor();
 
-    // ------------------ WLR BASICS ------------------ //
-    wl_display*               m_sWLDisplay;
-    wl_event_loop*            m_sWLEventLoop;
-    wlr_backend*              m_sWLRBackend;
-    wlr_session*              m_sWLRSession;
-    wlr_renderer*             m_sWLRRenderer;
-    wlr_allocator*            m_sWLRAllocator;
-    wlr_compositor*           m_sWLRCompositor;
-    wlr_subcompositor*        m_sWLRSubCompositor;
-    wlr_drm*                  m_sWRLDRM;
-    wlr_drm_lease_v1_manager* m_sWRLDRMLeaseMgr;
-    wlr_egl*                  m_sWLREGL;
-    int                       m_iDRMFD;
-    wlr_linux_dmabuf_v1*      m_sWLRLinuxDMABuf;
-    wlr_backend*              m_sWLRHeadlessBackend;
-    // ------------------------------------------------- //
+    wl_display*                               m_sWLDisplay;
+    wl_event_loop*                            m_sWLEventLoop;
+    int                                       m_iDRMFD       = -1;
+    bool                                      m_bInitialized = false;
+    SP<Aquamarine::CBackend>                  m_pAqBackend;
 
     std::string                               m_szHyprTempDataRoot = "";
 
@@ -116,8 +108,8 @@ class CCompositor {
     SP<CWLSurfaceResource> vectorToLayerPopupSurface(const Vector2D&, CMonitor* monitor, Vector2D*, PHLLS*);
     SP<CWLSurfaceResource> vectorWindowToSurface(const Vector2D&, PHLWINDOW, Vector2D& sl);
     Vector2D               vectorToSurfaceLocal(const Vector2D&, PHLWINDOW, SP<CWLSurfaceResource>);
-    CMonitor*              getMonitorFromOutput(wlr_output*);
-    CMonitor*              getRealMonitorFromOutput(wlr_output*);
+    CMonitor*              getMonitorFromOutput(SP<Aquamarine::IOutput>);
+    CMonitor*              getRealMonitorFromOutput(SP<Aquamarine::IOutput>);
     PHLWINDOW              getWindowFromSurface(SP<CWLSurfaceResource>);
     PHLWINDOW              getWindowFromHandle(uint32_t);
     bool                   isWorkspaceVisible(PHLWORKSPACE);
@@ -182,6 +174,7 @@ class CCompositor {
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
     PHLWINDOW              windowForCPointer(CWindow*);
+    void                   onNewMonitor(SP<Aquamarine::IOutput> output);
 
     std::string            explicitConfigPath;
 

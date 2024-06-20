@@ -29,16 +29,16 @@ class CSHMPool {
     void   resize(size_t size);
 };
 
-class CWLSHMBuffer : public IWLBuffer {
+class CWLSHMBuffer : public IHLBuffer {
   public:
     CWLSHMBuffer(SP<CWLSHMPoolResource> pool, uint32_t id, int32_t offset, const Vector2D& size, int32_t stride, uint32_t fmt);
     virtual ~CWLSHMBuffer();
 
-    virtual eBufferCapability                      caps();
-    virtual eBufferType                            type();
+    virtual Aquamarine::eBufferCapability          caps();
+    virtual Aquamarine::eBufferType                type();
     virtual void                                   update(const CRegion& damage);
     virtual bool                                   isSynchronous();
-    virtual SSHMAttrs                              shm();
+    virtual Aquamarine::SSHMAttrs                  shm();
     virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
     virtual void                                   endDataPtr();
 

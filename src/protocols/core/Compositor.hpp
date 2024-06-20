@@ -85,7 +85,7 @@ class CWLSurfaceResource {
         CRegion             opaque, input = CBox{{}, {INT32_MAX, INT32_MAX}}, damage, bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}} /* initial damage */;
         wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
         int                 scale     = 1;
-        SP<IWLBuffer>       buffer;
+        SP<IHLBuffer>       buffer;
         SP<CTexture>        texture;
         Vector2D            offset;
         Vector2D            size;

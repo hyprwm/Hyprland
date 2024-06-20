@@ -20,6 +20,7 @@
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+#include <aquamarine/input/Input.hpp>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"
@@ -53,18 +54,11 @@ static std::string formatToString(uint32_t drmFormat) {
 static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
-    if (!wl_list_empty(&pMonitor->output->modes)) {
-        wlr_output_mode* mode;
-
-        wl_list_for_each(mode, &pMonitor->output->modes, link) {
-
-            if (format == FORMAT_NORMAL)
-                result += std::format("{}x{}@{:.2f}Hz ", mode->width, mode->height, mode->refresh / 1000.0);
-            else
-                result += std::format("\"{}x{}@{:.2f}Hz\",", mode->width, mode->height, mode->refresh / 1000.0);
-        }
-
-        result.pop_back();
+    for (auto& m : pMonitor->output->modes) {
+        if (format == FORMAT_NORMAL)
+            result += std::format("{}x{}@{:.2f}Hz ", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
+        else
+            result += std::format("\"{}x{}@{:.2f}Hz\",", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
     }
 
     return result;
@@ -120,14 +114,13 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     "currentFormat": "{}",
     "availableModes": [{}]
 }},)#",
-                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make ? m->output->make : ""),
-                escapeJSONStrings(m->output->model ? m->output->model : ""), escapeJSONStrings(m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,
-                (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspaceID(),
-                (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
+                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make), escapeJSONStrings(m->output->model),
+                escapeJSONStrings(m->output->serial), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
+                m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
                 escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
                 (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+                (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (m->tearingState.activelyTearing ? "true" : "false"),
+                (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
 
         trimTrailingComma(result);
@@ -138,16 +131,16 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (!m->output || m->ID == -1ull)
                 continue;
 
-            result += std::format(
-                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
-                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
-                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspaceID(),
-                (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
-                (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED),
-                m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+            result +=
+                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                            "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                            "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                            m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
+                            m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
+                            (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+                            (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, m->tearingState.activelyTearing,
+                            !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
     }
 
@@ -546,8 +539,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "defaultSpeed": {:.5f}
     }},)#",
                 (uintptr_t)m.get(), escapeJSONStrings(m->hlName),
-                wlr_input_device_is_libinput(&m->wlr()->base) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
-                                                                0.f);
+                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
         }
 
         trimTrailingComma(result);
@@ -648,9 +640,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         for (auto& m : g_pInputManager->m_vPointers) {
             result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
-                                  (wlr_input_device_is_libinput(&m->wlr()->base) ?
-                                       libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
-                                       0.f));
+                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";
@@ -1119,24 +1109,22 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
     if (PKEYBOARD == g_pInputManager->m_vKeyboards.end())
         return "device not found";
 
-    const auto         PWLRKEYBOARD = (*PKEYBOARD)->wlr();
-    const auto         LAYOUTS      = xkb_keymap_num_layouts(PWLRKEYBOARD->keymap);
+    const auto         KEEB = *PKEYBOARD;
+
+    const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->xkbKeymap);
     xkb_layout_index_t activeLayout = 0;
     while (activeLayout < LAYOUTS) {
-        if (xkb_state_layout_index_is_active(PWLRKEYBOARD->xkb_state, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
+        if (xkb_state_layout_index_is_active(KEEB->xkbTranslationState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
             break;
 
         activeLayout++;
     }
 
-    if (CMD == "next") {
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked,
-                                      activeLayout > LAYOUTS ? 0 : activeLayout + 1);
-    } else if (CMD == "prev") {
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked,
-                                      activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
-    } else {
-
+    if (CMD == "next")
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
+    else if (CMD == "prev")
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
+    else {
         int requestedLayout = 0;
         try {
             requestedLayout = std::stoi(CMD);
@@ -1146,7 +1134,7 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
             return "layout idx out of range of " + std::to_string(LAYOUTS);
         }
 
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked, requestedLayout);
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, requestedLayout);
     }
 
     return "ok";
@@ -1389,26 +1377,26 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
-    wlr_output* output = nullptr;
+// static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
+//     wlr_output* output = nullptr;
 
-    if (type.empty() || type == "auto") {
-        if (wlr_backend_is_wl(backend))
-            output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_headless(backend))
-            output = wlr_headless_add_output(backend, 1920, 1080);
-    } else {
-        if (wlr_backend_is_wl(backend) && type == "wayland")
-            output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_headless(backend) && type == "headless")
-            output = wlr_headless_add_output(backend, 1920, 1080);
-    }
+//     if (type.empty() || type == "auto") {
+//         if (wlr_backend_is_wl(backend))
+//             output = wlr_wl_output_create(backend);
+//         else if (wlr_backend_is_headless(backend))
+//             output = wlr_headless_add_output(backend, 1920, 1080);
+//     } else {
+//         if (wlr_backend_is_wl(backend) && type == "wayland")
+//             output = wlr_wl_output_create(backend);
+//         else if (wlr_backend_is_headless(backend) && type == "headless")
+//             output = wlr_headless_add_output(backend, 1920, 1080);
+//     }
 
-    if (output && !name.empty())
-        g_pCompositor->getMonitorFromOutput(output)->szName = name;
+//     if (output && !name.empty())
+//         g_pCompositor->getMonitorFromOutput(output)->szName = name;
 
-    return output != nullptr;
-}
+//     return output != nullptr;
+// }
 
 struct outputData {
     std::string type;
@@ -1422,8 +1410,8 @@ void createOutputIter(wlr_backend* backend, void* data) {
     if (DATA->added)
         return;
 
-    if (addOutput(backend, DATA->type, DATA->name))
-        DATA->added = true;
+    // if (addOutput(backend, DATA->type, DATA->name))
+    //     DATA->added = true;
 }
 
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
@@ -1434,13 +1422,15 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
 
     const auto MODE = vars[1];
 
+    // FIXME:
+
     if (MODE == "create" || MODE == "add") {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
         outputData result{vars[2], vars[3], false};
 
-        wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
+        // wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
 
         if (!result.added)
             return "no backend replied to the request";
@@ -1454,7 +1444,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (!PMONITOR->createdByUser)
             return "cannot remove a real display. Use the monitor keyword.";
 
-        wlr_output_destroy(PMONITOR->output);
+        //wlr_output_destroy(PMONITOR->output);
     }
 
     return "ok";

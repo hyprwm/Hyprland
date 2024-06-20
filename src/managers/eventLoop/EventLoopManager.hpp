@@ -33,9 +33,10 @@ class CEventLoopManager {
 
   private:
     struct {
-        wl_event_loop*   loop        = nullptr;
-        wl_display*      display     = nullptr;
-        wl_event_source* eventSource = nullptr;
+        wl_event_loop*                loop        = nullptr;
+        wl_display*                   display     = nullptr;
+        wl_event_source*              eventSource = nullptr;
+        std::vector<wl_event_source*> aqEventSources;
     } m_sWayland;
 
     struct {

@@ -2,7 +2,16 @@
 #include "../defines.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "../managers/input/InputManager.hpp"
+#include <sys/mman.h>
+#include <aquamarine/input/Input.hpp>
 
+constexpr static std::array<const char*, 8> MODNAMES = {
+    XKB_MOD_NAME_SHIFT, XKB_MOD_NAME_CAPS, XKB_MOD_NAME_CTRL, XKB_MOD_NAME_ALT, XKB_MOD_NAME_NUM, "Mod3", XKB_MOD_NAME_LOGO, "Mod5",
+};
+
+constexpr static std::array<const char*, 3> LEDNAMES = {XKB_LED_NAME_NUM, XKB_LED_NAME_CAPS, XKB_LED_NAME_SCROLL};
+
+//
 uint32_t IKeyboard::getCapabilities() {
     return HID_INPUT_CAPABILITY_KEYBOARD;
 }
@@ -14,11 +23,130 @@ eHIDType IKeyboard::getType() {
 IKeyboard::~IKeyboard() {
     events.destroy.emit();
 
-    if (!xkbTranslationState)
-        return;
+    clearManuallyAllocd();
+}
 
-    xkb_state_unref(xkbTranslationState);
+void IKeyboard::clearManuallyAllocd() {
+    if (xkbTranslationState)
+        xkb_state_unref(xkbTranslationState);
+
+    if (xkbInternalTranslationState)
+        xkb_state_unref(xkbInternalTranslationState);
+
+    if (xkbKeymap)
+        xkb_keymap_unref(xkbKeymap);
+
+    if (xkbKeymapFD >= 0)
+        close(xkbKeymapFD);
+
+    xkbKeymap           = nullptr;
     xkbTranslationState = nullptr;
+    xkbKeymapFD         = -1;
+}
+
+void IKeyboard::setKeymap(const SStringRuleNames& rules) {
+    currentRules            = rules;
+    xkb_rule_names XKBRULES = {
+        .rules   = rules.rules.c_str(),
+        .model   = rules.model.c_str(),
+        .layout  = rules.layout.c_str(),
+        .variant = rules.variant.c_str(),
+        .options = rules.options.c_str(),
+    };
+
+    const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+
+    if (!CONTEXT) {
+        Debug::log(ERR, "setKeymap: CONTEXT null??");
+        return;
+    }
+
+    clearManuallyAllocd();
+
+    Debug::log(LOG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules, rules.model,
+               rules.options);
+
+    if (!xkbFilePath.empty()) {
+        auto path = absolutePath(xkbFilePath, g_pConfigManager->configCurrentPath);
+
+        if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
+            Debug::log(ERR, "Cannot open input:kb_file= file for reading");
+        else {
+            xkbKeymap = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+            fclose(KEYMAPFILE);
+        }
+    }
+
+    if (!xkbKeymap)
+        xkbKeymap = xkb_keymap_new_from_names(CONTEXT, &XKBRULES, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+    if (!xkbKeymap) {
+        g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
+                                        ", options: " + rules.options + ", layout: " + rules.layout + " )");
+
+        Debug::log(ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
+                   rules.options);
+        memset(&XKBRULES, 0, sizeof(XKBRULES));
+
+        currentRules.rules   = "";
+        currentRules.model   = "";
+        currentRules.variant = "";
+        currentRules.options = "";
+        currentRules.layout  = "us";
+
+        xkbKeymap = xkb_keymap_new_from_names(CONTEXT, &XKBRULES, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    }
+
+    // set internal translation state
+    // demo sunao ni ienai
+    xkbInternalTranslationState = xkb_state_new(xkbKeymap);
+
+    updateXKBTranslationState();
+
+    const auto NUMLOCKON = g_pConfigManager->getDeviceInt(hlName, "numlock_by_default", "input:numlock_by_default");
+
+    if (NUMLOCKON == 1) {
+        // lock numlock
+        const auto IDX = xkb_map_mod_get_index(xkbKeymap, XKB_MOD_NAME_NUM);
+
+        if (IDX != XKB_MOD_INVALID)
+            modifiersState.locked |= (uint32_t)1 << IDX;
+    }
+
+    if (modifiersState.locked != 0)
+        keyboardEvents.modifiers.emit(SModifiersEvent{.locked = modifiersState.locked});
+
+    for (size_t i = 0; i < LEDNAMES.size(); ++i) {
+        ledIndexes.at(i) = xkb_map_led_get_index(xkbKeymap, LEDNAMES.at(i));
+        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES.at(i), modIndexes.at(i));
+    }
+
+    for (size_t i = 0; i < MODNAMES.size(); ++i) {
+        modIndexes.at(i) = xkb_map_mod_get_index(xkbKeymap, MODNAMES.at(i));
+        Debug::log(LOG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES.at(i), modIndexes.at(i));
+    }
+
+    auto cKeymapStr = xkb_keymap_get_as_string(xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
+    xkbKeymapString = cKeymapStr;
+    free(cKeymapStr);
+
+    int rw, ro;
+    if (!allocateSHMFilePair(xkbKeymapString.length() + 1, &rw, &ro))
+        Debug::log(ERR, "IKeyboard: failed to allocate shm pair for the keymap");
+    else {
+        auto keymapFDDest = mmap(nullptr, xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw, 0);
+        close(rw);
+        if (keymapFDDest == MAP_FAILED) {
+            Debug::log(ERR, "IKeyboard: failed to mmap a shm pair for the keymap");
+            close(ro);
+        } else {
+            memcpy(keymapFDDest, xkbKeymapString.c_str(), xkbKeymapString.length());
+            munmap(keymapFDDest, xkbKeymapString.length() + 1);
+            xkbKeymapFD = ro;
+        }
+    }
+
+    xkb_context_unref(CONTEXT);
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
@@ -32,9 +160,8 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
         return;
     }
 
-    const auto WLRKB      = wlr();
-    const auto KEYMAP     = WLRKB->keymap;
-    const auto STATE      = WLRKB->xkb_state;
+    const auto KEYMAP     = xkbKeymap;
+    const auto STATE      = xkbInternalTranslationState;
     const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
 
     const auto PCONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -101,9 +228,8 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 }
 
 std::string IKeyboard::getActiveLayout() {
-    const auto WLRKB      = wlr();
-    const auto KEYMAP     = WLRKB->keymap;
-    const auto STATE      = WLRKB->xkb_state;
+    const auto KEYMAP     = xkbKeymap;
+    const auto STATE      = xkbTranslationState;
     const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
@@ -120,14 +246,12 @@ std::string IKeyboard::getActiveLayout() {
 }
 
 void IKeyboard::updateLEDs() {
-    auto keyboard = wlr();
-
-    if (!keyboard || keyboard->xkb_state == nullptr)
+    if (xkbTranslationState == nullptr)
         return;
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
+        if (xkb_state_led_index_is_active(xkbTranslationState, ledIndexes.at(i)))
             leds |= (1 << i);
     }
 
@@ -135,13 +259,62 @@ void IKeyboard::updateLEDs() {
 }
 
 void IKeyboard::updateLEDs(uint32_t leds) {
-    auto keyboard = wlr();
-
-    if (!keyboard || keyboard->xkb_state == nullptr)
+    if (!xkbTranslationState)
         return;
 
     if (isVirtual() && g_pInputManager->shouldIgnoreVirtualKeyboard(self.lock()))
         return;
 
-    wlr_keyboard_led_update(keyboard, leds);
+    if (!aq())
+        return;
+
+    aq()->updateLEDs(leds);
+}
+
+uint32_t IKeyboard::getModifiers() {
+    uint32_t modMask = modifiersState.depressed | modifiersState.latched;
+    uint32_t mods    = 0;
+    for (size_t i = 0; i < modIndexes.size(); ++i) {
+        if (modIndexes.at(i) == XKB_MOD_INVALID)
+            continue;
+
+        if (!(modMask & (1 << modIndexes.at(i))))
+            continue;
+
+        mods |= (1 << i);
+    }
+
+    return mods;
+}
+
+void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
+    if (!xkbTranslationState)
+        return;
+
+    xkb_state_update_mask(xkbTranslationState, depressed, latched, locked, 0, 0, group);
+
+    if (!updateModifiersState())
+        return;
+
+    updateLEDs();
+}
+
+bool IKeyboard::updateModifiersState() {
+    if (!xkbTranslationState)
+        return false;
+
+    auto depressed = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_DEPRESSED);
+    auto latched   = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_LATCHED);
+    auto locked    = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_LOCKED);
+    auto group     = xkb_state_serialize_layout(xkbTranslationState, XKB_STATE_LAYOUT_EFFECTIVE);
+
+    if (depressed == modifiersState.depressed && latched == modifiersState.latched && locked == modifiersState.locked && group == modifiersState.group)
+        return false;
+
+    modifiersState.depressed = depressed;
+    modifiersState.latched   = latched;
+    modifiersState.locked    = locked;
+    modifiersState.group     = group;
+
+    return true;
 }

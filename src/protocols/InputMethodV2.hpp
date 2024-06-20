@@ -11,6 +11,7 @@
 
 class CInputMethodKeyboardGrabV2;
 class CInputMethodPopupV2;
+class IKeyboard;
 
 class CInputMethodV2 {
   public:
@@ -58,7 +59,7 @@ class CInputMethodV2 {
     bool       hasGrab();
     void       sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state);
     void       sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
-    void       setKeyboard(wlr_keyboard* keyboard);
+    void       setKeyboard(SP<IKeyboard> keyboard);
 
     wl_client* client();
     wl_client* grabClient();
@@ -90,13 +91,13 @@ class CInputMethodKeyboardGrabV2 {
 
     void               sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state);
     void               sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
-    void               sendKeyboardData(wlr_keyboard* keyboard);
+    void               sendKeyboardData(SP<IKeyboard> keyboard);
 
   private:
     SP<CZwpInputMethodKeyboardGrabV2> resource;
     WP<CInputMethodV2>                owner;
 
-    wlr_keyboard*                     pLastKeyboard = nullptr; // READ-ONLY
+    WP<IKeyboard>                     pLastKeyboard;
 };
 
 class CInputMethodPopupV2 {

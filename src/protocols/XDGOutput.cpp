@@ -75,8 +75,8 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 
     if (XDGVER >= OUTPUT_NAME_SINCE_VERSION)
         pXDGOutput->resource->sendName(PMONITOR->szName.c_str());
-    if (XDGVER >= OUTPUT_DESCRIPTION_SINCE_VERSION && PMONITOR->output->description)
-        pXDGOutput->resource->sendDescription(PMONITOR->output->description);
+    if (XDGVER >= OUTPUT_DESCRIPTION_SINCE_VERSION && !PMONITOR->output->description.empty())
+        pXDGOutput->resource->sendDescription(PMONITOR->output->description.c_str());
 
     pXDGOutput->sendDetails();
 
@@ -93,7 +93,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
 
         o->sendDetails();
 
-        wlr_output_schedule_done(o->monitor->output);
+        o->monitor->scheduleDone();
     }
 }
 

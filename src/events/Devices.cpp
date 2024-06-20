@@ -21,15 +21,15 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
     switch (DEVICE->type) {
         case WLR_INPUT_DEVICE_KEYBOARD:
             Debug::log(LOG, "Attached a keyboard with name {}", DEVICE->name);
-            g_pInputManager->newKeyboard(DEVICE);
+            //g_pInputManager->newKeyboard(DEVICE);
             break;
         case WLR_INPUT_DEVICE_POINTER:
             Debug::log(LOG, "Attached a mouse with name {}", DEVICE->name);
-            g_pInputManager->newMouse(DEVICE);
+            //g_pInputManager->newMouse(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TOUCH:
             Debug::log(LOG, "Attached a touch device with name {}", DEVICE->name);
-            g_pInputManager->newTouchDevice(DEVICE);
+            // g_pInputManager->newTouchDevice(DEVICE);
             break;
         case WLR_INPUT_DEVICE_TABLET:
             Debug::log(LOG, "Attached a tablet with name {}", DEVICE->name);

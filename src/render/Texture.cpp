@@ -17,6 +17,62 @@ CTexture::~CTexture() {
 }
 
 CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
+    createFromShm(drmFormat, pixels, stride, size_);
+}
+
+CTexture::CTexture(wlr_texture* tex) {
+    RASSERT(wlr_texture_is_gles2(tex), "wlr_texture provided to CTexture that isn't GLES2!");
+    wlr_gles2_texture_attribs attrs;
+    wlr_gles2_texture_get_attribs(tex, &attrs);
+
+    m_iTarget    = attrs.target;
+    m_iTexID     = attrs.tex;
+    m_bNonOwning = true;
+
+    if (m_iTarget == GL_TEXTURE_2D)
+        m_iType = attrs.has_alpha ? TEXTURE_RGBA : TEXTURE_RGBX;
+    else
+        m_iType = TEXTURE_EXTERNAL;
+
+    m_vSize = Vector2D((int)tex->width, (int)tex->height);
+}
+
+CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
+    createFromDma(attrs, image);
+}
+
+CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer) {
+    if (!buffer)
+        return;
+
+    auto attrs = buffer->dmabuf();
+
+    if (!attrs.success) {
+        // attempt shm
+        auto shm = buffer->shm();
+
+        if (!shm.success) {
+            Debug::log(ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            return;
+        }
+
+        auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
+
+        createFromShm(fmt, pixelData, bufLen, shm.size);
+        return;
+    }
+
+    auto image = g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
+
+    if (!image) {
+        Debug::log(ERR, "Cannot create a texture: failed to create an EGLImage");
+        return;
+    }
+
+    createFromDma(attrs, image);
+}
+
+void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 
     const auto format = FormatUtils::getPixelFormatFromDRM(drmFormat);
@@ -41,24 +97,7 @@ CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const V
     GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
 }
 
-CTexture::CTexture(wlr_texture* tex) {
-    RASSERT(wlr_texture_is_gles2(tex), "wlr_texture provided to CTexture that isn't GLES2!");
-    wlr_gles2_texture_attribs attrs;
-    wlr_gles2_texture_get_attribs(tex, &attrs);
-
-    m_iTarget    = attrs.target;
-    m_iTexID     = attrs.tex;
-    m_bNonOwning = true;
-
-    if (m_iTarget == GL_TEXTURE_2D)
-        m_iType = attrs.has_alpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    else
-        m_iType = TEXTURE_EXTERNAL;
-
-    m_vSize = Vector2D((int)tex->width, (int)tex->height);
-}
-
-CTexture::CTexture(const SDMABUFAttrs& attrs, void* image) {
+void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     if (!g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES) {
         Debug::log(ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
         return;
@@ -119,7 +158,7 @@ void CTexture::destroyTexture() {
     }
 
     if (m_pEglImage)
-        g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(wlr_egl_get_display(g_pCompositor->m_sWLREGL), m_pEglImage);
+        g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(g_pHyprOpenGL->m_pEglDisplay, m_pEglImage);
     m_pEglImage = nullptr;
 }
 

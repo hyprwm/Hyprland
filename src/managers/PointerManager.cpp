@@ -234,8 +234,7 @@ void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, 
         currentCursorImage.size    = {buf->width, buf->height};
         currentCursorImage.pBuffer = wlr_buffer_lock(buf);
 
-        currentCursorImage.hyprListener_destroyBuffer.initCallback(
-            &buf->events.destroy, [this](void* owner, void* data) { resetCursorImage(); }, this, "CPointerManager");
+        currentCursorImage.hyprListener_destroyBuffer.initCallback(&buf->events.destroy, [this](void* owner, void* data) { resetCursorImage(); }, this, "CPointerManager");
     }
 
     currentCursorImage.hotspot = hotspot;
@@ -610,8 +609,9 @@ CBox CPointerManager::getCursorBoxGlobal() {
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
 
-    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 1, 100); // 1px
-    CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
+    auto        CURSOR_PADDING =
+        std::clamp((int)*PADDING, 0, 100); // some applications (like firefox) need this to be 0px so they properly detect when the cursor reaches the monitor edge
+    CBox hotBox = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
 
     //
     static auto INSIDE_LAYOUT = [this](const CBox& box) -> bool {

@@ -2,6 +2,8 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 
+using namespace Aquamarine;
+
 #define LOGM PROTO::outputManagement->protoLog
 
 COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(resource_) {
@@ -123,8 +125,8 @@ void COutputHead::sendAllData() {
 
     resource->sendName(pMonitor->szName.c_str());
     resource->sendDescription(pMonitor->szDescription.c_str());
-    if (pMonitor->output->phys_width > 0 && pMonitor->output->phys_height > 0)
-        resource->sendPhysicalSize(pMonitor->output->phys_width, pMonitor->output->phys_height);
+    if (pMonitor->output->physicalSize.x > 0 && pMonitor->output->physicalSize.y > 0)
+        resource->sendPhysicalSize(pMonitor->output->physicalSize.x, pMonitor->output->physicalSize.y);
     resource->sendEnabled(pMonitor->m_bEnabled);
 
     if (pMonitor->m_bEnabled) {
@@ -133,12 +135,12 @@ void COutputHead::sendAllData() {
         resource->sendScale(wl_fixed_from_double(pMonitor->scale));
     }
 
-    if (pMonitor->output->make && VERSION >= 2)
-        resource->sendMake(pMonitor->output->make);
-    if (pMonitor->output->model && VERSION >= 2)
-        resource->sendModel(pMonitor->output->model);
-    if (pMonitor->output->serial && VERSION >= 2)
-        resource->sendSerialNumber(pMonitor->output->serial);
+    if (!pMonitor->output->make.empty() && VERSION >= 2)
+        resource->sendMake(pMonitor->output->make.c_str());
+    if (!pMonitor->output->model.empty() && VERSION >= 2)
+        resource->sendModel(pMonitor->output->model.c_str());
+    if (!pMonitor->output->serial.empty() && VERSION >= 2)
+        resource->sendSerialNumber(pMonitor->output->serial.c_str());
 
     if (VERSION >= 4)
         resource->sendAdaptiveSync(pMonitor->vrrActive ? ZWLR_OUTPUT_HEAD_V1_ADAPTIVE_SYNC_STATE_ENABLED : ZWLR_OUTPUT_HEAD_V1_ADAPTIVE_SYNC_STATE_DISABLED);
@@ -146,12 +148,12 @@ void COutputHead::sendAllData() {
     // send all available modes
 
     if (modes.empty()) {
-        if (!wl_list_empty(&pMonitor->output->modes)) {
-            wlr_output_mode* mode;
-
-            wl_list_for_each(mode, &pMonitor->output->modes, link) {
-                makeAndSendNewMode(mode);
+        if (!pMonitor->output->modes.empty()) {
+            for (auto& m : pMonitor->output->modes) {
+                makeAndSendNewMode(m);
             }
+        } else if (pMonitor->output->state->state().customMode) {
+            makeAndSendNewMode(pMonitor->output->state->state().customMode);
         } else
             makeAndSendNewMode(nullptr);
     }
@@ -164,9 +166,9 @@ void COutputHead::sendAllData() {
             if (!m)
                 continue;
 
-            if (m->mode == pMonitor->currentMode) {
+            if (m->mode == pMonitor->output->state->state().mode) {
                 if (m->mode)
-                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->width, m->mode->height, m->mode->refresh);
+                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->pixelSize.x, m->mode->pixelSize.y, m->mode->refreshRate);
                 else
                     LOGM(LOG, "  | sending current mode for {}: null (fake)", pMonitor->szName);
                 resource->sendCurrentMode(m->resource.get());
@@ -197,7 +199,7 @@ void COutputHead::updateMode() {
 
             if (m->mode == pMonitor->currentMode) {
                 if (m->mode)
-                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->width, m->mode->height, m->mode->refresh);
+                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", pMonitor->szName, m->mode->pixelSize.x, m->mode->pixelSize.y, m->mode->refreshRate);
                 else
                     LOGM(LOG, "  | sending current mode for {}: null (fake)", pMonitor->szName);
                 resource->sendCurrentMode(m->resource.get());
@@ -207,7 +209,7 @@ void COutputHead::updateMode() {
     }
 }
 
-void COutputHead::makeAndSendNewMode(wlr_output_mode* mode) {
+void COutputHead::makeAndSendNewMode(SP<Aquamarine::SOutputMode> mode) {
     const auto RESOURCE = PROTO::outputManagement->m_vModes.emplace_back(makeShared<COutputMode>(makeShared<CZwlrOutputModeV1>(resource->client(), resource->version(), 0), mode));
 
     if (!RESOURCE->good()) {
@@ -225,7 +227,7 @@ CMonitor* COutputHead::monitor() {
     return pMonitor;
 }
 
-COutputMode::COutputMode(SP<CZwlrOutputModeV1> resource_, wlr_output_mode* mode_) : resource(resource_), mode(mode_) {
+COutputMode::COutputMode(SP<CZwlrOutputModeV1> resource_, SP<Aquamarine::SOutputMode> mode_) : resource(resource_), mode(mode_) {
     if (!good())
         return;
 
@@ -237,11 +239,11 @@ void COutputMode::sendAllData() {
     if (!mode)
         return;
 
-    LOGM(LOG, "  | sending mode {}x{}@{}mHz, pref: {}", mode->width, mode->height, mode->refresh, mode->preferred);
+    LOGM(LOG, "  | sending mode {}x{}@{}mHz, pref: {}", mode->pixelSize.x, mode->pixelSize.y, mode->refreshRate, mode->preferred);
 
-    resource->sendSize(mode->width, mode->height);
-    if (mode->refresh > 0)
-        resource->sendRefresh(mode->refresh);
+    resource->sendSize(mode->pixelSize.x, mode->pixelSize.y);
+    if (mode->refreshRate > 0)
+        resource->sendRefresh(mode->refreshRate);
     if (mode->preferred)
         resource->sendPreferred();
 }
@@ -250,8 +252,8 @@ bool COutputMode::good() {
     return resource->resource();
 }
 
-wlr_output_mode* COutputMode::getMode() {
-    return mode;
+SP<Aquamarine::SOutputMode> COutputMode::getMode() {
+    return mode.lock();
 }
 
 COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resource_, SP<COutputManager> owner_) : resource(resource_), owner(owner_) {
@@ -364,8 +366,8 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         newRule.disabled     = false;
 
         if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE) {
-            newRule.resolution  = {head->state.mode->getMode()->width, head->state.mode->getMode()->height};
-            newRule.refreshRate = head->state.mode->getMode()->refresh / 1000.F;
+            newRule.resolution  = head->state.mode->getMode()->pixelSize;
+            newRule.refreshRate = head->state.mode->getMode()->refreshRate / 1000.F;
         } else if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
             newRule.resolution  = head->state.customMode.size;
             newRule.refreshRate = head->state.customMode.refresh / 1000.F;
@@ -425,7 +427,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         committedProperties |= OUTPUT_HEAD_COMMITTED_MODE;
         state.mode = MODE;
 
-        LOGM(LOG, " | configHead for {}: set mode to {}x{}@{}", pMonitor->szName, MODE->getMode()->width, MODE->getMode()->height, MODE->getMode()->refresh);
+        LOGM(LOG, " | configHead for {}: set mode to {}x{}@{}", pMonitor->szName, MODE->getMode()->pixelSize.x, MODE->getMode()->pixelSize.y, MODE->getMode()->refreshRate);
     });
 
     resource->setSetCustomMode([this](CZwlrOutputConfigurationHeadV1* r, int32_t w, int32_t h, int32_t refresh) {

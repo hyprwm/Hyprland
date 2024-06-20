@@ -109,6 +109,7 @@ endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET
+    aquamarine
     xkbcommon uuid
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1

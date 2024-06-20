@@ -73,7 +73,7 @@ CCompiledDMABUFFeedback::~CCompiledDMABUFFeedback() {
     close(tableFD);
 }
 
-CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs) {
+CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
     buffer = makeShared<CDMABuffer>(id, client, attrs);
 
     buffer->resource->buffer = buffer;
@@ -103,7 +103,7 @@ CLinuxDMABBUFParamsResource::CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParam
     resource->setOnDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
     resource->setDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
 
-    attrs = makeShared<SDMABUFAttrs>();
+    attrs = makeShared<Aquamarine::SDMABUFAttrs>();
 
     attrs->success = true;
 
@@ -376,7 +376,7 @@ void CLinuxDMABUFResource::sendMods() {
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
-        int  rendererFD = wlr_renderer_get_drm_fd(g_pCompositor->m_sWLRRenderer);
+        int  rendererFD = g_pCompositor->m_iDRMFD;
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {

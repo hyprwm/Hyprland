@@ -6,6 +6,7 @@
 #include "WaylandProtocol.hpp"
 #include "wlr-output-management-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <aquamarine/output/Output.hpp>
 
 class CMonitor;
 
@@ -34,15 +35,15 @@ class COutputManager {
 
 class COutputMode {
   public:
-    COutputMode(SP<CZwlrOutputModeV1> resource_, wlr_output_mode* mode_);
+    COutputMode(SP<CZwlrOutputModeV1> resource_, SP<Aquamarine::SOutputMode> mode_);
 
-    bool             good();
-    wlr_output_mode* getMode();
-    void             sendAllData();
+    bool                        good();
+    SP<Aquamarine::SOutputMode> getMode();
+    void                        sendAllData();
 
   private:
-    SP<CZwlrOutputModeV1> resource;
-    wlr_output_mode*      mode = nullptr;
+    SP<CZwlrOutputModeV1>       resource;
+    WP<Aquamarine::SOutputMode> mode;
 
     friend class COutputHead;
     friend class COutputManagementProtocol;
@@ -61,7 +62,7 @@ class COutputHead {
     SP<CZwlrOutputHeadV1>        resource;
     CMonitor*                    pMonitor = nullptr;
 
-    void                         makeAndSendNewMode(wlr_output_mode* mode);
+    void                         makeAndSendNewMode(SP<Aquamarine::SOutputMode> mode);
     void                         sendCurrentMode();
 
     std::vector<WP<COutputMode>> modes;

@@ -1,11 +1,8 @@
 #include "VirtualKeyboard.hpp"
 #include <sys/mman.h>
+#include "../devices/IKeyboard.hpp"
 
 #define LOGM PROTO::virtualKeyboard->protoLog
-
-static const struct wlr_keyboard_impl virtualKeyboardImpl = {
-    .name = "virtual-keyboard",
-};
 
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
     if (!good())
@@ -28,13 +25,17 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        wlr_keyboard_key_event event = {
-            .time_msec    = timeMs,
-            .keycode      = key,
-            .update_state = false,
-            .state        = (wl_keyboard_key_state)state,
-        };
-        wlr_keyboard_notify_key(&keyboard, &event);
+        events.key.emit(IKeyboard::SKeyEvent{
+            .timeMs  = timeMs,
+            .keycode = key,
+            .state   = (wl_keyboard_key_state)state,
+        });
+
+        const bool CONTAINS = std::find(pressed.begin(), pressed.end(), key) != pressed.end();
+        if (state && !CONTAINS)
+            pressed.emplace_back(key);
+        else if (!state && CONTAINS)
+            std::erase(pressed, key);
     });
 
     resource->setModifiers([this](CZwpVirtualKeyboardV1* r, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
@@ -43,7 +44,12 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        wlr_keyboard_notify_modifiers(&keyboard, depressed, latched, locked, group);
+        events.modifiers.emit(IKeyboard::SModifiersEvent{
+            .depressed = depressed,
+            .latched   = latched,
+            .locked    = locked,
+            .group     = group,
+        });
     });
 
     resource->setKeymap([this](CZwpVirtualKeyboardV1* r, uint32_t fmt, int32_t fd, uint32_t len) {
@@ -75,7 +81,9 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
             return;
         }
 
-        wlr_keyboard_set_keymap(&keyboard, xkbKeymap);
+        events.keymap.emit(IKeyboard::SKeymapEvent{
+            .keymap = xkbKeymap,
+        });
         hasKeymap = true;
 
         xkb_keymap_unref(xkbKeymap);
@@ -83,20 +91,15 @@ CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1>
         close(fd);
     });
 
-    wlr_keyboard_init(&keyboard, &virtualKeyboardImpl, "CVirtualKeyboard");
+    name = "hl-virtual-keyboard";
 }
 
 CVirtualKeyboardV1Resource::~CVirtualKeyboardV1Resource() {
     events.destroy.emit();
-    wlr_keyboard_finish(&keyboard);
 }
 
 bool CVirtualKeyboardV1Resource::good() {
     return resource->resource();
-}
-
-wlr_keyboard* CVirtualKeyboardV1Resource::wlr() {
-    return &keyboard;
 }
 
 wl_client* CVirtualKeyboardV1Resource::client() {
@@ -106,17 +109,16 @@ wl_client* CVirtualKeyboardV1Resource::client() {
 void CVirtualKeyboardV1Resource::releasePressed() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    size_t keycodesNum = keyboard.num_keycodes;
 
-    for (size_t i = 0; i < keycodesNum; ++i) {
-        struct wlr_keyboard_key_event event = {
-            .time_msec    = (now.tv_sec * 1000 + now.tv_nsec / 1000000),
-            .keycode      = keyboard.keycodes[keycodesNum - i - 1],
-            .update_state = false,
-            .state        = WL_KEYBOARD_KEY_STATE_RELEASED,
-        };
-        wlr_keyboard_notify_key(&keyboard, &event); // updates num_keycodes
+    for (auto& p : pressed) {
+        events.key.emit(IKeyboard::SKeyEvent{
+            .timeMs  = now.tv_sec * 1000 + now.tv_nsec / 1000000,
+            .keycode = p,
+            .state   = WL_KEYBOARD_KEY_STATE_RELEASED,
+        });
     }
+
+    pressed.clear();
 }
 
 CVirtualKeyboardProtocol::CVirtualKeyboardProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

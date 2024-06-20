@@ -10,7 +10,7 @@
 #include "../managers/eventLoop/EventLoopTimer.hpp"
 
 class CMonitor;
-class IWLBuffer;
+class IHLBuffer;
 
 enum eClientOwners {
     CLIENT_SCREENCOPY = 0,
@@ -56,7 +56,7 @@ struct SScreencopyFrame {
 
     bool               bufferDMA = false;
 
-    WP<IWLBuffer>      buffer;
+    WP<IHLBuffer>      buffer;
 
     CMonitor*          pMonitor = nullptr;
     PHLWINDOWREF       pWindow;
@@ -79,7 +79,7 @@ class CScreencopyProtocolManager {
 
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 
-    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
+    void onOutputCommit(CMonitor* pMonitor);
 
   private:
     wl_global*                     m_pGlobal = nullptr;
@@ -93,7 +93,7 @@ class CScreencopyProtocolManager {
 
     std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
 
-    wlr_buffer*                    m_pLastMonitorBackBuffer = nullptr;
+    SP<Aquamarine::IBuffer>        m_pLastMonitorBackBuffer;
 
     void                           shareAllFrames(CMonitor* pMonitor);
     void                           shareFrame(SScreencopyFrame* frame);

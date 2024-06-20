@@ -4,33 +4,34 @@
 
 class CMouse : public IPointer {
   public:
-    static SP<CMouse>    create(wlr_pointer* mouse);
+    static SP<CMouse>                create(SP<Aquamarine::IPointer> mouse);
 
-    virtual bool         isVirtual();
-    virtual wlr_pointer* wlr();
+    virtual bool                     isVirtual();
+    virtual SP<Aquamarine::IPointer> aq();
 
   private:
-    CMouse(wlr_pointer* mouse);
+    CMouse(SP<Aquamarine::IPointer> mouse);
 
-    wlr_pointer* mouse = nullptr;
+    WP<Aquamarine::IPointer> mouse;
 
-    void         disconnectCallbacks();
+    struct {
+        CHyprSignalListener destroy;
 
-    DYNLISTENER(destroy);
-    DYNLISTENER(motion);
-    DYNLISTENER(motionAbsolute);
-    DYNLISTENER(button);
-    DYNLISTENER(axis);
-    DYNLISTENER(frame);
+        CHyprSignalListener motion;
+        CHyprSignalListener motionAbsolute;
+        CHyprSignalListener button;
+        CHyprSignalListener axis;
+        CHyprSignalListener frame;
 
-    DYNLISTENER(swipeBegin);
-    DYNLISTENER(swipeEnd);
-    DYNLISTENER(swipeUpdate);
+        CHyprSignalListener swipeBegin;
+        CHyprSignalListener swipeEnd;
+        CHyprSignalListener swipeUpdate;
 
-    DYNLISTENER(pinchBegin);
-    DYNLISTENER(pinchEnd);
-    DYNLISTENER(pinchUpdate);
+        CHyprSignalListener pinchBegin;
+        CHyprSignalListener pinchEnd;
+        CHyprSignalListener pinchUpdate;
 
-    DYNLISTENER(holdBegin);
-    DYNLISTENER(holdEnd);
+        CHyprSignalListener holdBegin;
+        CHyprSignalListener holdEnd;
+    } listeners;
 };

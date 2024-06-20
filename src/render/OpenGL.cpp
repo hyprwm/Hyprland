@@ -9,6 +9,8 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include <xf86drm.h>
+#include <fcntl.h>
+#include <gbm.h>
 
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
@@ -19,16 +21,197 @@ inline void loadGLProc(void* pProc, const char* name) {
     *(void**)pProc = proc;
 }
 
+static enum LogLevel eglLogToLevel(EGLint type) {
+    switch (type) {
+        case EGL_DEBUG_MSG_CRITICAL_KHR: return CRIT;
+        case EGL_DEBUG_MSG_ERROR_KHR: return ERR;
+        case EGL_DEBUG_MSG_WARN_KHR: return WARN;
+        case EGL_DEBUG_MSG_INFO_KHR: return LOG;
+        default: return LOG;
+    }
+}
+
+static const char* eglErrorToString(EGLint error) {
+    switch (error) {
+        case EGL_SUCCESS: return "EGL_SUCCESS";
+        case EGL_NOT_INITIALIZED: return "EGL_NOT_INITIALIZED";
+        case EGL_BAD_ACCESS: return "EGL_BAD_ACCESS";
+        case EGL_BAD_ALLOC: return "EGL_BAD_ALLOC";
+        case EGL_BAD_ATTRIBUTE: return "EGL_BAD_ATTRIBUTE";
+        case EGL_BAD_CONTEXT: return "EGL_BAD_CONTEXT";
+        case EGL_BAD_CONFIG: return "EGL_BAD_CONFIG";
+        case EGL_BAD_CURRENT_SURFACE: return "EGL_BAD_CURRENT_SURFACE";
+        case EGL_BAD_DISPLAY: return "EGL_BAD_DISPLAY";
+        case EGL_BAD_DEVICE_EXT: return "EGL_BAD_DEVICE_EXT";
+        case EGL_BAD_SURFACE: return "EGL_BAD_SURFACE";
+        case EGL_BAD_MATCH: return "EGL_BAD_MATCH";
+        case EGL_BAD_PARAMETER: return "EGL_BAD_PARAMETER";
+        case EGL_BAD_NATIVE_PIXMAP: return "EGL_BAD_NATIVE_PIXMAP";
+        case EGL_BAD_NATIVE_WINDOW: return "EGL_BAD_NATIVE_WINDOW";
+        case EGL_CONTEXT_LOST: return "EGL_CONTEXT_LOST";
+    }
+    return "Unknown";
+}
+
+static void eglLog(EGLenum error, const char* command, EGLint type, EGLLabelKHR thread, EGLLabelKHR obj, const char* msg) {
+    Debug::log(eglLogToLevel(type), "[EGL] Command {} errored out with {} (0x{}): {}", command, eglErrorToString(error), error, msg);
+}
+
+static int openRenderNode(int drmFd) {
+    char* renderName = drmGetRenderDeviceNameFromFd(drmFd);
+    if (renderName == NULL) {
+        // This can happen on split render/display platforms, fallback to
+        // primary node
+        renderName = drmGetPrimaryDeviceNameFromFd(drmFd);
+        if (renderName == NULL) {
+            wlr_log_errno(WLR_ERROR, "drmGetPrimaryDeviceNameFromFd failed");
+            return -1;
+        }
+        wlr_log(WLR_DEBUG,
+                "DRM device '%s' has no render node, "
+                "falling back to primary node",
+                renderName);
+
+        drmVersion* render_version = drmGetVersion(drmFd);
+        if (render_version != NULL && render_version->name != NULL) {
+            wlr_log(WLR_DEBUG, "DRM device version.name '%s'", render_version->name);
+            if (strcmp(render_version->name, "evdi") == 0) {
+                free(renderName);
+                renderName = (char*)malloc(sizeof(char) * 15);
+                strcpy(renderName, "/dev/dri/card0");
+            }
+            drmFreeVersion(render_version);
+        }
+    }
+
+    wlr_log(WLR_DEBUG, "open_render_node() DRM device '%s'", renderName);
+
+    int render_fd = open(renderName, O_RDWR | O_CLOEXEC);
+    if (render_fd < 0) {
+        wlr_log_errno(WLR_ERROR, "Failed to open DRM node '%s'", renderName);
+    }
+    free(renderName);
+    return render_fd;
+}
+
+void CHyprOpenGLImpl::initEGL(bool gbm) {
+    std::vector<EGLint> attrs;
+    if (m_sExts.KHR_display_reference) {
+        attrs.push_back(EGL_TRACK_REFERENCES_KHR);
+        attrs.push_back(EGL_TRUE);
+    }
+
+    attrs.push_back(EGL_NONE);
+
+    m_pEglDisplay = m_sProc.eglGetPlatformDisplayEXT(gbm ? EGL_PLATFORM_GBM_KHR : EGL_PLATFORM_DEVICE_EXT, gbm ? m_pGbmDevice : nullptr, attrs.data());
+    if (m_pEglDisplay == EGL_NO_DISPLAY)
+        RASSERT(false, "EGL: failed to create a platform display");
+
+    attrs.clear();
+
+    EGLint major, minor;
+    if (eglInitialize(m_pEglDisplay, &major, &minor) == EGL_FALSE)
+        RASSERT(false, "EGL: failed to initialize a platform display");
+
+    const std::string EGLEXTENSIONS = (const char*)eglQueryString(m_pEglDisplay, EGL_EXTENSIONS);
+
+    m_sExts.IMG_context_priority               = EGLEXTENSIONS.contains("IMG_context_priority");
+    m_sExts.EXT_create_context_robustness      = EGLEXTENSIONS.contains("EXT_create_context_robustness");
+    m_sExts.EXT_image_dma_buf_import           = EGLEXTENSIONS.contains("EXT_image_dma_buf_import");
+    m_sExts.EXT_image_dma_buf_import_modifiers = EGLEXTENSIONS.contains("EXT_image_dma_buf_import_modifiers");
+
+    if (m_sExts.IMG_context_priority) {
+        Debug::log(LOG, "EGL: IMG_context_priority supported, requesting high");
+        attrs.push_back(EGL_CONTEXT_PRIORITY_LEVEL_IMG);
+        attrs.push_back(EGL_CONTEXT_PRIORITY_HIGH_IMG);
+    }
+
+    if (m_sExts.EXT_create_context_robustness) {
+        Debug::log(LOG, "EGL: EXT_create_context_robustness supported, requesting lose on reset");
+        attrs.push_back(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
+        attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
+    }
+
+    attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
+    attrs.push_back(3);
+    attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
+    attrs.push_back(2);
+    attrs.push_back(EGL_CONTEXT_OPENGL_DEBUG);
+    attrs.push_back(ISDEBUG ? EGL_TRUE : EGL_FALSE);
+
+    attrs.push_back(EGL_NONE);
+
+    m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
+    if (m_pEglContext == EGL_NO_CONTEXT)
+        RASSERT(false, "EGL: failed to create a context");
+
+    if (m_sExts.IMG_context_priority) {
+        EGLint priority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
+        eglQueryContext(m_pEglDisplay, m_pEglContext, EGL_CONTEXT_PRIORITY_LEVEL_IMG, &priority);
+        if (priority != EGL_CONTEXT_PRIORITY_HIGH_IMG)
+            Debug::log(ERR, "EGL: Failed to obtain a high priority context");
+        else
+            Debug::log(LOG, "EGL: Got a high priority context");
+    }
+
+    eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, m_pEglContext);
+}
+
 CHyprOpenGLImpl::CHyprOpenGLImpl() {
-    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, wlr_egl_get_context(g_pCompositor->m_sWLREGL)),
-            "Couldn't unset current EGL!");
+    const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
-    auto* const       EXTENSIONS    = (const char*)glGetString(GL_EXTENSIONS);
-    const std::string EGLEXTENSIONS = (const char*)eglQueryString(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_EXTENSIONS);
-
-    RASSERT(EXTENSIONS, "Couldn't retrieve openGL extensions!");
+    Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS);
 
     m_iDRMFD = g_pCompositor->m_iDRMFD;
+
+    m_sExts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
+
+    loadGLProc(&m_sProc.glEGLImageTargetRenderbufferStorageOES, "glEGLImageTargetRenderbufferStorageOES");
+    loadGLProc(&m_sProc.eglCreateImageKHR, "eglCreateImageKHR");
+    loadGLProc(&m_sProc.eglDestroyImageKHR, "eglDestroyImageKHR");
+    loadGLProc(&m_sProc.eglQueryDmaBufFormatsEXT, "eglQueryDmaBufFormatsEXT");
+    loadGLProc(&m_sProc.eglQueryDmaBufModifiersEXT, "eglQueryDmaBufModifiersEXT");
+    loadGLProc(&m_sProc.glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES");
+    loadGLProc(&m_sProc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
+    loadGLProc(&m_sProc.eglGetPlatformDisplayEXT, "eglGetPlatformDisplayEXT");
+
+    if (EGLEXTENSIONS.contains("EGL_EXT_device_base") || EGLEXTENSIONS.contains("EGL_EXT_device_enumeration"))
+        loadGLProc(&m_sProc.eglQueryDevicesEXT, "eglQueryDevicesEXT");
+
+    if (EGLEXTENSIONS.contains("EGL_EXT_device_base") || EGLEXTENSIONS.contains("EGL_EXT_device_query")) {
+        loadGLProc(&m_sProc.eglQueryDeviceStringEXT, "eglQueryDeviceStringEXT");
+        loadGLProc(&m_sProc.eglQueryDisplayAttribEXT, "eglQueryDisplayAttribEXT");
+    }
+
+    if (EGLEXTENSIONS.contains("EGL_KHR_debug")) {
+        loadGLProc(&m_sProc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
+        static const EGLAttrib debugAttrs[] = {
+            EGL_DEBUG_MSG_CRITICAL_KHR, EGL_TRUE, EGL_DEBUG_MSG_ERROR_KHR, EGL_TRUE, EGL_DEBUG_MSG_WARN_KHR, EGL_TRUE, EGL_DEBUG_MSG_INFO_KHR, EGL_TRUE, EGL_NONE,
+        };
+        m_sProc.eglDebugMessageControlKHR(::eglLog, debugAttrs);
+    }
+
+    RASSERT(eglBindAPI(EGL_OPENGL_ES_API) != EGL_FALSE, "Couldn't bind to EGL's opengl ES API. This means your gpu driver f'd up. This is not a hyprland issue.");
+
+    // if (m_sProc.eglQueryDevicesEXT) {
+    //     // TODO:
+    // }
+
+    if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
+        m_iGBMFD = openRenderNode(m_iDRMFD);
+        if (m_iGBMFD < 0)
+            RASSERT(false, "Couldn't open a gbm fd");
+
+        m_pGbmDevice = gbm_create_device(m_iGBMFD);
+        if (!m_pGbmDevice)
+            RASSERT(false, "Couldn't open a gbm device");
+
+        initEGL(true);
+    } else
+        RASSERT(false, "EGL does not support KHR_platform_gbm, this is an issue with your gpu driver.");
+
+    auto* const EXTENSIONS = (const char*)glGetString(GL_EXTENSIONS);
+    RASSERT(EXTENSIONS, "Couldn't retrieve openGL extensions!");
 
     m_szExtensions = EXTENSIONS;
 
@@ -38,16 +221,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     Debug::log(LOG, "Renderer: {}", (char*)glGetString(GL_RENDERER));
     Debug::log(LOG, "Supported extensions: ({}) {}", std::count(m_szExtensions.begin(), m_szExtensions.end(), ' '), m_szExtensions);
 
-    loadGLProc(&m_sProc.glEGLImageTargetRenderbufferStorageOES, "glEGLImageTargetRenderbufferStorageOES");
-    loadGLProc(&m_sProc.eglCreateImageKHR, "eglCreateImageKHR");
-    loadGLProc(&m_sProc.eglDestroyImageKHR, "eglDestroyImageKHR");
-    loadGLProc(&m_sProc.eglQueryDmaBufFormatsEXT, "eglQueryDmaBufFormatsEXT");
-    loadGLProc(&m_sProc.eglQueryDmaBufModifiersEXT, "eglQueryDmaBufModifiersEXT");
-    loadGLProc(&m_sProc.glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES");
-
-    m_sExts.EXT_read_format_bgra               = m_szExtensions.contains("GL_EXT_read_format_bgra");
-    m_sExts.EXT_image_dma_buf_import           = EGLEXTENSIONS.contains("EXT_image_dma_buf_import");
-    m_sExts.EXT_image_dma_buf_import_modifiers = EGLEXTENSIONS.contains("EXT_image_dma_buf_import_modifiers");
+    m_sExts.EXT_read_format_bgra = m_szExtensions.contains("GL_EXT_read_format_bgra");
 
     RASSERT(m_szExtensions.contains("GL_EXT_texture_format_BGRA8888"), "GL_EXT_texture_format_BGRA8888 support by the GPU driver is required");
 
@@ -74,7 +248,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<CMonitor*>(data)); });
 
-    RASSERT(eglMakeCurrent(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
+    RASSERT(eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     m_tGlobalTimer.reset();
 }
@@ -86,7 +260,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
         return std::nullopt;
 
     EGLint len = 0;
-    if (!m_sProc.eglQueryDmaBufModifiersEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), format, 0, nullptr, nullptr, &len)) {
+    if (!m_sProc.eglQueryDmaBufModifiersEXT(m_pEglDisplay, format, 0, nullptr, nullptr, &len)) {
         Debug::log(ERR, "EGL: Failed to query mods");
         return std::nullopt;
     }
@@ -100,7 +274,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     mods.resize(len);
     external.resize(len);
 
-    m_sProc.eglQueryDmaBufModifiersEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), format, len, mods.data(), external.data(), &len);
+    m_sProc.eglQueryDmaBufModifiersEXT(m_pEglDisplay, format, len, mods.data(), external.data(), &len);
 
     std::vector<uint64_t> result;
     bool                  linearIsExternal = false;
@@ -139,9 +313,9 @@ void CHyprOpenGLImpl::initDRMFormats() {
         Debug::log(WARN, "EGL: No mod support");
     } else {
         EGLint len = 0;
-        m_sProc.eglQueryDmaBufFormatsEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), 0, nullptr, &len);
+        m_sProc.eglQueryDmaBufFormatsEXT(m_pEglDisplay, 0, nullptr, &len);
         formats.resize(len);
-        m_sProc.eglQueryDmaBufFormatsEXT(wlr_egl_get_display(g_pCompositor->m_sWLREGL), len, formats.data(), &len);
+        m_sProc.eglQueryDmaBufFormatsEXT(m_pEglDisplay, len, formats.data(), &len);
     }
 
     if (formats.size() == 0) {
@@ -209,7 +383,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
     drmFormats = dmaFormats;
 }
 
-EGLImageKHR CHyprOpenGLImpl::createEGLImage(const SDMABUFAttrs& attrs) {
+EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
     std::vector<uint32_t> attribs;
 
     attribs.push_back(EGL_WIDTH);
@@ -251,7 +425,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const SDMABUFAttrs& attrs) {
 
     attribs.push_back(EGL_NONE);
 
-    EGLImageKHR image = m_sProc.eglCreateImageKHR(wlr_egl_get_display(g_pCompositor->m_sWLREGL), EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, (int*)attribs.data());
+    EGLImageKHR image = m_sProc.eglCreateImageKHR(m_pEglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, (int*)attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
         Debug::log(ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
         return EGL_NO_IMAGE_KHR;
@@ -913,11 +1087,8 @@ void CHyprOpenGLImpl::scissor(const CBox* pBox, bool transform) {
     CBox newBox = *pBox;
 
     if (transform) {
-        int w, h;
-        wlr_output_transformed_resolution(m_RenderData.pMonitor->output, &w, &h);
-
         const auto TR = wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform));
-        newBox.transform(TR, w, h);
+        newBox.transform(TR, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     }
 
     glScissor(newBox.x, newBox.y, newBox.width, newBox.height);
@@ -2471,6 +2642,9 @@ void CHyprOpenGLImpl::clearWithTex() {
 
 void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
     g_pHyprRenderer->makeEGLCurrent();
+
+    if (!g_pHyprOpenGL)
+        return;
 
     auto RESIT = g_pHyprOpenGL->m_mMonitorRenderResources.find(pMonitor);
     if (RESIT != g_pHyprOpenGL->m_mMonitorRenderResources.end()) {

@@ -1,7 +1,8 @@
 #include "Mouse.hpp"
 #include "../defines.hpp"
+#include <aquamarine/input/Input.hpp>
 
-SP<CMouse> CMouse::create(wlr_pointer* mouse) {
+SP<CMouse> CMouse::create(SP<Aquamarine::IPointer> mouse) {
     SP<CMouse> pMouse = SP<CMouse>(new CMouse(mouse));
 
     pMouse->self = pMouse;
@@ -9,166 +10,143 @@ SP<CMouse> CMouse::create(wlr_pointer* mouse) {
     return pMouse;
 }
 
-CMouse::CMouse(wlr_pointer* mouse_) : mouse(mouse_) {
+CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
     if (!mouse)
         return;
 
-    // clang-format off
-    hyprListener_destroy.initCallback(&mouse->base.events.destroy, [this] (void* owner, void* data) {
-        disconnectCallbacks();
-        mouse = nullptr;
+    listeners.destroy = mouse->events.destroy.registerListener([this](std::any d) {
+        mouse.reset();
         events.destroy.emit();
-    }, this, "CMouse");
+    });
 
-    hyprListener_motion.initCallback(&mouse->events.motion, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_motion_event*)data;
+    listeners.motion = mouse->events.move.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SMoveEvent>(d);
 
         pointerEvents.motion.emit(SMotionEvent{
-            .timeMs  = E->time_msec,
-            .delta   = {E->delta_x, E->delta_y},
-            .unaccel = {E->unaccel_dx, E->unaccel_dy},
+            .timeMs  = E.timeMs,
+            .delta   = E.delta,
+            .unaccel = E.unaccel,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_motionAbsolute.initCallback(&mouse->events.motion_absolute, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_motion_absolute_event*)data;
+    listeners.motionAbsolute = mouse->events.warp.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SWarpEvent>(d);
 
         pointerEvents.motionAbsolute.emit(SMotionAbsoluteEvent{
-            .timeMs   = E->time_msec,
-            .absolute = {E->x, E->y},
+            .timeMs   = E.timeMs,
+            .absolute = E.absolute,
             .device   = self.lock(),
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_button.initCallback(&mouse->events.button, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_button_event*)data;
+    listeners.button = mouse->events.button.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SButtonEvent>(d);
 
         pointerEvents.button.emit(SButtonEvent{
-            .timeMs = E->time_msec,
-            .button = E->button,
-            .state  = (wl_pointer_button_state)E->state,
+            .timeMs = E.timeMs,
+            .button = E.button,
+            .state  = E.pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_axis.initCallback(&mouse->events.axis, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_axis_event*)data;
+    listeners.axis = mouse->events.axis.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SAxisEvent>(d);
 
         pointerEvents.axis.emit(SAxisEvent{
-            .timeMs            = E->time_msec,
-            .source            = E->source,
-            .axis              = E->orientation,
-            .relativeDirection = E->relative_direction,
-            .delta             = E->delta,
-            .deltaDiscrete     = E->delta_discrete,
+            .timeMs            = E.timeMs,
+            .source            = (wl_pointer_axis_source)E.source,
+            .axis              = (wl_pointer_axis)E.axis,
+            .relativeDirection = (wl_pointer_axis_relative_direction)E.direction,
+            .delta             = E.delta,
+            .deltaDiscrete     = E.discrete,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_frame.initCallback(&mouse->events.frame, [this] (void* owner, void* data) {
-        pointerEvents.frame.emit();
-    }, this, "CMouse");
+    listeners.frame = mouse->events.frame.registerListener([this](std::any d) { pointerEvents.frame.emit(); });
 
-    hyprListener_swipeBegin.initCallback(&mouse->events.swipe_begin, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_swipe_begin_event*)data;
+    listeners.swipeBegin = mouse->events.swipeBegin.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SSwipeBeginEvent>(d);
 
         pointerEvents.swipeBegin.emit(SSwipeBeginEvent{
-            .timeMs  = E->time_msec,
-            .fingers = E->fingers,
+            .timeMs  = E.timeMs,
+            .fingers = E.fingers,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_swipeEnd.initCallback(&mouse->events.swipe_end, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_swipe_end_event*)data;
+    listeners.swipeEnd = mouse->events.swipeEnd.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SSwipeEndEvent>(d);
 
         pointerEvents.swipeEnd.emit(SSwipeEndEvent{
-            .timeMs    = E->time_msec,
-            .cancelled = E->cancelled,
+            .timeMs    = E.timeMs,
+            .cancelled = E.cancelled,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_swipeUpdate.initCallback(&mouse->events.swipe_update, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_swipe_update_event*)data;
+    listeners.swipeUpdate = mouse->events.swipeUpdate.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SSwipeUpdateEvent>(d);
 
         pointerEvents.swipeUpdate.emit(SSwipeUpdateEvent{
-            .timeMs  = E->time_msec,
-            .fingers = E->fingers,
-            .delta   = {E->dx, E->dy},
+            .timeMs  = E.timeMs,
+            .fingers = E.fingers,
+            .delta   = E.delta,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_pinchBegin.initCallback(&mouse->events.pinch_begin, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_pinch_begin_event*)data;
+    listeners.pinchBegin = mouse->events.pinchBegin.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SPinchBeginEvent>(d);
 
         pointerEvents.pinchBegin.emit(SPinchBeginEvent{
-            .timeMs    = E->time_msec,
-            .fingers   = E->fingers,
+            .timeMs  = E.timeMs,
+            .fingers = E.fingers,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_pinchEnd.initCallback(&mouse->events.pinch_end, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_pinch_end_event*)data;
+    listeners.pinchEnd = mouse->events.pinchEnd.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SPinchEndEvent>(d);
 
         pointerEvents.pinchEnd.emit(SPinchEndEvent{
-            .timeMs    = E->time_msec,
-            .cancelled = E->cancelled,
+            .timeMs    = E.timeMs,
+            .cancelled = E.cancelled,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_pinchUpdate.initCallback(&mouse->events.pinch_update, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_pinch_update_event*)data;
+    listeners.pinchUpdate = mouse->events.pinchUpdate.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SPinchUpdateEvent>(d);
 
         pointerEvents.pinchUpdate.emit(SPinchUpdateEvent{
-            .timeMs   = E->time_msec,
-            .fingers  = E->fingers,
-            .delta    = {E->dx, E->dy},
-            .scale    = E->scale,
-            .rotation = E->rotation,
+            .timeMs   = E.timeMs,
+            .fingers  = E.fingers,
+            .delta    = E.delta,
+            .scale    = E.scale,
+            .rotation = E.rotation,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_holdBegin.initCallback(&mouse->events.hold_begin, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_hold_begin_event*)data;
+    listeners.holdBegin = mouse->events.holdBegin.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SHoldBeginEvent>(d);
 
         pointerEvents.holdBegin.emit(SHoldBeginEvent{
-            .timeMs  = E->time_msec,
-            .fingers = E->fingers,
+            .timeMs  = E.timeMs,
+            .fingers = E.fingers,
         });
-    }, this, "CMouse");
+    });
 
-    hyprListener_holdEnd.initCallback(&mouse->events.hold_end, [this] (void* owner, void* data) {
-        auto E = (wlr_pointer_hold_end_event*)data;
+    listeners.holdEnd = mouse->events.holdEnd.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IPointer::SHoldEndEvent>(d);
 
         pointerEvents.holdEnd.emit(SHoldEndEvent{
-            .timeMs    = E->time_msec,
-            .cancelled = E->cancelled,
+            .timeMs    = E.timeMs,
+            .cancelled = E.cancelled,
         });
-    }, this, "CMouse");
+    });
 
-    // clang-format on
-
-    deviceName = mouse->base.name ? mouse->base.name : "UNKNOWN";
-}
-
-void CMouse::disconnectCallbacks() {
-    hyprListener_destroy.removeCallback();
-    hyprListener_motion.removeCallback();
-    hyprListener_motionAbsolute.removeCallback();
-    hyprListener_button.removeCallback();
-    hyprListener_axis.removeCallback();
-    hyprListener_frame.removeCallback();
-    hyprListener_swipeBegin.removeCallback();
-    hyprListener_swipeEnd.removeCallback();
-    hyprListener_swipeUpdate.removeCallback();
-    hyprListener_pinchBegin.removeCallback();
-    hyprListener_pinchEnd.removeCallback();
-    hyprListener_pinchUpdate.removeCallback();
-    hyprListener_holdBegin.removeCallback();
-    hyprListener_holdEnd.removeCallback();
+    deviceName = mouse->getName();
 }
 
 bool CMouse::isVirtual() {
     return false;
 }
 
-wlr_pointer* CMouse::wlr() {
-    return mouse;
+SP<Aquamarine::IPointer> CMouse::aq() {
+    return mouse.lock();
 }

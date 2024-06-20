@@ -193,16 +193,11 @@ void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resou
         return;
     }
 
-    if (PMONITOR->output->allocator && (PMONITOR->output->allocator->buffer_caps & WLR_BUFFER_CAP_DMABUF)) {
-        PFRAME->dmabufFormat = PMONITOR->output->render_format;
-    } else {
-        PFRAME->dmabufFormat = DRM_FORMAT_INVALID;
-    }
+    PFRAME->dmabufFormat = PMONITOR->output->state->state().drmFormat;
 
     PFRAME->box = {0, 0, (int)(pWindow->m_vRealSize.value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize.value().y * PMONITOR->scale)};
-    int ow, oh;
-    wlr_output_effective_resolution(PMONITOR->output, &ow, &oh);
-    PFRAME->box.transform(wlTransformToHyprutils(PMONITOR->transform), ow, oh).round();
+
+    PFRAME->box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
 
     PFRAME->shmStride = FormatUtils::minStride(PSHMINFO, PFRAME->box.w);
 
@@ -289,11 +284,9 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     m_vFramesAwaitingWrite.emplace_back(PFRAME);
 }
 
-void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e) {
+void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
-
-    const auto                     PMONITOR = g_pCompositor->getMonitorFromOutput(e->output);
 
     std::vector<SScreencopyFrame*> framesToRemove;
 
@@ -306,7 +299,7 @@ void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor, wlr_outp
             continue;
         }
 
-        if (PMONITOR != g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID))
+        if (pMonitor != g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID))
             continue;
 
         CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};

@@ -19,7 +19,7 @@ CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboar
         return;
     }
 
-    sendKeyboardData(g_pSeatManager->keyboard->wlr());
+    sendKeyboardData(g_pSeatManager->keyboard.lock());
 }
 
 CInputMethodKeyboardGrabV2::~CInputMethodKeyboardGrabV2() {
@@ -27,37 +27,36 @@ CInputMethodKeyboardGrabV2::~CInputMethodKeyboardGrabV2() {
         std::erase_if(owner->grabs, [](const auto& g) { return g.expired(); });
 }
 
-void CInputMethodKeyboardGrabV2::sendKeyboardData(wlr_keyboard* keyboard) {
+void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 
     if (keyboard == pLastKeyboard)
         return;
 
     pLastKeyboard = keyboard;
 
-    int keymapFD = allocateSHMFile(keyboard->keymap_size);
+    int keymapFD = allocateSHMFile(keyboard->xkbKeymapString.length() + 1);
     if (keymapFD < 0) {
         LOGM(ERR, "Failed to create a keymap file for keyboard grab");
         return;
     }
 
-    void* data = mmap(nullptr, keyboard->keymap_size, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD, 0);
+    void* data = mmap(nullptr, keyboard->xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD, 0);
     if (data == MAP_FAILED) {
         LOGM(ERR, "Failed to mmap a keymap file for keyboard grab");
         close(keymapFD);
         return;
     }
 
-    memcpy(data, keyboard->keymap_string, keyboard->keymap_size);
-    munmap(data, keyboard->keymap_size);
+    memcpy(data, keyboard->xkbKeymapString.c_str(), keyboard->xkbKeymapString.length());
+    munmap(data, keyboard->xkbKeymapString.length() + 1);
 
-    resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD, keyboard->keymap_size);
+    resource->sendKeymap(WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, keymapFD, keyboard->xkbKeymapString.length() + 1);
 
     close(keymapFD);
 
-    const auto MODS = keyboard->modifiers;
-    sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+    sendMods(keyboard->modifiersState.depressed, keyboard->modifiersState.latched, keyboard->modifiersState.locked, keyboard->modifiersState.group);
 
-    resource->sendRepeatInfo(keyboard->repeat_info.rate, keyboard->repeat_info.delay);
+    resource->sendRepeatInfo(keyboard->repeatRate, keyboard->repeatDelay);
 }
 
 void CInputMethodKeyboardGrabV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
@@ -316,7 +315,7 @@ void CInputMethodV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t loc
     }
 }
 
-void CInputMethodV2::setKeyboard(wlr_keyboard* keyboard) {
+void CInputMethodV2::setKeyboard(SP<IKeyboard> keyboard) {
     for (auto& gw : grabs) {
         auto g = gw.lock();
 

@@ -254,8 +254,8 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     int                       fd;
     uint32_t                  size;
     if (keyboard) {
-        fd   = keyboard->wlr()->keymap_fd;
-        size = keyboard->wlr()->keymap_size;
+        fd   = keyboard->xkbKeymapFD;
+        size = keyboard->xkbKeymapString.length() + 1;
     } else {
         fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
         if (fd < 0) {

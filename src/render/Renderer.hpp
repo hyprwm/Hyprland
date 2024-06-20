@@ -12,7 +12,7 @@ struct SMonitorRule;
 class CWorkspace;
 class CWindow;
 class CInputPopup;
-class IWLBuffer;
+class IHLBuffer;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {
@@ -76,7 +76,7 @@ class CHyprRenderer {
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
-    bool beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IWLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
+    bool beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
     void endRender();
 
     bool m_bBlockSurfaceFeedback = false;
@@ -122,11 +122,10 @@ class CHyprRenderer {
     bool           m_bCursorHidden        = false;
     bool           m_bCursorHasSurface    = false;
     CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
-    wlr_buffer*    m_pCurrentWlrBuffer    = nullptr;
-    WP<IWLBuffer>  m_pCurrentHLBuffer     = {};
-    eRenderMode    m_eRenderMode          = RENDER_MODE_NORMAL;
+    SP<Aquamarine::IBuffer> m_pCurrentBuffer;
+    eRenderMode             m_eRenderMode = RENDER_MODE_NORMAL;
 
-    bool           m_bNvidia = false;
+    bool                    m_bNvidia = false;
 
     struct {
         bool hiddenOnTouch    = false;
@@ -134,8 +133,7 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_sCursorHiddenConditions;
 
-    CRenderbuffer*                              getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
-    CRenderbuffer*                              getOrCreateRenderbuffer(SP<IWLBuffer> buffer, uint32_t fmt);
+    CRenderbuffer*                              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
     std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;

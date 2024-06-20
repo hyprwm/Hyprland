@@ -26,6 +26,8 @@ class CWLOutputResource {
   private:
     SP<CWlOutput> resource;
     wl_client*    pClient = nullptr;
+
+    friend class CWLOutputProtocol;
 };
 
 class CWLOutputProtocol : public IWaylandProtocol {
@@ -35,6 +37,7 @@ class CWLOutputProtocol : public IWaylandProtocol {
     virtual void          bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     SP<CWLOutputResource> outputResourceFrom(wl_client* client);
+    void                  sendDone();
 
     WP<CMonitor>          monitor;
 

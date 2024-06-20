@@ -4,22 +4,22 @@
 
 class CTouchDevice : public ITouch {
   public:
-    static SP<CTouchDevice> create(wlr_touch* touch);
+    static SP<CTouchDevice>        create(SP<Aquamarine::ITouch> touch);
 
-    virtual bool            isVirtual();
-    virtual wlr_touch*      wlr();
+    virtual bool                   isVirtual();
+    virtual SP<Aquamarine::ITouch> aq();
 
   private:
-    CTouchDevice(wlr_touch* touch);
+    CTouchDevice(SP<Aquamarine::ITouch> touch);
 
-    wlr_touch* touch = nullptr;
+    WP<Aquamarine::ITouch> touch;
 
-    void       disconnectCallbacks();
-
-    DYNLISTENER(destroy);
-    DYNLISTENER(down);
-    DYNLISTENER(up);
-    DYNLISTENER(motion);
-    DYNLISTENER(cancel);
-    DYNLISTENER(frame);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener down;
+        CHyprSignalListener up;
+        CHyprSignalListener motion;
+        CHyprSignalListener cancel;
+        CHyprSignalListener frame;
+    } listeners;
 };

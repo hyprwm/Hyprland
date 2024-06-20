@@ -1,5 +1,6 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/Log.hpp"
+#include "../../Compositor.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -25,8 +26,18 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
     return 1;
 }
 
+static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
+    g_pCompositor->m_pAqBackend->dispatchEventsAsync();
+    return 1;
+}
+
 void CEventLoopManager::enterLoop() {
     m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
+
+    auto aqFDs = g_pCompositor->m_pAqBackend->getPollFDs();
+    for (auto& fd : aqFDs) {
+        m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd, WL_EVENT_READABLE, aquamarineFDWrite, nullptr));
+    }
 
     wl_display_run(m_sWayland.display);
 

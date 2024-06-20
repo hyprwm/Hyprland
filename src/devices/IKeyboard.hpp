@@ -7,21 +7,32 @@
 
 #include <xkbcommon/xkbcommon.h>
 
-struct wlr_keyboard;
+AQUAMARINE_FORWARD(IKeyboard);
 
 class IKeyboard : public IHID {
   public:
     virtual ~IKeyboard();
-    virtual uint32_t      getCapabilities();
-    virtual eHIDType      getType();
-    virtual bool          isVirtual() = 0;
-    virtual wlr_keyboard* wlr()       = 0;
+    virtual uint32_t                  getCapabilities();
+    virtual eHIDType                  getType();
+    virtual bool                      isVirtual() = 0;
+    virtual SP<Aquamarine::IKeyboard> aq()        = 0;
 
     struct SKeyEvent {
         uint32_t              timeMs     = 0;
         uint32_t              keycode    = 0;
         bool                  updateMods = false;
         wl_keyboard_key_state state      = WL_KEYBOARD_KEY_STATE_PRESSED;
+    };
+
+    struct SKeymapEvent {
+        xkb_keymap* keymap = nullptr;
+    };
+
+    struct SModifiersEvent {
+        uint32_t depressed = 0;
+        uint32_t latched   = 0;
+        uint32_t locked    = 0;
+        uint32_t group     = 0;
     };
 
     struct {
@@ -39,25 +50,43 @@ class IKeyboard : public IHID {
         std::string rules   = "";
     };
 
+    void               setKeymap(const SStringRuleNames& rules);
     void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
     std::string        getActiveLayout();
     void               updateLEDs();
     void               updateLEDs(uint32_t leds);
+    uint32_t           getModifiers();
+    void               updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
 
     bool               active  = false;
     bool               enabled = true;
 
     xkb_layout_index_t activeLayout        = 0;
-    xkb_state*         xkbTranslationState = nullptr;
+    xkb_state *        xkbTranslationState = nullptr, *xkbInternalTranslationState = nullptr;
+    xkb_keymap*        xkbKeymap = nullptr;
 
-    std::string        hlName      = "";
-    std::string        xkbFilePath = "";
+    struct {
+        uint32_t depressed = 0, latched = 0, locked = 0, group = 0;
+    } modifiersState;
 
-    SStringRuleNames   currentRules;
-    int                repeatRate        = 0;
-    int                repeatDelay       = 0;
-    int                numlockOn         = -1;
-    bool               resolveBindsBySym = false;
+    std::array<xkb_led_index_t, 3> ledIndexes;
+    std::array<xkb_mod_index_t, 8> modIndexes;
+    uint32_t                       leds = 0;
 
-    WP<IKeyboard>      self;
+    std::string                    hlName          = "";
+    std::string                    xkbFilePath     = "";
+    std::string                    xkbKeymapString = "";
+    int                            xkbKeymapFD     = -1;
+
+    SStringRuleNames               currentRules;
+    int                            repeatRate        = 0;
+    int                            repeatDelay       = 0;
+    int                            numlockOn         = -1;
+    bool                           resolveBindsBySym = false;
+
+    WP<IKeyboard>                  self;
+
+  private:
+    void clearManuallyAllocd();
+    bool updateModifiersState(); // rets whether changed
 };

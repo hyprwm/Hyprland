@@ -7,15 +7,15 @@
 #include "wayland.hpp"
 #include "linux-dmabuf-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <aquamarine/buffer/Buffer.hpp>
 
 class CDMABuffer;
 struct SDRMFormat;
-struct SDMABUFAttrs;
 class CWLSurfaceResource;
 
 class CLinuxDMABuffer {
   public:
-    CLinuxDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs);
+    CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
     ~CLinuxDMABuffer();
 
     bool good();
@@ -66,12 +66,12 @@ class CLinuxDMABBUFParamsResource {
     CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
     ~CLinuxDMABBUFParamsResource();
 
-    bool                good();
-    void                create(uint32_t id); // 0 means not immed
+    bool                         good();
+    void                         create(uint32_t id); // 0 means not immed
 
-    SP<SDMABUFAttrs>    attrs;
-    WP<CLinuxDMABuffer> createdBuffer;
-    bool                used = false;
+    SP<Aquamarine::SDMABUFAttrs> attrs;
+    WP<CLinuxDMABuffer>          createdBuffer;
+    bool                         used = false;
 
   private:
     SP<CZwpLinuxBufferParamsV1> resource;

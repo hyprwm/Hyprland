@@ -16,88 +16,6 @@
 //                                                           //
 // --------------------------------------------------------- //
 
-static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitorName) {
-
-    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
-    static auto firstMonitorAdded = std::chrono::steady_clock::now();
-    static bool cursorDefaultDone = false;
-    static bool firstLaunch       = true;
-
-    const auto  POS = PNEWMONITOR->middle();
-
-    // by default, cursor should be set to first monitor detected
-    // this is needed as a default if the monitor given in config above doesn't exist
-    if (firstLaunch) {
-        firstLaunch = false;
-        g_pCompositor->warpCursorTo(POS, true);
-        g_pInputManager->refocus();
-    }
-
-    if (cursorDefaultDone || *PCURSORMONITOR == STRVAL_EMPTY)
-        return;
-
-    // after 10s, don't set cursor to default monitor
-    auto timePassedSec = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - firstMonitorAdded);
-    if (timePassedSec.count() > 10) {
-        cursorDefaultDone = true;
-        return;
-    }
-
-    if (*PCURSORMONITOR == monitorName) {
-        cursorDefaultDone = true;
-        g_pCompositor->warpCursorTo(POS, true);
-        g_pInputManager->refocus();
-    }
-}
-
-void Events::listener_newOutput(wl_listener* listener, void* data) {
-    // new monitor added, let's accommodate for that.
-    const auto OUTPUT = (wlr_output*)data;
-
-    if (!OUTPUT->name) {
-        Debug::log(ERR, "New monitor has no name?? Ignoring");
-        return;
-    }
-
-    // add it to real
-    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
-    if (std::string("HEADLESS-1") == OUTPUT->name)
-        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
-
-    PNEWMONITOR->output           = OUTPUT;
-    PNEWMONITOR->self             = PNEWMONITOR;
-    const bool FALLBACK           = g_pCompositor->m_pUnsafeOutput ? OUTPUT == g_pCompositor->m_pUnsafeOutput->output : false;
-    PNEWMONITOR->ID               = FALLBACK ? -1 : g_pCompositor->getNextAvailableMonitorID(OUTPUT->name);
-    PNEWMONITOR->isUnsafeFallback = FALLBACK;
-
-    EMIT_HOOK_EVENT("newMonitor", PNEWMONITOR);
-
-    if (!FALLBACK)
-        PNEWMONITOR->onConnect(false);
-
-    if (!PNEWMONITOR->m_bEnabled || FALLBACK)
-        return;
-
-    // ready to process if we have a real monitor
-
-    if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
-        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR.get();
-
-    g_pCompositor->m_bReadyToProcess = true;
-
-    g_pConfigManager->m_bWantsMonitorReload = true;
-    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get());
-
-    checkDefaultCursorWarp(PNEWMONITOR, OUTPUT->name);
-
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_iMonitorID == PNEWMONITOR->ID) {
-            w->m_iLastSurfaceMonitorID = -1;
-            w->updateSurfaceScaleTransformDetails();
-        }
-    }
-}
-
 void Events::listener_monitorFrame(void* owner, void* data) {
     if (g_pCompositor->m_bExitTriggered) {
         // Only signal cleanup once
@@ -108,18 +26,19 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
-    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Attempted to render frame on inactive session!");
+    // FIXME:
+    // if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
+    //     Debug::log(WARN, "Attempted to render frame on inactive session!");
 
-        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
-                return m->output != g_pCompositor->m_pUnsafeOutput->output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
+    //     if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
+    //             return m->output != g_pCompositor->m_pUnsafeOutput->output;
+    //         })) {
+    //         // restore from unsafe state
+    //         g_pCompositor->leaveUnsafeState();
+    //     }
 
-        return; // cannot draw on session inactive (different tty)
-    }
+    //     return; // cannot draw on session inactive (different tty)
+    // }
 
     if (!PMONITOR->m_bEnabled)
         return;
@@ -172,12 +91,10 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {
-    const auto OUTPUT = (wlr_output*)data;
-
-    CMonitor*  pMonitor = nullptr;
+    CMonitor* pMonitor = nullptr;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (m->output == OUTPUT) {
+        if (m->output == pMonitor->output) {
             pMonitor = m.get();
             break;
         }
@@ -187,9 +104,6 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
         return;
 
     Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
-
-    if (pMonitor->output->idle_frame)
-        wl_event_source_remove(pMonitor->output->idle_frame);
 
     pMonitor->onDisconnect(true);
 
@@ -202,20 +116,20 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 }
 
 void Events::listener_monitorStateRequest(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    const auto E        = (wlr_output_event_request_state*)data;
+    // const auto PMONITOR = (CMonitor*)owner;
+    // const auto E        = (wlr_output_event_request_state*)data;
 
-    if (!PMONITOR->createdByUser)
-        return;
+    // if (!PMONITOR->createdByUser)
+    //     return;
 
-    const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
+    // const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
 
-    PMONITOR->forceSize = SIZE;
+    // PMONITOR->forceSize = SIZE;
 
-    SMonitorRule rule = PMONITOR->activeMonitorRule;
-    rule.resolution   = SIZE;
+    // SMonitorRule rule = PMONITOR->activeMonitorRule;
+    // rule.resolution   = SIZE;
 
-    g_pHyprRenderer->applyMonitorRule(PMONITOR, &rule);
+    // g_pHyprRenderer->applyMonitorRule(PMONITOR, &rule);
 }
 
 void Events::listener_monitorDamage(void* owner, void* data) {
@@ -234,11 +148,9 @@ void Events::listener_monitorNeedsFrame(void* owner, void* data) {
 void Events::listener_monitorCommit(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
 
-    const auto E = (wlr_output_event_commit*)data;
-
-    if (E->state->committed & WLR_OUTPUT_STATE_BUFFER) {
-        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR, E);
-        g_pProtocolManager->m_pToplevelExportProtocolManager->onOutputCommit(PMONITOR, E);
+    if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
+        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR);
+        g_pProtocolManager->m_pToplevelExportProtocolManager->onOutputCommit(PMONITOR);
     }
 }
 

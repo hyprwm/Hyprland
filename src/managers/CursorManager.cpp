@@ -67,54 +67,61 @@ void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
     std::erase_if(m_vCursorBuffers, [ref](const auto& buf) { return buf.get() == ref; });
 }
 
-static void cursorBufferDestroy(struct wlr_buffer* wlr_buffer) {
-    CCursorManager::CCursorBuffer::SCursorWlrBuffer* buffer = wl_container_of(wlr_buffer, buffer, base);
-    g_pCursorManager->dropBufferRef(buffer->parent);
+CCursorManager::CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_) {
+    surface = surf;
+    size    = size_;
+    stride  = cairo_image_surface_get_stride(surf);
 }
 
-static bool cursorBufferBeginDataPtr(struct wlr_buffer* wlr_buffer, uint32_t flags, void** data, uint32_t* format, size_t* stride) {
-    CCursorManager::CCursorBuffer::SCursorWlrBuffer* buffer = wl_container_of(wlr_buffer, buffer, base);
-
-    if (flags & WLR_BUFFER_DATA_PTR_ACCESS_WRITE)
-        return false;
-
-    *data   = buffer->pixelData ? buffer->pixelData : cairo_image_surface_get_data(buffer->surface);
-    *stride = buffer->stride;
-    *format = DRM_FORMAT_ARGB8888;
-    return true;
-}
-
-static void cursorBufferEndDataPtr(struct wlr_buffer* wlr_buffer) {
-    ;
-}
-
-//
-static const wlr_buffer_impl bufferImpl = {
-    .destroy               = cursorBufferDestroy,
-    .begin_data_ptr_access = cursorBufferBeginDataPtr,
-    .end_data_ptr_access   = cursorBufferEndDataPtr,
-};
-
-CCursorManager::CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : size(size_), hotspot(hot_) {
-    wlrBuffer.surface = surf;
-    wlr_buffer_init(&wlrBuffer.base, &bufferImpl, size.x, size.y);
-    wlrBuffer.parent = this;
-    wlrBuffer.stride = cairo_image_surface_get_stride(surf);
-}
-
-CCursorManager::CCursorBuffer::CCursorBuffer(uint8_t* pixelData, const Vector2D& size_, const Vector2D& hot_) : size(size_), hotspot(hot_) {
-    wlrBuffer.pixelData = pixelData;
-    wlr_buffer_init(&wlrBuffer.base, &bufferImpl, size.x, size.y);
-    wlrBuffer.parent = this;
-    wlrBuffer.stride = 4 * size_.x;
+CCursorManager::CCursorBuffer::CCursorBuffer(uint8_t* pixelData_, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_) {
+    pixelData = pixelData_;
+    size      = size_;
+    stride    = 4 * size_.x;
 }
 
 CCursorManager::CCursorBuffer::~CCursorBuffer() {
-    ; // will be freed in .destroy
+    ;
 }
 
-wlr_buffer* CCursorManager::getCursorBuffer() {
-    return !m_vCursorBuffers.empty() ? &m_vCursorBuffers.back()->wlrBuffer.base : nullptr;
+Aquamarine::eBufferCapability CCursorManager::CCursorBuffer::caps() {
+    return Aquamarine::eBufferCapability::BUFFER_CAPABILITY_DATAPTR;
+}
+
+Aquamarine::eBufferType CCursorManager::CCursorBuffer::type() {
+    return Aquamarine::eBufferType::BUFFER_TYPE_SHM;
+}
+
+void CCursorManager::CCursorBuffer::update(const Hyprutils::Math::CRegion& damage) {
+    ;
+}
+
+bool CCursorManager::CCursorBuffer::isSynchronous() {
+    return true;
+}
+
+bool CCursorManager::CCursorBuffer::good() {
+    return true;
+}
+
+Aquamarine::SSHMAttrs CCursorManager::CCursorBuffer::shm() {
+    Aquamarine::SSHMAttrs attrs;
+    attrs.success = true;
+    attrs.format  = DRM_FORMAT_ARGB8888;
+    attrs.size    = size;
+    attrs.stride  = stride;
+    return attrs;
+}
+
+std::tuple<uint8_t*, uint32_t, size_t> CCursorManager::CCursorBuffer::beginDataPtr(uint32_t flags) {
+    return {pixelData ? pixelData : cairo_image_surface_get_data(surface), DRM_FORMAT_ARGB8888, stride};
+}
+
+void CCursorManager::CCursorBuffer::endDataPtr() {
+    ;
+}
+
+SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
+    return !m_vCursorBuffers.empty() ? m_vCursorBuffers.back() : nullptr;
 }
 
 void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
@@ -150,11 +157,11 @@ void CCursorManager::setXCursor(const std::string& name) {
     auto image = xcursor->images[0];
 
     m_vCursorBuffers.emplace_back(
-        std::make_unique<CCursorBuffer>(image->buffer, Vector2D{(int)image->width, (int)image->height}, Vector2D{(double)image->hotspot_x, (double)image->hotspot_y}));
+        makeShared<CCursorBuffer>(image->buffer, Vector2D{(int)image->width, (int)image->height}, Vector2D{(double)image->hotspot_x, (double)image->hotspot_y}));
 
     g_pPointerManager->setCursorBuffer(getCursorBuffer(), Vector2D{(double)image->hotspot_x, (double)image->hotspot_y} / scale, scale);
     if (m_vCursorBuffers.size() > 1)
-        wlr_buffer_drop(&m_vCursorBuffers.front()->wlrBuffer.base);
+        dropBufferRef(m_vCursorBuffers.at(0).get());
 
     m_bOurBufferConnected = true;
 }
@@ -196,14 +203,14 @@ void CCursorManager::setCursorFromName(const std::string& name) {
         }
     }
 
-    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(m_sCurrentCursorShapeData.images[0].surface,
-                                                                  Vector2D{m_sCurrentCursorShapeData.images[0].size, m_sCurrentCursorShapeData.images[0].size},
-                                                                  Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY}));
+    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(m_sCurrentCursorShapeData.images[0].surface,
+                                                            Vector2D{m_sCurrentCursorShapeData.images[0].size, m_sCurrentCursorShapeData.images[0].size},
+                                                            Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY}));
 
     g_pPointerManager->setCursorBuffer(getCursorBuffer(), Vector2D{m_sCurrentCursorShapeData.images[0].hotspotX, m_sCurrentCursorShapeData.images[0].hotspotY} / m_fCursorScale,
                                        m_fCursorScale);
     if (m_vCursorBuffers.size() > 1)
-        wlr_buffer_drop(&m_vCursorBuffers.front()->wlrBuffer.base);
+        dropBufferRef(m_vCursorBuffers.at(0).get());
 
     m_bOurBufferConnected = true;
 
@@ -225,7 +232,7 @@ void CCursorManager::tickAnimatedCursor() {
     if ((size_t)m_iCurrentAnimationFrame >= m_sCurrentCursorShapeData.images.size())
         m_iCurrentAnimationFrame = 0;
 
-    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(
+    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(
         m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].surface,
         Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].size},
         Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY}));

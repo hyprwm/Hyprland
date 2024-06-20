@@ -105,3 +105,8 @@
             class name;                                                                                                                                                            \
         }                                                                                                                                                                          \
     }
+
+#define AQUAMARINE_FORWARD(name)                                                                                                                                                   \
+    namespace Aquamarine {                                                                                                                                                         \
+        class name;                                                                                                                                                                \
+    }

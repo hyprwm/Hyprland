@@ -5,6 +5,7 @@
 #include <memory>
 #include "../includes.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 struct wlr_buffer;
 struct wlr_xcursor_manager;

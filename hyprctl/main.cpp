@@ -353,7 +353,12 @@ int main(int argc, char** argv) {
                 fullArgs += "f";
                 needRoll = true;
                 if (ARGS.size() >= 3)
-                    rollRate = std::stoi(ARGS[2]);
+                    try {
+                        rollRate = std::stoi(ARGS[2]);
+                    } catch (std::invalid_argument& e) {
+                        log("invalid argument\n");
+                        return 1;
+                    }
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {

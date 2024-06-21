@@ -1829,7 +1829,11 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         std::string        val;
         if (iss >> val) {
             if (iss >> val) {
-                runWritingDebugLogThread(ACCEPTEDCONNECTION, std::stoi(val));
+                try {
+                    runWritingDebugLogThread(ACCEPTEDCONNECTION, std::stoi(val));
+                } catch (std::invalid_argument& e) {
+                    Debug::log(ERR, "Error in rollinglog request: {}", e.what());
+                }
             } else {
                 runWritingDebugLogThread(ACCEPTEDCONNECTION);
             }

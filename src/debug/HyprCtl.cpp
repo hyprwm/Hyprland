@@ -1748,13 +1748,15 @@ bool successWrite(int fd, const std::string& data, bool needLog = true) {
     return false;
 }
 
-void runWritingDebugLogThread(const int conn) {
+void runWritingDebugLogThread(const int conn, int rate = 20) {
     using namespace std::chrono_literals;
     Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
-    std::thread([conn]() {
+    std::thread([conn, rate]() {
+        const auto RATEMS = std::chrono::milliseconds(static_cast<int>((1.0 / rate) * 1000));
         while (Debug::RollingLogFollow::Get().IsRunning()) {
             if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
+                std::this_thread::sleep_for(RATEMS);
                 continue;
             }
 
@@ -1763,7 +1765,7 @@ void runWritingDebugLogThread(const int conn) {
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
 
-            std::this_thread::sleep_for(1ms);
+            std::this_thread::sleep_for(RATEMS);
         }
         close(conn);
         Debug::RollingLogFollow::Get().StopFor(conn);
@@ -1822,7 +1824,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (isFollowUpRollingLogRequest(request)) {
         Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
         Debug::RollingLogFollow::Get().StartFor(ACCEPTEDCONNECTION);
-        runWritingDebugLogThread(ACCEPTEDCONNECTION);
+        std::istringstream iss(request);
+        std::string        val;
+        if (iss >> val) {
+            if (iss >> val) {
+                runWritingDebugLogThread(ACCEPTEDCONNECTION, std::stoi(val));
+            } else {
+                runWritingDebugLogThread(ACCEPTEDCONNECTION);
+            }
+        } else {
+            Debug::log(ERR, "Invalid rollinglog request");
+        }
         Debug::log(LOG, Debug::RollingLogFollow::Get().DebugInfo());
     } else
         close(ACCEPTEDCONNECTION);

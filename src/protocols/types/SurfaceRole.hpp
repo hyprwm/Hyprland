@@ -11,4 +11,5 @@ enum eSurfaceRole {
 class ISurfaceRole {
   public:
     virtual eSurfaceRole role() = 0;
+    virtual ~ISurfaceRole()     = default;
 };

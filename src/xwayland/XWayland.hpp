@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "../helpers/signal/Signal.hpp"
+#include "../helpers/memory/Memory.hpp"
 
 #include "XSurface.hpp"
 
@@ -29,10 +30,8 @@ class CXWayland {
     } events;
 };
 
-inline std::unique_ptr<CXWayland> g_pXWayland;
+inline std::unique_ptr<CXWayland>                g_pXWayland;
 
-#define HYPRATOM(name)                                                                                                                                                             \
-    { name, 0 }
 inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
     HYPRATOM("_NET_SUPPORTED"),
     HYPRATOM("_NET_SUPPORTING_WM_CHECK"),

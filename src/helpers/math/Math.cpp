@@ -1,5 +1,6 @@
 #include "Math.hpp"
 #include <unordered_map>
+#include <cstring>
 
 Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
     switch (t) {
@@ -52,21 +53,21 @@ static void matrixTranslate(float mat[9], float x, float y) {
     float translate[9] = {
         1.0f, 0.0f, x, 0.0f, 1.0f, y, 0.0f, 0.0f, 1.0f,
     };
-    wlr_matrix_multiply(mat, mat, translate);
+    matrixMultiply(mat, mat, translate);
 }
 
 static void matrixScale(float mat[9], float x, float y) {
     float scale[9] = {
         x, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 1.0f,
     };
-    wlr_matrix_multiply(mat, mat, scale);
+    matrixMultiply(mat, mat, scale);
 }
 
 static void matrixRotate(float mat[9], float rad) {
     float rotate[9] = {
         cos(rad), -sin(rad), 0.0f, sin(rad), cos(rad), 0.0f, 0.0f, 0.0f, 1.0f,
     };
-    wlr_matrix_multiply(mat, mat, rotate);
+    matrixMultiply(mat, mat, rotate);
 }
 
 static std::unordered_map<eTransform, std::array<float, 9>> transforms = {
@@ -208,7 +209,7 @@ void projectBox(float mat[9], CBox& box, eTransform transform, float rotation, c
         matrixTranslate(mat, -width / 2, -height / 2);
     }
 
-    wlr_matrix_scale(mat, width, height);
+    matrixScale(mat, width, height);
 
     if (transform != HYPRUTILS_TRANSFORM_NORMAL) {
         matrixTranslate(mat, 0.5, 0.5);

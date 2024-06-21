@@ -132,7 +132,7 @@ int rollingRead(const int socket, int rate) {
             buffer.fill('\0');
         }
 
-        usleep((1 / rate) * 1000000);
+        usleep(static_cast<int>((1.0 / rate) * 1000000));
     }
     close(socket);
     return 0;
@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
     const auto  ARGS             = splitArgs(argc, argv);
     bool        json             = false;
     bool        needRoll         = false;
-    int         rollRate  = 20;
+    int         rollRate         = 20;
     std::string overrideInstance = "";
 
     for (std::size_t i = 0; i < ARGS.size(); ++i) {

@@ -1677,7 +1677,8 @@ std::string CHyprCtl::getReply(std::string request) {
 
     std::string result = "";
 
-    request = request.substr(0, request.find(" "));
+    if (request.starts_with("rollinglog"))
+        request = request.substr(0, request.find(" "));
 
     // parse exact cmds first, then non-exact.
     for (auto& cmd : m_vCommands) {

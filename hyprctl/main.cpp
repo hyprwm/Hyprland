@@ -141,7 +141,7 @@ int rollingRead(const int socket) {
 int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
-    auto       t = timeval{.tv_sec = 0, .tv_usec = 100000};
+    auto       t = timeval{.tv_sec = 1, .tv_usec = 0};
     setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');
@@ -191,6 +191,8 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     sizeWritten = read(SERVERSOCKET, buffer, 8192);
 
     if (sizeWritten < 0) {
+        if (errno == EWOULDBLOCK)
+            log("Hyprland IPC didn't respond in time\n");
         log("Couldn't read (5)");
         return 5;
     }

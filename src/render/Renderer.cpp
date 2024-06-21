@@ -2451,9 +2451,14 @@ void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, PHLWORKSPACE pW
 }
 
 void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace) {
-    CRegion    rg;
+    CRegion     rg;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    static auto PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLURSIZE   = CConfigValue<Hyprlang::INT>("decoration:blur:size");
+    static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
+    const auto  BLURRADIUS  = *PBLUR ? (*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES)) : 0;
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->isHidden() || w->m_pWorkspace != pWorkspace)
@@ -2468,7 +2473,8 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWork
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
-        box.scale(PMONITOR->scale);
+        box.scale(PMONITOR->scale).expand(-BLURRADIUS);
+
         g_pHyprOpenGL->m_RenderData.renderModif.applyToBox(box);
 
         rg.add(box);

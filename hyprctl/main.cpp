@@ -107,7 +107,7 @@ void                 intHandler(int sig) {
     std::cout << "[hyprctl] SIGINT received, closing connection" << std::endl;
 }
 
-int rollingRead(const int socket, int delay) {
+int rollingRead(const int socket, int rate) {
     sigintReceived = false;
     signal(SIGINT, intHandler);
 
@@ -132,13 +132,13 @@ int rollingRead(const int socket, int delay) {
             buffer.fill('\0');
         }
 
-        usleep(delay * 1000);
+        usleep((1 / rate) * 1000000);
     }
     close(socket);
     return 0;
 }
 
-int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollDelay = 50) {
+int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollRate = 50) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     auto       t = timeval{.tv_sec = 0, .tv_usec = 100000};
@@ -183,7 +183,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollDel
     }
 
     if (needRoll)
-        return rollingRead(SERVERSOCKET, rollDelay);
+        return rollingRead(SERVERSOCKET, rollRate);
 
     std::string reply        = "";
     char        buffer[8192] = {0};
@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
     const auto  ARGS             = splitArgs(argc, argv);
     bool        json             = false;
     bool        needRoll         = false;
-    int         rollDelay        = 50;
+    int         rollRate  = 20;
     std::string overrideInstance = "";
 
     for (std::size_t i = 0; i < ARGS.size(); ++i) {
@@ -353,7 +353,7 @@ int main(int argc, char** argv) {
                 fullArgs += "f";
                 needRoll = true;
                 if (ARGS.size() >= 3)
-                    rollDelay = std::stoi(ARGS[2]);
+                    rollRate = std::stoi(ARGS[2]);
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -478,7 +478,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
     else if (fullRequest.contains("/rollinglog") && needRoll)
-        exitStatus = request(fullRequest, 0, true, rollDelay);
+        exitStatus = request(fullRequest, 0, true, rollRate);
     else {
         exitStatus = request(fullRequest);
     }

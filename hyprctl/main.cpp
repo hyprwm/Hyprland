@@ -138,7 +138,7 @@ int rollingRead(const int socket, int rate) {
     return 0;
 }
 
-int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollRate = 50) {
+int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollRate = 20) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     auto       t = timeval{.tv_sec = 0, .tv_usec = 100000};

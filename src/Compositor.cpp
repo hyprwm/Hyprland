@@ -1648,8 +1648,7 @@ PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
     }
 
     try {
-        std::string name = "";
-        return getWorkspaceByID(getWorkspaceIDFromString(str, name));
+        return getWorkspaceByID(getWorkspaceIDNameFromString(str).id);
     } catch (std::exception& e) { Debug::log(ERR, "Error in getWorkspaceByString, invalid id"); }
 
     return nullptr;

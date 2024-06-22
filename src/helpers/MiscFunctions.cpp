@@ -214,37 +214,36 @@ bool isDirection(const char& arg) {
     return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
 }
 
-int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
-    int result = WORKSPACE_INVALID;
+SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
+    SWorkspaceIDName result = {WORKSPACE_INVALID, ""};
+
     if (in.starts_with("special")) {
-        outName = "special:special";
+        result.name = "special:special";
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);
+            const auto WS   = g_pCompositor->getWorkspaceByName("special:" + NAME);
 
-            const auto WS = g_pCompositor->getWorkspaceByName("special:" + NAME);
-
-            outName = "special:" + NAME;
-
-            return WS ? WS->m_iID : g_pCompositor->getNewSpecialID();
+            return {WS ? WS->m_iID : g_pCompositor->getNewSpecialID(), "special:" + NAME};
         }
 
-        return SPECIAL_WORKSPACE_START;
+        result.id = SPECIAL_WORKSPACE_START;
+        return result;
     } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
         const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
         if (!WORKSPACE) {
-            result = g_pCompositor->getNextAvailableNamedWorkspace();
+            result.id = g_pCompositor->getNextAvailableNamedWorkspace();
         } else {
-            result = WORKSPACE->m_iID;
+            result.id = WORKSPACE->m_iID;
         }
-        outName = WORKSPACENAME;
+        result.name = WORKSPACENAME;
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
         if ((same_mon || next) && !g_pCompositor->m_pLastMonitor) {
             Debug::log(ERR, "Empty monitor workspace on monitor null!");
-            return WORKSPACE_INVALID;
+            return {WORKSPACE_INVALID};
         }
 
         std::set<int> invalidWSes;
@@ -259,41 +258,42 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
         int id = next ? g_pCompositor->m_pLastMonitor->activeWorkspaceID() : 0;
         while (++id < INT_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || g_pCompositor->getWindowsOnWorkspace(id) == 0))
-                return id;
+            if (!invalidWSes.contains(id) && (!PWORKSPACE || g_pCompositor->getWindowsOnWorkspace(id) == 0)) {
+                result.id = id;
+                return result;
+            }
         }
     } else if (in.starts_with("prev")) {
         if (!g_pCompositor->m_pLastMonitor)
-            return WORKSPACE_INVALID;
+            return {WORKSPACE_INVALID};
 
         const auto PWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
 
         if (!valid(PWORKSPACE))
-            return WORKSPACE_INVALID;
+            return {WORKSPACE_INVALID};
 
-        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.iID);
+        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.id);
 
         if (!PLASTWORKSPACE)
-            return WORKSPACE_INVALID;
+            return {WORKSPACE_INVALID};
 
-        outName = PLASTWORKSPACE->m_szName;
-        return PLASTWORKSPACE->m_iID;
+        return {PLASTWORKSPACE->m_iID, PLASTWORKSPACE->m_szName};
     } else {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
-                return WORKSPACE_INVALID;
+                return {WORKSPACE_INVALID};
             }
 
             const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(absolute ? 2 : 1), 0);
 
             if (!PLUSMINUSRESULT.has_value())
-                return WORKSPACE_INVALID;
+                return {WORKSPACE_INVALID};
 
-            result = (int)PLUSMINUSRESULT.value();
+            result.id = (int)PLUSMINUSRESULT.value();
 
-            int           remains = (int)result;
+            int           remains = (int)result.id;
 
             std::set<int> invalidWSes;
 
@@ -330,13 +330,13 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
                 // traverse valid workspaces until we reach the remains
                 if ((size_t)remains < namedWSes.size()) {
-                    result = namedWSes[remains];
+                    result.id = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
-                    result = 0;
+                    result.id = 0;
                     while (remains >= 0) {
-                        result++;
-                        if (!invalidWSes.contains(result)) {
+                        result.id++;
+                        if (!invalidWSes.contains(result.id)) {
                             remains--;
                         }
                     }
@@ -430,14 +430,14 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                         finalWSID = curID;
                     }
                 }
-                result = finalWSID;
+                result.id = finalWSID;
             }
 
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result);
+            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result.id);
             if (PWORKSPACE)
-                outName = g_pCompositor->getWorkspaceByID(result)->m_szName;
+                result.name = g_pCompositor->getWorkspaceByID(result.id)->m_szName;
             else
-                outName = std::to_string(result);
+                result.name = std::to_string(result.id);
 
         } else if ((in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool onAllMonitors = in[0] == 'e';
@@ -445,19 +445,19 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
 
             if (!g_pCompositor->m_pLastMonitor) {
                 Debug::log(ERR, "Relative monitor workspace on monitor null!");
-                return WORKSPACE_INVALID;
+                return {WORKSPACE_INVALID};
             }
 
             // monitor relative
             const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in.substr(absolute ? 2 : 1), 0);
 
             if (!PLUSMINUSRESULT.has_value())
-                return WORKSPACE_INVALID;
+                return {WORKSPACE_INVALID};
 
-            result = (int)PLUSMINUSRESULT.value();
+            result.id = (int)PLUSMINUSRESULT.value();
 
             // result now has +/- what we should move on mon
-            int              remains = (int)result;
+            int              remains = (int)result.id;
 
             std::vector<int> validWSes;
             for (auto& ws : g_pCompositor->m_vWorkspaces) {
@@ -505,30 +505,30 @@ int getWorkspaceIDFromString(const std::string& in, std::string& outName) {
                 }
             }
 
-            result  = validWSes[currentItem];
-            outName = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
+            result.id   = validWSes[currentItem];
+            result.name = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_szName;
         } else {
             if (in[0] == '+' || in[0] == '-') {
                 if (g_pCompositor->m_pLastMonitor) {
                     const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, g_pCompositor->m_pLastMonitor->activeWorkspaceID());
                     if (!PLUSMINUSRESULT.has_value())
-                        return WORKSPACE_INVALID;
+                        return {WORKSPACE_INVALID};
 
-                    result = std::max((int)PLUSMINUSRESULT.value(), 1);
+                    result.id = std::max((int)PLUSMINUSRESULT.value(), 1);
                 } else {
                     Debug::log(ERR, "Relative workspace on no mon!");
-                    return WORKSPACE_INVALID;
+                    return {WORKSPACE_INVALID};
                 }
             } else if (isNumber(in))
-                result = std::max(std::stoi(in), 1);
+                result.id = std::max(std::stoi(in), 1);
             else {
                 // maybe name
                 const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);
                 if (PWORKSPACE)
-                    result = PWORKSPACE->m_iID;
+                    result.id = PWORKSPACE->m_iID;
             }
 
-            outName = std::to_string(result);
+            result.name = std::to_string(result.id);
         }
     }
 

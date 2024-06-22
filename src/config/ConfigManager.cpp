@@ -1815,14 +1815,13 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.vrr = std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            std::string    name = "";
-            int            wsId = getWorkspaceIDFromString(ARGS[argno + 1], name);
+            const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = newrule.name;
             wsRule.workspaceString = ARGS[argno + 1];
+            wsRule.workspaceId     = id;
             wsRule.workspaceName   = name;
-            wsRule.workspaceId     = wsId;
 
             m_dWorkspaceRules.emplace_back(wsRule);
             argno++;
@@ -2370,11 +2369,11 @@ std::optional<std::string> CConfigManager::handleBlurLS(const std::string& comma
 
 std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
     // This can either be the monitor or the workspace identifier
-    const auto     FIRST_DELIM = value.find_first_of(',');
+    const auto FIRST_DELIM = value.find_first_of(',');
 
-    std::string    name        = "";
-    auto           first_ident = trim(value.substr(0, FIRST_DELIM));
-    int            id          = getWorkspaceIDFromString(first_ident, name);
+    auto       first_ident = trim(value.substr(0, FIRST_DELIM));
+
+    const auto& [id, name] = getWorkspaceIDNameFromString(first_ident);
 
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;

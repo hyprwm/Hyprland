@@ -293,8 +293,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (WORKSPACEARGS[WORKSPACEARGS.size() - 1].starts_with("silent"))
             workspaceSilent = true;
 
-        std::string requestedWorkspaceName;
-        const int   REQUESTEDWORKSPACEID = getWorkspaceIDFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0), requestedWorkspaceName);
+        const auto& [REQUESTEDWORKSPACEID, requestedWorkspaceName] = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
 
         if (REQUESTEDWORKSPACEID != WORKSPACE_INVALID) {
             auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);

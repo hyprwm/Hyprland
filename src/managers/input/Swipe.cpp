@@ -63,10 +63,9 @@ void CInputManager::endWorkspaceSwipe() {
         m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
 
     // commit
-    std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString((*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString((*PSWIPEUSER ? "r+1" : "m+1"), wsname);
-    const auto  SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
+    auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
+    auto       workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
+    const auto SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
@@ -232,9 +231,8 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     m_sActiveSwipe.avgSpeed = (m_sActiveSwipe.avgSpeed * m_sActiveSwipe.speedPoints + abs(d)) / (m_sActiveSwipe.speedPoints + 1);
     m_sActiveSwipe.speedPoints++;
 
-    std::string wsname           = "";
-    auto        workspaceIDLeft  = getWorkspaceIDFromString((*PSWIPEUSER ? "r-1" : "m-1"), wsname);
-    auto        workspaceIDRight = getWorkspaceIDFromString((*PSWIPEUSER ? "r+1" : "m+1"), wsname);
+    auto workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
+    auto workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
 
     if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_sActiveSwipe.pWorkspaceBegin->m_iID) && !*PSWIPENEW) {
         m_sActiveSwipe.pWorkspaceBegin = nullptr; // invalidate the swipe

@@ -1,3 +1,5 @@
+#compdef hyprctl
+
 _hyprctl_cmd_2 () {
     hyprctl monitors | grep Monitor | awk '{ print $2 }'
 }

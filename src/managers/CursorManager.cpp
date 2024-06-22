@@ -149,9 +149,10 @@ void CCursorManager::setXCursor(const std::string& name) {
 
     auto image = xcursor->images[0];
 
-    m_vCursorBuffers.emplace_back(std::make_unique<CCursorBuffer>(image->buffer, Vector2D{image->width, image->height}, Vector2D{image->hotspot_x, image->hotspot_y}));
+    m_vCursorBuffers.emplace_back(
+        std::make_unique<CCursorBuffer>(image->buffer, Vector2D{(int)image->width, (int)image->height}, Vector2D{(double)image->hotspot_x, (double)image->hotspot_y}));
 
-    g_pPointerManager->setCursorBuffer(getCursorBuffer(), Vector2D{image->hotspot_x, image->hotspot_y} / scale, scale);
+    g_pPointerManager->setCursorBuffer(getCursorBuffer(), Vector2D{(double)image->hotspot_x, (double)image->hotspot_y} / scale, scale);
     if (m_vCursorBuffers.size() > 1)
         wlr_buffer_drop(&m_vCursorBuffers.front()->wlrBuffer.base);
 
@@ -256,8 +257,8 @@ void CCursorManager::setXWaylandCursor() {
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
                                {CURSOR.hotspotX, CURSOR.hotspotY});
     } else if (const auto XCURSOR = wlr_xcursor_manager_get_xcursor(m_pWLRXCursorMgr, "left_ptr", 1); XCURSOR) {
-        g_pXWayland->setCursor(XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, {XCURSOR->images[0]->width, XCURSOR->images[0]->height},
-                               {XCURSOR->images[0]->hotspot_x, XCURSOR->images[0]->hotspot_y});
+        g_pXWayland->setCursor(XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, {(int)XCURSOR->images[0]->width, (int)XCURSOR->images[0]->height},
+                               {(double)XCURSOR->images[0]->hotspot_x, (double)XCURSOR->images[0]->hotspot_y});
     } else
         Debug::log(ERR, "CursorManager: no valid cursor for xwayland");
 }

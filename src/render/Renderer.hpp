@@ -6,7 +6,7 @@
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/Timer.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
 
 struct SMonitorRule;
 class CWorkspace;

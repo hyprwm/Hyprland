@@ -5,6 +5,7 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
+#include "Compositor.hpp"
 #include "TokenManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
@@ -636,6 +637,12 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
+            // in this case, we only have the keysym to go off.
+            // if the keysym failed resolving, we can't do anything. It's likely missing
+            // from the keymap.
+            if (key.keysym == 0)
+                return false;
+
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);
@@ -884,6 +891,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
     }
     if (child == 0) {
         // run in child
+        g_pCompositor->restoreNofile();
 
         sigset_t set;
         sigemptyset(&set);
@@ -1010,21 +1018,42 @@ void CKeybindManager::centerWindow(std::string args) {
 }
 
 void CKeybindManager::toggleActivePseudo(std::string args) {
-    const auto ACTIVEWINDOW = g_pCompositor->m_pLastWindow.lock();
+    PHLWINDOW PWINDOW = nullptr;
 
-    if (!ACTIVEWINDOW)
+    if (args != "active" && args.length() > 1)
+        PWINDOW = g_pCompositor->getWindowByRegex(args);
+    else
+        PWINDOW = g_pCompositor->m_pLastWindow.lock();
+
+    if (!PWINDOW)
         return;
 
-    ACTIVEWINDOW->m_bIsPseudotiled = !ACTIVEWINDOW->m_bIsPseudotiled;
+    PWINDOW->m_bIsPseudotiled = !PWINDOW->m_bIsPseudotiled;
 
-    if (!ACTIVEWINDOW->m_bIsFullscreen)
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(ACTIVEWINDOW);
+    if (!PWINDOW->m_bIsFullscreen)
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+}
+
+SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCURRENTWORKSPACE) {
+    if (!args.starts_with("previous")) {
+        return getWorkspaceIDNameFromString(args);
+    }
+
+    const SWorkspaceIDName PPREVWS = PCURRENTWORKSPACE->getPrevWorkspaceIDName(args.contains("_per_monitor"));
+    // Do nothing if there's no previous workspace, otherwise switch to it.
+    if (PPREVWS.id == -1) {
+        Debug::log(LOG, "No previous workspace to change to");
+        return {WORKSPACE_NOT_CHANGED, ""};
+    }
+
+    const auto ID = PCURRENTWORKSPACE->m_iID;
+    if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO)
+        return {ID, PWORKSPACETOCHANGETO->m_szName};
+
+    return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
 }
 
 void CKeybindManager::changeworkspace(std::string args) {
-    int         workspaceToChangeTo = 0;
-    std::string workspaceName       = "";
-
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
     static auto PBACKANDFORTH         = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
@@ -1037,43 +1066,31 @@ void CKeybindManager::changeworkspace(std::string args) {
         return;
 
     const auto PCURRENTWORKSPACE = PMONITOR->activeWorkspace;
-    const bool EXPLICITPREVIOUS  = args.starts_with("previous");
+    const bool EXPLICITPREVIOUS  = args.contains("previous");
 
-    if (args.starts_with("previous")) {
-        // Do nothing if there's no previous workspace, otherwise switch to it.
-        if (PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1) {
-            Debug::log(LOG, "No previous workspace to change to");
-            return;
-        } else {
-            workspaceToChangeTo = PCURRENTWORKSPACE->m_iID;
-
-            if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->m_sPrevWorkspace.iID); PWORKSPACETOCHANGETO)
-                workspaceName = PWORKSPACETOCHANGETO->m_szName;
-            else
-                workspaceName =
-                    PCURRENTWORKSPACE->m_sPrevWorkspace.name.empty() ? std::to_string(PCURRENTWORKSPACE->m_sPrevWorkspace.iID) : PCURRENTWORKSPACE->m_sPrevWorkspace.name;
-        }
-    } else {
-        workspaceToChangeTo = getWorkspaceIDFromString(args, workspaceName);
-    }
-
+    const auto& [workspaceToChangeTo, workspaceName] = getWorkspaceToChangeFromArgs(args, PCURRENTWORKSPACE);
     if (workspaceToChangeTo == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in changeworkspace, invalid value");
         return;
     }
 
-    const bool BISWORKSPACECURRENT = workspaceToChangeTo == PCURRENTWORKSPACE->m_iID;
+    if (workspaceToChangeTo == WORKSPACE_NOT_CHANGED) {
+        return;
+    }
 
-    if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PCURRENTWORKSPACE->m_sPrevWorkspace.iID == -1))
+    const auto PREVWS = PCURRENTWORKSPACE->getPrevWorkspaceIDName(args.contains("_per_monitor"));
+
+    const bool BISWORKSPACECURRENT = workspaceToChangeTo == PCURRENTWORKSPACE->m_iID;
+    if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PREVWS.id == -1))
         return;
 
     g_pInputManager->unconstrainMouse();
     g_pInputManager->m_bEmptyFocusCursorSet = false;
 
-    auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo);
+    auto pWorkspaceToChangeTo = g_pCompositor->getWorkspaceByID(BISWORKSPACECURRENT ? PREVWS.id : workspaceToChangeTo);
     if (!pWorkspaceToChangeTo)
-        pWorkspaceToChangeTo = g_pCompositor->createNewWorkspace(BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.iID : workspaceToChangeTo, PMONITOR->ID,
-                                                                 BISWORKSPACECURRENT ? PCURRENTWORKSPACE->m_sPrevWorkspace.name : workspaceName);
+        pWorkspaceToChangeTo =
+            g_pCompositor->createNewWorkspace(BISWORKSPACECURRENT ? PREVWS.id : workspaceToChangeTo, PMONITOR->ID, BISWORKSPACECURRENT ? PREVWS.name : workspaceName);
 
     if (!BISWORKSPACECURRENT && pWorkspaceToChangeTo->m_bIsSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(pWorkspaceToChangeTo);
@@ -1156,10 +1173,7 @@ void CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (!PWINDOW)
         return;
 
-    // hack
-    std::string workspaceName;
-    const auto  WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
-
+    const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(LOG, "Invalid workspace in moveActiveToWorkspace");
         return;
@@ -1220,10 +1234,7 @@ void CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (!PWINDOW)
         return;
 
-    std::string workspaceName = "";
-
-    const int   WORKSPACEID = getWorkspaceIDFromString(args, workspaceName);
-
+    const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
         return;
@@ -1689,8 +1700,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
         return;
     }
 
-    std::string workspaceName;
-    const int   WORKSPACEID = getWorkspaceIDFromString(workspace, workspaceName);
+    const int WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
 
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
@@ -1708,9 +1718,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
-    std::string workspaceName;
-    int         workspaceID = getWorkspaceIDFromString(args, workspaceName);
-
+    int workspaceID = getWorkspaceIDNameFromString(args).id;
     if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return;
@@ -1733,14 +1741,13 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
     }
 
     static auto PBACKANDFORTH = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
+    const auto  PREVWS        = pWorkspace->getPrevWorkspaceIDName(false);
 
-    if (*PBACKANDFORTH && PCURRMONITOR->activeWorkspaceID() == workspaceID && pWorkspace->m_sPrevWorkspace.iID != -1) {
-        const int  PREVWORKSPACEID   = pWorkspace->m_sPrevWorkspace.iID;
-        const auto PREVWORKSPACENAME = pWorkspace->m_sPrevWorkspace.name;
+    if (*PBACKANDFORTH && PCURRMONITOR->activeWorkspaceID() == workspaceID && PREVWS.id != -1) {
         // Workspace to focus is previous workspace
-        pWorkspace = g_pCompositor->getWorkspaceByID(PREVWORKSPACEID);
+        pWorkspace = g_pCompositor->getWorkspaceByID(PREVWS.id);
         if (!pWorkspace)
-            pWorkspace = g_pCompositor->createNewWorkspace(PREVWORKSPACEID, PCURRMONITOR->ID, PREVWORKSPACENAME);
+            pWorkspace = g_pCompositor->createNewWorkspace(PREVWS.id, PCURRMONITOR->ID, PREVWS.name);
 
         workspaceID = pWorkspace->m_iID;
     }
@@ -1763,9 +1770,7 @@ void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
 }
 
 void CKeybindManager::toggleSpecialWorkspace(std::string args) {
-    std::string workspaceName = "";
-    int         workspaceID   = getWorkspaceIDFromString("special:" + args, workspaceName);
-
+    const auto& [workspaceID, workspaceName] = getWorkspaceIDNameFromString("special:" + args);
     if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID)) {
         Debug::log(ERR, "Invalid workspace passed to special");
         return;

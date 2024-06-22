@@ -7,8 +7,8 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "pointer-constraints-unstable-v1.hpp"
-#include "../helpers/Vector2D.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 
 class CWLSurface;

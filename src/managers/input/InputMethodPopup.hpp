@@ -3,7 +3,7 @@
 #include "../../helpers/WLListener.hpp"
 #include "../../desktop/WLSurface.hpp"
 #include "../../macros.hpp"
-#include "../../helpers/Box.hpp"
+#include "../../helpers/math/Math.hpp"
 #include "../../helpers/signal/Signal.hpp"
 
 class CInputMethodPopupV2;

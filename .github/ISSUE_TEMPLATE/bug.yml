@@ -5,18 +5,21 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before opening a new issue, take a moment to search through the current open ones.
+        ## Before opening a new issue, please take a moment to search through the current open and closed issues to check if it already exists.
 
         ---
 
   - type: dropdown
     id: type
     attributes:
-      label: Bug or Regression?
-      description: Is this a bug or a regression?
+      label: Regression?
+      description: |
+        Regression means that something used to work but no longer does.
+        **BEFORE CONTINUING**, please check if this bug is a regression or not, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
+      multiple: true
       options:
-        - Bug
-        - Regression
+        - "Yes"
+        - "No"
     validations:
       required: true
 

@@ -29,6 +29,7 @@ using namespace Hyprutils::String;
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
@@ -68,6 +69,37 @@ void handleUserSignal(int sig) {
         // means we have to unwind a timed out event
         throw std::exception();
     }
+}
+
+void CCompositor::bumpNofile() {
+    if (!getrlimit(RLIMIT_NOFILE, &m_sOriginalNofile))
+        Debug::log(LOG, "Old rlimit: soft -> {}, hard -> {}", m_sOriginalNofile.rlim_cur, m_sOriginalNofile.rlim_max);
+    else {
+        Debug::log(ERR, "Failed to get NOFILE rlimits");
+        m_sOriginalNofile.rlim_max = 0;
+        return;
+    }
+
+    rlimit newLimit = m_sOriginalNofile;
+
+    newLimit.rlim_cur = newLimit.rlim_max;
+
+    if (setrlimit(RLIMIT_NOFILE, &newLimit) < 0) {
+        Debug::log(ERR, "Failed bumping NOFILE limits higher");
+        m_sOriginalNofile.rlim_max = 0;
+        return;
+    }
+
+    if (!getrlimit(RLIMIT_NOFILE, &newLimit))
+        Debug::log(LOG, "New rlimit: soft -> {}, hard -> {}", newLimit.rlim_cur, newLimit.rlim_max);
+}
+
+void CCompositor::restoreNofile() {
+    if (m_sOriginalNofile.rlim_max <= 0)
+        return;
+
+    if (setrlimit(RLIMIT_NOFILE, &m_sOriginalNofile) < 0)
+        Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
 CCompositor::CCompositor() {
@@ -131,6 +163,8 @@ CCompositor::CCompositor() {
     setRandomSplash();
 
     Debug::log(LOG, "\nCurrent splash: {}\n\n", m_szCurrentSplash);
+
+    bumpNofile();
 }
 
 CCompositor::~CCompositor() {
@@ -1391,8 +1425,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
     if (!PMONITOR)
         return nullptr; // ??
 
-    const auto WINDOWIDEALBB = pWindow->m_bIsFullscreen ? wlr_box{(int)PMONITOR->vecPosition.x, (int)PMONITOR->vecPosition.y, (int)PMONITOR->vecSize.x, (int)PMONITOR->vecSize.y} :
-                                                          pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = pWindow->m_bIsFullscreen ? CBox{PMONITOR->vecPosition, PMONITOR->vecSize} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
 
     const auto POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
     const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
@@ -1615,8 +1648,7 @@ PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
     }
 
     try {
-        std::string name = "";
-        return getWorkspaceByID(getWorkspaceIDFromString(str, name));
+        return getWorkspaceByID(getWorkspaceIDNameFromString(str).id);
     } catch (std::exception& e) { Debug::log(ERR, "Error in getWorkspaceByString, invalid id"); }
 
     return nullptr;

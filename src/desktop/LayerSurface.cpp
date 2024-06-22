@@ -412,9 +412,9 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
         }
 
         const std::array<Vector2D, 4> edgePoints = {
-            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, 0},
+            PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, 0.0},
             PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x / 2, PMONITOR->vecSize.y},
-            PMONITOR->vecPosition + Vector2D{0, PMONITOR->vecSize.y},
+            PMONITOR->vecPosition + Vector2D{0.0, PMONITOR->vecSize.y},
             PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x, PMONITOR->vecSize.y / 2},
         };
 

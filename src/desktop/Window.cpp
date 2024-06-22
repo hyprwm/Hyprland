@@ -104,7 +104,7 @@ CWindow::~CWindow() {
     std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return !other.first.lock() || other.first.lock().get() == this; });
 }
 
-SWindowDecorationExtents CWindow::getFullWindowExtents() {
+SBoxExtents CWindow::getFullWindowExtents() {
     if (m_bFadingOut)
         return m_eOriginalClosedExtents;
 
@@ -116,9 +116,9 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
                     {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
     }
 
-    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
+    SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock());
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock());
 
     if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
         maxExtents.topLeft.x = EXTENTS.topLeft.x;
@@ -224,7 +224,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents EXTENTS = {{0, 0}, {0, 0}};
+    SBoxExtents EXTENTS = {{0, 0}, {0, 0}};
     if (properties & RESERVED_EXTENTS)
         EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock()));
     if (properties & INPUT_EXTENTS)
@@ -242,7 +242,7 @@ CBox CWindow::getWindowMainSurfaceBox() {
     return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
 }
 
-SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
+SBoxExtents CWindow::getFullWindowReservedArea() {
     return g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock());
 }
 

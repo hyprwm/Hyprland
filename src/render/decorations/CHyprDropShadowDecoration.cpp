@@ -130,7 +130,7 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     const float SHADOWSCALE = std::clamp(*PSHADOWSCALE, 0.f, 1.f);
 
     // scale the box in relation to the center of the box
-    fullBox.scaleFromCenter(SHADOWSCALE).translate(*PSHADOWOFFSET);
+    fullBox.scaleFromCenter(SHADOWSCALE).translate({(*PSHADOWOFFSET).x, (*PSHADOWOFFSET).y});
 
     updateWindow(PWINDOW);
     m_vLastWindowPos += WORKSPACEOFFSET;

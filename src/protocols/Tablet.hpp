@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "tablet-v2.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 
 class CTablet;
 class CTabletTool;

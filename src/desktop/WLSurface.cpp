@@ -86,7 +86,7 @@ CRegion CWLSurface::logicalDamage() const {
         return {};
 
     CRegion damage = m_pResource->accumulateCurrentBufferDamage();
-    damage.transform(m_pResource->current.transform, m_pResource->current.buffer->size.x, m_pResource->current.buffer->size.y);
+    damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.buffer->size.x, m_pResource->current.buffer->size.y);
     damage.scale(1.0 / m_pResource->current.scale);
 
     const auto VPSIZE     = getViewporterCorrectedSize();

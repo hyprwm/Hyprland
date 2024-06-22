@@ -6,6 +6,7 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../managers/PointerManager.hpp"
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -16,12 +17,10 @@ int ratHandler(void* data) {
 }
 
 CMonitor::CMonitor() : state(this) {
-    wlr_damage_ring_init(&damage);
+    ;
 }
 
 CMonitor::~CMonitor() {
-    wlr_damage_ring_finish(&damage);
-
     hyprListener_monitorDestroy.removeCallback();
     hyprListener_monitorFrame.removeCallback();
     hyprListener_monitorStateRequest.removeCallback();
@@ -161,7 +160,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!state.commit())
         Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
 
-    wlr_damage_ring_set_bounds(&damage, vecTransformedSize.x, vecTransformedSize.y);
+    damage.setSize(vecTransformedSize);
 
     Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
 
@@ -248,6 +247,9 @@ void CMonitor::onDisconnect(bool destroy) {
     // remove mirror
     if (pMirrorOf) {
         pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+
+        // unlock software for mirrored monitor
+        g_pPointerManager->unlockSoftwareForMonitor(pMirrorOf);
         pMirrorOf = nullptr;
     }
 
@@ -341,9 +343,9 @@ void CMonitor::onDisconnect(bool destroy) {
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(this);
-    } else if (wlr_damage_ring_add(&damage, rg))
+    } else if (damage.damage(rg))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
@@ -354,11 +356,11 @@ void CMonitor::addDamage(const CRegion* rg) {
 void CMonitor::addDamage(const CBox* box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(this);
     }
 
-    if (wlr_damage_ring_add_box(&damage, const_cast<CBox*>(box)->pWlr()))
+    if (damage.damage(*box))
         g_pCompositor->scheduleFrameForMonitor(this);
 }
 
@@ -373,7 +375,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
         // damage whole screen because some previous cursor box damages were skipped
-        wlr_damage_ring_add_whole(&damage);
+        damage.damageEntire();
         return false;
     }
 
@@ -413,20 +415,25 @@ int CMonitor::findAvailableDefaultWS() {
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
-    int64_t     WORKSPACEID             = g_pConfigManager->getDefaultWorkspaceFor(szName).empty() ?
-                        findAvailableDefaultWS() :
-                        getWorkspaceIDFromString(g_pConfigManager->getDefaultWorkspaceFor(szName), newDefaultWorkspaceName);
+    int64_t     wsID                    = WORKSPACE_INVALID;
+    if (g_pConfigManager->getDefaultWorkspaceFor(szName).empty())
+        wsID = findAvailableDefaultWS();
+    else {
+        const auto ws           = getWorkspaceIDNameFromString(g_pConfigManager->getDefaultWorkspaceFor(szName));
+        wsID                    = ws.id;
+        newDefaultWorkspaceName = ws.name;
+    }
 
-    if (WORKSPACEID == WORKSPACE_INVALID || (WORKSPACEID >= SPECIAL_WORKSPACE_START && WORKSPACEID <= -2)) {
-        WORKSPACEID             = g_pCompositor->m_vWorkspaces.size() + 1;
-        newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+    if (wsID == WORKSPACE_INVALID || (wsID >= SPECIAL_WORKSPACE_START && wsID <= -2)) {
+        wsID                    = g_pCompositor->m_vWorkspaces.size() + 1;
+        newDefaultWorkspaceName = std::to_string(wsID);
 
         Debug::log(LOG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", g_pConfigManager->getDefaultWorkspaceFor(szName));
     }
 
-    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
 
-    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", WORKSPACEID, (int)(PNEWWORKSPACE != nullptr));
+    Debug::log(LOG, "New monitor: WORKSPACEID {}, exists: {}", wsID, (int)(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -436,9 +443,9 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         PNEWWORKSPACE->startAnim(true, true, true);
     } else {
         if (newDefaultWorkspaceName == "")
-            newDefaultWorkspaceName = std::to_string(WORKSPACEID);
+            newDefaultWorkspaceName = std::to_string(wsID);
 
-        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(CWorkspace::create(WORKSPACEID, ID, newDefaultWorkspaceName));
+        PNEWWORKSPACE = g_pCompositor->m_vWorkspaces.emplace_back(CWorkspace::create(wsID, ID, newDefaultWorkspaceName));
     }
 
     activeWorkspace = PNEWWORKSPACE;
@@ -469,6 +476,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         if (pMirrorOf) {
             pMirrorOf->mirrors.erase(std::find_if(pMirrorOf->mirrors.begin(), pMirrorOf->mirrors.end(), [&](const auto& other) { return other == this; }));
+
+            // unlock software for mirrored monitor
+            g_pPointerManager->unlockSoftwareForMonitor(pMirrorOf);
         }
 
         pMirrorOf = nullptr;
@@ -538,6 +548,9 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pCompositor->setActiveMonitor(g_pCompositor->m_vMonitors.front().get());
 
         g_pCompositor->sanityCheckWorkspaces();
+
+        // Software lock mirrored monitor
+        g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
     }
 
     events.modeChanged.emit();

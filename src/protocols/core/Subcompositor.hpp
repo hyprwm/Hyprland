@@ -35,6 +35,8 @@ class CWLSubsurfaceResource : public ISurfaceRole {
 
     WP<CWLSubsurfaceResource> self;
 
+    int                       zIndex = 1; // by default, it's above
+
     struct {
         CSignal destroy;
     } events;

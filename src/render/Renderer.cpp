@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
 #include <algorithm>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -209,7 +209,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     else
         g_pHyprOpenGL->blend(true);
 
-    if (RDATA->surface && surface == RDATA->surface) {
+    // FIXME: This is wrong and will bug the blur out as shit if the first surface
+    // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
+    // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
+    if (RDATA->surfaceCounter == 0) {
         if (RDATA->blur)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else
@@ -235,6 +238,9 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
+
+    // up the counter so that we dont blur any surfaces above this one
+    RDATA->surfaceCounter++;
 }
 
 bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
@@ -602,6 +608,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
             renderdata.blur = false;
         }
 
+        renderdata.surfaceCounter = 0;
         pWindow->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
                                                         &renderdata);
 
@@ -657,6 +664,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
 
             if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+
+            renderdata.surfaceCounter = 0;
 
             pWindow->m_pPopupHead->breadthfirst(
                 [](CPopup* popup, void* data) {
@@ -743,6 +752,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     renderdata.dontRound       = true;
     renderdata.popup           = true;
     renderdata.blur            = pLayer->forceBlurPopups;
+    renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->popupHead->breadthfirst(
             [](CPopup* popup, void* data) {
@@ -1236,7 +1246,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    bool hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
+    bool hasChanged = pMonitor->output->needs_frame || pMonitor->damage.hasChanged();
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
@@ -1404,7 +1414,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pMonitor->state.wlr()->tearing_page_flip = shouldTear;
 
     if (!pMonitor->state.commit()) {
-        wlr_damage_ring_add_whole(&pMonitor->damage);
+        pMonitor->damage.damageEntire();
         return;
     }
 
@@ -1498,15 +1508,15 @@ void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
 
 // taken from Sway.
 // this is just too much of a spaghetti for me to understand
-static void applyExclusive(wlr_box& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
+static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
     if (exclusive <= 0) {
         return;
     }
     struct {
         uint32_t singular_anchor;
         uint32_t anchor_triplet;
-        int*     positive_axis;
-        int*     negative_axis;
+        double*  positive_axis;
+        double*  negative_axis;
         int      margin;
     } edges[] = {
         // Top
@@ -1630,9 +1640,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
         // Apply
         ls->geometry = box;
 
-        applyExclusive(*usableArea->pWlr(), PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
-
-        usableArea->applyFromWlr();
+        applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             ls->layerSurface->configure(box.size());
@@ -1810,7 +1818,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
         monbox.y      = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
         wlr_region_scale(transformed.pixman(), transformed.pixman(), scale);
-        transformed.transform(mirrored->transform, mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
+        transformed.transform(wlTransformToHyprutils(mirrored->transform), mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
         mirror->addDamage(&transformed);
@@ -2224,7 +2232,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (pMonitor->createdByUser) {
         CBox transformedBox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-        transformedBox.transform(wlr_output_transform_invert(pMonitor->output->transform), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+        transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(pMonitor->output->transform)), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }
@@ -2237,7 +2245,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // updato wlroots
     g_pCompositor->arrangeMonitors();
 
-    wlr_damage_ring_set_bounds(&pMonitor->damage, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+    pMonitor->damage.setSize(pMonitor->vecTransformedSize);
 
     // Set scale for all surfaces on this monitor, needed for some clients
     // but not on unsafe state to avoid crashes
@@ -2443,9 +2451,14 @@ void CHyprRenderer::setOccludedForMainWorkspace(CRegion& region, PHLWORKSPACE pW
 }
 
 void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace) {
-    CRegion    rg;
+    CRegion     rg;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    const auto  PMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    static auto PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLURSIZE   = CConfigValue<Hyprlang::INT>("decoration:blur:size");
+    static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
+    const auto  BLURRADIUS  = *PBLUR ? (*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES)) : 0;
 
     for (auto& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->isHidden() || w->m_pWorkspace != pWorkspace)
@@ -2460,7 +2473,8 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWork
 
         CBox           box = {POS.x, POS.y, SIZE.x, SIZE.y};
 
-        box.scale(PMONITOR->scale);
+        box.scale(PMONITOR->scale).expand(-BLURRADIUS);
+
         g_pHyprOpenGL->m_RenderData.renderModif.applyToBox(box);
 
         rg.add(box);
@@ -2601,13 +2615,15 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return true;
     }
 
+    int bufferAge = 0;
+
     if (!buffer) {
         if (!wlr_output_configure_primary_swapchain(pMonitor->output, pMonitor->state.wlr(), &pMonitor->output->swapchain)) {
             Debug::log(ERR, "Failed to configure primary swapchain for {}", pMonitor->szName);
             return false;
         }
 
-        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, nullptr);
+        m_pCurrentWlrBuffer = wlr_swapchain_acquire(pMonitor->output->swapchain, &bufferAge);
         if (!m_pCurrentWlrBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);
             return false;
@@ -2626,8 +2642,10 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return false;
     }
 
-    if (mode == RENDER_MODE_NORMAL)
-        wlr_damage_ring_rotate_buffer(&pMonitor->damage, m_pCurrentWlrBuffer, damage.pixman());
+    if (mode == RENDER_MODE_NORMAL) {
+        damage = pMonitor->damage.getBufferDamage(bufferAge);
+        pMonitor->damage.rotate();
+    }
 
     m_pCurrentRenderbuffer->bind();
     if (simple)

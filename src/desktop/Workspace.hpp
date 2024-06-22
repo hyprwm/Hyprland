@@ -4,6 +4,7 @@
 #include <string>
 #include "../defines.hpp"
 #include "DesktopTypes.hpp"
+#include "helpers/MiscFunctions.hpp"
 
 enum eFullscreenMode : int8_t {
     FULLSCREEN_INVALID = -1,
@@ -25,17 +26,14 @@ class CWorkspace {
     int         m_iID        = -1;
     std::string m_szName     = "";
     uint64_t    m_iMonitorID = -1;
-    // Previous workspace ID is stored during a workspace change, allowing travel
+    // Previous workspace ID and name is stored during a workspace change, allowing travel
     // to the previous workspace.
-    struct SPrevWorkspaceData {
-        int         iID  = -1;
-        std::string name = "";
-    } m_sPrevWorkspace;
+    SWorkspaceIDName m_sPrevWorkspace, m_sPrevWorkspacePerMonitor;
 
-    bool            m_bHasFullscreenWindow = false;
-    eFullscreenMode m_efFullscreenMode     = FULLSCREEN_FULL;
+    bool             m_bHasFullscreenWindow = false;
+    eFullscreenMode  m_efFullscreenMode     = FULLSCREEN_FULL;
 
-    wl_array        m_wlrCoordinateArr;
+    wl_array         m_wlrCoordinateArr;
 
     // for animations
     CAnimatedVariable<Vector2D> m_vRenderOffset;
@@ -63,21 +61,23 @@ class CWorkspace {
     bool        m_bPersistent = false;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool        inert();
+    bool             inert();
 
-    void        startAnim(bool in, bool left, bool instant = false);
-    void        setActive(bool on);
+    void             startAnim(bool in, bool left, bool instant = false);
+    void             setActive(bool on);
 
-    void        moveToMonitor(const int&);
+    void             moveToMonitor(const int&);
 
-    PHLWINDOW   getLastFocusedWindow();
-    void        rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
+    PHLWINDOW        getLastFocusedWindow();
+    void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
 
-    std::string getConfigName();
+    std::string      getConfigName();
 
-    bool        matchesStaticSelector(const std::string& selector);
+    bool             matchesStaticSelector(const std::string& selector);
 
-    void        markInert();
+    void             markInert();
+
+    SWorkspaceIDName getPrevWorkspaceIDName(bool perMonitor) const;
 
   private:
     void                 init(PHLWORKSPACE self);

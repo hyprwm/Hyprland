@@ -226,10 +226,13 @@ void CCompositor::initServer() {
     options.logFunction = aqLog;
 
     std::vector<Aquamarine::SBackendImplementationOptions> implementations;
-    Aquamarine::SBackendImplementationOptions              waylandOptions;
-    waylandOptions.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
-    waylandOptions.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
-    implementations.emplace_back(waylandOptions);
+    Aquamarine::SBackendImplementationOptions              option;
+    option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_DRM;
+    option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
+    implementations.emplace_back(option);
+    option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
+    option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_FALLBACK;
+    implementations.emplace_back(option);
 
     m_pAqBackend = CBackend::create(implementations, options);
 

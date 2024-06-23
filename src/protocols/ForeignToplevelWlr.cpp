@@ -124,17 +124,19 @@ void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
 
     const auto CLIENT = resource->client();
 
-    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR) {
+    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->szName)) {
         const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->szName)->outputResourceFrom(CLIENT);
 
         if (OLDRESOURCE)
             resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
     }
 
-    const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->szName)->outputResourceFrom(CLIENT);
+    if (PROTO::outputs.contains(pMonitor->szName)) {
+        const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->szName)->outputResourceFrom(CLIENT);
 
-    if (NEWRESOURCE)
-        resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
+        if (NEWRESOURCE)
+            resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
+    }
 
     lastMonitorID = pMonitor->ID;
 }

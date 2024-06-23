@@ -26,24 +26,23 @@ static int cursorTicker(void* data) {
 
 CHyprRenderer::CHyprRenderer() {
     if (g_pCompositor->m_pAqBackend->hasSession()) {
-        // wlr_device* dev;
-        // FIXME:
-        // wl_list_for_each(dev, &g_pCompositor->m_sWLRSession->devices, link) {
-        //     const auto  DRMV = drmGetVersion(dev->fd);
+        for (auto& dev : g_pCompositor->m_pAqBackend->session->sessionDevices) {
+            const auto  DRMV = drmGetVersion(dev->fd);
+            if (!DRMV)
+                continue;
+            std::string name = std::string{DRMV->name, DRMV->name_len};
+            std::transform(name.begin(), name.end(), name.begin(), tolower);
 
-        //     std::string name = std::string{DRMV->name, DRMV->name_len};
-        //     std::transform(name.begin(), name.end(), name.begin(), tolower);
+            if (name.contains("nvidia"))
+                m_bNvidia = true;
 
-        //     if (name.contains("nvidia"))
-        //         m_bNvidia = true;
+            Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                       std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
 
-        //     Debug::log(LOG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-        //                std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
-
-        //     drmFreeVersion(DRMV);
-        // }
+            drmFreeVersion(DRMV);
+        }
     } else {
-        Debug::log(LOG, "m_sWLRSession is null, omitting full DRM node checks");
+        Debug::log(LOG, "Aq backend has no session, omitting full DRM node checks");
 
         const auto DRMV = drmGetVersion(g_pCompositor->m_iDRMFD);
 

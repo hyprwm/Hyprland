@@ -221,6 +221,11 @@ void CWLSurfaceResource::enter(SP<CMonitor> monitor) {
         return;
     }
 
+    if (PROTO::outputs.at(monitor->szName)->isDefunct()) {
+        LOGM(ERR, "enter() called on a defunct output global");
+        return;
+    }
+
     auto output = PROTO::outputs.at(monitor->szName)->outputResourceFrom(pClient);
 
     if (!output || !output->getResource() || !output->getResource()->resource()) {

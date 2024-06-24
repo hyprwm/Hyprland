@@ -131,6 +131,49 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     return result;
 }
 
+std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
+    CVarList vars(request, 0, ' ');
+    auto     allMonitors = false;
+
+    if (vars.size() > 2)
+        return "too many args";
+
+    if (vars.size() == 2 && vars[1] == "all")
+        allMonitors = true;
+
+    std::string result = "";
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            result += CHyprCtl::getMonitorData(m, format);
+        }
+
+        trimTrailingComma(result);
+
+        result += "]";
+    } else {
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            if (!m->output || m->ID == -1ull)
+                continue;
+
+            result += std::format(
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(),
+                (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
+                (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+                (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false),
+                m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+        }
+    }
+
+    return result;
+}
+
+
 static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const auto tags = w->m_tags.getTags();
 

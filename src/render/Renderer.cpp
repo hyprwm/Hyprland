@@ -27,7 +27,7 @@ static int cursorTicker(void* data) {
 CHyprRenderer::CHyprRenderer() {
     if (g_pCompositor->m_pAqBackend->hasSession()) {
         for (auto& dev : g_pCompositor->m_pAqBackend->session->sessionDevices) {
-            const auto  DRMV = drmGetVersion(dev->fd);
+            const auto DRMV = drmGetVersion(dev->fd);
             if (!DRMV)
                 continue;
             std::string name = std::string{DRMV->name, DRMV->name_len};
@@ -1249,7 +1249,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    bool hasChanged = /*pMonitor->output->needs_frame ||*/ pMonitor->damage.hasChanged();
+    bool hasChanged = pMonitor->output->needsFrame || pMonitor->damage.hasChanged();
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
@@ -2604,6 +2604,15 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     int bufferAge = 0;
 
     if (!buffer) {
+        Aquamarine::SSwapchainOptions opts = pMonitor->output->swapchain->currentOptions();
+        opts.length                        = 2;
+        opts.size                          = pMonitor->currentMode->pixelSize;
+        opts.format                        = pMonitor->drmFormat;
+        if (!pMonitor->output->swapchain->reconfigure(opts)) {
+            Debug::log(ERR, "Failed to reconfigure swapchain for {}", pMonitor->szName);
+            return false;
+        }
+
         m_pCurrentBuffer = pMonitor->output->swapchain->next(&bufferAge);
         if (!m_pCurrentBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);

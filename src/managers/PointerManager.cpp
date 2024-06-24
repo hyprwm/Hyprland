@@ -635,7 +635,11 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
         float    distanceSq = __FLT_MAX__;
 
         for (auto& b : currentMonitorLayout.monitorBoxes) {
-            auto p      = b.closestPoint(vec);
+            auto p = b.closestPoint(vec);
+
+            // because closestPoint does clamp up to x + w and y + h
+            p = Vector2D{std::clamp(p.x, b.x, b.x + b.w - 1), std::clamp(p.y, b.y, b.y + b.h - 1)};
+
             auto distSq = p.distanceSq(vec);
 
             if (distSq < distanceSq) {

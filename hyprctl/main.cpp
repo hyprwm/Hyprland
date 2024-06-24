@@ -47,7 +47,7 @@ void log(std::string str) {
     if (quiet)
         return;
 
-    std::cout << str;
+    std::cout << str << "\n";
 }
 
 std::string getRuntimeDir() {

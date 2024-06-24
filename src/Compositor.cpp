@@ -257,6 +257,7 @@ void CCompositor::initServer() {
     m_bInitialized = true;
 
     m_iDRMFD = m_pAqBackend->drmFD();
+    Debug::log(LOG, "Running on DRMFD: {}", m_iDRMFD);
 
     initManagers(STAGE_BASICINIT);
 
@@ -2839,6 +2840,8 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
     if (std::string("HEADLESS-1") == output->name)
         g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
+
+    Debug::log(LOG, "New output with name {}", output->name);
 
     PNEWMONITOR->szName           = output->name;
     PNEWMONITOR->output           = output;

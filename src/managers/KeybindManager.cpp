@@ -2079,7 +2079,7 @@ void CKeybindManager::pass(std::string regexp) {
     if (g_pKeybindManager->m_uLastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTSRF);
     else
-        g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface->resource(), SL);
+        g_pSeatManager->setPointerFocus(LASTSRF, SL);
 }
 
 void CKeybindManager::sendshortcut(std::string args) {

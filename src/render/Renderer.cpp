@@ -212,7 +212,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     // FIXME: This is wrong and will bug the blur out as shit if the first surface
     // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
-    if (RDATA->surfaceCounter == 0) {
+    if (RDATA->surfaceCounter == 0 && !RDATA->popup) {
         if (RDATA->blur)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else

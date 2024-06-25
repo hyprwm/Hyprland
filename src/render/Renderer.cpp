@@ -2601,7 +2601,9 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return true;
     }
 
-    int bufferAge = 0;
+    /* This is a constant expression, as we always use double-buffering in our swapchain 
+        TODO: Rewrite the CDamageRing to take advantage of that maybe? It's made to support longer swapchains atm because we used to do wlroots */
+    static constexpr const int HL_BUFFER_AGE = 2;
 
     if (!buffer) {
         Aquamarine::SSwapchainOptions opts = pMonitor->output->swapchain->currentOptions();
@@ -2613,7 +2615,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
             return false;
         }
 
-        m_pCurrentBuffer = pMonitor->output->swapchain->next(&bufferAge);
+        m_pCurrentBuffer = pMonitor->output->swapchain->next(nullptr);
         if (!m_pCurrentBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);
             return false;
@@ -2629,7 +2631,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     }
 
     if (mode == RENDER_MODE_NORMAL) {
-        damage = pMonitor->damage.getBufferDamage(bufferAge);
+        damage = pMonitor->damage.getBufferDamage(HL_BUFFER_AGE);
         pMonitor->damage.rotate();
     }
 

@@ -5,6 +5,7 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
+#include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
 #include "debug/Log.hpp"
@@ -2280,6 +2281,8 @@ void CKeybindManager::dpms(std::string arg) {
     }
 
     g_pCompositor->m_bDPMSStateON = enable;
+
+    g_pPointerManager->recheckEnteredOutputs();
 }
 
 void CKeybindManager::swapnext(std::string arg) {

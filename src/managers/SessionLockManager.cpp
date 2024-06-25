@@ -78,6 +78,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     });
 
     pLock->sendLocked();
+    g_pCompositor->focusSurface(nullptr);
 }
 
 bool CSessionLockManager::isSessionLocked() {

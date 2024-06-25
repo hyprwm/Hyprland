@@ -10,7 +10,7 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
     listeners.map = surface_->events.map.registerListener([this](std::any data) {
         mapped = true;
 
-        g_pCompositor->focusSurface(surface->surface());
+        g_pInputManager->simulateMouseMovement();
 
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 

@@ -57,6 +57,7 @@ class IKeyboard : public IHID {
     void               updateLEDs(uint32_t leds);
     uint32_t           getModifiers();
     void               updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
+    bool               updateModifiersState(); // rets whether changed
 
     bool               active  = false;
     bool               enabled = true;
@@ -88,5 +89,4 @@ class IKeyboard : public IHID {
 
   private:
     void clearManuallyAllocd();
-    bool updateModifiersState(); // rets whether changed
 };

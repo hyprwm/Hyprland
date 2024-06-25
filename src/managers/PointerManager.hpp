@@ -59,6 +59,8 @@ class CPointerManager {
     Vector2D position();
     Vector2D cursorSizeLogical();
 
+    void     recheckEnteredOutputs();
+
   private:
     void recheckPointerPosition();
     void onMonitorLayoutChange();
@@ -67,7 +69,6 @@ class CPointerManager {
     void onCursorMoved();
     bool hasCursor();
     void damageIfSoftware();
-    void recheckEnteredOutputs();
 
     // closest valid point to a given one
     Vector2D closestValid(const Vector2D& pos);

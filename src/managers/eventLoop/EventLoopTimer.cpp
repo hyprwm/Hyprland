@@ -2,23 +2,23 @@
 #include <limits>
 #include "EventLoopManager.hpp"
 
-CEventLoopTimer::CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_) :
+CEventLoopTimer::CEventLoopTimer(std::optional<std::chrono::steady_clock::duration> timeout, std::function<void(SP<CEventLoopTimer> self, void* data)> cb_, void* data_) :
     cb(cb_), data(data_) {
 
     if (!timeout.has_value())
         expires.reset();
     else
-        expires = std::chrono::system_clock::now() + *timeout;
+        expires = std::chrono::steady_clock::now() + *timeout;
 }
 
-void CEventLoopTimer::updateTimeout(std::optional<std::chrono::system_clock::duration> timeout) {
+void CEventLoopTimer::updateTimeout(std::optional<std::chrono::steady_clock::duration> timeout) {
     if (!timeout.has_value()) {
         expires.reset();
         g_pEventLoopManager->nudgeTimers();
         return;
     }
 
-    expires = std::chrono::system_clock::now() + *timeout;
+    expires = std::chrono::steady_clock::now() + *timeout;
 
     g_pEventLoopManager->nudgeTimers();
 }
@@ -26,7 +26,7 @@ void CEventLoopTimer::updateTimeout(std::optional<std::chrono::system_clock::dur
 bool CEventLoopTimer::passed() {
     if (!expires.has_value())
         return false;
-    return std::chrono::system_clock::now() > *expires;
+    return std::chrono::steady_clock::now() > *expires;
 }
 
 void CEventLoopTimer::cancel() {
@@ -47,5 +47,5 @@ float CEventLoopTimer::leftUs() {
     if (!expires.has_value())
         return std::numeric_limits<float>::max();
 
-    return std::chrono::duration_cast<std::chrono::microseconds>(*expires - std::chrono::system_clock::now()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(*expires - std::chrono::steady_clock::now()).count();
 }

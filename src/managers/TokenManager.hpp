@@ -9,7 +9,7 @@
 
 class CUUIDToken {
   public:
-    CUUIDToken(const std::string& uuid_, std::any data_, std::chrono::system_clock::duration expires);
+    CUUIDToken(const std::string& uuid_, std::any data_, std::chrono::steady_clock::duration expires);
 
     std::string getUUID();
 
@@ -18,14 +18,14 @@ class CUUIDToken {
   private:
     std::string                           uuid;
 
-    std::chrono::system_clock::time_point expiresAt;
+    std::chrono::steady_clock::time_point expiresAt;
 
     friend class CTokenManager;
 };
 
 class CTokenManager {
   public:
-    std::string    registerNewToken(std::any data, std::chrono::system_clock::duration expires);
+    std::string    registerNewToken(std::any data, std::chrono::steady_clock::duration expires);
     std::string    getRandomUUID();
 
     SP<CUUIDToken> getToken(const std::string& uuid);

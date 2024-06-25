@@ -810,9 +810,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
-        // FIXME:
-        //wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY);
-        return true;
+        g_pCompositor->m_pAqBackend->session->switchVT(TTY);
     }
 
     return true;

@@ -113,7 +113,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     wayland-server wayland-client wayland-cursor wayland-protocols
     cairo pango pangocairo pixman-1
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
-    hyprlang>=0.3.2 hyprcursor>=0.1.7 hyprutils>=0.1.4
+    hyprlang>=0.3.2 hyprcursor>=0.1.7 hyprutils>=0.1.5
 )
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)

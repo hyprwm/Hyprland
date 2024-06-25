@@ -576,6 +576,8 @@ void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* 
         return;
 
     box.scale(pMonitor->scale);
+    box.x = std::round(box.x);
+    box.y = std::round(box.y);
 
     g_pHyprOpenGL->renderTextureWithDamage(texture, &box, &damage, 1.F);
 

@@ -2025,8 +2025,9 @@ void CKeybindManager::pass(std::string regexp) {
         return;
     }
 
-    const auto XWTOXW  = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
-    const auto LASTSRF = g_pCompositor->m_pLastFocus.lock();
+    const auto XWTOXW        = PWINDOW->m_bIsX11 && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bIsX11;
+    const auto LASTMOUSESURF = g_pSeatManager->state.pointerFocus.lock();
+    const auto LASTKBSURF    = g_pSeatManager->state.keyboardFocus.lock();
 
     // pass all mf shit
     if (!XWTOXW) {
@@ -2078,9 +2079,9 @@ void CKeybindManager::pass(std::string regexp) {
     const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
 
     if (g_pKeybindManager->m_uLastCode != 0)
-        g_pSeatManager->setKeyboardFocus(LASTSRF);
+        g_pSeatManager->setKeyboardFocus(LASTKBSURF);
     else
-        g_pSeatManager->setPointerFocus(PWINDOW->m_pWLSurface->resource(), SL);
+        g_pSeatManager->setPointerFocus(LASTMOUSESURF, SL);
 }
 
 void CKeybindManager::sendshortcut(std::string args) {

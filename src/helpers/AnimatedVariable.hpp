@@ -155,7 +155,7 @@ class CBaseAnimatedVariable {
     bool                                  m_bIsRegistered    = false;
     bool                                  m_bIsBeingAnimated = false;
 
-    std::chrono::system_clock::time_point animationBegin;
+    std::chrono::steady_clock::time_point animationBegin;
 
     AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
     ANIMATEDVARTYPE                       m_Type;
@@ -253,7 +253,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
             return *this;
 
         m_Goal         = v;
-        animationBegin = std::chrono::system_clock::now();
+        animationBegin = std::chrono::steady_clock::now();
         m_Begun        = m_Value;
 
         onAnimationBegin();
@@ -267,7 +267,7 @@ class CAnimatedVariable : public CBaseAnimatedVariable {
             return;
 
         m_Value        = v;
-        animationBegin = std::chrono::system_clock::now();
+        animationBegin = std::chrono::steady_clock::now();
         m_Begun        = m_Value;
 
         onAnimationBegin();

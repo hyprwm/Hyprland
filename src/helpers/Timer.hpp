@@ -7,10 +7,10 @@ class CTimer {
     void                                         reset();
     float                                        getSeconds();
     int                                          getMillis();
-    const std::chrono::system_clock::time_point& chrono() const;
+    const std::chrono::steady_clock::time_point& chrono() const;
 
   private:
-    std::chrono::system_clock::time_point m_tpLastReset;
+    std::chrono::steady_clock::time_point m_tpLastReset;
 
-    std::chrono::system_clock::duration   getDuration();
+    std::chrono::steady_clock::duration   getDuration();
 };

@@ -19,7 +19,7 @@
 static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitorName) {
 
     static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
-    static auto firstMonitorAdded = std::chrono::system_clock::now();
+    static auto firstMonitorAdded = std::chrono::steady_clock::now();
     static bool cursorDefaultDone = false;
     static bool firstLaunch       = true;
 
@@ -37,7 +37,7 @@ static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitor
         return;
 
     // after 10s, don't set cursor to default monitor
-    auto timePassedSec = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - firstMonitorAdded);
+    auto timePassedSec = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - firstMonitorAdded);
     if (timePassedSec.count() > 10) {
         cursorDefaultDone = true;
         return;

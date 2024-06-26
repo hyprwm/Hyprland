@@ -10,28 +10,6 @@
 #include <wlr/render/interface.h>
 #include <wlr/render/wlr_renderer.h>
 
-static Aquamarine::SDRMFormat pickCursorFormat(SP<Aquamarine::IOutput> output) {
-
-    const auto fmts = output->getBackend()->getCursorFormats();
-
-    if (fmts.empty())
-        return {};
-
-    // try to use common formats in their order
-    std::vector<uint32_t> PREFERRED_FORMATS = {DRM_FORMAT_ARGB8888, DRM_FORMAT_XRGB8888};
-
-    for (auto& pf : PREFERRED_FORMATS) {
-        for (auto& fmt : fmts) {
-            if (pf != fmt.drmFormat)
-                continue;
-
-            return fmt;
-        }
-    }
-
-    return fmts.at(0);
-}
-
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("newMonitor", [this](void* self, SCallbackInfo& info, std::any data) {
         auto PMONITOR = std::any_cast<SP<CMonitor>>(data);
@@ -390,12 +368,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         maxSize = cursorSize;
 
     if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size) {
-        auto format = pickCursorFormat(output);
-
-        if (format.drmFormat == DRM_FORMAT_INVALID) {
-            Debug::log(TRACE, "Failed to pick an output format for hw cursor");
-            return nullptr;
-        }
 
         if (!state->monitor->cursorSwapchain)
             state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(g_pCompositor->m_pAqBackend->allocator, state->monitor->output->getBackend());
@@ -403,9 +375,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         auto options    = state->monitor->cursorSwapchain->currentOptions();
         options.size    = maxSize;
         options.length  = 2;
-        options.format  = format.drmFormat;
         options.scanout = true;
         options.cursor  = true;
+        // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
+        // but if it's set, we don't wanna change it.
 
         if (!state->monitor->cursorSwapchain->reconfigure(options)) {
             Debug::log(TRACE, "Failed to reconfigure cursor swapchain");

@@ -366,8 +366,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbTranslationState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbInternalTranslationState, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbStaticState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
 
     if (handleInternalKeybinds(internalKeysym))
         return true;
@@ -2121,7 +2121,7 @@ void CKeybindManager::sendshortcut(std::string args) {
 
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
             xkb_keymap*   km = KB->xkbKeymap;
-            xkb_state*    ks = KB->xkbTranslationState;
+            xkb_state*    ks = KB->xkbState;
 
             xkb_keycode_t keycode_min, keycode_max;
             keycode_min = xkb_keymap_min_keycode(km);

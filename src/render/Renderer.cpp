@@ -1105,6 +1105,9 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     pMonitor->output->state->setBuffer(PSURFACE->current.buffer);
 
+    if (!pMonitor->state.test())
+        return false;
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     PSURFACE->frame(&now);

@@ -8,6 +8,8 @@
 #include <sys/timerfd.h>
 #include <time.h>
 
+#include <aquamarine/backend/Backend.hpp>
+
 #define TIMESPEC_NSEC_PER_SEC 1000000000L
 
 CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop) {
@@ -27,16 +29,18 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
-    g_pCompositor->m_pAqBackend->dispatchEventsAsync();
+    auto POLLFD = (Aquamarine::SPollFD*)data;
+    POLLFD->onSignal();
     return 1;
 }
 
 void CEventLoopManager::enterLoop() {
     m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
 
-    auto aqFDs = g_pCompositor->m_pAqBackend->getPollFDs();
-    for (auto& fd : aqFDs) {
-        m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd, WL_EVENT_READABLE, aquamarineFDWrite, nullptr));
+    aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
+    for (auto& fd : aqPollFDs) {
+        m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get()));
+        fd->onSignal(); // dispatch outstanding
     }
 
     wl_display_run(m_sWayland.display);

@@ -375,25 +375,21 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
     auto output = state->monitor->output;
 
-    auto maxSize = output->maxCursorSize();
-
+    auto maxSize    = output->cursorPlaneSize();
     auto cursorSize = currentCursorImage.size;
 
-    if (cursorSize == Vector2D{})
-        return nullptr;
-
-    // error
     if (maxSize == Vector2D{})
         return nullptr;
 
     if (maxSize != Vector2D{-1, -1}) {
-        if (cursorSize.x < maxSize.x || cursorSize.y < maxSize.y) {
+        if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
             Debug::log(TRACE, "hardware cursor too big! {} > {}", currentCursorImage.size, maxSize);
             return nullptr;
         }
-    }
+    } else
+        maxSize = cursorSize;
 
-    if (!state->monitor->cursorSwapchain || cursorSize != state->monitor->cursorSwapchain->currentOptions().size) {
+    if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size) {
         auto format = pickCursorFormat(output);
 
         if (format.drmFormat == DRM_FORMAT_INVALID) {
@@ -402,12 +398,14 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         }
 
         if (!state->monitor->cursorSwapchain)
-            state->monitor->cursorSwapchain = makeShared<Aquamarine::CSwapchain>(g_pCompositor->m_pAqBackend->allocator);
+            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(g_pCompositor->m_pAqBackend->allocator, state->monitor->output->getBackend());
 
-        auto options   = state->monitor->cursorSwapchain->currentOptions();
-        options.size   = cursorSize;
-        options.length = 2;
-        options.format = format.drmFormat;
+        auto options    = state->monitor->cursorSwapchain->currentOptions();
+        options.size    = maxSize;
+        options.length  = 2;
+        options.format  = format.drmFormat;
+        options.scanout = true;
+        options.cursor  = true;
 
         if (!state->monitor->cursorSwapchain->reconfigure(options)) {
             Debug::log(TRACE, "Failed to reconfigure cursor swapchain");

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "math/Math.hpp"
+#include <aquamarine/backend/Misc.hpp>
 
 typedef uint32_t DRMFormat;
 typedef uint32_t SHMFormat;
@@ -18,10 +19,7 @@ struct SPixelFormat {
     Vector2D  blockSize;
 };
 
-struct SDRMFormat {
-    DRMFormat             format = 0; /* DRM_FORMAT_INVALID */
-    std::vector<uint64_t> mods;
-};
+typedef Aquamarine::SDRMFormat SDRMFormat;
 
 namespace FormatUtils {
     SHMFormat           drmToShm(DRMFormat drm);

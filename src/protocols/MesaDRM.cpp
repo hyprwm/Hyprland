@@ -87,7 +87,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
 
     auto fmts = g_pHyprOpenGL->getDRMFormats();
     for (auto& fmt : fmts) {
-        resource->sendFormat(fmt.format);
+        resource->sendFormat(fmt.drmFormat);
     }
 }
 

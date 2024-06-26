@@ -26,8 +26,8 @@ CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMAB
     std::set<std::pair<uint32_t, uint64_t>> formats;
     for (auto& t : tranches_) {
         for (auto& fmt : t.formats) {
-            for (auto& mod : fmt.mods) {
-                formats.insert(std::make_pair<>(fmt.format, mod));
+            for (auto& mod : fmt.modifiers) {
+                formats.insert(std::make_pair<>(fmt.drmFormat, mod));
             }
         }
     }
@@ -387,11 +387,16 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         mainDevice = *dev;
 
-        auto           fmts = g_pHyprOpenGL->getDRMFormats();
+        // FIXME: this will break on multi-gpu
+        std::vector<Aquamarine::SDRMFormat> aqFormats;
+        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
+            aqFormats = impl->getRenderFormats();
+            break;
+        }
 
         SDMABufTranche tranche = {
             .device  = *dev,
-            .formats = fmts,
+            .formats = aqFormats,
         };
 
         std::vector<SDMABufTranche> tches;

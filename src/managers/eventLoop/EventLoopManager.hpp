@@ -7,6 +7,10 @@
 
 #include "EventLoopTimer.hpp"
 
+namespace Aquamarine {
+  struct SPollFD;
+};
+
 class CEventLoopManager {
   public:
     CEventLoopManager();
@@ -35,6 +39,8 @@ class CEventLoopManager {
         std::vector<SP<CEventLoopTimer>> timers;
         int                              timerfd = -1;
     } m_sTimers;
+
+    std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
 };
 
 inline std::unique_ptr<CEventLoopManager> g_pEventLoopManager;

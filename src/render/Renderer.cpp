@@ -1080,50 +1080,51 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 }
 
 bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    return false; // FIXME: fix when we move to new lib for backend.
+    if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
-    // if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
-    //     return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock()))
+        return false;
 
-    // if (!wlr_output_is_direct_scanout_allowed(pMonitor->output))
-    //     return false;
+    const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 
-    // const auto PCANDIDATE = pMonitor->solitaryClient.lock();
+    if (!PCANDIDATE)
+        return false;
 
-    // if (!PCANDIDATE)
-    //     return false;
+    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    // const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != pMonitor->vecPixelSize || PSURFACE->current.transform != pMonitor->transform)
+        return false;
 
-    // if (!PSURFACE || PSURFACE->current.scale != pMonitor->output->scale || PSURFACE->current.transform != pMonitor->output->transform)
-    //     return false;
+    // we can't scanout shm buffers.
+    if (!PSURFACE->current.buffer->dmabuf().success)
+        return false;
 
-    // // finally, we should be GTG.
-    // wlr_output_state_set_buffer(pMonitor->state.wlr(), &PSURFACE->buffer->base);
+    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
+    // and comes from the appropriate device. This may implode on multi-gpu!!
 
-    // if (!wlr_output_test_state(pMonitor->output, pMonitor->state.wlr()))
-    //     return false;
+    pMonitor->output->state->setBuffer(PSURFACE->current.buffer);
 
-    // timespec now;
-    // clock_gettime(CLOCK_MONOTONIC, &now);
-    // PSURFACE->frame(&now);
-    // auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
-    // FEEDBACK->attachMonitor(pMonitor);
-    // FEEDBACK->presented();
-    // FEEDBACK->setPresentationType(true);
-    // PROTO::presentation->queueData(FEEDBACK);
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    PSURFACE->frame(&now);
+    auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
+    FEEDBACK->attachMonitor(pMonitor);
+    FEEDBACK->presented();
+    FEEDBACK->setPresentationType(true);
+    PROTO::presentation->queueData(FEEDBACK);
 
-    // if (pMonitor->state.commit()) {
-    //     if (m_pLastScanout.expired()) {
-    //         m_pLastScanout = PCANDIDATE;
-    //         Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
-    //     }
-    // } else {
-    //     m_pLastScanout.reset();
-    //     return false;
-    // }
+    if (pMonitor->state.commit()) {
+        if (m_pLastScanout.expired()) {
+            m_pLastScanout = PCANDIDATE;
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+        }
+    } else {
+        m_pLastScanout.reset();
+        return false;
+    }
 
-    // return true;
+    return true;
 }
 
 void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {

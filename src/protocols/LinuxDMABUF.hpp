@@ -10,7 +10,6 @@
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CDMABuffer;
-struct SDRMFormat;
 class CWLSurfaceResource;
 
 class CLinuxDMABuffer {

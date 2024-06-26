@@ -344,8 +344,8 @@ void CHyprOpenGLImpl::initDRMFormats() {
         mods.push_back(DRM_FORMAT_MOD_INVALID);
 
         dmaFormats.push_back(SDRMFormat{
-            .format = fmt,
-            .mods   = mods,
+            .drmFormat = fmt,
+            .modifiers = mods,
         });
 
         std::vector<std::pair<uint64_t, std::string>> modifierData;

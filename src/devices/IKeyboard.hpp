@@ -58,12 +58,13 @@ class IKeyboard : public IHID {
     uint32_t           getModifiers();
     void               updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
     bool               updateModifiersState(); // rets whether changed
+    void               updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
 
     bool               active  = false;
     bool               enabled = true;
 
-    xkb_layout_index_t activeLayout        = 0;
-    xkb_state *        xkbTranslationState = nullptr, *xkbInternalTranslationState = nullptr;
+    xkb_layout_index_t activeLayout = 0;
+    xkb_state *        xkbState = nullptr, *xkbStaticState /* Static state: never gets modifiers or layout changes sent, used for keybinds. */ = nullptr;
     xkb_keymap*        xkbKeymap = nullptr;
 
     struct {

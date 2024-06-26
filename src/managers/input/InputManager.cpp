@@ -1156,10 +1156,6 @@ static void removeFromHIDs(WP<IHID> hid) {
 }
 
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
-    if (pKeyboard->xkbTranslationState)
-        xkb_state_unref(pKeyboard->xkbTranslationState);
-    pKeyboard->xkbTranslationState = nullptr;
-
     std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (m_vKeyboards.size() > 0) {
@@ -1225,19 +1221,10 @@ void CInputManager::destroyTabletPad(SP<CTabletPad> pad) {
 }
 
 void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
-    if (!pKeyboard || !pKeyboard->xkbTranslationState)
+    if (!pKeyboard)
         return;
 
-    // FIXME:
-    // uint32_t leds = 0;
-    // for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-    //     if (xkb_state_led_index_is_active(pKeyboard->xkbTranslationState, keyboard->led_indexes[i]))
-    //         leds |= (1 << i);
-    // }
-
-    // for (auto& k : m_vKeyboards) {
-    //     k->updateLEDs(leds);
-    // }
+    pKeyboard->updateLEDs();
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {

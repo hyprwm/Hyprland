@@ -32,12 +32,7 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
     listeners.key = keeb->events.key.registerListener([this](std::any d) {
         auto     E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
 
-        uint32_t xkbKeycode = E.key + 8;
-        xkb_state_update_key(xkbTranslationState, xkbKeycode, E.pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
-
-        // we have to do this for DRM sessions, as they never send modifiers events
-        if (g_pCompositor->m_pAqBackend->hasSession())
-            updateModifiersState();
+        updateXkbStateWithKey(E.key + 8, E.pressed);
 
         keyboardEvents.key.emit(SKeyEvent{
             .timeMs  = E.timeMs,

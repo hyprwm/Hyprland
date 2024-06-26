@@ -27,11 +27,11 @@ IKeyboard::~IKeyboard() {
 }
 
 void IKeyboard::clearManuallyAllocd() {
-    if (xkbTranslationState)
-        xkb_state_unref(xkbTranslationState);
+    if (xkbStaticState)
+        xkb_state_unref(xkbStaticState);
 
-    if (xkbInternalTranslationState)
-        xkb_state_unref(xkbInternalTranslationState);
+    if (xkbState)
+        xkb_state_unref(xkbState);
 
     if (xkbKeymap)
         xkb_keymap_unref(xkbKeymap);
@@ -39,9 +39,10 @@ void IKeyboard::clearManuallyAllocd() {
     if (xkbKeymapFD >= 0)
         close(xkbKeymapFD);
 
-    xkbKeymap           = nullptr;
-    xkbTranslationState = nullptr;
-    xkbKeymapFD         = -1;
+    xkbKeymap      = nullptr;
+    xkbState       = nullptr;
+    xkbStaticState = nullptr;
+    xkbKeymapFD    = -1;
 }
 
 void IKeyboard::setKeymap(const SStringRuleNames& rules) {
@@ -99,9 +100,9 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
     // set internal translation state
     // demo sunao ni ienai
-    xkbInternalTranslationState = xkb_state_new(xkbKeymap);
+    xkbStaticState = xkb_state_new(xkbKeymap);
 
-    updateXKBTranslationState();
+    updateXKBTranslationState(xkbKeymap);
 
     const auto NUMLOCKON = g_pConfigManager->getDeviceInt(hlName, "numlock_by_default", "input:numlock_by_default");
 
@@ -151,17 +152,17 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
-    if (xkbTranslationState)
-        xkb_state_unref(xkbTranslationState);
+    if (xkbState)
+        xkb_state_unref(xkbState);
 
     if (keymap) {
         Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", (uintptr_t)this);
-        xkbTranslationState = xkb_state_new(keymap);
+        xkbState = xkb_state_new(keymap);
         return;
     }
 
     const auto KEYMAP     = xkbKeymap;
-    const auto STATE      = xkbInternalTranslationState;
+    const auto STATE      = xkbState;
     const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
 
     const auto PCONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -200,7 +201,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
                 KEYMAP       = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
 
-            xkbTranslationState = xkb_state_new(KEYMAP);
+            xkbState = xkb_state_new(KEYMAP);
 
             xkb_keymap_unref(KEYMAP);
             xkb_context_unref(PCONTEXT);
@@ -221,7 +222,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
     const auto NEWKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    xkbTranslationState = xkb_state_new(NEWKEYMAP);
+    xkbState = xkb_state_new(NEWKEYMAP);
 
     xkb_keymap_unref(NEWKEYMAP);
     xkb_context_unref(PCONTEXT);
@@ -229,7 +230,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
 std::string IKeyboard::getActiveLayout() {
     const auto KEYMAP     = xkbKeymap;
-    const auto STATE      = xkbTranslationState;
+    const auto STATE      = xkbState;
     const auto LAYOUTSNUM = xkb_keymap_num_layouts(KEYMAP);
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
@@ -246,12 +247,12 @@ std::string IKeyboard::getActiveLayout() {
 }
 
 void IKeyboard::updateLEDs() {
-    if (xkbTranslationState == nullptr)
+    if (xkbState == nullptr)
         return;
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(xkbTranslationState, ledIndexes.at(i)))
+        if (xkb_state_led_index_is_active(xkbState, ledIndexes.at(i)))
             leds |= (1 << i);
     }
 
@@ -259,7 +260,7 @@ void IKeyboard::updateLEDs() {
 }
 
 void IKeyboard::updateLEDs(uint32_t leds) {
-    if (!xkbTranslationState)
+    if (!xkbState)
         return;
 
     if (isVirtual() && g_pInputManager->shouldIgnoreVirtualKeyboard(self.lock()))
@@ -288,10 +289,10 @@ uint32_t IKeyboard::getModifiers() {
 }
 
 void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-    if (!xkbTranslationState)
+    if (!xkbState)
         return;
 
-    xkb_state_update_mask(xkbTranslationState, depressed, latched, locked, 0, 0, group);
+    xkb_state_update_mask(xkbState, depressed, latched, locked, 0, 0, group);
 
     if (!updateModifiersState())
         return;
@@ -300,13 +301,13 @@ void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t l
 }
 
 bool IKeyboard::updateModifiersState() {
-    if (!xkbTranslationState)
+    if (!xkbState)
         return false;
 
-    auto depressed = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_DEPRESSED);
-    auto latched   = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_LATCHED);
-    auto locked    = xkb_state_serialize_mods(xkbTranslationState, XKB_STATE_MODS_LOCKED);
-    auto group     = xkb_state_serialize_layout(xkbTranslationState, XKB_STATE_LAYOUT_EFFECTIVE);
+    auto depressed = xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_DEPRESSED);
+    auto latched   = xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED);
+    auto locked    = xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED);
+    auto group     = xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE);
 
     if (depressed == modifiersState.depressed && latched == modifiersState.latched && locked == modifiersState.locked && group == modifiersState.group)
         return false;
@@ -317,4 +318,16 @@ bool IKeyboard::updateModifiersState() {
     modifiersState.group     = group;
 
     return true;
+}
+
+void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
+    xkb_state_update_key(xkbState, xkbKey, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
+    if (updateModifiersState()) {
+        keyboardEvents.modifiers.emit(SModifiersEvent{
+            .depressed = modifiersState.depressed,
+            .latched   = modifiersState.latched,
+            .locked    = modifiersState.locked,
+            .group     = modifiersState.group,
+        });
+    }
 }

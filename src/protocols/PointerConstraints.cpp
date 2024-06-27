@@ -112,6 +112,7 @@ void CPointerConstraint::deactivate() {
 
     active = false;
 
+    /* Requires additional lifetime implementations
     if (lifetime == ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT) {
         dead = true;
         // remove from inputmgr
@@ -120,6 +121,7 @@ void CPointerConstraint::deactivate() {
             return !SHP || SHP.get() == this;
         });
     }
+    */
 }
 
 void CPointerConstraint::activate() {

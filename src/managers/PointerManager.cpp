@@ -637,11 +637,10 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
         for (auto& b : currentMonitorLayout.monitorBoxes) {
             auto p = b.closestPoint(vec);
 
-            auto max_x = std::nextafter(b.x + b.w, b.x + b.w - 1);
-            auto max_y = std::nextafter(b.y + b.h, b.y + b.h - 1);
+            auto maxPoint = Vector2D{std::nextafter(b.x + b.w, -INFINITY), std::nextafter(b.y + b.h, -INFINITY)};
 
-            // because closestPoint does clamp up to x + w and y + h
-            p = Vector2D{std::clamp(p.x, b.x, max_x), std::clamp(p.y, b.y, max_y)};
+            // because closestPoint clamps up to x + w and y + h
+            p = Vector2D{std::clamp(p.x, b.x, maxPoint.x), std::clamp(p.y, b.y, maxPoint.y)};
 
             auto distSq = p.distanceSq(vec);
 

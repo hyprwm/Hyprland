@@ -126,7 +126,7 @@ void CMonitor::onConnect(bool noRule) {
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
     if (!state.commit())
-        Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
+        Debug::log(WARN, "state.commit() failed in CMonitor::onCommit");
 
     damage.setSize(vecTransformedSize);
 
@@ -778,10 +778,24 @@ CMonitorState::~CMonitorState() {
 }
 
 bool CMonitorState::commit() {
+    if (!updateSwapchain())
+        return false;
     bool ret = m_pOwner->output->commit();
     return ret;
 }
 
 bool CMonitorState::test() {
+    if (!updateSwapchain())
+        return false;
     return m_pOwner->output->test();
+}
+
+bool CMonitorState::updateSwapchain() {
+    auto options = m_pOwner->output->swapchain->currentOptions();
+    const auto& STATE = m_pOwner->output->state->state();
+    options.format = STATE.drmFormat;
+    options.scanout = true;
+    options.length = 2;
+    options.size = STATE.mode ? STATE.mode->pixelSize : STATE.customMode->pixelSize;
+    return m_pOwner->output->swapchain->reconfigure(options);
 }

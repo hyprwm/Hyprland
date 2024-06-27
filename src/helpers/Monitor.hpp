@@ -49,6 +49,7 @@ class CMonitorState {
 
     bool commit();
     bool test();
+    bool updateSwapchain();
 
   private:
     CMonitor* m_pOwner;

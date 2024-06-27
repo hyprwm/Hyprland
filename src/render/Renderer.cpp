@@ -2610,18 +2610,6 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
     static constexpr const int HL_BUFFER_AGE = 2;
 
     if (!buffer) {
-        const auto& MODE = pMonitor->output->state->state().mode ? pMonitor->output->state->state().mode : pMonitor->output->state->state().customMode;
-        if (!MODE) // no mode??
-            return false;
-        Aquamarine::SSwapchainOptions opts = pMonitor->output->swapchain->currentOptions();
-        opts.length                        = 2;
-        opts.size                          = MODE->pixelSize;
-        opts.format                        = pMonitor->output->state->state().drmFormat;
-        if (!pMonitor->output->swapchain->reconfigure(opts)) {
-            Debug::log(ERR, "Failed to reconfigure swapchain for {}", pMonitor->szName);
-            return false;
-        }
-
         m_pCurrentBuffer = pMonitor->output->swapchain->next(nullptr);
         if (!m_pCurrentBuffer) {
             Debug::log(ERR, "Failed to acquire swapchain buffer for {}", pMonitor->szName);

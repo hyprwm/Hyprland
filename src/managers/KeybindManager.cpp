@@ -1048,14 +1048,20 @@ SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCU
         return {WORKSPACE_NOT_CHANGED, ""};
     }
 
-    const auto ID = PCURRENTWORKSPACE->m_iID;
-    if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO) {
-        if (PER_MON && PCURRENTWORKSPACE->m_iMonitorID != PWORKSPACETOCHANGETO->m_iMonitorID)
-            return {WORKSPACE_NOT_CHANGED, ""};
-        return {ID, PWORKSPACETOCHANGETO->m_szName};
-    }
+    const auto ID                   = PCURRENTWORKSPACE->m_iID;
+    const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id);
+    if (!PWORKSPACETOCHANGETO)
+        return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
 
-    return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
+    if (!PER_MON || PCURRENTWORKSPACE->m_iMonitorID == PWORKSPACETOCHANGETO->m_iMonitorID)
+        return {ID, PWORKSPACETOCHANGETO->m_szName};
+
+    // PER_MON and cur ws is not on same monitor with prev per monitor
+    const auto POTHERWSTOCHANGETO = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->getPrevWorkspaceIDName(false).id);
+    if (POTHERWSTOCHANGETO && POTHERWSTOCHANGETO->m_iMonitorID == PCURRENTWORKSPACE->m_iMonitorID)
+        return {ID, POTHERWSTOCHANGETO->m_szName};
+
+    return {WORKSPACE_NOT_CHANGED, ""};
 }
 
 void CKeybindManager::changeworkspace(std::string args) {

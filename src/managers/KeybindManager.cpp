@@ -1040,7 +1040,8 @@ SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCU
         return getWorkspaceIDNameFromString(args);
     }
 
-    const SWorkspaceIDName PPREVWS = PCURRENTWORKSPACE->getPrevWorkspaceIDName(args.contains("_per_monitor"));
+    const bool             PER_MON = args.contains("_per_monitor");
+    const SWorkspaceIDName PPREVWS = PCURRENTWORKSPACE->getPrevWorkspaceIDName(PER_MON);
     // Do nothing if there's no previous workspace, otherwise switch to it.
     if (PPREVWS.id == -1) {
         Debug::log(LOG, "No previous workspace to change to");
@@ -1048,8 +1049,11 @@ SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCU
     }
 
     const auto ID = PCURRENTWORKSPACE->m_iID;
-    if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO)
+    if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO) {
+        if (PER_MON && PCURRENTWORKSPACE->m_iMonitorID != PWORKSPACETOCHANGETO->m_iMonitorID)
+            return {WORKSPACE_NOT_CHANGED, ""};
         return {ID, PWORKSPACETOCHANGETO->m_szName};
+    }
 
     return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
 }
@@ -1678,7 +1682,6 @@ void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
 
     // get the current workspace
     const auto PCURRENTWORKSPACE = g_pCompositor->m_pLastMonitor->activeWorkspace;
-
     if (!PCURRENTWORKSPACE) {
         Debug::log(ERR, "moveCurrentWorkspaceToMonitor invalid workspace!");
         return;

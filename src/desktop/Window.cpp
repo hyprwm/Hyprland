@@ -1155,7 +1155,8 @@ int CWindow::getRealBorderSize() {
 }
 
 bool CWindow::canBeTorn() {
-    return m_sWindowData.tearing.valueOr(m_bTearingHint);
+    static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+    return m_sWindowData.tearing.valueOr(m_bTearingHint) && *PTEARING;
 }
 
 bool CWindow::shouldSendFullscreenState() {

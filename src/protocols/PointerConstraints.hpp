@@ -16,8 +16,8 @@ class CWLSurfaceResource;
 
 class CPointerConstraint {
   public:
-    CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
-    CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime);
+    CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime_);
+    CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region, zwpPointerConstraintsV1Lifetime lifetime_);
     ~CPointerConstraint();
 
     bool           good();

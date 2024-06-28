@@ -6,7 +6,7 @@
 #include <dlfcn.h>
 
 CRenderbuffer::~CRenderbuffer() {
-    if (!g_pCompositor)
+    if (!g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
         return;
 
     g_pHyprRenderer->makeEGLCurrent();

@@ -46,7 +46,7 @@ class CPointerConstraint {
     bool                            active              = false;
     bool                            locked              = false;
     bool                            dead                = false;
-    zwpPointerConstraintsV1Lifetime lifetime            = ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT;
+    zwpPointerConstraintsV1Lifetime lifetime            = ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT;
 
     void                            sharedConstructions();
     void                            onSetRegion(wl_resource* region);

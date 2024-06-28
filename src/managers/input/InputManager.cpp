@@ -1473,14 +1473,7 @@ void CInputManager::updateCapabilities() {
         if (h.expired())
             continue;
 
-        auto cap = h->getCapabilities();
-
-        if (cap & HID_INPUT_CAPABILITY_KEYBOARD)
-            caps |= WL_SEAT_CAPABILITY_KEYBOARD;
-        if (cap & HID_INPUT_CAPABILITY_POINTER)
-            caps |= WL_SEAT_CAPABILITY_POINTER;
-        if (cap & HID_INPUT_CAPABILITY_TOUCH)
-            caps |= WL_SEAT_CAPABILITY_TOUCH;
+        caps |= h->getCapabilities();
     }
 
     g_pSeatManager->updateCapabilities(caps);

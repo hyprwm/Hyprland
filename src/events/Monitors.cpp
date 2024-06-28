@@ -26,19 +26,18 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
-    // FIXME:
-    // if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-    //     Debug::log(WARN, "Attempted to render frame on inactive session!");
+    if ((g_pCompositor->m_pAqBackend->hasSession() && !g_pCompositor->m_pAqBackend->session->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
 
-    //     if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
-    //             return m->output != g_pCompositor->m_pUnsafeOutput->output;
-    //         })) {
-    //         // restore from unsafe state
-    //         g_pCompositor->leaveUnsafeState();
-    //     }
+        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
+                return m->output != g_pCompositor->m_pUnsafeOutput->output;
+            })) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
 
-    //     return; // cannot draw on session inactive (different tty)
-    // }
+        return; // cannot draw on session inactive (different tty)
+    }
 
     if (!PMONITOR->m_bEnabled)
         return;

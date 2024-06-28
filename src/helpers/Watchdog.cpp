@@ -7,7 +7,9 @@ CWatchdog::~CWatchdog() {
     m_bExitThread = true;
     m_bNotified   = true;
     m_cvWatchdogCondition.notify_all();
-    m_pWatchdog.reset();
+
+    if (m_pWatchdog && m_pWatchdog->joinable())
+        m_pWatchdog->join();
 }
 
 CWatchdog::CWatchdog() {
@@ -33,8 +35,6 @@ CWatchdog::CWatchdog() {
             m_bNotified = false;
         }
     });
-
-    m_pWatchdog->detach();
 }
 
 void CWatchdog::startWatching() {

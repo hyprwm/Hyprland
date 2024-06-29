@@ -50,7 +50,5 @@ void Events::listener_sessionActive(wl_listener* listener, void* data) {
             m->noFrameSchedule = true;
             m->framesToSkip    = 1;
         }
-
-        Debug::log(LOG, "Destroyed all render data, frames to skip for each: 2");
     }
 }

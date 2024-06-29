@@ -810,18 +810,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
-        if (!wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY))
-            return true; // probably same session
-
-        g_pCompositor->m_bSessionActive = false;
-
-        for (auto& m : g_pCompositor->m_vMonitors) {
-            m->noFrameSchedule = true;
-            m->framesToSkip    = 1;
-        }
-
-        Debug::log(LOG, "Switched to VT {}, destroyed all render data, frames to skip for each: 2", TTY);
-
+        wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY);
         return true;
     }
 

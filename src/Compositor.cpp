@@ -307,6 +307,14 @@ void CCompositor::initAllSignals() {
             g_pInputManager->updateCapabilities();
         },
         nullptr);
+
+    m_pAqBackend->events.newSwitch.registerStaticListener(
+        [](void* data, std::any d) {
+            auto dev = std::any_cast<SP<Aquamarine::ISwitch>>(d);
+            Debug::log(LOG, "New aquamarine switch with name {}", dev->getName());
+            g_pInputManager->newSwitch(dev);
+        },
+        nullptr);
 }
 
 void CCompositor::removeAllSignals() {

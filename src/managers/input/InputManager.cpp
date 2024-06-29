@@ -798,7 +798,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
             }
         }
     }
-    double deltaDiscrete = factor * e.deltaDiscrete / std::abs(e.deltaDiscrete);
+    double deltaDiscrete = (e.deltaDiscrete != 0) ? (factor * e.deltaDiscrete / std::abs(e.deltaDiscrete)) : 0;
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, deltaDiscrete > 0 ? std::ceil(deltaDiscrete) : std::floor(deltaDiscrete),
                                     std::round(factor * e.deltaDiscrete), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }

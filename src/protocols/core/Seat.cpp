@@ -452,9 +452,8 @@ void CWLSeatProtocol::updateCapabilities(uint32_t caps) {
 }
 
 void CWLSeatProtocol::updateKeymap() {
-    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD)) {
+    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
-    }
 
     for (auto& k : m_vKeyboards) {
         k->sendKeymap(g_pSeatManager->keyboard.lock());
@@ -462,9 +461,8 @@ void CWLSeatProtocol::updateKeymap() {
 }
 
 void CWLSeatProtocol::updateRepeatInfo(uint32_t rate, uint32_t delayMs) {
-    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD)) {
+    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
-    }
 
     for (auto& k : m_vKeyboards) {
         k->repeatInfo(rate, delayMs);

@@ -654,7 +654,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, escapeJSONStrings(d.pWlrDevice ? d.pWlrDevice->name : ""));
+                (uintptr_t)&d, escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""));
         }
 
         trimTrailingComma(result);
@@ -702,7 +702,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "\n\nSwitches:\n";
 
         for (auto& d : g_pInputManager->m_lSwitches) {
-            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pWlrDevice ? d.pWlrDevice->name : "");
+            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pDevice ? d.pDevice->getName() : "");
         }
     }
 

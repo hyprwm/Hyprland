@@ -1532,44 +1532,30 @@ void CInputManager::setTabletConfigs() {
     }
 }
 
-void CInputManager::newSwitch(wlr_input_device* pDevice) {
-    const auto PNEWDEV  = &m_lSwitches.emplace_back();
-    PNEWDEV->pWlrDevice = pDevice;
+void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
+    const auto PNEWDEV = &m_lSwitches.emplace_back();
+    PNEWDEV->pDevice   = pDevice;
 
-    Debug::log(LOG, "New switch with name \"{}\" added", pDevice->name);
+    Debug::log(LOG, "New switch with name \"{}\" added", pDevice->getName());
 
-    PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
+    PNEWDEV->listeners.destroy = pDevice->events.destroy.registerListener([this, PNEWDEV](std::any d) { destroySwitch(PNEWDEV); });
 
-    const auto PSWITCH = wlr_switch_from_input_device(pDevice);
+    PNEWDEV->listeners.fire = pDevice->events.fire.registerListener([PNEWDEV](std::any d) {
+        const auto NAME = PNEWDEV->pDevice->getName();
+        const auto E    = std::any_cast<Aquamarine::ISwitch::SFireEvent>(d);
 
-    PNEWDEV->hyprListener_toggle.initCallback(
-        &PSWITCH->events.toggle,
-        [&](void* owner, void* data) {
-            const auto PDEVICE = (SSwitchDevice*)owner;
-            const auto NAME    = std::string(PDEVICE->pWlrDevice->name);
-            const auto E       = (wlr_switch_toggle_event*)data;
+        Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
 
-            if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
-                return;
+        g_pKeybindManager->onSwitchEvent(NAME);
 
-            Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
-
-            g_pKeybindManager->onSwitchEvent(NAME);
-
-            switch (E->switch_state) {
-                case WLR_SWITCH_STATE_ON:
-                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
-                    g_pKeybindManager->onSwitchOnEvent(NAME);
-                    break;
-                case WLR_SWITCH_STATE_OFF:
-                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
-                    g_pKeybindManager->onSwitchOffEvent(NAME);
-                    break;
-            }
-
-            PDEVICE->status = E->switch_state;
-        },
-        PNEWDEV, "SwitchDevice");
+        if (E.enable) {
+            Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
+            g_pKeybindManager->onSwitchOnEvent(NAME);
+        } else {
+            Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
+            g_pKeybindManager->onSwitchOffEvent(NAME);
+        }
+    });
 }
 
 void CInputManager::destroySwitch(SSwitchDevice* pDevice) {

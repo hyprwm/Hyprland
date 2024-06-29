@@ -21,6 +21,7 @@ class IKeyboard;
 AQUAMARINE_FORWARD(IPointer);
 AQUAMARINE_FORWARD(IKeyboard);
 AQUAMARINE_FORWARD(ITouch);
+AQUAMARINE_FORWARD(ISwitch);
 
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
@@ -91,7 +92,7 @@ class CInputManager {
     void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
     void               newTouchDevice(SP<Aquamarine::ITouch>);
-    void               newSwitch(wlr_input_device*);
+    void               newSwitch(SP<Aquamarine::ISwitch>);
     void               newTabletTool(wlr_tablet_tool*);
     void               newTabletPad(wlr_input_device*);
     void               newTablet(wlr_input_device*);

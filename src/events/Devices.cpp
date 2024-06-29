@@ -41,7 +41,7 @@ void Events::listener_newInput(wl_listener* listener, void* data) {
             break;
         case WLR_INPUT_DEVICE_SWITCH:
             Debug::log(LOG, "Attached a switch device with name {}", DEVICE->name);
-            g_pInputManager->newSwitch(DEVICE);
+          //  g_pInputManager->newSwitch(DEVICE);
             break;
         default: Debug::log(WARN, "Unrecognized input device plugged in: {}", DEVICE->name); break;
     }

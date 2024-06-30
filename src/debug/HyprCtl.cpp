@@ -913,7 +913,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
     result += "GPU information: \n" + GPUINFO;
-    if (GPUINFO.contains("NVIDIA"))
+    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
         result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
     result += "\n\n";
 

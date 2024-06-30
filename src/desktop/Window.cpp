@@ -444,9 +444,11 @@ PHLWINDOW CWindow::X11TransientFor() {
     if (!m_pXWaylandSurface || !m_pXWaylandSurface->parent)
         return nullptr;
 
-    auto s = m_pXWaylandSurface->parent;
+    auto s         = m_pXWaylandSurface->parent;
+    auto oldParent = s;
     while (s) {
-        if (!s->parent)
+        // break cyclic loop of m_pXWaylandSurface being parent of itself, #TODO reject this from even being created?
+        if (!s->parent || s->parent == oldParent)
             break;
         s = s->parent;
     }

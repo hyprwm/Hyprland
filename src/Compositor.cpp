@@ -227,6 +227,9 @@ void CCompositor::initServer() {
 
     std::vector<Aquamarine::SBackendImplementationOptions> implementations;
     Aquamarine::SBackendImplementationOptions              option;
+    option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_HEADLESS;
+    option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_MANDATORY;
+    implementations.emplace_back(option);
     option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_DRM;
     option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
     implementations.emplace_back(option);
@@ -533,23 +536,21 @@ void CCompositor::removeLockFile() {
 }
 
 void CCompositor::prepareFallbackOutput() {
-    // TODO:
-    // // create a backup monitor
-    // wlr_backend* headless = nullptr;
-    // wlr_multi_for_each_backend(
-    //     m_sWLRBackend,
-    //     [](wlr_backend* b, void* data) {
-    //         if (wlr_backend_is_headless(b))
-    //             *((wlr_backend**)data) = b;
-    //     },
-    //     &headless);
+    // create a backup monitor
+    SP<Aquamarine::IBackendImplementation> headless;
+    for (auto& impl : m_pAqBackend->getImplementations()) {
+        if (impl->type() == Aquamarine::AQ_BACKEND_HEADLESS) {
+            headless = impl;
+            break;
+        }
+    }
 
-    // if (!headless) {
-    //     Debug::log(WARN, "Unsafe state will be ineffective, no fallback output");
-    //     return;
-    // }
+    if (!headless) {
+        Debug::log(WARN, "No headless in prepareFallbackOutput?!");
+        return;
+    }
 
-    // wlr_headless_add_output(headless, 1920, 1080);
+    headless->createOutput();
 }
 
 void CCompositor::startCompositor() {
@@ -2846,8 +2847,10 @@ static void checkDefaultCursorWarp(SP<CMonitor> PNEWMONITOR, std::string monitor
 void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
-    if (std::string("HEADLESS-1") == output->name)
+    if (std::string("HEADLESS-1") == output->name) {
         g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
+        output->name = "FALLBACK"; // we are allowed to do this :)
+    }
 
     Debug::log(LOG, "New output with name {}", output->name);
 

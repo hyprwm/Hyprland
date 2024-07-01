@@ -90,7 +90,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {
-    CMonitor* pMonitor = nullptr;
+    CMonitor* pMonitor = (CMonitor*)owner;
 
     for (auto& m : g_pCompositor->m_vRealMonitors) {
         if (m->output == pMonitor->output) {

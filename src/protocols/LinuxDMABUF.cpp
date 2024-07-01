@@ -24,11 +24,9 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 
 CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMABufTranche> tranches_) {
     std::set<std::pair<uint32_t, uint64_t>> formats;
-    for (auto& t : tranches_) {
-        for (auto& fmt : t.formats) {
-            for (auto& mod : fmt.modifiers) {
-                formats.insert(std::make_pair<>(fmt.drmFormat, mod));
-            }
+    for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+        for (auto& mod : fmt.modifiers) {
+            formats.insert(std::make_pair<>(fmt.drmFormat, mod));
         }
     }
 

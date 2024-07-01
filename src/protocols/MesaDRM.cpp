@@ -60,10 +60,27 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
                 return;
             }
 
+            uint64_t mod = DRM_FORMAT_MOD_INVALID;
+
+            auto     fmts = g_pHyprOpenGL->getDRMFormats();
+            for (auto& f : fmts) {
+                if (f.drmFormat != fmt)
+                    continue;
+
+                for (auto& m : f.modifiers) {
+                    if (m == DRM_FORMAT_MOD_LINEAR)
+                        continue;
+
+                    mod = m;
+                    break;
+                }
+                break;
+            }
+
             Aquamarine::SDMABUFAttrs attrs;
             attrs.success    = true;
             attrs.size       = {w, h};
-            attrs.modifier   = DRM_FORMAT_MOD_INVALID;
+            attrs.modifier   = mod;
             attrs.planes     = 1;
             attrs.offsets[0] = off0;
             attrs.strides[0] = str0;

@@ -1377,43 +1377,6 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-// static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
-//     wlr_output* output = nullptr;
-
-//     if (type.empty() || type == "auto") {
-//         if (wlr_backend_is_wl(backend))
-//             output = wlr_wl_output_create(backend);
-//         else if (wlr_backend_is_headless(backend))
-//             output = wlr_headless_add_output(backend, 1920, 1080);
-//     } else {
-//         if (wlr_backend_is_wl(backend) && type == "wayland")
-//             output = wlr_wl_output_create(backend);
-//         else if (wlr_backend_is_headless(backend) && type == "headless")
-//             output = wlr_headless_add_output(backend, 1920, 1080);
-//     }
-
-//     if (output && !name.empty())
-//         g_pCompositor->getMonitorFromOutput(output)->szName = name;
-
-//     return output != nullptr;
-// }
-
-struct outputData {
-    std::string type;
-    std::string name;
-    bool        added;
-};
-
-void createOutputIter(wlr_backend* backend, void* data) {
-    const auto DATA = static_cast<outputData*>(data);
-
-    if (DATA->added)
-        return;
-
-    // if (addOutput(backend, DATA->type, DATA->name))
-    //     DATA->added = true;
-}
-
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
@@ -1422,17 +1385,36 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
 
     const auto MODE = vars[1];
 
-    // FIXME:
+    bool added = false;
+
+    if (!vars[3].empty()) {
+        for (auto& m : g_pCompositor->m_vRealMonitors) {
+            if (m->szName == vars[3])
+                return "Name already taken";
+        }
+    }
 
     if (MODE == "create" || MODE == "add") {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        outputData result{vars[2], vars[3], false};
+        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
+            auto type = impl->type();
 
-        // wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
+            if (type == Aquamarine::AQ_BACKEND_HEADLESS && (vars[2] == "headless" || vars[2] == "auto")) {
+                added = true;
+                impl->createOutput(vars[3]);
+                break;
+            }
 
-        if (!result.added)
+            if (type == Aquamarine::AQ_BACKEND_WAYLAND && (vars[2] == "wayland" || vars[2] == "auto")) {
+                added = true;
+                impl->createOutput(vars[3]);
+                break;
+            }
+        }
+
+        if (!added)
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
@@ -1444,7 +1426,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (!PMONITOR->createdByUser)
             return "cannot remove a real display. Use the monitor keyword.";
 
-        //wlr_output_destroy(PMONITOR->output);
+        PMONITOR->output->destroy();
     }
 
     return "ok";

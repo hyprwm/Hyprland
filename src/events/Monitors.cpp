@@ -114,30 +114,6 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == pMonitor; });
 }
 
-void Events::listener_monitorStateRequest(void* owner, void* data) {
-    // const auto PMONITOR = (CMonitor*)owner;
-    // const auto E        = (wlr_output_event_request_state*)data;
-
-    // if (!PMONITOR->createdByUser)
-    //     return;
-
-    // const auto SIZE = E->state->mode ? Vector2D{E->state->mode->width, E->state->mode->height} : Vector2D{E->state->custom_mode.width, E->state->custom_mode.height};
-
-    // PMONITOR->forceSize = SIZE;
-
-    // SMonitorRule rule = PMONITOR->activeMonitorRule;
-    // rule.resolution   = SIZE;
-
-    // g_pHyprRenderer->applyMonitorRule(PMONITOR, &rule);
-}
-
-void Events::listener_monitorDamage(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    const auto E        = (wlr_output_event_damage*)data;
-
-    PMONITOR->addDamage(E->damage);
-}
-
 void Events::listener_monitorNeedsFrame(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
 

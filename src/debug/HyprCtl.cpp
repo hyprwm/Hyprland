@@ -1398,7 +1398,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
+        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations() | std::views::reverse) {
             auto type = impl->type();
 
             if (type == Aquamarine::AQ_BACKEND_HEADLESS && (vars[2] == "headless" || vars[2] == "auto")) {

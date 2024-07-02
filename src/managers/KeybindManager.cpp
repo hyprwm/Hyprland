@@ -11,6 +11,7 @@
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
 
+#include <hyprutils/string/VarList.hpp>
 #include <optional>
 #include <iterator>
 #include <string>
@@ -91,6 +92,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["resizeactive"]                   = resizeActive;
     m_mDispatchers["moveactive"]                     = moveActive;
     m_mDispatchers["cyclenext"]                      = circleNext;
+    m_mDispatchers["cyclenextvisible"]               = circleNextVisible;
     m_mDispatchers["focuswindowbyclass"]             = focusWindow;
     m_mDispatchers["focuswindow"]                    = focusWindow;
     m_mDispatchers["tagwindow"]                      = tagWindow;
@@ -311,8 +313,10 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
 }
 
 void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
-    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+    if (PWINDOWTOCHANGETO == nullptr)
+        return;
 
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
 
@@ -330,23 +334,23 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
 
         if (!PWINDOWTOCHANGETO->m_bPinned)
             g_pCompositor->setWindowFullscreen(PWINDOWTOCHANGETO, true, FSMODE);
-    } else {
-        updateRelativeCursorCoords();
-        g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
-        PWINDOWTOCHANGETO->warpCursor();
-
-        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
-        g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
-
-        if (PLASTWINDOW && PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
-            // event
-            const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
-
-            g_pCompositor->setActiveMonitor(PNEWMON);
-        }
+        return;
     }
-};
+    updateRelativeCursorCoords();
+    g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
+    PWINDOWTOCHANGETO->warpCursor();
+
+    g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+    g_pInputManager->simulateMouseMovement();
+    g_pInputManager->m_pForcedFocus.reset();
+
+    if (!PLASTWINDOW || PLASTWINDOW->m_iMonitorID == PWINDOWTOCHANGETO->m_iMonitorID)
+        return;
+
+    // event
+    const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+    g_pCompositor->setActiveMonitor(PNEWMON);
+}
 
 bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (!g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
@@ -1037,14 +1041,20 @@ SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCU
         return {WORKSPACE_NOT_CHANGED, ""};
     }
 
-    const auto ID = PCURRENTWORKSPACE->m_iID;
-    if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO) {
-        if (PER_MON && PCURRENTWORKSPACE->m_iMonitorID != PWORKSPACETOCHANGETO->m_iMonitorID)
-            return {WORKSPACE_NOT_CHANGED, ""};
-        return {ID, PWORKSPACETOCHANGETO->m_szName};
-    }
+    const auto ID                   = PCURRENTWORKSPACE->m_iID;
+    const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id);
+    if (!PWORKSPACETOCHANGETO)
+        return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
 
-    return {ID, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name};
+    if (!PER_MON || PCURRENTWORKSPACE->m_iMonitorID == PWORKSPACETOCHANGETO->m_iMonitorID)
+        return {ID, PWORKSPACETOCHANGETO->m_szName};
+
+    // PER_MON and cur ws is not on same monitor with prev per monitor
+    const auto POTHERWSTOCHANGETO = g_pCompositor->getWorkspaceByID(PCURRENTWORKSPACE->getPrevWorkspaceIDName(false).id);
+    if (POTHERWSTOCHANGETO && POTHERWSTOCHANGETO->m_iMonitorID == PCURRENTWORKSPACE->m_iMonitorID)
+        return {ID, POTHERWSTOCHANGETO->m_szName};
+
+    return {WORKSPACE_NOT_CHANGED, ""};
 }
 
 void CKeybindManager::changeworkspace(std::string args) {
@@ -1887,31 +1897,48 @@ void CKeybindManager::resizeWindow(std::string args) {
         PWINDOW->setHidden(false);
 }
 
+std::optional<bool> getFloatStatus(CVarList args) {
+    if (args.contains("tile") || args.contains("tiled"))
+        return false;
+    if (args.contains("float") || args.contains("floating"))
+        return true;
+
+    return std::nullopt;
+}
+
+bool argsIsPrevious(CVarList args) {
+    return args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l");
+}
+
 void CKeybindManager::circleNext(std::string arg) {
-
     if (g_pCompositor->m_pLastWindow.expired()) {
-        // if we have a clear focus, find the first window and get the next focusable.
-        if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID()) > 0) {
-            const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID());
+        if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID()) <= 0)
+            return; // if we have a clear focus, find the first window and get the next focusable.
 
-            switchToWindow(PWINDOW);
-        }
-
-        return;
+        const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID());
+        switchToWindow(PWINDOW);
     }
 
-    CVarList            args{arg, 0, 's', true};
-
-    std::optional<bool> floatStatus = {};
-    if (args.contains("tile") || args.contains("tiled"))
-        floatStatus = false;
-    else if (args.contains("float") || args.contains("floating"))
-        floatStatus = true;
-
-    if (args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l"))
-        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus));
+    CVarList args{arg, 0, 's', true};
+    if (argsIsPrevious(arg))
+        switchToWindow(g_pCompositor->getPrevWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, getFloatStatus(arg)));
     else
-        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, floatStatus));
+        switchToWindow(g_pCompositor->getNextWindowOnWorkspace(g_pCompositor->m_pLastWindow.lock(), true, getFloatStatus(arg)));
+}
+
+void CKeybindManager::circleNextVisible(std::string arg) {
+    if (g_pCompositor->m_pLastWindow.expired()) {
+        if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID()) <= 0)
+            return; // if we have a clear focus, find the first window and get the next focusable.
+        const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID());
+        switchToWindow(PWINDOW);
+    }
+
+    CVarList args{arg, 0, 's', true};
+    if (argsIsPrevious(args))
+        switchToWindow(g_pCompositor->getPrevVisibleWindow(g_pCompositor->m_pLastWindow.lock(), true, getFloatStatus(args)));
+    else
+        switchToWindow(g_pCompositor->getNextVisibleWindow(g_pCompositor->m_pLastWindow.lock(), true, getFloatStatus(args)));
 }
 
 void CKeybindManager::focusWindow(std::string regexp) {

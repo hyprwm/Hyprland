@@ -1,4 +1,5 @@
 #include "Compositor.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "managers/CursorManager.hpp"
@@ -6,6 +7,7 @@
 #include "managers/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include <cstdint>
 #include <random>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
@@ -669,6 +671,30 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
     }
 
     return mon.get();
+}
+
+SP<CMonitor> CCompositor::getNextMonitor(uint64_t curID, bool reverse) {
+    const auto LN = m_vMonitors.size();
+    if (LN == 1) {
+        return m_vMonitors[0];
+    }
+
+    size_t curPos = LN + 1;
+    for (size_t i = 0; i < LN; i++) {
+        if (m_vMonitors[i]->ID == curID) {
+            curPos = i;
+        }
+    }
+
+    if (curPos == LN && !reverse) {
+        return m_vMonitors[0];
+    }
+
+    if (curPos == 0 && reverse) {
+        return m_vMonitors[LN - 1];
+    }
+
+    return reverse ? m_vMonitors[curPos - 1] : m_vMonitors[curPos + 1];
 }
 
 void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
@@ -1565,29 +1591,14 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
     return nullptr;
 }
 
+bool isWindowMatch(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating, const PHLWINDOW& w) {
+    return (!floating.has_value() || w->m_bIsFloating == floating.value()) && w != pWindow && w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() &&
+        (!focusableOnly || !w->m_sAdditionalConfigData.noFocus);
+}
+
 PHLWINDOW CCompositor::getNextWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
-    bool gotToWindow = false;
-    for (auto& w : m_vWindows) {
-        if (w != pWindow && !gotToWindow)
-            continue;
-
-        if (w == pWindow) {
-            gotToWindow = true;
-            continue;
-        }
-
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
-            return w;
-    }
-
-    for (auto& w : m_vWindows) {
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w != pWindow && w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
+    for (const auto& w : m_vWindows) {
+        if (isWindowMatch(pWindow, focusableOnly, floating, w))
             return w;
     }
 
@@ -1595,29 +1606,50 @@ PHLWINDOW CCompositor::getNextWindowOnWorkspace(PHLWINDOW pWindow, bool focusabl
 }
 
 PHLWINDOW CCompositor::getPrevWindowOnWorkspace(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
-    bool gotToWindow = false;
-    for (auto& w : m_vWindows | std::views::reverse) {
-        if (w != pWindow && !gotToWindow)
-            continue;
-
-        if (w == pWindow) {
-            gotToWindow = true;
-            continue;
-        }
-
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
-
-        if (w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
+    for (const auto& w : m_vWindows | std::views::reverse) {
+        if (isWindowMatch(pWindow, focusableOnly, floating, w))
             return w;
     }
 
-    for (auto& w : m_vWindows | std::views::reverse) {
-        if (floating.has_value() && w->m_bIsFloating != floating.value())
-            continue;
+    return nullptr;
+}
 
-        if (w != pWindow && w->m_pWorkspace == pWindow->m_pWorkspace && w->m_bIsMapped && !w->isHidden() && (!focusableOnly || !w->m_sAdditionalConfigData.noFocus))
+PHLWINDOW CCompositor::getNextVisibleWindow(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
+    if (pWindow == getTopLeftWindowOnWorkspace(pWindow->workspaceID()))
+        if (const auto& w = getWindowOnAnotherMonitor(pWindow->m_iMonitorID, floating, true); w && m_pLastWindow->m_iMonitorID == w->m_iMonitorID)
             return w;
+
+    for (const auto& w : m_vWindows) {
+        if (isWindowMatch(pWindow, focusableOnly, floating, w))
+            return w;
+    }
+
+    return nullptr;
+}
+
+PHLWINDOW CCompositor::getPrevVisibleWindow(PHLWINDOW pWindow, bool focusableOnly, std::optional<bool> floating) {
+    if (pWindow == getTopLeftWindowOnWorkspace(pWindow->workspaceID()))
+        if (const auto& w = getWindowOnAnotherMonitor(pWindow->m_iMonitorID, floating, true); w && m_pLastWindow->m_iMonitorID == w->m_iMonitorID)
+            return w;
+
+    for (const auto& w : m_vWindows | std::views::reverse) {
+        if (isWindowMatch(pWindow, focusableOnly, floating, w))
+            return w;
+    }
+
+    return nullptr;
+}
+
+PHLWINDOW CCompositor::getWindowOnAnotherMonitor(uint64_t curMonID, std::optional<bool> floating, bool reverse) {
+    for (auto mon = getNextMonitor(curMonID, reverse); mon->ID != curMonID; mon = getNextMonitor(curMonID, reverse)) {
+        if (mon->activeWorkspace == nullptr) {
+            curMonID = mon->ID;
+            continue;
+        }
+
+        if (const auto w = mon->activeWorkspace->getLastFocusedWindow(); w && (!floating.has_value() || floating.value() == w->m_bIsFloating)) {
+            return w;
+        }
     }
 
     return nullptr;

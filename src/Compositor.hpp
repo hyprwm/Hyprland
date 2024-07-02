@@ -107,6 +107,7 @@ class CCompositor {
     CMonitor*              getMonitorFromDesc(const std::string&);
     CMonitor*              getMonitorFromCursor();
     CMonitor*              getMonitorFromVector(const Vector2D&);
+    SP<CMonitor>           getNextMonitor(uint64_t cur, bool reverse = false);
     void                   removeWindowFromVectorSafe(PHLWINDOW);
     void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr);
     void                   focusSurface(SP<CWLSurfaceResource>, PHLWINDOW pWindowOwner = nullptr);
@@ -139,8 +140,11 @@ class CCompositor {
     void                   changeWindowZOrder(PHLWINDOW, bool);
     void                   cleanupFadingOut(const int& monid);
     PHLWINDOW              getWindowInDirection(PHLWINDOW, char);
+    PHLWINDOW              getNextVisibleWindow(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
+    PHLWINDOW              getPrevVisibleWindow(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
     PHLWINDOW              getNextWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
     PHLWINDOW              getPrevWindowOnWorkspace(PHLWINDOW, bool focusableOnly = false, std::optional<bool> floating = {});
+    PHLWINDOW              getWindowOnAnotherMonitor(uint64_t curMonID, std::optional<bool> floating = {}, bool reverse = false);
     int                    getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const CMonitor* monitor = nullptr);

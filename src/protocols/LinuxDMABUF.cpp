@@ -288,6 +288,8 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
         .data = (void*)&feedback->mainDevice,
     };
     resource->sendMainDevice(&deviceArr);
+
+    // Main tranche
     resource->sendTrancheTargetDevice(&deviceArr);
     resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)0);
 
@@ -298,6 +300,24 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     }
     resource->sendTrancheFormats(&indices);
     wl_array_release(&indices);
+    resource->sendTrancheDone();
+
+    // Scanout tranche
+    // FIXME: jesus fucking christ this SUCKSSSSSS ASSSSSS
+    resource->sendTrancheTargetDevice(&deviceArr);
+    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
+
+    wl_array indices2;
+    wl_array_init(&indices2);
+    for (size_t i = 0; i < feedback->tranches.size(); ++i) {
+        // FIXME: if the monitor gets the wrong format we'll be FUCKED by drm and no scanout will happen
+        if (feedback->tranches.at(i).first != DRM_FORMAT_XRGB8888 && feedback->tranches.at(i).first != DRM_FORMAT_XRGB2101010)
+            continue;
+
+        *((uint16_t*)wl_array_add(&indices2, sizeof(uint16_t))) = i;
+    }
+    resource->sendTrancheFormats(&indices2);
+    wl_array_release(&indices2);
     resource->sendTrancheDone();
 
     resource->sendDone();

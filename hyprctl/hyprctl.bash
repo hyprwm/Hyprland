@@ -1,13 +1,13 @@
 _hyprctl_cmd_2 () {
-    hyprctl monitors | grep Monitor | awk '{ print $2 }'
+    hyprctl monitors | awk '/Monitor/{ print $2 }'
 }
 
 _hyprctl_cmd_3 () {
-    hyprpm list | grep "Plugin" | awk '{print $4}'
+    hyprpm list | awk '/Plugin/{ print $4 }'
 }
 
 _hyprctl_cmd_0 () {
-    hyprctl clients | grep class | awk '{print $2}'
+    hyprctl clients | awk '/class/{ print $2 }'
 }
 
 _hyprctl_cmd_1 () {

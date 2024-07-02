@@ -68,26 +68,13 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
     return result;
 }
 
-std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
-    CVarList vars(request, 0, ' ');
-    auto     allMonitors = false;
+std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+    std::string result;
+    if (!m->output || m->ID == -1ull)
+        return "";
 
-    if (vars.size() > 2)
-        return "too many args";
-
-    if (vars.size() == 2 && vars[1] == "all")
-        allMonitors = true;
-
-    std::string result = "";
-    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        result += "[";
-
-        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1ull)
-                continue;
-
-            result += std::format(
-                R"#({{
+    result += std::format(
+        R"#({{
     "id": {},
     "name": "{}",
     "description": "{}",
@@ -118,14 +105,33 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     "currentFormat": "{}",
     "availableModes": [{}]
 }},)#",
-                m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make ? m->output->make : ""),
-                escapeJSONStrings(m->output->model ? m->output->model : ""), escapeJSONStrings(m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x,
-                (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspaceID(),
-                (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
-                escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
-                (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
-                (m->dpmsStatus ? "true" : "false"), (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"),
-                (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+        m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make ? m->output->make : ""),
+        escapeJSONStrings(m->output->model ? m->output->model : ""), escapeJSONStrings(m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y,
+        m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)),
+        m->activeSpecialWorkspaceID(), escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
+        (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+        (m == g_pCompositor->m_pLastMonitor ? "true" : "false"), (m->dpmsStatus ? "true" : "false"),
+        (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"), (m->tearingState.activelyTearing ? "true" : "false"),
+        (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+    return result;
+}
+
+std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
+    CVarList vars(request, 0, ' ');
+    auto     allMonitors = false;
+
+    if (vars.size() > 2)
+        return "too many args";
+
+    if (vars.size() == 2 && vars[1] == "all")
+        allMonitors = true;
+
+    std::string result = "";
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        result += "[";
+
+        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+            result += getMonitorData(m, format);
         }
 
         trimTrailingComma(result);
@@ -186,7 +192,7 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     return result.str();
 }
 
-static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
         for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
             if (g_pCompositor->m_vWindowFocusHistory[i].lock() == wnd)
@@ -271,7 +277,7 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
     return result;
 }
 
-static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
+std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
     const auto PLASTW   = w->getLastFocusedWindow();
     const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {

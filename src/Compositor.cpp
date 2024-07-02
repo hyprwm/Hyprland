@@ -592,6 +592,7 @@ void CCompositor::startCompositor(std::string socketName, int socketFd) {
     }
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
+    setenv("XDG_SESSION_TYPE", "wayland", 1);
 
     signal(SIGPIPE, SIG_IGN);
 

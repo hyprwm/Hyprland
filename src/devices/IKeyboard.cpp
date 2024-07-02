@@ -155,6 +155,8 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     if (xkbState)
         xkb_state_unref(xkbState);
 
+    xkbState = nullptr;
+
     if (keymap) {
         Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", (uintptr_t)this);
         xkbState = xkb_state_new(keymap);

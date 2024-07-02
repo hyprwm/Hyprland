@@ -89,5 +89,7 @@ class IKeyboard : public IHID {
     WP<IKeyboard>                  self;
 
   private:
-    void clearManuallyAllocd();
+    void                  clearManuallyAllocd();
+
+    std::vector<uint32_t> pressedXKB;
 };

@@ -42,9 +42,7 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
     });
 
     listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {
-        auto E = std::any_cast<Aquamarine::IKeyboard::SModifiersEvent>(d);
-
-        updateModifiers(E.depressed, E.latched, E.locked, E.group);
+        updateModifiersState();
 
         keyboardEvents.modifiers.emit(SModifiersEvent{
             .depressed = modifiersState.depressed,

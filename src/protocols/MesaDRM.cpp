@@ -7,7 +7,7 @@
 
 #define LOGM PROTO::mesaDRM->protoLog
 
-CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, SDMABUFAttrs attrs_) {
+CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs_) {
     LOGM(LOG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
     for (int i = 0; i < attrs_.planes; ++i) {
         LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i], attrs_.strides[i], attrs_.offsets[i]);
@@ -60,10 +60,27 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
                 return;
             }
 
-            SDMABUFAttrs attrs;
+            uint64_t mod = DRM_FORMAT_MOD_INVALID;
+
+            auto     fmts = g_pHyprOpenGL->getDRMFormats();
+            for (auto& f : fmts) {
+                if (f.drmFormat != fmt)
+                    continue;
+
+                for (auto& m : f.modifiers) {
+                    if (m == DRM_FORMAT_MOD_LINEAR)
+                        continue;
+
+                    mod = m;
+                    break;
+                }
+                break;
+            }
+
+            Aquamarine::SDMABUFAttrs attrs;
             attrs.success    = true;
             attrs.size       = {w, h};
-            attrs.modifier   = DRM_FORMAT_MOD_INVALID;
+            attrs.modifier   = mod;
             attrs.planes     = 1;
             attrs.offsets[0] = off0;
             attrs.strides[0] = str0;
@@ -87,7 +104,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
 
     auto fmts = g_pHyprOpenGL->getDRMFormats();
     for (auto& fmt : fmts) {
-        resource->sendFormat(fmt.format);
+        resource->sendFormat(fmt.drmFormat);
     }
 }
 
@@ -97,7 +114,7 @@ bool CMesaDRMResource::good() {
 
 CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     drmDevice* dev   = nullptr;
-    int        drmFD = wlr_renderer_get_drm_fd(g_pCompositor->m_sWLRRenderer);
+    int        drmFD = g_pCompositor->m_iDRMFD;
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
         LOGM(ERR, "Failed to get device");
         PROTO::mesaDRM.reset();

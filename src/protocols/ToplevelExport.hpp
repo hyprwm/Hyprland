@@ -21,7 +21,7 @@ class CToplevelExportProtocolManager {
     void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
     void displayDestroy();
     void onWindowUnmap(PHLWINDOW pWindow);
-    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
+    void onOutputCommit(CMonitor* pMonitor);
 
   private:
     wl_global*                     m_pGlobal = nullptr;

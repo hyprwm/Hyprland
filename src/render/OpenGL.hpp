@@ -19,9 +19,11 @@
 #include "Renderbuffer.hpp"
 
 #include <GLES2/gl2ext.h>
+#include <aquamarine/buffer/Buffer.hpp>
 
 #include "../debug/TracyDefines.hpp"
 
+struct gbm_device;
 class CHyprRenderer;
 
 inline const float fullVerts[] = {
@@ -182,11 +184,16 @@ class CHyprOpenGLImpl {
 
     uint32_t getPreferredReadFormat(CMonitor* pMonitor);
     std::vector<SDRMFormat>                           getDRMFormats();
-    EGLImageKHR                                       createEGLImage(const SDMABUFAttrs& attrs);
+    EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
     SCurrentRenderData                                m_RenderData;
 
     GLint                                             m_iCurrentOutputFb = 0;
+
+    int                                               m_iGBMFD      = -1;
+    gbm_device*                                       m_pGbmDevice  = nullptr;
+    EGLContext                                        m_pEglContext = nullptr;
+    EGLDisplay                                        m_pEglDisplay = nullptr;
 
     bool                                              m_bReloadScreenShader = true; // at launch it can be set
 
@@ -205,12 +212,20 @@ class CHyprOpenGLImpl {
         PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR                     = nullptr;
         PFNEGLQUERYDMABUFFORMATSEXTPROC               eglQueryDmaBufFormatsEXT               = nullptr;
         PFNEGLQUERYDMABUFMODIFIERSEXTPROC             eglQueryDmaBufModifiersEXT             = nullptr;
+        PFNEGLGETPLATFORMDISPLAYEXTPROC               eglGetPlatformDisplayEXT               = nullptr;
+        PFNEGLDEBUGMESSAGECONTROLKHRPROC              eglDebugMessageControlKHR              = nullptr;
+        PFNEGLQUERYDEVICESEXTPROC                     eglQueryDevicesEXT                     = nullptr;
+        PFNEGLQUERYDEVICESTRINGEXTPROC                eglQueryDeviceStringEXT                = nullptr;
+        PFNEGLQUERYDISPLAYATTRIBEXTPROC               eglQueryDisplayAttribEXT               = nullptr;
     } m_sProc;
 
     struct {
         bool EXT_read_format_bgra               = false;
         bool EXT_image_dma_buf_import           = false;
         bool EXT_image_dma_buf_import_modifiers = false;
+        bool KHR_display_reference              = false;
+        bool IMG_context_priority               = false;
+        bool EXT_create_context_robustness      = false;
     } m_sExts;
 
   private:
@@ -220,7 +235,7 @@ class CHyprOpenGLImpl {
     std::vector<SDRMFormat> drmFormats;
     bool                    m_bHasModifiers = false;
 
-    int                     m_iDRMFD;
+    int                     m_iDRMFD = -1;
     std::string             m_szExtensions;
 
     bool                    m_bFakeFrame            = false;
@@ -238,6 +253,7 @@ class CHyprOpenGLImpl {
     void                    createBGTextureForMonitor(CMonitor*);
     void                    initShaders();
     void                    initDRMFormats();
+    void                    initEGL(bool gbm);
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

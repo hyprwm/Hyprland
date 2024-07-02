@@ -18,6 +18,11 @@ class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
 class IKeyboard;
 
+AQUAMARINE_FORWARD(IPointer);
+AQUAMARINE_FORWARD(IKeyboard);
+AQUAMARINE_FORWARD(ITouch);
+AQUAMARINE_FORWARD(ISwitch);
+
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
@@ -82,12 +87,12 @@ class CInputManager {
     void               onKeyboardKey(std::any, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
-    void               newKeyboard(wlr_input_device*);
+    void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
-    void               newMouse(wlr_input_device*);
+    void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
-    void               newTouchDevice(wlr_input_device*);
-    void               newSwitch(wlr_input_device*);
+    void               newTouchDevice(SP<Aquamarine::ITouch>);
+    void               newSwitch(SP<Aquamarine::ISwitch>);
     void               newTabletTool(wlr_tablet_tool*);
     void               newTabletPad(wlr_input_device*);
     void               newTablet(wlr_input_device*);

@@ -366,8 +366,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbTranslationState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->wlr()->xkb_state, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbStaticState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
 
     if (handleInternalKeybinds(internalKeysym))
         return true;
@@ -554,7 +554,7 @@ int repeatKeyHandler(void* data) {
     Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
     DISPATCHER->second((*ppActiveKeybind)->arg);
 
-    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->wlr()->repeat_info.rate);
+    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->repeatRate);
 
     return 0;
 }
@@ -786,7 +786,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // beyond this point, return true to not handle anything else.
     // we'll avoid printing shit to active windows.
 
-    if (g_pCompositor->m_sWLRSession) {
+    if (g_pCompositor->m_pAqBackend->hasSession()) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
@@ -810,8 +810,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
-        wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY);
-        return true;
+        g_pCompositor->m_pAqBackend->session->switchVT(TTY);
     }
 
     return true;
@@ -2120,8 +2119,8 @@ void CKeybindManager::sendshortcut(std::string args) {
         const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
-            xkb_keymap*   km = KB->wlr()->keymap;
-            xkb_state*    ks = KB->xkbTranslationState;
+            xkb_keymap*   km = KB->xkbKeymap;
+            xkb_state*    ks = KB->xkbState;
 
             xkb_keycode_t keycode_min, keycode_max;
             keycode_min = xkb_keymap_min_keycode(km);
@@ -2259,7 +2258,7 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
-        wlr_output_state_set_enabled(m->state.wlr(), enable);
+        m->output->state->setEnabled(enable);
 
         m->dpmsStatus = enable;
 

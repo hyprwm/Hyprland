@@ -3,6 +3,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "core/Compositor.hpp"
+#include "core/Output.hpp"
 
 #define LOGM PROTO::presentation->protoLog
 
@@ -41,13 +42,11 @@ bool CPresentationFeedback::good() {
 }
 
 void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
-    auto         client = resource->client();
-    wl_resource* res;
-    wl_resource_for_each(res, &data->pMonitor->output->resources) {
-        if (client == wl_resource_get_client(res)) {
-            resource->sendSyncOutput(res);
-            break;
-        }
+    auto client = resource->client();
+
+    if (PROTO::outputs.contains(data->pMonitor->szName)) {
+        if (auto outputResource = PROTO::outputs.at(data->pMonitor->szName)->outputResourceFrom(client); outputResource)
+            resource->sendSyncOutput(outputResource->getResource()->resource());
     }
 
     uint32_t flags = 0;

@@ -28,6 +28,8 @@
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 
+#include <aquamarine/input/Input.hpp>
+
 CInputManager::CInputManager() {
     m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
         if (!cursorImageUnlocked())
@@ -189,7 +191,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
 
-    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0 && !skipFrameSchedule)
+    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     PHLWINDOW forcedFocus = m_pForcedFocus.lock();
@@ -372,7 +374,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface =
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0 && !skipFrameSchedule)
+    if (g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
 
     // grabs
@@ -807,8 +809,8 @@ Vector2D CInputManager::getMouseCoordsInternal() {
     return g_pPointerManager->position();
 }
 
-void CInputManager::newKeyboard(wlr_input_device* keyboard) {
-    const auto PNEWKEYBOARD = m_vKeyboards.emplace_back(CKeyboard::create(wlr_keyboard_from_input_device(keyboard)));
+void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
+    const auto PNEWKEYBOARD = m_vKeyboards.emplace_back(CKeyboard::create(keyboard));
 
     setupKeyboard(PNEWKEYBOARD);
 
@@ -820,14 +822,14 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Debug::log(LOG, "New virtual keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard->wlr());
+    Debug::log(LOG, "New virtual keyboard created at {:x}", (uintptr_t)PNEWKEYBOARD.get());
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     m_vHIDs.push_back(keeb);
 
     try {
-        keeb->hlName = getNameForNewDevice(keeb->wlr()->base.name);
+        keeb->hlName = getNameForNewDevice(keeb->deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Keyboard had no name???"); // logic error
     }
@@ -926,83 +928,12 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         // we can ignore those and just apply
     }
 
-    wlr_keyboard_set_repeat_info(pKeyboard->wlr(), std::max(0, REPEATRATE), std::max(0, REPEATDELAY));
-
-    pKeyboard->repeatDelay = REPEATDELAY;
-    pKeyboard->repeatRate  = REPEATRATE;
+    pKeyboard->repeatRate  = std::max(0, REPEATRATE);
+    pKeyboard->repeatDelay = std::max(0, REPEATDELAY);
     pKeyboard->numlockOn   = NUMLOCKON;
     pKeyboard->xkbFilePath = FILEPATH;
 
-    xkb_rule_names rules = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
-
-    pKeyboard->currentRules.rules   = RULES;
-    pKeyboard->currentRules.model   = MODEL;
-    pKeyboard->currentRules.variant = VARIANT;
-    pKeyboard->currentRules.options = OPTIONS;
-    pKeyboard->currentRules.layout  = LAYOUT;
-
-    const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-
-    if (!CONTEXT) {
-        Debug::log(ERR, "applyConfigToKeyboard: CONTEXT null??");
-        return;
-    }
-
-    Debug::log(LOG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules, rules.model,
-               rules.options);
-
-    xkb_keymap* KEYMAP = NULL;
-
-    if (!FILEPATH.empty()) {
-        auto path = absolutePath(FILEPATH, g_pConfigManager->configCurrentPath);
-
-        if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
-            Debug::log(ERR, "Cannot open input:kb_file= file for reading");
-        else {
-            KEYMAP = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-            fclose(KEYMAPFILE);
-        }
-    }
-
-    if (!KEYMAP)
-        KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-
-    if (!KEYMAP) {
-        g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
-                                        ", layout: " + LAYOUT + " )");
-
-        Debug::log(ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
-                   rules.options);
-        memset(&rules, 0, sizeof(rules));
-
-        pKeyboard->currentRules.rules   = "";
-        pKeyboard->currentRules.model   = "";
-        pKeyboard->currentRules.variant = "";
-        pKeyboard->currentRules.options = "";
-        pKeyboard->currentRules.layout  = "us";
-
-        KEYMAP = xkb_keymap_new_from_names(CONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    }
-
-    wlr_keyboard_set_keymap(pKeyboard->wlr(), KEYMAP);
-
-    pKeyboard->updateXKBTranslationState();
-
-    wlr_keyboard_modifiers wlrMods = {0};
-
-    if (NUMLOCKON == 1) {
-        // lock numlock
-        const auto IDX = xkb_map_mod_get_index(KEYMAP, XKB_MOD_NAME_NUM);
-
-        if (IDX != XKB_MOD_INVALID)
-            wlrMods.locked |= (uint32_t)1 << IDX;
-    }
-
-    if (wlrMods.locked != 0)
-        wlr_keyboard_notify_modifiers(pKeyboard->wlr(), 0, 0, wlrMods.locked, 0);
-
-    xkb_keymap_unref(KEYMAP);
-    xkb_context_unref(CONTEXT);
+    pKeyboard->setKeymap(IKeyboard::SStringRuleNames{LAYOUT, MODEL, VARIANT, OPTIONS, RULES});
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
@@ -1017,11 +948,11 @@ void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
 
     setupMouse(PMOUSE);
 
-    Debug::log(LOG, "New virtual mouse created, pointer WLR: {:x}", (uintptr_t)mouse->wlr());
+    Debug::log(LOG, "New virtual mouse created");
 }
 
-void CInputManager::newMouse(wlr_input_device* mouse) {
-    const auto PMOUSE = m_vPointers.emplace_back(CMouse::create(wlr_pointer_from_input_device(mouse)));
+void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
+    const auto PMOUSE = m_vPointers.emplace_back(CMouse::create(mouse));
 
     setupMouse(PMOUSE);
 
@@ -1032,13 +963,13 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
     m_vHIDs.push_back(mauz);
 
     try {
-        mauz->hlName = getNameForNewDevice(mauz->wlr()->base.name);
+        mauz->hlName = getNameForNewDevice(mauz->deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Mouse had no name???"); // logic error
     }
 
-    if (wlr_input_device_is_libinput(&mauz->wlr()->base)) {
-        const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&mauz->wlr()->base);
+    if (mauz->aq() && mauz->aq()->getLibinputHandle()) {
+        const auto LIBINPUTDEV = mauz->aq()->getLibinputHandle();
 
         Debug::log(LOG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
                    libinput_device_config_accel_get_default_speed(LIBINPUTDEV), (int)libinput_device_config_accel_get_profile(LIBINPUTDEV),
@@ -1084,8 +1015,8 @@ void CInputManager::setPointerConfigs() {
             }
         }
 
-        if (wlr_input_device_is_libinput(&m->wlr()->base)) {
-            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base);
+        if (m->aq() && m->aq()->getLibinputHandle()) {
+            const auto LIBINPUTDEV = m->aq()->getLibinputHandle();
 
             double     touchw = 0, touchh = 0;
             const auto ISTOUCHPAD = libinput_device_has_capability(LIBINPUTDEV, LIBINPUT_DEVICE_CAP_POINTER) &&
@@ -1225,16 +1156,12 @@ static void removeFromHIDs(WP<IHID> hid) {
 }
 
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
-    if (pKeyboard->xkbTranslationState)
-        xkb_state_unref(pKeyboard->xkbTranslationState);
-    pKeyboard->xkbTranslationState = nullptr;
-
     std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (m_vKeyboards.size() > 0) {
         bool found = false;
         for (auto& k : m_vKeyboards | std::views::reverse) {
-            if (!k->wlr())
+            if (!k)
                 continue;
 
             g_pSeatManager->setKeyboard(k);
@@ -1297,20 +1224,7 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard)
         return;
 
-    auto keyboard = pKeyboard->wlr();
-
-    if (!keyboard || keyboard->xkb_state == nullptr)
-        return;
-
-    uint32_t leds = 0;
-    for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-        if (xkb_state_led_index_is_active(keyboard->xkb_state, keyboard->led_indexes[i]))
-            leds |= (1 << i);
-    }
-
-    for (auto& k : m_vKeyboards) {
-        k->updateLEDs(leds);
-    }
+    pKeyboard->updateLEDs();
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
@@ -1338,7 +1252,7 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
         const auto IME = m_sIMERelay.m_pIME.lock();
 
         if (IME && IME->hasGrab() && !DISALLOWACTION) {
-            IME->setKeyboard(pKeyboard->wlr());
+            IME->setKeyboard(pKeyboard);
             IME->sendKey(e.timeMs, e.keycode, e.state);
         } else {
             g_pSeatManager->setKeyboard(pKeyboard);
@@ -1356,15 +1270,14 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
     const auto ALLMODS = accumulateModsFromAllKBs();
-    const auto PWLRKB  = pKeyboard->wlr();
 
-    auto       MODS = PWLRKB->modifiers;
+    auto       MODS = pKeyboard->modifiersState;
     MODS.depressed  = ALLMODS;
 
     const auto IME = m_sIMERelay.m_pIME.lock();
 
     if (IME && IME->hasGrab() && !DISALLOWACTION) {
-        IME->setKeyboard(PWLRKB);
+        IME->setKeyboard(pKeyboard);
         IME->sendMods(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
     } else {
         g_pSeatManager->setKeyboard(pKeyboard);
@@ -1373,12 +1286,12 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     updateKeyboardsLeds(pKeyboard);
 
-    if (PWLRKB->modifiers.group != pKeyboard->activeLayout) {
-        pKeyboard->activeLayout = PWLRKB->modifiers.group;
+    if (pKeyboard->modifiersState.group != pKeyboard->activeLayout) {
+        pKeyboard->activeLayout = pKeyboard->modifiersState.group;
 
         const auto LAYOUT = pKeyboard->getActiveLayout();
 
-        pKeyboard->updateXKBTranslationState();
+        Debug::log(LOG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUT}));
@@ -1488,10 +1401,10 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
             continue;
 
-        if (!kb->enabled || !kb->wlr())
+        if (!kb->enabled)
             continue;
 
-        finalMask |= wlr_keyboard_get_modifiers(kb->wlr());
+        finalMask |= kb->getModifiers();
     }
 
     return finalMask;
@@ -1507,12 +1420,12 @@ void CInputManager::disableAllKeyboards(bool virt) {
     }
 }
 
-void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
-    const auto PNEWDEV = m_vTouches.emplace_back(CTouchDevice::create(wlr_touch_from_input_device(pDevice)));
+void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
+    const auto PNEWDEV = m_vTouches.emplace_back(CTouchDevice::create(pDevice));
     m_vHIDs.push_back(PNEWDEV);
 
     try {
-        PNEWDEV->hlName = getNameForNewDevice(pDevice->name);
+        PNEWDEV->hlName = getNameForNewDevice(PNEWDEV->deviceName);
     } catch (std::exception& e) {
         Debug::log(ERR, "Touch Device had no name???"); // logic error
     }
@@ -1536,8 +1449,8 @@ void CInputManager::newTouchDevice(wlr_input_device* pDevice) {
 
 void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
     auto setConfig = [&](SP<ITouch> PTOUCHDEV) -> void {
-        if (wlr_input_device_is_libinput(&PTOUCHDEV->wlr()->base)) {
-            const auto LIBINPUTDEV = (libinput_device*)wlr_libinput_get_device_handle(&PTOUCHDEV->wlr()->base);
+        if (dev->aq() && dev->aq()->getLibinputHandle()) {
+            const auto LIBINPUTDEV = dev->aq()->getLibinputHandle();
 
             const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "enabled", "input:touchdevice:enabled");
             const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
@@ -1553,11 +1466,12 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
             bool       bound      = !output.empty() && output != STRVAL_EMPTY;
             const bool AUTODETECT = output == "[[Auto]]";
             if (!bound && AUTODETECT) {
-                const auto DEFAULTOUTPUT = PTOUCHDEV->wlr()->output_name;
-                if (DEFAULTOUTPUT) {
-                    output = DEFAULTOUTPUT;
-                    bound  = true;
-                }
+                // FIXME:
+                // const auto DEFAULTOUTPUT = PTOUCHDEV->wlr()->output_name;
+                // if (DEFAULTOUTPUT) {
+                //     output = DEFAULTOUTPUT;
+                //     bound  = true;
+                // }
             }
             PTOUCHDEV->boundOutput = bound ? output : "";
             const auto PMONITOR    = bound ? g_pCompositor->getMonitorFromName(output) : nullptr;
@@ -1618,45 +1532,30 @@ void CInputManager::setTabletConfigs() {
     }
 }
 
-void CInputManager::newSwitch(wlr_input_device* pDevice) {
-    const auto PNEWDEV  = &m_lSwitches.emplace_back();
-    PNEWDEV->pWlrDevice = pDevice;
+void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
+    const auto PNEWDEV = &m_lSwitches.emplace_back();
+    PNEWDEV->pDevice   = pDevice;
 
-    Debug::log(LOG, "New switch with name \"{}\" added", pDevice->name);
+    Debug::log(LOG, "New switch with name \"{}\" added", pDevice->getName());
 
-    PNEWDEV->hyprListener_destroy.initCallback(
-        &pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
+    PNEWDEV->listeners.destroy = pDevice->events.destroy.registerListener([this, PNEWDEV](std::any d) { destroySwitch(PNEWDEV); });
 
-    const auto PSWITCH = wlr_switch_from_input_device(pDevice);
+    PNEWDEV->listeners.fire = pDevice->events.fire.registerListener([PNEWDEV](std::any d) {
+        const auto NAME = PNEWDEV->pDevice->getName();
+        const auto E    = std::any_cast<Aquamarine::ISwitch::SFireEvent>(d);
 
-    PNEWDEV->hyprListener_toggle.initCallback(
-        &PSWITCH->events.toggle,
-        [&](void* owner, void* data) {
-            const auto PDEVICE = (SSwitchDevice*)owner;
-            const auto NAME    = std::string(PDEVICE->pWlrDevice->name);
-            const auto E       = (wlr_switch_toggle_event*)data;
+        Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
 
-            if (PDEVICE->status != -1 && PDEVICE->status == E->switch_state)
-                return;
+        g_pKeybindManager->onSwitchEvent(NAME);
 
-            Debug::log(LOG, "Switch {} fired, triggering binds.", NAME);
-
-            g_pKeybindManager->onSwitchEvent(NAME);
-
-            switch (E->switch_state) {
-                case WLR_SWITCH_STATE_ON:
-                    Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
-                    g_pKeybindManager->onSwitchOnEvent(NAME);
-                    break;
-                case WLR_SWITCH_STATE_OFF:
-                    Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
-                    g_pKeybindManager->onSwitchOffEvent(NAME);
-                    break;
-            }
-
-            PDEVICE->status = E->switch_state;
-        },
-        PNEWDEV, "SwitchDevice");
+        if (E.enable) {
+            Debug::log(LOG, "Switch {} turn on, triggering binds.", NAME);
+            g_pKeybindManager->onSwitchOnEvent(NAME);
+        } else {
+            Debug::log(LOG, "Switch {} turn off, triggering binds.", NAME);
+            g_pKeybindManager->onSwitchOffEvent(NAME);
+        }
+    });
 }
 
 void CInputManager::destroySwitch(SSwitchDevice* pDevice) {

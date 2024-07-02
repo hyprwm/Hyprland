@@ -24,11 +24,9 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 
 CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMABufTranche> tranches_) {
     std::set<std::pair<uint32_t, uint64_t>> formats;
-    for (auto& t : tranches_) {
-        for (auto& fmt : t.formats) {
-            for (auto& mod : fmt.mods) {
-                formats.insert(std::make_pair<>(fmt.format, mod));
-            }
+    for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+        for (auto& mod : fmt.modifiers) {
+            formats.insert(std::make_pair<>(fmt.drmFormat, mod));
         }
     }
 
@@ -73,7 +71,7 @@ CCompiledDMABUFFeedback::~CCompiledDMABUFFeedback() {
     close(tableFD);
 }
 
-CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs) {
+CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
     buffer = makeShared<CDMABuffer>(id, client, attrs);
 
     buffer->resource->buffer = buffer;
@@ -103,7 +101,7 @@ CLinuxDMABBUFParamsResource::CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParam
     resource->setOnDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
     resource->setDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
 
-    attrs = makeShared<SDMABUFAttrs>();
+    attrs = makeShared<Aquamarine::SDMABUFAttrs>();
 
     attrs->success = true;
 
@@ -290,6 +288,8 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
         .data = (void*)&feedback->mainDevice,
     };
     resource->sendMainDevice(&deviceArr);
+
+    // Main tranche
     resource->sendTrancheTargetDevice(&deviceArr);
     resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)0);
 
@@ -300,6 +300,24 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     }
     resource->sendTrancheFormats(&indices);
     wl_array_release(&indices);
+    resource->sendTrancheDone();
+
+    // Scanout tranche
+    // FIXME: jesus fucking christ this SUCKSSSSSS ASSSSSS
+    resource->sendTrancheTargetDevice(&deviceArr);
+    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
+
+    wl_array indices2;
+    wl_array_init(&indices2);
+    for (size_t i = 0; i < feedback->tranches.size(); ++i) {
+        // FIXME: if the monitor gets the wrong format we'll be FUCKED by drm and no scanout will happen
+        if (feedback->tranches.at(i).first != DRM_FORMAT_XRGB8888 && feedback->tranches.at(i).first != DRM_FORMAT_XRGB2101010)
+            continue;
+
+        *((uint16_t*)wl_array_add(&indices2, sizeof(uint16_t))) = i;
+    }
+    resource->sendTrancheFormats(&indices2);
+    wl_array_release(&indices2);
     resource->sendTrancheDone();
 
     resource->sendDone();
@@ -376,7 +394,7 @@ void CLinuxDMABUFResource::sendMods() {
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
-        int  rendererFD = wlr_renderer_get_drm_fd(g_pCompositor->m_sWLRRenderer);
+        int  rendererFD = g_pCompositor->m_iDRMFD;
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {
@@ -387,11 +405,16 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         mainDevice = *dev;
 
-        auto           fmts = g_pHyprOpenGL->getDRMFormats();
+        // FIXME: this will break on multi-gpu
+        std::vector<Aquamarine::SDRMFormat> aqFormats;
+        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
+            aqFormats = impl->getRenderFormats();
+            break;
+        }
 
         SDMABufTranche tranche = {
             .device  = *dev,
-            .formats = fmts,
+            .formats = aqFormats,
         };
 
         std::vector<SDMABufTranche> tches;

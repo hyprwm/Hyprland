@@ -6,33 +6,34 @@ class CVirtualPointerV1Resource;
 
 class CVirtualPointer : public IPointer {
   public:
-    static SP<CVirtualPointer> create(SP<CVirtualPointerV1Resource> resource);
+    static SP<CVirtualPointer>       create(SP<CVirtualPointerV1Resource> resource);
 
-    virtual bool               isVirtual();
-    virtual wlr_pointer*       wlr();
+    virtual bool                     isVirtual();
+    virtual SP<Aquamarine::IPointer> aq();
 
   private:
     CVirtualPointer(SP<CVirtualPointerV1Resource>);
 
     WP<CVirtualPointerV1Resource> pointer;
 
-    void                          disconnectCallbacks();
+    struct {
+        CHyprSignalListener destroy;
 
-    DYNLISTENER(destroy);
-    DYNLISTENER(motion);
-    DYNLISTENER(motionAbsolute);
-    DYNLISTENER(button);
-    DYNLISTENER(axis);
-    DYNLISTENER(frame);
+        CHyprSignalListener motion;
+        CHyprSignalListener motionAbsolute;
+        CHyprSignalListener button;
+        CHyprSignalListener axis;
+        CHyprSignalListener frame;
 
-    DYNLISTENER(swipeBegin);
-    DYNLISTENER(swipeEnd);
-    DYNLISTENER(swipeUpdate);
+        CHyprSignalListener swipeBegin;
+        CHyprSignalListener swipeEnd;
+        CHyprSignalListener swipeUpdate;
 
-    DYNLISTENER(pinchBegin);
-    DYNLISTENER(pinchEnd);
-    DYNLISTENER(pinchUpdate);
+        CHyprSignalListener pinchBegin;
+        CHyprSignalListener pinchEnd;
+        CHyprSignalListener pinchUpdate;
 
-    DYNLISTENER(holdBegin);
-    DYNLISTENER(holdEnd);
+        CHyprSignalListener holdBegin;
+        CHyprSignalListener holdEnd;
+    } listeners;
 };

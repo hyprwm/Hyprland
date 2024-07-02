@@ -30,7 +30,7 @@ void Events::listener_RendererDestroy(wl_listener* listener, void* data) {
 }
 
 void Events::listener_sessionActive(wl_listener* listener, void* data) {
-    if (g_pCompositor->m_sWLRSession->active) {
+    if (g_pCompositor->m_pAqBackend->session->active) {
         Debug::log(LOG, "Session got activated!");
 
         g_pCompositor->m_bSessionActive = true;

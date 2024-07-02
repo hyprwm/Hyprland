@@ -88,7 +88,7 @@ asan:
 	@pidof Hyprland > /dev/null && exit 1 || echo ""
 
 	rm -rf ./wayland
-	git reset --hard
+	#git reset --hard
 
 	@echo -en "If you want to apply a patch, input its path (leave empty for none):\n"
 	@read patchvar

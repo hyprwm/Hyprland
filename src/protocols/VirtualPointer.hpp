@@ -7,6 +7,7 @@
 #include "WaylandProtocol.hpp"
 #include "wlr-virtual-pointer-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../devices/IPointer.hpp"
 
 class CVirtualPointerV1Resource {
   public:
@@ -15,19 +16,35 @@ class CVirtualPointerV1Resource {
 
     struct {
         CSignal destroy;
+        CSignal move;
+        CSignal warp;
+        CSignal button;
+        CSignal axis;
+        CSignal frame;
+
+        CSignal swipeBegin;
+        CSignal swipeUpdate;
+        CSignal swipeEnd;
+
+        CSignal pinchBegin;
+        CSignal pinchUpdate;
+        CSignal pinchEnd;
+
+        CSignal holdBegin;
+        CSignal holdEnd;
     } events;
 
-    bool         good();
-    wlr_pointer* wlr();
-    wl_client*   client();
+    bool        good();
+    wl_client*  client();
+
+    std::string name;
 
   private:
-    SP<CZwlrVirtualPointerV1>             resource;
-    wlr_pointer                           pointer;
+    SP<CZwlrVirtualPointerV1>           resource;
 
-    uint32_t                              axis = 0;
+    uint32_t                            axis = 0;
 
-    std::array<wlr_pointer_axis_event, 2> axisEvents;
+    std::array<IPointer::SAxisEvent, 2> axisEvents;
 };
 
 class CVirtualPointerProtocol : public IWaylandProtocol {

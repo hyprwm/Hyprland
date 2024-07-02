@@ -378,30 +378,54 @@ void CPointerManager::resetCursorImage(bool apply) {
     }
 }
 
+void CPointerManager::updateCursorBackendForMonitor(CSharedPointer<CMonitor>& m, Hyprlang::INT PNOHW) {
+    auto state = stateFor(m);
+
+    if (!m->m_bEnabled || !m->dpmsStatus) {
+        Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+        return;
+    }
+
+    if (state->softwareLocks > 0 || PNOHW || !attemptHardwareCursor(state)) {
+        Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
+        state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
+        state->hardwareFailed = true;
+
+        if (state->hwApplied)
+            setHWCursorBuffer(state, nullptr);
+
+        state->hwApplied = false;
+        return;
+    }
+
+    state->hardwareFailed = false;
+}
+
 void CPointerManager::updateCursorBackend() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
     for (auto& m : g_pCompositor->m_vMonitors) {
-        auto state = stateFor(m);
-
-        if (!m->m_bEnabled || !m->dpmsStatus) {
-            Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
-            continue;
+        updateCursorBackendForMonitor(m, *PNOHW);
+        for (auto& mirror : m->mirrors) {
+            for (auto& M : g_pCompositor->m_vRealMonitors) {
+                // update backend for mirrors when using hardware cursor
+                if (M->ID == mirror->ID && !*PNOHW) {
+                    updateCursorBackendForMonitor(M, true);
+                    break;
+                }
+            }
         }
+    }
+}
 
-        if (state->softwareLocks > 0 || *PNOHW || !attemptHardwareCursor(state)) {
-            Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
-            state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
-            state->hardwareFailed = true;
+void CPointerManager::moveCursorOnMirrors(SP<CMonitor> pMonitor) {
+    if (!pMonitor->mirrors.size())
+        return;
 
-            if (state->hwApplied)
-                setHWCursorBuffer(state, nullptr);
-
-            state->hwApplied = false;
-            continue;
-        }
-
-        state->hardwareFailed = false;
+    const auto CURSORPOS = getCursorPosForMonitor(pMonitor);
+    for (auto& mirror : pMonitor->mirrors) {
+        const Vector2D MIRRORPOS = {CURSORPOS.x / pMonitor->vecSize.x * mirror->vecSize.x, CURSORPOS.y / pMonitor->vecSize.y * mirror->vecSize.y};
+        mirror->output->impl->move_cursor(mirror->output, MIRRORPOS.x, MIRRORPOS.y);
     }
 }
 
@@ -419,6 +443,8 @@ void CPointerManager::onCursorMoved() {
 
         const auto CURSORPOS = getCursorPosForMonitor(m);
         m->output->impl->move_cursor(m->output, CURSORPOS.x, CURSORPOS.y);
+        // manifest the cursor on the mirrors
+        moveCursorOnMirrors(m);
     }
 }
 
@@ -430,6 +456,8 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
 
     const auto CURSORPOS = getCursorPosForMonitor(state->monitor.lock());
     state->monitor->output->impl->move_cursor(state->monitor->output, CURSORPOS.x, CURSORPOS.y);
+    // manifest the cursor on the mirrors
+    moveCursorOnMirrors(state->monitor.lock());
 
     auto texture = getCurrentCursorTexture();
 

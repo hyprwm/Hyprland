@@ -65,7 +65,9 @@ class CPointerManager {
     void recheckPointerPosition();
     void onMonitorLayoutChange();
     void onMonitorDisconnect();
+    void updateCursorBackendForMonitor(CSharedPointer<CMonitor>& m, Hyprlang::INT PNOHW);
     void updateCursorBackend();
+    void moveCursorOnMirrors(SP<CMonitor> monitor);
     void onCursorMoved();
     bool hasCursor();
     void damageIfSoftware();

@@ -612,7 +612,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
 
-    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 1, 100); // 1px
+    auto        CURSOR_PADDING = std::clamp((int)*PADDING, 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
 
     //

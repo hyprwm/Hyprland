@@ -57,7 +57,7 @@ ExternalProject_Add(
     wlroots-hyprland
     PREFIX ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland
-    CONFIGURE_COMMAND meson setup --reconfigure build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dxwayland=$<IF:$<BOOL:${NO_XWAYLAND}>,disabled,enabled> -Dexamples=false -Drenderers=gles2 -Dbackends=drm,libinput $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none>
+    CONFIGURE_COMMAND meson setup --reconfigure --clearcache build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dxwayland=$<IF:$<BOOL:${NO_XWAYLAND}>,disabled,enabled> -Dexamples=false -Drenderers=gles2 -Dbackends=drm,libinput $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none>
     BUILD_COMMAND ninja -C build
     BUILD_ALWAYS true
     BUILD_IN_SOURCE true

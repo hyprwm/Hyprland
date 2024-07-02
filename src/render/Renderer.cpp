@@ -864,7 +864,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     // TODO: check better with solitary after MR for tearing.
     const auto PFULLWINDOW = pWorkspace ? g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID) : nullptr;
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
-        !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.value() != Vector2D{}) {
+        !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.value() != Vector2D{} || g_pHyprOpenGL->preBlurQueued()) {
 
         if (!g_pHyprOpenGL->m_RenderData.pCurrentMonData->blurFBShouldRender)
             setOccludedForBackLayers(g_pHyprOpenGL->m_RenderData.damage, pWorkspace);

@@ -1,16 +1,16 @@
 function _hyprctl_3
     set 1 $argv[1]
-    hyprctl monitors | grep Monitor | awk '{ print $2 }'
+    hyprctl monitors | awk '/Monitor/{ print $2 }'
 end
 
 function _hyprctl_4
     set 1 $argv[1]
-    hyprpm list | grep "Plugin" | awk '{print $4}'
+    hyprpm list | awk '/Plugin/{ print $4 }'
 end
 
 function _hyprctl_1
     set 1 $argv[1]
-    hyprctl clients | grep class | awk '{print $2}'
+    hyprctl clients | awk '/class/{ print $2 }'
 end
 
 function _hyprctl_2

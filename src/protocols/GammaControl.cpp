@@ -81,6 +81,24 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
         gammaTableSet = true;
         close(fd);
+
+        // translate the table to AQ format
+        std::vector<uint16_t> red, green, blue;
+        red.resize(gammaTable.size() / 3);
+        green.resize(gammaTable.size() / 3);
+        blue.resize(gammaTable.size() / 3);
+        for (size_t i = 0; i < gammaTable.size() / 3; ++i) {
+            red.at(i)   = gammaTable.at(i);
+            green.at(i) = gammaTable.at(gammaTable.size() / 3 + i);
+            blue.at(i)  = gammaTable.at((gammaTable.size() / 3) * 2 + i);
+        }
+
+        for (size_t i = 0; i < gammaTable.size() / 3; ++i) {
+            gammaTable.at(i * 3)     = red.at(i);
+            gammaTable.at(i * 3 + 1) = green.at(i);
+            gammaTable.at(i * 3 + 2) = blue.at(i);
+        }
+
         applyToMonitor();
     });
 

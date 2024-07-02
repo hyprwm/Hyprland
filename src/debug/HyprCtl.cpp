@@ -1020,6 +1020,16 @@ std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
+std::string sourceRequest(eHyprCtlOutputFormat format, std::string request) {
+    request = request.substr(request.find_first_of(' ') + 1);
+
+    const auto file_path = request.substr(request.find_first_of(' ') + 1);
+
+    g_pConfigManager->handleSource("", file_path);
+
+    return "ok";
+}
+
 std::string killRequest(eHyprCtlOutputFormat format, std::string request) {
     g_pInputManager->setClickMode(CLICKMODE_KILL);
 
@@ -1614,6 +1624,7 @@ CHyprCtl::CHyprCtl() {
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
+    registerCommand(SHyprCtlCommand{"source", false, sourceRequest});
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
     registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});

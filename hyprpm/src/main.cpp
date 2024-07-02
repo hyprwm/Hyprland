@@ -26,6 +26,7 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --help         | -h    → Show this menu
 ┣ --verbose      | -v    → Enable too much logging
 ┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
+┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources
 ┗
 )#";
 
@@ -41,7 +42,7 @@ int               main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false, force = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false;
 
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
@@ -52,6 +53,8 @@ int               main(int argc, char** argv, char** envp) {
                 notify = true;
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
+            } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
+                noShallow = true;
             } else if (ARGS[i] == "--force" || ARGS[i] == "-f") {
                 force = true;
                 std::cout << Colors::RED << "!" << Colors::RESET << " Using --force, I hope you know what you are doing.\n";
@@ -69,8 +72,9 @@ int               main(int argc, char** argv, char** envp) {
         return 0;
     }
 
-    g_pPluginManager             = std::make_unique<CPluginManager>();
-    g_pPluginManager->m_bVerbose = verbose;
+    g_pPluginManager               = std::make_unique<CPluginManager>();
+    g_pPluginManager->m_bVerbose   = verbose;
+    g_pPluginManager->m_bNoShallow = noShallow;
 
     if (command[0] == "add") {
         if (command.size() < 2) {

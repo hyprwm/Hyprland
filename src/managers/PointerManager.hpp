@@ -3,8 +3,8 @@
 #include "../devices/IPointer.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
-#include "../helpers/Box.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../desktop/WLSurface.hpp"
 #include <tuple>
 
@@ -43,6 +43,8 @@ class CPointerManager {
 
     void lockSoftwareForMonitor(SP<CMonitor> pMonitor);
     void unlockSoftwareForMonitor(SP<CMonitor> pMonitor);
+    void lockSoftwareForMonitor(CMonitor* pMonitor);
+    void unlockSoftwareForMonitor(CMonitor* pMonitor);
     void lockSoftwareAll();
     void unlockSoftwareAll();
 
@@ -57,6 +59,8 @@ class CPointerManager {
     Vector2D position();
     Vector2D cursorSizeLogical();
 
+    void     recheckEnteredOutputs();
+
   private:
     void recheckPointerPosition();
     void onMonitorLayoutChange();
@@ -65,7 +69,6 @@ class CPointerManager {
     void onCursorMoved();
     bool hasCursor();
     void damageIfSoftware();
-    void recheckEnteredOutputs();
 
     // closest valid point to a given one
     Vector2D closestValid(const Vector2D& pos);

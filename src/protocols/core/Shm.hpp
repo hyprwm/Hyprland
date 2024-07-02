@@ -13,7 +13,7 @@
 #include "../WaylandProtocol.hpp"
 #include "wayland.hpp"
 #include "../types/Buffer.hpp"
-#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/math/Math.hpp"
 
 class CWLSHMPoolResource;
 

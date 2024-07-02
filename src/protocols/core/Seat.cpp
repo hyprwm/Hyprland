@@ -1,6 +1,8 @@
 #include "Seat.hpp"
 #include "Compositor.hpp"
+#include "DataDevice.hpp"
 #include "../../devices/IKeyboard.hpp"
+#include "../../devices/IHID.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include <algorithm>
@@ -98,6 +100,9 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
 
         g_pSeatManager->onSetCursor(owner.lock(), serial, surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hotX, hotY});
     });
+
+    if (g_pSeatManager->state.pointerFocus && g_pSeatManager->state.pointerFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->state.pointerFocus.lock(), {-1, -1} /* Coords don't really matter that much, they will be updated next move */);
 }
 
 bool CWLPointerResource::good() {
@@ -125,6 +130,18 @@ void CWLPointerResource::sendLeave() {
     if (!owner || !currentSurface)
         return;
 
+    // release all buttons unless we have a dnd going on in which case
+    // the events shall be lost.
+    if (!PROTO::data->dndActive()) {
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        for (auto& b : pressedButtons) {
+            sendButton(now.tv_sec * 1000 + now.tv_nsec / 1000000, b, WL_POINTER_BUTTON_STATE_RELEASED);
+        }
+    }
+
+    pressedButtons.clear();
+
     resource->sendLeave(g_pSeatManager->nextSerial(owner.lock()), currentSurface->getResource().get());
     currentSurface.reset();
     listeners.destroySurface.reset();
@@ -140,6 +157,19 @@ void CWLPointerResource::sendMotion(uint32_t timeMs, const Vector2D& local) {
 void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state) {
     if (!owner || !currentSurface)
         return;
+
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED && std::find(pressedButtons.begin(), pressedButtons.end(), button) == pressedButtons.end()) {
+        LOGM(ERR, "sendButton release on a non-pressed button");
+        return;
+    } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::find(pressedButtons.begin(), pressedButtons.end(), button) != pressedButtons.end()) {
+        LOGM(ERR, "sendButton press on a non-pressed button");
+        return;
+    }
+
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED)
+        std::erase(pressedButtons, button);
+    else if (state == WL_POINTER_BUTTON_STATE_PRESSED)
+        pressedButtons.emplace_back(button);
 
     resource->sendButton(g_pSeatManager->nextSerial(owner.lock()), timeMs, button, state);
 }
@@ -200,10 +230,16 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     resource->setRelease([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
     resource->setOnDestroy([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
 
-    static auto REPEAT = CConfigValue<Hyprlang::INT>("input:repeat_rate");
-    static auto DELAY  = CConfigValue<Hyprlang::INT>("input:repeat_delay");
+    if (!g_pSeatManager->keyboard) {
+        LOGM(ERR, "No keyboard on bound wl_keyboard??");
+        return;
+    }
+
     sendKeymap(g_pSeatManager->keyboard.lock());
-    repeatInfo(*REPEAT, *DELAY);
+    repeatInfo(g_pSeatManager->keyboard->repeatRate, g_pSeatManager->keyboard->repeatDelay);
+
+    if (g_pSeatManager->state.keyboardFocus && g_pSeatManager->state.keyboardFocus->client() == resource->client())
+        sendEnter(g_pSeatManager->state.keyboardFocus.lock());
 }
 
 bool CWLKeyboardResource::good() {
@@ -416,12 +452,18 @@ void CWLSeatProtocol::updateCapabilities(uint32_t caps) {
 }
 
 void CWLSeatProtocol::updateKeymap() {
+    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
+        return;
+
     for (auto& k : m_vKeyboards) {
         k->sendKeymap(g_pSeatManager->keyboard.lock());
     }
 }
 
 void CWLSeatProtocol::updateRepeatInfo(uint32_t rate, uint32_t delayMs) {
+    if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
+        return;
+
     for (auto& k : m_vKeyboards) {
         k->repeatInfo(rate, delayMs);
     }

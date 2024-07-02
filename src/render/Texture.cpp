@@ -9,7 +9,7 @@ CTexture::CTexture() {
 }
 
 CTexture::~CTexture() {
-    if (m_bNonOwning)
+    if (m_bNonOwning || !g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -55,7 +55,7 @@ CTexture::CTexture(wlr_texture* tex) {
     else
         m_iType = TEXTURE_EXTERNAL;
 
-    m_vSize = Vector2D(tex->width, tex->height);
+    m_vSize = Vector2D((int)tex->width, (int)tex->height);
 }
 
 CTexture::CTexture(const SDMABUFAttrs& attrs, void* image) {

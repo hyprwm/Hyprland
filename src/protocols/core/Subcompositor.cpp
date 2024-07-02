@@ -23,15 +23,29 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         if (!parent)
             return;
 
-        std::erase(parent->subsurfaces, self.lock());
+        auto pushAboveIndex = [this](int idx) -> void {
+            for (auto& c : parent->subsurfaces) {
+                if (c->zIndex >= idx)
+                    c->zIndex++;
+            }
+        };
+
+        std::erase_if(parent->subsurfaces, [this](const auto& e) { return e == self || !e; });
 
         auto it = std::find(parent->subsurfaces.begin(), parent->subsurfaces.end(), SURF);
 
         if (it == parent->subsurfaces.end()) {
-            LOGM(ERR, "Invalid surface reference in placeAbove");
-            parent->subsurfaces.emplace_back(self.lock());
-        } else
-            parent->subsurfaces.insert(it, self.lock());
+            LOGM(ERR, "Invalid surface reference in placeAbove, likely parent");
+            pushAboveIndex(1);
+            parent->subsurfaces.emplace_back(self);
+            zIndex = 1;
+        } else {
+            pushAboveIndex((*it)->zIndex);
+            zIndex = (*it)->zIndex;
+            parent->subsurfaces.emplace_back(self);
+        }
+
+        std::sort(parent->subsurfaces.begin(), parent->subsurfaces.end(), [](const auto& a, const auto& b) { return a->zIndex < b->zIndex; });
     });
 
     resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -40,15 +54,29 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         if (!parent)
             return;
 
-        std::erase(parent->subsurfaces, self.lock());
+        auto pushBelowIndex = [this](int idx) -> void {
+            for (auto& c : parent->subsurfaces) {
+                if (c->zIndex <= idx)
+                    c->zIndex--;
+            }
+        };
+
+        std::erase_if(parent->subsurfaces, [this](const auto& e) { return e == self || !e; });
 
         auto it = std::find(parent->subsurfaces.begin(), parent->subsurfaces.end(), SURF);
 
         if (it == parent->subsurfaces.end()) {
-            LOGM(ERR, "Invalid surface reference in placeBelow");
-            parent->subsurfaces.emplace_back(self.lock());
-        } else
-            parent->subsurfaces.insert(it--, self.lock());
+            LOGM(ERR, "Invalid surface reference in placeBelow, likely parent");
+            pushBelowIndex(-1);
+            parent->subsurfaces.emplace_back(self);
+            zIndex = -1;
+        } else {
+            pushBelowIndex((*it)->zIndex);
+            zIndex = (*it)->zIndex;
+            parent->subsurfaces.emplace_back(self);
+        }
+
+        std::sort(parent->subsurfaces.begin(), parent->subsurfaces.end(), [](const auto& a, const auto& b) { return a->zIndex < b->zIndex; });
     });
 
     listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {

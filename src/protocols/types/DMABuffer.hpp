@@ -4,7 +4,7 @@
 
 class CDMABuffer : public IWLBuffer {
   public:
-    CDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs_);
+    CDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs const& attrs_);
     virtual ~CDMABuffer();
 
     virtual eBufferCapability                      caps();

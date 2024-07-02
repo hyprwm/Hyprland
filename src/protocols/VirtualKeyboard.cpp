@@ -100,7 +100,7 @@ wlr_keyboard* CVirtualKeyboardV1Resource::wlr() {
 }
 
 wl_client* CVirtualKeyboardV1Resource::client() {
-    return resource->client();
+    return resource->resource() ? resource->client() : nullptr;
 }
 
 void CVirtualKeyboardV1Resource::releasePressed() {

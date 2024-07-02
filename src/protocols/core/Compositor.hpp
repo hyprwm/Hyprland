@@ -14,7 +14,7 @@
 #include "../WaylandProtocol.hpp"
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
-#include "../../helpers/Region.hpp"
+#include "../../helpers/math/Math.hpp"
 #include "../types/Buffer.hpp"
 #include "../types/SurfaceRole.hpp"
 

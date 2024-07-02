@@ -104,7 +104,7 @@ CWindow::~CWindow() {
     std::erase_if(g_pHyprOpenGL->m_mWindowFramebuffers, [&](const auto& other) { return !other.first.lock() || other.first.lock().get() == this; });
 }
 
-SWindowDecorationExtents CWindow::getFullWindowExtents() {
+SBoxExtents CWindow::getFullWindowExtents() {
     if (m_bFadingOut)
         return m_eOriginalClosedExtents;
 
@@ -116,9 +116,9 @@ SWindowDecorationExtents CWindow::getFullWindowExtents() {
                     {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
     }
 
-    SWindowDecorationExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
+    SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
 
-    const auto               EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock());
+    const auto  EXTENTS = g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock());
 
     if (EXTENTS.topLeft.x > maxExtents.topLeft.x)
         maxExtents.topLeft.x = EXTENTS.topLeft.x;
@@ -224,7 +224,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
-    SWindowDecorationExtents EXTENTS = {{0, 0}, {0, 0}};
+    SBoxExtents EXTENTS = {{0, 0}, {0, 0}};
     if (properties & RESERVED_EXTENTS)
         EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock()));
     if (properties & INPUT_EXTENTS)
@@ -242,7 +242,7 @@ CBox CWindow::getWindowMainSurfaceBox() {
     return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
 }
 
-SWindowDecorationExtents CWindow::getFullWindowReservedArea() {
+SBoxExtents CWindow::getFullWindowReservedArea() {
     return g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock());
 }
 
@@ -444,9 +444,11 @@ PHLWINDOW CWindow::X11TransientFor() {
     if (!m_pXWaylandSurface || !m_pXWaylandSurface->parent)
         return nullptr;
 
-    auto s = m_pXWaylandSurface->parent;
+    auto s         = m_pXWaylandSurface->parent;
+    auto oldParent = s;
     while (s) {
-        if (!s->parent)
+        // break cyclic loop of m_pXWaylandSurface being parent of itself, #TODO reject this from even being created?
+        if (!s->parent || s->parent == oldParent)
             break;
         s = s->parent;
     }
@@ -1539,4 +1541,59 @@ void CWindow::warpCursor() {
         g_pCompositor->warpCursorTo(m_vPosition + coords);
     else
         g_pCompositor->warpCursorTo(middle());
+}
+
+PHLWINDOW CWindow::getSwallower() {
+    static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
+    static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
+    static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
+
+    if (!*PSWALLOW || (*PSWALLOWREGEX).empty())
+        return nullptr;
+
+    // check parent
+    std::vector<PHLWINDOW> candidates;
+    pid_t                  currentPid = getPID();
+    // walk up the tree until we find someone, 25 iterations max.
+    for (size_t i = 0; i < 25; ++i) {
+        currentPid = getPPIDof(currentPid);
+
+        if (!currentPid)
+            break;
+
+        for (auto& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped || w->isHidden())
+                continue;
+
+            if (w->getPID() == currentPid)
+                candidates.push_back(w);
+        }
+    }
+
+    if (!(*PSWALLOWREGEX).empty())
+        std::erase_if(candidates, [&](const auto& other) { return !std::regex_match(other->m_szClass, std::regex(*PSWALLOWREGEX)); });
+
+    if (candidates.size() <= 0)
+        return nullptr;
+
+    if (!(*PSWALLOWEXREGEX).empty())
+        std::erase_if(candidates, [&](const auto& other) { return std::regex_match(other->m_szTitle, std::regex(*PSWALLOWEXREGEX)); });
+
+    if (candidates.size() <= 0)
+        return nullptr;
+
+    if (candidates.size() == 1)
+        return candidates.at(0);
+
+    // walk up the focus history and find the last focused
+    for (auto& w : g_pCompositor->m_vWindowFocusHistory) {
+        if (!w)
+            continue;
+
+        if (std::find(candidates.begin(), candidates.end(), w.lock()) != candidates.end())
+            return w.lock();
+    }
+
+    // if none are found (??) then just return the first one
+    return candidates.at(0);
 }

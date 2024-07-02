@@ -279,7 +279,7 @@ void CScreencopyProtocolManager::captureOutput(wl_client* client, wl_resource* r
     }
     int ow, oh;
     wlr_output_effective_resolution(PFRAME->pMonitor->output, &ow, &oh);
-    PFRAME->box.transform(PFRAME->pMonitor->transform, ow, oh).scale(PFRAME->pMonitor->scale).round();
+    PFRAME->box.transform(wlTransformToHyprutils(PFRAME->pMonitor->transform), ow, oh).scale(PFRAME->pMonitor->scale).round();
 
     PFRAME->shmStride = FormatUtils::minStride(PSHMINFO, PFRAME->box.w);
 
@@ -556,9 +556,10 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
     if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true))
         return false;
 
-    CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
-                      .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(wlr_output_transform_invert(frame->pMonitor->output->transform), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+    CBox monbox =
+        CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
+            .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+            .transform(wlTransformToHyprutils(wlr_output_transform_invert(frame->pMonitor->output->transform)), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, &monbox, 1);

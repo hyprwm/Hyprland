@@ -15,7 +15,7 @@
 #include <wayland-server-protocol.h>
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
-#include "../../helpers/Vector2D.hpp"
+#include "../../helpers/math/Math.hpp"
 #include "../types/DataDevice.hpp"
 
 class CWLDataDeviceResource;
@@ -175,6 +175,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void dropDrag();
     void completeDrag();
     void resetDndState();
+    bool wasDragSuccessful();
 
     //
     SP<CWLDataDeviceResource> dataDeviceForClient(wl_client*);

@@ -58,7 +58,8 @@ class CPluginManager {
 
     bool                   hasDeps();
 
-    bool                   m_bVerbose = false;
+    bool                   m_bVerbose   = false;
+    bool                   m_bNoShallow = false;
 
     // will delete recursively if exists!!
     bool createSafeDirectory(const std::string& path);

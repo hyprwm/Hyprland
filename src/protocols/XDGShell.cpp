@@ -136,10 +136,12 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         wl_array_release(&arr);
     }
 
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_LEFT);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_RIGHT);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_TOP);
-    pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_BOTTOM);
+    if (resource->version() >= 2) {
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_LEFT);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_RIGHT);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_TOP);
+        pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_BOTTOM);
+    }
 
     resource->setSetTitle([this](CXdgToplevel* r, const char* t) {
         state.title = t;
@@ -261,6 +263,9 @@ uint32_t CXDGToplevelResource::setActive(bool active) {
 }
 
 uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
+    if (resource->version() < 6)
+        return owner->scheduleConfigure(); // SUSPENDED is since 6
+
     bool set = std::find(pendingApply.states.begin(), pendingApply.states.end(), XDG_TOPLEVEL_STATE_SUSPENDED) != pendingApply.states.end();
 
     if (sus == set)
@@ -507,15 +512,15 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
     state = positioner->state;
 }
 
-static Vector2D pointForAnchor(const CBox& box, xdgPositionerAnchor anchor) {
+static Vector2D pointForAnchor(const CBox& box, const Vector2D& predictionSize, xdgPositionerAnchor anchor) {
     switch (anchor) {
-        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.F, 0};
-        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.F, box.size().y};
-        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0, box.size().y / 2.F};
-        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F};
+        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, 0.0};
+        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, box.size().y};
+        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0.0, box.size().y / 2.0 - predictionSize.y / 2.0};
+        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F - predictionSize.y / 2.0};
         case XDG_POSITIONER_ANCHOR_TOP_LEFT: return box.pos();
-        case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0, box.size().y};
-        case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0};
+        case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0.0, box.size().y};
+        case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0.0};
         case XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y};
         default: return box.pos();
     }
@@ -527,36 +532,39 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
 
     Debug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
 
-    CBox predictedBox = {parentCoord + constraint.pos() + pointForAnchor(state.anchorRect, state.anchor) + state.offset, state.requestedSize};
+    CBox predictedBox = {parentCoord + constraint.pos() + pointForAnchor(state.anchorRect, state.requestedSize, state.anchor) + state.offset, state.requestedSize};
 
     bool success = predictedBox.inside(constraint);
 
     if (success)
         return predictedBox.translate(-parentCoord - constraint.pos());
 
+    CBox test = predictedBox;
+
     if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
         // attempt to flip
-        const bool flipX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
-        const bool flipY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
+        const bool flipX      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
+        const bool flipY      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
+        auto       countEdges = [constraint](const CBox& test) -> int {
+            int edgeCount = 0;
+            edgeCount += test.x < constraint.x ? 1 : 0;
+            edgeCount += test.x + test.w > constraint.x + constraint.w ? 1 : 0;
+            edgeCount += test.y < constraint.y ? 1 : 0;
+            edgeCount += test.y + test.h > constraint.y + constraint.h ? 1 : 0;
+            return edgeCount;
+        };
+        int edgeCount = countEdges(test);
 
-        CBox       test = predictedBox;
-        success         = true;
-        if (flipX && test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0}).expand(-1).inside(constraint))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0});
-        else if (flipY && test.copy().translate(Vector2D{0, -predictedBox.h - state.anchorRect.h}).expand(-1).inside(constraint))
-            test.translate(Vector2D{0, -predictedBox.h - state.anchorRect.h});
-        else if (flipX && flipY && test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h}).expand(-1).inside(constraint))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, -predictedBox.h - state.anchorRect.h});
-        else
-            success = false;
+        if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0})))
+            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0});
+        if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h})))
+            test.translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h});
+
+        success = test.copy().expand(-1).inside(constraint);
 
         if (success)
             return test.translate(-parentCoord - constraint.pos());
     }
-
-    // if flips fail, we will slide and remember.
-    // if the positioner is allowed to resize, then resize the slid thing.
-    CBox test = predictedBox;
 
     // for slide and resize, defines the padding around the edge for the positioned
     // surface.
@@ -570,10 +578,10 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         //const bool gravityLeft = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_BOTTOM_LEFT;
         //const bool gravityTop = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_TOP || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_RIGHT;
 
-        const bool leftEdgeOut   = predictedBox.x < constraint.x;
-        const bool topEdgeOut    = predictedBox.y < constraint.y;
-        const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
+        const bool leftEdgeOut   = test.x < constraint.x;
+        const bool topEdgeOut    = test.y < constraint.y;
+        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
+        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
 
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && slideX)
@@ -595,10 +603,10 @@ CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& pa
         const bool resizeX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X;
         const bool resizeY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y;
 
-        const bool leftEdgeOut   = predictedBox.x < constraint.x;
-        const bool topEdgeOut    = predictedBox.y < constraint.y;
-        const bool rightEdgeOut  = predictedBox.x + predictedBox.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = predictedBox.y + predictedBox.h > constraint.y + constraint.h;
+        const bool leftEdgeOut   = test.x < constraint.x;
+        const bool topEdgeOut    = test.y < constraint.y;
+        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
+        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
 
         // TODO: this isn't truly conformant.
         if (leftEdgeOut && resizeX) {

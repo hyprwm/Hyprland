@@ -428,9 +428,9 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             if (m_eGrabbedCorner == CORNER_TOPLEFT)
                 newPos = newPos - newSize + m_vBeginDragSizeXY;
             else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
-                newPos = newPos + Vector2D(0, (m_vBeginDragSizeXY - newSize).y);
+                newPos = newPos + Vector2D(0.0, (m_vBeginDragSizeXY - newSize).y);
             else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
-                newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0);
+                newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0);
 
             CBox wb = {newPos, newSize};
             wb.round();

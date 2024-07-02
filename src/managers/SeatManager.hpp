@@ -5,7 +5,7 @@
 #include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../protocols/types/DataDevice.hpp"
 #include <vector>
 

@@ -30,14 +30,25 @@ void Events::listener_RendererDestroy(wl_listener* listener, void* data) {
 }
 
 void Events::listener_sessionActive(wl_listener* listener, void* data) {
-    Debug::log(LOG, "Session got activated!");
+    if (g_pCompositor->m_sWLRSession->active) {
+        Debug::log(LOG, "Session got activated!");
 
-    g_pCompositor->m_bSessionActive = true;
+        g_pCompositor->m_bSessionActive = true;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        g_pCompositor->scheduleFrameForMonitor(m.get());
-        g_pHyprRenderer->applyMonitorRule(m.get(), &m->activeMonitorRule, true);
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            g_pCompositor->scheduleFrameForMonitor(m.get());
+            g_pHyprRenderer->applyMonitorRule(m.get(), &m->activeMonitorRule, true);
+        }
+
+        g_pConfigManager->m_bWantsMonitorReload = true;
+    } else {
+        Debug::log(LOG, "Session got inactivated!");
+
+        g_pCompositor->m_bSessionActive = false;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            m->noFrameSchedule = true;
+            m->framesToSkip    = 1;
+        }
     }
-
-    g_pConfigManager->m_bWantsMonitorReload = true;
 }

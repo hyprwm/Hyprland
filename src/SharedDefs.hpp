@@ -1,7 +1,11 @@
 #pragma once
 
-#include "helpers/Vector2D.hpp"
+#include "helpers/math/Math.hpp"
 #include <functional>
+#include <any>
+#include <hyprutils/math/Box.hpp>
+
+using namespace Hyprutils::Math;
 
 enum eIcons {
     ICON_WARNING = 0,
@@ -35,29 +39,6 @@ enum eInputType {
 
 struct SCallbackInfo {
     bool cancelled = false; /* on cancellable events, will cancel the event. */
-};
-
-struct SWindowDecorationExtents {
-    Vector2D topLeft;
-    Vector2D bottomRight;
-
-    //
-    SWindowDecorationExtents operator*(const double& scale) const {
-        return SWindowDecorationExtents{topLeft * scale, bottomRight * scale};
-    }
-
-    SWindowDecorationExtents round() {
-        return {topLeft.round(), bottomRight.round()};
-    }
-
-    bool operator==(const SWindowDecorationExtents& other) const {
-        return topLeft == other.topLeft && bottomRight == other.bottomRight;
-    }
-
-    void addExtents(const SWindowDecorationExtents& other) {
-        topLeft     = topLeft.getComponentMax(other.topLeft);
-        bottomRight = bottomRight.getComponentMax(other.bottomRight);
-    }
 };
 
 enum eHyprCtlOutputFormat {

@@ -29,6 +29,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <any>
 #include <functional>
 #include <string>
+#include <hyprlang.hpp>
 
 typedef struct {
     std::string name;

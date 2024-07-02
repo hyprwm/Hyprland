@@ -143,6 +143,9 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
         ti->leave();
     }
 
+    if (!pSurface)
+        return;
+
     for (auto& ti : m_vTextInputs) {
         if (!ti->isV3())
             continue;

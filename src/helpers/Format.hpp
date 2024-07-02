@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "Vector2D.hpp"
+#include "math/Math.hpp"
 
 typedef uint32_t DRMFormat;
 typedef uint32_t SHMFormat;

@@ -187,7 +187,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (*PZOOMFACTOR != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0)
+    bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+
+    if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && PMONITOR->output->software_cursor_locks > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR);
 
     PHLWINDOW forcedFocus = m_pForcedFocus.lock();
@@ -370,7 +372,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
         foundSurface =
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0)
+    if (g_pCompositor->m_pLastMonitor->output->software_cursor_locks > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
 
     // grabs
@@ -796,7 +798,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
             }
         }
     }
-    double deltaDiscrete = factor * e.deltaDiscrete / std::abs(e.deltaDiscrete);
+    double deltaDiscrete = (e.deltaDiscrete != 0) ? (factor * e.deltaDiscrete / std::abs(e.deltaDiscrete)) : 0;
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, deltaDiscrete > 0 ? std::ceil(deltaDiscrete) : std::floor(deltaDiscrete),
                                     std::round(factor * e.deltaDiscrete), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
@@ -1471,14 +1473,7 @@ void CInputManager::updateCapabilities() {
         if (h.expired())
             continue;
 
-        auto cap = h->getCapabilities();
-
-        if (cap & HID_INPUT_CAPABILITY_KEYBOARD)
-            caps |= WL_SEAT_CAPABILITY_KEYBOARD;
-        if (cap & HID_INPUT_CAPABILITY_POINTER)
-            caps |= WL_SEAT_CAPABILITY_POINTER;
-        if (cap & HID_INPUT_CAPABILITY_TOUCH)
-            caps |= WL_SEAT_CAPABILITY_TOUCH;
+        caps |= h->getCapabilities();
     }
 
     g_pSeatManager->updateCapabilities(caps);

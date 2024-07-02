@@ -431,8 +431,9 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("master:special_scale_factor", {1.f});
     m_pConfig->addConfigValue("master:mfact", {0.55f});
-    m_pConfig->addConfigValue("master:new_is_master", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("master:new_status", {"slave"});
     m_pConfig->addConfigValue("master:always_center_master", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("master:new_on_active", {"none"});
     m_pConfig->addConfigValue("master:new_on_top", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:no_gaps_when_only", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:orientation", {"left"});
@@ -522,10 +523,13 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{2});
 
     m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
+    m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:inactive_timeout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:no_warps", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:persistent_warps", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:warp_on_change_workspace", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:default_monitor", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("cursor:zoom_factor", {1.f});
     m_pConfig->addConfigValue("cursor:zoom_rigid", Hyprlang::INT{0});
@@ -978,7 +982,8 @@ float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& 
 }
 
 Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string& v, const std::string& fallback) {
-    return std::any_cast<Hyprlang::VEC2>(getConfigValueSafeDevice(dev, v, fallback)->getValue());
+    auto vec = std::any_cast<Hyprlang::VEC2>(getConfigValueSafeDevice(dev, v, fallback)->getValue());
+    return {vec.x, vec.y};
 }
 
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback) {
@@ -1277,10 +1282,10 @@ void CConfigManager::dispatchExecOnce() {
     if (g_pCompositor->m_sWLRSession)
         handleRawExec("",
 #ifdef USES_SYSTEMD
-                      "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME && hash "
+                      "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
                       "dbus-update-activation-environment 2>/dev/null && "
 #endif
-                      "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME");
+                      "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS");
 
     firstExecDispatched = true;
 
@@ -1810,14 +1815,13 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.vrr = std::stoi(ARGS[argno + 1]);
             argno++;
         } else if (ARGS[argno] == "workspace") {
-            std::string    name = "";
-            int            wsId = getWorkspaceIDFromString(ARGS[argno + 1], name);
+            const auto& [id, name] = getWorkspaceIDNameFromString(ARGS[argno + 1]);
 
             SWorkspaceRule wsRule;
             wsRule.monitor         = newrule.name;
             wsRule.workspaceString = ARGS[argno + 1];
+            wsRule.workspaceId     = id;
             wsRule.workspaceName   = name;
-            wsRule.workspaceId     = wsId;
 
             m_dWorkspaceRules.emplace_back(wsRule);
             argno++;
@@ -2365,11 +2369,11 @@ std::optional<std::string> CConfigManager::handleBlurLS(const std::string& comma
 
 std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::string& command, const std::string& value) {
     // This can either be the monitor or the workspace identifier
-    const auto     FIRST_DELIM = value.find_first_of(',');
+    const auto FIRST_DELIM = value.find_first_of(',');
 
-    std::string    name        = "";
-    auto           first_ident = trim(value.substr(0, FIRST_DELIM));
-    int            id          = getWorkspaceIDFromString(first_ident, name);
+    auto       first_ident = trim(value.substr(0, FIRST_DELIM));
+
+    const auto& [id, name] = getWorkspaceIDNameFromString(first_ident);
 
     auto           rules = value.substr(FIRST_DELIM + 1);
     SWorkspaceRule wsRule;

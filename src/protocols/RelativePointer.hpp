@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "relative-pointer-unstable-v1.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 
 class CRelativePointer {
   public:

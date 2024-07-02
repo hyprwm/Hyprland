@@ -4,7 +4,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../helpers/Color.hpp"
 #include "../helpers/Timer.hpp"
-#include "../helpers/Region.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
 #include <list>
 #include <unordered_map>
@@ -238,7 +238,9 @@ class CHyprOpenGLImpl {
     void                    createBGTextureForMonitor(CMonitor*);
     void                    initShaders();
     void                    initDRMFormats();
-    std::vector<uint64_t>   getModsForFormat(EGLint format);
+
+    //
+    std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);

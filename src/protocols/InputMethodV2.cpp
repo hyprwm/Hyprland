@@ -81,7 +81,7 @@ SP<CInputMethodV2> CInputMethodKeyboardGrabV2::getOwner() {
 }
 
 wl_client* CInputMethodKeyboardGrabV2::client() {
-    return resource->client();
+    return resource->resource() ? resource->client() : nullptr;
 }
 
 CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, SP<CInputMethodV2> owner_, SP<CWLSurfaceResource> surface) : resource(resource_), owner(owner_) {

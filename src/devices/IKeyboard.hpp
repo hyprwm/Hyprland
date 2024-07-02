@@ -3,7 +3,7 @@
 #include "IHID.hpp"
 #include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
-#include "../helpers/Vector2D.hpp"
+#include "../helpers/math/Math.hpp"
 
 #include <xkbcommon/xkbcommon.h>
 

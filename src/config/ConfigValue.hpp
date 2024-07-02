@@ -11,7 +11,7 @@ template <typename T>
 class CConfigValue {
   public:
     CConfigValue(const std::string& val) {
-        const auto PVHYPRLANG = g_pConfigManager->getHyprlangConfigValuePtr(val.c_str());
+        const auto PVHYPRLANG = g_pConfigManager->getHyprlangConfigValuePtr(val);
 
         p_ = PVHYPRLANG->getDataStaticPtr();
 

@@ -11,6 +11,7 @@
 #include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <sys/poll.h>
 
 #include <sstream>
 #include <string>
@@ -28,6 +29,7 @@ using namespace Hyprutils::String;
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
+#include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
 
@@ -214,6 +216,7 @@ std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
         "name": "{}"
     }},
     "floating": {},
+    "pseudo": {},
     "monitor": {},
     "class": "{}",
     "title": "{}",
@@ -232,22 +235,22 @@ std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 }},)#",
             (uintptr_t)w.get(), (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
             (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
-            escapeJSONStrings(!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), ((int)w->m_bIsFloating == 1 ? "true" : "false"), (int64_t)w->m_iMonitorID,
-            escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass), escapeJSONStrings(w->m_szInitialTitle), w->getPID(),
-            ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"), (w->m_bIsFullscreen ? "true" : "false"),
-            (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0), w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format),
-            getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            escapeJSONStrings(!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), ((int)w->m_bIsFloating == 1 ? "true" : "false"), (w->m_bIsPseudotiled ? "true" : "false"),
+            (int64_t)w->m_iMonitorID, escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass),
+            escapeJSONStrings(w->m_szInitialTitle), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
+            (w->m_bIsFullscreen ? "true" : "false"), (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
+            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     } else {
-        return std::format("Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
-                           "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
-                           "{}\n\txwayland: {}\n\tpinned: "
-                           "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
-                           (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
-                           (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
-                           (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), (int)w->m_bIsFloating, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass,
-                           w->m_szInitialTitle, w->getPID(), (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen,
-                           (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0), (int)w->m_bFakeFullscreenState, getGroupedData(w, format),
-                           getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+        return std::format(
+            "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
+            "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
+            "{}\n\txwayland: {}\n\tpinned: "
+            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+            (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
+            (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName),
+            (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
+            (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen, (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
+            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     }
 }
 
@@ -915,7 +918,10 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
-    result += "GPU information: \n" + GPUINFO + "\n\n";
+    result += "GPU information: \n" + GPUINFO;
+    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
+        result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
+    result += "\n\n";
 
     result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
 
@@ -1738,6 +1744,46 @@ std::string CHyprCtl::makeDynamicCall(const std::string& input) {
     return getReply(input);
 }
 
+bool successWrite(int fd, const std::string& data, bool needLog = true) {
+    if (write(fd, data.c_str(), data.length()) > 0)
+        return true;
+
+    if (errno == EAGAIN)
+        return true;
+
+    if (needLog)
+        Debug::log(ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
+
+    return false;
+}
+
+void runWritingDebugLogThread(const int conn) {
+    using namespace std::chrono_literals;
+    Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
+    //will be finished, when reading side close connection
+    std::thread([conn]() {
+        while (Debug::RollingLogFollow::Get().IsRunning()) {
+            if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
+                std::this_thread::sleep_for(1000ms);
+                continue;
+            }
+
+            auto line = Debug::RollingLogFollow::Get().GetLog(conn);
+            if (!successWrite(conn, line))
+                // We cannot write, when connection is closed. So thread will successfully exit by itself
+                break;
+
+            std::this_thread::sleep_for(100ms);
+        }
+        close(conn);
+        Debug::RollingLogFollow::Get().StopFor(conn);
+    }).detach();
+}
+
+bool isFollowUpRollingLogRequest(const std::string& request) {
+    return request.contains("rollinglog") && request.contains("f");
+}
+
 int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
@@ -1749,13 +1795,17 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     std::array<char, 1024> readBuffer;
 
-    fd_set                 fdset;
-    FD_ZERO(&fdset);
-    FD_SET(ACCEPTEDCONNECTION, &fdset);
-    timeval timeout = {.tv_sec = 0, .tv_usec = 5000};
-    auto    success = select(ACCEPTEDCONNECTION + 1, &fdset, nullptr, nullptr, &timeout);
+    //
+    pollfd pollfds[1] = {
+        {
+            .fd     = ACCEPTEDCONNECTION,
+            .events = POLLIN,
+        },
+    };
 
-    if (success <= 0) {
+    int ret = poll(pollfds, 1, 5000);
+
+    if (ret <= 0) {
         close(ACCEPTEDCONNECTION);
         return 0;
     }
@@ -1781,9 +1831,15 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         reply = "Err: " + std::string(e.what());
     }
 
-    write(ACCEPTEDCONNECTION, reply.c_str(), reply.length());
+    successWrite(ACCEPTEDCONNECTION, reply);
 
-    close(ACCEPTEDCONNECTION);
+    if (isFollowUpRollingLogRequest(request)) {
+        Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
+        Debug::RollingLogFollow::Get().StartFor(ACCEPTEDCONNECTION);
+        runWritingDebugLogThread(ACCEPTEDCONNECTION);
+        Debug::log(LOG, Debug::RollingLogFollow::Get().DebugInfo());
+    } else
+        close(ACCEPTEDCONNECTION);
 
     if (g_pConfigManager->m_bWantsMonitorReload)
         g_pConfigManager->ensureMonitorStatus();

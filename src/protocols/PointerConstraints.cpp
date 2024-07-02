@@ -7,8 +7,8 @@
 
 #define LOGM PROTO::constraints->protoLog
 
-CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
-    resourceL(resource_), locked(true) {
+CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
+    resourceL(resource_), locked(true), lifetime(lifetime_) {
     if (!resource_->resource())
         return;
 
@@ -46,8 +46,8 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
     sharedConstructions();
 }
 
-CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime) :
-    resourceC(resource_), locked(false) {
+CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
+    resourceC(resource_), locked(false), lifetime(lifetime_) {
     if (!resource_->resource())
         return;
 
@@ -165,8 +165,15 @@ SP<CWLSurface> CPointerConstraint::owner() {
 }
 
 CRegion CPointerConstraint::logicConstraintRegion() {
-    CRegion    rg            = region;
-    const auto SURFBOX       = pHLSurface->getSurfaceBoxGlobal();
+    CRegion    rg      = region;
+    const auto SURFBOX = pHLSurface->getSurfaceBoxGlobal();
+
+    // if region wasn't set in pointer-constraints request take surface region
+    if (rg.empty() && SURFBOX.has_value()) {
+        rg.set(SURFBOX.value());
+        return rg;
+    }
+
     const auto CONSTRAINTPOS = SURFBOX.has_value() ? SURFBOX->pos() : Vector2D{};
     rg.translate(CONSTRAINTPOS);
     return rg;

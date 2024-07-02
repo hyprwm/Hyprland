@@ -29,8 +29,8 @@ class CHyprCtl {
     wl_event_source*                 m_eventSource = nullptr;
 };
 
-std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
-std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
-std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+std::string                      getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
+std::string                      getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
+std::string                      getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
 
 inline std::unique_ptr<CHyprCtl> g_pHyprCtl;

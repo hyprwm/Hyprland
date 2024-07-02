@@ -452,34 +452,31 @@ int main(int argc, char** argv) {
         batchRequest(fullRequest, json);
     else if (fullRequest.contains("/hyprpaper"))
         exitStatus = requestHyprpaper(fullRequest);
-    else if (fullRequest.contains("/switchxkblayout"))
-        exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/seterror"))
-        exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/setprop"))
-        exitStatus = request(fullRequest, 3);
-    else if (fullRequest.contains("/plugin"))
-        exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/dismissnotify"))
-        exitStatus = request(fullRequest, 0);
-    else if (fullRequest.contains("/notify"))
-        exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/output"))
-        exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/setcursor"))
-        exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/dispatch"))
-        exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/keyword"))
-        exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/decorations"))
-        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
     else if (fullRequest.contains("/rollinglog") && needRoll)
         exitStatus = request(fullRequest, 0, true);
     else {
-        exitStatus = request(fullRequest);
+        exitStatus = [&]() -> int{
+            std::map<std::string,int> commands = {
+                {"/switchxkblayout", 2},
+                {"/seterror", 1},
+                {"/setprop", 3},
+                {"/plugin", 1},
+                {"/dismissnotify", 0},
+                {"/notify", 2},
+                {"/output", 2},
+                {"/setcursor", 1},
+                {"/dispatch", 1},
+                {"/keyword", 2},
+                {"/decorations", 1}
+            };
+            for (const auto& [cmd, minArgs] : commands) {
+                if(fullRequest.contains(cmd))
+                    return request(fullRequest, minArgs);
+            }
+            return request(fullRequest);
+        }();
     }
 
     std::cout << std::flush;

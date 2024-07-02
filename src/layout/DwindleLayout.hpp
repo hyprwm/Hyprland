@@ -71,8 +71,8 @@ class CHyprDwindleLayout : public IHyprLayout {
     struct {
         bool started = false;
         bool pseudo  = false;
-        bool xExtent = false;
-        bool yExtent = false;
+        int  xExtent = 0;
+        int  yExtent = 0;
     } m_PseudoDragFlags;
 
     std::optional<Vector2D> m_vOverrideFocalPoint; // for onWindowCreatedTiling.

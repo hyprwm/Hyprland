@@ -7,6 +7,15 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "debug/Log.hpp"
+#include "managers/input/InputManager.hpp"
+#include <algorithm>
+#include <bitset>
+#include <cstdint>
+#include <hyprlang.hpp>
+#include <hyprutils/math/Box.hpp>
+#include <hyprutils/math/Vector2D.hpp>
+#include <string>
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     if (pWindow->m_bIsFloating) {
@@ -176,6 +185,159 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goal();
         pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
+
+    // additional hitbox area to be added to floating windows
+    static auto b = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto r = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+    static auto e = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+    const CBox  h = {-(*b + *e * (*r != 0)), -(*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0))};
+
+    pWindow->m_vPosition = pWindow->m_vRealPosition.goal() + h.pos();
+    pWindow->m_vSize     = pWindow->m_vRealSize.goal() + h.size();
+}
+
+int IHyprLayout::getWindowRegion(Vector2D cursor, CBox window, CBox edge, bool raw) {
+
+    // explode if point isn't in rectangle
+    if (!window.containsPoint(cursor))
+        return 255;
+
+    // middle rectangle of the window with the edges cut off
+    const CBox  middle = {window.x + edge.x, window.y + edge.y, window.w - (edge.x + edge.w), window.h - (edge.y + edge.h)};
+
+    std::string b1 = std::to_string(window.x - middle.x);
+    std::string b2 = std::to_string(window.y - middle.y);
+    std::string b3 = std::to_string(window.w - middle.w);
+    std::string b4 = std::to_string(window.h - middle.h);
+
+    // Debug::log(WARN, "DIFF: {} {} -- {} {}", b1, b2, b3, b4);
+
+    std::string s1 = std::to_string(window.x);
+    std::string s2 = std::to_string(window.y);
+    std::string s3 = std::to_string(window.w);
+    std::string s4 = std::to_string(window.h);
+    std::string s5 = std::to_string(middle.x);
+    std::string s6 = std::to_string(middle.y);
+    std::string s7 = std::to_string(middle.w);
+    std::string s8 = std::to_string(middle.h);
+    std::string s9 = std::to_string(cursor.x);
+    std::string s0 = std::to_string(cursor.y);
+
+    // Debug::log(WARN, "Window: {} {} -- {} {}", s1,s2,s3,s4);
+    // Debug::log(WARN, "Edge: {} {} -- {} {}", edge.x, edge.y, edge.w, edge.h);
+    // Debug::log(WARN, "Middle: {} {} -- {} {}", s5,s6,s7,s8);
+    // Debug::log(WARN, "Mouse: {} {}", s9,s0);
+
+    // Bit meanings from left to right:
+    // 10000000 is in bottom half
+    // 01000000 is in right half
+    // 00110000 is in left/right edge (exclusive)
+    // 00001100 is in top/bottom edge (exclusive)
+    // 00000010 is in bottom left half ([\] diagonal split)
+    // 00000001 is in bottom right half ([/] diagonal split)
+    uint8_t BITTALLY = 0;
+
+    // cardinals
+    if (cursor.x > window.x + window.w / 2.0)
+        BITTALLY |= 1 << 7;
+    if (cursor.y > window.y + window.h / 2.0)
+        BITTALLY |= 1 << 6;
+
+    if (edge != 0) {
+        // left edge
+        if (cursor.x < middle.x)
+            BITTALLY |= 1 << 5;
+        // right edge
+        if (cursor.x > middle.x + middle.w)
+            BITTALLY |= 1 << 4;
+        // top edge
+        if (cursor.y < middle.y)
+            BITTALLY |= 1 << 3;
+        // bottom edge
+        if (cursor.y > middle.y + middle.h)
+            BITTALLY |= 1 << 2;
+    }
+
+    // look at bits 2 through 5 for edges to check the diagonal(s) where necessary
+    // divide by zero :trollface:
+    switch (BITTALLY & 0b00111100) {
+        case 0b00101000: // top left corner -> check [\] diagonal
+            if ((cursor.y - middle.y) / (cursor.x - middle.x) < (edge.y / edge.x))
+                BITTALLY |= 1 << 1;
+            break;
+        case 0b00001000: // top edge only -> none
+            break;
+        case 0b00011000: // top right corner -> check diagonal
+            if ((cursor.y - middle.y) / (cursor.x - (middle.x + middle.w)) > (-edge.y / edge.w))
+                BITTALLY |= 1 << 0;
+            break;
+        case 0b00010000: // right edge only == [/] diagonal
+            BITTALLY |= 1 << 0;
+            break;
+        case 0b00010100: // bottom right corner -> [/] diagonal + check [\] diagonal
+            if ((cursor.y - (middle.y + middle.h)) / (cursor.x - (middle.x + middle.w)) > (edge.h / edge.w))
+                BITTALLY |= 0b00000011;
+            else
+                BITTALLY |= 0b00000001;
+            break;
+        case 0b00000100: // bottom edge only == [/] + [\] diagonals
+            BITTALLY |= 0b00000011;
+            break;
+        case 0b00100100: // bottom left corner -> [\] diagonal + check [/] diagonal
+            if ((cursor.y - (middle.y + middle.h)) / (cursor.x - middle.x) < (edge.h / -edge.x))
+                BITTALLY |= 0b00000011;
+            else
+                BITTALLY |= 0b00000010;
+            break;
+        case 0b00100000: // left edge only == [\] diagonal
+            BITTALLY |= 1 << 1;
+            break;
+        default: // catch-all for central rectangle and edge == 0
+            if ((cursor.y - middle.y) / (cursor.x - middle.x) > middle.h / middle.w)
+                BITTALLY |= 1 << 1;
+            if ((cursor.y - (middle.y + middle.h)) / (cursor.x - middle.x) > -1 * middle.h / middle.w)
+                BITTALLY |= 1 << 0;
+            break;
+    }
+
+    std::bitset<8> funny = BITTALLY;
+    Debug::log(WARN, "{}", funny.to_string());
+
+    if (!raw)
+        switch (BITTALLY) {
+            // ordered clockwise starting and ending at top left quadrant
+            // center 8 'tiles' (no edges)
+            case 0b00000000: return 0;
+            case 0b10000000: return 1;
+            case 0b10000001: return 2;
+            case 0b11000001: return 3;
+            case 0b11000011: return 4;
+            case 0b01000011: return 5;
+            case 0b01000010: return 6;
+            case 0b00000010: return 7;
+            // edge 8 'tiles' (1 edge)
+            case 0b00001000: return 8;
+            case 0b10001000: return 9;
+            case 0b10010001: return 10;
+            case 0b11010001: return 11;
+            case 0b11000111: return 12;
+            case 0b01000111: return 13;
+            case 0b01100010: return 14;
+            case 0b00100010: return 15;
+            // corner 8 'tiles' (2 edges)
+            case 0b00101000: return 16;
+            case 0b10011000: return 17;
+            case 0b10011001: return 18;
+            case 0b11010101: return 19;
+            case 0b11010111: return 20;
+            case 0b01100111: return 21;
+            case 0b01100110: return 22;
+            case 0b00101010: return 23;
+            // oopsie
+            default: Debug::log(WARN, "No window region matching table."); return 0;
+        }
+
+    return BITTALLY;
 }
 
 void IHyprLayout::onBeginDragWindow() {
@@ -222,10 +384,26 @@ void IHyprLayout::onBeginDragWindow() {
     m_vBeginDragXY         = g_pInputManager->getMouseCoordsInternal();
     m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.goal();
     m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize.goal();
+    m_vBeginDragFullPosXY  = DRAGGINGWINDOW->m_vPosition;
+    m_vBeginDragFullSizeXY = DRAGGINGWINDOW->m_vSize;
     m_vLastDragXY          = m_vBeginDragXY;
 
-    // get the grab corner
-    static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
+    std::string s1 = std::to_string(m_vBeginDragPositionXY.x);
+    std::string s2 = std::to_string(m_vBeginDragPositionXY.y);
+    std::string s3 = std::to_string(m_vBeginDragSizeXY.x);
+    std::string s4 = std::to_string(m_vBeginDragSizeXY.y);
+    std::string s5 = std::to_string(m_vBeginDragFullPosXY.x);
+    std::string s6 = std::to_string(m_vBeginDragFullPosXY.y);
+    std::string s7 = std::to_string(m_vBeginDragFullSizeXY.x);
+    std::string s8 = std::to_string(m_vBeginDragFullSizeXY.y);
+
+    Debug::log(WARN, "Real: {}, {} -- {}, {}", s1, s2, s3, s4);
+    Debug::log(WARN, "Full: {}, {} -- {}, {}", s5, s6, s7, s8);
+
+    static auto RESIZECORNER  = CConfigValue<Hyprlang::INT>("general:resize_corner");
+    static auto EDGEDEPTH     = CConfigValue<Hyprlang::FLOAT>("general:edge_depth");
+    static auto RESIZEPATTERN = CConfigValue<Hyprlang::INT>("general:resize_mouse_bind_pattern");
+
     if (*RESIZECORNER != 0 && *RESIZECORNER <= 4 && DRAGGINGWINDOW->m_bIsFloating) {
         switch (*RESIZECORNER) {
             case 1:
@@ -245,22 +423,72 @@ void IHyprLayout::onBeginDragWindow() {
                 g_pInputManager->setCursorImageUntilUnset("sw-resize");
                 break;
         }
-    } else if (m_vBeginDragXY.x < m_vBeginDragPositionXY.x + m_vBeginDragSizeXY.x / 2.0) {
-        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0) {
-            m_eGrabbedCorner = CORNER_TOPLEFT;
-            g_pInputManager->setCursorImageUntilUnset("nw-resize");
-        } else {
-            m_eGrabbedCorner = CORNER_BOTTOMLEFT;
-            g_pInputManager->setCursorImageUntilUnset("sw-resize");
-        }
     } else {
-        if (m_vBeginDragXY.y < m_vBeginDragPositionXY.y + m_vBeginDragSizeXY.y / 2.0) {
-            m_eGrabbedCorner = CORNER_TOPRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("ne-resize");
-        } else {
-            m_eGrabbedCorner = CORNER_BOTTOMRIGHT;
-            g_pInputManager->setCursorImageUntilUnset("se-resize");
+
+        CBox window = {m_vBeginDragFullPosXY, m_vBeginDragFullSizeXY};
+        CBox edge;
+
+        if (DRAGGINGWINDOW->m_bIsPseudotiled) {
+            static auto b = CConfigValue<Hyprlang::INT>("general:border_size");
+            static auto r = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+            static auto e = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+            const CBox  h = {-(*b + *e * (*r != 0)), -(*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0))};
+            const CBox  p = {m_vBeginDragPositionXY + h.pos(), m_vBeginDragSizeXY + h.size()};
+            if (p.containsPoint(m_vBeginDragXY))
+                window = p;
         }
+
+        if (*EDGEDEPTH <= 0)
+            edge = 0;
+        else if (*EDGEDEPTH < 1)
+            edge = window.h > window.w ? window.w / 2 * *EDGEDEPTH : window.h / 2 * *EDGEDEPTH;
+        else
+            edge = std::clamp((int)*EDGEDEPTH, 1, window.h > window.w ? (int)window.w / 2 : (int)window.h / 2);
+
+        // get grabbed corner/edge
+        const uint8_t     region      = getWindowRegion(m_vBeginDragXY, window, edge);
+        const std::string direction[] = {"move", "nw-resize", "ne-resize", "se-resize", "sw-resize", "n-resize", "e-resize", "s-resize", "w-resize"};
+        // clang-format off
+
+        // pattern definitions
+        // a pattern can contain values 0 through 8 to match the valid values of eRectCorner
+        // for ease of reading, the patterns are broken up into groups of 8 values (center, edge, corner)
+        std::vector<int> pattern = {1, 2, 2, 3, 3, 4, 4, 1,
+                                    1, 2, 2, 3, 3, 4, 4, 1,
+                                    1, 2, 2, 3, 3, 4, 4, 1};
+
+        switch ((int)*RESIZEPATTERN) {
+            case 1: // window pattern: edges & corners = cardinal, center = diagonal
+                pattern = {1, 2, 2, 3, 3, 4, 4, 1,
+                           5, 5, 6, 6, 7, 7, 8, 8,
+                           5, 5, 6, 6, 7, 7, 8, 8};
+                break;
+            case 2: // chess pattern: edges = cardinal, corners & center = diagonal
+                pattern = {1, 2, 2, 3, 3, 4, 4, 1,
+                           5, 5, 6, 6, 7, 7, 8, 8,
+                           1, 2, 2, 3, 3, 4, 4, 1};
+                break;
+            case 3: // cross pattern: center & edges = cardinal, corners = diagonal
+                pattern = {5, 5, 6, 6, 7, 7, 8, 8,
+                           5, 5, 6, 6, 7, 7, 8, 8,
+                           1, 2, 2, 3, 3, 4, 4, 1};
+                break;
+            case 4: // cardinal only
+                pattern = {5, 5, 6, 6, 7, 7, 8, 8,
+                           5, 5, 6, 6, 7, 7, 8, 8,
+                           5, 5, 6, 6, 7, 7, 8, 8};
+                break;
+            case 420: // having a trip
+                for (std::size_t i = 0; i != pattern.size(); ++i)
+                    pattern[i] = std::rand() % 8;
+                break;
+            default: break;
+        }
+        // clang-format on
+
+        // we translate the value into the desired direction through table lookup
+        m_eGrabbedCorner = static_cast<eRectCorner>(pattern[region]);
+        g_pInputManager->setCursorImageUntilUnset(direction[pattern[region]]);
     }
 
     if (g_pInputManager->dragMode != MBIND_RESIZE && g_pInputManager->dragMode != MBIND_RESIZE_FORCE_RATIO && g_pInputManager->dragMode != MBIND_RESIZE_BLOCK_RATIO)
@@ -381,6 +609,8 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             DRAGGINGWINDOW->m_vRealPosition = wb.pos();
         else
             DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
+        // update window pos alongside realpos
+        DRAGGINGWINDOW->m_vPosition = m_vBeginDragFullPosXY + DELTA;
 
         g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goal());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
@@ -392,14 +622,17 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
 
-            if (m_eGrabbedCorner == CORNER_BOTTOMRIGHT)
-                newSize = newSize + DELTA;
-            else if (m_eGrabbedCorner == CORNER_TOPLEFT)
-                newSize = newSize - DELTA;
-            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
-                newSize = newSize + Vector2D(DELTA.x, -DELTA.y);
-            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
-                newSize = newSize + Vector2D(-DELTA.x, DELTA.y);
+            switch (m_eGrabbedCorner) {
+                case CORNER_NONE: break;
+                case CORNER_TOPLEFT: newSize = newSize - DELTA; break;
+                case CORNER_TOPRIGHT: newSize = newSize + Vector2D(DELTA.x, -DELTA.y); break;
+                case CORNER_BOTTOMRIGHT: newSize = newSize + DELTA; break;
+                case CORNER_BOTTOMLEFT: newSize = newSize + Vector2D(-DELTA.x, DELTA.y); break;
+                case EDGE_TOP: newSize = newSize + Vector2D(0.0, -DELTA.y); break;
+                case EDGE_RIGHT: newSize = newSize + Vector2D(DELTA.x, 0.0); break;
+                case EDGE_BOTTOM: newSize = newSize + Vector2D(0.0, DELTA.y); break;
+                case EDGE_LEFT: newSize = newSize + Vector2D(-DELTA.x, 0.0); break;
+            }
 
             if ((m_vBeginDragSizeXY.x >= 1 && m_vBeginDragSizeXY.y >= 1) &&
                 (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO ||
@@ -425,15 +658,18 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             newSize = newSize.clamp(MINSIZE, MAXSIZE);
 
-            if (m_eGrabbedCorner == CORNER_TOPLEFT)
-                newPos = newPos - newSize + m_vBeginDragSizeXY;
-            else if (m_eGrabbedCorner == CORNER_TOPRIGHT)
-                newPos = newPos + Vector2D(0.0, (m_vBeginDragSizeXY - newSize).y);
-            else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
-                newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0);
+            switch (m_eGrabbedCorner) {
+                case CORNER_TOPLEFT: newPos = newPos - newSize + m_vBeginDragSizeXY; break;
+                case CORNER_TOPRIGHT: newPos = newPos + Vector2D(0.0, (m_vBeginDragSizeXY - newSize).y); break;
+                case CORNER_BOTTOMLEFT: newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0); break;
+                case EDGE_TOP: newPos = newPos + Vector2D(0.0, (m_vBeginDragSizeXY - newSize).y); break;
+                case EDGE_LEFT: newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0); break;
+                default: break;
+            }
 
             CBox wb = {newPos, newSize};
             wb.round();
+            CBox transform = {wb.pos() - m_vBeginDragPositionXY, wb.size() - m_vBeginDragSizeXY};
 
             if (*PANIMATE) {
                 DRAGGINGWINDOW->m_vRealSize     = wb.size();
@@ -442,6 +678,12 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(wb.size());
                 DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
             }
+
+            // update window size and pos alongisde realsize and realpos
+            // not always correct if the user messes with the config values
+            // but it's corrected on float/unfloat so whatever :P
+            DRAGGINGWINDOW->m_vSize     = m_vBeginDragFullSizeXY + transform.size();
+            DRAGGINGWINDOW->m_vPosition = m_vBeginDragFullPosXY + transform.pos();
 
             g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goal());
         } else {
@@ -522,7 +764,13 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
-        CBox wb = {pWindow->m_vRealPosition.goal() + (pWindow->m_vRealSize.goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
+        // additional hitbox area to be added to floating windows
+        static auto b = CConfigValue<Hyprlang::INT>("general:border_size");
+        static auto r = CConfigValue<Hyprlang::INT>("general:resize_on_border");
+        static auto e = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+        const CBox  h = {-(*b + *e * (*r != 0)), -(*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0)), 2 * (*b + *e * (*r != 0))};
+
+        CBox        wb = {pWindow->m_vRealPosition.goal() + (pWindow->m_vRealSize.goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
         wb.round();
 
         if (!(pWindow->m_bIsFloating && pWindow->m_bIsPseudotiled) && DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) &&
@@ -533,8 +781,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         pWindow->m_vRealPosition = wb.pos();
         pWindow->m_vRealSize     = wb.size();
 
-        pWindow->m_vSize     = wb.pos();
-        pWindow->m_vPosition = wb.size();
+        pWindow->m_vPosition = wb.pos() + h.pos();
+        pWindow->m_vSize     = wb.size() + h.size();
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
@@ -563,6 +811,7 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
     PWINDOW->setAnimationsToMove();
 
     PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + delta;
+    PWINDOW->m_vPosition     = PWINDOW->m_vPosition + delta;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

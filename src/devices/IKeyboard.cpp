@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/SeatManager.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
 
@@ -148,6 +149,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
     }
 
     xkb_context_unref(CONTEXT);
+
+    g_pSeatManager->updateActiveKeyboardData();
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
@@ -323,7 +326,21 @@ bool IKeyboard::updateModifiersState() {
 }
 
 void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
+
+    const auto contains = std::find(pressedXKB.begin(), pressedXKB.end(), xkbKey) != pressedXKB.end();
+
+    if (contains && pressed)
+        return;
+    if (!contains && !pressed)
+        return;
+
+    if (contains)
+        std::erase(pressedXKB, xkbKey);
+    else
+        pressedXKB.emplace_back(xkbKey);
+
     xkb_state_update_key(xkbState, xkbKey, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
+
     if (updateModifiersState()) {
         keyboardEvents.modifiers.emit(SModifiersEvent{
             .depressed = modifiersState.depressed,

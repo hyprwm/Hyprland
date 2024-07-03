@@ -16,4 +16,4 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         |   (reload)                    "Reload all plugins"
         ;
 
-<PLUGINS> ::= {{{ hyprpm list | grep Plugin | awk '{print $4}' }}};
+<PLUGINS> ::= {{{ hyprpm list | awk '/Plugin/{print $4}' }}};

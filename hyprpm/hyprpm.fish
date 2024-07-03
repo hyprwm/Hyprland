@@ -1,6 +1,6 @@
 function _hyprpm_1
     set 1 $argv[1]
-    hyprpm list | grep Plugin | awk '{print $4}'
+    hyprpm list | awk '/Plugin/{print $4}'
 end
 
 function _hyprpm

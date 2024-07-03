@@ -624,9 +624,8 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
                 R"#(    {{
         "address": "0x{:x}",
         "type": "tabletTool",
-        "belongsTo": "0x{:x}"
     }},)#",
-                (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
+                (uintptr_t)d.get());
         }
 
         trimTrailingComma(result);
@@ -686,11 +685,11 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         }
 
         for (auto& d : g_pInputManager->m_vTablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->wlr()->width_mm, d->wlr()->height_mm);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
         for (auto& d : g_pInputManager->m_vTabletTools) {
-            result += std::format("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
+            result += std::format("\tTablet Tool at {:x}\n", (uintptr_t)d.get());
         }
 
         result += "\n\nTouch:\n";
@@ -1385,7 +1384,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
 
     const auto MODE = vars[1];
 
-    bool added = false;
+    bool       added = false;
 
     if (!vars[3].empty()) {
         for (auto& m : g_pCompositor->m_vRealMonitors) {

@@ -318,6 +318,50 @@ void CCompositor::initAllSignals() {
             g_pInputManager->newSwitch(dev);
         },
         nullptr);
+
+    m_pAqBackend->events.newTablet.registerStaticListener(
+        [](void* data, std::any d) {
+            auto dev = std::any_cast<SP<Aquamarine::ITablet>>(d);
+            Debug::log(LOG, "New aquamarine tablet with name {}", dev->getName());
+            g_pInputManager->newTablet(dev);
+        },
+        nullptr);
+
+    m_pAqBackend->events.newTabletPad.registerStaticListener(
+        [](void* data, std::any d) {
+            auto dev = std::any_cast<SP<Aquamarine::ITabletPad>>(d);
+            Debug::log(LOG, "New aquamarine tablet pad with name {}", dev->getName());
+            g_pInputManager->newTabletPad(dev);
+        },
+        nullptr);
+
+    if (m_pAqBackend->hasSession()) {
+        m_pAqBackend->session->events.changeActive.registerStaticListener(
+            [this](void*, std::any) {
+                if (m_pAqBackend->session->active) {
+                    Debug::log(LOG, "Session got activated!");
+
+                    m_bSessionActive = true;
+
+                    for (auto& m : m_vMonitors) {
+                        scheduleFrameForMonitor(m.get());
+                        g_pHyprRenderer->applyMonitorRule(m.get(), &m->activeMonitorRule, true);
+                    }
+
+                    g_pConfigManager->m_bWantsMonitorReload = true;
+                } else {
+                    Debug::log(LOG, "Session got deactivated!");
+
+                    m_bSessionActive = false;
+
+                    for (auto& m : m_vMonitors) {
+                        m->noFrameSchedule = true;
+                        m->framesToSkip    = 1;
+                    }
+                }
+            },
+            nullptr);
+    }
 }
 
 void CCompositor::removeAllSignals() {
@@ -2285,9 +2329,8 @@ void CCompositor::updateWorkspaceWindowData(const int& id) {
 }
 
 void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
-    // FIXME:
-    // if ((m_sWLRSession && !m_sWLRSession->active) || !m_bSessionActive)
-    //     return;
+    if ((m_pAqBackend->hasSession() && !m_pAqBackend->session->active) || !m_bSessionActive)
+        return;
 
     if (!pMonitor->m_bEnabled)
         return;
@@ -2850,7 +2893,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
     if (std::string("HEADLESS-1") == output->name) {
         g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
-        output->name = "FALLBACK"; // we are allowed to do this :)
+        output->name                   = "FALLBACK"; // we are allowed to do this :)
     }
 
     Debug::log(LOG, "New output with name {}", output->name);

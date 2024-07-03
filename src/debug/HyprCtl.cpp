@@ -1206,8 +1206,6 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     try {
         if (PROP == "animationstyle") {
             PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
-        } else if (PROP == "rounding") {
-            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "maxsize") {
             PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
             if (lock) {
@@ -1253,9 +1251,9 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(colorData, lock);
             else
                 PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(colorData, lock);
-        } else if (PROP == "bordersize") {
-            PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (auto search = PWINDOW->mWindowProperties.find(PROP); search != PWINDOW->mWindowProperties.end()) {
+        } else if (auto search = PWINDOW->mbWindowProperties.find(PROP); search != PWINDOW->mbWindowProperties.end()) {
+            search->second->forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (auto search = PWINDOW->miWindowProperties.find(PROP); search != PWINDOW->miWindowProperties.end()) {
             search->second->forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";

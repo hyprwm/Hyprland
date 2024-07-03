@@ -281,23 +281,26 @@ void CWindow::updateWindowDecos() {
 }
 
 void CWindow::createWindowProperties() {
-    mWindowProperties["dimaround"]            = &m_sAdditionalConfigData.dimAround;
-    mWindowProperties["focusonactivate"]      = &m_sAdditionalConfigData.focusOnActivate;
-    mWindowProperties["forceinput"]           = &m_sAdditionalConfigData.forceAllowsInput;
-    mWindowProperties["forceopaque"]          = &m_sAdditionalConfigData.forceOpaque;
-    mWindowProperties["forceopaqueoverriden"] = &m_sAdditionalConfigData.forceOpaqueOverridden;
-    mWindowProperties["forcergbx"]            = &m_sAdditionalConfigData.forceRGBX;
-    mWindowProperties["immediate"]            = &m_sAdditionalConfigData.forceTearing;
-    mWindowProperties["keepaspectratio"]      = &m_sAdditionalConfigData.keepAspectRatio;
-    mWindowProperties["nearestneighbor"]      = &m_sAdditionalConfigData.nearestNeighbor;
-    mWindowProperties["noanim"]               = &m_sAdditionalConfigData.forceNoAnims;
-    mWindowProperties["noblur"]               = &m_sAdditionalConfigData.forceNoBlur;
-    mWindowProperties["noborder"]             = &m_sAdditionalConfigData.forceNoBorder;
-    mWindowProperties["nodim"]                = &m_sAdditionalConfigData.forceNoDim;
-    mWindowProperties["nofocus"]              = &m_sAdditionalConfigData.noFocus;
-    mWindowProperties["nomaxsize"]            = &m_sAdditionalConfigData.noMaxSize;
-    mWindowProperties["noshadow"]             = &m_sAdditionalConfigData.forceNoShadow;
-    mWindowProperties["windowdance"]          = &m_sAdditionalConfigData.windowDanceCompat;
+    mbWindowProperties["dimaround"]            = &m_sAdditionalConfigData.dimAround;
+    mbWindowProperties["focusonactivate"]      = &m_sAdditionalConfigData.focusOnActivate;
+    mbWindowProperties["forceinput"]           = &m_sAdditionalConfigData.forceAllowsInput;
+    mbWindowProperties["forceopaque"]          = &m_sAdditionalConfigData.forceOpaque;
+    mbWindowProperties["forceopaqueoverriden"] = &m_sAdditionalConfigData.forceOpaqueOverridden;
+    mbWindowProperties["forcergbx"]            = &m_sAdditionalConfigData.forceRGBX;
+    mbWindowProperties["immediate"]            = &m_sAdditionalConfigData.forceTearing;
+    mbWindowProperties["keepaspectratio"]      = &m_sAdditionalConfigData.keepAspectRatio;
+    mbWindowProperties["nearestneighbor"]      = &m_sAdditionalConfigData.nearestNeighbor;
+    mbWindowProperties["noanim"]               = &m_sAdditionalConfigData.forceNoAnims;
+    mbWindowProperties["noblur"]               = &m_sAdditionalConfigData.forceNoBlur;
+    mbWindowProperties["noborder"]             = &m_sAdditionalConfigData.forceNoBorder;
+    mbWindowProperties["nodim"]                = &m_sAdditionalConfigData.forceNoDim;
+    mbWindowProperties["nofocus"]              = &m_sAdditionalConfigData.noFocus;
+    mbWindowProperties["nomaxsize"]            = &m_sAdditionalConfigData.noMaxSize;
+    mbWindowProperties["noshadow"]             = &m_sAdditionalConfigData.forceNoShadow;
+    mbWindowProperties["windowdance"]          = &m_sAdditionalConfigData.windowDanceCompat;
+
+    miWindowProperties["rounding"]   = &m_sAdditionalConfigData.rounding;
+    miWindowProperties["bordersize"] = &m_sAdditionalConfigData.borderSize;
 }
 
 void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
@@ -637,14 +640,6 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             m_tags.applyTag(vars[1], true);
         else
             Debug::log(ERR, "Tag rule invalid: {}", r.szRule);
-    } else if (r.szRule.starts_with("rounding")) {
-        try {
-            m_sAdditionalConfigData.rounding = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-        } catch (std::exception& e) { Debug::log(ERR, "Rounding rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.starts_with("bordersize")) {
-        try {
-            m_sAdditionalConfigData.borderSize = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
-        } catch (std::exception& e) { Debug::log(ERR, "Bordersize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("opacity")) {
         try {
             CVarList vars(r.szRule, 0, ' ');
@@ -736,8 +731,12 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
         } catch (...) {}
-    } else if (auto search = mWindowProperties.find(r.szRule); search != mWindowProperties.end()) {
+    } else if (auto search = mbWindowProperties.find(r.szRule); search != mbWindowProperties.end()) {
         *(search->second) = true;
+    } else if (auto search = miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != miWindowProperties.end()) {
+        try {
+            *(search->second) = std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1));
+        } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 

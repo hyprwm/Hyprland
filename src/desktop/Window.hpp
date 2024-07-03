@@ -334,7 +334,8 @@ class CWindow {
     SWindowSpecialRenderData                                      m_sSpecialRenderData;
     SWindowAdditionalConfigData                                   m_sAdditionalConfigData;
 
-    std::unordered_map<std::string, CWindowOverridableVar<bool>*> mWindowProperties;
+    std::unordered_map<std::string, CWindowOverridableVar<bool>*> mbWindowProperties;
+    std::unordered_map<std::string, CWindowOverridableVar<int>*>  miWindowProperties;
 
     // Transformers
     std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;

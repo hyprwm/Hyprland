@@ -21,6 +21,7 @@ in {
   # Packages for variations of Hyprland, dependencies included.
   hyprland-packages = lib.composeManyExtensions [
     # Dependencies
+    inputs.aquamarine.overlays.default
     inputs.hyprcursor.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default

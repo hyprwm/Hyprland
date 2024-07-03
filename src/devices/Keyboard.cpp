@@ -30,7 +30,7 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
     });
 
     listeners.key = keeb->events.key.registerListener([this](std::any d) {
-        auto     E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
+        auto E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
 
         updateXkbStateWithKey(E.key + 8, E.pressed);
 

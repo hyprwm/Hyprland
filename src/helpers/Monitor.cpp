@@ -791,14 +791,14 @@ bool CMonitorState::test() {
 }
 
 bool CMonitorState::updateSwapchain() {
-    auto options = m_pOwner->output->swapchain->currentOptions();
-    const auto& STATE = m_pOwner->output->state->state();
-    const auto& MODE = STATE.mode ? STATE.mode : STATE.customMode;
+    auto        options = m_pOwner->output->swapchain->currentOptions();
+    const auto& STATE   = m_pOwner->output->state->state();
+    const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE)
         return true;
-    options.format = STATE.drmFormat;
+    options.format  = STATE.drmFormat;
     options.scanout = true;
-    options.length = 2;
-    options.size = MODE->pixelSize;
+    options.length  = 2;
+    options.size    = MODE->pixelSize;
     return m_pOwner->output->swapchain->reconfigure(options);
 }

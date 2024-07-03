@@ -224,7 +224,7 @@ CTabletTool::CTabletTool(SP<Aquamarine::ITabletTool> tool_) : tool(tool_) {
     if (!tool)
         return;
 
-    listeners.destroyTool = tool->events.destroy.registerListener([this] (std::any d) {
+    listeners.destroyTool = tool->events.destroy.registerListener([this](std::any d) {
         tool.reset();
         events.destroy.emit();
     });

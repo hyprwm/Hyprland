@@ -6,9 +6,9 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/math/Math.hpp"
 
-struct wlr_tablet;
-struct wlr_tablet_tool;
-struct wlr_tablet_pad;
+AQUAMARINE_FORWARD(ITablet);
+AQUAMARINE_FORWARD(ITabletTool);
+AQUAMARINE_FORWARD(ITabletPad);
 
 class CTabletTool;
 class CTabletPad;
@@ -21,13 +21,12 @@ class CWLSurfaceResource;
 */
 class CTablet : public IHID {
   public:
-    static SP<CTablet> create(wlr_tablet* tablet);
-    static SP<CTablet> fromWlr(wlr_tablet* tablet);
+    static SP<CTablet> create(SP<Aquamarine::ITablet> tablet);
     ~CTablet();
 
-    virtual uint32_t getCapabilities();
-    virtual eHIDType getType();
-    wlr_tablet*      wlr();
+    virtual uint32_t        getCapabilities();
+    virtual eHIDType        getType();
+    SP<Aquamarine::ITablet> aq();
 
     enum eTabletToolAxes {
         HID_TABLET_TOOL_AXIS_X        = (1 << 0),
@@ -42,46 +41,46 @@ class CTablet : public IHID {
     };
 
     struct SAxisEvent {
-        wlr_tablet_tool* tool;
-        SP<CTablet>      tablet;
+        SP<Aquamarine::ITabletTool> tool;
+        SP<CTablet>                 tablet;
 
-        uint32_t         timeMs      = 0;
-        uint32_t         updatedAxes = 0; // eTabletToolAxes
-        Vector2D         axis;
-        Vector2D         axisDelta;
-        Vector2D         tilt;
-        double           pressure   = 0;
-        double           distance   = 0;
-        double           rotation   = 0;
-        double           slider     = 0;
-        double           wheelDelta = 0;
+        uint32_t                    timeMs      = 0;
+        uint32_t                    updatedAxes = 0; // eTabletToolAxes
+        Vector2D                    axis;
+        Vector2D                    axisDelta;
+        Vector2D                    tilt;
+        double                      pressure   = 0;
+        double                      distance   = 0;
+        double                      rotation   = 0;
+        double                      slider     = 0;
+        double                      wheelDelta = 0;
     };
 
     struct SProximityEvent {
-        wlr_tablet_tool* tool;
-        SP<CTablet>      tablet;
+        SP<Aquamarine::ITabletTool> tool;
+        SP<CTablet>                 tablet;
 
-        uint32_t         timeMs = 0;
-        Vector2D         proximity;
-        bool             in = false;
+        uint32_t                    timeMs = 0;
+        Vector2D                    proximity;
+        bool                        in = false;
     };
 
     struct STipEvent {
-        wlr_tablet_tool* tool;
-        SP<CTablet>      tablet;
+        SP<Aquamarine::ITabletTool> tool;
+        SP<CTablet>                 tablet;
 
-        uint32_t         timeMs = 0;
-        Vector2D         tip;
-        bool             in = false;
+        uint32_t                    timeMs = 0;
+        Vector2D                    tip;
+        bool                        in = false;
     };
 
     struct SButtonEvent {
-        wlr_tablet_tool* tool;
-        SP<CTablet>      tablet;
+        SP<Aquamarine::ITabletTool> tool;
+        SP<CTablet>                 tablet;
 
-        uint32_t         timeMs = 0;
-        uint32_t         button;
-        bool             down = false;
+        uint32_t                    timeMs = 0;
+        uint32_t                    button;
+        bool                        down = false;
     };
 
     struct {
@@ -100,27 +99,27 @@ class CTablet : public IHID {
     CBox        boundBox; // output-local
 
   private:
-    CTablet(wlr_tablet* tablet);
+    CTablet(SP<Aquamarine::ITablet> tablet);
 
-    void        disconnectCallbacks();
+    WP<Aquamarine::ITablet> tablet;
 
-    wlr_tablet* tablet = nullptr;
-
-    DYNLISTENER(destroy);
-    DYNLISTENER(axis);
-    DYNLISTENER(proximity);
-    DYNLISTENER(tip);
-    DYNLISTENER(button);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener axis;
+        CHyprSignalListener proximity;
+        CHyprSignalListener tip;
+        CHyprSignalListener button;
+    } listeners;
 };
 
 class CTabletPad : public IHID {
   public:
-    static SP<CTabletPad> create(wlr_tablet_pad* pad);
+    static SP<CTabletPad> create(SP<Aquamarine::ITabletPad> pad);
     ~CTabletPad();
 
-    virtual uint32_t getCapabilities();
-    virtual eHIDType getType();
-    wlr_tablet_pad*  wlr();
+    virtual uint32_t           getCapabilities();
+    virtual eHIDType           getType();
+    SP<Aquamarine::ITabletPad> aq();
 
     struct SButtonEvent {
         uint32_t timeMs = 0;
@@ -159,23 +158,22 @@ class CTabletPad : public IHID {
     std::string     hlName;
 
   private:
-    CTabletPad(wlr_tablet_pad* pad);
+    CTabletPad(SP<Aquamarine::ITabletPad> pad);
 
-    void            disconnectCallbacks();
+    WP<Aquamarine::ITabletPad> pad;
 
-    wlr_tablet_pad* pad = nullptr;
-
-    DYNLISTENER(destroy);
-    DYNLISTENER(ring);
-    DYNLISTENER(strip);
-    DYNLISTENER(button);
-    DYNLISTENER(attach);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener ring;
+        CHyprSignalListener strip;
+        CHyprSignalListener button;
+        CHyprSignalListener attach;
+    } listeners;
 };
 
 class CTabletTool : public IHID {
   public:
-    static SP<CTabletTool> create(wlr_tablet_tool* tool);
-    static SP<CTabletTool> fromWlr(wlr_tablet_tool* tool);
+    static SP<CTabletTool> create(SP<Aquamarine::ITabletTool> tool);
     ~CTabletTool();
 
     enum eTabletToolType {
@@ -198,35 +196,31 @@ class CTabletTool : public IHID {
         HID_TABLET_TOOL_CAPABILITY_WHEEL    = (1 << 5),
     };
 
-    virtual uint32_t       getCapabilities();
-    wlr_tablet_tool*       wlr();
-    virtual eHIDType       getType();
-    SP<CWLSurfaceResource> getSurface();
-    void                   setSurface(SP<CWLSurfaceResource>);
+    virtual uint32_t            getCapabilities();
+    SP<Aquamarine::ITabletTool> aq();
+    virtual eHIDType            getType();
+    SP<CWLSurfaceResource>      getSurface();
+    void                        setSurface(SP<CWLSurfaceResource>);
 
-    WP<CTabletTool>        self;
-    Vector2D               tilt;
-    bool                   active           = false; // true if in proximity
-    uint32_t               toolCapabilities = 0;
+    WP<CTabletTool>             self;
+    Vector2D                    tilt;
+    bool                        active           = false; // true if in proximity
+    uint32_t                    toolCapabilities = 0;
 
-    bool                   isDown = false;
-    std::vector<uint32_t>  buttonsDown;
-    Vector2D               absolutePos; // last known absolute position.
+    bool                        isDown = false;
+    std::vector<uint32_t>       buttonsDown;
+    Vector2D                    absolutePos; // last known absolute position.
 
-    std::string            hlName;
+    std::string                 hlName;
 
   private:
-    CTabletTool(wlr_tablet_tool* tool);
+    CTabletTool(SP<Aquamarine::ITabletTool> tool);
 
-    void                   disconnectCallbacks();
-
-    WP<CWLSurfaceResource> pSurface;
-
-    wlr_tablet_tool*       tool = nullptr;
-
-    DYNLISTENER(destroy);
+    WP<CWLSurfaceResource>      pSurface;
+    WP<Aquamarine::ITabletTool> tool;
 
     struct {
         CHyprSignalListener destroySurface;
+        CHyprSignalListener destroyTool;
     } listeners;
 };

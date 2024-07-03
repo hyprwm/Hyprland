@@ -628,8 +628,7 @@ void CCompositor::startCompositor() {
 
     signal(SIGPIPE, SIG_IGN);
 
-    // TODO:
-    if (false /* Session-less Hyprland usually means a nest, don't update the env in that case */) {
+    if (m_pAqBackend->hasSession() /* Session-less Hyprland usually means a nest, don't update the env in that case */) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "

@@ -1,5 +1,34 @@
 {
   "nodes": {
+    "aquamarine": {
+      "inputs": {
+        "hyprutils": [
+          "hyprutils"
+        ],
+        "hyprwayland-scanner": [
+          "hyprwayland-scanner"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "systems": [
+          "systems"
+        ]
+      },
+      "locked": {
+        "lastModified": 1720028623,
+        "narHash": "sha256-8TR1sSZlFnA5kxj9oyx9pm7h8kzgM8/VIBhA+sTJIjo=",
+        "owner": "hyprwm",
+        "repo": "aquamarine",
+        "rev": "1844da3814bd97afd3c3f4c4d6c5e318e3552247",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hyprwm",
+        "repo": "aquamarine",
+        "type": "github"
+      }
+    },
     "hyprcursor": {
       "inputs": {
         "hyprlang": [
@@ -141,6 +170,7 @@
     },
     "root": {
       "inputs": {
+        "aquamarine": "aquamarine",
         "hyprcursor": "hyprcursor",
         "hyprlang": "hyprlang",
         "hyprutils": "hyprutils",

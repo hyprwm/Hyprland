@@ -6,6 +6,7 @@
   makeWrapper,
   cmake,
   ninja,
+  aquamarine,
   binutils,
   cairo,
   expat,
@@ -104,6 +105,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     buildInputs = lib.concatLists [
       [
+        aquamarine
         cairo
         expat
         fribidi

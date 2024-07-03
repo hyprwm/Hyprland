@@ -8,7 +8,7 @@
 #include "EventLoopTimer.hpp"
 
 namespace Aquamarine {
-  struct SPollFD;
+    struct SPollFD;
 };
 
 class CEventLoopManager {

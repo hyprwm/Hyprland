@@ -379,7 +379,7 @@ void CCompositor::cleanEnvironment() {
     unsetenv("XDG_BACKEND");
     unsetenv("XDG_CURRENT_DESKTOP");
 
-    if (false /* TODO: */) {
+    if (m_pAqBackend->hasSession()) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "

@@ -892,6 +892,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
             for (auto& e : HLENV) {
                 setenv(e.first.c_str(), e.second.c_str(), 1);
             }
+            setenv("WAYLAND_DISPLAY", g_pCompositor->m_szWLDisplaySocket.c_str(), 1);
             close(socket[0]);
             close(socket[1]);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);

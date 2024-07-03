@@ -1208,28 +1208,6 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
         } else if (PROP == "rounding") {
             PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoblur") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaque") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceallowsinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoanims") {
-            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoborder") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoshadow") {
-            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenodim") {
-            PWINDOW->m_sAdditionalConfigData.forceNoDim.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nofocus") {
-            PWINDOW->m_sAdditionalConfigData.noFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "windowdancecompat") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "maxsize") {
             PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
             if (lock) {
@@ -1246,8 +1224,6 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
                 PWINDOW->setHidden(false);
             }
-        } else if (PROP == "dimaround") {
-            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alphaoverride") {
             PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "alpha") {
@@ -1277,16 +1253,10 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(colorData, lock);
             else
                 PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(colorData, lock);
-        } else if (PROP == "forcergbx") {
-            PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else if (PROP == "bordersize") {
             PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "keepaspectratio") {
-            PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "immediate") {
-            PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nearestneighbor") {
-            PWINDOW->m_sAdditionalConfigData.nearestNeighbor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+        } else if (auto search = PWINDOW->mWindowProperties.find(PROP); search != PWINDOW->mWindowProperties.end()) {
+            search->second->forceSetIgnoreLocked(configStringToInt(VAL), lock);
         } else {
             return "prop not found";
         }

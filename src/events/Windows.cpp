@@ -139,6 +139,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
 
+    PWINDOW->createWindowProperties();
+
     for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
@@ -196,8 +198,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsFloating = false;
         } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
-        } else if (r.szRule.starts_with("nofocus")) {
-            PWINDOW->m_sAdditionalConfigData.noFocus = true;
+
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.starts_with("suppressevent")) {
@@ -219,12 +220,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             overridingNoFullscreen = true;
         } else if (r.szRule == "fakefullscreen") {
             requestsFakeFullscreen = true;
-        } else if (r.szRule == "windowdance") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
-        } else if (r.szRule == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize = true;
-        } else if (r.szRule == "forceinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
         } else if (r.szRule == "maximize") {

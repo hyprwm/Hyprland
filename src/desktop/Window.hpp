@@ -331,8 +331,10 @@ class CWindow {
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
     // Special render data, rules, etc
-    SWindowSpecialRenderData    m_sSpecialRenderData;
-    SWindowAdditionalConfigData m_sAdditionalConfigData;
+    SWindowSpecialRenderData                                      m_sSpecialRenderData;
+    SWindowAdditionalConfigData                                   m_sAdditionalConfigData;
+
+    std::unordered_map<std::string, CWindowOverridableVar<bool>*> mWindowProperties;
 
     // Transformers
     std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
@@ -407,6 +409,7 @@ class CWindow {
     void                   onMap();
     void                   setHidden(bool hidden);
     bool                   isHidden();
+    void                   createWindowProperties();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
     SBoxExtents            getFullWindowReservedArea();

@@ -280,6 +280,26 @@ void CWindow::updateWindowDecos() {
     }
 }
 
+void CWindow::createWindowProperties() {
+    mWindowProperties["dimaround"]            = &m_sAdditionalConfigData.dimAround;
+    mWindowProperties["focusonactivate"]      = &m_sAdditionalConfigData.focusOnActivate;
+    mWindowProperties["forceinput"]           = &m_sAdditionalConfigData.forceAllowsInput;
+    mWindowProperties["forceopaque"]          = &m_sAdditionalConfigData.forceOpaque;
+    mWindowProperties["forceopaqueoverriden"] = &m_sAdditionalConfigData.forceOpaqueOverridden;
+    mWindowProperties["forcergbx"]            = &m_sAdditionalConfigData.forceRGBX;
+    mWindowProperties["immediate"]            = &m_sAdditionalConfigData.forceTearing;
+    mWindowProperties["keepaspectratio"]      = &m_sAdditionalConfigData.keepAspectRatio;
+    mWindowProperties["nearestneighbor"]      = &m_sAdditionalConfigData.nearestNeighbor;
+    mWindowProperties["noanim"]               = &m_sAdditionalConfigData.forceNoAnims;
+    mWindowProperties["noblur"]               = &m_sAdditionalConfigData.forceNoBlur;
+    mWindowProperties["noborder"]             = &m_sAdditionalConfigData.forceNoBorder;
+    mWindowProperties["nodim"]                = &m_sAdditionalConfigData.forceNoDim;
+    mWindowProperties["nofocus"]              = &m_sAdditionalConfigData.noFocus;
+    mWindowProperties["nomaxsize"]            = &m_sAdditionalConfigData.noMaxSize;
+    mWindowProperties["noshadow"]             = &m_sAdditionalConfigData.forceNoShadow;
+    mWindowProperties["windowdance"]          = &m_sAdditionalConfigData.windowDanceCompat;
+}
+
 void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
     m_dWindowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
@@ -607,23 +627,9 @@ bool CWindow::isHidden() {
 }
 
 void CWindow::applyDynamicRule(const SWindowRule& r) {
-    if (r.szRule == "noblur") {
-        m_sAdditionalConfigData.forceNoBlur = true;
-    } else if (r.szRule == "noborder") {
-        m_sAdditionalConfigData.forceNoBorder = true;
-    } else if (r.szRule == "noshadow") {
-        m_sAdditionalConfigData.forceNoShadow = true;
-    } else if (r.szRule == "nodim") {
-        m_sAdditionalConfigData.forceNoDim = true;
-    } else if (r.szRule == "forcergbx") {
-        m_sAdditionalConfigData.forceRGBX = true;
-    } else if (r.szRule == "opaque") {
+    if (r.szRule == "opaque") {
         if (!m_sAdditionalConfigData.forceOpaqueOverridden)
             m_sAdditionalConfigData.forceOpaque = true;
-    } else if (r.szRule == "immediate") {
-        m_sAdditionalConfigData.forceTearing = true;
-    } else if (r.szRule == "nearestneighbor") {
-        m_sAdditionalConfigData.nearestNeighbor = true;
     } else if (r.szRule.starts_with("tag")) {
         CVarList vars{r.szRule, 0, 's', true};
 
@@ -681,8 +687,6 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 m_sSpecialRenderData.alphaFullscreen         = m_sSpecialRenderData.alpha;
             }
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule == "noanim") {
-        m_sAdditionalConfigData.forceNoAnims = true;
     } else if (r.szRule.starts_with("animation")) {
         auto STYLE                             = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
         m_sAdditionalConfigData.animationStyle = STYLE;
@@ -726,18 +730,14 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 m_sSpecialRenderData.inactiveBorderColor = inactiveBorderGradient;
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule == "dimaround") {
-        m_sAdditionalConfigData.dimAround = true;
-    } else if (r.szRule == "keepaspectratio") {
-        m_sAdditionalConfigData.keepAspectRatio = true;
-    } else if (r.szRule.starts_with("focusonactivate")) {
-        m_sAdditionalConfigData.focusOnActivate = true;
     } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {
             m_sAdditionalConfigData.xray = configStringToInt(vars[1]);
         } catch (...) {}
+    } else if (auto search = mWindowProperties.find(r.szRule); search != mWindowProperties.end()) {
+        *(search->second) = true;
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 

@@ -44,17 +44,17 @@ bool CTabletPadGroupV2Resource::good() {
     return resource->resource();
 }
 
-void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, wlr_tablet_pad_group* group) {
-    resource->sendModes(group->mode_count);
+void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, SP<Aquamarine::ITabletPad::STabletPadGroup> group) {
+    resource->sendModes(group->modes);
 
     wl_array buttonArr;
     wl_array_init(&buttonArr);
-    wl_array_add(&buttonArr, group->button_count * sizeof(int));
-    memcpy(buttonArr.data, group->buttons, group->button_count * sizeof(int));
+    wl_array_add(&buttonArr, group->buttons.size() * sizeof(int));
+    memcpy(buttonArr.data, group->buttons.data(), group->buttons.size() * sizeof(int));
     resource->sendButtons(&buttonArr);
     wl_array_release(&buttonArr);
 
-    for (size_t i = 0; i < group->strip_count; ++i) {
+    for (size_t i = 0; i < group->strips.size(); ++i) {
         const auto RESOURCE =
             PROTO::tablet->m_vStrips.emplace_back(makeShared<CTabletPadStripV2Resource>(makeShared<CZwpTabletPadStripV2>(resource->client(), resource->version(), 0), i));
 
@@ -67,7 +67,7 @@ void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, wlr_tablet_pad_grou
         resource->sendStrip(RESOURCE->resource.get());
     }
 
-    for (size_t i = 0; i < group->ring_count; ++i) {
+    for (size_t i = 0; i < group->rings.size(); ++i) {
         const auto RESOURCE =
             PROTO::tablet->m_vRings.emplace_back(makeShared<CTabletPadRingV2Resource>(makeShared<CZwpTabletPadRingV2>(resource->client(), resource->version(), 0), i));
 
@@ -97,23 +97,20 @@ bool CTabletPadV2Resource::good() {
 
 void CTabletPadV2Resource::sendData() {
     // this is dodgy as fuck. I hate wl_array. it's expanded wl_array_for_each because C++ would complain about the implicit casts
-    const char** path_ptr;
-    for (path_ptr = (const char**)(&pad->wlr()->paths)->data; (const char*)path_ptr < ((const char*)(&pad->wlr()->paths)->data + (&pad->wlr()->paths)->size); (path_ptr)++) {
-        resource->sendPath(*path_ptr);
+    for (auto& p : pad->aq()->paths) {
+        resource->sendPath(p.c_str());
     }
 
-    resource->sendButtons(pad->wlr()->button_count);
+    resource->sendButtons(pad->aq()->buttons);
 
-    wlr_tablet_pad_group* group;
-    size_t                i = 0;
-    wl_list_for_each(group, &pad->wlr()->groups, link) {
-        createGroup(group, i++);
+    for (size_t i = 0; i < pad->aq()->groups.size(); ++i) {
+        createGroup(pad->aq()->groups.at(i), i);
     }
 
     resource->sendDone();
 }
 
-void CTabletPadV2Resource::createGroup(wlr_tablet_pad_group* group, size_t idx) {
+void CTabletPadV2Resource::createGroup(SP<Aquamarine::ITabletPad::STabletPadGroup> group, size_t idx) {
     const auto RESOURCE =
         PROTO::tablet->m_vGroups.emplace_back(makeShared<CTabletPadGroupV2Resource>(makeShared<CZwpTabletPadGroupV2>(resource->client(), resource->version(), 0), idx));
 
@@ -142,13 +139,10 @@ bool CTabletV2Resource::good() {
 
 void CTabletV2Resource::sendData() {
     resource->sendName(tablet->deviceName.c_str());
-    resource->sendId(tablet->wlr()->usb_vendor_id, tablet->wlr()->usb_product_id);
+    resource->sendId(tablet->aq()->usbVendorID, tablet->aq()->usbProductID);
 
-    // this is dodgy as fuck. I hate wl_array. it's expanded wl_array_for_each because C++ would complain about the implicit casts
-    const char** path_ptr;
-    for (path_ptr = (const char**)(&tablet->wlr()->paths)->data; (const char*)path_ptr < ((const char*)(&tablet->wlr()->paths)->data + (&tablet->wlr()->paths)->size);
-         (path_ptr)++) {
-        resource->sendPath(*path_ptr);
+    for (auto& p : tablet->aq()->paths) {
+        resource->sendPath(p.c_str());
     }
 
     resource->sendDone();
@@ -179,23 +173,23 @@ bool CTabletToolV2Resource::good() {
 }
 
 void CTabletToolV2Resource::sendData() {
-    static auto WLR_TYPE_TO_PROTO = [](uint32_t wlr) -> zwpTabletToolV2Type {
-        switch (wlr) {
-            case WLR_TABLET_TOOL_TYPE_PEN: return ZWP_TABLET_TOOL_V2_TYPE_PEN;
-            case WLR_TABLET_TOOL_TYPE_ERASER: return ZWP_TABLET_TOOL_V2_TYPE_ERASER;
-            case WLR_TABLET_TOOL_TYPE_BRUSH: return ZWP_TABLET_TOOL_V2_TYPE_BRUSH;
-            case WLR_TABLET_TOOL_TYPE_PENCIL: return ZWP_TABLET_TOOL_V2_TYPE_PENCIL;
-            case WLR_TABLET_TOOL_TYPE_AIRBRUSH: return ZWP_TABLET_TOOL_V2_TYPE_AIRBRUSH;
-            case WLR_TABLET_TOOL_TYPE_MOUSE: return ZWP_TABLET_TOOL_V2_TYPE_MOUSE;
-            case WLR_TABLET_TOOL_TYPE_LENS: return ZWP_TABLET_TOOL_V2_TYPE_LENS;
+    static auto AQ_TYPE_TO_PROTO = [](uint32_t aq) -> zwpTabletToolV2Type {
+        switch (aq) {
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_PEN: return ZWP_TABLET_TOOL_V2_TYPE_PEN;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_ERASER: return ZWP_TABLET_TOOL_V2_TYPE_ERASER;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_BRUSH: return ZWP_TABLET_TOOL_V2_TYPE_BRUSH;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_PENCIL: return ZWP_TABLET_TOOL_V2_TYPE_PENCIL;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_AIRBRUSH: return ZWP_TABLET_TOOL_V2_TYPE_AIRBRUSH;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE: return ZWP_TABLET_TOOL_V2_TYPE_MOUSE;
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_LENS: return ZWP_TABLET_TOOL_V2_TYPE_LENS;
             default: ASSERT(false);
         }
         UNREACHABLE();
     };
 
-    resource->sendType(WLR_TYPE_TO_PROTO(tool->wlr()->type));
-    resource->sendHardwareSerial(tool->wlr()->hardware_serial >> 32, tool->wlr()->hardware_serial & 0xFFFFFFFF);
-    resource->sendHardwareIdWacom(tool->wlr()->hardware_wacom >> 32, tool->wlr()->hardware_wacom & 0xFFFFFFFF);
+    resource->sendType(AQ_TYPE_TO_PROTO(tool->aq()->type));
+    resource->sendHardwareSerial(tool->aq()->serial >> 32, tool->aq()->serial & 0xFFFFFFFF);
+    resource->sendHardwareIdWacom(tool->aq()->id >> 32, tool->aq()->id & 0xFFFFFFFF);
     if (tool->toolCapabilities & CTabletTool::eTabletToolCapabilities::HID_TABLET_TOOL_CAPABILITY_DISTANCE)
         resource->sendCapability(zwpTabletToolV2Capability::ZWP_TABLET_TOOL_V2_CAPABILITY_DISTANCE);
     if (tool->toolCapabilities & CTabletTool::eTabletToolCapabilities::HID_TABLET_TOOL_CAPABILITY_PRESSURE)

@@ -1221,18 +1221,23 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
                 PWINDOW->setHidden(false);
             }
-        } else if (PROP == "alphaoverride") {
-            PWINDOW->m_sWindowData.alphaOverride = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else if (PROP == "alpha") {
-            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(std::stof(VAL), PRIORITY_SET_PROP);
-        } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sWindowData.alphaInactiveOverride = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
-            PWINDOW->m_sWindowData.alphaInactive = CWindowOverridableVar(std::stof(VAL), PRIORITY_SET_PROP);
-        } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_sWindowData.alphaFullscreenOverride = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
-            PWINDOW->m_sWindowData.alphaFullscreen = CWindowOverridableVar(std::stof(VAL), PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sWindowData.alpha =
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alpha.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaInactive.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphafullscreenoverride") {
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {
@@ -1809,7 +1814,6 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-
     m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (m_iSocketFD < 0) {

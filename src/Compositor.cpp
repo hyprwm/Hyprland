@@ -1821,19 +1821,12 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     // opacity
     const auto PWORKSPACE = pWindow->m_pWorkspace;
     if (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
-        pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.toUnderlying() != -1 ?
-            (pWindow->m_sWindowData.alphaFullscreenOverride.toUnderlying() ? pWindow->m_sWindowData.alphaFullscreen.toUnderlying() :
-                                                                                    pWindow->m_sWindowData.alphaFullscreen.toUnderlying() * *PFULLSCREENALPHA) :
-            *PFULLSCREENALPHA;
+        pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.toUnderlying().applyAlpha(*PFULLSCREENALPHA);
     } else {
         if (pWindow == m_pLastWindow)
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaOverride.toUnderlying() ? pWindow->m_sWindowData.alpha.toUnderlying() :
-                                                                                                           pWindow->m_sWindowData.alpha.toUnderlying() * *PACTIVEALPHA;
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alpha.toUnderlying().applyAlpha(*PACTIVEALPHA);
         else
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.toUnderlying() != -1 ?
-                (pWindow->m_sWindowData.alphaInactiveOverride.toUnderlying() ? pWindow->m_sWindowData.alphaInactive.toUnderlying() :
-                                                                                      pWindow->m_sWindowData.alphaInactive.toUnderlying() * *PINACTIVEALPHA) :
-                *PINACTIVEALPHA;
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.toUnderlying().applyAlpha(*PINACTIVEALPHA);
     }
 
     // dim

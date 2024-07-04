@@ -281,23 +281,22 @@ void CWindow::updateWindowDecos() {
 }
 
 void CWindow::createWindowProperties() {
-    mbWindowProperties["dimaround"]            = &m_sWindowData.dimAround;
-    mbWindowProperties["focusonactivate"]      = &m_sWindowData.focusOnActivate;
-    mbWindowProperties["forceinput"]           = &m_sWindowData.allowsInput;
-    mbWindowProperties["forceopaque"]          = &m_sWindowData.opaque;
-    mbWindowProperties["forceopaqueoverriden"] = &m_sWindowData.opaqueOverridden;
-    mbWindowProperties["forcergbx"]            = &m_sWindowData.RGBX;
-    mbWindowProperties["immediate"]            = &m_sWindowData.tearing;
-    mbWindowProperties["keepaspectratio"]      = &m_sWindowData.keepAspectRatio;
-    mbWindowProperties["nearestneighbor"]      = &m_sWindowData.nearestNeighbor;
-    mbWindowProperties["noanim"]               = &m_sWindowData.noAnim;
-    mbWindowProperties["noblur"]               = &m_sWindowData.noBlur;
-    mbWindowProperties["noborder"]             = &m_sWindowData.noBorder;
-    mbWindowProperties["nodim"]                = &m_sWindowData.noDim;
-    mbWindowProperties["nofocus"]              = &m_sWindowData.noFocus;
-    mbWindowProperties["nomaxsize"]            = &m_sWindowData.noMaxSize;
-    mbWindowProperties["noshadow"]             = &m_sWindowData.noShadow;
-    mbWindowProperties["windowdance"]          = &m_sWindowData.windowDanceCompat;
+    mbWindowProperties["dimaround"]       = &m_sWindowData.dimAround;
+    mbWindowProperties["focusonactivate"] = &m_sWindowData.focusOnActivate;
+    mbWindowProperties["forceinput"]      = &m_sWindowData.allowsInput;
+    mbWindowProperties["forceopaque"]     = &m_sWindowData.opaque;
+    mbWindowProperties["forcergbx"]       = &m_sWindowData.RGBX;
+    mbWindowProperties["immediate"]       = &m_sWindowData.tearing;
+    mbWindowProperties["keepaspectratio"] = &m_sWindowData.keepAspectRatio;
+    mbWindowProperties["nearestneighbor"] = &m_sWindowData.nearestNeighbor;
+    mbWindowProperties["noanim"]          = &m_sWindowData.noAnim;
+    mbWindowProperties["noblur"]          = &m_sWindowData.noBlur;
+    mbWindowProperties["noborder"]        = &m_sWindowData.noBorder;
+    mbWindowProperties["nodim"]           = &m_sWindowData.noDim;
+    mbWindowProperties["nofocus"]         = &m_sWindowData.noFocus;
+    mbWindowProperties["nomaxsize"]       = &m_sWindowData.noMaxSize;
+    mbWindowProperties["noshadow"]        = &m_sWindowData.noShadow;
+    mbWindowProperties["windowdance"]     = &m_sWindowData.windowDanceCompat;
 
     miWindowProperties["rounding"]   = &m_sWindowData.rounding;
     miWindowProperties["bordersize"] = &m_sWindowData.borderSize;
@@ -631,8 +630,7 @@ bool CWindow::isHidden() {
 
 void CWindow::applyDynamicRule(const SWindowRule& r) {
     if (r.szRule == "opaque") {
-        if (!m_sWindowData.opaqueOverridden)
-            m_sWindowData.opaque = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+        m_sWindowData.opaque = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
     } else if (r.szRule.starts_with("tag")) {
         CVarList vars{r.szRule, 0, 's', true};
 
@@ -652,21 +650,18 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                 if (r == "override") {
                     if (opacityIDX == 1)
-                        m_sWindowData.alphaOverride = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                     else if (opacityIDX == 2)
-                        m_sWindowData.alphaInactiveOverride = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                     else if (opacityIDX == 3)
-                        m_sWindowData.alphaFullscreenOverride = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                 } else {
                     if (opacityIDX == 0) {
-                        m_sWindowData.alpha         = CWindowOverridableVar(std::stof(r), PRIORITY_WINDOW_RULE);
-                        m_sWindowData.alphaOverride = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
                     } else if (opacityIDX == 1) {
-                        m_sWindowData.alphaInactive         = CWindowOverridableVar(std::stof(r), PRIORITY_WINDOW_RULE);
-                        m_sWindowData.alphaInactiveOverride = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
                     } else if (opacityIDX == 2) {
-                        m_sWindowData.alphaFullscreen         = CWindowOverridableVar(std::stof(r), PRIORITY_WINDOW_RULE);
-                        m_sWindowData.alphaFullscreenOverride = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
                     } else {
                         throw std::runtime_error("more than 3 alpha values");
                     }
@@ -676,10 +671,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             }
 
             if (opacityIDX == 1) {
-                m_sWindowData.alphaInactiveOverride   = m_sWindowData.alphaOverride;
-                m_sWindowData.alphaInactive           = m_sWindowData.alpha;
-                m_sWindowData.alphaFullscreenOverride = m_sWindowData.alphaOverride;
-                m_sWindowData.alphaFullscreen         = m_sWindowData.alpha;
+                m_sWindowData.alphaInactive   = m_sWindowData.alpha;
+                m_sWindowData.alphaFullscreen = m_sWindowData.alpha;
             }
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("animation")) {
@@ -788,11 +781,11 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 void CWindow::updateDynamicRules() {
     m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(), PRIORITY_NONE);
     m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(), PRIORITY_NONE);
-    m_sWindowData.alpha               = CWindowOverridableVar(1.f, PRIORITY_NONE);
-    m_sWindowData.alphaInactive       = CWindowOverridableVar(-1.f, PRIORITY_NONE);
+    m_sWindowData.alpha               = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
+    m_sWindowData.alphaInactive       = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
+    m_sWindowData.alphaFullscreen     = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
 
-    if (!m_sWindowData.opaqueOverridden)
-        m_sWindowData.opaque = CWindowOverridableVar(false, PRIORITY_NONE);
+    m_sWindowData.opaque = CWindowOverridableVar(false, PRIORITY_NONE);
 
     m_sWindowData.animationStyle = CWindowOverridableVar(std::string(""), PRIORITY_NONE);
     m_sWindowData.maxSize        = CWindowOverridableVar(Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max()), PRIORITY_NONE);

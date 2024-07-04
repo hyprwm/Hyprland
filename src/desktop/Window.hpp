@@ -59,6 +59,18 @@ enum eSuppressEvents {
 
 class IWindowTransformer;
 
+struct sAlphaValue {
+    float m_fAlpha;
+    bool  m_bOverride;
+
+    float applyAlpha(float alpha) {
+        if (m_bOverride)
+            return m_fAlpha;
+        else
+            return m_fAlpha * alpha;
+    };
+};
+
 enum eOverridePriority {
     PRIORITY_NONE,
     PRIORITY_LAYOUT,
@@ -152,12 +164,9 @@ class CWindowOverridableVar {
 };
 
 struct SWindowData {
-    CWindowOverridableVar<bool>               alphaOverride           = false;
-    CWindowOverridableVar<float>              alpha                   = 1.f;
-    CWindowOverridableVar<bool>               alphaInactiveOverride   = false;
-    CWindowOverridableVar<float>              alphaInactive           = -1.f; // -1 means unset
-    CWindowOverridableVar<bool>               alphaFullscreenOverride = false;
-    CWindowOverridableVar<float>              alphaFullscreen         = -1.f; // -1 means unset
+    CWindowOverridableVar<sAlphaValue>        alpha           = sAlphaValue{1.f, false};
+    CWindowOverridableVar<sAlphaValue>        alphaInactive   = sAlphaValue{1.f, false};
+    CWindowOverridableVar<sAlphaValue>        alphaFullscreen = sAlphaValue{1.f, false};
 
     CWindowOverridableVar<bool>               allowsInput       = false;
     CWindowOverridableVar<bool>               dimAround         = false;
@@ -174,7 +183,6 @@ struct SWindowData {
     CWindowOverridableVar<bool>               noRounding        = false;
     CWindowOverridableVar<bool>               noShadow          = false;
     CWindowOverridableVar<bool>               opaque            = false;
-    CWindowOverridableVar<bool>               opaqueOverridden  = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
     CWindowOverridableVar<bool>               RGBX              = false;
     CWindowOverridableVar<bool>               tearing           = false;
     CWindowOverridableVar<bool>               windowDanceCompat = false;

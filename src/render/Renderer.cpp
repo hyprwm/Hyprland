@@ -1421,6 +1421,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!pMonitor->state.commit()) {
+        // rollback the buffer to avoid writing to the front buffer that is being
+        // displayed
+        pMonitor->output->swapchain->rollback();
         pMonitor->damage.damageEntire();
         return;
     }

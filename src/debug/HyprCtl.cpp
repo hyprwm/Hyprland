@@ -61,6 +61,8 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
             result += std::format("\"{}x{}@{:.2f}Hz\",", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
     }
 
+    trimTrailingComma(result);
+
     return result;
 }
 

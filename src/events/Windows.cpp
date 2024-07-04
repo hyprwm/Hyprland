@@ -452,7 +452,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
 
-    if (PWINDOW->m_sWindowData.allowsInput) {
+    if (PWINDOW->m_sWindowData.allowsInput.value_or(false)) {
         PWINDOW->m_sWindowData.noFocus = CWindowOverridableVar(false, PWINDOW->m_sWindowData.allowsInput.getPriority());
         PWINDOW->m_bNoInitialFocus     = false;
         PWINDOW->m_bX11ShouldntFocus   = false;
@@ -474,11 +474,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestsFullscreen = true;
     }
 
-    if (!PWINDOW->m_sWindowData.noFocus && !PWINDOW->m_bNoInitialFocus && (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) &&
-        !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) && !g_pInputManager->isConstrained()) {
+    if (!PWINDOW->m_sWindowData.noFocus.value_or(false) && !PWINDOW->m_bNoInitialFocus &&
+        (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
+        !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
-        PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sWindowData.noDim ? 0.f : *PDIMSTRENGTH);
+        PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sWindowData.noDim.value_or(false) ? 0.f : *PDIMSTRENGTH);
     } else {
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(0);

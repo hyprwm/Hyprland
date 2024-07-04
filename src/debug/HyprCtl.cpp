@@ -1196,52 +1196,45 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
 
-    bool       noFocus = PWINDOW->m_sWindowData.noFocus.toUnderlying();
-    bool       lock    = false;
-
-    if (request.ends_with("lock"))
-        lock = true;
+    bool       noFocus = PWINDOW->m_sWindowData.noFocus.value_or(false);
 
     try {
         if (PROP == "animationstyle") {
             PWINDOW->m_sWindowData.animationStyle = CWindowOverridableVar(VAL, PRIORITY_SET_PROP);
         } else if (PROP == "maxsize") {
             PWINDOW->m_sWindowData.maxSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sWindowData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::min((double)PWINDOW->m_sWindowData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
+            PWINDOW->m_vRealSize           = Vector2D(std::min((double)PWINDOW->m_sWindowData.maxSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::min((double)PWINDOW->m_sWindowData.maxSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "minsize") {
             PWINDOW->m_sWindowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sWindowData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::max((double)PWINDOW->m_sWindowData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
+            PWINDOW->m_vRealSize           = Vector2D(std::max((double)PWINDOW->m_sWindowData.minSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::max((double)PWINDOW->m_sWindowData.minSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "alpha") {
-            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alpha =
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sWindowData.alphaInactive =
-                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
             PWINDOW->m_sWindowData.alphaFullscreen =
-                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.toUnderlying().m_bOverride}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphaoverride") {
             PWINDOW->m_sWindowData.alpha =
-                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alpha.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alpha.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sWindowData.alphaInactive =
-                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaInactive.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaInactive = CWindowOverridableVar(
+                sAlphaValue{PWINDOW->m_sWindowData.alphaInactive.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_sWindowData.alphaFullscreen =
-                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.toUnderlying().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaFullscreen = CWindowOverridableVar(
+                sAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {
-                for (int i = 3; i < static_cast<int>(lock ? vars.size() - 1 : vars.size()); ++i) {
+                for (int i = 3; i < static_cast<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
                         colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
@@ -1266,7 +1259,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_sWindowData.noFocus.toUnderlying() == noFocus)) {
+    if (!(PWINDOW->m_sWindowData.noFocus.value_or(false) == noFocus)) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);

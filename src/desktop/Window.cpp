@@ -110,7 +110,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     const int BORDERSIZE = getRealBorderSize();
 
-    if (m_sWindowData.dimAround) {
+    if (m_sWindowData.dimAround.value_or(false)) {
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
             return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
                     {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
@@ -170,7 +170,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 }
 
 CBox CWindow::getFullWindowBoundingBox() {
-    if (m_sWindowData.dimAround) {
+    if (m_sWindowData.dimAround.value_or(false)) {
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
@@ -218,7 +218,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 }
 
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
-    if (m_sWindowData.dimAround) {
+    if (m_sWindowData.dimAround.value_or(false)) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         if (PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
@@ -650,11 +650,11 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                 if (r == "override") {
                     if (opacityIDX == 1)
-                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                     else if (opacityIDX == 2)
-                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                     else if (opacityIDX == 3)
-                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.toUnderlying().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
                 } else {
                     if (opacityIDX == 0) {
                         m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
@@ -722,7 +722,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {
-            m_sWindowData.xray = CWindowOverridableVar((int)configStringToInt(vars[1]), PRIORITY_WINDOW_RULE);
+            m_sWindowData.xray = CWindowOverridableVar((bool)configStringToInt(vars[1]), PRIORITY_WINDOW_RULE);
         } catch (...) {}
     } else if (auto search = mbWindowProperties.find(r.szRule); search != mbWindowProperties.end()) {
         *(search->second) = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
@@ -754,8 +754,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             }
 
             m_sWindowData.maxSize = CWindowOverridableVar(VEC, PRIORITY_WINDOW_RULE);
-            m_vRealSize           = Vector2D(std::min((double)m_sWindowData.maxSize.toUnderlying().x, m_vRealSize.goal().x),
-                                             std::min((double)m_sWindowData.maxSize.toUnderlying().y, m_vRealSize.goal().y));
+            m_vRealSize =
+                Vector2D(std::min((double)m_sWindowData.maxSize.value().x, m_vRealSize.goal().x), std::min((double)m_sWindowData.maxSize.value().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
         } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
@@ -769,8 +769,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             }
 
             m_sWindowData.minSize = CWindowOverridableVar(VEC, PRIORITY_WINDOW_RULE);
-            m_vRealSize           = Vector2D(std::max((double)m_sWindowData.minSize.toUnderlying().x, m_vRealSize.goal().x),
-                                             std::max((double)m_sWindowData.minSize.toUnderlying().y, m_vRealSize.goal().y));
+            m_vRealSize =
+                Vector2D(std::max((double)m_sWindowData.minSize.value().x, m_vRealSize.goal().x), std::max((double)m_sWindowData.minSize.value().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
             if (m_sGroupData.pNextWindow.expired())
                 setHidden(false);
@@ -779,33 +779,33 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 }
 
 void CWindow::updateDynamicRules() {
-    m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(), PRIORITY_NONE);
-    m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(), PRIORITY_NONE);
-    m_sWindowData.alpha               = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
-    m_sWindowData.alphaInactive       = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
-    m_sWindowData.alphaFullscreen     = CWindowOverridableVar(sAlphaValue{1.f, false}, PRIORITY_NONE);
+    m_sWindowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.alpha.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.alphaInactive.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.alphaFullscreen.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.opaque = CWindowOverridableVar(false, PRIORITY_NONE);
+    m_sWindowData.opaque.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.animationStyle = CWindowOverridableVar(std::string(""), PRIORITY_NONE);
-    m_sWindowData.maxSize        = CWindowOverridableVar(Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max()), PRIORITY_NONE);
-    m_sWindowData.minSize        = CWindowOverridableVar(Vector2D(20, 20), PRIORITY_NONE);
+    m_sWindowData.animationStyle.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.maxSize.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.minSize.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.dimAround       = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.noAnim          = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.noBlur          = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.noDim           = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.noBorder        = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.noShadow        = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.focusOnActivate = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.RGBX            = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.tearing         = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.keepAspectRatio = CWindowOverridableVar(false, PRIORITY_NONE);
-    m_sWindowData.nearestNeighbor = CWindowOverridableVar(false, PRIORITY_NONE);
+    m_sWindowData.dimAround.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.noAnim.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.noBlur.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.noDim.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.noBorder.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.noShadow.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.focusOnActivate.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.RGBX.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.tearing.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.keepAspectRatio.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.nearestNeighbor.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.xray.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.borderSize = CWindowOverridableVar(-1, PRIORITY_NONE);
-    m_sWindowData.rounding   = CWindowOverridableVar(-1, PRIORITY_NONE);
-    m_sWindowData.xray       = CWindowOverridableVar(-1, PRIORITY_NONE);
+    m_sWindowData.borderSize.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.rounding.unset(PRIORITY_WINDOW_RULE);
 
     m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
@@ -1156,9 +1156,9 @@ bool CWindow::opaque() {
 float CWindow::rounding() {
     static auto PROUNDING = CConfigValue<Hyprlang::INT>("decoration:rounding");
 
-    float       rounding = m_sWindowData.rounding.toUnderlying() == -1 ? *PROUNDING : m_sWindowData.rounding.toUnderlying();
+    float       rounding = m_sWindowData.rounding.value_or(*PROUNDING);
 
-    return m_sWindowData.rounding ? rounding : 0;
+    return m_sWindowData.noRounding.value_or(false) ? 0 : rounding;
 }
 
 void CWindow::updateSpecialRenderData() {
@@ -1185,19 +1185,16 @@ void CWindow::updateSpecialRenderData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_sWindowData.noBorder || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
+    if (m_sWindowData.noBorder.value_or(false) || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
         return 0;
-
-    if (m_sWindowData.borderSize.toUnderlying() != -1)
-        return m_sWindowData.borderSize.toUnderlying();
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
 
-    return *PBORDERSIZE;
+    return m_sWindowData.borderSize.value_or(*PBORDERSIZE);
 }
 
 bool CWindow::canBeTorn() {
-    return (m_sWindowData.tearing.toUnderlying() || m_bTearingHint);
+    return m_sWindowData.tearing.value_or(m_bTearingHint);
 }
 
 bool CWindow::shouldSendFullscreenState() {
@@ -1346,7 +1343,7 @@ void CWindow::activate(bool force) {
 
     m_bIsUrgent = true;
 
-    if (!force && (!(*PFOCUSONACTIVATE || m_sWindowData.focusOnActivate) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
+    if (!force && (!m_sWindowData.focusOnActivate.value_or(*PFOCUSONACTIVATE) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;
 
     if (m_bIsFloating)
@@ -1522,7 +1519,7 @@ void CWindow::onX11Configure(CBox box) {
 
     m_bCreatedOverFullscreen = true;
 
-    if (!m_sWindowData.windowDanceCompat)
+    if (!m_sWindowData.windowDanceCompat.value_or(false))
         g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(m_pSelf.lock());

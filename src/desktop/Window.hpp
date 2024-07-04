@@ -72,7 +72,6 @@ struct sAlphaValue {
 };
 
 enum eOverridePriority {
-    PRIORITY_NONE,
     PRIORITY_LAYOUT,
     PRIORITY_WORKSPACE_RULE,
     PRIORITY_WINDOW_RULE,
@@ -82,15 +81,11 @@ enum eOverridePriority {
 template <typename T>
 class CWindowOverridableVar {
   public:
-    CWindowOverridableVar(T const& val) {
-        value = val;
+    CWindowOverridableVar(T const& value, eOverridePriority priority) {
+        values[priority] = value;
     }
 
-    CWindowOverridableVar(T const& val, eOverridePriority prior) {
-        value    = val;
-        priority = prior;
-    }
-
+    CWindowOverridableVar()  = default;
     ~CWindowOverridableVar() = default;
 
     CWindowOverridableVar<T>& operator=(CWindowOverridableVar<T> const& other) {
@@ -98,105 +93,80 @@ class CWindowOverridableVar {
         if (this == &other)
             return *this;
 
-        if (priority <= other.priority) {
-            priority = other.priority;
-            value    = other.value;
+        for (auto const& value : other.values) {
+            values[value.first] = value.second;
         }
 
         return *this;
     }
 
-    T operator=(T& other) {
-        if (priority == PRIORITY_NONE)
-            return value;
-        value = other;
-        return other;
+    void unset(eOverridePriority priority) {
+        values.erase(priority);
     }
 
-    void forceSet(T const& val, eOverridePriority prior = PRIORITY_NONE) {
-        value    = val;
-        priority = prior;
+    bool has_value() {
+        return !values.empty();
     }
 
-    T operator*(T const& other) {
-        return value * other;
+    T value() {
+        if (!values.empty())
+            return std::prev(values.end())->second;
+        else
+            throw std::bad_optional_access();
     }
 
-    T operator+(T const& other) {
-        return value + other;
-    }
-
-    bool operator==(T const& other) {
-        return other == value;
-    }
-
-    bool operator>=(T const& other) {
-        return value >= other;
-    }
-
-    bool operator<=(T const& other) {
-        return value <= other;
-    }
-
-    bool operator>(T const& other) {
-        return value > other;
-    }
-
-    bool operator<(T const& other) {
-        return value < other;
-    }
-
-    explicit operator bool() {
-        return static_cast<bool>(value);
-    }
-
-    T toUnderlying() {
-        return value;
+    T value_or(T const& other) {
+        if (has_value())
+            return value();
+        else
+            return other;
     }
 
     eOverridePriority getPriority() {
-        return priority;
+        if (!values.empty())
+            return std::prev(values.end())->first;
+        else
+            throw std::bad_optional_access();
     }
 
   private:
-    T                 value;
-    eOverridePriority priority = PRIORITY_NONE;
+    std::map<eOverridePriority, T> values;
 };
 
 struct SWindowData {
-    CWindowOverridableVar<sAlphaValue>        alpha           = sAlphaValue{1.f, false};
-    CWindowOverridableVar<sAlphaValue>        alphaInactive   = sAlphaValue{1.f, false};
-    CWindowOverridableVar<sAlphaValue>        alphaFullscreen = sAlphaValue{1.f, false};
+    CWindowOverridableVar<sAlphaValue>        alpha;
+    CWindowOverridableVar<sAlphaValue>        alphaInactive;
+    CWindowOverridableVar<sAlphaValue>        alphaFullscreen;
 
-    CWindowOverridableVar<bool>               allowsInput       = false;
-    CWindowOverridableVar<bool>               dimAround         = false;
-    CWindowOverridableVar<bool>               decorate          = false;
-    CWindowOverridableVar<bool>               focusOnActivate   = false;
-    CWindowOverridableVar<bool>               keepAspectRatio   = false;
-    CWindowOverridableVar<bool>               nearestNeighbor   = false;
-    CWindowOverridableVar<bool>               noAnim            = false;
-    CWindowOverridableVar<bool>               noBorder          = false;
-    CWindowOverridableVar<bool>               noBlur            = false;
-    CWindowOverridableVar<bool>               noDim             = false;
-    CWindowOverridableVar<bool>               noFocus           = false;
-    CWindowOverridableVar<bool>               noMaxSize         = false;
-    CWindowOverridableVar<bool>               noRounding        = false;
-    CWindowOverridableVar<bool>               noShadow          = false;
-    CWindowOverridableVar<bool>               opaque            = false;
-    CWindowOverridableVar<bool>               RGBX              = false;
-    CWindowOverridableVar<bool>               tearing           = false;
-    CWindowOverridableVar<bool>               windowDanceCompat = false;
+    CWindowOverridableVar<bool>               allowsInput;
+    CWindowOverridableVar<bool>               dimAround;
+    CWindowOverridableVar<bool>               decorate;
+    CWindowOverridableVar<bool>               focusOnActivate;
+    CWindowOverridableVar<bool>               keepAspectRatio;
+    CWindowOverridableVar<bool>               nearestNeighbor;
+    CWindowOverridableVar<bool>               noAnim;
+    CWindowOverridableVar<bool>               noBorder;
+    CWindowOverridableVar<bool>               noBlur;
+    CWindowOverridableVar<bool>               noDim;
+    CWindowOverridableVar<bool>               noFocus;
+    CWindowOverridableVar<bool>               noMaxSize;
+    CWindowOverridableVar<bool>               noRounding;
+    CWindowOverridableVar<bool>               noShadow;
+    CWindowOverridableVar<bool>               opaque;
+    CWindowOverridableVar<bool>               RGBX;
+    CWindowOverridableVar<bool>               tearing;
+    CWindowOverridableVar<bool>               xray;
+    CWindowOverridableVar<bool>               windowDanceCompat;
 
-    CWindowOverridableVar<int>                rounding   = -1; // -1 means no
-    CWindowOverridableVar<int>                xray       = -1; // -1 means unset, takes precedence over the renderdata one
-    CWindowOverridableVar<int>                borderSize = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<int>                rounding;
+    CWindowOverridableVar<int>                borderSize;
 
-    CWindowOverridableVar<std::string>        animationStyle = std::string("");
-    CWindowOverridableVar<Vector2D>           maxSize        = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-    CWindowOverridableVar<Vector2D>           minSize        = Vector2D(20, 20);
+    CWindowOverridableVar<std::string>        animationStyle;
+    CWindowOverridableVar<Vector2D>           maxSize;
+    CWindowOverridableVar<Vector2D>           minSize;
 
-    CWindowOverridableVar<CGradientValueData> activeBorderColor   = CGradientValueData(); // empty color vector means unset
-    CWindowOverridableVar<CGradientValueData> inactiveBorderColor = CGradientValueData(); // empty color vector means unset
+    CWindowOverridableVar<CGradientValueData> activeBorderColor;
+    CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
 };
 
 struct SWindowRule {

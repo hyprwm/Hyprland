@@ -280,28 +280,6 @@ void CWindow::updateWindowDecos() {
     }
 }
 
-void CWindow::createWindowProperties() {
-    mbWindowProperties["dimaround"]       = &m_sWindowData.dimAround;
-    mbWindowProperties["focusonactivate"] = &m_sWindowData.focusOnActivate;
-    mbWindowProperties["forceinput"]      = &m_sWindowData.allowsInput;
-    mbWindowProperties["forceopaque"]     = &m_sWindowData.opaque;
-    mbWindowProperties["forcergbx"]       = &m_sWindowData.RGBX;
-    mbWindowProperties["immediate"]       = &m_sWindowData.tearing;
-    mbWindowProperties["keepaspectratio"] = &m_sWindowData.keepAspectRatio;
-    mbWindowProperties["nearestneighbor"] = &m_sWindowData.nearestNeighbor;
-    mbWindowProperties["noanim"]          = &m_sWindowData.noAnim;
-    mbWindowProperties["noblur"]          = &m_sWindowData.noBlur;
-    mbWindowProperties["noborder"]        = &m_sWindowData.noBorder;
-    mbWindowProperties["nodim"]           = &m_sWindowData.noDim;
-    mbWindowProperties["nofocus"]         = &m_sWindowData.noFocus;
-    mbWindowProperties["nomaxsize"]       = &m_sWindowData.noMaxSize;
-    mbWindowProperties["noshadow"]        = &m_sWindowData.noShadow;
-    mbWindowProperties["windowdance"]     = &m_sWindowData.windowDanceCompat;
-
-    miWindowProperties["rounding"]   = &m_sWindowData.rounding;
-    miWindowProperties["bordersize"] = &m_sWindowData.borderSize;
-}
-
 void CWindow::addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco) {
     m_dWindowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_pSelf.lock());
@@ -433,11 +411,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     setAnimationsToMove();
 
     g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
-    g_pCompositor->updateWorkspaceSpecialRenderData(OLDWORKSPACE->m_iID);
+    g_pCompositor->updateWorkspaceWindowData(OLDWORKSPACE->m_iID);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->m_iMonitorID);
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateWorkspaceWindowData(workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -546,7 +524,7 @@ void CWindow::onUnmap() {
         PMONITOR->solitaryClient.reset();
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateWorkspaceWindowData(workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -724,11 +702,11 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             m_sWindowData.xray = CWindowOverridableVar((bool)configStringToInt(vars[1]), PRIORITY_WINDOW_RULE);
         } catch (...) {}
-    } else if (auto search = mbWindowProperties.find(r.szRule); search != mbWindowProperties.end()) {
-        *(search->second) = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
-    } else if (auto search = miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != miWindowProperties.end()) {
+    } else if (auto search = g_pConfigManager->mbWindowProperties.find(r.szRule); search != g_pConfigManager->mbWindowProperties.end()) {
+        *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+    } else if (auto search = g_pConfigManager->miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != g_pConfigManager->miWindowProperties.end()) {
         try {
-            *(search->second) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), PRIORITY_WINDOW_RULE);
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), PRIORITY_WINDOW_RULE);
         } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
@@ -884,7 +862,7 @@ void CWindow::createGroup() {
         addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(m_pSelf.lock()));
 
         g_pCompositor->updateWorkspaceWindows(workspaceID());
-        g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+        g_pCompositor->updateWorkspaceWindowData(workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -902,7 +880,7 @@ void CWindow::destroyGroup() {
         m_sGroupData.head = false;
         updateWindowDecos();
         g_pCompositor->updateWorkspaceWindows(workspaceID());
-        g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+        g_pCompositor->updateWorkspaceWindowData(workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -938,7 +916,7 @@ void CWindow::destroyGroup() {
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceSpecialRenderData(workspaceID());
+    g_pCompositor->updateWorkspaceWindowData(workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -1161,27 +1139,25 @@ float CWindow::rounding() {
     return m_sWindowData.noRounding.value_or(false) ? 0 : rounding;
 }
 
-void CWindow::updateSpecialRenderData() {
+void CWindow::updateWindowData() {
     const auto PWORKSPACE    = m_pWorkspace;
     const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
-    updateSpecialRenderData(WORKSPACERULE);
+    updateWindowData(WORKSPACERULE);
 }
 
-void CWindow::updateSpecialRenderData(const SWorkspaceRule& workspaceRule) {
+void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
     static auto PNOBORDERONFLOATING = CConfigValue<Hyprlang::INT>("general:no_border_on_floating");
 
-    m_sWindowData.noBorder = CWindowOverridableVar(*PNOBORDERONFLOATING && m_bIsFloating, PRIORITY_LAYOUT);
+    if (*PNOBORDERONFLOATING)
+        m_sWindowData.noBorder = CWindowOverridableVar(m_bIsFloating, PRIORITY_LAYOUT);
+    else
+        m_sWindowData.noBorder.unset(PRIORITY_LAYOUT);
 
-    if (workspaceRule.borderSize.has_value())
-        m_sWindowData.borderSize = CWindowOverridableVar((int)workspaceRule.borderSize.value(), PRIORITY_WORKSPACE_RULE);
-    if (workspaceRule.decorate.has_value())
-        m_sWindowData.decorate = CWindowOverridableVar((bool)workspaceRule.decorate.value(), PRIORITY_WORKSPACE_RULE);
-    if (workspaceRule.border.has_value())
-        m_sWindowData.noBorder = CWindowOverridableVar(!workspaceRule.border.value(), PRIORITY_WORKSPACE_RULE);
-    if (workspaceRule.rounding.has_value())
-        m_sWindowData.noRounding = CWindowOverridableVar(!workspaceRule.rounding.value(), PRIORITY_WORKSPACE_RULE);
-    if (workspaceRule.shadow.has_value())
-        m_sWindowData.noShadow = CWindowOverridableVar(!workspaceRule.shadow.value(), PRIORITY_WORKSPACE_RULE);
+    m_sWindowData.borderSize.matchOptional(workspaceRule.borderSize, PRIORITY_WORKSPACE_RULE);
+    m_sWindowData.decorate.matchOptional(workspaceRule.decorate, PRIORITY_WORKSPACE_RULE);
+    m_sWindowData.noBorder.matchOptional(workspaceRule.noBorder, PRIORITY_WORKSPACE_RULE);
+    m_sWindowData.noRounding.matchOptional(workspaceRule.noRounding, PRIORITY_WORKSPACE_RULE);
+    m_sWindowData.noShadow.matchOptional(workspaceRule.noShadow, PRIORITY_WORKSPACE_RULE);
 }
 
 int CWindow::getRealBorderSize() {

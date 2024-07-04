@@ -139,8 +139,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
 
-    PWINDOW->createWindowProperties();
-
     for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
@@ -316,7 +314,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             workspaceSilent = false;
     }
 
-    PWINDOW->updateSpecialRenderData();
+    g_pLayoutManager->getCurrentLayout()->unsetLayoutWindowData(PWINDOW);
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);

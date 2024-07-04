@@ -2259,7 +2259,7 @@ void CCompositor::updateWorkspaceWindowDecos(const int& id) {
     }
 }
 
-void CCompositor::updateWorkspaceSpecialRenderData(const int& id) {
+void CCompositor::updateWorkspaceWindowData(const int& id) {
     const auto PWORKSPACE    = getWorkspaceByID(id);
     const auto WORKSPACERULE = PWORKSPACE ? g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE) : SWorkspaceRule{};
 
@@ -2267,7 +2267,7 @@ void CCompositor::updateWorkspaceSpecialRenderData(const int& id) {
         if (w->workspaceID() != id)
             continue;
 
-        w->updateSpecialRenderData(WORKSPACERULE);
+        w->updateWindowData(WORKSPACERULE);
     }
 }
 

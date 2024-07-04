@@ -542,7 +542,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
-        pWindow->updateSpecialRenderData();
+        g_pLayoutManager->getCurrentLayout()->unsetLayoutWindowData(pWindow);
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow.reset();
@@ -710,6 +710,14 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
         sizePredicted = {};
 
     return sizePredicted;
+}
+
+void IHyprLayout::unsetLayoutWindowData(PHLWINDOW pWindow) {
+    // not finished
+    pWindow->m_sWindowData.decorate.unset(PRIORITY_LAYOUT);
+    pWindow->m_sWindowData.noBorder.unset(PRIORITY_LAYOUT);
+    pWindow->m_sWindowData.noRounding.unset(PRIORITY_LAYOUT);
+    pWindow->m_sWindowData.noShadow.unset(PRIORITY_LAYOUT);
 }
 
 IHyprLayout::~IHyprLayout() {}

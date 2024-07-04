@@ -139,7 +139,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
 
-    PWINDOW->updateSpecialRenderData();
+    unsetLayoutWindowData(PWINDOW);
 
     static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("dwindle:no_gaps_when_only");
     static auto PGAPSINDATA     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
@@ -496,7 +496,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         return;
     }
 
-    pWindow->updateSpecialRenderData();
+    unsetLayoutWindowData(pWindow);
 
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
@@ -830,7 +830,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscre
             pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
-            pWindow->updateSpecialRenderData();
+            unsetLayoutWindowData(pWindow);
         }
     } else {
         // if it now got fullscreen, make it fullscreen

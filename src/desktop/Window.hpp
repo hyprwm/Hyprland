@@ -129,6 +129,13 @@ class CWindowOverridableVar {
             throw std::bad_optional_access();
     }
 
+    void matchOptional(std::optional<T> const& optValue, eOverridePriority priority) {
+        if (optValue.has_value())
+            values[priority] = optValue.value();
+        else
+            unset(priority);
+    }
+
   private:
     std::map<eOverridePriority, T> values;
 };
@@ -319,10 +326,7 @@ class CWindow {
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
     // Special render data, rules, etc
-    SWindowData                                                   m_sWindowData;
-
-    std::unordered_map<std::string, CWindowOverridableVar<bool>*> mbWindowProperties;
-    std::unordered_map<std::string, CWindowOverridableVar<int>*>  miWindowProperties;
+    SWindowData m_sWindowData;
 
     // Transformers
     std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
@@ -397,7 +401,6 @@ class CWindow {
     void                   onMap();
     void                   setHidden(bool hidden);
     bool                   isHidden();
-    void                   createWindowProperties();
     void                   applyDynamicRule(const SWindowRule& r);
     void                   updateDynamicRules();
     SBoxExtents            getFullWindowReservedArea();
@@ -414,8 +417,8 @@ class CWindow {
     int                    surfacesCount();
 
     int                    getRealBorderSize();
-    void                   updateSpecialRenderData();
-    void                   updateSpecialRenderData(const struct SWorkspaceRule&);
+    void                   updateWindowData();
+    void                   updateWindowData(const struct SWorkspaceRule&);
 
     void                   onBorderAngleAnimEnd(void* ptr);
     bool                   isInCurvedCorner(double x, double y);

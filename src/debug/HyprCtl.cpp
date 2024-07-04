@@ -311,10 +311,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) :
                "";
         const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
-        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
-        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
-        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
-        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
+        const std::string border     = (bool)(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
+        const std::string rounding   = (bool)(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.noRounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(!r.decorate.value())) : "";
+        const std::string shadow     = (bool)(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
 
         std::string       result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}
@@ -333,10 +333,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                                                                        std::to_string(r.gapsOut.value().bottom), std::to_string(r.gapsOut.value().left)) :
                                                            std::format("\tgapsOut: <unset>\n");
         const std::string borderSize = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border     = std::format("\tborder: {}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
-        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", (bool)(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
         const std::string decorate   = std::format("\tdecorate: {}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
                                                borderSize, border, rounding, decorate, shadow);
@@ -1248,10 +1248,10 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
             else
                 PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
-        } else if (auto search = PWINDOW->mbWindowProperties.find(PROP); search != PWINDOW->mbWindowProperties.end()) {
-            *(search->second) = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
-        } else if (auto search = PWINDOW->miWindowProperties.find(PROP); search != PWINDOW->miWindowProperties.end()) {
-            *(search->second) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
+            *(search->second(PWINDOW)) = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
+            *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else {
             return "prop not found";
         }

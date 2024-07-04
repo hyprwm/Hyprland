@@ -11,11 +11,11 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
             |   (-q | --quiet)                                        "Disable output"
             ;
 
-<WINDOWS> ::= {{{ hyprctl clients | grep class | awk '{print $2}' }}};
+<WINDOWS> ::= {{{ hyprctl clients | awk '/class/{print $2}' }}};
 
-<AVAILABLE_PLUGINS> ::= {{{ hyprpm list | grep "Plugin" | awk '{print $4}' }}};
+<AVAILABLE_PLUGINS> ::= {{{ hyprpm list | awk '/Plugin/{print $4}' }}};
 
-<MONITORS> ::= {{{ hyprctl monitors | grep Monitor | awk '{ print $2 }' }}};
+<MONITORS> ::= {{{ hyprctl monitors | awk '/Monitor/{ print $2 }' }}};
 
 <KEYBOARDS> ::= {{{ hyprctl devices | sed -n '/Keyboard at/{n; s/^\s\+//; p}' }}};
 

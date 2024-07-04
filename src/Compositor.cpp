@@ -262,6 +262,35 @@ void CCompositor::initServer() {
     m_iDRMFD = m_pAqBackend->drmFD();
     Debug::log(LOG, "Running on DRMFD: {}", m_iDRMFD);
 
+    // get socket, avoid using 0
+    for (int candidate = 1; candidate <= 32; candidate++) {
+        const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
+        const auto RETVAL       = wl_display_add_socket(m_sWLDisplay, CANDIDATESTR.c_str());
+        if (RETVAL >= 0) {
+            m_szWLDisplaySocket = CANDIDATESTR;
+            Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
+            break;
+        } else {
+            Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
+        }
+    }
+
+    if (m_szWLDisplaySocket.empty()) {
+        Debug::log(WARN, "All candidates failed, trying wl_display_add_socket_auto");
+        const auto SOCKETSTR = wl_display_add_socket_auto(m_sWLDisplay);
+        if (SOCKETSTR)
+            m_szWLDisplaySocket = SOCKETSTR;
+    }
+
+    if (m_szWLDisplaySocket.empty()) {
+        Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
+        throwError("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
+    }
+
+    Debug::log(LOG, "Setting WAYLAND_DISPLAY to {}", m_szWLDisplaySocket);
+    setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
+    setenv("XDG_SESSION_TYPE", "wayland", 1);
+
     initManagers(STAGE_BASICINIT);
 
     initManagers(STAGE_LATE);
@@ -598,34 +627,6 @@ void CCompositor::prepareFallbackOutput() {
 }
 
 void CCompositor::startCompositor() {
-    // get socket, avoid using 0
-    for (int candidate = 1; candidate <= 32; candidate++) {
-        const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
-        const auto RETVAL       = wl_display_add_socket(m_sWLDisplay, CANDIDATESTR.c_str());
-        if (RETVAL >= 0) {
-            m_szWLDisplaySocket = CANDIDATESTR;
-            Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
-            break;
-        } else {
-            Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
-        }
-    }
-
-    if (m_szWLDisplaySocket.empty()) {
-        Debug::log(WARN, "All candidates failed, trying wl_display_add_socket_auto");
-        const auto SOCKETSTR = wl_display_add_socket_auto(m_sWLDisplay);
-        if (SOCKETSTR)
-            m_szWLDisplaySocket = SOCKETSTR;
-    }
-
-    if (m_szWLDisplaySocket.empty()) {
-        Debug::log(CRIT, "m_szWLDisplaySocket NULL!");
-        throwError("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
-    }
-
-    setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
-    setenv("XDG_SESSION_TYPE", "wayland", 1);
-
     signal(SIGPIPE, SIG_IGN);
 
     if (m_pAqBackend->hasSession() /* Session-less Hyprland usually means a nest, don't update the env in that case */) {

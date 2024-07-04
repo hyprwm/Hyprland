@@ -59,11 +59,24 @@ enum eSuppressEvents {
 
 class IWindowTransformer;
 
+enum eOverridePriority {
+    PRIORITY_NONE,
+    PRIORITY_LAYOUT,
+    PRIORITY_WORKSPACE_RULE,
+    PRIORITY_WINDOW_RULE,
+    PRIORITY_SET_PROP,
+};
+
 template <typename T>
 class CWindowOverridableVar {
   public:
     CWindowOverridableVar(T const& val) {
         value = val;
+    }
+
+    CWindowOverridableVar(T const& val, eOverridePriority prior) {
+        value    = val;
+        priority = prior;
     }
 
     ~CWindowOverridableVar() = default;
@@ -73,25 +86,24 @@ class CWindowOverridableVar {
         if (this == &other)
             return *this;
 
-        // Check if the current object is locked
-        if (!locked) {
-            locked = other.locked;
-            value  = other.value;
+        if (priority <= other.priority) {
+            priority = other.priority;
+            value    = other.value;
         }
 
         return *this;
     }
 
     T operator=(T& other) {
-        if (locked)
+        if (priority == PRIORITY_NONE)
             return value;
         value = other;
         return other;
     }
 
-    void forceSetIgnoreLocked(T const& val, bool lock = false) {
-        value  = val;
-        locked = lock;
+    void forceSet(T const& val, eOverridePriority prior = PRIORITY_NONE) {
+        value    = val;
+        priority = prior;
     }
 
     T operator*(T const& other) {
@@ -130,13 +142,16 @@ class CWindowOverridableVar {
         return value;
     }
 
-    bool locked = false;
+    eOverridePriority getPriority() {
+        return priority;
+    }
 
   private:
-    T value;
+    T                 value;
+    eOverridePriority priority = PRIORITY_NONE;
 };
 
-struct SWindowSpecialRenderData {
+struct SWindowData {
     CWindowOverridableVar<bool>               alphaOverride           = false;
     CWindowOverridableVar<float>              alpha                   = 1.f;
     CWindowOverridableVar<bool>               alphaInactiveOverride   = false;
@@ -144,41 +159,36 @@ struct SWindowSpecialRenderData {
     CWindowOverridableVar<bool>               alphaFullscreenOverride = false;
     CWindowOverridableVar<float>              alphaFullscreen         = -1.f; // -1 means unset
 
+    CWindowOverridableVar<bool>               allowsInput       = false;
+    CWindowOverridableVar<bool>               dimAround         = false;
+    CWindowOverridableVar<bool>               decorate          = false;
+    CWindowOverridableVar<bool>               focusOnActivate   = false;
+    CWindowOverridableVar<bool>               keepAspectRatio   = false;
+    CWindowOverridableVar<bool>               nearestNeighbor   = false;
+    CWindowOverridableVar<bool>               noAnim            = false;
+    CWindowOverridableVar<bool>               noBorder          = false;
+    CWindowOverridableVar<bool>               noBlur            = false;
+    CWindowOverridableVar<bool>               noDim             = false;
+    CWindowOverridableVar<bool>               noFocus           = false;
+    CWindowOverridableVar<bool>               noMaxSize         = false;
+    CWindowOverridableVar<bool>               noRounding        = false;
+    CWindowOverridableVar<bool>               noShadow          = false;
+    CWindowOverridableVar<bool>               opaque            = false;
+    CWindowOverridableVar<bool>               opaqueOverridden  = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
+    CWindowOverridableVar<bool>               RGBX              = false;
+    CWindowOverridableVar<bool>               tearing           = false;
+    CWindowOverridableVar<bool>               windowDanceCompat = false;
+
+    CWindowOverridableVar<int>                rounding   = -1; // -1 means no
+    CWindowOverridableVar<int>                xray       = -1; // -1 means unset, takes precedence over the renderdata one
+    CWindowOverridableVar<int>                borderSize = -1; // -1 means unset, takes precedence over the renderdata one
+
+    CWindowOverridableVar<std::string>        animationStyle = std::string("");
+    CWindowOverridableVar<Vector2D>           maxSize        = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    CWindowOverridableVar<Vector2D>           minSize        = Vector2D(20, 20);
+
     CWindowOverridableVar<CGradientValueData> activeBorderColor   = CGradientValueData(); // empty color vector means unset
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor = CGradientValueData(); // empty color vector means unset
-
-    // set by the layout
-    CWindowOverridableVar<int> borderSize = -1; // -1 means unset
-    bool                       rounding   = true;
-    bool                       border     = true;
-    bool                       decorate   = true;
-    bool                       shadow     = true;
-};
-
-struct SWindowAdditionalConfigData {
-    std::string                     animationStyle        = std::string("");
-    CWindowOverridableVar<int>      rounding              = -1; // -1 means no
-    CWindowOverridableVar<bool>     forceNoBlur           = false;
-    CWindowOverridableVar<bool>     forceOpaque           = false;
-    CWindowOverridableVar<bool>     forceOpaqueOverridden = false; // if true, a rule will not change the forceOpaque state. This is for the force opaque dispatcher.
-    CWindowOverridableVar<bool>     forceAllowsInput      = false;
-    CWindowOverridableVar<bool>     forceNoAnims          = false;
-    CWindowOverridableVar<bool>     forceNoBorder         = false;
-    CWindowOverridableVar<bool>     forceNoShadow         = false;
-    CWindowOverridableVar<bool>     forceNoDim            = false;
-    CWindowOverridableVar<bool>     noFocus               = false;
-    CWindowOverridableVar<bool>     windowDanceCompat     = false;
-    CWindowOverridableVar<bool>     noMaxSize             = false;
-    CWindowOverridableVar<Vector2D> maxSize               = Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-    CWindowOverridableVar<Vector2D> minSize               = Vector2D(20, 20);
-    CWindowOverridableVar<bool>     dimAround             = false;
-    CWindowOverridableVar<bool>     forceRGBX             = false;
-    CWindowOverridableVar<bool>     keepAspectRatio       = false;
-    CWindowOverridableVar<bool>     focusOnActivate       = false;
-    CWindowOverridableVar<int>      xray                  = -1; // -1 means unset, takes precedence over the renderdata one
-    CWindowOverridableVar<int>      borderSize            = -1; // -1 means unset, takes precedence over the renderdata one
-    CWindowOverridableVar<bool>     forceTearing          = false;
-    CWindowOverridableVar<bool>     nearestNeighbor       = false;
 };
 
 struct SWindowRule {
@@ -331,8 +341,7 @@ class CWindow {
     std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
 
     // Special render data, rules, etc
-    SWindowSpecialRenderData                                      m_sSpecialRenderData;
-    SWindowAdditionalConfigData                                   m_sAdditionalConfigData;
+    SWindowData                                                   m_sWindowData;
 
     std::unordered_map<std::string, CWindowOverridableVar<bool>*> mbWindowProperties;
     std::unordered_map<std::string, CWindowOverridableVar<int>*>  miWindowProperties;

@@ -96,13 +96,10 @@ void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
     if (PWINDOW->m_cRealShadowColor.value() == CColor(0, 0, 0, 0))
         return; // don't draw invisible shadows
 
-    if (!PWINDOW->m_sSpecialRenderData.decorate)
+    if (!PWINDOW->m_sWindowData.decorate)
         return;
 
-    if (!PWINDOW->m_sSpecialRenderData.shadow)
-        return;
-
-    if (PWINDOW->m_sAdditionalConfigData.forceNoShadow)
+    if (PWINDOW->m_sWindowData.noShadow)
         return;
 
     static auto PSHADOWS            = CConfigValue<Hyprlang::INT>("decoration:drop_shadow");

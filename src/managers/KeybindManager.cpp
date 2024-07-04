@@ -2238,8 +2238,8 @@ void CKeybindManager::toggleOpaque(std::string unused) {
     if (!PWINDOW)
         return;
 
-    PWINDOW->m_sAdditionalConfigData.forceOpaque           = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
-    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
+    PWINDOW->m_sWindowData.opaque           = CWindowOverridableVar(!PWINDOW->m_sWindowData.opaque, PRIORITY_SET_PROP);
+    PWINDOW->m_sWindowData.opaqueOverridden = CWindowOverridableVar(true, PRIORITY_SET_PROP);
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

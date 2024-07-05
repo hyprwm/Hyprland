@@ -312,8 +312,8 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                "";
         const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
         const std::string border     = (bool)(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
-        const std::string rounding   = (bool)(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.noRounding.value())) : "";
-        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(!r.decorate.value())) : "";
+        const std::string rounding   = (bool)(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
+        const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
         const std::string shadow     = (bool)(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
 
         std::string       result = std::format(R"#({{
@@ -1214,23 +1214,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
             PWINDOW->setHidden(false);
         } else if (PROP == "alpha") {
-            PWINDOW->m_sWindowData.alpha =
-                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.value_or_default().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
             PWINDOW->m_sWindowData.alphaInactive =
-                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.value_or_default().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
             PWINDOW->m_sWindowData.alphaFullscreen =
-                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.value_or(sAlphaValue{1.f, false}).m_bOverride}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.value_or_default().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphaoverride") {
             PWINDOW->m_sWindowData.alpha =
-                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alpha.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alpha.value_or_default().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sWindowData.alphaInactive = CWindowOverridableVar(
-                sAlphaValue{PWINDOW->m_sWindowData.alphaInactive.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaInactive.value_or_default().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_sWindowData.alphaFullscreen = CWindowOverridableVar(
-                sAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.value_or(sAlphaValue{1.f, false}).m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(sAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.value_or_default().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {

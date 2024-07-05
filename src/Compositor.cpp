@@ -1819,12 +1819,12 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     // opacity
     const auto PWORKSPACE = pWindow->m_pWorkspace;
     if (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
-        pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.value_or(sAlphaValue{1.f, false}).applyAlpha(*PFULLSCREENALPHA);
+        pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.value_or_default().applyAlpha(*PFULLSCREENALPHA);
     } else {
         if (pWindow == m_pLastWindow)
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alpha.value_or(sAlphaValue{1.f, false}).applyAlpha(*PACTIVEALPHA);
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alpha.value_or_default().applyAlpha(*PACTIVEALPHA);
         else
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.value_or(sAlphaValue{1.f, false}).applyAlpha(*PINACTIVEALPHA);
+            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.value_or_default().applyAlpha(*PINACTIVEALPHA);
     }
 
     // dim

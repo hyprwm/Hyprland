@@ -149,9 +149,9 @@ class CWindowOverridableVar {
 };
 
 struct SWindowData {
-    CWindowOverridableVar<sAlphaValue>        alpha;
-    CWindowOverridableVar<sAlphaValue>        alphaInactive;
-    CWindowOverridableVar<sAlphaValue>        alphaFullscreen;
+    CWindowOverridableVar<sAlphaValue>        alpha           = sAlphaValue{1.f, false};
+    CWindowOverridableVar<sAlphaValue>        alphaInactive   = sAlphaValue{1.f, false};
+    CWindowOverridableVar<sAlphaValue>        alphaFullscreen = sAlphaValue{1.f, false};
 
     CWindowOverridableVar<bool>               allowsInput       = false;
     CWindowOverridableVar<bool>               dimAround         = false;

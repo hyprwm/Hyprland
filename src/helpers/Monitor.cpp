@@ -6,6 +6,7 @@
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../protocols/DRMLease.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
 #include <hyprutils/string/String.hpp>
@@ -92,10 +93,9 @@ void CMonitor::onConnect(bool noRule) {
 
     if (output->nonDesktop) {
         Debug::log(LOG, "Not configuring non-desktop output");
-        // TODO:
-        // if (g_pCompositor->m_sWRLDRMLeaseMgr) {
-        //     wlr_drm_lease_v1_manager_offer_output(g_pCompositor->m_sWRLDRMLeaseMgr, output);
-        // }
+        if (PROTO::lease)
+            PROTO::lease->offer(self.lock());
+
         return;
     }
 

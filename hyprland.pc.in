@@ -4,4 +4,4 @@ Name: Hyprland
 URL: https://github.com/hyprwm/Hyprland
 Description: Hyprland header files
 Version: @HYPRLAND_VERSION@
-Cflags: -I${prefix} -I${prefix}/hyprland/protocols -I${prefix}/hyprland -I${prefix}/hyprland/wlr
+Cflags: -I${prefix} -I${prefix}/hyprland/protocols -I${prefix}/hyprland

@@ -1490,31 +1490,6 @@ void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE 
 
 void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
     // FIXME: fix when moved to new impl
-    // if (!g_pCompositor->m_sWLRLinuxDMABuf || g_pSessionLockManager->isSessionLocked())
-    //     return;
-
-    // if (!pWindow->m_bIsFullscreen) {
-    //     wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface->resource(), nullptr);
-    //     Debug::log(LOG, "Scanout mode OFF set for {}", pWindow);
-    //     return;
-    // }
-
-    // const auto                                      PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-
-    // const wlr_linux_dmabuf_feedback_v1_init_options INIT_OPTIONS = {
-    //     .main_renderer          = g_pCompositor->m_sWLRRenderer,
-    //     .scanout_primary_output = PMONITOR->output,
-    // };
-
-    // wlr_linux_dmabuf_feedback_v1 feedback = {0};
-
-    // if (!wlr_linux_dmabuf_feedback_v1_init_with_options(&feedback, &INIT_OPTIONS))
-    //     return;
-
-    // wlr_linux_dmabuf_v1_set_surface_feedback(g_pCompositor->m_sWLRLinuxDMABuf, pWindow->m_pWLSurface->resource(), &feedback);
-    // wlr_linux_dmabuf_feedback_v1_finish(&feedback);
-
-    // Debug::log(LOG, "Scanout mode ON set for {}", pWindow);
 }
 
 // taken from Sway.
@@ -2245,7 +2220,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     if (WAS10B != pMonitor->enabled10bit || OLDRES != pMonitor->vecPixelSize)
         g_pHyprOpenGL->destroyMonitorResources(pMonitor);
 
-    // updato wlroots
     g_pCompositor->arrangeMonitors();
 
     pMonitor->damage.setSize(pMonitor->vecTransformedSize);

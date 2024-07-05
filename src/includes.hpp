@@ -27,10 +27,6 @@
 #include <GLES3/gl3ext.h>
 #endif
 
-#if !WLR_HAS_X11_BACKEND
-#include "helpers/X11Stubs.hpp"
-#endif
-
 #ifdef NO_XWAYLAND
 #define XWAYLAND false
 #else

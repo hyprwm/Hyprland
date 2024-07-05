@@ -7,7 +7,3 @@
 [submodule "subprojects/tracy"]
 	path = subprojects/tracy
 	url = https://github.com/wolfpld/tracy
-[submodule "subprojects/wlroots-hyprland"]
-	path = subprojects/wlroots-hyprland
-	url = https://github.com/hyprwm/wlroots-hyprland
-	ignore = dirty

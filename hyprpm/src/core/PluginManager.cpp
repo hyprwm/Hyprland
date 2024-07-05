@@ -356,7 +356,7 @@ eHeadersErrors CPluginManager::headersValid() {
         else
             headers = "";
 
-        if (PATH.ends_with("protocols") || PATH.ends_with("wlroots-hyprland"))
+        if (PATH.ends_with("protocols"))
             continue;
 
         verHeader = trim(PATH.substr(2)) + "/hyprland/src/version.h";
@@ -492,11 +492,6 @@ bool CPluginManager::updateHeaders(bool force) {
                   << missing << "\n\nThis likely means that you are missing the above dependencies or they are out of date.\n";
         return false;
     }
-
-    // le hack. Wlroots has to generate its build/include
-    ret = execAndGet("cd " + WORKINGDIR + "/subprojects/wlroots-hyprland && meson setup -Drenderers=gles2 -Dexamples=false build");
-    if (m_bVerbose)
-        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "meson returned: " + ret);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " configured Hyprland");
     progress.m_iSteps           = 4;

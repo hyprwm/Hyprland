@@ -299,8 +299,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         auto id       = e->data.data32[0];
         auto resource = wl_client_get_object(g_pXWayland->pServer->xwaylandClient, id);
         if (resource) {
-            auto wlrSurface = CWLSurfaceResource::fromResource(resource);
-            associate(XSURF, wlrSurface);
+            auto surf = CWLSurfaceResource::fromResource(resource);
+            associate(XSURF, surf);
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"]) {
         if (XSURF->wlSerial) {

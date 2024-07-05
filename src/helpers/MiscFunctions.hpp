@@ -3,7 +3,6 @@
 #include <optional>
 #include <string>
 #include <wayland-server.h>
-#include <wlr/util/box.h>
 #include "math/Math.hpp"
 #include <vector>
 #include <format>

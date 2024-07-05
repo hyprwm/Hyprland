@@ -9,7 +9,7 @@ CTexture::CTexture() {
 }
 
 CTexture::~CTexture() {
-    if (m_bNonOwning || !g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
+    if (!g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
         return;
 
     g_pHyprRenderer->makeEGLCurrent();

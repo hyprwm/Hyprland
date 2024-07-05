@@ -768,7 +768,7 @@ void CHyprOpenGLImpl::end() {
 
     TRACY_GPU_ZONE("RenderEnd");
 
-    // end the render, copy the data to the WLR framebuffer
+    // end the render, copy the data to the main framebuffer
     if (m_bOffloadedFramebuffer) {
         m_RenderData.damage = m_RenderData.finalDamage;
         m_bEndFrame         = true;
@@ -1177,7 +1177,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
 
     float matrix[9];
     projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
+               m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
@@ -1187,7 +1187,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
 #endif
 
@@ -1319,7 +1319,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
@@ -1447,7 +1447,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
@@ -1498,7 +1498,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
 #ifndef GLES2
     glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform1i(shader->tex, 0);
@@ -1586,7 +1586,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 #ifndef GLES2
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix);
 #else
-        wlr_matrix_transpose(glMatrix, glMatrix);
+        matrixTranspose(glMatrix, glMatrix);
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix);
 #endif
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
@@ -1631,7 +1631,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 #ifndef GLES2
         glUniformMatrix3fv(pShader->proj, 1, GL_TRUE, glMatrix);
 #else
-        wlr_matrix_transpose(glMatrix, glMatrix);
+        matrixTranspose(glMatrix, glMatrix);
         glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
 #endif
         glUniform1f(pShader->radius, *PBLURSIZE * a); // this makes the blursize change with a
@@ -1708,7 +1708,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 #ifndef GLES2
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix);
 #else
-        wlr_matrix_transpose(glMatrix, glMatrix);
+        matrixTranspose(glMatrix, glMatrix);
         glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix);
 #endif
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.noise, *PBLURNOISE);
@@ -2040,7 +2040,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 
     float matrix[9];
     projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
+               m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
@@ -2053,7 +2053,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
 #endif
 
@@ -2116,7 +2116,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFr
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
-    // this is temporary, doesnt mess with the actual wlr damage
+    // this is temporary, doesnt mess with the actual damage
     CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -2167,7 +2167,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
-    // this is temporary, doesnt mess with the actual wlr damage
+    // this is temporary, doesnt mess with the actual damage
     CRegion      fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
     PHLWINDOWREF ref{pWindow};
@@ -2216,7 +2216,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(PHLLS pLayer) {
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
-    // this is temporary, doesnt mess with the actual wlr damage
+    // this is temporary, doesnt mess with the actual damage
     CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -2346,7 +2346,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
     float       matrix[9];
     projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
+               m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
@@ -2358,7 +2358,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 #ifndef GLES2
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_TRUE, glMatrix);
 #else
-    wlr_matrix_transpose(glMatrix, glMatrix);
+    matrixTranspose(glMatrix, glMatrix);
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
 #endif
     glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);

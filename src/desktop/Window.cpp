@@ -607,9 +607,8 @@ bool CWindow::isHidden() {
 }
 
 void CWindow::applyDynamicRule(const SWindowRule& r) {
-    if (r.szRule == "opaque") {
-        m_sWindowData.opaque = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
-    } else if (r.szRule.starts_with("tag")) {
+    const eOverridePriority priority = r.szValue == "execRule" ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    if (r.szRule.starts_with("tag")) {
         CVarList vars{r.szRule, 0, 's', true};
 
         if (vars.size() == 2 && vars[0] == "tag")
@@ -628,18 +627,18 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                 if (r == "override") {
                     if (opacityIDX == 1)
-                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, priority);
                     else if (opacityIDX == 2)
-                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, priority);
                     else if (opacityIDX == 3)
-                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, priority);
                 } else {
                     if (opacityIDX == 0) {
-                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
                     } else if (opacityIDX == 1) {
-                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
                     } else if (opacityIDX == 2) {
-                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, PRIORITY_WINDOW_RULE);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
                     } else {
                         throw std::runtime_error("more than 3 alpha values");
                     }
@@ -655,7 +654,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("animation")) {
         auto STYLE                   = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-        m_sWindowData.animationStyle = CWindowOverridableVar(STYLE, PRIORITY_WINDOW_RULE);
+        m_sWindowData.animationStyle = CWindowOverridableVar(STYLE, priority);
     } else if (r.szRule.starts_with("bordercolor")) {
         try {
             // Each vector will only get used if it has at least one color
@@ -666,8 +665,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
             // Basic form has only two colors, everything else can be parsed as a gradient
             if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-                m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[0]))), PRIORITY_WINDOW_RULE);
-                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[1]))), PRIORITY_WINDOW_RULE);
+                m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[0]))), priority);
+                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[1]))), priority);
                 return;
             }
 
@@ -690,23 +689,23 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             else if (activeBorderGradient.m_vColors.empty())
                 Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", r.szRule);
             else if (inactiveBorderGradient.m_vColors.empty())
-                m_sWindowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, PRIORITY_WINDOW_RULE);
+                m_sWindowData.activeBorderColor = CWindowOverridableVar(activeBorderGradient, priority);
             else {
-                m_sWindowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, PRIORITY_WINDOW_RULE);
-                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, PRIORITY_WINDOW_RULE);
+                m_sWindowData.activeBorderColor   = CWindowOverridableVar(activeBorderGradient, priority);
+                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("xray")) {
         CVarList vars(r.szRule, 0, ' ');
 
         try {
-            m_sWindowData.xray = CWindowOverridableVar((bool)configStringToInt(vars[1]), PRIORITY_WINDOW_RULE);
+            m_sWindowData.xray = CWindowOverridableVar((bool)configStringToInt(vars[1]), priority);
         } catch (...) {}
     } else if (auto search = g_pConfigManager->mbWindowProperties.find(r.szRule); search != g_pConfigManager->mbWindowProperties.end()) {
-        *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, PRIORITY_WINDOW_RULE);
+        *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, priority);
     } else if (auto search = g_pConfigManager->miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != g_pConfigManager->miWindowProperties.end()) {
         try {
-            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), PRIORITY_WINDOW_RULE);
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), priority);
         } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
@@ -731,7 +730,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 return;
             }
 
-            m_sWindowData.maxSize = CWindowOverridableVar(VEC, PRIORITY_WINDOW_RULE);
+            m_sWindowData.maxSize = CWindowOverridableVar(VEC, priority);
             m_vRealSize =
                 Vector2D(std::min((double)m_sWindowData.maxSize.value().x, m_vRealSize.goal().x), std::min((double)m_sWindowData.maxSize.value().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
@@ -746,7 +745,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 return;
             }
 
-            m_sWindowData.minSize = CWindowOverridableVar(VEC, PRIORITY_WINDOW_RULE);
+            m_sWindowData.minSize = CWindowOverridableVar(VEC, priority);
             m_vRealSize =
                 Vector2D(std::max((double)m_sWindowData.minSize.value().x, m_vRealSize.goal().x), std::max((double)m_sWindowData.minSize.value().y, m_vRealSize.goal().y));
             g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());

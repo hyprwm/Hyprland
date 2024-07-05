@@ -169,12 +169,10 @@ class CConfigManager {
     std::string                                                                             configCurrentPath;
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(PHLWINDOW)>> mbWindowProperties = {
-        {"dimaround", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.dimAround; }},
+        {"allowsinput", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
+        {"dimaround", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.dimAround; }},
+        {"decorate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.decorate; }},
         {"focusonactivate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
-        {"forceinput", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
-        {"forceopaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
-        {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
-        {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"keepaspectratio", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
         {"nearestneighbor", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
         {"noanim", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noAnim; }},
@@ -183,7 +181,12 @@ class CConfigManager {
         {"nodim", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noDim; }},
         {"nofocus", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noFocus; }},
         {"nomaxsize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
+        {"norounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noRounding; }},
         {"noshadow", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShadow; }},
+        {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
+        {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+        {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
+        // {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
         {"windowdance", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.windowDanceCompat; }},
     };
 

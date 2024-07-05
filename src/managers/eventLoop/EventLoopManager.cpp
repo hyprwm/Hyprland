@@ -9,8 +9,10 @@
 
 #define TIMESPEC_NSEC_PER_SEC 1000000000L
 
-CEventLoopManager::CEventLoopManager() {
-    m_sTimers.timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop) {
+    m_sTimers.timerfd  = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+    m_sWayland.loop    = wlEventLoop;
+    m_sWayland.display = display;
 }
 
 CEventLoopManager::~CEventLoopManager() {
@@ -23,13 +25,10 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
     return 1;
 }
 
-void CEventLoopManager::enterLoop(wl_display* display, wl_event_loop* wlEventLoop) {
-    m_sWayland.loop    = wlEventLoop;
-    m_sWayland.display = display;
+void CEventLoopManager::enterLoop() {
+    m_sWayland.eventSource = wl_event_loop_add_fd(m_sWayland.loop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
 
-    m_sWayland.eventSource = wl_event_loop_add_fd(wlEventLoop, m_sTimers.timerfd, WL_EVENT_READABLE, timerWrite, nullptr);
-
-    wl_display_run(display);
+    wl_display_run(m_sWayland.display);
 
     Debug::log(LOG, "Kicked off the event loop! :(");
 }
@@ -86,4 +85,25 @@ void CEventLoopManager::nudgeTimers() {
     itimerspec ts = {.it_value = now};
 
     timerfd_settime(m_sTimers.timerfd, TFD_TIMER_ABSTIME, &ts, nullptr);
+}
+
+void CEventLoopManager::doLater(const std::function<void()>& fn) {
+    m_sIdle.fns.emplace_back(fn);
+
+    if (m_sIdle.eventSource)
+        return;
+
+    m_sIdle.eventSource = wl_event_loop_add_idle(
+        m_sWayland.loop,
+        [](void* data) {
+            auto IDLE = (CEventLoopManager::SIdleData*)data;
+            auto cpy  = IDLE->fns;
+            IDLE->fns.clear();
+            IDLE->eventSource = nullptr;
+            for (auto& c : cpy) {
+                if (c)
+                    c();
+            }
+        },
+        &m_sIdle);
 }

@@ -315,6 +315,7 @@ protocolNew("unstable/primary-selection" "primary-selection-unstable-v1" false)
 protocolNew("staging/xwayland-shell" "xwayland-shell-v1" false)
 protocolNew("stable/viewporter" "viewporter" false)
 protocolNew("stable/linux-dmabuf" "linux-dmabuf-v1" false)
+protocolNew("staging/drm-lease" "drm-lease-v1" false)
 
 protocolWayland()
 

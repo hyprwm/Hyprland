@@ -58,23 +58,20 @@ static void eglLog(EGLenum error, const char* command, EGLint type, EGLLabelKHR 
 }
 
 static int openRenderNode(int drmFd) {
-    char* renderName = drmGetRenderDeviceNameFromFd(drmFd);
-    if (renderName == NULL) {
+    auto renderName = drmGetRenderDeviceNameFromFd(drmFd);
+    if (!renderName) {
         // This can happen on split render/display platforms, fallback to
         // primary node
         renderName = drmGetPrimaryDeviceNameFromFd(drmFd);
-        if (renderName == NULL) {
-            wlr_log_errno(WLR_ERROR, "drmGetPrimaryDeviceNameFromFd failed");
+        if (!renderName) {
+            Debug::log(ERR, "drmGetPrimaryDeviceNameFromFd failed");
             return -1;
         }
-        wlr_log(WLR_DEBUG,
-                "DRM device '%s' has no render node, "
-                "falling back to primary node",
-                renderName);
+        Debug::log(LOG, "DRM dev {} has no render node, falling back to primary", renderName);
 
         drmVersion* render_version = drmGetVersion(drmFd);
-        if (render_version != NULL && render_version->name != NULL) {
-            wlr_log(WLR_DEBUG, "DRM device version.name '%s'", render_version->name);
+        if (render_version && render_version->name) {
+            Debug::log(LOG, "DRM dev versionName", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
                 free(renderName);
                 renderName = (char*)malloc(sizeof(char) * 15);
@@ -84,14 +81,14 @@ static int openRenderNode(int drmFd) {
         }
     }
 
-    wlr_log(WLR_DEBUG, "open_render_node() DRM device '%s'", renderName);
+    Debug::log(LOG, "openRenderNode got drm device {}", renderName);
 
-    int render_fd = open(renderName, O_RDWR | O_CLOEXEC);
-    if (render_fd < 0) {
-        wlr_log_errno(WLR_ERROR, "Failed to open DRM node '%s'", renderName);
-    }
+    int renderFD = open(renderName, O_RDWR | O_CLOEXEC);
+    if (renderFD < 0)
+        Debug::log(ERR, "openRenderNode failed to open drm device {}", renderName);
+
     free(renderName);
-    return render_fd;
+    return renderFD;
 }
 
 void CHyprOpenGLImpl::initEGL(bool gbm) {
@@ -323,7 +320,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         return;
     }
 
-    wlr_log(WLR_DEBUG, "Supported DMA-BUF formats:");
+    Debug::log(LOG, "Supported DMA-BUF formats:");
 
     std::vector<SDRMFormat> dmaFormats;
 
@@ -646,12 +643,12 @@ void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, CRe
 
     matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
 
-    wlr_matrix_identity(m_RenderData.monitorProjection.data());
+    matrixIdentity(m_RenderData.monitorProjection.data());
     if (pMonitor->transform != WL_OUTPUT_TRANSFORM_NORMAL) {
         const Vector2D tfmd = pMonitor->transform % 2 == 1 ? Vector2D{FBO->m_vSize.y, FBO->m_vSize.x} : FBO->m_vSize;
-        wlr_matrix_translate(m_RenderData.monitorProjection.data(), FBO->m_vSize.x / 2.0, FBO->m_vSize.y / 2.0);
-        wlr_matrix_transform(m_RenderData.monitorProjection.data(), pMonitor->transform);
-        wlr_matrix_translate(m_RenderData.monitorProjection.data(), -tfmd.x / 2.0, -tfmd.y / 2.0);
+        matrixTranslate(m_RenderData.monitorProjection.data(), FBO->m_vSize.x / 2.0, FBO->m_vSize.y / 2.0);
+        matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(pMonitor->transform));
+        matrixTranslate(m_RenderData.monitorProjection.data(), -tfmd.x / 2.0, -tfmd.y / 2.0);
     }
 
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
@@ -1087,7 +1084,7 @@ void CHyprOpenGLImpl::scissor(const CBox* pBox, bool transform) {
     CBox newBox = *pBox;
 
     if (transform) {
-        const auto TR = wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform));
+        const auto TR = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
         newBox.transform(TR, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
     }
 
@@ -1177,11 +1174,11 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
     box = &newBox;
 
     float matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
+    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
                m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shQUAD.program);
 
@@ -1196,7 +1193,7 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
     glUniform4f(m_RenderData.pCurrentMonData->m_shQUAD.color, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
 
     CBox transformedBox = *box;
-    transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
                              m_RenderData.pMonitor->vecTransformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -1268,12 +1265,12 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     static auto PDT          = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
 
     // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
+    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
     float      matrix[9];
     projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     CShader*   shader = nullptr;
 
@@ -1356,7 +1353,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     }
 
     CBox transformedBox = newBox;
-    transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
                              m_RenderData.pMonitor->vecTransformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -1431,12 +1428,12 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
     m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
+    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
     float      matrix[9];
     projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     CShader* shader = &m_RenderData.pCurrentMonData->m_shPASSTHRURGBA;
 
@@ -1485,12 +1482,12 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
     m_RenderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
+    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
     float      matrix[9];
     projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     CShader* shader = &m_RenderData.pCurrentMonData->m_shMATTE;
 
@@ -1543,13 +1540,13 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     glDisable(GL_STENCIL_TEST);
 
     // get transforms for the full monitor
-    const auto TRANSFORM = wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform));
+    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
     float      matrix[9];
     CBox       MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
     projectBox(matrix, MONITORBOX, TRANSFORM, 0, m_RenderData.monitorProjection.data());
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     // get the config settings
     static auto PBLURSIZE             = CConfigValue<Hyprlang::INT>("decoration:blur:size");
@@ -1559,9 +1556,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // prep damage
     CRegion damage{*originalDamage};
-    wlr_region_transform(damage.pixman(), damage.pixman(), wlr_output_transform_invert(m_RenderData.pMonitor->transform), m_RenderData.pMonitor->vecTransformedSize.x,
-                         m_RenderData.pMonitor->vecTransformedSize.y);
-    wlr_region_expand(damage.pixman(), damage.pixman(), *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES));
+    damage.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+    damage.expand(*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES));
 
     // helper
     const auto    PMIRRORFB     = &m_RenderData.pCurrentMonData->mirrorFB;
@@ -1680,13 +1676,13 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // and draw
     for (int i = 1; i <= *PBLURPASSES; ++i) {
-        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << i));
+        tempDamage.scale(1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 
     for (int i = *PBLURPASSES - 1; i >= 0; --i) {
-        wlr_region_scale(tempDamage.pixman(), damage.pixman(), 1.f / (1 << i)); // when upsampling we make the region twice as big
-        drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage);        // up
+        tempDamage.scale(1.f / (1 << i));                                // when upsampling we make the region twice as big
+        drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage); // up
     }
 
     // finalize the image
@@ -1942,7 +1938,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
         inverseOpaque = {0, 0, pBox->width, pBox->height};
     }
 
-    wlr_region_scale(inverseOpaque.pixman(), inverseOpaque.pixman(), m_RenderData.pMonitor->scale);
+    inverseOpaque.scale(m_RenderData.pMonitor->scale);
 
     //   vvv TODO: layered blur fbs?
     const bool    USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_pCurrentLayer, m_pCurrentWindow.lock()) && !blockBlurOptimization;
@@ -2041,11 +2037,11 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     round += round == 0 ? 0 : scaledBorderSize;
 
     float matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
+    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
                m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     const auto BLEND = m_bBlend;
     blend(true);
@@ -2067,7 +2063,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
 
     CBox transformedBox = *box;
-    transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
                              m_RenderData.pMonitor->vecTransformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -2347,11 +2343,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     const auto  col = color;
 
     float       matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(wlr_output_transform_invert(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
+    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
                m_RenderData.monitorProjection.data()); // TODO: write own, don't use WLR here
 
     float glMatrix[9];
-    wlr_matrix_multiply(glMatrix, m_RenderData.projection, matrix);
+    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     glEnable(GL_BLEND);
 
@@ -2439,11 +2435,11 @@ void CHyprOpenGLImpl::renderMirrored() {
         return;
 
     // replace monitor projection to undo the mirrored monitor's projection
-    wlr_matrix_identity(monitor->projMatrix.data());
-    wlr_matrix_translate(monitor->projMatrix.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
-    wlr_matrix_transform(monitor->projMatrix.data(), monitor->transform);
-    wlr_matrix_transform(monitor->projMatrix.data(), wlr_output_transform_invert(mirrored->transform));
-    wlr_matrix_translate(monitor->projMatrix.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
+    matrixIdentity(monitor->projMatrix.data());
+    matrixTranslate(monitor->projMatrix.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
+    matrixTransform(monitor->projMatrix.data(), wlTransformToHyprutils(monitor->transform));
+    matrixTransform(monitor->projMatrix.data(), wlTransformToHyprutils(invertTransform(mirrored->transform)));
+    matrixTranslate(monitor->projMatrix.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
 
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
     clear(CColor(0, 0, 0, 0));
@@ -2672,8 +2668,8 @@ void CHyprOpenGLImpl::saveMatrix() {
 }
 
 void CHyprOpenGLImpl::setMatrixScaleTranslate(const Vector2D& translate, const float& scale) {
-    wlr_matrix_scale(m_RenderData.projection, scale, scale);
-    wlr_matrix_translate(m_RenderData.projection, translate.x, translate.y);
+    matrixScale(m_RenderData.projection, scale, scale);
+    matrixTranslate(m_RenderData.projection, translate.x, translate.y);
 }
 
 void CHyprOpenGLImpl::restoreMatrix() {

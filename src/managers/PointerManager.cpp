@@ -6,9 +6,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
-#include <wlr/interfaces/wlr_output.h>
-#include <wlr/render/interface.h>
-#include <wlr/render/wlr_renderer.h>
 
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("newMonitor", [this](void* self, SCallbackInfo& info, std::any data) {
@@ -465,7 +462,7 @@ Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
     return CBox{currentCursorImage.hotspot * pMonitor->scale, {0, 0}}
-        .transform(wlTransformToHyprutils(wlr_output_transform_invert(pMonitor->transform)), pMonitor->cursorSwapchain->currentOptions().size.x,
+        .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->cursorSwapchain->currentOptions().size.x,
                    pMonitor->cursorSwapchain->currentOptions().size.y)
         .pos();
 }

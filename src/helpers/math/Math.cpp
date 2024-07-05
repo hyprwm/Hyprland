@@ -17,14 +17,14 @@ Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
     return Hyprutils::Math::eTransform::HYPRUTILS_TRANSFORM_NORMAL;
 }
 
-static void matrixIdentity(float mat[9]) {
+void matrixIdentity(float mat[9]) {
     static const float identity[9] = {
         1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
     };
     memcpy(mat, identity, sizeof(identity));
 }
 
-static void matrixMultiply(float mat[9], const float a[9], const float b[9]) {
+void matrixMultiply(float mat[9], const float a[9], const float b[9]) {
     float product[9];
 
     product[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
@@ -42,35 +42,35 @@ static void matrixMultiply(float mat[9], const float a[9], const float b[9]) {
     memcpy(mat, product, sizeof(product));
 }
 
-static void matrixTranspose(float mat[9], const float a[9]) {
+void matrixTranspose(float mat[9], const float a[9]) {
     float transposition[9] = {
         a[0], a[3], a[6], a[1], a[4], a[7], a[2], a[5], a[8],
     };
     memcpy(mat, transposition, sizeof(transposition));
 }
 
-static void matrixTranslate(float mat[9], float x, float y) {
+void matrixTranslate(float mat[9], float x, float y) {
     float translate[9] = {
         1.0f, 0.0f, x, 0.0f, 1.0f, y, 0.0f, 0.0f, 1.0f,
     };
     matrixMultiply(mat, mat, translate);
 }
 
-static void matrixScale(float mat[9], float x, float y) {
+void matrixScale(float mat[9], float x, float y) {
     float scale[9] = {
         x, 0.0f, 0.0f, 0.0f, y, 0.0f, 0.0f, 0.0f, 1.0f,
     };
     matrixMultiply(mat, mat, scale);
 }
 
-static void matrixRotate(float mat[9], float rad) {
+void matrixRotate(float mat[9], float rad) {
     float rotate[9] = {
         cos(rad), -sin(rad), 0.0f, sin(rad), cos(rad), 0.0f, 0.0f, 0.0f, 1.0f,
     };
     matrixMultiply(mat, mat, rotate);
 }
 
-static std::unordered_map<eTransform, std::array<float, 9>> transforms = {
+std::unordered_map<eTransform, std::array<float, 9>> transforms = {
     {HYPRUTILS_TRANSFORM_NORMAL,
      {
          1.0f,
@@ -169,11 +169,11 @@ static std::unordered_map<eTransform, std::array<float, 9>> transforms = {
      }},
 };
 
-static void matrixTransform(float mat[9], eTransform transform) {
+void matrixTransform(float mat[9], eTransform transform) {
     matrixMultiply(mat, mat, transforms.at(transform).data());
 }
 
-static void matrixProjection(float mat[9], int width, int height, eTransform transform) {
+void matrixProjection(float mat[9], int width, int height, eTransform transform) {
     memset(mat, 0, sizeof(*mat) * 9);
 
     const float* t = transforms.at(transform).data();
@@ -218,4 +218,11 @@ void projectBox(float mat[9], CBox& box, eTransform transform, float rotation, c
     }
 
     matrixMultiply(mat, projection, mat);
+}
+
+wl_output_transform invertTransform(wl_output_transform tr) {
+    if ((tr & WL_OUTPUT_TRANSFORM_90) && !(tr & WL_OUTPUT_TRANSFORM_FLIPPED))
+        tr = (wl_output_transform)(tr ^ (int)WL_OUTPUT_TRANSFORM_180);
+
+    return tr;
 }

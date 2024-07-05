@@ -248,7 +248,6 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
     }
 
     if (!primaryDevice || primaryDevice->success) {
-        LOGM(ERR, "No DRM backend, not creating lease");
         PROTO::lease.reset();
         return;
     }

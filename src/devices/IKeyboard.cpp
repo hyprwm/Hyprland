@@ -5,6 +5,9 @@
 #include "../managers/SeatManager.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
+#include <cstring>
+
+#define LED_COUNT 3
 
 constexpr static std::array<const char*, 8> MODNAMES = {
     XKB_MOD_NAME_SHIFT, XKB_MOD_NAME_CAPS, XKB_MOD_NAME_CTRL, XKB_MOD_NAME_ALT, XKB_MOD_NAME_NUM, "Mod3", XKB_MOD_NAME_LOGO, "Mod5",
@@ -256,7 +259,7 @@ void IKeyboard::updateLEDs() {
         return;
 
     uint32_t leds = 0;
-    for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
+    for (uint32_t i = 0; i < LED_COUNT; ++i) {
         if (xkb_state_led_index_is_active(xkbState, ledIndexes.at(i)))
             leds |= (1 << i);
     }

@@ -31,9 +31,6 @@ execute_process(
 # udis
 add_subdirectory("subprojects/udis86")
 
-# wlroots
-message(STATUS "Setting up wlroots")
-
 if(CMAKE_BUILD_TYPE)
     string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
     if(BUILDTYPE_LOWER STREQUAL "release")
@@ -52,18 +49,6 @@ if(CMAKE_BUILD_TYPE)
 else()
     set(BUILDTYPE_LOWER "release")
 endif()
-
-ExternalProject_Add(
-    wlroots-hyprland
-    PREFIX ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland
-    CONFIGURE_COMMAND meson setup --reconfigure --clearcache build --buildtype=${BUILDTYPE_LOWER} -Dwerror=false -Dxwayland=$<IF:$<BOOL:${NO_XWAYLAND}>,disabled,enabled> -Dexamples=false -Drenderers=gles2 -Dbackends=drm,libinput $<IF:$<BOOL:${WITH_ASAN}>,-Db_sanitize=address,-Db_sanitize=none>
-    BUILD_COMMAND ninja -C build
-    BUILD_ALWAYS true
-    BUILD_IN_SOURCE true
-    BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland/build/libwlroots.a
-    INSTALL_COMMAND echo "wlroots-hyprland: install not needed"
-)
 
 find_package(PkgConfig REQUIRED)
 
@@ -84,8 +69,6 @@ endif()
 include_directories(
   .
   "src/"
-  "subprojects/wlroots-hyprland/include/"
-  "subprojects/wlroots-hyprland/build/include/"
   "subprojects/udis86/"
   "protocols/")
 set(CMAKE_CXX_STANDARD 23)
@@ -112,7 +95,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     aquamarine
     xkbcommon uuid
     wayland-server wayland-client wayland-cursor wayland-protocols
-    cairo pango pangocairo pixman-1
+    cairo pango pangocairo pixman-1 xcursor
     libdrm libinput hwdata libseat libdisplay-info libliftoff libudev gbm
     hyprlang>=0.3.2 hyprcursor>=0.1.7 hyprutils>=0.1.5
 )
@@ -128,7 +111,6 @@ if(USE_TRACY)
 endif()
 
 add_executable(Hyprland ${SRCFILES} ${TRACY_CPP_FILES})
-add_dependencies(Hyprland wlroots-hyprland)
 
 set(USE_GPROF ON)
 
@@ -267,7 +249,6 @@ function(protocolWayland)
 endfunction()
 
 target_link_libraries(Hyprland
-        ${CMAKE_SOURCE_DIR}/subprojects/wlroots-hyprland/build/libwlroots.a
         OpenGL::EGL
         OpenGL::GL
         Threads::Threads
@@ -359,18 +340,6 @@ install(FILES ${MANPAGES}
 # pkgconfig entry
 install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
-
-# wlroots headers
-set(HEADERS_WLR "${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wlroots-hyprland/include/wlr")
-install(DIRECTORY ${HEADERS_WLR}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
-        FILES_MATCHING PATTERN "*.h")
-
-# config.h and version.h
-set(HEADERS_WLR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wlroots-hyprland/build/include/wlr")
-install(DIRECTORY ${HEADERS_WLR_ROOT}/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/wlr
-        FILES_MATCHING PATTERN "*.h")
 
 # protocol headers
 set(HEADERS_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/protocols")

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.hpp"
+#include <cstring>
 
 template <uint16_t N>
 class MaxLengthCString {

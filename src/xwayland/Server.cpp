@@ -23,7 +23,7 @@
 static bool set_cloexec(int fd, bool cloexec) {
     int flags = fcntl(fd, F_GETFD);
     if (flags == -1) {
-        wlr_log_errno(WLR_ERROR, "fcntl failed");
+        Debug::log(ERR, "fcntl failed");
         return false;
     }
     if (cloexec) {
@@ -32,7 +32,7 @@ static bool set_cloexec(int fd, bool cloexec) {
         flags = flags & ~FD_CLOEXEC;
     }
     if (fcntl(fd, F_SETFD, flags) == -1) {
-        wlr_log_errno(WLR_ERROR, "fcntl failed");
+        Debug::log(ERR, "fcntl failed");
         return false;
     }
     return true;
@@ -44,7 +44,7 @@ static int openSocket(struct sockaddr_un* addr, size_t path_size) {
 
     fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
-        wlr_log_errno(WLR_ERROR, "Failed to create socket %c%s", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        Debug::log(ERR, "failed to create socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         return -1;
     }
     if (!set_cloexec(fd, true)) {
@@ -57,12 +57,12 @@ static int openSocket(struct sockaddr_un* addr, size_t path_size) {
     }
     if (bind(fd, (struct sockaddr*)addr, size) < 0) {
         rc = errno;
-        wlr_log_errno(WLR_ERROR, "Failed to bind socket %c%s", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        Debug::log(ERR, "failed to bind socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         goto cleanup;
     }
     if (listen(fd, 1) < 0) {
         rc = errno;
-        wlr_log_errno(WLR_ERROR, "Failed to listen to socket %c%s", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
+        Debug::log(ERR, "failed to listen to socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         goto cleanup;
     }
 

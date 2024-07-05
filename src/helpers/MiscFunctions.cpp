@@ -4,9 +4,12 @@
 #include "../Compositor.hpp"
 #include "../managers/TokenManager.hpp"
 #include <optional>
+#include <cstring>
+#include <cmath>
 #include <set>
 #include <sys/utsname.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>

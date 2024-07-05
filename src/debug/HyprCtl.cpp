@@ -1249,7 +1249,12 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
             else
                 PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
         } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
-            *(search->second(PWINDOW)) = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+            auto pWindowDataElement = search->second(PWINDOW);
+            if (VAL == "toggle") {
+                *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->value_or_default(), PRIORITY_SET_PROP);
+            } else {
+                *pWindowDataElement = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+            }
         } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
             *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else {

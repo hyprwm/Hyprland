@@ -695,14 +695,11 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (r.szRule.starts_with("xray")) {
-        CVarList vars(r.szRule, 0, ' ');
-
-        try {
-            m_sWindowData.xray = CWindowOverridableVar((bool)configStringToInt(vars[1]), priority);
-        } catch (...) {}
     } else if (auto search = g_pConfigManager->mbWindowProperties.find(r.szRule); search != g_pConfigManager->mbWindowProperties.end()) {
-        *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, priority);
+        CVarList vars(r.szRule, 0, ' ');
+        try {
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)configStringToInt(vars[1]), priority);
+        } catch (...) {}
     } else if (auto search = g_pConfigManager->miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != g_pConfigManager->miWindowProperties.end()) {
         try {
             *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), priority);

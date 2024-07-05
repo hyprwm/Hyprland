@@ -186,7 +186,7 @@ class CConfigManager {
         {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
-        // {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
+        {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
         {"windowdance", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.windowDanceCompat; }},
     };
 

@@ -608,6 +608,7 @@ bool CWindow::isHidden() {
 
 void CWindow::applyDynamicRule(const SWindowRule& r) {
     const eOverridePriority priority = r.szValue == "execRule" ? PRIORITY_SET_PROP : PRIORITY_WINDOW_RULE;
+    const CVarList          VARS(r.szRule, 0, ' ');
     if (r.szRule.starts_with("tag")) {
         CVarList vars{r.szRule, 0, 's', true};
 
@@ -695,14 +696,17 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 m_sWindowData.inactiveBorderColor = CWindowOverridableVar(inactiveBorderGradient, priority);
             }
         } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", r.szRule, e.what()); }
-    } else if (auto search = g_pConfigManager->mbWindowProperties.find(r.szRule); search != g_pConfigManager->mbWindowProperties.end()) {
-        CVarList vars(r.szRule, 0, ' ');
+    } else if (auto search = g_pConfigManager->mbWindowProperties.find(VARS[0]); search != g_pConfigManager->mbWindowProperties.end()) {
+        if (VARS[1].empty()) {
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, priority);
+        } else {
+            try {
+                *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)configStringToInt(VARS[1]), priority);
+            } catch (...) {}
+        }
+    } else if (auto search = g_pConfigManager->miWindowProperties.find(VARS[0]); search != g_pConfigManager->miWindowProperties.end()) {
         try {
-            *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)configStringToInt(vars[1]), priority);
-        } catch (...) {}
-    } else if (auto search = g_pConfigManager->miWindowProperties.find(r.szRule.substr(0, r.szRule.find_first_of(' '))); search != g_pConfigManager->miWindowProperties.end()) {
-        try {
-            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(r.szRule.substr(r.szRule.find_first_of(' ') + 1)), priority);
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[1]), priority);
         } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);

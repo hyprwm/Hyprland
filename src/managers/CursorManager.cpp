@@ -4,6 +4,7 @@
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
 #include <cstring>
+#include "../helpers/CursorShapes.hpp"
 
 extern "C" {
 #include <X11/Xcursor/Xcursor.h>
@@ -139,9 +140,14 @@ void CCursorManager::setXCursor(const std::string& name) {
         return;
     }
 
-    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot));
+    auto& icon = xcursor.defaultCursor;
+    // try to get an icon we know if we have one
+    if (xcursor.cursors.contains(name))
+        icon = xcursor.cursors.at(name);
 
-    g_pPointerManager->setCursorBuffer(getCursorBuffer(), xcursor.defaultCursor->hotspot / scale, scale);
+    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(icon->pixels.data(), icon->size, icon->hotspot));
+
+    g_pPointerManager->setCursorBuffer(getCursorBuffer(), icon->hotspot / scale, scale);
     if (m_vCursorBuffers.size() > 1)
         dropBufferRef(m_vCursorBuffers.at(0).get());
 
@@ -300,8 +306,12 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 }
 
 void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int size) {
-    themeLoaded = false;
-    themeName   = name.empty() ? "default" : name;
+    if (lastLoadSize == size && themeName == name)
+        return;
+
+    lastLoadSize = size;
+    themeLoaded  = false;
+    themeName    = name.empty() ? "default" : name;
 
     auto img = XcursorShapeLoadImage(1, name.c_str(), size);
 
@@ -323,4 +333,25 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
     std::memcpy(defaultCursor->pixels.data(), img->pixels, img->width * img->height);
 
     themeLoaded = true;
+
+    // gather as many shapes as we can find.
+    cursors.clear();
+
+    for (auto& shape : CURSOR_SHAPE_NAMES) {
+        auto xImage = XcursorShapeLoadImage(1, shape, size);
+
+        if (!xImage) {
+            Debug::log(LOG, "XCursor failed to find a shape with name {}, skipping", shape);
+            continue;
+        }
+
+        auto xcursor     = makeShared<SXCursor>();
+        xcursor->size    = {(int)xImage->width, (int)xImage->height};
+        xcursor->hotspot = {(int)xImage->xhot, (int)xImage->yhot};
+
+        xcursor->pixels.resize(xImage->width * xImage->height);
+        std::memcpy(xcursor->pixels.data(), xImage->pixels, xImage->width * xImage->height);
+
+        cursors.emplace(std::string{shape}, xcursor);
+    }
 }

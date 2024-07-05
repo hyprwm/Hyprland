@@ -81,11 +81,14 @@ class CCursorManager {
     };
 
     struct SXCursorManager {
-        void         loadTheme(const std::string& name, int size);
+        void                                          loadTheme(const std::string& name, int size);
 
-        bool         themeLoaded = false;
-        std::string  themeName   = "";
-        SP<SXCursor> defaultCursor;
+        int                                           lastLoadSize = 0;
+
+        bool                                          themeLoaded = false;
+        std::string                                   themeName   = "";
+        SP<SXCursor>                                  defaultCursor;
+        std::unordered_map<std::string, SP<SXCursor>> cursors;
     } xcursor;
 };
 

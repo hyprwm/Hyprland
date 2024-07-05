@@ -113,6 +113,8 @@ class CMonitor {
     bool                        RATScheduled = false;
     CTimer                      lastPresentationTimer;
 
+    bool                        isBeingLeased = false;
+
     SMonitorRule                activeMonitorRule;
 
     WP<CMonitor>                self;

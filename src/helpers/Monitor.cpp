@@ -25,19 +25,16 @@ CMonitor::~CMonitor() {
     events.destroy.emit();
 }
 
-static void onPresented(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    auto       E        = (wlr_output_event_present*)data;
-
-    PROTO::presentation->onPresented(PMONITOR, E->when, E->refresh, E->seq, E->flags);
-}
-
 void CMonitor::onConnect(bool noRule) {
 
     listeners.frame      = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
     listeners.destroy    = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
     listeners.commit     = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
     listeners.needsFrame = output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this); });
+    listeners.presented  = output->events.present.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
+        PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+    });
 
     listeners.state = output->events.state.registerListener([this](std::any d) {
         if (!createdByUser)

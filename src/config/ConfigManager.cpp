@@ -633,7 +633,12 @@ std::string CConfigManager::getConfigDir() {
     if (xdgConfigHome && std::filesystem::path(xdgConfigHome).is_absolute())
         return xdgConfigHome;
 
-    return getenv("HOME") + std::string("/.config");
+    static const char* home = getenv("HOME");
+
+    if (!home)
+        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME is set in the environment. Cannot determine config directory.");
+
+    return home + std::string("/.config");
 }
 
 std::string CConfigManager::getMainConfigPath() {

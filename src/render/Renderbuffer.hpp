@@ -10,6 +10,7 @@ class CRenderbuffer {
     CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
     ~CRenderbuffer();
 
+    bool                    good();
     void                    bind();
     void                    bindFB();
     void                    unbind();
@@ -23,6 +24,7 @@ class CRenderbuffer {
     GLuint       m_iRBO   = 0;
     CFramebuffer m_sFramebuffer;
     uint32_t     m_uDrmFormat = 0;
+    bool         m_bGood      = false;
 
     struct {
         CHyprSignalListener destroyBuffer;

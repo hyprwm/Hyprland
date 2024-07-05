@@ -130,7 +130,7 @@ class CHyprOpenGLImpl {
     CHyprOpenGLImpl();
 
     void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void     beginSimple(CMonitor*, const CRegion& damage, CRenderbuffer* rb = nullptr, CFramebuffer* fb = nullptr);
+    void     beginSimple(CMonitor*, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
     void     end();
 
     void     renderRect(CBox*, const CColor&, int round = 0);

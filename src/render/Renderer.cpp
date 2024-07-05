@@ -2538,13 +2538,19 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     pMonitor->solitaryClient = PCANDIDATE;
 }
 
-CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<CRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::find_if(m_vRenderbuffers.begin(), m_vRenderbuffers.end(), [&](const auto& other) { return other->m_pHLBuffer == buffer; });
 
     if (it != m_vRenderbuffers.end())
-        return it->get();
+        return *it;
 
-    return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
+    auto buf = makeShared<CRenderbuffer>(buffer, fmt);
+
+    if (!buf->good())
+        return nullptr;
+
+    m_vRenderbuffers.emplace_back(buf);
+    return buf;
 }
 
 void CHyprRenderer::makeEGLCurrent() {
@@ -2647,7 +2653,7 @@ void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
     std::erase_if(m_vRenderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
 
-CRenderbuffer* CHyprRenderer::getCurrentRBO() {
+SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
     return m_pCurrentRenderbuffer;
 }
 

@@ -1196,7 +1196,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
 
-    bool       noFocus = PWINDOW->m_sWindowData.noFocus.value_or(false);
+    bool       noFocus = PWINDOW->m_sWindowData.noFocus.value_or_default();
 
     try {
         if (PROP == "animationstyle") {
@@ -1259,7 +1259,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_sWindowData.noFocus.value_or(false) == noFocus)) {
+    if (!(PWINDOW->m_sWindowData.noFocus.value_or_default() == noFocus)) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);

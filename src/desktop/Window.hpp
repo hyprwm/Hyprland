@@ -84,6 +84,9 @@ class CWindowOverridableVar {
     CWindowOverridableVar(T const& value, eOverridePriority priority) {
         values[priority] = value;
     }
+    CWindowOverridableVar(T const& value) {
+        defaultValue = value;
+    }
 
     CWindowOverridableVar()  = default;
     ~CWindowOverridableVar() = default;
@@ -122,6 +125,10 @@ class CWindowOverridableVar {
             return other;
     }
 
+    T value_or_default() {
+        return value_or(defaultValue);
+    }
+
     eOverridePriority getPriority() {
         if (!values.empty())
             return std::prev(values.end())->first;
@@ -138,6 +145,7 @@ class CWindowOverridableVar {
 
   private:
     std::map<eOverridePriority, T> values;
+    T                              defaultValue; // used for toggling, so required for bool
 };
 
 struct SWindowData {
@@ -145,25 +153,25 @@ struct SWindowData {
     CWindowOverridableVar<sAlphaValue>        alphaInactive;
     CWindowOverridableVar<sAlphaValue>        alphaFullscreen;
 
-    CWindowOverridableVar<bool>               allowsInput;
-    CWindowOverridableVar<bool>               dimAround;
-    CWindowOverridableVar<bool>               decorate;
-    CWindowOverridableVar<bool>               focusOnActivate;
-    CWindowOverridableVar<bool>               keepAspectRatio;
-    CWindowOverridableVar<bool>               nearestNeighbor;
-    CWindowOverridableVar<bool>               noAnim;
-    CWindowOverridableVar<bool>               noBorder;
-    CWindowOverridableVar<bool>               noBlur;
-    CWindowOverridableVar<bool>               noDim;
-    CWindowOverridableVar<bool>               noFocus;
-    CWindowOverridableVar<bool>               noMaxSize;
-    CWindowOverridableVar<bool>               noRounding;
-    CWindowOverridableVar<bool>               noShadow;
-    CWindowOverridableVar<bool>               opaque;
-    CWindowOverridableVar<bool>               RGBX;
-    CWindowOverridableVar<bool>               tearing;
-    CWindowOverridableVar<bool>               xray;
-    CWindowOverridableVar<bool>               windowDanceCompat;
+    CWindowOverridableVar<bool>               allowsInput       = false;
+    CWindowOverridableVar<bool>               dimAround         = false;
+    CWindowOverridableVar<bool>               decorate          = true;
+    CWindowOverridableVar<bool>               focusOnActivate   = false;
+    CWindowOverridableVar<bool>               keepAspectRatio   = false;
+    CWindowOverridableVar<bool>               nearestNeighbor   = false;
+    CWindowOverridableVar<bool>               noAnim            = false;
+    CWindowOverridableVar<bool>               noBorder          = false;
+    CWindowOverridableVar<bool>               noBlur            = false;
+    CWindowOverridableVar<bool>               noDim             = false;
+    CWindowOverridableVar<bool>               noFocus           = false;
+    CWindowOverridableVar<bool>               noMaxSize         = false;
+    CWindowOverridableVar<bool>               noRounding        = false;
+    CWindowOverridableVar<bool>               noShadow          = false;
+    CWindowOverridableVar<bool>               opaque            = false;
+    CWindowOverridableVar<bool>               RGBX              = false;
+    CWindowOverridableVar<bool>               tearing           = false;
+    CWindowOverridableVar<bool>               xray              = false;
+    CWindowOverridableVar<bool>               windowDanceCompat = false;
 
     CWindowOverridableVar<int>                rounding;
     CWindowOverridableVar<int>                borderSize;

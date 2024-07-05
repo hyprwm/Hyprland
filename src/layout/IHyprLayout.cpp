@@ -407,7 +407,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             if ((m_vBeginDragSizeXY.x >= 1 && m_vBeginDragSizeXY.y >= 1) &&
                 (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO ||
-                 (!(g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) && DRAGGINGWINDOW->m_sWindowData.keepAspectRatio.value_or(false)))) {
+                 (!(g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) && DRAGGINGWINDOW->m_sWindowData.keepAspectRatio.value_or_default()))) {
 
                 const float RATIO = m_vBeginDragSizeXY.y / m_vBeginDragSizeXY.x;
 
@@ -591,7 +591,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         // find whether there is a floating window below this one
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
-                !w->m_sWindowData.noFocus.value_or(false) && w != pWindow) {
+                !w->m_sWindowData.noFocus.value_or_default() && w != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
                     return w;
@@ -611,7 +611,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         // if not, floating window
         for (auto& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
-                !w->m_sWindowData.noFocus.value_or(false) && w != pWindow)
+                !w->m_sWindowData.noFocus.value_or_default() && w != pWindow)
                 return w;
         }
 

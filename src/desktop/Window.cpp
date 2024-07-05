@@ -110,7 +110,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     const int BORDERSIZE = getRealBorderSize();
 
-    if (m_sWindowData.dimAround.value_or(false)) {
+    if (m_sWindowData.dimAround.value_or_default()) {
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
             return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
                     {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
@@ -170,7 +170,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 }
 
 CBox CWindow::getFullWindowBoundingBox() {
-    if (m_sWindowData.dimAround.value_or(false)) {
+    if (m_sWindowData.dimAround.value_or_default()) {
         if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
@@ -218,7 +218,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 }
 
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
-    if (m_sWindowData.dimAround.value_or(false)) {
+    if (m_sWindowData.dimAround.value_or_default()) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         if (PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
@@ -1135,7 +1135,7 @@ float CWindow::rounding() {
 
     float       rounding = m_sWindowData.rounding.value_or(*PROUNDING);
 
-    return m_sWindowData.noRounding.value_or(false) ? 0 : rounding;
+    return m_sWindowData.noRounding.value_or_default() ? 0 : rounding;
 }
 
 void CWindow::updateWindowData() {
@@ -1160,7 +1160,7 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_sWindowData.noBorder.value_or(false) || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
+    if (m_sWindowData.noBorder.value_or_default() || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -1494,7 +1494,7 @@ void CWindow::onX11Configure(CBox box) {
 
     m_bCreatedOverFullscreen = true;
 
-    if (!m_sWindowData.windowDanceCompat.value_or(false))
+    if (!m_sWindowData.windowDanceCompat.value_or_default())
         g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(m_pSelf.lock());

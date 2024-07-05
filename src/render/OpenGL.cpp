@@ -1677,12 +1677,12 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // and draw
     for (int i = 1; i <= *PBLURPASSES; ++i) {
-        tempDamage.scale(1.f / (1 << i));
+        tempDamage = damage.copy().scale(1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 
     for (int i = *PBLURPASSES - 1; i >= 0; --i) {
-        tempDamage.scale(1.f / (1 << i));                                // when upsampling we make the region twice as big
+        tempDamage = damage.copy().scale(1.f / (1 << i));                                // when upsampling we make the region twice as big
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage); // up
     }
 

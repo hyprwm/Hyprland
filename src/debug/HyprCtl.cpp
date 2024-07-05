@@ -1250,13 +1250,17 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
         } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
             auto pWindowDataElement = search->second(PWINDOW);
-            if (VAL == "toggle") {
+            if (VAL == "toggle")
                 *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->value_or_default(), PRIORITY_SET_PROP);
-            } else {
+            else if (VAL == "unset")
+                pWindowDataElement->unset(PRIORITY_SET_PROP);
+            else
                 *pWindowDataElement = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
-            }
         } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
-            *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
+            if (VAL == "unset")
+                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
+            else
+                *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else {
             return "prop not found";
         }

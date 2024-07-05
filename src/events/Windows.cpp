@@ -196,7 +196,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsFloating = false;
         } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
-
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.starts_with("suppressevent")) {

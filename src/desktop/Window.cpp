@@ -628,18 +628,18 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
                 if (r == "override") {
                     if (opacityIDX == 1)
-                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, priority);
+                        m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{m_sWindowData.alpha.value().m_fAlpha, true}, priority);
                     else if (opacityIDX == 2)
-                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, priority);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(SAlphaValue{m_sWindowData.alphaInactive.value().m_fAlpha, true}, priority);
                     else if (opacityIDX == 3)
-                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, priority);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{m_sWindowData.alphaFullscreen.value().m_fAlpha, true}, priority);
                 } else {
                     if (opacityIDX == 0) {
-                        m_sWindowData.alpha = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
+                        m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                     } else if (opacityIDX == 1) {
-                        m_sWindowData.alphaInactive = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
+                        m_sWindowData.alphaInactive = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                     } else if (opacityIDX == 2) {
-                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(sAlphaValue{std::stof(r), false}, priority);
+                        m_sWindowData.alphaFullscreen = CWindowOverridableVar(SAlphaValue{std::stof(r), false}, priority);
                     } else {
                         throw std::runtime_error("more than 3 alpha values");
                     }
@@ -1479,9 +1479,6 @@ void CWindow::onX11Configure(CBox box) {
     g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
 
     m_bCreatedOverFullscreen = true;
-
-    if (!m_sWindowData.windowDanceCompat.value_or_default())
-        g_pInputManager->refocus();
 
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
 }

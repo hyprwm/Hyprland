@@ -187,7 +187,6 @@ class CConfigManager {
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
-        {"windowdance", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.windowDanceCompat; }},
     };
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(PHLWINDOW)>> miWindowProperties = {

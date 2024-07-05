@@ -59,7 +59,7 @@ enum eSuppressEvents {
 
 class IWindowTransformer;
 
-struct sAlphaValue {
+struct SAlphaValue {
     float m_fAlpha;
     bool  m_bOverride;
 
@@ -118,7 +118,7 @@ class CWindowOverridableVar {
             throw std::bad_optional_access();
     }
 
-    T value_or(T const& other) {
+    T value_or(T const other) {
         if (has_value())
             return value();
         else
@@ -149,29 +149,28 @@ class CWindowOverridableVar {
 };
 
 struct SWindowData {
-    CWindowOverridableVar<sAlphaValue>        alpha           = sAlphaValue{1.f, false};
-    CWindowOverridableVar<sAlphaValue>        alphaInactive   = sAlphaValue{1.f, false};
-    CWindowOverridableVar<sAlphaValue>        alphaFullscreen = sAlphaValue{1.f, false};
+    CWindowOverridableVar<SAlphaValue>        alpha           = SAlphaValue{1.f, false};
+    CWindowOverridableVar<SAlphaValue>        alphaInactive   = SAlphaValue{1.f, false};
+    CWindowOverridableVar<SAlphaValue>        alphaFullscreen = SAlphaValue{1.f, false};
 
-    CWindowOverridableVar<bool>               allowsInput       = false;
-    CWindowOverridableVar<bool>               dimAround         = false;
-    CWindowOverridableVar<bool>               decorate          = true;
-    CWindowOverridableVar<bool>               focusOnActivate   = false;
-    CWindowOverridableVar<bool>               keepAspectRatio   = false;
-    CWindowOverridableVar<bool>               nearestNeighbor   = false;
-    CWindowOverridableVar<bool>               noAnim            = false;
-    CWindowOverridableVar<bool>               noBorder          = false;
-    CWindowOverridableVar<bool>               noBlur            = false;
-    CWindowOverridableVar<bool>               noDim             = false;
-    CWindowOverridableVar<bool>               noFocus           = false;
-    CWindowOverridableVar<bool>               noMaxSize         = false;
-    CWindowOverridableVar<bool>               noRounding        = false;
-    CWindowOverridableVar<bool>               noShadow          = false;
-    CWindowOverridableVar<bool>               opaque            = false;
-    CWindowOverridableVar<bool>               RGBX              = false;
-    CWindowOverridableVar<bool>               tearing           = false;
-    CWindowOverridableVar<bool>               xray              = false;
-    CWindowOverridableVar<bool>               windowDanceCompat = false;
+    CWindowOverridableVar<bool>               allowsInput     = false;
+    CWindowOverridableVar<bool>               dimAround       = false;
+    CWindowOverridableVar<bool>               decorate        = true;
+    CWindowOverridableVar<bool>               focusOnActivate = false;
+    CWindowOverridableVar<bool>               keepAspectRatio = false;
+    CWindowOverridableVar<bool>               nearestNeighbor = false;
+    CWindowOverridableVar<bool>               noAnim          = false;
+    CWindowOverridableVar<bool>               noBorder        = false;
+    CWindowOverridableVar<bool>               noBlur          = false;
+    CWindowOverridableVar<bool>               noDim           = false;
+    CWindowOverridableVar<bool>               noFocus         = false;
+    CWindowOverridableVar<bool>               noMaxSize       = false;
+    CWindowOverridableVar<bool>               noRounding      = false;
+    CWindowOverridableVar<bool>               noShadow        = false;
+    CWindowOverridableVar<bool>               opaque          = false;
+    CWindowOverridableVar<bool>               RGBX            = false;
+    CWindowOverridableVar<bool>               tearing         = false;
+    CWindowOverridableVar<bool>               xray            = false;
 
     CWindowOverridableVar<int>                rounding;
     CWindowOverridableVar<int>                borderSize;

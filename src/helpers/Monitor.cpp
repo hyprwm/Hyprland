@@ -1,5 +1,6 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
+#include "math/Math.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -730,11 +731,11 @@ Vector2D CMonitor::middle() {
 }
 
 void CMonitor::updateMatrix() {
-    wlr_matrix_identity(projMatrix.data());
+    matrixIdentity(projMatrix.data());
     if (transform != WL_OUTPUT_TRANSFORM_NORMAL) {
-        wlr_matrix_translate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
-        wlr_matrix_transform(projMatrix.data(), transform);
-        wlr_matrix_translate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
+        matrixTranslate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
+        matrixTransform(projMatrix.data(), wlTransformToHyprutils(transform));
+        matrixTranslate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
     }
 }
 

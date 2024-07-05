@@ -4,6 +4,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
@@ -15,6 +16,7 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <cstring>
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -157,37 +159,37 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
     std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
-        modMask |= WLR_MODIFIER_SHIFT;
+        modMask |= HL_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))
-        modMask |= WLR_MODIFIER_CAPS;
+        modMask |= HL_MODIFIER_CAPS;
     if (mods.contains("CTRL") || mods.contains("CONTROL"))
-        modMask |= WLR_MODIFIER_CTRL;
+        modMask |= HL_MODIFIER_CTRL;
     if (mods.contains("ALT") || mods.contains("MOD1"))
-        modMask |= WLR_MODIFIER_ALT;
+        modMask |= HL_MODIFIER_ALT;
     if (mods.contains("MOD2"))
-        modMask |= WLR_MODIFIER_MOD2;
+        modMask |= HL_MODIFIER_MOD2;
     if (mods.contains("MOD3"))
-        modMask |= WLR_MODIFIER_MOD3;
-    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4"))
-        modMask |= WLR_MODIFIER_LOGO;
+        modMask |= HL_MODIFIER_MOD3;
+    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4") || mods.contains("META"))
+        modMask |= HL_MODIFIER_META;
     if (mods.contains("MOD5"))
-        modMask |= WLR_MODIFIER_MOD5;
+        modMask |= HL_MODIFIER_MOD5;
 
     return modMask;
 }
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
     switch (keycode - 8) {
-        case KEY_LEFTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_RIGHTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_LEFTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_RIGHTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_LEFTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_RIGHTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_LEFTALT: return WLR_MODIFIER_ALT;
-        case KEY_RIGHTALT: return WLR_MODIFIER_ALT;
-        case KEY_CAPSLOCK: return WLR_MODIFIER_CAPS;
-        case KEY_NUMLOCK: return WLR_MODIFIER_MOD2;
+        case KEY_LEFTMETA: return HL_MODIFIER_META;
+        case KEY_RIGHTMETA: return HL_MODIFIER_META;
+        case KEY_LEFTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_RIGHTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_LEFTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_RIGHTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_LEFTALT: return HL_MODIFIER_ALT;
+        case KEY_RIGHTALT: return HL_MODIFIER_ALT;
+        case KEY_CAPSLOCK: return HL_MODIFIER_CAPS;
+        case KEY_NUMLOCK: return HL_MODIFIER_MOD2;
         default: return 0;
     }
 }

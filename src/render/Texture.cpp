@@ -20,23 +20,6 @@ CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const V
     createFromShm(drmFormat, pixels, stride, size_);
 }
 
-CTexture::CTexture(wlr_texture* tex) {
-    RASSERT(wlr_texture_is_gles2(tex), "wlr_texture provided to CTexture that isn't GLES2!");
-    wlr_gles2_texture_attribs attrs;
-    wlr_gles2_texture_get_attribs(tex, &attrs);
-
-    m_iTarget    = attrs.target;
-    m_iTexID     = attrs.tex;
-    m_bNonOwning = true;
-
-    if (m_iTarget == GL_TEXTURE_2D)
-        m_iType = attrs.has_alpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    else
-        m_iType = TEXTURE_EXTERNAL;
-
-    m_vSize = Vector2D((int)tex->width, (int)tex->height);
-}
-
 CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     createFromDma(attrs, image);
 }

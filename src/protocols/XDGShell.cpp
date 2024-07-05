@@ -4,6 +4,7 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
+#include <cstring>
 
 #define LOGM PROTO::xdgShell->protoLog
 

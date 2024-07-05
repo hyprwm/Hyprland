@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <xf86drm.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include "core/Compositor.hpp"
 #include "types/DMABuffer.hpp"
 #include "types/WLBuffer.hpp"

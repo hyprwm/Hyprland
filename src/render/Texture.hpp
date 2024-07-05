@@ -23,7 +23,6 @@ class CTexture {
     CTexture(const CTexture&)  = delete;
 
     CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
-    CTexture(wlr_texture*);
 
     CTexture(const SP<Aquamarine::IBuffer> buffer);
     // this ctor takes ownership of the eglImage.

@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
+#include <cstring>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
@@ -1319,11 +1320,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                 *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
 
             // now, prep the damage, get the extended damage region
-            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring
+            damage.expand(BLURRADIUS); // expand for proper blurring
 
             finalDamage = damage;
 
-            wlr_region_expand(damage.pixman(), damage.pixman(), BLURRADIUS); // expand for proper blurring 2
+            damage.expand(BLURRADIUS); // expand for proper blurring
         } else
             finalDamage = damage;
     }
@@ -1401,8 +1402,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (!pMonitor->mirrors.empty()) {
         CRegion    frameDamage{};
 
-        const auto TRANSFORM = wlr_output_transform_invert(pMonitor->transform);
-        wlr_region_transform(frameDamage.pixman(), finalDamage.pixman(), TRANSFORM, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+        const auto TRANSFORM = invertTransform(pMonitor->transform);
+        frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
         if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
             frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
@@ -1827,7 +1828,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
         monbox.x      = (monitor->vecTransformedSize.x - monbox.w) / 2;
         monbox.y      = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
-        wlr_region_scale(transformed.pixman(), transformed.pixman(), scale);
+        transformed.scale(scale);
         transformed.transform(wlTransformToHyprutils(mirrored->transform), mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
@@ -2234,7 +2235,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     if (pMonitor->createdByUser) {
         CBox transformedBox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-        transformedBox.transform(wlTransformToHyprutils(wlr_output_transform_invert(pMonitor->transform)), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+        transformedBox.transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
         pMonitor->vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
     }

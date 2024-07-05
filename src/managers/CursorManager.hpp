@@ -7,7 +7,6 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 
-struct wlr_xcursor_manager;
 class CWLSurface;
 
 AQUAMARINE_FORWARD(IBuffer);
@@ -73,8 +72,21 @@ class CCursorManager {
     int                                             m_iCurrentAnimationFrame = 0;
     Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
 
-    // xcursor fallback
-    wlr_xcursor_manager* m_pWLRXCursorMgr = nullptr;
+    // gangsta bootleg XCursor impl. Whenever Hyprland has to use
+    // an xcursor, just use the pointer.
+    struct SXCursor {
+        Vector2D             size;
+        Vector2D             hotspot;
+        std::vector<uint8_t> pixels;
+    };
+
+    struct SXCursorManager {
+        void         loadTheme(const std::string& name, int size);
+
+        bool         themeLoaded = false;
+        std::string  themeName   = "";
+        SP<SXCursor> defaultCursor;
+    } xcursor;
 };
 
 inline std::unique_ptr<CCursorManager> g_pCursorManager;

@@ -3,10 +3,10 @@
 #include "../config/ConfigValue.hpp"
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
+#include <cstring>
 
 extern "C" {
-#include <wlr/interfaces/wlr_buffer.h>
-#include <wlr/types/wlr_xcursor_manager.h>
+#include <X11/Xcursor/Xcursor.h>
 }
 
 static int cursorAnimTimer(void* data) {
@@ -45,8 +45,7 @@ CCursorManager::CCursorManager() {
     if (m_iSize == 0)
         m_iSize = 24;
 
-    m_pWLRXCursorMgr = wlr_xcursor_manager_create(getenv("XCURSOR_THEME"), m_iSize);
-    wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0);
+    xcursor.loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "", m_iSize * std::ceil(m_fCursorScale));
 
     m_pAnimationTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ::cursorAnimTimer, nullptr);
 
@@ -56,9 +55,6 @@ CCursorManager::CCursorManager() {
 }
 
 CCursorManager::~CCursorManager() {
-    if (m_pWLRXCursorMgr)
-        wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
-
     if (m_pAnimationTimer)
         wl_event_source_remove(m_pAnimationTimer);
 }
@@ -134,32 +130,19 @@ void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotsp
 }
 
 void CCursorManager::setXCursor(const std::string& name) {
-    if (!m_pWLRXCursorMgr) {
-        g_pPointerManager->resetCursorImage();
-        return;
-    }
-
     float scale = std::ceil(m_fCursorScale);
-    wlr_xcursor_manager_load(m_pWLRXCursorMgr, scale);
+    xcursor.loadTheme(name.c_str(), m_iSize * scale);
 
-    auto xcursor = wlr_xcursor_manager_get_xcursor(m_pWLRXCursorMgr, name.c_str(), scale);
-    if (!xcursor) {
-        Debug::log(ERR, "XCursor has no shape {}, retrying with left-ptr", name);
-        xcursor = wlr_xcursor_manager_get_xcursor(m_pWLRXCursorMgr, "left-ptr", scale);
-    }
-
-    if (!xcursor || !xcursor->images[0]) {
-        Debug::log(ERR, "XCursor is broken. F this garbage.");
+    if (!xcursor.themeLoaded) {
+        Debug::log(ERR, "XCursor failed to find theme in setXCursor");
         g_pPointerManager->resetCursorImage();
         return;
     }
-
-    auto image = xcursor->images[0];
 
     m_vCursorBuffers.emplace_back(
-        makeShared<CCursorBuffer>(image->buffer, Vector2D{(int)image->width, (int)image->height}, Vector2D{(double)image->hotspot_x, (double)image->hotspot_y}));
+        makeShared<CCursorBuffer>(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot));
 
-    g_pPointerManager->setCursorBuffer(getCursorBuffer(), Vector2D{(double)image->hotspot_x, (double)image->hotspot_y} / scale, scale);
+    g_pPointerManager->setCursorBuffer(getCursorBuffer(), xcursor.defaultCursor->hotspot / scale, scale);
     if (m_vCursorBuffers.size() > 1)
         dropBufferRef(m_vCursorBuffers.at(0).get());
 
@@ -263,10 +246,9 @@ void CCursorManager::setXWaylandCursor() {
     if (CURSOR.surface) {
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
                                {CURSOR.hotspotX, CURSOR.hotspotY});
-    } else if (const auto XCURSOR = wlr_xcursor_manager_get_xcursor(m_pWLRXCursorMgr, "left_ptr", 1); XCURSOR) {
-        g_pXWayland->setCursor(XCURSOR->images[0]->buffer, XCURSOR->images[0]->width * 4, {(int)XCURSOR->images[0]->width, (int)XCURSOR->images[0]->height},
-                               {(double)XCURSOR->images[0]->hotspot_x, (double)XCURSOR->images[0]->hotspot_y});
-    } else
+    } else if (xcursor.themeLoaded)
+        g_pXWayland->setCursor(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size.x * 4, xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot);
+    else
         Debug::log(ERR, "CursorManager: no valid cursor for xwayland");
 }
 
@@ -310,37 +292,36 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 
     Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to X.", name);
 
-    if (m_pWLRXCursorMgr)
-        wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
+    xcursor.loadTheme(name, size);
 
-    m_pWLRXCursorMgr = wlr_xcursor_manager_create(name.empty() ? "" : name.c_str(), size);
-    bool xSuccess    = wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0) == 1;
+    m_szTheme = name;
+    m_iSize   = size;
+    updateTheme();
+    return true;
+}
 
-    // this basically checks if xcursor changed used theme to default but better
-    bool                       diffTheme = false;
-    wlr_xcursor_manager_theme* theme;
-    wl_list_for_each(theme, &m_pWLRXCursorMgr->scaled_themes, link) {
-        if (std::string{theme->theme->name} != name) {
-            diffTheme = true;
-            break;
+void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int size) {
+    themeLoaded = false;
+    themeName   = name.empty() ? "default" : name;
+
+    auto img = XcursorShapeLoadImage(1, name.c_str(), size);
+
+    if (!img) {
+        Debug::log(ERR, "XCursor failed finding theme \"{}\". Trying size 24.", name);
+        size = 24;
+        img  = XcursorShapeLoadImage(1, name.c_str(), size);
+        if (!img) {
+            Debug::log(ERR, "XCursor failed finding theme \"{}\".", name);
+            return;
         }
     }
 
-    if (xSuccess && !diffTheme) {
-        m_szTheme = name;
-        m_iSize   = size;
-        updateTheme();
-        return true;
-    }
+    defaultCursor          = makeShared<SXCursor>();
+    defaultCursor->size    = {(int)img->width, (int)img->height};
+    defaultCursor->hotspot = {(int)img->xhot, (int)img->yhot};
 
-    Debug::log(ERR, "X also failed loading theme \"{}\", falling back to previous theme.", name);
+    defaultCursor->pixels.resize(img->width * img->height);
+    std::memcpy(defaultCursor->pixels.data(), img->pixels, img->width * img->height);
 
-    m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.c_str(), hcLogger);
-
-    wlr_xcursor_manager_destroy(m_pWLRXCursorMgr);
-    m_pWLRXCursorMgr = wlr_xcursor_manager_create(m_szTheme.c_str(), m_iSize);
-    wlr_xcursor_manager_load(m_pWLRXCursorMgr, 1.0);
-
-    updateTheme();
-    return false;
+    themeLoaded = true;
 }

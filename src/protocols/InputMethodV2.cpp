@@ -4,6 +4,7 @@
 #include "../devices/IKeyboard.hpp"
 #include <sys/mman.h>
 #include "core/Compositor.hpp"
+#include <cstring>
 
 #define LOGM PROTO::ime->protoLog
 

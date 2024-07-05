@@ -395,6 +395,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor.get();
 
     const auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
+    if (!RBO)
+        return nullptr;
+
     RBO->bind();
 
     g_pHyprOpenGL->beginSimple(state->monitor.get(), damage, RBO);
@@ -410,7 +413,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     glFlush();
     g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 
-    g_pHyprRenderer->onRenderbufferDestroy(RBO);
+    g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 
     return buf;
 }

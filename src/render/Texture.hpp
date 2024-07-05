@@ -37,7 +37,7 @@ class CTexture {
     GLenum      m_iTarget = GL_TEXTURE_2D;
     GLuint      m_iTexID  = 0;
     Vector2D    m_vSize;
-    void*       m_pEglImage  = nullptr;
+    void*       m_pEglImage = nullptr;
 
   private:
     void createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);

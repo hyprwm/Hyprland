@@ -195,8 +195,6 @@ class IHyprLayout {
     virtual Vector2D predictSizeForNewWindow(PHLWINDOW pWindow);
     virtual Vector2D predictSizeForNewWindowFloating(PHLWINDOW pWindow);
 
-    virtual void     unsetLayoutWindowData(PHLWINDOW);
-
   private:
     int          m_iMouseMoveEventCount;
     Vector2D     m_vBeginDragXY;

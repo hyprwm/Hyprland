@@ -314,7 +314,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             workspaceSilent = false;
     }
 
-    g_pLayoutManager->getCurrentLayout()->unsetLayoutWindowData(PWINDOW);
+    PWINDOW->updateWindowData();
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
@@ -450,7 +450,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
 
-    if (PWINDOW->m_sWindowData.allowsInput.value_or_default()) {
+    if (PWINDOW->m_sWindowData.allowsInput.value_or_default()) { // if default value wasn't set to false getPriority() would throw an exception
         PWINDOW->m_sWindowData.noFocus = CWindowOverridableVar(false, PWINDOW->m_sWindowData.allowsInput.getPriority());
         PWINDOW->m_bNoInitialFocus     = false;
         PWINDOW->m_bX11ShouldntFocus   = false;

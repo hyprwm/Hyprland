@@ -457,6 +457,7 @@ class CWindow {
     std::string            fetchClass();
     void                   warpCursor();
     PHLWINDOW              getSwallower();
+    void                   unsetWindowData(eOverridePriority priority);
 
     // listeners
     void onAck(uint32_t serial);

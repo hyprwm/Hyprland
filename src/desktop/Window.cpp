@@ -757,33 +757,18 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 }
 
 void CWindow::updateDynamicRules() {
-    m_sWindowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.alpha.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.alphaInactive.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.alphaFullscreen.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.opaque.unset(PRIORITY_WINDOW_RULE);
+    unsetWindowData(PRIORITY_WINDOW_RULE);
 
     m_sWindowData.animationStyle.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.maxSize.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.minSize.unset(PRIORITY_WINDOW_RULE);
 
-    m_sWindowData.dimAround.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.noAnim.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.noBlur.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.noDim.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.noBorder.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.noShadow.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.focusOnActivate.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.RGBX.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.tearing.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.keepAspectRatio.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.nearestNeighbor.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.xray.unset(PRIORITY_WINDOW_RULE);
-
-    m_sWindowData.borderSize.unset(PRIORITY_WINDOW_RULE);
-    m_sWindowData.rounding.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
+    m_sWindowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
 
     m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 
@@ -1565,4 +1550,13 @@ PHLWINDOW CWindow::getSwallower() {
 
     // if none are found (??) then just return the first one
     return candidates.at(0);
+}
+
+void CWindow::unsetWindowData(eOverridePriority priority) {
+    for (auto const& element : g_pConfigManager->mbWindowProperties) {
+        element.second(m_pSelf.lock())->unset(priority);
+    }
+    for (auto const& element : g_pConfigManager->miWindowProperties) {
+        element.second(m_pSelf.lock())->unset(priority);
+    }
 }

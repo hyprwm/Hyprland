@@ -69,7 +69,7 @@ class CHyprRenderer {
     void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
-    CRenderbuffer*                  getCurrentRBO();
+    SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
     void                            makeEGLCurrent();
     void                            unsetEGL();
@@ -107,21 +107,21 @@ class CHyprRenderer {
     } m_sLastCursorData;
 
   private:
-    void           arrangeLayerArray(CMonitor*, const std::vector<PHLLSREF>&, bool, CBox*);
-    void           renderWorkspaceWindowsFullscreen(CMonitor*, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
-    void           renderWorkspaceWindows(CMonitor*, PHLWORKSPACE, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-    void           renderWindow(PHLWINDOW, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
-    void           renderLayer(PHLLS, CMonitor*, timespec*, bool popups = false);
-    void           renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
-    void           renderDragIcon(CMonitor*, timespec*);
-    void           renderIMEPopup(CInputPopup*, CMonitor*, timespec*);
-    void           renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
-    void           sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
-    void           renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void              arrangeLayerArray(CMonitor*, const std::vector<PHLLSREF>&, bool, CBox*);
+    void              renderWorkspaceWindowsFullscreen(CMonitor*, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+    void              renderWorkspaceWindows(CMonitor*, PHLWORKSPACE, timespec*);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+    void              renderWindow(PHLWINDOW, CMonitor*, timespec*, bool, eRenderPassMode, bool ignorePosition = false, bool ignoreAllGeometry = false);
+    void              renderLayer(PHLLS, CMonitor*, timespec*, bool popups = false);
+    void              renderSessionLockSurface(SSessionLockSurface*, CMonitor*, timespec*);
+    void              renderDragIcon(CMonitor*, timespec*);
+    void              renderIMEPopup(CInputPopup*, CMonitor*, timespec*);
+    void              renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
+    void              sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
+    void              renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
-    bool           m_bCursorHidden        = false;
-    bool           m_bCursorHasSurface    = false;
-    CRenderbuffer* m_pCurrentRenderbuffer = nullptr;
+    bool              m_bCursorHidden        = false;
+    bool              m_bCursorHasSurface    = false;
+    SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;
     SP<Aquamarine::IBuffer> m_pCurrentBuffer;
     eRenderMode             m_eRenderMode = RENDER_MODE_NORMAL;
 
@@ -133,8 +133,8 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_sCursorHiddenConditions;
 
-    CRenderbuffer*                              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
-    std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;
+    SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
+    std::vector<SP<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportProtocolManager;

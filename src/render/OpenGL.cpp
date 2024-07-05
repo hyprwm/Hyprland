@@ -617,7 +617,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     return false;
 }
 
-void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, CRenderbuffer* rb, CFramebuffer* fb) {
+void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, SP<CRenderbuffer> rb, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
 #ifndef GLES2
@@ -1556,7 +1556,8 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
     // prep damage
     CRegion damage{*originalDamage};
-    damage.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y);
+    damage.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+                     m_RenderData.pMonitor->vecTransformedSize.y);
     damage.expand(*PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES));
 
     // helper

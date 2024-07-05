@@ -139,8 +139,7 @@ void CCursorManager::setXCursor(const std::string& name) {
         return;
     }
 
-    m_vCursorBuffers.emplace_back(
-        makeShared<CCursorBuffer>(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot));
+    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot));
 
     g_pPointerManager->setCursorBuffer(getCursorBuffer(), xcursor.defaultCursor->hotspot / scale, scale);
     if (m_vCursorBuffers.size() > 1)

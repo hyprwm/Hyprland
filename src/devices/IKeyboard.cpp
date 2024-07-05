@@ -123,7 +123,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
     for (size_t i = 0; i < LEDNAMES.size(); ++i) {
         ledIndexes.at(i) = xkb_map_led_get_index(xkbKeymap, LEDNAMES.at(i));
-        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES.at(i), modIndexes.at(i));
+        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES.at(i), ledIndexes.at(i));
     }
 
     for (size_t i = 0; i < MODNAMES.size(); ++i) {

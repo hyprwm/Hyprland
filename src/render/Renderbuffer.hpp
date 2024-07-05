@@ -19,7 +19,7 @@ class CRenderbuffer {
     WP<Aquamarine::IBuffer> m_pHLBuffer;
 
   private:
-    EGLImageKHR  m_iImage = 0;
+    void*        m_iImage = nullptr;
     GLuint       m_iRBO   = 0;
     CFramebuffer m_sFramebuffer;
     uint32_t     m_uDrmFormat = 0;

@@ -542,7 +542,7 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
                       .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(wlTransformToHyprutils(wlr_output_transform_invert(frame->pMonitor->transform)), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
+                      .transform(wlTransformToHyprutils(invertTransform(frame->pMonitor->transform)), frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y);
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, &monbox, 1);

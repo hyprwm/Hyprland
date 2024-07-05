@@ -753,7 +753,7 @@ void CXWM::getVisual() {
     }
 
     if (visualtype == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit visualtype\n");
+        Debug::log(LOG, "xwm: No 32-bit visualtype");
         return;
     }
 
@@ -766,7 +766,7 @@ void CXWM::getRenderFormat() {
     xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(connection);
     xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(connection, cookie, NULL);
     if (!reply) {
-        wlr_log(WLR_ERROR, "Did not get any reply from xcb_render_query_pict_formats");
+        Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
     xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply);
@@ -781,7 +781,7 @@ void CXWM::getRenderFormat() {
     }
 
     if (format == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit render format");
+        Debug::log(LOG, "xwm: No 32-bit render format");
         free(reply);
         return;
     }

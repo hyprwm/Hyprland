@@ -4,6 +4,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
+#include <aquamarine/output/Output.hpp>
 
 #define LOGM PROTO::presentation->protoLog
 
@@ -54,9 +55,9 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
         flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
     if (data->zeroCopy)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
-    if (reportedFlags & WLR_OUTPUT_PRESENT_HW_CLOCK)
+    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
-    if (reportedFlags & WLR_OUTPUT_PRESENT_HW_COMPLETION)
+    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
     if (data->wasPresented)

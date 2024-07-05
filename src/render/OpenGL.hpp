@@ -18,6 +18,8 @@
 #include "Transformer.hpp"
 #include "Renderbuffer.hpp"
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <GLES2/gl2ext.h>
 #include <aquamarine/buffer/Buffer.hpp>
 

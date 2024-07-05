@@ -5,6 +5,7 @@
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
+#include <cstring>
 
 #define LOGM PROTO::tablet->protoLog
 

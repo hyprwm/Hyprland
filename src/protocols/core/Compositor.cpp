@@ -426,7 +426,7 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
 
     Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.buffer->size.y, current.buffer->size.x} : current.buffer->size;
 
-    return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(wlr_output_transform_invert(current.transform)), trc.x, trc.y).add(current.bufferDamage);
+    return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

@@ -4,6 +4,7 @@
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
 #include <wlr/interfaces/wlr_output.h>
 #include <wlr/render/interface.h>
@@ -139,8 +140,8 @@ CPointerManager::CPointerManager() {
 
         onMonitorLayoutChange();
 
-        PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
-        PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { onMonitorLayoutChange(); }, nullptr);
+        PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
+        PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
             [this](void* owner, std::any data) {
                 if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)

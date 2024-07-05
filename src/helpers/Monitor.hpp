@@ -41,7 +41,6 @@ struct SMonitorRule {
 
 class CMonitor;
 
-// Class for wrapping the wlr state
 class CMonitorState {
   public:
     CMonitorState(CMonitor* owner);

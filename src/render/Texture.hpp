@@ -38,7 +38,6 @@ class CTexture {
     GLuint      m_iTexID  = 0;
     Vector2D    m_vSize;
     void*       m_pEglImage  = nullptr;
-    bool        m_bNonOwning = false; // wlr
 
   private:
     void createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);

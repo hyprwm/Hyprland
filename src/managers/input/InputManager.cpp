@@ -1,6 +1,5 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
-#include "wlr/types/wlr_switch.h"
 #include <cstdint>
 #include <ranges>
 #include "../../config/ConfigValue.hpp"

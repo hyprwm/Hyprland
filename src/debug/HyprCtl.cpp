@@ -70,7 +70,7 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
     return result;
 }
 
-std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string HyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->output || m->ID == -1ull)
         return "";
@@ -133,7 +133,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "[";
 
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            result += getMonitorData(m, format);
+            result += HyprCtl::getMonitorData(m, format);
         }
 
         trimTrailingComma(result);
@@ -194,7 +194,7 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     return result.str();
 }
 
-std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+std::string HyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
         for (size_t i = 0; i < g_pCompositor->m_vWindowFocusHistory.size(); ++i) {
             if (g_pCompositor->m_vWindowFocusHistory[i].lock() == wnd)
@@ -263,7 +263,7 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
                 continue;
 
-            result += getWindowData(w, format);
+            result += HyprCtl::getWindowData(w, format);
         }
 
         trimTrailingComma(result);
@@ -274,13 +274,13 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
                 continue;
 
-            result += getWindowData(w, format);
+            result += HyprCtl::getWindowData(w, format);
         }
     }
     return result;
 }
 
-std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
+std::string HyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
     const auto PLASTW   = w->getLastFocusedWindow();
     const auto PMONITOR = g_pCompositor->getMonitorFromID(w->m_iMonitorID);
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -360,7 +360,7 @@ std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string requ
     if (!valid(w))
         return "internal error";
 
-    return getWorkspaceData(w, format);
+    return HyprCtl::getWorkspaceData(w, format);
 }
 
 std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -369,7 +369,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            result += getWorkspaceData(w, format);
+            result += HyprCtl::getWorkspaceData(w, format);
             result += ",";
         }
 
@@ -377,7 +377,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
         result += "]";
     } else {
         for (auto& w : g_pCompositor->m_vWorkspaces) {
-            result += getWorkspaceData(w, format);
+            result += HyprCtl::getWorkspaceData(w, format);
         }
     }
 
@@ -410,7 +410,7 @@ std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request
     if (!validMapped(PWINDOW))
         return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "Invalid";
 
-    auto result = getWindowData(PWINDOW, format);
+    auto result = HyprCtl::getWindowData(PWINDOW, format);
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
         result.pop_back();

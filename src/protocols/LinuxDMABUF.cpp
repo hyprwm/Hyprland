@@ -291,7 +291,6 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
 
     // Main tranche
     resource->sendTrancheTargetDevice(&deviceArr);
-    resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)0);
 
     wl_array indices;
     wl_array_init(&indices);
@@ -381,7 +380,7 @@ bool CLinuxDMABUFResource::good() {
 void CLinuxDMABUFResource::sendMods() {
     for (auto& [fmt, mod] : PROTO::linuxDma->defaultFeedback->tranches) {
         if (resource->version() < 3) {
-            if (mod == DRM_FORMAT_MOD_INVALID)
+            if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                 resource->sendFormat(fmt);
             continue;
         }

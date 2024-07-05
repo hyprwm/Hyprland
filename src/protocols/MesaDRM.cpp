@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <xf86drm.h>
 #include "../Compositor.hpp"
-#include <wlr/render/drm_format_set.h>
 #include "types/WLBuffer.hpp"
 
 #define LOGM PROTO::mesaDRM->protoLog

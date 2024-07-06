@@ -50,6 +50,8 @@ class CEventLoopManager {
 
     SIdleData m_sIdle;
     std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
+
+    friend class CSyncTimeline;
 };
 
 inline std::unique_ptr<CEventLoopManager> g_pEventLoopManager;

@@ -171,6 +171,14 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     loadGLProc(&m_sProc.glEGLImageTargetTexture2DOES, "glEGLImageTargetTexture2DOES");
     loadGLProc(&m_sProc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
     loadGLProc(&m_sProc.eglGetPlatformDisplayEXT, "eglGetPlatformDisplayEXT");
+    loadGLProc(&m_sProc.eglCreateSyncKHR, "eglCreateSyncKHR");
+    loadGLProc(&m_sProc.eglDestroySyncKHR, "eglDestroySyncKHR");
+    loadGLProc(&m_sProc.eglDupNativeFenceFDANDROID, "eglDupNativeFenceFDANDROID");
+    loadGLProc(&m_sProc.eglWaitSyncKHR, "eglWaitSyncKHR");
+
+    RASSERT(m_sProc.eglCreateSyncKHR, "Display driver doesn't support eglCreateSyncKHR");
+    RASSERT(m_sProc.eglDupNativeFenceFDANDROID, "Display driver doesn't support eglDupNativeFenceFDANDROID");
+    RASSERT(m_sProc.eglWaitSyncKHR, "Display driver doesn't support eglWaitSyncKHR");
 
     if (EGLEXTENSIONS.contains("EGL_EXT_device_base") || EGLEXTENSIONS.contains("EGL_EXT_device_enumeration"))
         loadGLProc(&m_sProc.eglQueryDevicesEXT, "eglQueryDevicesEXT");
@@ -2725,6 +2733,30 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return drmFormats;
 }
 
+SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
+    std::vector<EGLint> attribs;
+    int                 dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+    if (dupFd < 0) {
+        Debug::log(ERR, "createEGLSync: dup failed");
+        return nullptr;
+    }
+
+    attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
+    attribs.push_back(dupFd);
+    attribs.push_back(EGL_NONE);
+
+    EGLSyncKHR sync = m_sProc.eglCreateSyncKHR(m_pEglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs.data());
+    if (sync == EGL_NO_SYNC_KHR) {
+        Debug::log(ERR, "eglCreateSyncKHR failed");
+        close(dupFd);
+        return nullptr;
+    }
+
+    auto eglsync = SP<CEGLSync>(new CEGLSync);
+    eglsync->sync = sync;
+    return eglsync;
+}
+
 void SRenderModifData::applyToBox(CBox& box) {
     if (!enabled)
         return;
@@ -2784,4 +2816,36 @@ float SRenderModifData::combinedScale() {
         } catch (std::bad_any_cast& e) { Debug::log(ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::combinedScale!"); }
     }
     return scale;
+}
+
+CEGLSync::~CEGLSync() {
+    if (sync == EGL_NO_SYNC_KHR)
+        return;
+
+    if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
+        Debug::log(ERR, "eglDestroySyncKHR failed");
+}
+
+int CEGLSync::dupFenceFD() {
+    if (sync == EGL_NO_SYNC_KHR)
+        return -1;
+
+    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
+    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
+        return -1;
+    }
+
+    return fd;
+}
+
+bool CEGLSync::wait() {
+    if (sync == EGL_NO_SYNC_KHR)
+        return false;
+
+    if (g_pHyprOpenGL->m_sProc.eglWaitSyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync, 0) != EGL_TRUE) {
+        Debug::log(ERR, "eglWaitSyncKHR failed");
+        return false;
+    }
+    return true;
 }

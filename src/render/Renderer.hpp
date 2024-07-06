@@ -99,6 +99,8 @@ class CHyprRenderer {
 
     CTimer           m_tRenderTimer;
 
+    std::vector<SP<CWLSurfaceResource>> explicitPresented;
+
     struct {
         int                           hotspotX;
         int                           hotspotY;

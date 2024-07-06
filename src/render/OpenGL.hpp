@@ -123,6 +123,21 @@ struct SCurrentRenderData {
     float                discardOpacity = 0.f;
 };
 
+class CEGLSync {
+  public:
+    ~CEGLSync();
+
+    EGLSyncKHR sync = nullptr;
+
+    int        dupFenceFD();
+    bool       wait();
+
+  private:
+    CEGLSync() = default;
+
+    friend class CHyprOpenGLImpl;
+};
+
 class CGradientValueData;
 
 class CHyprOpenGLImpl {
@@ -187,6 +202,7 @@ class CHyprOpenGLImpl {
     uint32_t getPreferredReadFormat(CMonitor* pMonitor);
     std::vector<SDRMFormat>                           getDRMFormats();
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    SP<CEGLSync>                                      createEGLSync(int fenceFD);
 
     SCurrentRenderData                                m_RenderData;
 
@@ -219,6 +235,10 @@ class CHyprOpenGLImpl {
         PFNEGLQUERYDEVICESEXTPROC                     eglQueryDevicesEXT                     = nullptr;
         PFNEGLQUERYDEVICESTRINGEXTPROC                eglQueryDeviceStringEXT                = nullptr;
         PFNEGLQUERYDISPLAYATTRIBEXTPROC               eglQueryDisplayAttribEXT               = nullptr;
+        PFNEGLCREATESYNCKHRPROC                       eglCreateSyncKHR                       = nullptr;
+        PFNEGLDESTROYSYNCKHRPROC                      eglDestroySyncKHR                      = nullptr;
+        PFNEGLDUPNATIVEFENCEFDANDROIDPROC             eglDupNativeFenceFDANDROID             = nullptr;
+        PFNEGLWAITSYNCKHRPROC                         eglWaitSyncKHR                         = nullptr;
     } m_sProc;
 
     struct {

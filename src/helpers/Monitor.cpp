@@ -10,6 +10,7 @@
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
+#include "sync/SyncTimeline.hpp"
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -28,6 +29,11 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
+
+    if (output->supportsExplicit) {
+        inTimeline  = CSyncTimeline::create(g_pCompositor->m_iDRMFD);
+        outTimeline = CSyncTimeline::create(g_pCompositor->m_iDRMFD);
+    }
 
     listeners.frame      = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
     listeners.destroy    = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });

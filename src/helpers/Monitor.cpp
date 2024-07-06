@@ -31,8 +31,8 @@ CMonitor::~CMonitor() {
 void CMonitor::onConnect(bool noRule) {
 
     if (output->supportsExplicit) {
-        inTimeline  = CSyncTimeline::create(g_pCompositor->m_iDRMFD);
-        outTimeline = CSyncTimeline::create(g_pCompositor->m_iDRMFD);
+        inTimeline  = CSyncTimeline::create(output->getBackend()->drmFD());
+        outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
     listeners.frame      = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });

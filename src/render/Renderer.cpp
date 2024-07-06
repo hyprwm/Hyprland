@@ -1436,6 +1436,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
 
         for (auto& e : explicitPresented) {
+            if (!e->syncobj || !e->syncobj->releaseTimeline)
+                continue;
             e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
         }
         

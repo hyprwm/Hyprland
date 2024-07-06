@@ -1374,20 +1374,21 @@ void CKeybindManager::moveActiveTo(std::string args) {
         return;
 
     if (PLASTWINDOW->m_bIsFloating) {
-        Vector2D   vPos;
-        const auto PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
-        const auto BORDERSIZE = PLASTWINDOW->getRealBorderSize();
+        std::optional<float> vPosx, vPosy;
+        const auto           PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
+        const auto           BORDERSIZE = PLASTWINDOW->getRealBorderSize();
 
         switch (arg) {
-            case 'l': vPos.x = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
-            case 'r': vPos.x = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'r': vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
             case 't':
-            case 'u': vPos.y = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
             case 'b':
-            case 'd': vPos.y = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'd': vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
         }
 
-        PLASTWINDOW->m_vRealPosition = Vector2D(vPos.x != 0 ? vPos.x : PLASTWINDOW->m_vRealPosition.goal().x, vPos.y != 0 ? vPos.y : PLASTWINDOW->m_vRealPosition.goal().y);
+        PLASTWINDOW->m_vRealPosition = Vector2D(vPosx.value_or(PLASTWINDOW->m_vRealPosition.goal().x), vPosy.value_or(PLASTWINDOW->m_vRealPosition.goal().y));
+
         return;
     }
 

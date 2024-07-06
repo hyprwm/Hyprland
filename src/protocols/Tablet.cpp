@@ -599,10 +599,10 @@ void CTabletV2Protocol::proximityOut(SP<CTabletTool> tool) {
         if (t->tool != tool || !t->current)
             continue;
 
-        t->current = false;
         t->lastSurf.reset();
         t->resource->sendProximityOut();
         t->sendFrame();
+        t->current = false;
     }
 }
 

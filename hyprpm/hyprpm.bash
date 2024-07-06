@@ -1,5 +1,5 @@
 _hyprpm_cmd_0 () {
-    hyprpm list | grep Plugin | awk '{print $4}'
+    hyprpm list | awk '/Plugin/{print $4}'
 }
 
 _hyprpm () {

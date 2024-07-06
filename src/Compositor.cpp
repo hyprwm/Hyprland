@@ -413,7 +413,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
     switch (stage) {
         case STAGE_PRIORITY: {
             Debug::log(LOG, "Creating the EventLoopManager!");
-            g_pEventLoopManager = std::make_unique<CEventLoopManager>();
+            g_pEventLoopManager = std::make_unique<CEventLoopManager>(m_sWLDisplay, m_sWLEventLoop);
 
             Debug::log(LOG, "Creating the HookSystem!");
             g_pHookSystem = std::make_unique<CHookSystemManager>();
@@ -604,7 +604,7 @@ void CCompositor::startCompositor() {
 
     // This blocks until we are done.
     Debug::log(LOG, "Hyprland is ready, running the event loop!");
-    g_pEventLoopManager->enterLoop(m_sWLDisplay, m_sWLEventLoop);
+    g_pEventLoopManager->enterLoop();
 }
 
 CMonitor* CCompositor::getMonitorFromID(const int& id) {

@@ -145,7 +145,7 @@ void CCursorManager::setXCursor(const std::string& name) {
     if (xcursor.cursors.contains(name))
         icon = xcursor.cursors.at(name);
 
-    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>(icon->pixels.data(), icon->size, icon->hotspot));
+    m_vCursorBuffers.emplace_back(makeShared<CCursorBuffer>((uint8_t*)icon->pixels.data(), icon->size, icon->hotspot));
 
     g_pPointerManager->setCursorBuffer(getCursorBuffer(), icon->hotspot / scale, scale);
     if (m_vCursorBuffers.size() > 1)
@@ -252,7 +252,7 @@ void CCursorManager::setXWaylandCursor() {
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
                                {CURSOR.hotspotX, CURSOR.hotspotY});
     } else if (xcursor.themeLoaded)
-        g_pXWayland->setCursor(xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size.x * 4, xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot);
+        g_pXWayland->setCursor((uint8_t*)xcursor.defaultCursor->pixels.data(), xcursor.defaultCursor->size.x * 4, xcursor.defaultCursor->size, xcursor.defaultCursor->hotspot);
     else
         Debug::log(ERR, "CursorManager: no valid cursor for xwayland");
 }
@@ -305,6 +305,91 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
     return true;
 }
 
+// Taken from https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/blob/master/src/library.c
+// however modified to fit wayland cursor shape names better.
+// _ -> -
+// clang-format off
+static std::array<const char*, 77> XCURSOR_STANDARD_NAMES = {
+    "X_cursor",
+    "default", // arrow
+    "ns-resize", // based-arrow-down
+    "ns-resize", // based-arrow-up
+    "boat",
+    "bogosity",
+    "sw-resize", // bottom-left-corner
+    "se-resize", // bottom-right-corner
+    "s-resize", // bottom-side
+    "bottom-tee",
+    "box-spiral",
+    "center-ptr",
+    "circle",
+    "clock",
+    "coffee-mug",
+    "cross",
+    "cross-reverse",
+    "crosshair",
+    "diamond-cross",
+    "dot",
+    "dotbox",
+    "double-arrow",
+    "draft-large",
+    "draft-small",
+    "draped-box",
+    "exchange",
+    "move", // fleur
+    "gobbler",
+    "gumby",
+    "pointer", // hand1
+    "grabbing", // hand2
+    "heart",
+    "icon",
+    "iron-cross",
+    "default", // left-ptr
+    "w-resize", // left-side
+    "left-tee",
+    "leftbutton",
+    "ll-angle",
+    "lr-angle",
+    "man",
+    "middlebutton",
+    "mouse",
+    "pencil",
+    "pirate",
+    "plus",
+    "help", // question-arrow
+    "right-ptr",
+    "e-resize", // right-side
+    "right-tee",
+    "rightbutton",
+    "rtl-logo",
+    "sailboat",
+    "ns-resize", // sb-down-arrow
+    "ew-resize", // sb-h-double-arrow
+    "ew-resize", // sb-left-arrow
+    "ew-resize", // sb-right-arrow
+    "n-resize", // sb-up-arrow
+    "s-resize", // sb-v-double-arrow
+    "shuttle",
+    "sizing",
+    "spider",
+    "spraycan",
+    "star",
+    "target",
+    "cell", // tcross
+    "nw-resize", // top-left-arrow
+    "nw-resize", // top-left-corner
+    "ne-resize", // top-right-corner
+    "n-resize", // top-side
+    "top-tee",
+    "trek",
+    "ul-angle",
+    "umbrella",
+    "ur-angle",
+    "wait", // watch
+    "text", // xterm
+};
+// clang-format on
+
 void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int size) {
     if (lastLoadSize == size && themeName == name)
         return;
@@ -313,14 +398,14 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
     themeLoaded  = false;
     themeName    = name.empty() ? "default" : name;
 
-    auto img = XcursorShapeLoadImage(1, name.c_str(), size);
+    auto img = XcursorShapeLoadImage(2, themeName.c_str(), size);
 
     if (!img) {
-        Debug::log(ERR, "XCursor failed finding theme \"{}\". Trying size 24.", name);
+        Debug::log(ERR, "XCursor failed finding theme \"{}\". Trying size 24.", themeName);
         size = 24;
-        img  = XcursorShapeLoadImage(1, name.c_str(), size);
+        img  = XcursorShapeLoadImage(2, themeName.c_str(), size);
         if (!img) {
-            Debug::log(ERR, "XCursor failed finding theme \"{}\".", name);
+            Debug::log(ERR, "XCursor failed finding theme \"{}\".", themeName);
             return;
         }
     }
@@ -330,7 +415,7 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
     defaultCursor->hotspot = {(int)img->xhot, (int)img->yhot};
 
     defaultCursor->pixels.resize(img->width * img->height);
-    std::memcpy(defaultCursor->pixels.data(), img->pixels, img->width * img->height);
+    std::memcpy(defaultCursor->pixels.data(), img->pixels, img->width * img->height * sizeof(uint32_t));
 
     themeLoaded = true;
 
@@ -338,7 +423,20 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
     cursors.clear();
 
     for (auto& shape : CURSOR_SHAPE_NAMES) {
-        auto xImage = XcursorShapeLoadImage(1, shape, size);
+        int id = -1;
+        for (size_t i = 0; i < XCURSOR_STANDARD_NAMES.size(); ++i) {
+            if (XCURSOR_STANDARD_NAMES.at(i) == std::string{shape}) {
+                id = i;
+                break;
+            }
+        }
+
+        if (id < 0) {
+            Debug::log(LOG, "XCursor has no shape {}, skipping", shape);
+            continue;
+        }
+
+        auto xImage = XcursorShapeLoadImage(id << 1 /* wtf xcursor? */, themeName.c_str(), size);
 
         if (!xImage) {
             Debug::log(LOG, "XCursor failed to find a shape with name {}, skipping", shape);
@@ -350,7 +448,7 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
         xcursor->hotspot = {(int)xImage->xhot, (int)xImage->yhot};
 
         xcursor->pixels.resize(xImage->width * xImage->height);
-        std::memcpy(xcursor->pixels.data(), xImage->pixels, xImage->width * xImage->height);
+        std::memcpy(xcursor->pixels.data(), xImage->pixels, xImage->width * xImage->height * sizeof(uint32_t));
 
         cursors.emplace(std::string{shape}, xcursor);
     }

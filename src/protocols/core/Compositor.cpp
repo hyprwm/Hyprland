@@ -6,6 +6,8 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../PresentationTime.hpp"
+#include "../DRMSyncobj.hpp"
 
 #define LOGM PROTO::compositor->protoLog
 
@@ -102,58 +104,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.size = tfs / pending.scale;
         }
 
-        if (viewportResource)
-            viewportResource->verify();
-
         pending.damage.intersect(CBox{{}, pending.size});
 
-        auto    previousBuffer       = current.buffer;
-        CRegion previousBufferDamage = accumulateCurrentBufferDamage();
+        events.precommit.emit();
+        if (pending.rejected)
+            return;
 
-        current = pending;
-        pending.damage.clear();
-        pending.bufferDamage.clear();
-
-        if (current.buffer && !bufferReleased) {
-            //                                                                                                                          without previous dolphin et al are weird vvv
-            //CRegion surfaceDamage =
-            //    current.damage.copy().scale(current.scale).transform(current.transform, current.size.x, current.size.y).add(current.bufferDamage).add(previousBufferDamage);
-            current.buffer->update(CBox{{}, {INT32_MAX, INT32_MAX}}); // FIXME: figure this out to not use this hack. QT apps are wonky without this.
-
-            // release the buffer if it's synchronous as update() has done everything thats needed
-            // so we can let the app know we're done.
-            if (current.buffer->isSynchronous()) {
-                current.buffer->sendRelease();
-                bufferReleased = true;
-            }
-        }
-
-        // TODO: we should _accumulate_ and not replace above if sync
-        if (role->role() == SURFACE_ROLE_SUBSURFACE) {
-            auto subsurface = (CWLSubsurfaceResource*)role.get();
-            if (subsurface->sync)
-                return;
-
-            events.commit.emit();
-        } else {
-            // send commit to all synced surfaces in this tree.
-            breadthfirst(
-                [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-                    if (surf->role->role() == SURFACE_ROLE_SUBSURFACE) {
-                        auto subsurface = (CWLSubsurfaceResource*)surf->role.get();
-                        if (!subsurface->sync)
-                            return;
-                    }
-                    surf->events.commit.emit();
-                },
-                nullptr);
-        }
-
-        // for async buffers, we can only release the buffer once we are unrefing it from current.
-        if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
-            previousBuffer->sendRelease();
-            bufferReleased = true;
-        }
+        if (stateLocks <= 0)
+            commitPendingState();
     });
 
     resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) { pending.damage.add(CBox{x, y, w, h}); });
@@ -427,6 +385,83 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
     Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.buffer->size.y, current.buffer->size.x} : current.buffer->size;
 
     return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
+}
+
+void CWLSurfaceResource::lockPendingState() {
+    stateLocks++;
+}
+
+void CWLSurfaceResource::unlockPendingState() {
+    stateLocks--;
+    if (stateLocks <= 0)
+        commitPendingState();
+}
+
+void CWLSurfaceResource::commitPendingState() {
+    auto    previousBuffer       = current.buffer;
+    CRegion previousBufferDamage = accumulateCurrentBufferDamage();
+
+    current = pending;
+    pending.damage.clear();
+    pending.bufferDamage.clear();
+
+    if (current.buffer && !bufferReleased) {
+        //                                                                                                                          without previous dolphin et al are weird vvv
+        //CRegion surfaceDamage =
+        //    current.damage.copy().scale(current.scale).transform(current.transform, current.size.x, current.size.y).add(current.bufferDamage).add(previousBufferDamage);
+        current.buffer->update(CBox{{}, {INT32_MAX, INT32_MAX}}); // FIXME: figure this out to not use this hack. QT apps are wonky without this.
+
+        // release the buffer if it's synchronous as update() has done everything thats needed
+        // so we can let the app know we're done.
+        if (current.buffer->isSynchronous()) {
+            current.buffer->sendRelease();
+            bufferReleased = true;
+        }
+    }
+
+    // TODO: we should _accumulate_ and not replace above if sync
+    if (role->role() == SURFACE_ROLE_SUBSURFACE) {
+        auto subsurface = (CWLSubsurfaceResource*)role.get();
+        if (subsurface->sync)
+            return;
+
+        events.commit.emit();
+    } else {
+        // send commit to all synced surfaces in this tree.
+        breadthfirst(
+            [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+                if (surf->role->role() == SURFACE_ROLE_SUBSURFACE) {
+                    auto subsurface = (CWLSubsurfaceResource*)surf->role.get();
+                    if (!subsurface->sync)
+                        return;
+                }
+                surf->events.commit.emit();
+            },
+            nullptr);
+    }
+
+    // for async buffers, we can only release the buffer once we are unrefing it from current.
+    if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
+        previousBuffer->sendRelease();
+        bufferReleased = true;
+    }
+}
+
+void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor) {
+    frame(when);
+    auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
+    FEEDBACK->attachMonitor(pMonitor);
+    FEEDBACK->discarded();
+    PROTO::presentation->queueData(FEEDBACK);
+
+    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
+        return;
+
+    // attach explicit sync
+    g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
+
+    if (syncobj->acquirePoint > pMonitor->lastWaitPoint)
+        pMonitor->lastWaitPoint = syncobj->acquirePoint;
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

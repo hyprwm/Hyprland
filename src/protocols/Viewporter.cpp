@@ -52,6 +52,21 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
         surface->pending.viewport.hasSource = true;
         surface->pending.viewport.source    = {x, y, w, h};
     });
+
+    listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
+        if (!surface)
+            return;
+
+        if (surface->pending.viewport.hasSource) {
+            auto& src = surface->pending.viewport.source;
+
+            if (src.w + src.x > surface->pending.size.x || src.h + src.y > surface->pending.size.y) {
+                resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
+                surface->pending.rejected = true;
+                return;
+            }
+        }
+    });
 }
 
 CViewportResource::~CViewportResource() {
@@ -64,20 +79,6 @@ CViewportResource::~CViewportResource() {
 
 bool CViewportResource::good() {
     return resource->resource();
-}
-
-void CViewportResource::verify() {
-    if (!surface)
-        return;
-
-    if (surface->pending.viewport.hasSource) {
-        auto& src = surface->pending.viewport.source;
-
-        if (src.w + src.x > surface->pending.size.x || src.h + src.y > surface->pending.size.y) {
-            resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
-            return;
-        }
-    }
 }
 
 CViewporterResource::CViewporterResource(SP<CWpViewporter> resource_) : resource(resource_) {

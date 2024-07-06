@@ -14,6 +14,8 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/DRMSyncobj.hpp"
+#include "../helpers/sync/SyncTimeline.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -109,6 +111,27 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     if (!TEXTURE->m_iTexID)
         return;
 
+    // explicit sync: wait for the timeline, if any
+    if (surface->syncobj) {
+        int fd = surface->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(surface->syncobj->acquirePoint);
+        if (fd < 0) {
+            Debug::log(ERR, "Renderer: failed to get a fd from explicit timeline");
+            return;
+        }
+
+        auto sync = g_pHyprOpenGL->createEGLSync(fd);
+        close(fd);
+        if (!sync) {
+            Debug::log(ERR, "Renderer: failed to get an eglsync from explicit timeline");
+            return;
+        }
+
+        if (!sync->wait()) {
+            Debug::log(ERR, "Renderer: failed to wait on an eglsync from explicit timeline");
+            return;
+        }
+    }
+
     TRACY_GPU_ZONE("RenderSurface");
 
     double      outputX = -RDATA->pMonitor->vecPosition.x, outputY = -RDATA->pMonitor->vecPosition.y;
@@ -167,13 +190,9 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
-        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-            surface->frame(RDATA->when);
-            auto FEEDBACK = makeShared<CQueuedPresentationData>(surface);
-            FEEDBACK->attachMonitor(RDATA->pMonitor);
-            FEEDBACK->discarded();
-            PROTO::presentation->queueData(FEEDBACK);
-        }
+        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+            surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+
         return; // invisible
     }
 
@@ -225,13 +244,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     }
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-        surface->frame(RDATA->when);
-        auto FEEDBACK = makeShared<CQueuedPresentationData>(surface);
-        FEEDBACK->attachMonitor(RDATA->pMonitor);
-        FEEDBACK->presented();
-        PROTO::presentation->queueData(FEEDBACK);
-    }
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+        surface->presentFeedback(RDATA->when, RDATA->pMonitor);
 
     g_pHyprOpenGL->blend(true);
 
@@ -1111,12 +1125,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->frame(&now);
-    auto FEEDBACK = makeShared<CQueuedPresentationData>(PSURFACE);
-    FEEDBACK->attachMonitor(pMonitor);
-    FEEDBACK->presented();
-    FEEDBACK->setPresentationType(true);
-    PROTO::presentation->queueData(FEEDBACK);
+    PSURFACE->presentFeedback(&now, pMonitor);
 
     if (pMonitor->state.commit()) {
         if (m_pLastScanout.expired()) {
@@ -1420,6 +1429,18 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    // apply timelines for explicit sync
+    pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
+
+    for (auto& e : explicitPresented) {
+        e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
+    }
+
+    pMonitor->lastWaitPoint = 0;
+    explicitPresented.clear();
+    pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
+    pMonitor->commitSeq++;
 
     if (!pMonitor->state.commit()) {
         // rollback the buffer to avoid writing to the front buffer that is being

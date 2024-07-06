@@ -40,6 +40,7 @@ struct SMonitorRule {
 };
 
 class CMonitor;
+class CSyncTimeline;
 
 class CMonitorState {
   public:
@@ -116,7 +117,13 @@ class CMonitor {
 
     SMonitorRule                activeMonitorRule;
 
-    WP<CMonitor>                self;
+    // explicit sync
+    SP<CSyncTimeline> inTimeline;
+    SP<CSyncTimeline> outTimeline;
+    uint64_t          lastWaitPoint = 0;
+    uint64_t          commitSeq     = 0;
+
+    WP<CMonitor>      self;
 
     // mirroring
     CMonitor*              pMirrorOf = nullptr;

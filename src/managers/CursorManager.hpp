@@ -75,9 +75,9 @@ class CCursorManager {
     // gangsta bootleg XCursor impl. Whenever Hyprland has to use
     // an xcursor, just use the pointer.
     struct SXCursor {
-        Vector2D             size;
-        Vector2D             hotspot;
-        std::vector<uint8_t> pixels;
+        Vector2D              size;
+        Vector2D              hotspot;
+        std::vector<uint32_t> pixels; // XPixel is a u32
     };
 
     struct SXCursorManager {

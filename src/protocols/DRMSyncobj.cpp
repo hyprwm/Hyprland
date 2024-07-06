@@ -59,6 +59,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         // wait for the acquire timeline to materialize
         auto materialized = acquireTimeline->timeline->check(acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
         if (!materialized.has_value()) {
+            LOGM(ERR, "Failed to check the acquire timeline");
             resource->noMemory();
             return;
         }

@@ -1,5 +1,7 @@
 #include "ProtocolManager.hpp"
 
+#include "../config/ConfigValue.hpp"
+
 #include "../protocols/TearingControl.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/XDGOutput.hpp"
@@ -67,6 +69,8 @@ void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
+    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<CMonitor*>(param);
@@ -132,13 +136,14 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
-    PROTO::sync                = std::make_unique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
 
     for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
         PROTO::lease = std::make_unique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease");
+        if (*PENABLEEXPLICIT)
+            PROTO::sync = std::make_unique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
         break;
     }
 

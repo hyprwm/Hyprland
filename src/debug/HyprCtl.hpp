@@ -22,18 +22,15 @@ class CHyprCtl {
         bool sysInfoConfig = false;
     } m_sCurrentRequestParams;
 
+    static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
+    static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
+    static std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+
   private:
     void                             startHyprCtlSocket();
 
     std::vector<SP<SHyprCtlCommand>> m_vCommands;
     wl_event_source*                 m_eventSource = nullptr;
 };
-
-namespace HyprCtl {
-    std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
-    std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
-    std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
-
-} // namespace HyprCtl
 
 inline std::unique_ptr<CHyprCtl> g_pHyprCtl;

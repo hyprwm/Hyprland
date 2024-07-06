@@ -17,6 +17,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual bool                          isSynchronous()               = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
     virtual bool                          good()                        = 0;
     virtual void                          sendRelease();
+    virtual void                          sendReleaseWithSurface(SP<CWLSurfaceResource>);
 
     SP<CTexture>                          texture;
     bool                                  opaque = false;

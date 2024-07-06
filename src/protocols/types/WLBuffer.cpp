@@ -1,5 +1,9 @@
 #include "WLBuffer.hpp"
 #include "Buffer.hpp"
+#include "../core/Compositor.hpp"
+#include "../DRMSyncobj.hpp"
+#include "../../helpers/sync/SyncTimeline.hpp"
+#include <xf86drm.h>
 
 CWLBufferResource::CWLBufferResource(SP<CWlBuffer> resource_) : resource(resource_) {
     if (!good())
@@ -25,6 +29,16 @@ bool CWLBufferResource::good() {
 
 void CWLBufferResource::sendRelease() {
     resource->sendRelease();
+}
+
+void CWLBufferResource::sendReleaseWithSurface(SP<CWLSurfaceResource> surf) {
+    sendRelease();
+
+    if (!surf->syncobj)
+        return;
+
+    if (drmSyncobjTimelineSignal(g_pCompositor->m_iDRMFD, &surf->syncobj->releaseTimeline->timeline->handle, &surf->syncobj->releasePoint, 1))
+        Debug::log(ERR, "sendReleaseWithSurface: drmSyncobjTimelineSignal failed");
 }
 
 wl_resource* CWLBufferResource::getResource() {

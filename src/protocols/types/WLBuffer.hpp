@@ -8,6 +8,7 @@
 #include "../../helpers/signal/Signal.hpp"
 
 class IHLBuffer;
+class CWLSurfaceResource;
 
 class CWLBufferResource {
   public:
@@ -16,6 +17,7 @@ class CWLBufferResource {
 
     bool                         good();
     void                         sendRelease();
+    void                         sendReleaseWithSurface(SP<CWLSurfaceResource>);
     wl_resource*                 getResource();
 
     WP<IHLBuffer>                buffer;

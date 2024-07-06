@@ -112,7 +112,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         return;
 
     // explicit sync: wait for the timeline, if any
-    if (surface->syncobj) {
+    if (surface->syncobj && surface->syncobj->acquireTimeline) {
         int fd = surface->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(surface->syncobj->acquirePoint);
         if (fd < 0) {
             Debug::log(ERR, "Renderer: failed to get a fd from explicit timeline");

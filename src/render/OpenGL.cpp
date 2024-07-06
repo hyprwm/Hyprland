@@ -2436,11 +2436,11 @@ void CHyprOpenGLImpl::renderMirrored() {
         return;
 
     // replace monitor projection to undo the mirrored monitor's projection
-    matrixIdentity(monitor->projMatrix.data());
-    matrixTranslate(monitor->projMatrix.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
-    matrixTransform(monitor->projMatrix.data(), wlTransformToHyprutils(monitor->transform));
-    matrixTransform(monitor->projMatrix.data(), wlTransformToHyprutils(invertTransform(mirrored->transform)));
-    matrixTranslate(monitor->projMatrix.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
+    matrixIdentity(m_RenderData.monitorProjection.data());
+    matrixTranslate(m_RenderData.monitorProjection.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
+    matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(monitor->transform));
+    matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(invertTransform(mirrored->transform)));
+    matrixTranslate(m_RenderData.monitorProjection.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
 
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
     clear(CColor(0, 0, 0, 0));
@@ -2448,7 +2448,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
 
     // reset matrix for further drawing
-    monitor->updateMatrix();
+    m_RenderData.monitorProjection = monitor->projMatrix;
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {

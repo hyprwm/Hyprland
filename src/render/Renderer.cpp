@@ -1431,15 +1431,19 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     // apply timelines for explicit sync
-    pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
+    bool anyExplicit = !explicitPresented.empty();
+    if (anyExplicit) {
+        pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
 
-    for (auto& e : explicitPresented) {
-        e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
+        for (auto& e : explicitPresented) {
+            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
+        }
+        
+        explicitPresented.clear();
+        pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
     }
 
     pMonitor->lastWaitPoint = 0;
-    explicitPresented.clear();
-    pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
     pMonitor->commitSeq++;
 
     if (!pMonitor->state.commit()) {

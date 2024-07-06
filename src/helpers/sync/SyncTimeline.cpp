@@ -177,7 +177,7 @@ bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, int fd) {
 
 bool CSyncTimeline::transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint) {
     if (drmFD != from->drmFD) {
-        Debug::log(ERR, "CSyncTimeline::transfer: cannot transfer timelines between gpus");
+        Debug::log(ERR, "CSyncTimeline::transfer: cannot transfer timelines between gpus, {} -> {}", from->drmFD, drmFD);
         return false;
     }
 

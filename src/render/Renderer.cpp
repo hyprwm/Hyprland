@@ -1400,7 +1400,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     TRACY_GPU_COLLECT;
 
     if (!pMonitor->mirrors.empty()) {
-        CRegion    frameDamage{};
+        CRegion    frameDamage{finalDamage};
 
         const auto TRANSFORM = invertTransform(pMonitor->transform);
         frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);

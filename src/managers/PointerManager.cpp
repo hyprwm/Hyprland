@@ -455,7 +455,7 @@ void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* 
 
 Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
     return CBox{pointerPos - pMonitor->vecPosition, {0, 0}}
-               //.transform(pMonitor->transform, pMonitor->vecTransformedSize.x / pMonitor->scale, pMonitor->vecTransformedSize.y / pMonitor->scale)
+               .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecTransformedSize.x / pMonitor->scale, pMonitor->vecTransformedSize.y / pMonitor->scale)
                .pos() *
         pMonitor->scale;
 }

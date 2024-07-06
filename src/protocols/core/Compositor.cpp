@@ -414,7 +414,7 @@ void CWLSurfaceResource::commitPendingState() {
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
         if (current.buffer->isSynchronous()) {
-            current.buffer->sendRelease();
+            current.buffer->sendReleaseWithSurface(self.lock());
             bufferReleased = true;
         }
     }
@@ -442,7 +442,7 @@ void CWLSurfaceResource::commitPendingState() {
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
-        previousBuffer->sendRelease();
+        previousBuffer->sendReleaseWithSurface(self.lock());
         bufferReleased = true;
     }
 }

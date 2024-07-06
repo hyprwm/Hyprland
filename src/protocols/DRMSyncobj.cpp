@@ -157,7 +157,7 @@ bool CDRMSyncobjManagerResource::good() {
 }
 
 CDRMSyncobjProtocol::CDRMSyncobjProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    drmFD = fcntl(g_pCompositor->m_iDRMFD, F_DUPFD_CLOEXEC, 0);
+    drmFD = g_pCompositor->m_iDRMFD;
 }
 
 void CDRMSyncobjProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

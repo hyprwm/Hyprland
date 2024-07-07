@@ -22,6 +22,10 @@ class CHyprCtl {
         bool sysInfoConfig = false;
     } m_sCurrentRequestParams;
 
+    static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
+    static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
+    static std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+
   private:
     void                             startHyprCtlSocket();
 

@@ -2287,8 +2287,12 @@ void CCompositor::setWindowFullscreen(PHLWINDOW pWindow, bool on, eFullscreenMod
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    // DMAbuf stuff for direct scanout
-    g_pHyprRenderer->setWindowScanoutMode(pWindow);
+    // further updates require a monitor
+    if (!PMONITOR)
+        return;
+
+    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
+    g_pHyprRenderer->setSurfaceScanoutMode(pWindow->m_pWLSurface->resource(), on ? PMONITOR->self.lock() : nullptr);
 
     g_pConfigManager->ensureVRR(PMONITOR);
 }

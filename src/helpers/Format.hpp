@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include "math/Math.hpp"
 #include <aquamarine/backend/Misc.hpp>
 
@@ -32,4 +33,6 @@ namespace FormatUtils {
     int                 minStride(const SPixelFormat* const fmt, int32_t width);
     uint32_t            drmFormatToGL(DRMFormat drm);
     uint32_t            glFormatToType(uint32_t gl);
+    std::string         drmFormatName(DRMFormat drm);
+    std::string         drmModifierName(uint64_t mod);
 };

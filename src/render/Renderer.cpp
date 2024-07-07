@@ -15,6 +15,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 
 extern "C" {
@@ -1440,7 +1441,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                 continue;
             e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
         }
-        
+
         explicitPresented.clear();
         pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
     }
@@ -1515,8 +1516,11 @@ void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE 
     }
 }
 
-void CHyprRenderer::setWindowScanoutMode(PHLWINDOW pWindow) {
-    // FIXME: fix when moved to new impl
+void CHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor) {
+    if (!PROTO::linuxDma)
+        return;
+
+    PROTO::linuxDma->updateScanoutTranche(surface, monitor);
 }
 
 // taken from Sway.

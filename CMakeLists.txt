@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
 include(CheckIncludeFile)
-include(ExternalProject)
 include(GNUInstallDirs)
 
 # Get version

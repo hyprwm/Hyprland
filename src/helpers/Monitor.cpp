@@ -652,6 +652,9 @@ void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, b
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
+    if (activeSpecialWorkspace == pWorkspace)
+        return;
+
     g_pHyprRenderer->damageMonitor(this);
 
     if (!pWorkspace) {

@@ -3,6 +3,7 @@
 #include "../includes.hpp"
 #include "debug/Log.hpp"
 #include "../macros.hpp"
+#include <xf86drm.h>
 
 /*
     DRM formats are LE, while OGL is BE. The two primary formats
@@ -308,4 +309,18 @@ uint32_t FormatUtils::glFormatToType(uint32_t gl) {
         GL_UNSIGNED_INT_2_10_10_10_REV :
 #endif
         GL_UNSIGNED_BYTE;
+}
+
+std::string FormatUtils::drmFormatName(DRMFormat drm) {
+    auto        n    = drmGetFormatName(drm);
+    std::string name = n;
+    free(n);
+    return name;
+}
+
+std::string FormatUtils::drmModifierName(uint64_t mod) {
+    auto        n    = drmGetFormatModifierName(mod);
+    std::string name = n;
+    free(n);
+    return name;
 }

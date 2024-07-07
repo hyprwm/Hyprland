@@ -89,7 +89,7 @@ class CHyprRenderer {
     damageTrackingModeFromStr(const std::string&);
 
     bool             attemptDirectScanout(CMonitor*);
-    void             setWindowScanoutMode(PHLWINDOW);
+    void             setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor); // nullptr monitor resets
     void             initiateManualCrash();
 
     bool             m_bCrashingInProgress = false;

@@ -57,7 +57,7 @@ class CCompiledDMABUFFeedback {
     dev_t                                      mainDevice = 0;
     int                                        tableFD    = -1;
     size_t                                     tableLen   = 0;
-    std::vector<std::pair<uint32_t, uint64_t>> tranches;
+    std::vector<std::pair<uint32_t, uint64_t>> formats;
 };
 
 class CLinuxDMABBUFParamsResource {
@@ -85,11 +85,14 @@ class CLinuxDMABUFFeedbackResource {
     ~CLinuxDMABUFFeedbackResource();
 
     bool                   good();
+    void                   sendDefault();
 
     SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
 
   private:
     SP<CZwpLinuxDmabufFeedbackV1> resource;
+
+    friend class CLinuxDMABufV1Protocol;
 };
 
 class CLinuxDMABUFResource {
@@ -109,6 +112,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     ~CLinuxDMABufV1Protocol();
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    void         updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor);
 
   private:
     void destroyResource(CLinuxDMABUFResource* resource);

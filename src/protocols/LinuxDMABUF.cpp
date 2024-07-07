@@ -61,9 +61,9 @@ CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMAB
 
     munmap(arr, tableLen);
 
-    mainDevice = device;
-    tableFD    = fds[1];
-    tranches   = formatsVec;
+    mainDevice    = device;
+    tableFD       = fds[1];
+    this->formats = formatsVec;
 
     // TODO: maybe calculate indices? currently we send all as available which could be wrong? I ain't no kernel dev tho.
 }
@@ -189,7 +189,7 @@ void CLinuxDMABBUFParamsResource::create(uint32_t id) {
         return;
     }
 
-    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, attrs->format, attrs->planes);
+    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, FormatUtils::drmFormatName(attrs->format), attrs->planes);
     for (int i = 0; i < attrs->planes; ++i) {
         LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs->modifier, attrs->fds[i], attrs->strides[i], attrs->offsets[i]);
     }
@@ -276,14 +276,25 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     resource->setOnDestroy([this](CZwpLinuxDmabufFeedbackV1* r) { PROTO::linuxDma->destroyResource(this); });
     resource->setDestroy([this](CZwpLinuxDmabufFeedbackV1* r) { PROTO::linuxDma->destroyResource(this); });
 
-    if (surface)
-        LOGM(ERR, "FIXME: surface feedback stub");
-
     auto* feedback = PROTO::linuxDma->defaultFeedback.get();
 
     resource->sendFormatTable(feedback->tableFD, feedback->tableLen);
 
     // send default feedback
+    sendDefault();
+}
+
+CLinuxDMABUFFeedbackResource::~CLinuxDMABUFFeedbackResource() {
+    ;
+}
+
+bool CLinuxDMABUFFeedbackResource::good() {
+    return resource->resource();
+}
+
+void CLinuxDMABUFFeedbackResource::sendDefault() {
+    auto*           feedback = PROTO::linuxDma->defaultFeedback.get();
+
     struct wl_array deviceArr = {
         .size = sizeof(feedback->mainDevice),
         .data = (void*)&feedback->mainDevice,
@@ -295,40 +306,12 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
 
     wl_array indices;
     wl_array_init(&indices);
-    for (size_t i = 0; i < feedback->tranches.size(); ++i) {
+    for (size_t i = 0; i < feedback->formats.size(); ++i) {
         *((uint16_t*)wl_array_add(&indices, sizeof(uint16_t))) = i;
     }
     resource->sendTrancheFormats(&indices);
     wl_array_release(&indices);
     resource->sendTrancheDone();
-
-    // Scanout tranche
-    // FIXME: jesus fucking christ this SUCKSSSSSS ASSSSSS
-    resource->sendTrancheTargetDevice(&deviceArr);
-    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
-
-    wl_array indices2;
-    wl_array_init(&indices2);
-    for (size_t i = 0; i < feedback->tranches.size(); ++i) {
-        // FIXME: if the monitor gets the wrong format we'll be FUCKED by drm and no scanout will happen
-        if (feedback->tranches.at(i).first != DRM_FORMAT_XRGB8888 && feedback->tranches.at(i).first != DRM_FORMAT_XRGB2101010)
-            continue;
-
-        *((uint16_t*)wl_array_add(&indices2, sizeof(uint16_t))) = i;
-    }
-    resource->sendTrancheFormats(&indices2);
-    wl_array_release(&indices2);
-    resource->sendTrancheDone();
-
-    resource->sendDone();
-}
-
-CLinuxDMABUFFeedbackResource::~CLinuxDMABUFFeedbackResource() {
-    ;
-}
-
-bool CLinuxDMABUFFeedbackResource::good() {
-    return resource->resource();
 }
 
 CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : resource(resource_) {
@@ -379,7 +362,7 @@ bool CLinuxDMABUFResource::good() {
 }
 
 void CLinuxDMABUFResource::sendMods() {
-    for (auto& [fmt, mod] : PROTO::linuxDma->defaultFeedback->tranches) {
+    for (auto& [fmt, mod] : PROTO::linuxDma->defaultFeedback->formats) {
         if (resource->version() < 3) {
             if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                 resource->sendFormat(fmt);
@@ -474,4 +457,63 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABBUFParamsResource* resour
 
 void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
     std::erase_if(m_vBuffers, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor) {
+    // TODO: iterating isn't particularly efficient, maybe add a system for addons for surfaces
+
+    SP<CLinuxDMABUFFeedbackResource> feedbackResource;
+    for (auto& f : m_vFeedbacks) {
+        if (f->surface != surface)
+            continue;
+
+        feedbackResource = f;
+        break;
+    }
+
+    if (!feedbackResource) {
+        LOGM(LOG, "updateScanoutTranche: surface has no dmabuf_feedback");
+        return;
+    }
+
+    if (!pMonitor) {
+        LOGM(LOG, "updateScanoutTranche: resetting feedback");
+        feedbackResource->sendDefault();
+        return;
+    }
+
+    auto* feedback = PROTO::linuxDma->defaultFeedback.get();
+
+    LOGM(LOG, "updateScanoutTranche: sending a scanout tranche");
+
+    // send a dedicated scanout tranche that contains formats that:
+    //  - match the format of the output
+    //  - are not linear or implicit
+
+    struct wl_array deviceArr = {
+        .size = sizeof(feedback->mainDevice),
+        .data = (void*)&feedback->mainDevice,
+    };
+    feedbackResource->resource->sendTrancheTargetDevice(&deviceArr);
+    feedbackResource->resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
+
+    wl_array indices2;
+    wl_array_init(&indices2);
+    for (size_t i = 0; i < feedback->formats.size(); ++i) {
+        if (feedback->formats.at(i).first != pMonitor->output->state->state().drmFormat)
+            continue;
+
+        if (feedback->formats.at(i).second == DRM_FORMAT_MOD_LINEAR || feedback->formats.at(i).second == DRM_FORMAT_MOD_INVALID)
+            continue;
+
+        LOGM(TRACE, "updateScanoutTranche: Format {} with modifier {} aka {} passed", FormatUtils::drmFormatName(feedback->formats.at(i).first), feedback->formats.at(i).second,
+             FormatUtils::drmModifierName(feedback->formats.at(i).second));
+        *((uint16_t*)wl_array_add(&indices2, sizeof(uint16_t))) = i;
+    }
+
+    feedbackResource->resource->sendTrancheFormats(&indices2);
+    wl_array_release(&indices2);
+    feedbackResource->resource->sendTrancheDone();
+
+    feedbackResource->resource->sendDone();
 }

@@ -26,7 +26,6 @@ in {
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
-    self.overlays.xwayland
 
     # Hyprland packages themselves
     (final: prev: let
@@ -64,14 +63,4 @@ in {
   hyprland-extras = lib.composeManyExtensions [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
   ];
-
-  # Patches XWayland's pkgconfig file to not include Cflags or includedir
-  # The above two variables trip up CMake and the build fails
-  xwayland = final: prev: {
-    xwayland = prev.xwayland.overrideAttrs (old: {
-      postInstall = ''
-        sed -i '/includedir/d' $out/lib/pkgconfig/xwayland.pc
-      '';
-    });
-  };
 }

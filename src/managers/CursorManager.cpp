@@ -418,6 +418,8 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
 
     themeLoaded = true;
 
+    XcursorImageDestroy(img);
+
     // gather as many shapes as we can find.
     cursors.clear();
 
@@ -450,5 +452,7 @@ void CCursorManager::SXCursorManager::loadTheme(const std::string& name, int siz
         std::memcpy(xcursor->pixels.data(), xImage->pixels, xImage->width * xImage->height * sizeof(uint32_t));
 
         cursors.emplace(std::string{shape}, xcursor);
+
+        XcursorImageDestroy(xImage);
     }
 }

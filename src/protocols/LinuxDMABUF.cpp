@@ -303,6 +303,9 @@ void CLinuxDMABUFFeedbackResource::sendDefault() {
     // Main tranche
     resource->sendTrancheTargetDevice(&deviceArr);
 
+    // Technically, on a single-gpu system, this is correct I believe.
+    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT); 
+
     wl_array indices;
     wl_array_init(&indices);
     for (size_t i = 0; i < feedback->formats.size(); ++i) {

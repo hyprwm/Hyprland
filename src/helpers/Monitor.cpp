@@ -45,10 +45,21 @@ void CMonitor::onConnect(bool noRule) {
     });
 
     listeners.state = output->events.state.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
+
+        if (E.size == Vector2D{}) {
+            // an indication to re-set state
+            // we can't do much for createdByUser displays I think
+            if (createdByUser)
+                return;
+
+            Debug::log(LOG, "Reapplying monitor rule for {} from a state request", szName);
+            g_pHyprRenderer->applyMonitorRule(this, &activeMonitorRule, true);
+            return;
+        }
+
         if (!createdByUser)
             return;
-
-        auto       E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
 
         const auto SIZE = E.size;
 

@@ -113,7 +113,8 @@ foreach p : wl_server_protos
 	wl_server_protos_gen += custom_target(
 		p.underscorify(),
 		input: p,
-		install: false,
+		install: true,
+		install_dir: [false, join_paths(get_option('includedir'), 'hyprland/protocols')],
 		output: ['@BASENAME@.cpp', '@BASENAME@.hpp'],
 		command: [hyprwayland_scanner, '--wayland-enums', '@INPUT@', '@OUTDIR@'],
 	)

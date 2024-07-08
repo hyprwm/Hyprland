@@ -304,7 +304,7 @@ void CLinuxDMABUFFeedbackResource::sendDefault() {
     resource->sendTrancheTargetDevice(&deviceArr);
 
     // Technically, on a single-gpu system, this is correct I believe.
-    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT); 
+    resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
 
     wl_array indices;
     wl_array_init(&indices);
@@ -398,7 +398,18 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             if (impl->type() != Aquamarine::AQ_BACKEND_DRM)
                 continue;
             aqFormats = impl->getRenderFormats();
-            break;
+            if (!aqFormats.empty())
+                break;
+        }
+
+        if (aqFormats.empty()) {
+            // fallback: use EGL formats
+            for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+                aqFormats.emplace_back(Aquamarine::SDRMFormat{
+                    .drmFormat = fmt.drmFormat,
+                    .modifiers = fmt.modifiers,
+                });
+            }
         }
 
         SDMABufTranche tranche = {

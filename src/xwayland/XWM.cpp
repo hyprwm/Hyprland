@@ -153,7 +153,7 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
 }
 
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
-    std::string propName = "?";
+    std::string propName = std::format("{}?", atom);
     for (auto& ha : HYPRATOMS) {
         if (ha.second != atom)
             continue;
@@ -174,7 +174,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     } else if (atom == XCB_ATOM_WM_NAME || atom == HYPRATOMS["_NET_WM_NAME"]) {
         size_t len    = xcb_get_property_value_length(reply);
         char*  string = (char*)xcb_get_property_value(reply);
-        if (reply->type != HYPRATOMS["UTF8_STRING"])
+        if (reply->type != HYPRATOMS["UTF8_STRING"] && reply->type != HYPRATOMS["TEXT"] && reply->type != XCB_ATOM_STRING)
             return;
         XSURF->state.title = std::string{string, len};
         XSURF->events.metadataChanged.emit();

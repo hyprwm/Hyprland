@@ -132,7 +132,6 @@ void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotsp
 
 void CCursorManager::setXCursor(const std::string& name) {
     float scale = std::ceil(m_fCursorScale);
-    xcursor.loadTheme(name.c_str(), m_iSize * scale);
 
     if (!xcursor.themeLoaded) {
         Debug::log(ERR, "XCursor failed to find theme in setXCursor");

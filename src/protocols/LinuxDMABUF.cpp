@@ -25,7 +25,7 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 
 CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMABufTranche> tranches_) {
     std::set<std::pair<uint32_t, uint64_t>> formats;
-    for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+    for (auto& fmt : tranches_.at(0).formats /* FIXME: multigpu */) {
         for (auto& mod : fmt.modifiers) {
             formats.insert(std::make_pair<>(fmt.drmFormat, mod));
         }
@@ -48,11 +48,12 @@ CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMAB
 
     std::vector<std::pair<uint32_t, uint64_t>> formatsVec;
     for (auto& f : formats) {
-        formatsVec.push_back(f);
+        formatsVec.emplace_back(f);
     }
 
     size_t i = 0;
     for (auto& [fmt, mod] : formatsVec) {
+        LOGM(TRACE, "Feedback: format table index {}: fmt {} mod {}", i, FormatUtils::drmFormatName(fmt), mod);
         arr[i++] = SDMABUFFeedbackTableEntry{
             .fmt      = fmt,
             .modifier = mod,
@@ -64,8 +65,6 @@ CCompiledDMABUFFeedback::CCompiledDMABUFFeedback(dev_t device, std::vector<SDMAB
     mainDevice    = device;
     tableFD       = fds[1];
     this->formats = formatsVec;
-
-    // TODO: maybe calculate indices? currently we send all as available which could be wrong? I ain't no kernel dev tho.
 }
 
 CCompiledDMABUFFeedback::~CCompiledDMABUFFeedback() {
@@ -312,6 +311,8 @@ void CLinuxDMABUFFeedbackResource::sendDefault() {
     resource->sendTrancheFormats(&indices);
     wl_array_release(&indices);
     resource->sendTrancheDone();
+
+    resource->sendDone();
 }
 
 CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : resource(resource_) {
@@ -391,6 +392,8 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         // FIXME: this will break on multi-gpu
         std::vector<Aquamarine::SDRMFormat> aqFormats;
         for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
+            if (impl->type() != Aquamarine::AQ_BACKEND_DRM)
+                continue;
             aqFormats = impl->getRenderFormats();
             break;
         }
@@ -499,15 +502,22 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     wl_array indices2;
     wl_array_init(&indices2);
-    for (size_t i = 0; i < feedback->formats.size(); ++i) {
-        if (feedback->formats.at(i).first != pMonitor->output->state->state().drmFormat)
-            continue;
+    const auto PRIMARYFORMATS = pMonitor->output->getBackend()->getRenderFormats();
 
+    for (size_t i = 0; i < feedback->formats.size(); ++i) {
         if (feedback->formats.at(i).second == DRM_FORMAT_MOD_LINEAR || feedback->formats.at(i).second == DRM_FORMAT_MOD_INVALID)
             continue;
 
-        LOGM(TRACE, "updateScanoutTranche: Format {} with modifier {} aka {} passed", FormatUtils::drmFormatName(feedback->formats.at(i).first), feedback->formats.at(i).second,
-             FormatUtils::drmModifierName(feedback->formats.at(i).second));
+        const auto PRIM_FORMAT = std::find_if(PRIMARYFORMATS.begin(), PRIMARYFORMATS.end(), [&](const auto& e) { return e.drmFormat == feedback->formats.at(i).first; });
+
+        if (PRIM_FORMAT == PRIMARYFORMATS.end())
+            continue;
+
+        if (std::find(PRIM_FORMAT->modifiers.begin(), PRIM_FORMAT->modifiers.end(), feedback->formats.at(i).second) == PRIM_FORMAT->modifiers.end())
+            continue;
+
+        LOGM(TRACE, "updateScanoutTranche: index {}: Format {} with modifier {} aka {} passed", i, FormatUtils::drmFormatName(feedback->formats.at(i).first),
+             feedback->formats.at(i).second, FormatUtils::drmModifierName(feedback->formats.at(i).second));
         *((uint16_t*)wl_array_add(&indices2, sizeof(uint16_t))) = i;
     }
 

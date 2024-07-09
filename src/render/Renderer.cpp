@@ -1456,14 +1456,15 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
     bool anyExplicit = !explicitPresented.empty();
     if (anyExplicit) {
+        Debug::log(TRACE, "Explicit sync presented begin");
         auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
         if (inFence < 0) {
-            Debug::log(ERR, "Export lastWaitPoint as sync explicitInFence failed");
+            Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
         }
         pMonitor->output->state->setExplicitInFence(inFence);
 
         for (auto& e : explicitPresented) {
-            Debug::log(TRACE, "Explicit sync presented {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
+            Debug::log(TRACE, "Explicit sync presented releasePoint {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
             if (!e->syncobj || !e->syncobj->releaseTimeline)
                 continue;
             e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
@@ -1472,9 +1473,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         explicitPresented.clear();
         auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
         if (outFence < 0) {
-            Debug::log(ERR, "Export commitSeq as sync explicitOutFence failed");
+            Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
         }
         pMonitor->output->state->setExplicitOutFence(outFence);
+        Debug::log(TRACE, "Explicit sync presented end");
     }
 
     pMonitor->lastWaitPoint = 0;
@@ -1483,6 +1485,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     const auto COMMITTED_IN  = pMonitor->output->state->state().explicitInFence;
 
     if (!pMonitor->state.commit()) {
+        Debug::log(TRACE, "Monitor state commit failed");
         // rollback the buffer to avoid writing to the front buffer that is being
         // displayed
         pMonitor->output->swapchain->rollback();

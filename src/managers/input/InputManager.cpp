@@ -1155,6 +1155,8 @@ static void removeFromHIDs(WP<IHID> hid) {
 }
 
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
+    Debug::log(LOG, "Keyboard at {:x} removed", (uintptr_t)pKeyboard.get());
+
     std::erase_if(m_vKeyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (m_vKeyboards.size() > 0) {
@@ -1177,6 +1179,8 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::destroyPointer(SP<IPointer> mouse) {
+    Debug::log(LOG, "Pointer at {:x} removed", (uintptr_t)mouse.get());
+
     std::erase_if(m_vPointers, [mouse](const auto& other) { return other == mouse; });
 
     g_pSeatManager->setMouse(m_vPointers.size() > 0 ? m_vPointers.front() : nullptr);

@@ -88,16 +88,16 @@ class CHyprRenderer {
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);
 
-    bool             attemptDirectScanout(CMonitor*);
-    void             setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor); // nullptr monitor resets
-    void             initiateManualCrash();
+    bool                                attemptDirectScanout(CMonitor*);
+    void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor); // nullptr monitor resets
+    void                                initiateManualCrash();
 
-    bool             m_bCrashingInProgress = false;
-    float            m_fCrashingDistort    = 0.5f;
-    wl_event_source* m_pCrashingLoop       = nullptr;
-    wl_event_source* m_pCursorTicker       = nullptr;
+    bool                                m_bCrashingInProgress = false;
+    float                               m_fCrashingDistort    = 0.5f;
+    wl_event_source*                    m_pCrashingLoop       = nullptr;
+    wl_event_source*                    m_pCursorTicker       = nullptr;
 
-    CTimer           m_tRenderTimer;
+    CTimer                              m_tRenderTimer;
 
     std::vector<SP<CWLSurfaceResource>> explicitPresented;
 

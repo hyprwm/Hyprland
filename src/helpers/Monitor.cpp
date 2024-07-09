@@ -811,9 +811,10 @@ bool CMonitorState::updateSwapchain() {
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE)
         return true;
-    options.format  = STATE.drmFormat;
-    options.scanout = true;
-    options.length  = 2;
-    options.size    = MODE->pixelSize;
+    options.format   = STATE.drmFormat;
+    options.scanout  = true;
+    options.length   = 2;
+    options.size     = MODE->pixelSize;
+    options.multigpu = m_pOwner->output->swapchain->getAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
     return m_pOwner->output->swapchain->reconfigure(options);
 }

@@ -48,7 +48,7 @@ class CEventLoopManager {
         int                              timerfd = -1;
     } m_sTimers;
 
-    SIdleData m_sIdle;
+    SIdleData                            m_sIdle;
     std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
 
     friend class CSyncTimeline;

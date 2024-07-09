@@ -1457,7 +1457,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     if (shouldTear)
         pMonitor->tearingState.busy = true;
 
-    if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
+    if (*PDAMAGEBLINK || (*PVFR == 0 && !pMonitor->output->state->state().adaptiveSync) || pMonitor->pendingFrame)
         g_pCompositor->scheduleFrameForMonitor(pMonitor);
 
     pMonitor->pendingFrame = false;

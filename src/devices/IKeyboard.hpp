@@ -82,8 +82,8 @@ class IKeyboard : public IHID {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;
     } modifiersState;
 
-    std::array<xkb_led_index_t, 3> ledIndexes = {0};
-    std::array<xkb_mod_index_t, 8> modIndexes = {0};
+    std::array<xkb_led_index_t, 3> ledIndexes = {XKB_MOD_INVALID};
+    std::array<xkb_mod_index_t, 8> modIndexes = {XKB_MOD_INVALID};
     uint32_t                       leds = 0;
 
     std::string                    hlName          = "";

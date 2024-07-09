@@ -521,13 +521,20 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
 }
 
 bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
-    // passes requiring introspection are the ones that need to render blur.
+    // passes requiring introspection are the ones that need to render blur,
+    // or when we are rendering to a multigpu target
 
     static auto PBLUR        = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     static auto PXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
     static auto POPTIM       = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURSPECIAL = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
+
+    // multigpu destination
+    if (pMonitor->output->swapchain->getAllocator()->drmFD() != g_pCompositor->m_iDRMFD) {
+        Debug::log(TRACE, "passRequiresIntrospection: multigpu target, forcing");
+        return true;
+    }
 
     if (m_RenderData.mouseZoomFactor != 1.0 || g_pHyprRenderer->m_bCrashingInProgress)
         return true;
@@ -2752,7 +2759,7 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
         return nullptr;
     }
 
-    auto eglsync = SP<CEGLSync>(new CEGLSync);
+    auto eglsync  = SP<CEGLSync>(new CEGLSync);
     eglsync->sync = sync;
     return eglsync;
 }

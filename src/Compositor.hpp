@@ -89,7 +89,6 @@ class CCompositor {
     bool                                      m_bUnsafeState    = false; // unsafe state is when there is no monitors.
     bool                                      m_bNextIsUnsafe   = false;
     CMonitor*                                 m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
-    bool                                      m_bExitTriggered  = false;   // For exit dispatcher
     bool                                      m_bIsShuttingDown = false;
 
     // ------------------------------------------------- //

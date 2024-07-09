@@ -17,13 +17,6 @@
 // --------------------------------------------------------- //
 
 void Events::listener_monitorFrame(void* owner, void* data) {
-    if (g_pCompositor->m_bExitTriggered) {
-        // Only signal cleanup once
-        g_pCompositor->m_bExitTriggered = false;
-        g_pCompositor->cleanup();
-        return;
-    }
-
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
     if ((g_pCompositor->m_pAqBackend->hasSession() && !g_pCompositor->m_pAqBackend->session->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {

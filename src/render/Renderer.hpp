@@ -121,6 +121,8 @@ class CHyprRenderer {
     void              sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
     void              renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
 
+    bool              commitPendingAndDoExplicitSync(CMonitor* pMonitor);
+
     bool              m_bCursorHidden        = false;
     bool              m_bCursorHasSurface    = false;
     SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;

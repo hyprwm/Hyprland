@@ -1431,31 +1431,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     pMonitor->output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    // apply timelines for explicit sync
-    bool anyExplicit = !explicitPresented.empty();
-    if (anyExplicit) {
-        pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
-
-        for (auto& e : explicitPresented) {
-            if (!e->syncobj || !e->syncobj->releaseTimeline)
-                continue;
-            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
-        }
-
-        explicitPresented.clear();
-        pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
-    }
-
-    pMonitor->lastWaitPoint = 0;
-    pMonitor->commitSeq++;
-
-    if (!pMonitor->state.commit()) {
-        // rollback the buffer to avoid writing to the front buffer that is being
-        // displayed
-        pMonitor->output->swapchain->rollback();
-        pMonitor->damage.damageEntire();
-        return;
-    }
+    commitPendingAndDoExplicitSync(pMonitor);
 
     if (shouldTear)
         pMonitor->tearingState.busy = true;
@@ -1476,6 +1452,46 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
         }
     }
+}
+
+bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
+    // apply timelines for explicit sync
+    bool anyExplicit = !explicitPresented.empty();
+    if (anyExplicit) {
+        pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
+
+        for (auto& e : explicitPresented) {
+            if (!e->syncobj || !e->syncobj->releaseTimeline)
+                continue;
+            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
+        }
+
+        explicitPresented.clear();
+        pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
+    }
+
+    pMonitor->lastWaitPoint = 0;
+
+    const auto COMMITTED_OUT = pMonitor->output->state->state().explicitOutFence;
+    const auto COMMITTED_IN  = pMonitor->output->state->state().explicitInFence;
+
+    if (!pMonitor->state.commit()) {
+        // rollback the buffer to avoid writing to the front buffer that is being
+        // displayed
+        pMonitor->output->swapchain->rollback();
+        pMonitor->damage.damageEntire();
+        return false;
+    }
+
+    if (COMMITTED_IN >= 0)
+        close(COMMITTED_IN);
+
+    if (COMMITTED_OUT >= 0) {
+        pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
+        close(COMMITTED_OUT);
+    }
+
+    return true;
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -2658,6 +2674,8 @@ void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
+    PMONITOR->commitSeq++;
+
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
     else {
@@ -2671,11 +2689,42 @@ void CHyprRenderer::endRender() {
 
     if (isNvidia() && *PNVIDIAANTIFLICKER)
         glFinish();
-    else
-        glFlush();
 
-    if (m_eRenderMode == RENDER_MODE_NORMAL)
+    if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
+
+        if (PMONITOR->output->state->state().explicitOutFence >= 0) {
+            auto sync = g_pHyprOpenGL->createEGLSync(-1);
+            if (!sync) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
+                return;
+            }
+
+            auto dupedfd = sync->dupFenceFD();
+            sync.reset();
+            if (dupedfd < 0) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't dup an EGLSync fence for out in endRender");
+                return;
+            }
+
+            bool ok = PMONITOR->outTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
+            close(dupedfd);
+            if (!ok) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
+                return;
+            }
+        } else
+            glFlush();
+    }
 
     m_pCurrentRenderbuffer->unbind();
 

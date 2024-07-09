@@ -207,7 +207,7 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(PHLWINDOW pWindow) {
         return Vector2D(99999, 99999);
 
     if ((pWindow->m_bIsX11 && !pWindow->m_pXWaylandSurface->sizeHints) || (!pWindow->m_bIsX11 && !pWindow->m_pXDGSurface->toplevel) ||
-        pWindow->m_sWindowData.noMaxSize.value_or_default())
+        pWindow->m_sWindowData.noMaxSize.valueOrDefault())
         return Vector2D(99999, 99999);
 
     auto MAXSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_pXWaylandSurface->sizeHints->max_width, pWindow->m_pXWaylandSurface->sizeHints->max_height) :

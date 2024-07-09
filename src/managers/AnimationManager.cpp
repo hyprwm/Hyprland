@@ -102,7 +102,7 @@ void CAnimationManager::tick() {
             PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             if (!PMONITOR)
                 continue;
-            animationsDisabled = PWINDOW->m_sWindowData.noAnim.value_or(animationsDisabled);
+            animationsDisabled = PWINDOW->m_sWindowData.noAnim.valueOr(animationsDisabled);
         } else if (PWORKSPACE) {
             PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             if (!PMONITOR)
@@ -407,7 +407,7 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!pWindow->m_vRealPosition.m_pConfig->pValues->internalEnabled)
         return;
 
-    if (pWindow->m_sWindowData.animationStyle.has_value()) {
+    if (pWindow->m_sWindowData.animationStyle.hasValue()) {
         const auto STYLE = pWindow->m_sWindowData.animationStyle.value();
         // the window has config'd special anim
         if (STYLE.starts_with("slide")) {

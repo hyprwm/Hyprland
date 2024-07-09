@@ -107,7 +107,7 @@ class CWindowOverridableVar {
         values.erase(priority);
     }
 
-    bool has_value() {
+    bool hasValue() {
         return !values.empty();
     }
 
@@ -118,15 +118,15 @@ class CWindowOverridableVar {
             throw std::bad_optional_access();
     }
 
-    T value_or(T const other) {
-        if (has_value())
+    T valueOr(T const& other) {
+        if (hasValue())
             return value();
         else
             return other;
     }
 
-    T value_or_default() {
-        return value_or(defaultValue);
+    T valueOrDefault() {
+        return valueOr(defaultValue);
     }
 
     eOverridePriority getPriority() {

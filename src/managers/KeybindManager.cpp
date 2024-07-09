@@ -9,6 +9,7 @@
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
 
@@ -1661,7 +1662,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->m_bExitTriggered = true;
+    g_pEventLoopManager->doLater([]() { g_pCompositor->cleanup(); });
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {

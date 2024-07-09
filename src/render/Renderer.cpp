@@ -17,6 +17,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include "debug/Log.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -1455,16 +1456,25 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
     bool anyExplicit = !explicitPresented.empty();
     if (anyExplicit) {
-        pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
+        auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
+        if (inFence < 0) {
+            Debug::log(ERR, "Export lastWaitPoint as sync explicitInFence failed");
+        }
+        pMonitor->output->state->setExplicitInFence(inFence);
 
         for (auto& e : explicitPresented) {
+            Debug::log(TRACE, "Explicit sync presented {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
             if (!e->syncobj || !e->syncobj->releaseTimeline)
                 continue;
             e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
         }
 
         explicitPresented.clear();
-        pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
+        auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
+        if (outFence < 0) {
+            Debug::log(ERR, "Export commitSeq as sync explicitOutFence failed");
+        }
+        pMonitor->output->state->setExplicitOutFence(outFence);
     }
 
     pMonitor->lastWaitPoint = 0;
@@ -2684,13 +2694,10 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (isNvidia() && *PNVIDIAANTIFLICKER)
-        glFinish();
-
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->output->state->state().explicitOutFence >= 0) {
+        if (PMONITOR->outTimeline) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 m_pCurrentRenderbuffer->unbind();
@@ -2719,8 +2726,12 @@ void CHyprRenderer::endRender() {
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
-        } else
-            glFlush();
+        } else {
+            if (isNvidia() && *PNVIDIAANTIFLICKER)
+                glFinish();
+            else
+                glFlush();
+        }
     }
 
     m_pCurrentRenderbuffer->unbind();

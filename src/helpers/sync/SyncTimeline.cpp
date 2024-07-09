@@ -162,13 +162,13 @@ bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, int fd) {
     if (drmSyncobjImportSyncFile(drmFD, syncHandle, fd)) {
         Debug::log(ERR, "importFromSyncFileFD: drmSyncobjImportSyncFile failed");
         drmSyncobjDestroy(drmFD, syncHandle);
-        return -1;
+        return false;
     }
 
     if (drmSyncobjTransfer(drmFD, handle, dst, syncHandle, 0, 0)) {
         Debug::log(ERR, "importFromSyncFileFD: drmSyncobjTransfer failed");
         drmSyncobjDestroy(drmFD, syncHandle);
-        return -1;
+        return false;
     }
 
     drmSyncobjDestroy(drmFD, syncHandle);

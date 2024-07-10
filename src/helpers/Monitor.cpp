@@ -802,6 +802,14 @@ bool CMonitorState::commit() {
 bool CMonitorState::test() {
     if (!updateSwapchain())
         return false;
+    
+    // if it has no buffer, attach one from the swapchain to test it
+    if (!m_pOwner->output->state->state().buffer) {
+        Debug::log(LOG, "CMonitorState::test: no buffer, attaching one from the swapchain for modeset being possible");
+        m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
+        m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
+    }
+
     return m_pOwner->output->test();
 }
 
@@ -809,8 +817,10 @@ bool CMonitorState::updateSwapchain() {
     auto        options = m_pOwner->output->swapchain->currentOptions();
     const auto& STATE   = m_pOwner->output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
-    if (!MODE)
+    if (!MODE) {
+        Debug::log(WARN, "updateSwapchain: No mode?");
         return true;
+    }
     options.format   = STATE.drmFormat;
     options.scanout  = true;
     options.length   = 2;

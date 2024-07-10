@@ -52,6 +52,8 @@ class CMonitorState {
     bool updateSwapchain();
 
   private:
+    void ensureBufferPresent();
+
     CMonitor* m_pOwner;
 };
 

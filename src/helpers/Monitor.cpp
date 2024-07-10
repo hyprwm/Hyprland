@@ -792,9 +792,28 @@ CMonitorState::~CMonitorState() {
     ;
 }
 
+void CMonitorState::ensureBufferPresent() {
+    if (!m_pOwner->output->state->state().enabled) {
+        Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
+        return;
+    }
+
+    if (m_pOwner->output->state->state().buffer)
+        return;
+
+    // this is required for modesetting being possible and might be missing in case of first tests in the renderer
+    // where we test modes and buffers
+    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer, attaching one from the swapchain for modeset being possible");
+    m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
+    m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
+}
+
 bool CMonitorState::commit() {
     if (!updateSwapchain())
         return false;
+
+    ensureBufferPresent();
+
     bool ret = m_pOwner->output->commit();
     return ret;
 }
@@ -802,13 +821,8 @@ bool CMonitorState::commit() {
 bool CMonitorState::test() {
     if (!updateSwapchain())
         return false;
-    
-    // if it has no buffer, attach one from the swapchain to test it
-    if (!m_pOwner->output->state->state().buffer) {
-        Debug::log(LOG, "CMonitorState::test: no buffer, attaching one from the swapchain for modeset being possible");
-        m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
-        m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
-    }
+
+    ensureBufferPresent();
 
     return m_pOwner->output->test();
 }

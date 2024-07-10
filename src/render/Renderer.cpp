@@ -17,6 +17,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include "debug/Log.hpp"
 
 extern "C" {
 #include <xf86drm.h>
@@ -114,21 +115,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
 
     // explicit sync: wait for the timeline, if any
     if (surface->syncobj && surface->syncobj->acquireTimeline) {
-        int fd = surface->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(surface->syncobj->acquirePoint);
-        if (fd < 0) {
-            Debug::log(ERR, "Renderer: failed to get a fd from explicit timeline");
-            return;
-        }
-
-        auto sync = g_pHyprOpenGL->createEGLSync(fd);
-        close(fd);
-        if (!sync) {
-            Debug::log(ERR, "Renderer: failed to get an eglsync from explicit timeline");
-            return;
-        }
-
-        if (!sync->wait()) {
-            Debug::log(ERR, "Renderer: failed to wait on an eglsync from explicit timeline");
+        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->acquireTimeline->timeline, surface->syncobj->acquirePoint)) {
+            Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }
     }
@@ -191,8 +179,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
-        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+            Debug::log(TRACE, "presentFeedback for invisible surface");
             surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+        }
 
         return; // invisible
     }
@@ -245,8 +235,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     }
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+        Debug::log(TRACE, "presentFeedback for visible surface");
         surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+    }
 
     g_pHyprOpenGL->blend(true);
 
@@ -1099,8 +1091,10 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
-    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock()))
+    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock())) {
+        Debug::log(TRACE, "Direct scanout failed: soft locked / HW cursors failed");
         return false;
+    }
 
     const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 
@@ -1126,7 +1120,8 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, pMonitor);
+    Debug::log(TRACE, "presentFeedback for DS");
+    PSURFACE->presentFeedback(&now, pMonitor, true);
 
     if (pMonitor->state.commit()) {
         if (m_pLastScanout.expired()) {
@@ -1458,16 +1453,27 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
     bool anyExplicit = !explicitPresented.empty();
     if (anyExplicit) {
-        pMonitor->output->state->setExplicitInFence(pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint));
+        Debug::log(TRACE, "Explicit sync presented begin");
+        auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
+        if (inFence < 0)
+            Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
+
+        pMonitor->output->state->setExplicitInFence(inFence);
 
         for (auto& e : explicitPresented) {
+            Debug::log(TRACE, "Explicit sync presented releasePoint {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
             if (!e->syncobj || !e->syncobj->releaseTimeline)
                 continue;
             e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
         }
 
         explicitPresented.clear();
-        pMonitor->output->state->setExplicitOutFence(pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq));
+        auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
+        if (outFence < 0)
+            Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
+
+        pMonitor->output->state->setExplicitOutFence(outFence);
+        Debug::log(TRACE, "Explicit sync presented end");
     }
 
     pMonitor->lastWaitPoint = 0;
@@ -1475,23 +1481,25 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     const auto COMMITTED_OUT = pMonitor->output->state->state().explicitOutFence;
     const auto COMMITTED_IN  = pMonitor->output->state->state().explicitInFence;
 
-    if (!pMonitor->state.commit()) {
+    bool       commited = pMonitor->state.commit();
+    if (!commited) {
+        Debug::log(TRACE, "Monitor state commit failed");
         // rollback the buffer to avoid writing to the front buffer that is being
         // displayed
         pMonitor->output->swapchain->rollback();
         pMonitor->damage.damageEntire();
-        return false;
     }
 
     if (COMMITTED_IN >= 0)
         close(COMMITTED_IN);
 
     if (COMMITTED_OUT >= 0) {
-        pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
+        if (commited)
+            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
         close(COMMITTED_OUT);
     }
 
-    return true;
+    return commited;
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -2687,13 +2695,10 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (isNvidia() && *PNVIDIAANTIFLICKER)
-        glFinish();
-
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->output->state->state().explicitOutFence >= 0) {
+        if (PMONITOR->inTimeline) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 m_pCurrentRenderbuffer->unbind();
@@ -2713,7 +2718,7 @@ void CHyprRenderer::endRender() {
                 return;
             }
 
-            bool ok = PMONITOR->outTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
             close(dupedfd);
             if (!ok) {
                 m_pCurrentRenderbuffer->unbind();
@@ -2722,8 +2727,12 @@ void CHyprRenderer::endRender() {
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
-        } else
-            glFlush();
+        } else {
+            if (isNvidia() && *PNVIDIAANTIFLICKER)
+                glFinish();
+            else
+                glFlush();
+        }
     }
 
     m_pCurrentRenderbuffer->unbind();

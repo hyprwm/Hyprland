@@ -6,6 +6,8 @@
 #include "../helpers/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/sync/SyncTimeline.hpp"
+#include <cstdint>
 #include <list>
 #include <unordered_map>
 #include <map>
@@ -152,7 +154,8 @@ class CHyprOpenGLImpl {
     void     renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
     void     renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
     void     renderTexture(SP<CTexture>, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
-    void     renderTextureWithDamage(SP<CTexture>, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
+    void     renderTextureWithDamage(SP<CTexture>, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false,
+                                     SP<CSyncTimeline> waitTimeline = nullptr, uint64_t waitPoint = 0);
     void     renderTextureWithBlur(SP<CTexture>, CBox*, float a, SP<CWLSurfaceResource> pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
     void     renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
     void     renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
@@ -203,6 +206,7 @@ class CHyprOpenGLImpl {
     std::vector<SDRMFormat>                           getDRMFormats();
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
     SP<CEGLSync>                                      createEGLSync(int fenceFD);
+    bool                                              waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
     SCurrentRenderData                                m_RenderData;
 
@@ -284,7 +288,7 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
     void          renderTextureInternalWithDamage(SP<CTexture>, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
-                                                  bool allowCustomUV = false, bool allowDim = false);
+                                                  bool allowCustomUV = false, bool allowDim = false, SP<CSyncTimeline> = nullptr, uint64_t waitPoint = 0);
     void          renderTexturePrimitive(SP<CTexture> tex, CBox* pBox);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 

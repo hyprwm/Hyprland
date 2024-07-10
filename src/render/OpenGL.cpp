@@ -1262,7 +1262,7 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, CReg
 }
 
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, CRegion* damage, int round, bool discardActive, bool noAA, bool allowCustomUV,
-                                                      bool allowDim) {
+                                                      bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -1286,6 +1286,28 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 
     float glMatrix[9];
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+
+    if (waitTimeline != nullptr) {
+        int syncFileFD = waitTimeline->exportAsSyncFileFD(waitPoint);
+        if (syncFileFD < 0) {
+            Debug::log(ERR, "renderTextureInternalWithDamage: exportAsSyncFileFD failed for point {}", waitPoint);
+            return;
+        }
+
+        auto eglSync = createEGLSync(syncFileFD);
+        close(syncFileFD);
+        if (!eglSync) {
+            Debug::log(ERR, "renderTextureInternalWithDamage: createEGLSync failed for fd {}", syncFileFD);
+            return;
+        }
+
+        bool ok = eglSync->wait();
+        // destroy eglSync
+        if (!ok) {
+            Debug::log(ERR, "renderTextureInternalWithDamage: eglSync wait not ok");
+            return;
+        }
+    }
 
     CShader*   shader = nullptr;
 

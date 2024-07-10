@@ -6,6 +6,7 @@
 #include "../helpers/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/sync/SyncTimeline.hpp"
 #include <list>
 #include <unordered_map>
 #include <map>
@@ -284,7 +285,7 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
 
     void          renderTextureInternalWithDamage(SP<CTexture>, CBox* pBox, float a, CRegion* damage, int round = 0, bool discardOpaque = false, bool noAA = false,
-                                                  bool allowCustomUV = false, bool allowDim = false);
+                                                  bool allowCustomUV = false, bool allowDim = false, SP<CSyncTimeline> = nullptr, uint64_t waitPoint = 0);
     void          renderTexturePrimitive(SP<CTexture> tex, CBox* pBox);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
 

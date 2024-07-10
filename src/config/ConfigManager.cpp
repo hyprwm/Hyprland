@@ -360,6 +360,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});
+    m_pConfig->addConfigValue("group:groupbar:group_rounding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("group:groupbar:gradients", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:height", Hyprlang::INT{14});
     m_pConfig->addConfigValue("group:groupbar:priority", Hyprlang::INT{3});

@@ -100,6 +100,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
     static auto PENABLED       = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PRENDERTITLES  = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
+    static auto PGROUPROUNDING = CConfigValue<Hyprlang::INT>("group:groupbar:group_rounding");
     static auto PTITLEFONTSIZE = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto PHEIGHT        = CConfigValue<Hyprlang::INT>("group:groupbar:height");
     static auto PGRADIENTS     = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
@@ -149,18 +150,20 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
         CColor            color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
         color.a *= a;
-        g_pHyprOpenGL->renderRect(&rect, color);
 
         rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
+        
+        g_pHyprOpenGL->renderRect(&rect, color, *PGROUPROUNDING); 
+        
         rect.scale(pMonitor->scale);
 
         if (*PGRADIENTS) {
             const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
                                                                                                       (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
             if (GRADIENTTEX->m_iTexID != 0)
-                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
+                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0, *PGROUPROUNDING);
         }
 
         if (*PRENDERTITLES) {
@@ -178,7 +181,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
             rect.x += (m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->textWidth / 2.0);
             rect.round();
 
-            g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f);
+            g_pHyprOpenGL->renderTexture(pTitleTex->tex, &rect, 1.f, *PGROUPROUNDING);
         }
 
         if (*PSTACKED)

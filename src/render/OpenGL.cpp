@@ -1253,16 +1253,17 @@ void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, CBox* pBox, float alpha, i
     scissor((CBox*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, CRegion* damage, float alpha, int round, bool discardActive, bool allowCustomUV) {
+void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, CRegion* damage, float alpha, int round, bool discardActive, bool allowCustomUV,
+                                              SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
-    renderTextureInternalWithDamage(tex, pBox, alpha, damage, round, discardActive, false, allowCustomUV, true);
+    renderTextureInternalWithDamage(tex, pBox, alpha, damage, round, discardActive, false, allowCustomUV, true, waitTimeline, waitPoint);
 
     scissor((CBox*)nullptr);
 }
 
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, CRegion* damage, int round, bool discardActive, bool noAA, bool allowCustomUV,
-                                                      bool allowDim) {
+                                                      bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_iTexID > 0), "Attempted to draw NULL texture!");
 
@@ -1286,6 +1287,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 
     float glMatrix[9];
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+
+    if (waitTimeline != nullptr) {
+        if (!waitForTimelinePoint(waitTimeline, waitPoint)) {
+            Debug::log(ERR, "renderTextureInternalWithDamage: failed to wait for explicit sync point {}", waitPoint);
+            return;
+        }
+    }
 
     CShader*   shader = nullptr;
 
@@ -2742,26 +2750,52 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
 
 SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     std::vector<EGLint> attribs;
-    int                 dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
-    if (dupFd < 0) {
-        Debug::log(ERR, "createEGLSync: dup failed");
-        return nullptr;
-    }
+    int                 dupFd = -1;
+    if (fenceFD > 0) {
+        int dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+        if (dupFd < 0) {
+            Debug::log(ERR, "createEGLSync: dup failed");
+            return nullptr;
+        }
 
-    attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
-    attribs.push_back(dupFd);
-    attribs.push_back(EGL_NONE);
+        attribs.push_back(EGL_SYNC_NATIVE_FENCE_FD_ANDROID);
+        attribs.push_back(dupFd);
+        attribs.push_back(EGL_NONE);
+    }
 
     EGLSyncKHR sync = m_sProc.eglCreateSyncKHR(m_pEglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs.data());
     if (sync == EGL_NO_SYNC_KHR) {
         Debug::log(ERR, "eglCreateSyncKHR failed");
-        close(dupFd);
+        if (dupFd >= 0)
+            close(dupFd);
         return nullptr;
     }
 
     auto eglsync  = SP<CEGLSync>(new CEGLSync);
     eglsync->sync = sync;
     return eglsync;
+}
+
+bool CHyprOpenGLImpl::waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point) {
+    int fd = timeline->exportAsSyncFileFD(point);
+    if (fd < 0) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to get a fd from explicit timeline");
+        return false;
+    }
+
+    auto sync = g_pHyprOpenGL->createEGLSync(fd);
+    close(fd);
+    if (!sync) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to get an eglsync from explicit timeline");
+        return false;
+    }
+
+    if (!sync->wait()) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to wait on an eglsync from explicit timeline");
+        return false;
+    }
+
+    return true;
 }
 
 void SRenderModifData::applyToBox(CBox& box) {

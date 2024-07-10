@@ -192,8 +192,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
-        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+            Debug::log(TRACE, "presentFeedback for invisible surface");
             surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+        }
 
         return; // invisible
     }
@@ -246,8 +248,10 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     }
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+        Debug::log(TRACE, "presentFeedback for visible surface");
         surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+    }
 
     g_pHyprOpenGL->blend(true);
 
@@ -1097,8 +1101,10 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
-    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock()))
+    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock())) {
+        Debug::log(TRACE, "Direct scanout failed: soft locked / HW cursors failed");
         return false;
+    }
 
     const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 
@@ -1124,7 +1130,8 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, pMonitor);
+    Debug::log(TRACE, "presentFeedback for DS");
+    PSURFACE->presentFeedback(&now, pMonitor, true);
 
     if (pMonitor->state.commit()) {
         if (m_pLastScanout.expired()) {

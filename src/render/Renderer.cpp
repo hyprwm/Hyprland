@@ -1484,24 +1484,25 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     const auto COMMITTED_OUT = pMonitor->output->state->state().explicitOutFence;
     const auto COMMITTED_IN  = pMonitor->output->state->state().explicitInFence;
 
-    if (!pMonitor->state.commit()) {
+    bool       commited = pMonitor->state.commit();
+    if (!commited) {
         Debug::log(TRACE, "Monitor state commit failed");
         // rollback the buffer to avoid writing to the front buffer that is being
         // displayed
         pMonitor->output->swapchain->rollback();
         pMonitor->damage.damageEntire();
-        return false;
     }
 
     if (COMMITTED_IN >= 0)
         close(COMMITTED_IN);
 
     if (COMMITTED_OUT >= 0) {
-        pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
+        if (commited)
+            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
         close(COMMITTED_OUT);
     }
 
-    return true;
+    return commited;
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -2700,7 +2701,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->outTimeline) {
+        if (PMONITOR->inTimeline) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 m_pCurrentRenderbuffer->unbind();
@@ -2720,7 +2721,7 @@ void CHyprRenderer::endRender() {
                 return;
             }
 
-            bool ok = PMONITOR->outTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
             close(dupedfd);
             if (!ok) {
                 m_pCurrentRenderbuffer->unbind();

@@ -1452,9 +1452,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     if (anyExplicit) {
         Debug::log(TRACE, "Explicit sync presented begin");
         auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
-        if (inFence < 0) {
+        if (inFence < 0)
             Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
-        }
+
         pMonitor->output->state->setExplicitInFence(inFence);
 
         for (auto& e : explicitPresented) {
@@ -1466,9 +1466,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
 
         explicitPresented.clear();
         auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
-        if (outFence < 0) {
+        if (outFence < 0)
             Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
-        }
+
         pMonitor->output->state->setExplicitOutFence(outFence);
         Debug::log(TRACE, "Explicit sync presented end");
     }

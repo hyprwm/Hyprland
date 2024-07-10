@@ -3,6 +3,7 @@
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
+#include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "config/defaultConfig.hpp"
 
@@ -26,7 +27,6 @@
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
-
 
 extern "C" char** environ;
 
@@ -1119,7 +1119,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     if (!valid(pWindow))
         return std::vector<SWindowRule>();
 
-    // Adjust shadowExec based on window mapping status
+    // if the window is unmapped, don't process exec rules yet.
     shadowExec = shadowExec || !pWindow->m_bIsMapped;
 
     std::vector<SWindowRule> returns;

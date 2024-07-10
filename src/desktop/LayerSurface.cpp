@@ -1,5 +1,6 @@
 #include "LayerSurface.hpp"
 #include "../Compositor.hpp"
+#include "../events/Events.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
@@ -366,12 +367,12 @@ void CLayerSurface::applyRules() {
         } else if (rule.rule == "dimaround") {
             dimAround = true;
         } else if (rule.rule.starts_with("xray")) {
-            Hyprutils::String::CVarList vars{rule.rule, 0, ' '};
+            CVarList vars{rule.rule, 0, ' '};
             try {
                 xray = configStringToInt(vars[1]);
             } catch (...) {}
         } else if (rule.rule.starts_with("animation")) {
-            Hyprutils::String::CVarList vars{rule.rule, 2, 's'};
+            CVarList vars{rule.rule, 2, 's'};
             animationStyle = vars[1];
         }
     }

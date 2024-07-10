@@ -3,17 +3,23 @@
 #define CONFIG_MANAGER_H
 
 #include <map>
+#include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
 #include <vector>
 #include <deque>
+#include <algorithm>
+#include <regex>
 #include <optional>
+#include <functional>
 #include <xf86drmMode.h>
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/varlist/VarList.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 
+#include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
 
 #include <hyprlang.hpp>

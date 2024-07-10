@@ -115,21 +115,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
 
     // explicit sync: wait for the timeline, if any
     if (surface->syncobj && surface->syncobj->acquireTimeline) {
-        int fd = surface->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(surface->syncobj->acquirePoint);
-        if (fd < 0) {
-            Debug::log(ERR, "Renderer: failed to get a fd from explicit timeline");
-            return;
-        }
-
-        auto sync = g_pHyprOpenGL->createEGLSync(fd);
-        close(fd);
-        if (!sync) {
-            Debug::log(ERR, "Renderer: failed to get an eglsync from explicit timeline");
-            return;
-        }
-
-        if (!sync->wait()) {
-            Debug::log(ERR, "Renderer: failed to wait on an eglsync from explicit timeline");
+        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->acquireTimeline->timeline, surface->syncobj->acquirePoint)) {
+            Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }
     }

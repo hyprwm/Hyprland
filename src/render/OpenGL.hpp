@@ -7,6 +7,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include <cstdint>
 #include <list>
 #include <unordered_map>
 #include <map>
@@ -205,6 +206,7 @@ class CHyprOpenGLImpl {
     std::vector<SDRMFormat>                           getDRMFormats();
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
     SP<CEGLSync>                                      createEGLSync(int fenceFD);
+    bool                                              waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
     SCurrentRenderData                                m_RenderData;
 

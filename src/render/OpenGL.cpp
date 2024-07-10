@@ -1289,23 +1289,8 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     matrixMultiply(glMatrix, m_RenderData.projection, matrix);
 
     if (waitTimeline != nullptr) {
-        int syncFileFD = waitTimeline->exportAsSyncFileFD(waitPoint);
-        if (syncFileFD < 0) {
-            Debug::log(ERR, "renderTextureInternalWithDamage: exportAsSyncFileFD failed for point {}", waitPoint);
-            return;
-        }
-
-        auto eglSync = createEGLSync(syncFileFD);
-        close(syncFileFD);
-        if (!eglSync) {
-            Debug::log(ERR, "renderTextureInternalWithDamage: createEGLSync failed for fd {}", syncFileFD);
-            return;
-        }
-
-        bool ok = eglSync->wait();
-        // destroy eglSync
-        if (!ok) {
-            Debug::log(ERR, "renderTextureInternalWithDamage: eglSync wait not ok");
+        if (!waitForTimelinePoint(waitTimeline, waitPoint)) {
+            Debug::log(ERR, "renderTextureInternalWithDamage: failed to wait for explicit sync point {}", waitPoint);
             return;
         }
     }
@@ -2789,6 +2774,28 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     auto eglsync  = SP<CEGLSync>(new CEGLSync);
     eglsync->sync = sync;
     return eglsync;
+}
+
+bool CHyprOpenGLImpl::waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point) {
+    int fd = timeline->exportAsSyncFileFD(point);
+    if (fd < 0) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to get a fd from explicit timeline");
+        return false;
+    }
+
+    auto sync = g_pHyprOpenGL->createEGLSync(fd);
+    close(fd);
+    if (!sync) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to get an eglsync from explicit timeline");
+        return false;
+    }
+
+    if (!sync->wait()) {
+        Debug::log(ERR, "waitForTimelinePoint: failed to wait on an eglsync from explicit timeline");
+        return false;
+    }
+
+    return true;
 }
 
 void SRenderModifData::applyToBox(CBox& box) {

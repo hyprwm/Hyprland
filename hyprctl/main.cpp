@@ -1,4 +1,3 @@
-#include <cctype>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <cstdio>
@@ -10,7 +9,6 @@
 #include <sys/un.h>
 #include <pwd.h>
 #include <unistd.h>
-#include <ranges>
 #include <algorithm>
 #include <csignal>
 #include <format>
@@ -22,7 +20,6 @@
 #include <vector>
 #include <deque>
 #include <filesystem>
-#include <cstdarg>
 #include <regex>
 #include <sys/socket.h>
 #include <hyprutils/string/String.hpp>

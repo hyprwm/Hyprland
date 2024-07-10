@@ -1096,7 +1096,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
         g_pInputManager->m_pForcedFocus.reset();
     };
 
-    CVarList vars(message, 0, ' ');
+    Hyprutils::String::CVarList vars(message, 0, ' ');
 
     if (vars.size() < 1 || vars[0].empty()) {
         Debug::log(ERR, "layoutmsg called without params");
@@ -1376,7 +1376,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 }
 
 // If vars is null, we use the default list
-void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int direction) {
+void CHyprMasterLayout::runOrientationCycle(SLayoutMessageHeader& header, Hyprutils::String::CVarList* vars, int direction) {
     std::vector<eOrientation> cycle;
     if (vars != nullptr)
         buildOrientationCycleVectorFromVars(cycle, *vars);
@@ -1416,7 +1416,7 @@ void CHyprMasterLayout::buildOrientationCycleVectorFromEOperation(std::vector<eO
     }
 }
 
-void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars) {
+void CHyprMasterLayout::buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, Hyprutils::String::CVarList& vars) {
     for (size_t i = 1; i < vars.size(); ++i) {
         if (vars[i] == "top") {
             cycle.push_back(ORIENTATION_TOP);

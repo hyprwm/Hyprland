@@ -2,10 +2,8 @@
 
 #include "IHyprLayout.hpp"
 #include "../desktop/DesktopTypes.hpp"
-#include "../config/ConfigManager.hpp"
 #include <vector>
 #include <list>
-#include <deque>
 #include <any>
 
 enum eFullscreenMode : int8_t;
@@ -77,9 +75,9 @@ class CHyprMasterLayout : public IHyprLayout {
 
     bool                              m_bForceWarps = false;
 
-    void                              buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, CVarList& vars);
+    void                              buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, Hyprutils::String::CVarList& vars);
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
-    void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
+    void                              runOrientationCycle(SLayoutMessageHeader& header, Hyprutils::String::CVarList* vars, int next);
     eOrientation                      getDynamicOrientation(PHLWORKSPACE);
     int                               getNodesOnWorkspace(const int&);
     void                              applyNodeDataToWindow(SMasterNodeData*);

@@ -1,6 +1,5 @@
 #include "LayerSurface.hpp"
 #include "../Compositor.hpp"
-#include "../events/Events.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
@@ -367,12 +366,12 @@ void CLayerSurface::applyRules() {
         } else if (rule.rule == "dimaround") {
             dimAround = true;
         } else if (rule.rule.starts_with("xray")) {
-            CVarList vars{rule.rule, 0, ' '};
+            Hyprutils::String::CVarList vars{rule.rule, 0, ' '};
             try {
                 xray = configStringToInt(vars[1]);
             } catch (...) {}
         } else if (rule.rule.starts_with("animation")) {
-            CVarList vars{rule.rule, 2, 's'};
+            Hyprutils::String::CVarList vars{rule.rule, 2, 's'};
             animationStyle = vars[1];
         }
     }
@@ -392,13 +391,13 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
 
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
-        const auto MIDDLE = geometry.middle();
+        const auto                  MIDDLE = geometry.middle();
 
-        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+        const auto                  PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
 
-        int        force = -1;
+        int                         force = -1;
 
-        CVarList   args(ANIMSTYLE, 0, 's');
+        Hyprutils::String::CVarList args(ANIMSTYLE, 0, 's');
         if (args.size() > 1) {
             const auto ARG2 = args[1];
             if (ARG2 == "top")

@@ -861,7 +861,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         keeb.get());
 
     keeb->keyboardEvents.keymap.registerStaticListener(
-        [this](void* owner, std::any data) {
+        [](void* owner, std::any data) {
             auto       PKEEB  = ((IKeyboard*)owner)->self.lock();
             const auto LAYOUT = PKEEB->getActiveLayout();
 
@@ -1173,7 +1173,7 @@ void CInputManager::setPointerConfigs() {
             } else if (ACCELPROFILE == "flat") {
                 libinput_device_config_accel_set_profile(LIBINPUTDEV, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
             } else if (ACCELPROFILE.starts_with("custom")) {
-                CVarList accelValues = {ACCELPROFILE, 0, ' '};
+                Hyprutils::String::CVarList accelValues = {ACCELPROFILE, 0, ' '};
 
                 try {
                     double              accelStep = std::stod(accelValues[1]);
@@ -1185,7 +1185,7 @@ void CInputManager::setPointerConfigs() {
                     const auto CONFIG = libinput_config_accel_create(LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM);
 
                     if (!SCROLLPOINTS.empty()) {
-                        CVarList scrollValues = {SCROLLPOINTS, 0, ' '};
+                        Hyprutils::String::CVarList scrollValues = {SCROLLPOINTS, 0, ' '};
                         try {
                             double              scrollStep = std::stod(scrollValues[0]);
                             std::vector<double> scrollPoints;
@@ -1624,8 +1624,7 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
 
     Debug::log(LOG, "New switch with name \"{}\" added", pDevice->name);
 
-    PNEWDEV->hyprListener_destroy.initCallback(
-        &pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
+    PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
 
     const auto PSWITCH = wlr_switch_from_input_device(pDevice);
 

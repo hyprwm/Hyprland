@@ -3,32 +3,31 @@
 #define CONFIG_MANAGER_H
 
 #include <map>
-#include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
 #include <vector>
 #include <deque>
-#include <algorithm>
-#include <regex>
 #include <optional>
-#include <functional>
 #include <xf86drmMode.h>
 #include "../helpers/WLClasses.hpp"
 #include "../helpers/Monitor.hpp"
-#include "../helpers/varlist/VarList.hpp"
 #include "../desktop/Window.hpp"
 #include "../desktop/LayerSurface.hpp"
 
-#include "defaultConfig.hpp"
 #include "ConfigDataValues.hpp"
 
 #include <hyprlang.hpp>
 
+// Macros for initializing and creating animation configurations
 #define INITANIMCFG(name)           animationConfig[name] = {}
 #define CREATEANIMCFG(name, parent) animationConfig[name] = {false, "", "", 0.f, -1, &animationConfig["global"], &animationConfig[parent]}
 
 #define HANDLE void*
 
+/**
+ * @struct SWorkspaceRule
+ * @brief Configuration rules for workspaces.
+ */
 struct SWorkspaceRule {
     std::string                        monitor         = "";
     std::string                        workspaceString = "";
@@ -48,6 +47,10 @@ struct SWorkspaceRule {
     std::map<std::string, std::string> layoutopts;
 };
 
+/**
+ * @struct SMonitorAdditionalReservedArea
+ * @brief Reserved areas for monitors.
+ */
 struct SMonitorAdditionalReservedArea {
     int top    = 0;
     int bottom = 0;
@@ -55,6 +58,10 @@ struct SMonitorAdditionalReservedArea {
     int right  = 0;
 };
 
+/**
+ * @struct SAnimationPropertyConfig
+ * @brief Configuration for animation properties.
+ */
 struct SAnimationPropertyConfig {
     bool                      overridden = true;
 
@@ -67,22 +74,38 @@ struct SAnimationPropertyConfig {
     SAnimationPropertyConfig* pParentAnimation = nullptr;
 };
 
+/**
+ * @struct SPluginKeyword
+ * @brief Stores plugin keyword information.
+ */
 struct SPluginKeyword {
     HANDLE                       handle = 0;
     std::string                  name   = "";
     Hyprlang::PCONFIGHANDLERFUNC fn     = nullptr;
 };
 
+/**
+ * @struct SPluginVariable
+ * @brief Stores plugin variable information.
+ */
 struct SPluginVariable {
     HANDLE      handle = 0;
     std::string name   = "";
 };
 
+/**
+ * @struct SExecRequestedRule
+ * @brief Stores rules requested with exec.
+ */
 struct SExecRequestedRule {
     std::string szRule = "";
     uint64_t    iPid   = 0;
 };
 
+/**
+ * @class CConfigManager
+ * @brief Manages configuration settings.
+ */
 class CConfigManager {
   public:
     CConfigManager();
@@ -147,7 +170,7 @@ class CConfigManager {
     void                      handlePluginLoads();
     std::string               getErrors();
 
-    // keywords
+    // Keywords
     std::optional<std::string> handleRawExec(const std::string&, const std::string&);
     std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
     std::optional<std::string> handleMonitor(const std::string&, const std::string&);
@@ -171,14 +194,14 @@ class CConfigManager {
   private:
     std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;
 
-    std::deque<std::string>                                   configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>                   configModifyTimes; // stores modify times
+    std::deque<std::string>                                   configPaths;       // Stores all the config paths
+    std::unordered_map<std::string, time_t>                   configModifyTimes; // Stores modify times
 
-    std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
+    std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // Stores all the animations with their set values
 
     std::string                                               m_szCurrentSubmap = ""; // For storing the current keybind submap
 
-    std::vector<SExecRequestedRule>                           execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
+    std::vector<SExecRequestedRule>                           execRequestedRules; // Rules requested with exec, e.g. [workspace 2] kitty
 
     std::vector<std::string>                                  m_vDeclaredPlugins;
     std::vector<SPluginKeyword>                               pluginKeywords;
@@ -196,10 +219,10 @@ class CConfigManager {
     bool                                                      m_bManualCrashInitiated = false;
     std::deque<std::string>                                   firstExecRequests;
 
-    std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+    std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // For plugin values of unloaded plugins
     std::string                                               m_szConfigErrors = "";
 
-    // internal methods
+    // Internal methods
     void                       setAnimForChildren(SAnimationPropertyConfig* const);
     void                       updateBlurredLS(const std::string&, const bool);
     void                       setDefaultAnimationVars();

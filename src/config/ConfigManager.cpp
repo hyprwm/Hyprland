@@ -27,6 +27,7 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
+
 extern "C" char** environ;
 
 /**

@@ -317,10 +317,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) :
                "";
         const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
-        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
-        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
+        const std::string border     = (bool)(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
+        const std::string rounding   = (bool)(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
         const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
-        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
+        const std::string shadow     = (bool)(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
 
         std::string       result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}
@@ -339,10 +339,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                                                                        std::to_string(r.gapsOut.value().bottom), std::to_string(r.gapsOut.value().left)) :
                                                            std::format("\tgapsOut: <unset>\n");
         const std::string borderSize = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border     = std::format("\tborder: {}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
-        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", (bool)(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
         const std::string decorate   = std::format("\tdecorate: {}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
                                                borderSize, border, rounding, decorate, shadow);
@@ -1202,74 +1202,44 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
 
-    auto       noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
-
-    bool       lock = false;
-
-    if (request.ends_with("lock"))
-        lock = true;
+    bool       noFocus = PWINDOW->m_sWindowData.noFocus.valueOrDefault();
 
     try {
         if (PROP == "animationstyle") {
-            PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
-        } else if (PROP == "rounding") {
-            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoblur") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaque") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceallowsinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoanims") {
-            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoborder") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoshadow") {
-            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenodim") {
-            PWINDOW->m_sAdditionalConfigData.forceNoDim.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nofocus") {
-            PWINDOW->m_sAdditionalConfigData.noFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "windowdancecompat") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.animationStyle = CWindowOverridableVar(VAL, PRIORITY_SET_PROP);
         } else if (PROP == "maxsize") {
-            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
+            PWINDOW->m_sWindowData.maxSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
+            PWINDOW->m_vRealSize           = Vector2D(std::min((double)PWINDOW->m_sWindowData.maxSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::min((double)PWINDOW->m_sWindowData.maxSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "minsize") {
-            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
-        } else if (PROP == "dimaround") {
-            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "alphaoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
+            PWINDOW->m_vRealSize           = Vector2D(std::max((double)PWINDOW->m_sWindowData.minSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::max((double)PWINDOW->m_sWindowData.minSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "alpha") {
-            PWINDOW->m_sSpecialRenderData.alpha.forceSetIgnoreLocked(std::stof(VAL), lock);
-        } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
-            PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
-        } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaFullscreenOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
-            PWINDOW->m_sSpecialRenderData.alphaFullscreen.forceSetIgnoreLocked(std::stof(VAL), lock);
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sWindowData.alpha =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alpha.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphafullscreenoverride") {
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {
-                for (int i = 3; i < static_cast<int>(lock ? vars.size() - 1 : vars.size()); ++i) {
+                for (int i = 3; i < static_cast<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
                         colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
@@ -1280,19 +1250,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 colorData.m_vColors.push_back(configStringToInt(VAL));
 
             if (PROP == "activebordercolor")
-                PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(colorData, lock);
+                PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
             else
-                PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(colorData, lock);
-        } else if (PROP == "forcergbx") {
-            PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "bordersize") {
-            PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "keepaspectratio") {
-            PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "immediate") {
-            PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nearestneighbor") {
-            PWINDOW->m_sAdditionalConfigData.nearestNeighbor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+                PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
+            auto pWindowDataElement = search->second(PWINDOW);
+            if (VAL == "toggle")
+                *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->valueOrDefault(), PRIORITY_SET_PROP);
+            else if (VAL == "unset")
+                pWindowDataElement->unset(PRIORITY_SET_PROP);
+            else
+                *pWindowDataElement = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
+            if (VAL == "unset")
+                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
+            else
+                *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else {
             return "prop not found";
         }
@@ -1300,7 +1273,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_sAdditionalConfigData.noFocus.toUnderlying() == noFocus.toUnderlying())) {
+    if (!(PWINDOW->m_sWindowData.noFocus.valueOrDefault() == noFocus)) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);
@@ -1848,7 +1821,6 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-
     m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (m_iSocketFD < 0) {

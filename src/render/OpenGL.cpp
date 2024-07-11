@@ -434,7 +434,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         if (!w->m_bIsFloating && *POPTIM && !w->onSpecialWorkspace())
             continue;
 
-        if (w->m_sAdditionalConfigData.forceNoBlur.toUnderlying() == true || w->m_sAdditionalConfigData.xray.toUnderlying() == true)
+        if (w->m_sWindowData.noBlur.valueOrDefault() || w->m_sWindowData.xray.valueOrDefault() == true)
             continue;
 
         if (w->opaque())
@@ -1130,7 +1130,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
         }
     }
 
-    if (m_pCurrentWindow.lock() && m_pCurrentWindow->m_sAdditionalConfigData.forceRGBX)
+    if (m_pCurrentWindow.lock() && m_pCurrentWindow->m_sWindowData.RGBX.valueOrDefault())
         shader = &m_RenderData.pCurrentMonData->m_shRGBX;
 
     glActiveTexture(GL_TEXTURE0);
@@ -1601,7 +1601,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         if (!pWindow)
             return false;
 
-        if (pWindow->m_sAdditionalConfigData.forceNoBlur)
+        if (pWindow->m_sWindowData.noBlur.valueOrDefault())
             return false;
 
         if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
@@ -1717,7 +1717,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (!m_RenderData.pCurrentMonData->blurFB.m_cTex->m_iTexID)
         return false;
 
-    if (pWindow && pWindow->m_sAdditionalConfigData.xray.toUnderlying() == 0)
+    if (pWindow && !pWindow->m_sWindowData.xray.valueOrDefault())
         return false;
 
     if (pLayer && pLayer->xray == 0)
@@ -1726,7 +1726,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_bIsFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
         return true;
 
-    if ((pLayer && pLayer->xray == 1) || (pWindow && pWindow->m_sAdditionalConfigData.xray.toUnderlying() == 1))
+    if ((pLayer && pLayer->xray == 1) || (pWindow && pWindow->m_sWindowData.xray.valueOrDefault()))
         return true;
 
     return false;
@@ -1750,7 +1750,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     m_RenderData.renderModif.applyToRegion(texDamage);
 
     if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) ||
-        (m_pCurrentWindow.lock() && (m_pCurrentWindow->m_sAdditionalConfigData.forceNoBlur || m_pCurrentWindow->m_sAdditionalConfigData.forceRGBX))) {
+        (m_pCurrentWindow.lock() && (m_pCurrentWindow->m_sWindowData.noBlur.valueOrDefault() || m_pCurrentWindow->m_sWindowData.RGBX.valueOrDefault()))) {
         renderTexture(tex, pBox, a, round, false, true);
         return;
     }
@@ -1847,7 +1847,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 
     TRACY_GPU_ZONE("RenderBorder");
 
-    if (m_RenderData.damage.empty() || (m_pCurrentWindow.lock() && m_pCurrentWindow->m_sAdditionalConfigData.forceNoBorder))
+    if (m_RenderData.damage.empty() || (m_pCurrentWindow.lock() && m_pCurrentWindow->m_sWindowData.noBorder.valueOrDefault()))
         return;
 
     CBox newBox = *box;
@@ -2108,7 +2108,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
     CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
-    if (*PDIMAROUND && pWindow->m_sAdditionalConfigData.dimAround) {
+    if (*PDIMAROUND && pWindow->m_sWindowData.dimAround.valueOrDefault()) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
         g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * pWindow->m_fAlpha.value()));
         g_pHyprRenderer->damageMonitor(PMONITOR);

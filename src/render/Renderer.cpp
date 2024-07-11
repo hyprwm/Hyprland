@@ -531,7 +531,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
         decorate = false;
 
     renderdata.surface   = pWindow->m_pWLSurface->resource();
-    renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || (!pWindow->m_sSpecialRenderData.rounding);
+    renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || pWindow->m_sWindowData.noRounding.valueOrDefault();
     renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.value());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.value();
     renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
@@ -545,14 +545,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     }
 
     // apply opaque
-    if (pWindow->m_sAdditionalConfigData.forceOpaque)
+    if (pWindow->m_sWindowData.opaque.valueOrDefault())
         renderdata.alpha = 1.f;
 
     g_pHyprOpenGL->m_pCurrentWindow = pWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
-    if (*PDIMAROUND && pWindow->m_sAdditionalConfigData.dimAround && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
+    if (*PDIMAROUND && pWindow->m_sWindowData.dimAround.valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
         g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
     }
@@ -597,10 +597,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
         }
 
         static auto PXWLUSENN = CConfigValue<Hyprlang::INT>("xwayland:use_nearest_neighbor");
-        if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
+        if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sWindowData.nearestNeighbor.valueOrDefault())
             g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-        if (!pWindow->m_sAdditionalConfigData.forceNoBlur && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
+        if (!pWindow->m_sWindowData.noBlur.valueOrDefault() && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
             CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
             g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
@@ -662,7 +662,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
                 g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURIGNOREA;
             }
 
-            if (pWindow->m_sAdditionalConfigData.nearestNeighbor.toUnderlying())
+            if (pWindow->m_sWindowData.nearestNeighbor.valueOrDefault())
                 g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
             renderdata.surfaceCounter = 0;

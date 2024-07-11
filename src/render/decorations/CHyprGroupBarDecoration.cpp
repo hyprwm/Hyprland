@@ -42,7 +42,7 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     info.priority = *PPRIORITY;
     info.reserved = true;
 
-    if (*PENABLED && m_pWindow->m_sSpecialRenderData.decorate) {
+    if (*PENABLED && m_pWindow->m_sWindowData.decorate.valueOrDefault()) {
         if (*PSTACKED) {
             const auto ONEBARHEIGHT = BAR_PADDING_OUTER_VERT + BAR_INDICATOR_HEIGHT + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
             info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + 2 + BAR_PADDING_OUTER_VERT}, {0, 0}};
@@ -105,7 +105,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     static auto PGRADIENTS     = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
     static auto PSTACKED       = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
 
-    if (!*PENABLED || !m_pWindow->m_sSpecialRenderData.decorate)
+    if (!*PENABLED || !m_pWindow->m_sWindowData.decorate.valueOrDefault())
         return;
 
     const auto ASSIGNEDBOX = assignedBoxGlobal();

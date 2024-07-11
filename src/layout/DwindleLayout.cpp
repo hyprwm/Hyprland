@@ -139,7 +139,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (PWINDOW->m_bIsFullscreen && !pNode->ignoreFullscreenChecks)
         return;
 
-    PWINDOW->updateSpecialRenderData();
+    PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
 
     static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("dwindle:no_gaps_when_only");
     static auto PGAPSINDATA     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
@@ -160,10 +160,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() &&
         (NODESONWORKSPACE == 1 || (PWINDOW->m_bIsFullscreen && PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED))) {
 
-        PWINDOW->m_sSpecialRenderData.border   = WORKSPACERULE.border.value_or(*PNOGAPSWHENONLY == 2);
-        PWINDOW->m_sSpecialRenderData.decorate = WORKSPACERULE.decorate.value_or(true);
-        PWINDOW->m_sSpecialRenderData.rounding = false;
-        PWINDOW->m_sSpecialRenderData.shadow   = false;
+        PWINDOW->m_sWindowData.decorate   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
+        PWINDOW->m_sWindowData.noBorder   = CWindowOverridableVar(*PNOGAPSWHENONLY != 2, PRIORITY_LAYOUT);
+        PWINDOW->m_sWindowData.noRounding = CWindowOverridableVar(true, PRIORITY_LAYOUT);
+        PWINDOW->m_sWindowData.noShadow   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
 
         PWINDOW->updateWindowDecos();
 
@@ -496,7 +496,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         return;
     }
 
-    pWindow->updateSpecialRenderData();
+    pWindow->unsetWindowData(PRIORITY_LAYOUT);
 
     if (pWindow->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
@@ -830,7 +830,7 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscre
             pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
-            pWindow->updateSpecialRenderData();
+            pWindow->unsetWindowData(PRIORITY_LAYOUT);
         }
     } else {
         // if it now got fullscreen, make it fullscreen

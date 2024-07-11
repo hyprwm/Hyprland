@@ -102,7 +102,7 @@ void CAnimationManager::tick() {
             PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
             if (!PMONITOR)
                 continue;
-            animationsDisabled = animationsDisabled || PWINDOW->m_sAdditionalConfigData.forceNoAnims;
+            animationsDisabled = PWINDOW->m_sWindowData.noAnim.valueOr(animationsDisabled);
         } else if (PWORKSPACE) {
             PMONITOR = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
             if (!PMONITOR)
@@ -407,18 +407,19 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!pWindow->m_vRealPosition.m_pConfig->pValues->internalEnabled)
         return;
 
-    if (pWindow->m_sAdditionalConfigData.animationStyle != "") {
+    if (pWindow->m_sWindowData.animationStyle.hasValue()) {
+        const auto STYLE = pWindow->m_sWindowData.animationStyle.value();
         // the window has config'd special anim
-        if (pWindow->m_sAdditionalConfigData.animationStyle.starts_with("slide")) {
-            CVarList animList2(pWindow->m_sAdditionalConfigData.animationStyle, 0, 's');
+        if (STYLE.starts_with("slide")) {
+            CVarList animList2(STYLE, 0, 's');
             animationSlide(pWindow, animList2[1], close);
         } else {
             // anim popin, fallback
 
             float minPerc = 0.f;
-            if (pWindow->m_sAdditionalConfigData.animationStyle.find("%") != std::string::npos) {
+            if (STYLE.find("%") != std::string::npos) {
                 try {
-                    auto percstr = pWindow->m_sAdditionalConfigData.animationStyle.substr(pWindow->m_sAdditionalConfigData.animationStyle.find_last_of(' '));
+                    auto percstr = STYLE.substr(STYLE.find_last_of(' '));
                     minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
                 } catch (std::exception& e) {
                     ; // oops

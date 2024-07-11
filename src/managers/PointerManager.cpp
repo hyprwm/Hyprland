@@ -395,9 +395,12 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprRenderer->makeEGLCurrent();
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor.get();
 
-    const auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
-    if (!RBO)
+    auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
+    if (!RBO) {
+        Debug::log(TRACE, "Failed to create cursor RB with format {}: {} with mod {}", state->monitor->cursorSwapchain->currentOptions().format, buf->dmabuf().format,
+                   buf->dmabuf().modifier);
         return nullptr;
+    }
 
     RBO->bind();
 

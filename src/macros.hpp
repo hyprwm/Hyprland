@@ -40,8 +40,7 @@
 
 #define STICKS(a, b) abs((a) - (b)) < 2
 
-#define HYPRATOM(name)                                                                                                                                                             \
-    { name, 0 }
+#define HYPRATOM(name) {name, 0}
 
 #define RASSERT(expr, reason, ...)                                                                                                                                                 \
     if (!(expr)) {                                                                                                                                                                 \

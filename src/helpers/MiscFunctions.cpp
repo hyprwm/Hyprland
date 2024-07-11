@@ -649,13 +649,9 @@ void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
 int64_t getPPIDof(int64_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {
-        CTL_KERN,
-        KERN_PROC,
-        KERN_PROC_PID,
-        (int)pid,
+        CTL_KERN,           KERN_PROC, KERN_PROC_PID, (int)pid,
 #if defined(__NetBSD__) || defined(__OpenBSD__)
-        sizeof(KINFO_PROC),
-        1,
+        sizeof(KINFO_PROC), 1,
 #endif
     };
     u_int      miblen = sizeof(mib) / sizeof(mib[0]);

@@ -116,10 +116,9 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
         if (IDX != XKB_MOD_INVALID)
             modifiersState.locked |= (uint32_t)1 << IDX;
-    }
 
-    if (modifiersState.locked != 0)
-        keyboardEvents.modifiers.emit(SModifiersEvent{.locked = modifiersState.locked});
+        updateModifiers(modifiersState.depressed, modifiersState.latched, modifiersState.locked, modifiersState.group);
+    }
 
     for (size_t i = 0; i < LEDNAMES.size(); ++i) {
         ledIndexes.at(i) = xkb_map_led_get_index(xkbKeymap, LEDNAMES.at(i));

@@ -844,7 +844,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         if (w->inert())
             continue;
         g_pCompositor->updateWorkspaceWindows(w->m_iID);
-        g_pCompositor->updateWorkspaceSpecialRenderData(w->m_iID);
+        g_pCompositor->updateWorkspaceWindowData(w->m_iID);
     }
 
     // Update window border colors
@@ -1058,14 +1058,14 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.gapsOut = rule2.gapsOut;
     if (rule2.borderSize.has_value())
         mergedRule.borderSize = rule2.borderSize;
-    if (rule2.border.has_value())
-        mergedRule.border = rule2.border;
-    if (rule2.rounding.has_value())
-        mergedRule.rounding = rule2.rounding;
+    if (rule2.noBorder.has_value())
+        mergedRule.noBorder = rule2.noBorder;
+    if (rule2.noRounding.has_value())
+        mergedRule.noRounding = rule2.noRounding;
     if (rule2.decorate.has_value())
         mergedRule.decorate = rule2.decorate;
-    if (rule2.shadow.has_value())
-        mergedRule.shadow = rule2.shadow;
+    if (rule2.noShadow.has_value())
+        mergedRule.noShadow = rule2.noShadow;
     if (rule2.onCreatedEmptyRunCmd.has_value())
         mergedRule.onCreatedEmptyRunCmd = rule2.onCreatedEmptyRunCmd;
     if (rule2.defaultName.has_value())
@@ -2086,16 +2086,17 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
 bool windowRuleValid(const std::string& RULE) {
     static const auto rules = std::unordered_set<std::string>{
-        "dimaround",       "fakefullscreen", "float",           "focusonactivate", "forceinput", "forcergbx",   "fullscreen", "immediate",
-        "keepaspectratio", "maximize",       "nearestneighbor", "noanim",          "noblur",     "noborder",    "nodim",      "nofocus",
-        "noinitialfocus",  "nomaxsize",      "noshadow",        "opaque",          "pin",        "stayfocused", "tile",       "windowdance",
+        "fakefullscreen", "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile",
     };
     static const auto rulesPrefix = std::vector<std::string>{
         "animation", "bordercolor", "bordersize", "center",   "group", "idleinhibit",   "maxsize", "minsize",   "monitor", "move",
         "opacity",   "plugin:",     "pseudo",     "rounding", "size",  "suppressevent", "tag",     "workspace", "xray",
     };
 
-    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
+    const auto VALS = CVarList(RULE, 2, ' ');
+    return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); }) ||
+        (g_pConfigManager->mbWindowProperties.find(VALS[0]) != g_pConfigManager->mbWindowProperties.end()) ||
+        (g_pConfigManager->miWindowProperties.find(VALS[0]) != g_pConfigManager->miWindowProperties.end());
 }
 
 bool layerRuleValid(const std::string& RULE) {
@@ -2421,11 +2422,11 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
                 wsRule.borderSize = std::stoi(rule.substr(delim + 11));
             } catch (...) { return "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11); }
         else if ((delim = rule.find("border:")) != std::string::npos)
-            wsRule.border = configStringToInt(rule.substr(delim + 7));
+            wsRule.noBorder = !configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("shadow:")) != std::string::npos)
-            wsRule.shadow = configStringToInt(rule.substr(delim + 7));
+            wsRule.noShadow = !configStringToInt(rule.substr(delim + 7));
         else if ((delim = rule.find("rounding:")) != std::string::npos)
-            wsRule.rounding = configStringToInt(rule.substr(delim + 9));
+            wsRule.noRounding = !configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("decorate:")) != std::string::npos)
             wsRule.decorate = configStringToInt(rule.substr(delim + 9));
         else if ((delim = rule.find("monitor:")) != std::string::npos)

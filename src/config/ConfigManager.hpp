@@ -39,10 +39,10 @@ struct SWorkspaceRule {
     std::optional<CCssGapData>         gapsIn;
     std::optional<CCssGapData>         gapsOut;
     std::optional<int64_t>             borderSize;
-    std::optional<int>                 border;
-    std::optional<int>                 rounding;
-    std::optional<int>                 decorate;
-    std::optional<int>                 shadow;
+    std::optional<bool>                decorate;
+    std::optional<bool>                noRounding;
+    std::optional<bool>                noBorder;
+    std::optional<bool>                noShadow;
     std::optional<std::string>         onCreatedEmptyRunCmd;
     std::optional<std::string>         defaultName;
     std::map<std::string, std::string> layoutopts;
@@ -148,25 +148,49 @@ class CConfigManager {
     std::string               getErrors();
 
     // keywords
-    std::optional<std::string> handleRawExec(const std::string&, const std::string&);
-    std::optional<std::string> handleExecOnce(const std::string&, const std::string&);
-    std::optional<std::string> handleMonitor(const std::string&, const std::string&);
-    std::optional<std::string> handleBind(const std::string&, const std::string&);
-    std::optional<std::string> handleUnbind(const std::string&, const std::string&);
-    std::optional<std::string> handleWindowRule(const std::string&, const std::string&);
-    std::optional<std::string> handleLayerRule(const std::string&, const std::string&);
-    std::optional<std::string> handleWindowRuleV2(const std::string&, const std::string&);
-    std::optional<std::string> handleWorkspaceRules(const std::string&, const std::string&);
-    std::optional<std::string> handleBezier(const std::string&, const std::string&);
-    std::optional<std::string> handleAnimation(const std::string&, const std::string&);
-    std::optional<std::string> handleSource(const std::string&, const std::string&);
-    std::optional<std::string> handleSubmap(const std::string&, const std::string&);
-    std::optional<std::string> handleBlurLS(const std::string&, const std::string&);
-    std::optional<std::string> handleBindWS(const std::string&, const std::string&);
-    std::optional<std::string> handleEnv(const std::string&, const std::string&);
-    std::optional<std::string> handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleMonitor(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleBind(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleUnbind(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleWindowRule(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleLayerRule(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleWindowRuleV2(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleWorkspaceRules(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleBezier(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleAnimation(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleSource(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleSubmap(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleBlurLS(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleBindWS(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleEnv(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handlePlugin(const std::string&, const std::string&);
 
-    std::string                configCurrentPath;
+    std::string                                                                             configCurrentPath;
+
+    std::unordered_map<std::string, std::function<CWindowOverridableVar<bool>*(PHLWINDOW)>> mbWindowProperties = {
+        {"allowsinput", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.allowsInput; }},
+        {"dimaround", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.dimAround; }},
+        {"decorate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.decorate; }},
+        {"focusonactivate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.focusOnActivate; }},
+        {"keepaspectratio", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.keepAspectRatio; }},
+        {"nearestneighbor", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.nearestNeighbor; }},
+        {"noanim", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noAnim; }},
+        {"noblur", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noBlur; }},
+        {"noborder", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noBorder; }},
+        {"nodim", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noDim; }},
+        {"nofocus", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noFocus; }},
+        {"nomaxsize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
+        {"norounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noRounding; }},
+        {"noshadow", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShadow; }},
+        {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
+        {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+        {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
+        {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
+    };
+
+    std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(PHLWINDOW)>> miWindowProperties = {
+        {"rounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.rounding; }}, {"bordersize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.borderSize; }}};
 
   private:
     std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;

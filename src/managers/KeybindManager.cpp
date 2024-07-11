@@ -252,7 +252,7 @@ bool CKeybindManager::ensureMouseBindState() {
         g_pInputManager->dragMode = MBIND_INVALID;
 
         g_pCompositor->updateWorkspaceWindows(lastDraggedWindow->workspaceID());
-        g_pCompositor->updateWorkspaceSpecialRenderData(lastDraggedWindow->workspaceID());
+        g_pCompositor->updateWorkspaceWindowData(lastDraggedWindow->workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(lastDraggedWindow->m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -974,7 +974,7 @@ static void toggleActiveFloatingCore(std::string args, std::optional<bool> float
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
     g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
-    g_pCompositor->updateWorkspaceSpecialRenderData(PWINDOW->workspaceID());
+    g_pCompositor->updateWorkspaceWindowData(PWINDOW->workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
@@ -2239,8 +2239,7 @@ void CKeybindManager::toggleOpaque(std::string unused) {
     if (!PWINDOW)
         return;
 
-    PWINDOW->m_sAdditionalConfigData.forceOpaque           = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
-    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
+    PWINDOW->m_sWindowData.opaque = CWindowOverridableVar(!PWINDOW->m_sWindowData.opaque.valueOrDefault(), PRIORITY_SET_PROP);
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

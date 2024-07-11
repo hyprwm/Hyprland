@@ -530,12 +530,6 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     static auto PBLURSPECIAL = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
 
-    // multigpu destination
-    if (pMonitor->output->swapchain->getAllocator()->drmFD() != g_pCompositor->m_iDRMFD) {
-        Debug::log(TRACE, "passRequiresIntrospection: multigpu target, forcing");
-        return true;
-    }
-
     if (m_RenderData.mouseZoomFactor != 1.0 || g_pHyprRenderer->m_bCrashingInProgress)
         return true;
 

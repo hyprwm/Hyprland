@@ -1451,6 +1451,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
+    pMonitor->output->state->resetExplicitFences();
+
     bool anyExplicit = !explicitPresented.empty();
     if (anyExplicit) {
         Debug::log(TRACE, "Explicit sync presented begin");
@@ -1478,10 +1480,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
 
     pMonitor->lastWaitPoint = 0;
 
-    const auto COMMITTED_OUT = pMonitor->output->state->state().explicitOutFence;
-    const auto COMMITTED_IN  = pMonitor->output->state->state().explicitInFence;
-
-    bool       commited = pMonitor->state.commit();
+    bool commited = pMonitor->state.commit();
     if (!commited) {
         Debug::log(TRACE, "Monitor state commit failed");
         // rollback the buffer to avoid writing to the front buffer that is being
@@ -1490,13 +1489,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         pMonitor->damage.damageEntire();
     }
 
-    if (COMMITTED_IN >= 0)
-        close(COMMITTED_IN);
+    if (pMonitor->output->state->state().explicitInFence >= 0)
+        close(pMonitor->output->state->state().explicitInFence);
 
-    if (COMMITTED_OUT >= 0) {
+    if (pMonitor->output->state->state().explicitOutFence >= 0) {
         if (commited)
-            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, COMMITTED_OUT);
-        close(COMMITTED_OUT);
+            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
+        close(pMonitor->output->state->state().explicitOutFence);
     }
 
     return commited;

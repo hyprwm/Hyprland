@@ -1447,6 +1447,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
+    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+
     // apply timelines for explicit sync
     pMonitor->output->state->resetExplicitFences();
 
@@ -1477,8 +1479,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
 
     pMonitor->lastWaitPoint = 0;
 
-    bool commited = pMonitor->state.commit();
-    if (!commited) {
+    bool ok = pMonitor->state.commit();
+    if (!ok) {
         Debug::log(TRACE, "Monitor state commit failed");
         // rollback the buffer to avoid writing to the front buffer that is being
         // displayed
@@ -1486,16 +1488,19 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         pMonitor->damage.damageEntire();
     }
 
+    if (!*PENABLEEXPLICIT)
+        return ok;
+
     if (pMonitor->output->state->state().explicitInFence >= 0)
         close(pMonitor->output->state->state().explicitInFence);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        if (commited)
+        if (ok)
             pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
         close(pMonitor->output->state->state().explicitOutFence);
     }
 
-    return commited;
+    return ok;
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
@@ -2677,6 +2682,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
 
     PMONITOR->commitSeq++;
 
@@ -2694,7 +2700,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline) {
+        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 m_pCurrentRenderbuffer->unbind();

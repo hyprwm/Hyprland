@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include <aquamarine/output/Output.hpp>
 #include <cstdint>
 #include <ranges>
 #include "../../config/ConfigValue.hpp"
@@ -191,7 +192,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
 
     if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) && !skipFrameSchedule)
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+        g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     PHLWINDOW forcedFocus = m_pForcedFocus.lock();
 
@@ -374,7 +375,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
     if (g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) > 0 && !skipFrameSchedule)
-        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get());
+        g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // grabs
     if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface)) {

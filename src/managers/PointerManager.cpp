@@ -342,7 +342,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     state->cursorFrontBuffer = buf;
 
-    g_pCompositor->scheduleFrameForMonitor(state->monitor.get());
+    g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
     return true;
 }

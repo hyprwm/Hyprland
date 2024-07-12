@@ -6,6 +6,7 @@
 #include "managers/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include <aquamarine/output/Output.hpp>
 #include <random>
 #include <cstring>
 #include <unordered_set>
@@ -2333,7 +2334,7 @@ void CCompositor::updateWorkspaceWindowData(const int& id) {
     }
 }
 
-void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
+void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor, IOutput::scheduleFrameReason reason) {
     if ((m_pAqBackend->hasSession() && !m_pAqBackend->session->active) || !m_bSessionActive)
         return;
 
@@ -2343,7 +2344,7 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if (pMonitor->renderingActive)
         pMonitor->pendingFrame = true;
 
-    pMonitor->output->scheduleFrame();
+    pMonitor->output->scheduleFrame(reason);
 }
 
 PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp) {
@@ -2926,7 +2927,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     g_pCompositor->m_bReadyToProcess = true;
 
     g_pConfigManager->m_bWantsMonitorReload = true;
-    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get());
+    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get(), IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     checkDefaultCursorWarp(PNEWMONITOR, output->name);
 

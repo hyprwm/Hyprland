@@ -148,7 +148,7 @@ class CCompositor {
     void                   setWindowFullscreen(PHLWINDOW, bool, eFullscreenMode mode = FULLSCREEN_INVALID);
     void                   updateFullscreenFadeOnWorkspace(PHLWORKSPACE);
     PHLWINDOW              getX11Parent(PHLWINDOW);
-    void                   scheduleFrameForMonitor(CMonitor*);
+    void                   scheduleFrameForMonitor(CMonitor*, Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);
     void                   addToFadingOutSafe(PHLLS);
     void                   removeFromFadingOutSafe(PHLLS);
     void                   addToFadingOutSafe(PHLWINDOW);

@@ -11,6 +11,7 @@
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
 #include "sync/SyncTimeline.hpp"
+#include <aquamarine/output/Output.hpp>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -35,11 +36,12 @@ void CMonitor::onConnect(bool noRule) {
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame      = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
-    listeners.destroy    = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
-    listeners.commit     = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
-    listeners.needsFrame = output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this); });
-    listeners.presented  = output->events.present.registerListener([this](std::any d) {
+    listeners.frame   = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
+    listeners.destroy = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
+    listeners.commit  = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
+    listeners.needsFrame =
+        output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
         PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
     });
@@ -197,7 +199,7 @@ void CMonitor::onConnect(bool noRule) {
 
     renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 
-    g_pCompositor->scheduleFrameForMonitor(this);
+    g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     PROTO::gamma->applyGammaToState(this);
 
@@ -325,9 +327,9 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (damage.damage(rg))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 void CMonitor::addDamage(const CRegion* rg) {
@@ -338,11 +340,11 @@ void CMonitor::addDamage(const CBox* box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 
     if (damage.damage(*box))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {

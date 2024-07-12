@@ -308,8 +308,8 @@ install(TARGETS Hyprland)
 
 install(CODE "execute_process( \
         COMMAND ${CMAKE_COMMAND} -E create_symlink \
-        ${CMAKE_INSTALL_BINDIR}/Hyprland \
-        ${CMAKE_INSTALL_BINDIR}/hyprland
+        ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
+        ${CMAKE_INSTALL_FULL_BINDIR}/hyprland
         )"
 )
 

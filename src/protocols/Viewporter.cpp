@@ -54,13 +54,13 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!surface)
+        if (!surface || !surface->pending.buffer)
             return;
 
         if (surface->pending.viewport.hasSource) {
             auto& src = surface->pending.viewport.source;
 
-            if (src.w + src.x > surface->pending.size.x || src.h + src.y > surface->pending.size.y) {
+            if (src.w + src.x > surface->pending.buffer->size.x || src.h + src.y > surface->pending.buffer->size.y) {
                 resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
                 surface->pending.rejected = true;
                 return;

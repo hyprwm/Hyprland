@@ -1343,6 +1343,7 @@ void CWindow::onUpdateMeta() {
     if (m_szTitle != NEWTITLE) {
         m_szTitle = NEWTITLE;
         g_pEventManager->postEvent(SHyprIPCEvent{"windowtitle", std::format("{:x}", (uintptr_t)this)});
+        g_pEventManager->postEvent(SHyprIPCEvent{"windowtitlev2", std::format("{:x},{}", (uintptr_t)this, m_szTitle)});
         EMIT_HOOK_EVENT("windowTitle", m_pSelf.lock());
 
         if (m_pSelf == g_pCompositor->m_pLastWindow) { // if it's the active, let's post an event to update others

@@ -1717,7 +1717,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (!m_RenderData.pCurrentMonData->blurFB.m_cTex->m_iTexID)
         return false;
 
-    if (pWindow && !pWindow->m_sWindowData.xray.valueOrDefault())
+    if (pWindow && pWindow->m_sWindowData.xray.hasValue() && !pWindow->m_sWindowData.xray.valueOrDefault())
         return false;
 
     if (pLayer && pLayer->xray == 0)

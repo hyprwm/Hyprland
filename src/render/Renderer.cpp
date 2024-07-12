@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
+#include <aquamarine/output/Output.hpp>
 #include <cstring>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -1184,7 +1185,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         pMonitor->framesToSkip -= 1;
 
         if (!pMonitor->noFrameSchedule)
-            g_pCompositor->scheduleFrameForMonitor(pMonitor);
+            g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
         else
             Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
 
@@ -1429,7 +1430,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         pMonitor->tearingState.busy = true;
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->pendingFrame)
-        g_pCompositor->scheduleFrameForMonitor(pMonitor);
+        g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
 
     pMonitor->pendingFrame = false;
 
@@ -1747,7 +1748,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         damageBox.scale(scale);
 
     // schedule frame events
-    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)));
+    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 
     if (damageBox.empty())
         return;
@@ -1865,7 +1866,7 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
 
         mirror->addDamage(&transformed);
 
-        g_pCompositor->scheduleFrameForMonitor(mirror);
+        g_pCompositor->scheduleFrameForMonitor(mirror, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 }
 

@@ -5,6 +5,7 @@
 #include "Events.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../config/ConfigValue.hpp"
+#include <aquamarine/output/Output.hpp>
 
 // --------------------------------------------------------- //
 //   __  __  ____  _   _ _____ _______ ____  _____   _____   //
@@ -110,7 +111,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
 void Events::listener_monitorNeedsFrame(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
 
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+    g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
 void Events::listener_monitorCommit(void* owner, void* data) {

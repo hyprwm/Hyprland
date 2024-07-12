@@ -421,6 +421,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             for (int i = 0; i < texBuffer->shm().size.y; i++)
                 memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
         }
+
+        buf->endDataPtr();
+
         return buf;
     }
 

@@ -1092,10 +1092,8 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
-    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock())) {
-        Debug::log(TRACE, "Direct scanout failed: soft locked / HW cursors failed");
+    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock()))
         return false;
-    }
 
     const auto PCANDIDATE = pMonitor->solitaryClient.lock();
 

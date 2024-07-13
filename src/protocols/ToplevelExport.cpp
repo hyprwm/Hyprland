@@ -409,7 +409,8 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    glReadPixels(0, 0, frame->box.width, frame->box.height, PFORMAT->glFormat, PFORMAT->glType, pixelData);
+    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
+    glReadPixels(0, 0, frame->box.width, frame->box.height, glFormat, PFORMAT->glType, pixelData);
 
     if (frame->overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());

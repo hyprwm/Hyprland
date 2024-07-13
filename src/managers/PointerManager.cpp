@@ -235,8 +235,7 @@ void CPointerManager::setCursorBuffer(wlr_buffer* buf, const Vector2D& hotspot, 
         currentCursorImage.size    = {buf->width, buf->height};
         currentCursorImage.pBuffer = wlr_buffer_lock(buf);
 
-        currentCursorImage.hyprListener_destroyBuffer.initCallback(
-            &buf->events.destroy, [this](void* owner, void* data) { resetCursorImage(); }, this, "CPointerManager");
+        currentCursorImage.hyprListener_destroyBuffer.initCallback(&buf->events.destroy, [this](void* owner, void* data) { resetCursorImage(); }, this, "CPointerManager");
     }
 
     currentCursorImage.hotspot = hotspot;

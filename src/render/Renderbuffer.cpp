@@ -58,8 +58,7 @@ CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    hyprListener_destroyBuffer.initCallback(
-        &buffer->events.destroy, [this](void* owner, void* data) { g_pHyprRenderer->onRenderbufferDestroy(this); }, this, "CRenderbuffer");
+    hyprListener_destroyBuffer.initCallback(&buffer->events.destroy, [this](void* owner, void* data) { g_pHyprRenderer->onRenderbufferDestroy(this); }, this, "CRenderbuffer");
 }
 
 CRenderbuffer::CRenderbuffer(SP<IWLBuffer> buffer, uint32_t format) : m_pHLBuffer(buffer), m_uDrmFormat(format) {

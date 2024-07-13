@@ -41,14 +41,11 @@ void CTextInput::initCallbacks() {
             g_pInputManager->m_sIMERelay.removeTextInput(this);
         });
     } else {
-        hyprListener_textInputEnable.initCallback(
-            &pV1Input->sEnable, [this](void* owner, void* data) { onEnabled(); }, this, "textInput");
+        hyprListener_textInputEnable.initCallback(&pV1Input->sEnable, [this](void* owner, void* data) { onEnabled(); }, this, "textInput");
 
-        hyprListener_textInputCommit.initCallback(
-            &pV1Input->sCommit, [this](void* owner, void* data) { onCommit(); }, this, "textInput");
+        hyprListener_textInputCommit.initCallback(&pV1Input->sCommit, [this](void* owner, void* data) { onCommit(); }, this, "textInput");
 
-        hyprListener_textInputDisable.initCallback(
-            &pV1Input->sDisable, [this](void* owner, void* data) { onDisabled(); }, this, "textInput");
+        hyprListener_textInputDisable.initCallback(&pV1Input->sDisable, [this](void* owner, void* data) { onDisabled(); }, this, "textInput");
 
         hyprListener_textInputDestroy.initCallback(
             &pV1Input->sDestroy,

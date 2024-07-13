@@ -393,25 +393,9 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         mainDevice = *dev;
 
         // FIXME: this will break on multi-gpu
-        std::vector<Aquamarine::SDRMFormat> aqFormats;
-        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations()) {
-            if (impl->type() != Aquamarine::AQ_BACKEND_DRM)
-                continue;
-            aqFormats = impl->getRenderFormats();
-            if (!aqFormats.empty())
-                break;
-        }
+        std::vector<Aquamarine::SDRMFormat> aqFormats = g_pHyprOpenGL->getDRMFormats();
 
-        if (aqFormats.empty()) {
-            // fallback: use EGL formats
-            for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
-                aqFormats.emplace_back(Aquamarine::SDRMFormat{
-                    .drmFormat = fmt.drmFormat,
-                    .modifiers = fmt.modifiers,
-                });
-            }
-        }
-
+        //
         SDMABufTranche tranche = {
             .device  = *dev,
             .formats = aqFormats,

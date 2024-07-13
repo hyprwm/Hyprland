@@ -6,6 +6,8 @@
 #include "../protocols/core/Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
+#include <cstring>
+#include <gbm.h>
 
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("newMonitor", [this](void* self, SCallbackInfo& info, std::any data) {
@@ -395,9 +397,35 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprRenderer->makeEGLCurrent();
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor.get();
 
-    const auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
-    if (!RBO)
-        return nullptr;
+    auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
+    if (!RBO) {
+        Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
+        static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:allow_dumb_copy");
+        if (!*PDUMB)
+            return nullptr;
+
+        auto bufData = buf->beginDataPtr(0);
+        auto bufPtr  = std::get<0>(bufData);
+
+        // clear buffer
+        memset(bufPtr, 0, std::get<2>(bufData));
+
+        auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
+
+        if (texBuffer) {
+            auto textAttrs = texBuffer->shm();
+            auto texData   = texBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
+            auto texPtr    = std::get<0>(texData);
+            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, textAttrs.stride);
+            // copy cursor texture
+            for (int i = 0; i < texBuffer->shm().size.y; i++)
+                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
+        }
+
+        buf->endDataPtr();
+
+        return buf;
+    }
 
     RBO->bind();
 

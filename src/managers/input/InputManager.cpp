@@ -1624,8 +1624,7 @@ void CInputManager::newSwitch(wlr_input_device* pDevice) {
 
     Debug::log(LOG, "New switch with name \"{}\" added", pDevice->name);
 
-    PNEWDEV->hyprListener_destroy.initCallback(
-        &pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
+    PNEWDEV->hyprListener_destroy.initCallback(&pDevice->events.destroy, [&](void* owner, void* data) { destroySwitch((SSwitchDevice*)owner); }, PNEWDEV, "SwitchDevice");
 
     const auto PSWITCH = wlr_switch_from_input_device(pDevice);
 

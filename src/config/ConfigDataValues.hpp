@@ -41,6 +41,7 @@ class ICustomConfigValueData {
  */
 class CGradientValueData : public ICustomConfigValueData {
   public:
+
     /** @brief Default constructor. */
     CGradientValueData() {};
 
@@ -51,6 +52,7 @@ class CGradientValueData : public ICustomConfigValueData {
     CGradientValueData(CColor col) {
         m_vColors.push_back(col);
     };
+
 
     /** @brief Destructor. */
     virtual ~CGradientValueData() {};
@@ -116,6 +118,7 @@ class CGradientValueData : public ICustomConfigValueData {
  */
 class CCssGapData : public ICustomConfigValueData {
   public:
+
     /** @brief Default constructor. */
     CCssGapData() : top(0), right(0), bottom(0), left(0) {};
 

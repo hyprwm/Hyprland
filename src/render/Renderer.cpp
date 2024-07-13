@@ -990,8 +990,11 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
 
             if (ALPHA < 1.f) /* animate */
                 damageMonitor(pMonitor);
+            else
+                g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
         } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
+            g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
         }
     }
 }

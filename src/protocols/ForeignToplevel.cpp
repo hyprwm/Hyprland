@@ -81,6 +81,7 @@ void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
         return;
 
     H->resource->sendTitle(pWindow->m_szTitle.c_str());
+    H->resource->sendDone();
 }
 
 void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
@@ -92,6 +93,7 @@ void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
         return;
 
     H->resource->sendAppId(pWindow->m_szClass.c_str());
+    H->resource->sendDone();
 }
 
 void CForeignToplevelList::onUnmap(PHLWINDOW pWindow) {

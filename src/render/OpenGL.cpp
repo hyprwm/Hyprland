@@ -434,7 +434,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         if (!w->m_bIsFloating && *POPTIM && !w->onSpecialWorkspace())
             continue;
 
-        if (w->m_sWindowData.noBlur.valueOrDefault() || w->m_sWindowData.xray.valueOrDefault() == true)
+        if (w->m_sWindowData.noBlur.valueOrDefault() || !w->m_sWindowData.xray.hasValue() || w->m_sWindowData.xray.valueOrDefault())
             continue;
 
         if (w->opaque())
@@ -1717,7 +1717,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (!m_RenderData.pCurrentMonData->blurFB.m_cTex->m_iTexID)
         return false;
 
-    if (pWindow && !pWindow->m_sWindowData.xray.valueOrDefault())
+    if (pWindow && pWindow->m_sWindowData.xray.hasValue() && !pWindow->m_sWindowData.xray.valueOrDefault())
         return false;
 
     if (pLayer && pLayer->xray == 0)

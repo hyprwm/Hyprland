@@ -702,7 +702,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         for (auto& w : m_vWindows | std::views::reverse) {
             const auto BB  = w->getWindowBoxUnified(properties);
             CBox       box = BB.copy().expand(w->m_iX11Type == 2 ? BORDER_GRAB_AREA : 0);
-            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
+            if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() &&
+                w != pIgnoreWindow) {
                 if (box.containsPoint(g_pPointerManager->position()))
                     return w;
 

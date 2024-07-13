@@ -2719,23 +2719,7 @@ void CHyprOpenGLImpl::setRenderModifEnabled(bool enabled) {
 }
 
 uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
-    GLint glf = -1, glt = -1, as = 0;
-    /*glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT, &glf);
-    glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE, &glt);
-    glGetIntegerv(GL_ALPHA_BITS, &as);*/
-
-    if (glf == 0 || glt == 0) {
-        glf = FormatUtils::drmFormatToGL(pMonitor->drmFormat);
-        glt = FormatUtils::glFormatToType(glf);
-    }
-
-    if (const auto FMT = FormatUtils::getPixelFormatFromGL(glf, glt, as > 0); FMT)
-        return FMT->drmFormat;
-
-    if (m_sExts.EXT_read_format_bgra)
-        return DRM_FORMAT_XRGB8888;
-
-    return DRM_FORMAT_XBGR8888;
+    return pMonitor->output->state->state().drmFormat;
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

@@ -1943,7 +1943,39 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     // Needed in case we are switching from a custom modeline to a standard mode
     pMonitor->customDrmMode = {};
     pMonitor->currentMode   = nullptr;
-    bool autoScale          = false;
+
+    // clang-format off
+    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
+        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        },
+        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        }
+    };
+    // clang-format on
+
+    bool set10bit       = false;
+    pMonitor->drmFormat = DRM_FORMAT_INVALID;
+
+    for (auto& fmt : formats[(int)!RULE->enable10bit]) {
+        pMonitor->output->state->setFormat(fmt.second);
+
+        if (!pMonitor->state.test()) {
+            Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
+        } else {
+            Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
+            if (RULE->enable10bit && fmt.first.contains("101010"))
+                set10bit = true;
+
+            pMonitor->drmFormat = fmt.second;
+            break;
+        }
+    }
+
+    pMonitor->enabled10bit = set10bit;
+
+    bool autoScale = false;
 
     if (RULE->scale > 0.1) {
         pMonitor->scale = RULE->scale;
@@ -1955,7 +1987,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     pMonitor->setScale  = pMonitor->scale;
     pMonitor->transform = RULE->transform;
-    pMonitor->output->state->setFormat(DRM_FORMAT_XBGR8888);
 
     const auto WLRREFRESHRATE = pMonitor->output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
 
@@ -2227,37 +2258,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             }
         }
     }
-
-    // clang-format off
-    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
-        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
-        },
-        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
-            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
-        }
-    };
-    // clang-format on
-
-    bool set10bit       = false;
-    pMonitor->drmFormat = DRM_FORMAT_INVALID;
-
-    for (auto& fmt : formats[(int)!RULE->enable10bit]) {
-        pMonitor->output->state->setFormat(fmt.second);
-
-        if (!pMonitor->state.test()) {
-            Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
-        } else {
-            Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
-                set10bit = true;
-
-            pMonitor->drmFormat = fmt.second;
-            break;
-        }
-    }
-
-    pMonitor->enabled10bit = set10bit;
 
     pMonitor->output->scheduleFrame();
 

@@ -39,27 +39,24 @@ struct SDMABUFFeedbackTableEntry {
 };
 #pragma pack(pop)
 
-class SCompiledDMABUFTranche {
-    dev_t                 device = 0;
-    uint32_t              flags  = 0;
-    std::vector<uint16_t> indices;
-};
-
-struct SDMABufTranche {
-    dev_t                   device = 0;
-    uint32_t                flags  = 0;
+struct SDMABUFTranche {
+    dev_t                   device     = 0;
+    uint32_t                flags      = 0;
+    uint32_t                firstIndex = -1; // first index in format table for this tranche
+    uint32_t                lastIndex  = -1; // first index in format table NOT for this tranche
     std::vector<SDRMFormat> formats;
 };
 
-class CCompiledDMABUFFeedback {
+class CDMABUFFormatTable {
   public:
-    CCompiledDMABUFFeedback(dev_t device, std::vector<SDMABufTranche> tranches);
-    ~CCompiledDMABUFFeedback();
+    CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tranches);
+    ~CDMABUFFormatTable();
 
-    dev_t                                      mainDevice = 0;
-    int                                        tableFD    = -1;
-    size_t                                     tableLen   = 0;
-    std::vector<std::pair<uint32_t, uint64_t>> formats;
+    int                                                  tableFD   = -1;
+    size_t                                               tableLen  = 0;
+    size_t                                               tableSize = 0;
+    SDMABUFTranche                                       rendererTranche;
+    std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> monitorTranches;
 };
 
 class CLinuxDMABBUFParamsResource {
@@ -128,7 +125,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     std::vector<SP<CLinuxDMABBUFParamsResource>>  m_vParams;
     std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
 
-    UP<CCompiledDMABUFFeedback>                   defaultFeedback;
+    UP<CDMABUFFormatTable>                        formatTable;
     dev_t                                         mainDevice;
     int                                           mainDeviceFD = -1;
 

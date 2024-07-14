@@ -760,7 +760,10 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        g_pSeatManager->sendPointerFrame();
+        auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+        g_pSeatManager->isPointerFrameSkipped = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+        if (!g_pSeatManager->isPointerFrameSkipped)
+            g_pSeatManager->sendPointerFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {

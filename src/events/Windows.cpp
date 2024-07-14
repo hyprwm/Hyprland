@@ -580,6 +580,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
+    static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
+
+    const auto  pwindowCurrentFullscreenState = PWINDOW->m_bIsFullscreen;
+    const auto  pwindowCurrentFullscreenMode  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_bFadingOut = false;
@@ -638,8 +643,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE)
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+            if (*PEXITRETAINSFS && pwindowCurrentFullscreenState)
+                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, pwindowCurrentFullscreenMode);
+        }
 
         if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
             g_pInputManager->refocus();

@@ -543,6 +543,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
 
         pWindow->unsetWindowData(PRIORITY_LAYOUT);
+        pWindow->updateWindowData();
 
         if (pWindow == m_pLastTiledWindow)
             m_pLastTiledWindow.reset();

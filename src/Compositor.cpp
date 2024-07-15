@@ -9,6 +9,7 @@
 #include <aquamarine/output/Output.hpp>
 #include <random>
 #include <cstring>
+#include <filesystem>
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/CrashReporter.hpp"
@@ -24,6 +25,7 @@
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
+#include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 
 #include <hyprutils/string/String.hpp>

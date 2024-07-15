@@ -6,6 +6,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../desktop/WLSurface.hpp"
+#include "../helpers/sync/SyncTimeline.hpp"
 #include <tuple>
 
 class CMonitor;

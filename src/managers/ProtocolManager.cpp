@@ -49,6 +49,10 @@
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
+#include "../Compositor.hpp"
+
+#include <aquamarine/buffer/Buffer.hpp>
+#include <aquamarine/backend/Backend.hpp>
 
 void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();

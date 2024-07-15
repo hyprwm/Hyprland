@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <filesystem>
 
 // TODO: cleanup
 static bool set_cloexec(int fd, bool cloexec) {

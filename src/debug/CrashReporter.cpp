@@ -5,6 +5,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <filesystem>
 
 #include "../plugins/PluginSystem.hpp"
 #include "../signal-safe.hpp"

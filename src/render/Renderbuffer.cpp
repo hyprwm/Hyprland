@@ -2,6 +2,8 @@
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/types/Buffer.hpp"
+#include <hyprutils/signal/Listener.hpp>
+#include <hyprutils/signal/Signal.hpp>
 
 #include <dlfcn.h>
 

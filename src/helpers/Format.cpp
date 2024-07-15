@@ -4,6 +4,7 @@
 #include "debug/Log.hpp"
 #include "../macros.hpp"
 #include <xf86drm.h>
+#include <drm_fourcc.h>
 
 /*
     DRM formats are LE, while OGL is BE. The two primary formats

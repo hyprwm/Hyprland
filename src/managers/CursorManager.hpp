@@ -6,6 +6,8 @@
 #include "../includes.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
+#include "../macros.hpp"
+#include <aquamarine/buffer/Buffer.hpp>
 
 class CWLSurface;
 

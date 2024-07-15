@@ -76,19 +76,17 @@ class CHyprRenderer {
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
-    bool beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
-    void endRender();
+    bool      beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
+    void      endRender();
 
-    bool m_bBlockSurfaceFeedback = false;
-    bool m_bRenderingSnapshot    = false;
-    PHLWINDOWREF m_pLastScanout;
-    CMonitor*    m_pMostHzMonitor        = nullptr;
-    bool         m_bDirectScanoutBlocked = false;
+    bool      m_bBlockSurfaceFeedback = false;
+    bool      m_bRenderingSnapshot    = false;
+    CMonitor* m_pMostHzMonitor        = nullptr;
+    bool      m_bDirectScanoutBlocked = false;
 
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);
 
-    bool                                attemptDirectScanout(CMonitor*);
     void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor); // nullptr monitor resets
     void                                initiateManualCrash();
 

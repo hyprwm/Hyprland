@@ -582,8 +582,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
 
-    const auto  pwindowCurrentFullscreenState = PWINDOW->m_bIsFullscreen;
-    const auto  pwindowCurrentFullscreenMode  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+    const auto  CURRENTWINDOWFSSTATE = PWINDOW->m_bIsFullscreen;
+    const auto  CURRENTWINDOWFSMODE  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
 
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
@@ -645,8 +645,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
-            if (*PEXITRETAINSFS && pwindowCurrentFullscreenState)
-                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, pwindowCurrentFullscreenMode);
+            if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
+                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, CURRENTWINDOWFSMODE);
         }
 
         if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)

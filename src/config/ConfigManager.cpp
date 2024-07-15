@@ -24,6 +24,7 @@
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
+#include <filesystem>
 using namespace Hyprutils::String;
 
 extern "C" char**             environ;

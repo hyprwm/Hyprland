@@ -12,6 +12,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <sys/poll.h>
+#include <filesystem>
+#include <ranges>
 
 #include <sstream>
 #include <string>

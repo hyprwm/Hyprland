@@ -1239,11 +1239,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
-        if (attemptDirectScanout(pMonitor)) {
+        if (pMonitor->attemptDirectScanout()) {
             return;
-        } else if (!m_pLastScanout.expired()) {
+        } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
-            m_pLastScanout.reset();
+            pMonitor->lastScanout.reset();
         }
     }
 

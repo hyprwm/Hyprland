@@ -133,6 +133,9 @@ class CMonitor {
     // for tearing
     PHLWINDOWREF solitaryClient;
 
+    // for direct scanout
+    PHLWINDOWREF lastScanout;
+
     struct {
         bool canTear         = false;
         bool nextRenderTorn  = false;
@@ -174,6 +177,7 @@ class CMonitor {
     int64_t  activeSpecialWorkspaceID();
     CBox     logicalBox();
     void     scheduleDone();
+    bool     attemptDirectScanout();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

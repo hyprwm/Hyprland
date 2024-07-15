@@ -10,6 +10,7 @@
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../protocols/core/Compositor.hpp"
 #include "sync/SyncTimeline.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <hyprutils/string/String.hpp>
@@ -784,6 +785,53 @@ void CMonitor::scheduleDone() {
         return;
 
     doneSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::onDoneSource, this);
+}
+
+bool CMonitor::attemptDirectScanout() {
+    if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
+    if (g_pPointerManager->softwareLockedFor(self.lock()))
+        return false;
+
+    const auto PCANDIDATE = solitaryClient.lock();
+
+    if (!PCANDIDATE)
+        return false;
+
+    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+
+    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != vecPixelSize || PSURFACE->current.transform != transform)
+        return false;
+
+    // we can't scanout shm buffers.
+    if (!PSURFACE->current.buffer->dmabuf().success)
+        return false;
+
+    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
+    // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    output->state->setBuffer(PSURFACE->current.buffer);
+
+    if (!state.test())
+        return false;
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    Debug::log(TRACE, "presentFeedback for DS");
+    PSURFACE->presentFeedback(&now, this, true);
+
+    if (state.commit()) {
+        if (lastScanout.expired()) {
+            lastScanout = PCANDIDATE;
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+        }
+    } else {
+        lastScanout.reset();
+        return false;
+    }
+
+    return true;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

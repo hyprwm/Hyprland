@@ -265,6 +265,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     static auto SMALLSPLIT  = CConfigValue<Hyprlang::INT>("master:allow_small_split");
 
     pWindow->unsetWindowData(PRIORITY_LAYOUT);
+    pWindow->updateWindowData();
 
     g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
 
@@ -647,6 +648,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         return;
 
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
+    PWINDOW->updateWindowData();
 
     static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("master:no_gaps_when_only");
     static auto PANIMATE        = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
@@ -923,6 +925,7 @@ void CHyprMasterLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscree
             pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
             pWindow->unsetWindowData(PRIORITY_LAYOUT);
+            pWindow->updateWindowData();
         }
     } else {
         // if it now got fullscreen, make it fullscreen

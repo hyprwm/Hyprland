@@ -11,6 +11,7 @@
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "managers/PointerManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -743,6 +744,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
                                        PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
     if (g_pSeatManager->isPointerFrameSkipped) {
+        g_pPointerManager->sendStoredMovement();
         g_pSeatManager->sendPointerFrame();
         g_pSeatManager->isPointerFrameCommit = true;
     }

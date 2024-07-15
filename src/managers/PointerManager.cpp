@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
+#include "../protocols/RelativePointer.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
@@ -761,7 +762,14 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
         auto PMONITOR = g_pCompositor->getMonitorFromCursor();
-        g_pSeatManager->isPointerFrameSkipped = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+        bool shouldSkip = false;
+        if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent() && !g_pSeatManager->mouse.expired() && g_pInputManager->isConstrained()) {
+            const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
+            const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+            if (CONSTRAINT)
+                shouldSkip = CONSTRAINT->isLocked();
+        }
+        g_pSeatManager->isPointerFrameSkipped = shouldSkip;
         if (!g_pSeatManager->isPointerFrameSkipped)
             g_pSeatManager->sendPointerFrame();
     });
@@ -932,4 +940,17 @@ void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return currentCursorImage.size / currentCursorImage.scale;
+}
+
+void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
+    storedTime = time;
+    storedDelta += delta;
+    storedUnaccel += deltaUnaccel;
+}
+
+void CPointerManager::sendStoredMovement() {
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)storedTime * 1000, storedDelta, storedUnaccel);
+    storedTime    = 0;
+    storedDelta   = Vector2D{};
+    storedUnaccel = Vector2D{};
 }

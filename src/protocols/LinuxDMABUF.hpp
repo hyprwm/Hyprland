@@ -32,7 +32,7 @@ class CLinuxDMABuffer {
 };
 
 #pragma pack(push, 1)
-struct SDMABUFFeedbackTableEntry {
+struct SDMABUFFormatTableEntry {
     uint32_t fmt = 0;
     char     pad[4];
     uint64_t modifier = 0;
@@ -84,7 +84,8 @@ class CLinuxDMABUFFeedbackResource {
     ~CLinuxDMABUFFeedbackResource();
 
     bool                   good();
-    void                   sendDefault();
+    void                   sendDefaultFeedback();
+    void                   sendTranche(SDMABUFTranche& tranche);
 
     SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
 

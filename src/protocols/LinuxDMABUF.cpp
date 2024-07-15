@@ -42,12 +42,12 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
         tranche.second.lastIndex = tableLen;
     }
 
-    tableSize = tableLen * sizeof(SDMABUFFeedbackTableEntry);
+    tableSize = tableLen * sizeof(SDMABUFFormatTableEntry);
 
     int fds[2] = {0};
     allocateSHMFilePair(tableSize, &fds[0], &fds[1]);
 
-    auto arr = (SDMABUFFeedbackTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0], 0);
+    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0], 0);
 
     if (arr == MAP_FAILED) {
         LOGM(ERR, "mmap failed");
@@ -63,7 +63,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     for (auto& fmt : rendererTranche.formats) {
         for (auto& mod : fmt.modifiers) {
             LOGM(TRACE, "Feedback: format table index {}: fmt {} mod {}", i, FormatUtils::drmFormatName(fmt.drmFormat), mod);
-            arr[i++] = SDMABUFFeedbackTableEntry{
+            arr[i++] = SDMABUFFormatTableEntry{
                 .fmt      = fmt.drmFormat,
                 .modifier = mod,
             };
@@ -73,8 +73,11 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     for (auto& tranche : monitorTranches) {
         for (auto& fmt : tranche.second.formats) {
             for (auto& mod : fmt.modifiers) {
+                // apparently these can implode on kms planes, so dont use them
+                if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
+                    continue;
                 LOGM(TRACE, "Feedback: format table index {}: fmt {} mod {}", i, FormatUtils::drmFormatName(fmt.drmFormat), mod);
-                arr[i++] = SDMABUFFeedbackTableEntry{
+                arr[i++] = SDMABUFFormatTableEntry{
                     .fmt      = fmt.drmFormat,
                     .modifier = mod,
                 };
@@ -296,11 +299,8 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     resource->setDestroy([this](CZwpLinuxDmabufFeedbackV1* r) { PROTO::linuxDma->destroyResource(this); });
 
     auto& formatTable = PROTO::linuxDma->formatTable;
-
     resource->sendFormatTable(formatTable->tableFD, formatTable->tableSize);
-
-    // send default feedback
-    sendDefault();
+    sendDefaultFeedback();
 }
 
 CLinuxDMABUFFeedbackResource::~CLinuxDMABUFFeedbackResource() {
@@ -311,32 +311,37 @@ bool CLinuxDMABUFFeedbackResource::good() {
     return resource->resource();
 }
 
-// default tranche is based on renderer (egl)
-void CLinuxDMABUFFeedbackResource::sendDefault() {
-    auto  mainDevice  = PROTO::linuxDma->mainDevice;
-    auto& formatTable = PROTO::linuxDma->formatTable;
+void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
+    struct wl_array deviceArr = {
+        .size = sizeof(tranche.device),
+        .data = (void*)&tranche.device,
+    };
+    resource->sendTrancheTargetDevice(&deviceArr);
 
-    //
+    resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)tranche.flags);
+
+    wl_array indices;
+    wl_array_init(&indices);
+    for (size_t i = tranche.firstIndex; i < tranche.lastIndex; ++i) {
+        *((uint16_t*)wl_array_add(&indices, sizeof(uint16_t))) = i;
+    }
+    resource->sendTrancheFormats(&indices);
+    wl_array_release(&indices);
+    resource->sendTrancheDone();
+}
+
+// default tranche is based on renderer (egl)
+void CLinuxDMABUFFeedbackResource::sendDefaultFeedback() {
+    auto            mainDevice  = PROTO::linuxDma->mainDevice;
+    auto&           formatTable = PROTO::linuxDma->formatTable;
+
     struct wl_array deviceArr = {
         .size = sizeof(mainDevice),
         .data = (void*)&mainDevice,
     };
     resource->sendMainDevice(&deviceArr);
 
-    // Main tranche
-    resource->sendTrancheTargetDevice(&deviceArr);
-
-    // we aren't attempting direct scanout by default
-    resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)0);
-
-    wl_array indices;
-    wl_array_init(&indices);
-    for (size_t i = formatTable->rendererTranche.firstIndex; i < formatTable->rendererTranche.lastIndex; ++i) {
-        *((uint16_t*)wl_array_add(&indices, sizeof(uint16_t))) = i;
-    }
-    resource->sendTrancheFormats(&indices);
-    wl_array_release(&indices);
-    resource->sendTrancheDone();
+    sendTranche(formatTable->rendererTranche);
 
     resource->sendDone();
 
@@ -420,16 +425,20 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         mainDevice = *dev;
 
         SDMABUFTranche eglTranche = {
-            .device  = *dev,
+            .device  = mainDevice,
+            .flags   = 0, // renderer isnt for ds so dont set flag
             .formats = g_pHyprOpenGL->getDRMFormats(),
         };
 
         std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tches;
 
         if (g_pCompositor->m_pAqBackend->hasSession()) {
+            // this assumes there's 1 device used for scanout and each monitor never changes its primary plane
+
             for (auto& mon : g_pCompositor->m_vMonitors) {
                 auto tranche = SDMABUFTranche{
-                    .device  = *dev,
+                    .device  = mainDevice,
+                    .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                     .formats = mon->output->getRenderFormats(),
                 };
                 tches.push_back(std::make_pair<>(mon, tranche));
@@ -440,6 +449,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 auto mon      = pMonitor->self.lock();
                 auto tranche  = SDMABUFTranche{
                      .device  = mainDevice,
+                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                      .formats = mon->output->getRenderFormats(),
                 };
                 formatTable->monitorTranches.push_back(std::make_pair<>(mon, tranche));
@@ -491,16 +501,20 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     for (auto& feedback : m_vFeedbacks) {
         feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
         if (feedback->lastFeedbackWasScanout) {
-            auto pWindow = g_pCompositor->getWindowFromSurface(feedback->surface);
-            auto mon = std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [pWindow](SP<CMonitor> mon) { return mon->ID == pWindow->m_iMonitorID; });
-            if (mon == g_pCompositor->m_vMonitors.end()) {
-                feedback->sendDefault();
-                continue;
+            SP<CMonitor> mon;
+            auto         HLSurface = CWLSurface::fromResource(feedback->surface);
+            if (auto w = HLSurface->getWindow(); w)
+                if (auto m = g_pCompositor->getMonitorFromID(w->m_iMonitorID); m)
+                    mon = m->self.lock();
+
+            if (!mon) {
+                feedback->sendDefaultFeedback();
+                return;
             }
 
-            updateScanoutTranche(feedback->surface, *mon);
+            updateScanoutTranche(feedback->surface, mon);
         } else {
-            feedback->sendDefault();
+            feedback->sendDefaultFeedback();
         }
     }
 
@@ -556,7 +570,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     if (!pMonitor) {
         LOGM(LOG, "updateScanoutTranche: resetting feedback");
-        feedbackResource->sendDefault();
+        feedbackResource->sendDefaultFeedback();
         return;
     }
 
@@ -568,7 +582,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
         return;
     }
 
-    const auto& monitorTranche = (*monitorTranchePair).second;
+    auto& monitorTranche = (*monitorTranchePair).second;
 
     LOGM(LOG, "updateScanoutTranche: sending a scanout tranche");
 
@@ -581,17 +595,11 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
         .data = (void*)&mainDevice,
     };
     feedbackResource->resource->sendMainDevice(&deviceArr);
-    feedbackResource->resource->sendTrancheTargetDevice(&deviceArr);
-    feedbackResource->resource->sendTrancheFlags(ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT);
 
-    wl_array indices;
-    wl_array_init(&indices);
-    for (size_t i = monitorTranche.firstIndex; i < monitorTranche.lastIndex; ++i) {
-        *((uint16_t*)wl_array_add(&indices, sizeof(uint16_t))) = i;
-    }
-    feedbackResource->resource->sendTrancheFormats(&indices);
-    wl_array_release(&indices);
-    feedbackResource->resource->sendTrancheDone();
+    // prioritize scnaout tranche but have renderer fallback tranche
+    // also yes flags can be duped here because different tranche flags (ds and no ds)
+    feedbackResource->sendTranche(monitorTranche);
+    feedbackResource->sendTranche(formatTable->rendererTranche);
 
     feedbackResource->resource->sendDone();
 

@@ -339,6 +339,8 @@ void CLinuxDMABUFFeedbackResource::sendDefault() {
     resource->sendTrancheDone();
 
     resource->sendDone();
+
+    lastFeedbackWasScanout = false;
 }
 
 CLinuxDMABUFResource::CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_) : resource(resource_) {
@@ -424,8 +426,6 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tches;
 
-        // this will prob break on monitor connects/disconnects
-        // TODO: recreate format table on monitor changes and send new feedbacks
         if (g_pCompositor->m_pAqBackend->hasSession()) {
             for (auto& mon : g_pCompositor->m_vMonitors) {
                 auto tranche = SDMABUFTranche{
@@ -434,6 +434,24 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 };
                 tches.push_back(std::make_pair<>(mon, tranche));
             }
+
+            static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
+                auto pMonitor = std::any_cast<CMonitor*>(param);
+                auto mon      = pMonitor->self.lock();
+                auto tranche  = SDMABUFTranche{
+                     .device  = mainDevice,
+                     .formats = mon->output->getRenderFormats(),
+                };
+                formatTable->monitorTranches.push_back(std::make_pair<>(mon, tranche));
+                resetFormatTable();
+            });
+
+            static auto monitorRemoved = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
+                auto pMonitor = std::any_cast<CMonitor*>(param);
+                auto mon      = pMonitor->self.lock();
+                std::erase_if(formatTable->monitorTranches, [mon](std::pair<SP<CMonitor>, SDMABUFTranche> pair) { return pair.first == mon; });
+                resetFormatTable();
+            });
         }
 
         formatTable = std::make_unique<CDMABUFFormatTable>(eglTranche, tches);
@@ -459,6 +477,35 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             drmFreeDevice(&device);
         }
     });
+}
+
+void CLinuxDMABufV1Protocol::resetFormatTable() {
+    if (!formatTable)
+        return;
+
+    LOGM(LOG, "Resetting format table");
+
+    // this might be a big copy
+    auto newFormatTable = std::make_unique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
+
+    for (auto& feedback : m_vFeedbacks) {
+        feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
+        if (feedback->lastFeedbackWasScanout) {
+            auto pWindow = g_pCompositor->getWindowFromSurface(feedback->surface);
+            auto mon = std::find_if(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [pWindow](SP<CMonitor> mon) { return mon->ID == pWindow->m_iMonitorID; });
+            if (mon == g_pCompositor->m_vMonitors.end()) {
+                feedback->sendDefault();
+                continue;
+            }
+
+            updateScanoutTranche(feedback->surface, *mon);
+        } else {
+            feedback->sendDefault();
+        }
+    }
+
+    // delete old table after we sent new one
+    formatTable = std::move(newFormatTable);
 }
 
 CLinuxDMABufV1Protocol::~CLinuxDMABufV1Protocol() {
@@ -547,4 +594,6 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
     feedbackResource->resource->sendTrancheDone();
 
     feedbackResource->resource->sendDone();
+
+    feedbackResource->lastFeedbackWasScanout = true;
 }

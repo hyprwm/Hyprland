@@ -90,6 +90,7 @@ class CLinuxDMABUFFeedbackResource {
 
   private:
     SP<CZwpLinuxDmabufFeedbackV1> resource;
+    bool                          lastFeedbackWasScanout = false;
 
     friend class CLinuxDMABufV1Protocol;
 };
@@ -118,6 +119,8 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     void destroyResource(CLinuxDMABUFFeedbackResource* resource);
     void destroyResource(CLinuxDMABBUFParamsResource* resource);
     void destroyResource(CLinuxDMABuffer* resource);
+
+    void resetFormatTable();
 
     //
     std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;

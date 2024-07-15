@@ -70,113 +70,28 @@ void matrixRotate(float mat[9], float rad) {
     matrixMultiply(mat, mat, rotate);
 }
 
-std::unordered_map<eTransform, std::array<float, 9>> transforms = {
-    {HYPRUTILS_TRANSFORM_NORMAL,
-     {
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_90,
-     {
-         0.0f,
-         1.0f,
-         0.0f,
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_180,
-     {
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_270,
-     {
-         0.0f,
-         -1.0f,
-         0.0f,
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_FLIPPED,
-     {
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_90,
-     {
-         0.0f,
-         1.0f,
-         0.0f,
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_180,
-     {
-         1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-    {HYPRUTILS_TRANSFORM_FLIPPED_270,
-     {
-         0.0f,
-         -1.0f,
-         0.0f,
-         -1.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         0.0f,
-         1.0f,
-     }},
-};
+const std::unordered_map<eTransform, std::array<float, 9>>& getTransforms() {
+    static std::unordered_map<eTransform, std::array<float, 9>> transforms = {
+        {HYPRUTILS_TRANSFORM_NORMAL, {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_90, {0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_180, {-1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_270, {0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_FLIPPED, {-1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_FLIPPED_90, {0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_FLIPPED_180, {1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+        {HYPRUTILS_TRANSFORM_FLIPPED_270, {0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}},
+    };
+    return transforms;
+}
 
 void matrixTransform(float mat[9], eTransform transform) {
-    matrixMultiply(mat, mat, transforms.at(transform).data());
+    matrixMultiply(mat, mat, getTransforms().at(transform).data());
 }
 
 void matrixProjection(float mat[9], int width, int height, eTransform transform) {
     memset(mat, 0, sizeof(*mat) * 9);
 
-    const float* t = transforms.at(transform).data();
+    const float* t = getTransforms().at(transform).data();
     float        x = 2.0f / width;
     float        y = 2.0f / height;
 

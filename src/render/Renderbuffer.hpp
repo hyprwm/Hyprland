@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../helpers/signal/Signal.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../helpers/WLListener.hpp"
 #include "Framebuffer.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 

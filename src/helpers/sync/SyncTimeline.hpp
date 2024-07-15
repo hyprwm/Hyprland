@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include <functional>
+#include "../memory/Memory.hpp"
 
 /*
     Hyprland synchronization timelines are based on the wlroots' ones, which

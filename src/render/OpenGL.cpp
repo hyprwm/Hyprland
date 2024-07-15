@@ -11,6 +11,7 @@
 #include <xf86drm.h>
 #include <fcntl.h>
 #include <gbm.h>
+#include <filesystem>
 
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);

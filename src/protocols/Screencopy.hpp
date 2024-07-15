@@ -8,6 +8,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../helpers/Timer.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
+#include <aquamarine/buffer/Buffer.hpp>
 
 class CMonitor;
 class IHLBuffer;

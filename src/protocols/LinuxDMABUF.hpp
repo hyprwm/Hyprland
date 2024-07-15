@@ -7,6 +7,8 @@
 #include "wayland.hpp"
 #include "linux-dmabuf-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../helpers/Format.hpp"
+#include "../helpers/Monitor.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CDMABuffer;

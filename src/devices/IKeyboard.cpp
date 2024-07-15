@@ -3,6 +3,7 @@
 #include "../helpers/varlist/VarList.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
 #include <cstring>

@@ -8,6 +8,7 @@
 #include "../../helpers/Monitor.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
+#include "../../render/Renderer.hpp"
 
 #define LOGM PROTO::compositor->protoLog
 

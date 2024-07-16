@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <hyprutils/path/Path.hpp>
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -628,25 +629,49 @@ CConfigManager::CConfigManager() {
         g_pHyprError->queueCreate(ERR.value(), CColor{1.0, 0.1, 0.1, 1.0});
 }
 
-std::string CConfigManager::getConfigDir() {
-    static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
+std::optional<std::string> CConfigManager::generateConfig(std::string configPath) {
+    std::string parentPath = std::filesystem::path(configPath).parent_path();
 
-    if (xdgConfigHome && std::filesystem::path(xdgConfigHome).is_absolute())
-        return xdgConfigHome;
+    if (!std::filesystem::is_directory(parentPath)) {
+        Debug::log(WARN, "Creating config home directory");
+        try {
+            std::filesystem::create_directories(parentPath);
+        } catch (std::exception e) { throw e; }
+    }
 
-    static const char* home = getenv("HOME");
+    Debug::log(WARN, "No config file found; attempting to generate.");
+    std::ofstream ofs;
+    ofs.open(configPath, std::ios::trunc);
+    ofs << AUTOCONFIG;
+    ofs.close();
 
-    if (!home)
-        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME is set in the environment. Cannot determine config directory.");
+    if (!std::filesystem::exists(configPath))
+        return "Config could not be generated.";
 
-    return home + std::string("/.config");
+    return configPath;
 }
 
 std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
 
-    return getConfigDir() + "/hypr/" + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+    static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+    if (paths.first.has_value()) {
+        return paths.first.value();
+    } else if (paths.second.has_value()) {
+        auto configPath = Hyprutils::Path::fullConfigPath(paths.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+        return generateConfig(configPath).value();
+    } else
+        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+}
+
+std::optional<std::string> CConfigManager::verifyConfigExists() {
+    std::string mainConfigPath = getMainConfigPath();
+
+    if (!std::filesystem::exists(mainConfigPath))
+        return "broken config dir?";
+
+    return {};
 }
 
 const std::string CConfigManager::getConfigString() {
@@ -740,32 +765,6 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeLayersOut", "fadeLayers");
 
     CREATEANIMCFG("specialWorkspace", "workspaces");
-}
-
-std::optional<std::string> CConfigManager::verifyConfigExists() {
-    std::string mainConfigPath = getMainConfigPath();
-
-    if (g_pCompositor->explicitConfigPath.empty() && !std::filesystem::exists(mainConfigPath)) {
-        std::string configPath = std::filesystem::path(mainConfigPath).parent_path();
-
-        if (!std::filesystem::is_directory(configPath)) {
-            Debug::log(WARN, "Creating config home directory");
-            try {
-                std::filesystem::create_directories(configPath);
-            } catch (...) { return "Broken config file! (Could not create config directory)"; }
-        }
-
-        Debug::log(WARN, "No config file found; attempting to generate.");
-        std::ofstream ofs;
-        ofs.open(mainConfigPath, std::ios::trunc);
-        ofs << AUTOCONFIG;
-        ofs.close();
-    }
-
-    if (!std::filesystem::exists(mainConfigPath))
-        return "broken config dir?";
-
-    return {};
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {

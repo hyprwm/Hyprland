@@ -842,7 +842,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (path == "" || path == STRVAL_EMPTY)
         return;
 
-    std::ifstream infile(absolutePath(path, g_pConfigManager->getConfigDir()));
+    std::ifstream infile(absolutePath(path, g_pConfigManager->getMainConfigPath()));
 
     if (!infile.good()) {
         g_pConfigManager->addParseError("Screen shader parser: Screen shader path not found");

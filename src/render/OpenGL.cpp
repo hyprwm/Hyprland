@@ -861,6 +861,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.proj      = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
     m_sFinalScreenShader.tex       = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
     m_sFinalScreenShader.time      = glGetUniformLocation(m_sFinalScreenShader.program, "time");
+    m_sFinalScreenShader.initial_time = glGetUniformLocation(m_sFinalScreenShader.program, "initial_time");
+    if (m_sFinalScreenShader.initial_time != -1)
+        m_sFinalScreenShader.initialTime = m_tGlobalTimer.getSeconds();
     m_sFinalScreenShader.wl_output = glGetUniformLocation(m_sFinalScreenShader.program, "wl_output");
     m_sFinalScreenShader.fullSize  = glGetUniformLocation(m_sFinalScreenShader.program, "screen_size");
     if (m_sFinalScreenShader.fullSize == -1)
@@ -1160,6 +1163,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);
     }
+
+    if (usingFinalShader && shader->initial_time != -1)
+        glUniform1f(shader->initial_time, shader->initialTime);
 
     if (usingFinalShader && shader->wl_output != -1)
         glUniform1i(shader->wl_output, m_RenderData.pMonitor->ID);

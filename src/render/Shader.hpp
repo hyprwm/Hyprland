@@ -42,6 +42,8 @@ class CShader {
     GLint   gradientLength = -1;
     GLint   angle          = -1;
 
+    float   initialTime  = 0;
+    GLint   initial_time = -1;
     GLint   time      = -1;
     GLint   distort   = -1;
     GLint   wl_output = -1;

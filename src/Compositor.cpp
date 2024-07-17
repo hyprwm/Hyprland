@@ -1,4 +1,5 @@
 #include "Compositor.hpp"
+#include "debug/Log.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "managers/CursorManager.hpp"
@@ -1344,6 +1345,9 @@ bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
 
 void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     if (!validMapped(pWindow))
+        return;
+
+    if (pWindow == (top ? m_vWindows.back() : m_vWindows.front()))
         return;
 
     auto moveToZ = [&](PHLWINDOW pw, bool top) -> void {

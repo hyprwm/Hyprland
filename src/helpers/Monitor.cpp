@@ -837,9 +837,9 @@ bool CMonitorState::updateSwapchain() {
         Debug::log(WARN, "updateSwapchain: No mode?");
         return true;
     }
-    options.format   = STATE.drmFormat;
-    options.scanout  = true;
-    options.length   = 2;
-    options.size     = MODE->pixelSize;
+    options.format  = STATE.drmFormat;
+    options.scanout = true;
+    options.length  = 2;
+    options.size    = MODE->pixelSize;
     return m_pOwner->output->swapchain->reconfigure(options);
 }

@@ -620,15 +620,9 @@ void CPointerManager::damageIfSoftware() {
 void CPointerManager::warpTo(const Vector2D& logical) {
     damageIfSoftware();
 
-    pointerPos                        = closestValid(logical);
-    bool shouldSkipMonitorFocusChecks = false;
-    if (g_pInputManager->isConstrained()) {
-        const auto SURF              = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
-        const auto CONSTRAINT        = SURF ? SURF->constraint() : nullptr;
-        shouldSkipMonitorFocusChecks = CONSTRAINT && CONSTRAINT->isLocked();
-    }
+    pointerPos = closestValid(logical);
 
-    if (!shouldSkipMonitorFocusChecks) {
+    if (!g_pInputManager->isLocked()) {
         recheckEnteredOutputs();
         onCursorMoved();
     }
@@ -770,13 +764,10 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        auto PMONITOR = g_pCompositor->getMonitorFromCursor();
         bool shouldSkip = false;
-        if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent() && !g_pSeatManager->mouse.expired() && g_pInputManager->isConstrained()) {
-            const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
-            const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
-            if (CONSTRAINT)
-                shouldSkip = CONSTRAINT->isLocked();
+        if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
+            auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
+            shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
         }
         g_pSeatManager->isPointerFrameSkipped = shouldSkip;
         if (!g_pSeatManager->isPointerFrameSkipped)

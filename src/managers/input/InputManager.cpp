@@ -185,7 +185,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = isLocked() && g_pCompositor->m_pLastMonitor ? g_pCompositor->m_pLastMonitor.get() : g_pCompositor->getMonitorFromCursor();
 
     // this can happen if there are no displays hooked up to Hyprland
     if (PMONITOR == nullptr)
@@ -1422,6 +1422,16 @@ bool CInputManager::isConstrained() {
     }
 
     return false;
+}
+
+bool CInputManager::isLocked() {
+    if (!isConstrained())
+        return false;
+
+    const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
+    const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+
+    return CONSTRAINT && CONSTRAINT->isLocked();
 }
 
 void CInputManager::updateCapabilities() {

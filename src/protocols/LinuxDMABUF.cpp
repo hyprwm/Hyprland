@@ -25,24 +25,59 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 
 CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tranches_) :
     rendererTranche(_rendererTranche), monitorTranches(tranches_) {
-    // yes this is a waste of memory, oh well
 
-    tableLen                   = 0;
-    rendererTranche.firstIndex = 0;
+    std::vector<SDMABUFFormatTableEntry>    formatsVec;
+    std::set<std::pair<uint32_t, uint64_t>> formats;
+
+    // insert formats into vec if they got inserted into set, meaning they're unique
+    size_t i = 0;
+
+    rendererTranche.indicies.clear();
     for (auto& fmt : rendererTranche.formats) {
-        tableLen += fmt.modifiers.size();
-    }
-    rendererTranche.lastIndex = tableLen;
-
-    for (auto& tranche : monitorTranches) {
-        tranche.second.firstIndex = tableLen;
-        for (auto& fmt : tranche.second.formats) {
-            tableLen += fmt.modifiers.size();
+        for (auto& mod : fmt.modifiers) {
+            auto format        = std::make_pair<>(fmt.drmFormat, mod);
+            auto [_, inserted] = formats.insert(format);
+            if (inserted) {
+                // if it was inserted into set, then its unique and will have a new index in vec
+                rendererTranche.indicies.push_back(i++);
+                formatsVec.push_back(SDMABUFFormatTableEntry{
+                    .fmt      = fmt.drmFormat,
+                    .modifier = mod,
+                });
+            } else {
+                // if it wasn't inserted then find its index in vec
+                auto it =
+                    std::find_if(formatsVec.begin(), formatsVec.end(), [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                rendererTranche.indicies.push_back(it - formatsVec.begin());
+            }
         }
-        tranche.second.lastIndex = tableLen;
     }
 
-    tableSize = tableLen * sizeof(SDMABUFFormatTableEntry);
+    for (auto& [monitor, tranche] : monitorTranches) {
+        tranche.indicies.clear();
+        for (auto& fmt : tranche.formats) {
+            for (auto& mod : fmt.modifiers) {
+                // apparently these can implode on planes, so dont use them
+                if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
+                    continue;
+                auto format        = std::make_pair<>(fmt.drmFormat, mod);
+                auto [_, inserted] = formats.insert(format);
+                if (inserted) {
+                    tranche.indicies.push_back(i++);
+                    formatsVec.push_back(SDMABUFFormatTableEntry{
+                        .fmt      = fmt.drmFormat,
+                        .modifier = mod,
+                    });
+                } else {
+                    auto it = std::find_if(formatsVec.begin(), formatsVec.end(),
+                                           [fmt, mod](const SDMABUFFormatTableEntry& oth) { return oth.fmt == fmt.drmFormat && oth.modifier == mod; });
+                    tranche.indicies.push_back(it - formatsVec.begin());
+                }
+            }
+        }
+    }
+
+    tableSize = formatsVec.size() * sizeof(SDMABUFFormatTableEntry);
 
     int fds[2] = {0};
     allocateSHMFilePair(tableSize, &fds[0], &fds[1]);
@@ -58,32 +93,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
 
     close(fds[0]);
 
-    size_t i = 0;
-
-    for (auto& fmt : rendererTranche.formats) {
-        for (auto& mod : fmt.modifiers) {
-            LOGM(TRACE, "Feedback: format table index {}: fmt {} mod {}", i, FormatUtils::drmFormatName(fmt.drmFormat), mod);
-            arr[i++] = SDMABUFFormatTableEntry{
-                .fmt      = fmt.drmFormat,
-                .modifier = mod,
-            };
-        }
-    }
-
-    for (auto& tranche : monitorTranches) {
-        for (auto& fmt : tranche.second.formats) {
-            for (auto& mod : fmt.modifiers) {
-                // apparently these can implode on kms planes, so dont use them
-                if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
-                    continue;
-                LOGM(TRACE, "Feedback: format table index {}: fmt {} mod {}", i, FormatUtils::drmFormatName(fmt.drmFormat), mod);
-                arr[i++] = SDMABUFFormatTableEntry{
-                    .fmt      = fmt.drmFormat,
-                    .modifier = mod,
-                };
-            }
-        }
-    }
+    std::copy(formatsVec.begin(), formatsVec.end(), arr);
 
     munmap(arr, tableSize);
 
@@ -320,13 +330,11 @@ void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
 
     resource->sendTrancheFlags((zwpLinuxDmabufFeedbackV1TrancheFlags)tranche.flags);
 
-    wl_array indices;
-    wl_array_init(&indices);
-    for (size_t i = tranche.firstIndex; i < tranche.lastIndex; ++i) {
-        *((uint16_t*)wl_array_add(&indices, sizeof(uint16_t))) = i;
-    }
+    wl_array indices = {
+        .size = tranche.indicies.size() * sizeof(tranche.indicies.at(0)),
+        .data = tranche.indicies.data(),
+    };
     resource->sendTrancheFormats(&indices);
-    wl_array_release(&indices);
     resource->sendTrancheDone();
 }
 

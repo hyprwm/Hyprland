@@ -40,11 +40,10 @@ struct SDMABUFFormatTableEntry {
 #pragma pack(pop)
 
 struct SDMABUFTranche {
-    dev_t                   device     = 0;
-    uint32_t                flags      = 0;
-    uint32_t                firstIndex = -1; // first index in format table for this tranche
-    uint32_t                lastIndex  = -1; // first index in format table NOT for this tranche
+    dev_t                   device = 0;
+    uint32_t                flags  = 0;
     std::vector<SDRMFormat> formats;
+    std::vector<uint16_t>   indicies;
 };
 
 class CDMABUFFormatTable {
@@ -53,7 +52,6 @@ class CDMABUFFormatTable {
     ~CDMABUFFormatTable();
 
     int                                                  tableFD   = -1;
-    size_t                                               tableLen  = 0;
     size_t                                               tableSize = 0;
     SDMABUFTranche                                       rendererTranche;
     std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> monitorTranches;

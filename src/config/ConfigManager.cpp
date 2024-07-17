@@ -9,8 +9,10 @@
 
 #include <cstddef>
 #include <cstdint>
+
 #include <hyprlang.hpp>
 #include <hyprutils/string/VarList.hpp>
+
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -367,6 +369,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:close_special_on_empty", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:background_color", Hyprlang::INT{0xff111111});
     m_pConfig->addConfigValue("misc:new_window_takes_over_fullscreen", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
 
@@ -645,6 +648,7 @@ CConfigManager::CConfigManager() {
         g_pHyprError->queueCreate(ERR.value(), CColor{1.0, 0.1, 0.1, 1.0});
 }
 
+
 /**
  * @brief Retrieves the configuration directory path.
  * @return The absolute path to the configuration directory.
@@ -653,15 +657,24 @@ CConfigManager::CConfigManager() {
 std::string CConfigManager::getConfigDir() {
     static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
 
-    if (xdgConfigHome && std::filesystem::path(xdgConfigHome).is_absolute())
-        return xdgConfigHome;
 
-    static const char* home = getenv("HOME");
+    if (!std::filesystem::is_directory(parentPath)) {
+        Debug::log(WARN, "Creating config home directory");
+        try {
+            std::filesystem::create_directories(parentPath);
+        } catch (std::exception e) { throw e; }
+    }
 
-    if (!home)
-        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME is set in the environment. Cannot determine config directory.");
+    Debug::log(WARN, "No config file found; attempting to generate.");
+    std::ofstream ofs;
+    ofs.open(configPath, std::ios::trunc);
+    ofs << AUTOCONFIG;
+    ofs.close();
 
-    return home + std::string("/.config");
+    if (!std::filesystem::exists(configPath))
+        return "Config could not be generated.";
+
+    return configPath;
 }
 
 /**
@@ -672,7 +685,23 @@ std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
 
-    return getConfigDir() + "/hypr/" + (ISDEBUG ? "hyprlandd.conf" : "hyprland.conf");
+    static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+    if (paths.first.has_value()) {
+        return paths.first.value();
+    } else if (paths.second.has_value()) {
+        auto configPath = Hyprutils::Path::fullConfigPath(paths.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+        return generateConfig(configPath).value();
+    } else
+        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+}
+
+std::optional<std::string> CConfigManager::verifyConfigExists() {
+    std::string mainConfigPath = getMainConfigPath();
+
+    if (!std::filesystem::exists(mainConfigPath))
+        return "broken config dir?";
+
+    return {};
 }
 
 /**
@@ -776,32 +805,6 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeLayersOut", "fadeLayers");
 
     CREATEANIMCFG("specialWorkspace", "workspaces");
-}
-
-std::optional<std::string> CConfigManager::verifyConfigExists() {
-    std::string mainConfigPath = getMainConfigPath();
-
-    if (g_pCompositor->explicitConfigPath.empty() && !std::filesystem::exists(mainConfigPath)) {
-        std::string configPath = std::filesystem::path(mainConfigPath).parent_path();
-
-        if (!std::filesystem::is_directory(configPath)) {
-            Debug::log(WARN, "Creating config home directory");
-            try {
-                std::filesystem::create_directories(configPath);
-            } catch (...) { return "Broken config file! (Could not create config directory)"; }
-        }
-
-        Debug::log(WARN, "No config file found; attempting to generate.");
-        std::ofstream ofs;
-        ofs.open(mainConfigPath, std::ios::trunc);
-        ofs << AUTOCONFIG;
-        ofs.close();
-    }
-
-    if (!std::filesystem::exists(mainConfigPath))
-        return "broken config dir?";
-
-    return {};
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {

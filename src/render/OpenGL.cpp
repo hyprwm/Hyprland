@@ -434,7 +434,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
         if (!w->m_bIsFloating && *POPTIM && !w->onSpecialWorkspace())
             continue;
 
-        if (w->m_sWindowData.noBlur.valueOrDefault() || !w->m_sWindowData.xray.hasValue() || w->m_sWindowData.xray.valueOrDefault())
+        if (w->m_sWindowData.noBlur.valueOrDefault() || w->m_sWindowData.xray.valueOrDefault())
             continue;
 
         if (w->opaque())
@@ -842,7 +842,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (path == "" || path == STRVAL_EMPTY)
         return;
 
-    std::ifstream infile(absolutePath(path, g_pConfigManager->getConfigDir()));
+    std::ifstream infile(absolutePath(path, g_pConfigManager->getMainConfigPath()));
 
     if (!infile.good()) {
         g_pConfigManager->addParseError("Screen shader parser: Screen shader path not found");
@@ -858,9 +858,11 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_sFinalScreenShader.proj      = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
-    m_sFinalScreenShader.tex       = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
-    m_sFinalScreenShader.time      = glGetUniformLocation(m_sFinalScreenShader.program, "time");
+    m_sFinalScreenShader.proj = glGetUniformLocation(m_sFinalScreenShader.program, "proj");
+    m_sFinalScreenShader.tex  = glGetUniformLocation(m_sFinalScreenShader.program, "tex");
+    m_sFinalScreenShader.time = glGetUniformLocation(m_sFinalScreenShader.program, "time");
+    if (m_sFinalScreenShader.time != -1)
+        m_sFinalScreenShader.initialTime = m_tGlobalTimer.getSeconds();
     m_sFinalScreenShader.wl_output = glGetUniformLocation(m_sFinalScreenShader.program, "wl_output");
     m_sFinalScreenShader.fullSize  = glGetUniformLocation(m_sFinalScreenShader.program, "screen_size");
     if (m_sFinalScreenShader.fullSize == -1)
@@ -1155,7 +1157,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     glUniform1i(shader->tex, 0);
 
     if ((usingFinalShader && *PDT == 0) || CRASHING) {
-        glUniform1f(shader->time, m_tGlobalTimer.getSeconds());
+        glUniform1f(shader->time, m_tGlobalTimer.getSeconds() - shader->initialTime);
     } else if (usingFinalShader && shader->time != -1) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);

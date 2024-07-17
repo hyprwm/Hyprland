@@ -465,9 +465,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 2)
             g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), false, FULLSCREEN_INVALID);
-        else if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED)
+        else if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             requestsMaximize = true;
-        else
+            if (*PNEWTAKESOVERFS == 1)
+                overridingNoMaximize = true;
+        } else
             requestsFullscreen = true;
     }
 
@@ -578,6 +580,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
+    static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
+
+    const auto  CURRENTWINDOWFSSTATE = PWINDOW->m_bIsFullscreen;
+    const auto  CURRENTWINDOWFSMODE  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_bFadingOut = false;
@@ -636,8 +643,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE)
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+            if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
+                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, CURRENTWINDOWFSMODE);
+        }
 
         if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
             g_pInputManager->refocus();

@@ -90,9 +90,13 @@
           stdenv = pkgsFor.${system}.gcc13Stdenv;
         } {
           name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [expat libxml2];
+          nativeBuildInputs = with pkgsFor.${system}; [
+            expat
+            libxml2
+          ];
           hardeningDisable = ["fortify"];
           inputsFrom = [pkgsFor.${system}.hyprland];
+          packages = [pkgsFor.${system}.clang-tools];
         };
     });
 

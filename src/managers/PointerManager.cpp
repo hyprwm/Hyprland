@@ -620,9 +620,18 @@ void CPointerManager::damageIfSoftware() {
 void CPointerManager::warpTo(const Vector2D& logical) {
     damageIfSoftware();
 
-    pointerPos = closestValid(logical);
-    recheckEnteredOutputs();
-    onCursorMoved();
+    pointerPos                        = closestValid(logical);
+    bool shouldSkipMonitorFocusChecks = false;
+    if (g_pInputManager->isConstrained()) {
+        const auto SURF              = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
+        const auto CONSTRAINT        = SURF ? SURF->constraint() : nullptr;
+        shouldSkipMonitorFocusChecks = CONSTRAINT && CONSTRAINT->isLocked();
+    }
+
+    if (!shouldSkipMonitorFocusChecks) {
+        recheckEnteredOutputs();
+        onCursorMoved();
+    }
 
     damageIfSoftware();
 }

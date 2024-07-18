@@ -482,8 +482,10 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
     CFramebuffer fb;
     fb.alloc(frame->box.w, frame->box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : frame->pMonitor->drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true))
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
+        Debug::log(ERR, "Screencopy: can't copy: failed to begin rendering");
         return false;
+    }
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecTransformedSize.x, frame->pMonitor->vecTransformedSize.y}.translate({-frame->box.x, -frame->box.y});
     g_pHyprOpenGL->setMonitorTransformEnabled(true);
@@ -500,6 +502,7 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
+        Debug::log(ERR, "Screencopy: can't copy: failed to find a pixel format");
         g_pHyprRenderer->endRender();
         return false;
     }
@@ -529,6 +532,8 @@ bool CScreencopyProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec*
 
     g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
 
+    Debug::log(TRACE, "Screencopy: copied frame via shm");
+
     return true;
 }
 
@@ -537,8 +542,10 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true))
+    if (!g_pHyprRenderer->beginRender(frame->pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock(), nullptr, true)) {
+        Debug::log(ERR, "Screencopy: can't copy: failed to begin rendering to dma frame");
         return false;
+    }
 
     CBox monbox = CBox{0, 0, frame->pMonitor->vecPixelSize.x, frame->pMonitor->vecPixelSize.y}
                       .translate({-frame->box.x, -frame->box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
@@ -551,6 +558,8 @@ bool CScreencopyProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame) {
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
+
+    Debug::log(TRACE, "Screencopy: copied frame via dma");
 
     return true;
 }

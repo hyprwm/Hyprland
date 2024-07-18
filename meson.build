@@ -1,5 +1,5 @@
 project('Hyprland', 'cpp', 'c',
-  version : run_command('jq', '-r', '.version', join_paths(meson.source_root(), 'props.json'), check: true).stdout().strip(),
+  version : run_command('cat', join_paths(meson.source_root(), 'VERSION'), check: true).stdout().strip(),
   default_options : [
     'warning_level=2',
     'default_library=static',

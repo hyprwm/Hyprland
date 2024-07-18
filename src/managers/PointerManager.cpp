@@ -948,6 +948,12 @@ void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const 
     storedUnaccel += deltaUnaccel;
 }
 
+void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
+    storedTime    = time;
+    storedDelta   = delta;
+    storedUnaccel = deltaUnaccel;
+}
+
 void CPointerManager::sendStoredMovement() {
     PROTO::relativePointer->sendRelativeMotion((uint64_t)storedTime * 1000, storedDelta, storedUnaccel);
     storedTime    = 0;

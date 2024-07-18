@@ -7,6 +7,9 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+hyprland.pc
 _deps
 
 build/
@@ -15,6 +18,9 @@ result*
 /.idea/
 .envrc
 .cache
+.direnv
+/.cmake/
+/.worktree/
 
 *.o
 protocols/*.c*
@@ -31,5 +37,3 @@ gmon.out
 PKGBUILD
 
 src/version.h
-
-.direnv

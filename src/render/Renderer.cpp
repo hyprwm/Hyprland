@@ -1953,8 +1953,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     };
     // clang-format on
 
-    bool set10bit       = false;
-    pMonitor->drmFormat = DRM_FORMAT_INVALID;
+    bool set10bit = false;
 
     for (auto& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
@@ -1965,8 +1964,6 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
             Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
             if (RULE->enable10bit && fmt.first.contains("101010"))
                 set10bit = true;
-
-            pMonitor->drmFormat = fmt.second;
             break;
         }
     }
@@ -2661,7 +2658,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         m_pCurrentBuffer = buffer;
 
     try {
-        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentBuffer, pMonitor->drmFormat);
+        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentBuffer, pMonitor->output->state->state().drmFormat);
     } catch (std::exception& e) {
         Debug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->szName);
         return false;

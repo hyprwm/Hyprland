@@ -1942,33 +1942,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->customDrmMode = {};
     pMonitor->currentMode   = nullptr;
 
-    // clang-format off
-    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
-        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
-        },
-        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
-            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
-        }
-    };
-    // clang-format on
-
-    bool set10bit = false;
-
-    for (auto& fmt : formats[(int)!RULE->enable10bit]) {
-        pMonitor->output->state->setFormat(fmt.second);
-
-        if (!pMonitor->state.test()) {
-            Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
-        } else {
-            Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
-            if (RULE->enable10bit && fmt.first.contains("101010"))
-                set10bit = true;
-            break;
-        }
-    }
-
-    pMonitor->enabled10bit = set10bit;
+    pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
 
     bool autoScale = false;
 
@@ -2200,6 +2174,34 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
         || pMonitor->createdByUser;                                     // wayland backend doesn't allow for disabling adaptive_sync
 
     pMonitor->vecPixelSize = pMonitor->vecSize;
+
+    // clang-format off
+    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
+        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        },
+        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+        }
+    };
+    // clang-format on
+
+    bool set10bit = false;
+
+    for (auto& fmt : formats[(int)!RULE->enable10bit]) {
+        pMonitor->output->state->setFormat(fmt.second);
+
+        if (!pMonitor->state.test()) {
+            Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
+        } else {
+            Debug::log(LOG, "output {} succeeded basic test on format {}", pMonitor->szName, fmt.first);
+            if (RULE->enable10bit && fmt.first.contains("101010"))
+                set10bit = true;
+            break;
+        }
+    }
+
+    pMonitor->enabled10bit = set10bit;
 
     Vector2D logicalSize = pMonitor->vecPixelSize / pMonitor->scale;
     if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {

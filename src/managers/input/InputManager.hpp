@@ -278,6 +278,14 @@ class CInputManager {
 
     void restoreCursorIconToApp(); // no-op if restored
 
+    // discrete scrolling emulation using v120 data
+    struct {
+        bool     lastEventSign     = 0;
+        bool     lastEventAxis     = 0;
+        uint32_t lastEventTime     = 0;
+        uint32_t accumulatedScroll = 0;
+    } m_ScrollWheelState;
+
     friend class CKeybindManager;
     friend class CWLSurface;
 };

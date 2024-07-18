@@ -760,6 +760,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     static auto POFFWINDOWAXIS        = CConfigValue<Hyprlang::INT>("input:off_window_axis_events");
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
+    static auto PEMULATEDISCRETE      = CConfigValue<Hyprlang::INT>("input:emulate_discrete_scroll");
 
     auto        factor = (*PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR);
 
@@ -798,9 +799,44 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
             }
         }
     }
-    double deltaDiscrete = (e.deltaDiscrete != 0) ? (factor * e.deltaDiscrete / std::abs(e.deltaDiscrete)) : 0;
-    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, factor * e.delta, deltaDiscrete > 0 ? std::ceil(deltaDiscrete) : std::floor(deltaDiscrete),
-                                    std::round(factor * e.deltaDiscrete), e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+
+    double discrete = (e.deltaDiscrete != 0) ? (factor * e.deltaDiscrete / std::abs(e.deltaDiscrete)) : 0;
+    double delta    = e.delta * factor;
+
+    if (e.source == 0) {
+        // if an application supports v120, it should ignore discrete anyways
+        if ((*PEMULATEDISCRETE >= 1 && std::abs(e.deltaDiscrete) != 120) || *PEMULATEDISCRETE >= 2) {
+
+            const int interval = factor != 0 ? std::round(120 * (1 / factor)) : 120;
+
+            // reset the accumulator when timeout is reached or direction/axis has changed
+            if (std::signbit(e.deltaDiscrete) != m_ScrollWheelState.lastEventSign || e.axis != m_ScrollWheelState.lastEventAxis ||
+                e.timeMs - m_ScrollWheelState.lastEventTime > 500 /* 500ms taken from libinput default timeout */) {
+
+                m_ScrollWheelState.accumulatedScroll = 0;
+                // send 1 discrete on first event for responsiveness
+                discrete = std::copysign(1, e.deltaDiscrete);
+            } else
+                discrete = 0;
+
+            for (int ac = m_ScrollWheelState.accumulatedScroll; ac >= interval; ac -= interval) {
+                discrete += std::copysign(1, e.deltaDiscrete);
+                m_ScrollWheelState.accumulatedScroll -= interval;
+            }
+
+            m_ScrollWheelState.lastEventSign = std::signbit(e.deltaDiscrete);
+            m_ScrollWheelState.lastEventAxis = e.axis;
+            m_ScrollWheelState.lastEventTime = e.timeMs;
+            m_ScrollWheelState.accumulatedScroll += std::abs(e.deltaDiscrete);
+
+            delta = 15.0 * discrete * factor;
+        }
+    }
+
+    int32_t value120      = std::round(factor * e.deltaDiscrete);
+    int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
+
+    g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

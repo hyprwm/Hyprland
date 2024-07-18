@@ -27,6 +27,7 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
@@ -533,19 +534,28 @@ void CCompositor::prepareFallbackOutput() {
     wlr_headless_add_output(headless, 1920, 1080);
 }
 
-void CCompositor::startCompositor() {
+void CCompositor::startCompositor(std::string socketName, int socketFd) {
     initAllSignals();
 
-    // get socket, avoid using 0
-    for (int candidate = 1; candidate <= 32; candidate++) {
-        const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
-        const auto RETVAL       = wl_display_add_socket(m_sWLDisplay, CANDIDATESTR.c_str());
+    if (!socketName.empty() && socketFd != -1) {
+        fcntl(socketFd, F_SETFD, FD_CLOEXEC);
+        const auto RETVAL = wl_display_add_socket_fd(m_sWLDisplay, socketFd);
         if (RETVAL >= 0) {
-            m_szWLDisplaySocket = CANDIDATESTR;
-            Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
-            break;
-        } else {
-            Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
+            m_szWLDisplaySocket = socketName;
+            Debug::log(LOG, "wl_display_add_socket_fd for {} succeeded with {}", socketName, RETVAL);
+        } else
+            Debug::log(WARN, "wl_display_add_socket_fd for {} returned {}: skipping", socketName, RETVAL);
+    } else {
+        // get socket, avoid using 0
+        for (int candidate = 1; candidate <= 32; candidate++) {
+            const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
+            const auto RETVAL       = wl_display_add_socket(m_sWLDisplay, CANDIDATESTR.c_str());
+            if (RETVAL >= 0) {
+                m_szWLDisplaySocket = CANDIDATESTR;
+                Debug::log(LOG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
+                break;
+            } else
+                Debug::log(WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
         }
     }
 

@@ -472,6 +472,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:scroll_button_lock", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:scroll_factor", {1.f});
     m_pConfig->addConfigValue("input:scroll_points", {STRVAL_EMPTY});
+    m_pConfig->addConfigValue("input:emulate_discrete_scroll", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:touchpad:natural_scroll", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:touchpad:disable_while_typing", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:touchpad:clickfinger_behavior", Hyprlang::INT{0});

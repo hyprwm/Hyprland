@@ -4,8 +4,8 @@ include(CheckIncludeFile)
 include(GNUInstallDirs)
 
 # Get version
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/props.json PROPS)
-string(JSON VER GET ${PROPS} version)
+file(READ "${CMAKE_SOURCE_DIR}/VERSION" VER_RAW)
+string(STRIP ${VER_RAW} VER)
 
 project(Hyprland
     DESCRIPTION "A Modern C++ Wayland Compositor"

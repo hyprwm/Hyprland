@@ -3,13 +3,12 @@
   lib,
   inputs,
 }: let
-  props = builtins.fromJSON (builtins.readFile ../props.json);
-
   mkDate = longDate: (lib.concatStringsSep "-" [
     (builtins.substring 0 4 longDate)
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
+  version = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
 in {
   # Contains what a user is most likely to care about:
   # Hyprland itself, XDPH and the Share Picker.
@@ -33,7 +32,7 @@ in {
     in {
       hyprland = final.callPackage ./default.nix {
         stdenv = final.gcc13Stdenv;
-        version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
+        version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         inherit date;
       };

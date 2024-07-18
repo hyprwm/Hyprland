@@ -188,11 +188,19 @@ CWLSHMProtocol::CWLSHMProtocol(const wl_interface* iface, const int& ver, const 
 
 void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     if (shmFormats.empty()) {
-        size_t len = 0;
-        // TODO: support 10 bit shm
-
         shmFormats.push_back(WL_SHM_FORMAT_ARGB8888);
         shmFormats.push_back(WL_SHM_FORMAT_XRGB8888);
+
+        static const std::array<DRMFormat, 6> supportedShmFourccFormats = {
+            DRM_FORMAT_XBGR8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_XRGB2101010, DRM_FORMAT_ARGB2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_ABGR2101010,
+        };
+
+        for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+            if (std::find(supportedShmFourccFormats.begin(), supportedShmFourccFormats.end(), fmt.drmFormat) == supportedShmFourccFormats.end())
+                continue;
+
+            shmFormats.push_back(fmt.drmFormat);
+        }
     }
 
     const auto RESOURCE = m_vManagers.emplace_back(makeShared<CWLSHMResource>(makeShared<CWlShm>(client, ver, id)));

@@ -4,6 +4,7 @@
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 
+#include <fcntl.h>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -66,7 +67,19 @@ int main(int argc, char** argv) {
                 return 1;
             }
 
-            socketFd = std::atoi(std::next(it)->c_str());
+            try {
+                socketFd = std::stoi(std::next(it)->c_str());
+
+                // check if socketFd is a valid file descriptor
+                if (fcntl(socketFd, F_GETFD) == -1)
+                    throw std::exception();
+            } catch (...) {
+                std::cerr << "[ ERROR ] Invalid Wayland FD!\n";
+                help();
+
+                return 1;
+            }
+
             it++;
         } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
             if (std::next(it) == args.end()) {

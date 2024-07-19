@@ -1214,7 +1214,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    if (!pMonitor->damage.hasChanged() && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && damageBlinkCleanup == 0)
+    bool hasChanged = pMonitor->output->needsFrame || pMonitor->damage.hasChanged();
+
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
         return;
 
     if (*PDAMAGETRACKINGMODE == -1) {

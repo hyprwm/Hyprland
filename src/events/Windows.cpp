@@ -736,6 +736,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
+    PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
     if (g_pSeatManager->isPointerFrameCommit) {
         g_pSeatManager->isPointerFrameSkipped = false;
         g_pSeatManager->isPointerFrameCommit  = false;

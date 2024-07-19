@@ -443,7 +443,14 @@ void CWLSurfaceResource::commitPendingState() {
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
     if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
-        previousBuffer->sendReleaseWithSurface(self.lock());
+        if (previousBuffer->lockedByBackend) {
+            previousBuffer->hlEvents.backendRelease = previousBuffer->events.backendRelease.registerListener([this, previousBuffer](std::any data) {
+                previousBuffer->sendReleaseWithSurface(self.lock());
+                previousBuffer->hlEvents.backendRelease.reset();
+            });
+        } else
+            previousBuffer->sendReleaseWithSurface(self.lock());
+
         bufferReleased = true;
     }
 }

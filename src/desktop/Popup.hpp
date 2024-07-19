@@ -60,8 +60,8 @@ class CPopup {
     bool                  m_bMapped = false;
 
     //
-    std::vector<std::unique_ptr<CPopup>> m_vChildren;
-    std::unique_ptr<CSubsurface>         m_pSubsurfaceHead;
+    std::vector<SP<CPopup>>      m_vChildren;
+    std::unique_ptr<CSubsurface> m_pSubsurfaceHead;
 
     struct {
         CHyprSignalListener newPopup;

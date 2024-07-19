@@ -4,6 +4,7 @@
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 
+#include <fcntl.h>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -16,6 +17,8 @@ void help() {
     std::cout << "\nArguments:\n";
     std::cout << "  --help              -h       - Show this message again\n";
     std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
+    std::cout << "  --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)\n";
+    std::cout << "  --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)\n";
     std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
 }
 
@@ -37,6 +40,8 @@ int main(int argc, char** argv) {
 
     // parse some args
     std::string              configPath;
+    std::string              socketName;
+    int                      socketFd   = -1;
     bool                     ignoreSudo = false;
 
     std::vector<std::string> args{argv + 1, argv + argc};
@@ -46,6 +51,36 @@ int main(int argc, char** argv) {
             std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
 
             ignoreSudo = true;
+        } else if (it->compare("--socket") == 0) {
+            if (std::next(it) == args.end()) {
+                help();
+
+                return 1;
+            }
+
+            socketName = *std::next(it);
+            it++;
+        } else if (it->compare("--wayland-fd") == 0) {
+            if (std::next(it) == args.end()) {
+                help();
+
+                return 1;
+            }
+
+            try {
+                socketFd = std::stoi(std::next(it)->c_str());
+
+                // check if socketFd is a valid file descriptor
+                if (fcntl(socketFd, F_GETFD) == -1)
+                    throw std::exception();
+            } catch (...) {
+                std::cerr << "[ ERROR ] Invalid Wayland FD!\n";
+                help();
+
+                return 1;
+            }
+
+            it++;
         } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
             if (std::next(it) == args.end()) {
                 help();
@@ -93,6 +128,13 @@ int main(int argc, char** argv) {
         std::cout << "Superuser privileges check is omitted. I hope you know what you're doing.\n";
     }
 
+    if (socketName.empty() ^ (socketFd == -1)) {
+        std::cerr << "[ ERROR ] Hyprland was launched with only one of --socket and --wayland-fd.\n";
+        std::cerr << "          Hint: Pass both --socket and --wayland-fd to perform Wayland socket handover.\n";
+
+        return 1;
+    }
+
     std::cout << "Welcome to Hyprland!\n";
 
     // let's init the compositor.
@@ -113,7 +155,7 @@ int main(int argc, char** argv) {
     Debug::log(LOG, "Hyprland init finished.");
 
     // If all's good to go, start.
-    g_pCompositor->startCompositor();
+    g_pCompositor->startCompositor(socketName, socketFd);
 
     g_pCompositor->m_bIsShuttingDown = true;
 

@@ -41,6 +41,12 @@ OPTIONS
 **-c**, **--config**
     Specify config file to use.
 
+**--socket**
+    Sets the Wayland socket name (for Wayland socket handover)
+
+**--wayland-fd**
+    Sets the Wayland socket file descriptor (for Wayland socket handover)
+
 BUGS
 ====
 

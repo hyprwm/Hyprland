@@ -447,6 +447,7 @@ void CWLSurfaceResource::commitPendingState() {
             previousBuffer->hlEvents.backendRelease = previousBuffer->events.backendRelease.registerListener([this, previousBuffer](std::any data) {
                 previousBuffer->sendReleaseWithSurface(self.lock());
                 previousBuffer->hlEvents.backendRelease.reset();
+                bufferReleased = true;
             });
         } else
             previousBuffer->sendReleaseWithSurface(self.lock());

@@ -1167,6 +1167,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
     }
 
+    if (!pMonitor->output->needsFrame && pMonitor->forceFullFrames == 0)
+        return;
+
     // tearing and DS first
     bool shouldTear = false;
     if (pMonitor->tearingState.nextRenderTorn) {
@@ -1211,9 +1214,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     // check the damage
-    bool hasChanged = pMonitor->output->needsFrame || pMonitor->damage.hasChanged();
-
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
+    if (!pMonitor->damage.hasChanged() && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && damageBlinkCleanup == 0)
         return;
 
     if (*PDAMAGETRACKINGMODE == -1) {

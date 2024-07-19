@@ -441,7 +441,8 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tches;
 
         if (g_pCompositor->m_pAqBackend->hasSession()) {
-            // this assumes there's 1 device used for scanout and each monitor never changes its primary plane
+            // this assumes there's only 1 device used for both scanout and rendering
+            // also that each monitor never changes its primary plane
 
             for (auto& mon : g_pCompositor->m_vMonitors) {
                 auto tranche = SDMABUFTranche{
@@ -594,10 +595,6 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     LOGM(LOG, "updateScanoutTranche: sending a scanout tranche");
 
-    // send a dedicated scanout tranche that contains formats that:
-    //  - match the format of the output
-    //  - are not linear or implicit
-
     struct wl_array deviceArr = {
         .size = sizeof(mainDevice),
         .data = (void*)&mainDevice,
@@ -605,7 +602,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
     feedbackResource->resource->sendMainDevice(&deviceArr);
 
     // prioritize scnaout tranche but have renderer fallback tranche
-    // also yes flags can be duped here because different tranche flags (ds and no ds)
+    // also yes formats can be duped here because different tranche flags (ds and no ds)
     feedbackResource->sendTranche(monitorTranche);
     feedbackResource->sendTranche(formatTable->rendererTranche);
 

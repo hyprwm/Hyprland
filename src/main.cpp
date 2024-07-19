@@ -128,6 +128,13 @@ int main(int argc, char** argv) {
         std::cout << "Superuser privileges check is omitted. I hope you know what you're doing.\n";
     }
 
+    if (socketName.empty() ^ (socketFd == -1)) {
+        std::cerr << "[ ERROR ] Hyprland was launched with only one of --socket and --wayland-fd.\n";
+        std::cerr << "          Hint: Pass both --socket and --wayland-fd to perform Wayland socket handover.\n";
+
+        return 1;
+    }
+
     std::cout << "Welcome to Hyprland!\n";
 
     // let's init the compositor.

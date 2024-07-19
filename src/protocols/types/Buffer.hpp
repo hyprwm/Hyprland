@@ -22,4 +22,8 @@ class IHLBuffer : public Aquamarine::IBuffer {
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
+
+    struct {
+        CHyprSignalListener backendRelease;
+    } hlEvents;
 };

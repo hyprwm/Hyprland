@@ -5,5 +5,6 @@ void IHLBuffer::sendRelease() {
 }
 
 void IHLBuffer::sendReleaseWithSurface(SP<CWLSurfaceResource> surf) {
-    resource->sendReleaseWithSurface(surf);
+    if (resource && resource->good())
+        resource->sendReleaseWithSurface(surf);
 }

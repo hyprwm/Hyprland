@@ -1088,53 +1088,6 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
-    if (!pMonitor->mirrors.empty() || pMonitor->isMirror() || m_bDirectScanoutBlocked)
-        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
-
-    if (g_pPointerManager->softwareLockedFor(pMonitor->self.lock()))
-        return false;
-
-    const auto PCANDIDATE = pMonitor->solitaryClient.lock();
-
-    if (!PCANDIDATE)
-        return false;
-
-    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
-
-    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != pMonitor->vecPixelSize || PSURFACE->current.transform != pMonitor->transform)
-        return false;
-
-    // we can't scanout shm buffers.
-    if (!PSURFACE->current.buffer->dmabuf().success)
-        return false;
-
-    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
-    // and comes from the appropriate device. This may implode on multi-gpu!!
-
-    pMonitor->output->state->setBuffer(PSURFACE->current.buffer);
-
-    if (!pMonitor->state.test())
-        return false;
-
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    Debug::log(TRACE, "presentFeedback for DS");
-    PSURFACE->presentFeedback(&now, pMonitor, true);
-
-    if (pMonitor->state.commit()) {
-        if (m_pLastScanout.expired()) {
-            m_pLastScanout = PCANDIDATE;
-            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
-        }
-    } else {
-        m_pLastScanout.reset();
-        return false;
-    }
-
-    return true;
-}
-
 void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -1214,6 +1167,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
     }
 
+    if (!pMonitor->output->needsFrame && pMonitor->forceFullFrames == 0)
+        return;
+
     // tearing and DS first
     bool shouldTear = false;
     if (pMonitor->tearingState.nextRenderTorn) {
@@ -1239,11 +1195,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
-        if (attemptDirectScanout(pMonitor)) {
+        if (pMonitor->attemptDirectScanout()) {
             return;
-        } else if (!m_pLastScanout.expired()) {
+        } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
-            m_pLastScanout.reset();
+            pMonitor->lastScanout.reset();
         }
     }
 

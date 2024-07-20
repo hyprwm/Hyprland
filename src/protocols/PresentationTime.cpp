@@ -60,7 +60,7 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     if (reportedFlags & WLR_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    if (data->wasPresented)
+    if (data->wasPresented && when)
         resource->sendPresented((uint32_t)(when->tv_sec >> 32), (uint32_t)(when->tv_sec & 0xFFFFFFFF), (uint32_t)(when->tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
                                 (uint32_t)(seq & 0xFFFFFFFF), (wpPresentationFeedbackKind)flags);
     else

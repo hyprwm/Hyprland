@@ -124,6 +124,14 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
         nodeName = dev->nodes[DRM_NODE_RENDER];
     } else {
         ASSERT(dev->available_nodes & (1 << DRM_NODE_PRIMARY));
+
+        if (!dev->nodes[DRM_NODE_PRIMARY]) {
+            LOGM(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
+            drmFreeDevice(&dev);
+            removeGlobal();
+            return;
+        }
+
         LOGM(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
         nodeName = dev->nodes[DRM_NODE_PRIMARY];
     }

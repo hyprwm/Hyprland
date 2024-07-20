@@ -425,8 +425,8 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {
-            LOGM(ERR, "failed to get drm dev");
-            PROTO::linuxDma.reset();
+            protoLog(ERR, "failed to get drm dev, disabling linux dmabuf");
+            removeGlobal();
             return;
         }
 
@@ -477,8 +477,8 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         drmDevice* device = nullptr;
         if (drmGetDeviceFromDevId(mainDevice, 0, &device) != 0) {
-            LOGM(ERR, "failed to get drm dev");
-            PROTO::linuxDma.reset();
+            protoLog(ERR, "failed to get drm dev, disabling linux dmabuf");
+            removeGlobal();
             return;
         }
 
@@ -487,13 +487,14 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             mainDeviceFD     = open(name, O_RDWR | O_CLOEXEC);
             drmFreeDevice(&device);
             if (mainDeviceFD < 0) {
-                LOGM(ERR, "failed to open drm dev");
-                PROTO::linuxDma.reset();
+                protoLog(ERR, "failed to open drm dev, disabling linux dmabuf");
+                removeGlobal();
                 return;
             }
         } else {
-            LOGM(ERR, "DRM device {} has no render node!!", device->nodes[DRM_NODE_PRIMARY] ? device->nodes[DRM_NODE_PRIMARY] : "null");
+            protoLog(ERR, "DRM device {} has no render node, disabling linux dmabuf", device->nodes[DRM_NODE_PRIMARY] ? device->nodes[DRM_NODE_PRIMARY] : "null");
             drmFreeDevice(&device);
+            removeGlobal();
         }
     });
 }

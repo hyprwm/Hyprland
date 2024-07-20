@@ -115,8 +115,8 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
     drmDevice* dev   = nullptr;
     int        drmFD = g_pCompositor->m_iDRMFD;
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
-        LOGM(ERR, "Failed to get device");
-        PROTO::mesaDRM.reset();
+        protoLog(ERR, "Failed to get device, disabling MesaDRM");
+        removeGlobal();
         return;
     }
 
@@ -126,13 +126,13 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
         ASSERT(dev->available_nodes & (1 << DRM_NODE_PRIMARY));
 
         if (!dev->nodes[DRM_NODE_PRIMARY]) {
-            LOGM(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
+            protoLog(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
             drmFreeDevice(&dev);
             removeGlobal();
             return;
         }
 
-        LOGM(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
+        protoLog(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
         nodeName = dev->nodes[DRM_NODE_PRIMARY];
     }
     drmFreeDevice(&dev);

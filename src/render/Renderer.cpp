@@ -2622,6 +2622,11 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         return false;
     }
 
+    if (!m_pCurrentRenderbuffer) {
+        Debug::log(ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->szName);
+        return false;
+    }
+
     if (mode == RENDER_MODE_NORMAL) {
         damage = pMonitor->damage.getBufferDamage(HL_BUFFER_AGE);
         pMonitor->damage.rotate();

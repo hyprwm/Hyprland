@@ -445,7 +445,10 @@ void CWLSurfaceResource::commitPendingState() {
     if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
         if (previousBuffer->lockedByBackend) {
             previousBuffer->hlEvents.backendRelease = previousBuffer->events.backendRelease.registerListener([this, previousBuffer](std::any data) {
-                previousBuffer->sendReleaseWithSurface(self.lock());
+                if (!self.expired()) // could be dead in the dtor
+                    previousBuffer->sendReleaseWithSurface(self.lock());
+                else
+                    previousBuffer->sendRelease();
                 previousBuffer->hlEvents.backendRelease.reset();
                 bufferReleased = true;
             });

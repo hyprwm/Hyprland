@@ -35,7 +35,7 @@ void CWLBufferResource::sendRelease() {
 void CWLBufferResource::sendReleaseWithSurface(SP<CWLSurfaceResource> surf) {
     sendRelease();
 
-    if (!surf->syncobj)
+    if (!surf || !surf->syncobj)
         return;
 
     if (drmSyncobjTimelineSignal(g_pCompositor->m_iDRMFD, &surf->syncobj->releaseTimeline->timeline->handle, &surf->syncobj->releasePoint, 1))

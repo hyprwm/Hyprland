@@ -492,7 +492,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 return;
             }
         } else {
-            LOGM(ERR, "DRM device {} has no render node!!", device->nodes[DRM_NODE_PRIMARY]);
+            LOGM(ERR, "DRM device {} has no render node!!", device->nodes[DRM_NODE_PRIMARY] ? device->nodes[DRM_NODE_PRIMARY] : "null");
             drmFreeDevice(&device);
         }
     });

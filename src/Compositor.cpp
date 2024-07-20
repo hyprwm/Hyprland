@@ -632,8 +632,6 @@ void CCompositor::prepareFallbackOutput() {
 }
 
 void CCompositor::startCompositor(std::string socketName, int socketFd) {
-    initAllSignals();
-
     if (!socketName.empty() && socketFd != -1) {
         fcntl(socketFd, F_SETFD, FD_CLOEXEC);
         const auto RETVAL = wl_display_add_socket_fd(m_sWLDisplay, socketFd);

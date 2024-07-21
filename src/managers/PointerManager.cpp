@@ -299,7 +299,7 @@ void CPointerManager::onCursorMoved() {
             continue;
 
         const auto CURSORPOS = getCursorPosForMonitor(m);
-        m->output->moveCursor(CURSORPOS);
+        m->output->moveCursor(CURSORPOS, m->shouldSkipScheduleFrameOnMouseEvent());
     }
 }
 
@@ -310,7 +310,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
         return false;
 
     const auto CURSORPOS = getCursorPosForMonitor(state->monitor.lock());
-    state->monitor->output->moveCursor(CURSORPOS);
+    state->monitor->output->moveCursor(CURSORPOS, state->monitor->shouldSkipScheduleFrameOnMouseEvent());
 
     auto texture = getCurrentCursorTexture();
 
@@ -353,7 +353,8 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     state->cursorFrontBuffer = buf;
 
-    g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+    if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
+        g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
     return true;
 }

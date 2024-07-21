@@ -2285,6 +2285,8 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 void CCompositor::setWindowFullscreen(PHLWINDOW pWindow, bool on, eFullscreenMode mode) {
+    static auto PNODIRECTSCANOUT = CConfigValue<Hyprlang::INT>("misc:no_direct_scanout");
+
     if (!validMapped(pWindow) || g_pCompositor->m_bUnsafeState)
         return;
 
@@ -2333,7 +2335,9 @@ void CCompositor::setWindowFullscreen(PHLWINDOW pWindow, bool on, eFullscreenMod
         return;
 
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
-    g_pHyprRenderer->setSurfaceScanoutMode(pWindow->m_pWLSurface->resource(), on ? PMONITOR->self.lock() : nullptr);
+    // ignore if DS is disabled.
+    if (!*PNODIRECTSCANOUT)
+        g_pHyprRenderer->setSurfaceScanoutMode(pWindow->m_pWLSurface->resource(), on ? PMONITOR->self.lock() : nullptr);
 
     g_pConfigManager->ensureVRR(PMONITOR);
 }

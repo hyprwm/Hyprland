@@ -62,7 +62,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     if (!motion)
         return;
 
-    if (LASTHLSURFACE->constraint() && tool->wlr()->type != WLR_TABLET_TOOL_TYPE_MOUSE) {
+    if (LASTHLSURFACE->constraint() && tool->aq()->type != Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE) {
         // cursor logic will completely break here as the cursor will be locked.
         // let's just "map" the desired position to the constraint area.
 
@@ -102,7 +102,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
         Vector2D delta = {std::isnan(dx) ? 0.0 : dx, std::isnan(dy) ? 0.0 : dy};
 
         switch (e.tool->type) {
-            case WLR_TABLET_TOOL_TYPE_MOUSE: {
+            case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE: {
                 g_pPointerManager->move(delta);
                 break;
             }
@@ -205,12 +205,12 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
     PROTO::idle->onActivity();
 }
 
-void CInputManager::newTablet(wlr_input_device* pDevice) {
-    const auto PNEWTABLET = m_vTablets.emplace_back(CTablet::create(wlr_tablet_from_input_device(pDevice)));
+void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
+    const auto PNEWTABLET = m_vTablets.emplace_back(CTablet::create(pDevice));
     m_vHIDs.push_back(PNEWTABLET);
 
     try {
-        PNEWTABLET->hlName = deviceNameToInternalString(pDevice->name);
+        PNEWTABLET->hlName = deviceNameToInternalString(pDevice->getName());
     } catch (std::exception& e) {
         Debug::log(ERR, "Tablet had no name???"); // logic error
     }
@@ -227,28 +227,32 @@ void CInputManager::newTablet(wlr_input_device* pDevice) {
     setTabletConfigs();
 }
 
-SP<CTabletTool> CInputManager::ensureTabletToolPresent(wlr_tablet_tool* pTool) {
-    if (pTool->data == nullptr) {
-        const auto PTOOL = m_vTabletTools.emplace_back(CTabletTool::create(pTool));
-        m_vHIDs.push_back(PTOOL);
+SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletTool> pTool) {
 
-        PTOOL->events.destroy.registerStaticListener(
-            [this](void* owner, std::any d) {
-                auto TOOL = ((CTabletTool*)owner)->self;
-                destroyTabletTool(TOOL.lock());
-            },
-            PTOOL.get());
+    for (auto& t : m_vTabletTools) {
+        if (t->aq() == pTool)
+            return t;
     }
 
-    return CTabletTool::fromWlr(pTool);
+    const auto PTOOL = m_vTabletTools.emplace_back(CTabletTool::create(pTool));
+    m_vHIDs.push_back(PTOOL);
+
+    PTOOL->events.destroy.registerStaticListener(
+        [this](void* owner, std::any d) {
+            auto TOOL = ((CTabletTool*)owner)->self;
+            destroyTabletTool(TOOL.lock());
+        },
+        PTOOL.get());
+
+    return PTOOL;
 }
 
-void CInputManager::newTabletPad(wlr_input_device* pDevice) {
-    const auto PNEWPAD = m_vTabletPads.emplace_back(CTabletPad::create(wlr_tablet_pad_from_input_device(pDevice)));
+void CInputManager::newTabletPad(SP<Aquamarine::ITabletPad> pDevice) {
+    const auto PNEWPAD = m_vTabletPads.emplace_back(CTabletPad::create(pDevice));
     m_vHIDs.push_back(PNEWPAD);
 
     try {
-        PNEWPAD->hlName = deviceNameToInternalString(pDevice->name);
+        PNEWPAD->hlName = deviceNameToInternalString(pDevice->getName());
     } catch (std::exception& e) {
         Debug::log(ERR, "Pad had no name???"); // logic error
     }
@@ -259,7 +263,7 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
         destroyTabletPad(PAD.lock());
     }, PNEWPAD.get());
 
-    PNEWPAD->padEvents.button.registerStaticListener([this](void* owner, std::any e) {
+    PNEWPAD->padEvents.button.registerStaticListener([](void* owner, std::any e) {
         const auto E = std::any_cast<CTabletPad::SButtonEvent>(e);
         const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
@@ -267,26 +271,25 @@ void CInputManager::newTabletPad(wlr_input_device* pDevice) {
         PROTO::tablet->buttonPad(PPAD, E.button, E.timeMs, E.down);
     }, PNEWPAD.get());
 
-    PNEWPAD->padEvents.strip.registerStaticListener([this](void* owner, std::any e) {
+    PNEWPAD->padEvents.strip.registerStaticListener([](void* owner, std::any e) {
         const auto E = std::any_cast<CTabletPad::SStripEvent>(e);
         const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
         PROTO::tablet->strip(PPAD, E.strip, E.position, E.finger, E.timeMs);
     }, PNEWPAD.get());
 
-    PNEWPAD->padEvents.ring.registerStaticListener([this](void* owner, std::any e) {
+    PNEWPAD->padEvents.ring.registerStaticListener([](void* owner, std::any e) {
         const auto E = std::any_cast<CTabletPad::SRingEvent>(e);
         const auto PPAD  = ((CTabletPad*)owner)->self.lock();
 
         PROTO::tablet->ring(PPAD, E.ring, E.position, E.finger, E.timeMs);
     }, PNEWPAD.get());
 
-    PNEWPAD->padEvents.attach.registerStaticListener([this](void* owner, std::any e) {
+    PNEWPAD->padEvents.attach.registerStaticListener([](void* owner, std::any e) {
         const auto PPAD  = ((CTabletPad*)owner)->self.lock();
         const auto TOOL = std::any_cast<SP<CTabletTool>>(e);
 
         PPAD->parent = TOOL;
     }, PNEWPAD.get());
-
     // clang-format on
 }

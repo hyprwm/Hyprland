@@ -15,6 +15,8 @@ class IPointer;
 class IKeyboard;
 class CWLSurfaceResource;
 
+AQUAMARINE_FORWARD(ISwitch);
+
 struct SRenderData {
     CMonitor* pMonitor;
     timespec* when;
@@ -70,14 +72,14 @@ struct SSwipeGesture {
 };
 
 struct SSwitchDevice {
-    wlr_input_device* pWlrDevice = nullptr;
+    WP<Aquamarine::ISwitch> pDevice;
 
-    int               status = -1; // uninitialized
-
-    DYNLISTENER(destroy);
-    DYNLISTENER(toggle);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener fire;
+    } listeners;
 
     bool operator==(const SSwitchDevice& other) const {
-        return pWlrDevice == other.pWlrDevice;
+        return pDevice == other.pDevice;
     }
 };

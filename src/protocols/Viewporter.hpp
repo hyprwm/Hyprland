@@ -15,11 +15,14 @@ class CViewportResource {
     ~CViewportResource();
 
     bool                   good();
-    void                   verify();
     WP<CWLSurfaceResource> surface;
 
   private:
     SP<CWpViewport> resource;
+
+    struct {
+        CHyprSignalListener surfacePrecommit;
+    } listeners;
 };
 
 class CViewporterResource {

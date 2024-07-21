@@ -6,6 +6,7 @@
   makeWrapper,
   cmake,
   ninja,
+  aquamarine,
   binutils,
   cairo,
   expat,
@@ -104,6 +105,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     buildInputs = lib.concatLists [
       [
+        aquamarine
         cairo
         expat
         fribidi
@@ -136,6 +138,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [
         xorg.libxcb
+        xorg.libXcursor
         xorg.libXdmcp
         xorg.xcbutil
         xorg.xcbutilerrors

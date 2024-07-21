@@ -18,6 +18,14 @@ class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
 class IKeyboard;
 
+AQUAMARINE_FORWARD(IPointer);
+AQUAMARINE_FORWARD(IKeyboard);
+AQUAMARINE_FORWARD(ITouch);
+AQUAMARINE_FORWARD(ISwitch);
+AQUAMARINE_FORWARD(ITablet);
+AQUAMARINE_FORWARD(ITabletTool);
+AQUAMARINE_FORWARD(ITabletPad);
+
 enum eClickBehaviorMode {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
@@ -82,15 +90,14 @@ class CInputManager {
     void               onKeyboardKey(std::any, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
-    void               newKeyboard(wlr_input_device*);
+    void               newKeyboard(SP<Aquamarine::IKeyboard>);
     void               newVirtualKeyboard(SP<CVirtualKeyboardV1Resource>);
-    void               newMouse(wlr_input_device*);
+    void               newMouse(SP<Aquamarine::IPointer>);
     void               newVirtualMouse(SP<CVirtualPointerV1Resource>);
-    void               newTouchDevice(wlr_input_device*);
-    void               newSwitch(wlr_input_device*);
-    void               newTabletTool(wlr_tablet_tool*);
-    void               newTabletPad(wlr_input_device*);
-    void               newTablet(wlr_input_device*);
+    void               newTouchDevice(SP<Aquamarine::ITouch>);
+    void               newSwitch(SP<Aquamarine::ISwitch>);
+    void               newTabletPad(SP<Aquamarine::ITabletPad>);
+    void               newTablet(SP<Aquamarine::ITablet>);
     void               destroyTouchDevice(SP<ITouch>);
     void               destroyKeyboard(SP<IKeyboard>);
     void               destroyPointer(SP<IPointer>);
@@ -232,7 +239,7 @@ class CInputManager {
 
     void               mouseMoveUnified(uint32_t, bool refocus = false);
 
-    SP<CTabletTool>    ensureTabletToolPresent(wlr_tablet_tool*);
+    SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
 
     void               applyConfigToKeyboard(SP<IKeyboard>);
 
@@ -277,6 +284,14 @@ class CInputManager {
     } m_sCursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
+
+    // discrete scrolling emulation using v120 data
+    struct {
+        bool     lastEventSign     = 0;
+        bool     lastEventAxis     = 0;
+        uint32_t lastEventTime     = 0;
+        uint32_t accumulatedScroll = 0;
+    } m_ScrollWheelState;
 
     friend class CKeybindManager;
     friend class CWLSurface;

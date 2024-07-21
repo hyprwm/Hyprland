@@ -299,8 +299,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         auto id       = e->data.data32[0];
         auto resource = wl_client_get_object(g_pXWayland->pServer->xwaylandClient, id);
         if (resource) {
-            auto wlrSurface = CWLSurfaceResource::fromResource(resource);
-            associate(XSURF, wlrSurface);
+            auto surf = CWLSurfaceResource::fromResource(resource);
+            associate(XSURF, surf);
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"]) {
         if (XSURF->wlSerial) {
@@ -398,10 +398,10 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
 
     focusedSurface = surf;
 
-    // send state to all surfaces, sometimes we might lose some
+    // send state to all toplevel surfaces, sometimes we might lose some
     // that could still stick with the focused atom
     for (auto& s : mappedSurfaces) {
-        if (!s)
+        if (!s || s->overrideRedirect)
             continue;
 
         sendState(s.lock());
@@ -755,7 +755,7 @@ void CXWM::getVisual() {
     }
 
     if (visualtype == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit visualtype\n");
+        Debug::log(LOG, "xwm: No 32-bit visualtype");
         return;
     }
 
@@ -768,7 +768,7 @@ void CXWM::getRenderFormat() {
     xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(connection);
     xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(connection, cookie, NULL);
     if (!reply) {
-        wlr_log(WLR_ERROR, "Did not get any reply from xcb_render_query_pict_formats");
+        Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
     xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply);
@@ -783,7 +783,7 @@ void CXWM::getRenderFormat() {
     }
 
     if (format == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit render format");
+        Debug::log(LOG, "xwm: No 32-bit render format");
         free(reply);
         return;
     }
@@ -879,7 +879,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!activate || !surf) {
+    if (!surf || (!activate || !surf->overrideRedirect /* if we are focusing on an OR child, don't unfocus parent */)) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

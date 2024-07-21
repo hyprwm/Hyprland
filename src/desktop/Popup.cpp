@@ -55,7 +55,7 @@ void CPopup::initAllSignals() {
 }
 
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
-    const auto POPUP = m_vChildren.emplace_back(std::make_unique<CPopup>(popup, this)).get();
+    const auto POPUP = m_vChildren.emplace_back(makeShared<CPopup>(popup, this)).get();
     Debug::log(LOG, "New popup at {:x}", (uintptr_t)POPUP);
 }
 
@@ -250,7 +250,8 @@ void CPopup::recheckTree() {
 }
 
 void CPopup::recheckChildrenRecursive() {
-    for (auto& c : m_vChildren) {
+    auto cpy = m_vChildren;
+    for (auto& c : cpy) {
         c->onCommit(true);
         c->recheckChildrenRecursive();
     }

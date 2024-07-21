@@ -76,13 +76,21 @@ void CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow, CBox* pbox) {
         const auto SIZEHINTS = pWindow->m_pXWaylandSurface->sizeHints.get();
 
         if (SIZEHINTS && pWindow->m_iX11Type != 2) {
-            pbox->x      = SIZEHINTS->x;
-            pbox->y      = SIZEHINTS->y;
-            pbox->width  = SIZEHINTS->width;
-            pbox->height = SIZEHINTS->height;
-        } else {
+            // WM_SIZE_HINTS' x,y,w,h is deprecated it seems.
+            // Source: https://x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#wm_normal_hints_property
+            pbox->x = pWindow->m_pXWaylandSurface->geometry.x;
+            pbox->y = pWindow->m_pXWaylandSurface->geometry.y;
+
+            if ((SIZEHINTS->flags & 0x2 /* ICCCM USSize */) || (SIZEHINTS->flags & 0x8 /* ICCCM PSize */)) {
+                pbox->w = SIZEHINTS->base_width;
+                pbox->h = SIZEHINTS->base_height;
+            } else {
+                pbox->w = pWindow->m_pXWaylandSurface->geometry.w;
+                pbox->h = pWindow->m_pXWaylandSurface->geometry.h;
+            }
+        } else
             *pbox = pWindow->m_pXWaylandSurface->geometry;
-        }
+
     } else if (pWindow->m_pXDGSurface)
         *pbox = pWindow->m_pXDGSurface->current.geometry;
 }

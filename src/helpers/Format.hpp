@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include "math/Math.hpp"
+#include <aquamarine/backend/Misc.hpp>
 
 typedef uint32_t DRMFormat;
 typedef uint32_t SHMFormat;
@@ -18,10 +20,7 @@ struct SPixelFormat {
     Vector2D  blockSize;
 };
 
-struct SDRMFormat {
-    uint32_t              format = 0;
-    std::vector<uint64_t> mods;
-};
+typedef Aquamarine::SDRMFormat SDRMFormat;
 
 namespace FormatUtils {
     SHMFormat           drmToShm(DRMFormat drm);
@@ -34,4 +33,6 @@ namespace FormatUtils {
     int                 minStride(const SPixelFormat* const fmt, int32_t width);
     uint32_t            drmFormatToGL(DRMFormat drm);
     uint32_t            glFormatToType(uint32_t gl);
+    std::string         drmFormatName(DRMFormat drm);
+    std::string         drmModifierName(uint64_t mod);
 };

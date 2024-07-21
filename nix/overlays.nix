@@ -34,6 +34,7 @@ in {
         stdenv = final.gcc14Stdenv;
         version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
+        revCount = self.sourceInfo.revCount or "";
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};

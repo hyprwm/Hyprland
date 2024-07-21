@@ -39,6 +39,7 @@
   wrapRuntimeDeps ? true,
   version ? "git",
   commit,
+  revCount,
   date,
   # deprecated flags
   enableNvidiaPatches ? false,
@@ -73,7 +74,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       sed -i "s#@PREFIX@/##g" hyprland.pc.in
     '';
 
-    COMMITS = commit;
+    COMMITS = revCount;
     DATE = date;
     DIRTY = lib.optionalString (commit == "") "dirty";
     HASH = commit;

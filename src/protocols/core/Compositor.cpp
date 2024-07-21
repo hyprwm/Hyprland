@@ -84,7 +84,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
         Vector2D oldBufSize = current.buffer ? current.buffer->size : Vector2D{};
         Vector2D newBufSize = pending.buffer ? pending.buffer->size : Vector2D{};
 
-        if (oldBufSize != newBufSize)
+        if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
 
         bufferReleased = false;
@@ -407,10 +407,7 @@ void CWLSurfaceResource::commitPendingState() {
     pending.bufferDamage.clear();
 
     if (current.buffer && !bufferReleased) {
-        //                                                                                                                          without previous dolphin et al are weird vvv
-        //CRegion surfaceDamage =
-        //    current.damage.copy().scale(current.scale).transform(current.transform, current.size.x, current.size.y).add(current.bufferDamage).add(previousBufferDamage);
-        current.buffer->update(CBox{{}, {INT32_MAX, INT32_MAX}}); // FIXME: figure this out to not use this hack. QT apps are wonky without this.
+        current.buffer->update(accumulateCurrentBufferDamage());
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.

@@ -1488,9 +1488,9 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
 }
 
 void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
-    auto setConfig = [&](SP<ITouch> PTOUCHDEV) -> void {
-        if (dev->aq() && dev->aq()->getLibinputHandle()) {
-            const auto LIBINPUTDEV = dev->aq()->getLibinputHandle();
+    auto setConfig = [](SP<ITouch> PTOUCHDEV) -> void {
+        if (PTOUCHDEV->aq() && PTOUCHDEV->aq()->getLibinputHandle()) {
+            const auto LIBINPUTDEV = PTOUCHDEV->aq()->getLibinputHandle();
 
             const auto ENABLED = g_pConfigManager->getDeviceInt(PTOUCHDEV->hlName, "enabled", "input:touchdevice:enabled");
             const auto mode    = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;

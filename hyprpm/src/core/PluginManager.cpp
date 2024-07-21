@@ -172,6 +172,9 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not check out revision " << rev << ". shell returned:\n" << ret << "\n";
             return false;
         }
+        ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
+        if (m_bVerbose)
+            std::cout << Colors::BLUE << "[v] " << Colors::RESET << "git submodule update --init returned: " << ret << "\n";
     }
 
     progress.m_iSteps = 1;
@@ -226,6 +229,12 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " commit pin " + plugin + " matched hl, resetting");
 
             execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+
+            ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
+            if (m_bVerbose)
+                std::cout << Colors::BLUE << "[v] " << Colors::RESET << "git submodule update --init returned: " << ret << "\n";
+
+            break;
         }
     }
 

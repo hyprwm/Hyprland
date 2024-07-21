@@ -519,6 +519,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("gestures:workspace_swipe_forever", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_use_r", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});

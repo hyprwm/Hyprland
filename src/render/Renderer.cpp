@@ -236,7 +236,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     }
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) 
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
         surface->presentFeedback(RDATA->when, RDATA->pMonitor);
 
     g_pHyprOpenGL->blend(true);

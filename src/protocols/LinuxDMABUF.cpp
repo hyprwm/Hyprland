@@ -434,7 +434,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         SDMABUFTranche eglTranche = {
             .device  = mainDevice,
-            .flags   = 0, // renderer isnt for ds so dont set flag
+            .flags   = 0, // renderer isnt for ds so dont set flag.
             .formats = g_pHyprOpenGL->getDRMFormats(),
         };
 

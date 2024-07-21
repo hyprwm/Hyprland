@@ -891,6 +891,9 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
 }
 
 void CXWM::sendState(SP<CXWaylandSurface> surf) {
+    if (surf->fullscreen)
+        surf->setWithdrawn(surf != focusedSurface);
+
     if (surf->withdrawn) {
         xcb_delete_property(connection, surf->xID, HYPRATOMS["_NET_WM_STATE"]);
         return;

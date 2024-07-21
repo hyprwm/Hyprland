@@ -398,10 +398,10 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
 
     focusedSurface = surf;
 
-    // send state to all surfaces, sometimes we might lose some
+    // send state to all toplevel surfaces, sometimes we might lose some
     // that could still stick with the focused atom
     for (auto& s : mappedSurfaces) {
-        if (!s)
+        if (!s || s->overrideRedirect)
             continue;
 
         sendState(s.lock());
@@ -879,7 +879,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!activate || !surf) {
+    if (!surf || (!activate || !surf->overrideRedirect /* if we are focusing on an OR child, don't unfocus parent */)) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
 #include <dlfcn.h>
+#include <filesystem>
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>

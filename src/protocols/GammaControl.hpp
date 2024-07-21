@@ -23,7 +23,7 @@ class CGammaControl {
     CMonitor*               pMonitor      = nullptr;
     size_t                  gammaSize     = 0;
     bool                    gammaTableSet = false;
-    std::vector<uint16_t>   gammaTable;
+    std::vector<uint16_t>   gammaTable; // [r,g,b]+
 
     void                    onMonitorDestroy();
 

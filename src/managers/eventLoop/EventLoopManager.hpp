@@ -7,6 +7,10 @@
 
 #include "EventLoopTimer.hpp"
 
+namespace Aquamarine {
+    struct SPollFD;
+};
+
 class CEventLoopManager {
   public:
     CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop);
@@ -33,9 +37,10 @@ class CEventLoopManager {
 
   private:
     struct {
-        wl_event_loop*   loop        = nullptr;
-        wl_display*      display     = nullptr;
-        wl_event_source* eventSource = nullptr;
+        wl_event_loop*                loop        = nullptr;
+        wl_display*                   display     = nullptr;
+        wl_event_source*              eventSource = nullptr;
+        std::vector<wl_event_source*> aqEventSources;
     } m_sWayland;
 
     struct {
@@ -43,7 +48,10 @@ class CEventLoopManager {
         int                              timerfd = -1;
     } m_sTimers;
 
-    SIdleData m_sIdle;
+    SIdleData                            m_sIdle;
+    std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
+
+    friend class CSyncTimeline;
 };
 
 inline std::unique_ptr<CEventLoopManager> g_pEventLoopManager;

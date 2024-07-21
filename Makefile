@@ -27,7 +27,6 @@ nopch:
 clear:
 	rm -rf build
 	rm -f ./protocols/*.h ./protocols/*.c ./protocols/*.cpp ./protocols/*.hpp
-	rm -rf ./subprojects/wlroots-hyprland/build
 
 all:
 	$(MAKE) clear
@@ -50,14 +49,11 @@ installheaders:
 	rm -fr ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland/protocols
-	mkdir -p ${PREFIX}/include/hyprland/wlr
 	mkdir -p ${PREFIX}/share/pkgconfig
 
 	cmake --build ./build --config Release --target generate-protocol-headers
 
 	find src -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cd subprojects/wlroots-hyprland/include/wlr && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
-	cd subprojects/wlroots-hyprland/build/include && find . -name '*.h*' -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland/wlr && cd ../../../..
 	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
 	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
 	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
@@ -88,7 +84,7 @@ asan:
 	@pidof Hyprland > /dev/null && exit 1 || echo ""
 
 	rm -rf ./wayland
-	git reset --hard
+	#git reset --hard
 
 	@echo -en "If you want to apply a patch, input its path (leave empty for none):\n"
 	@read patchvar

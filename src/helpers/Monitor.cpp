@@ -1,12 +1,18 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
+#include "math/Math.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
 #include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
+#include "../protocols/DRMLease.hpp"
+#include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../protocols/core/Compositor.hpp"
+#include "sync/SyncTimeline.hpp"
+#include <aquamarine/output/Output.hpp>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -21,62 +27,73 @@ CMonitor::CMonitor() : state(this) {
 }
 
 CMonitor::~CMonitor() {
-    hyprListener_monitorDestroy.removeCallback();
-    hyprListener_monitorFrame.removeCallback();
-    hyprListener_monitorStateRequest.removeCallback();
-    hyprListener_monitorDamage.removeCallback();
-    hyprListener_monitorNeedsFrame.removeCallback();
-    hyprListener_monitorCommit.removeCallback();
-    hyprListener_monitorBind.removeCallback();
-
     events.destroy.emit();
 }
 
-static void onPresented(void* owner, void* data) {
-    const auto PMONITOR = (CMonitor*)owner;
-    auto       E        = (wlr_output_event_present*)data;
-
-    PROTO::presentation->onPresented(PMONITOR, E->when, E->refresh, E->seq, E->flags);
-}
-
 void CMonitor::onConnect(bool noRule) {
-    hyprListener_monitorDestroy.removeCallback();
-    hyprListener_monitorFrame.removeCallback();
-    hyprListener_monitorStateRequest.removeCallback();
-    hyprListener_monitorDamage.removeCallback();
-    hyprListener_monitorNeedsFrame.removeCallback();
-    hyprListener_monitorCommit.removeCallback();
-    hyprListener_monitorBind.removeCallback();
-    hyprListener_monitorPresented.removeCallback();
-    hyprListener_monitorFrame.initCallback(&output->events.frame, &Events::listener_monitorFrame, this, "CMonitor");
-    hyprListener_monitorDestroy.initCallback(&output->events.destroy, &Events::listener_monitorDestroy, this, "CMonitor");
-    hyprListener_monitorStateRequest.initCallback(&output->events.request_state, &Events::listener_monitorStateRequest, this, "CMonitor");
-    hyprListener_monitorDamage.initCallback(&output->events.damage, &Events::listener_monitorDamage, this, "CMonitor");
-    hyprListener_monitorNeedsFrame.initCallback(&output->events.needs_frame, &Events::listener_monitorNeedsFrame, this, "CMonitor");
-    hyprListener_monitorCommit.initCallback(&output->events.commit, &Events::listener_monitorCommit, this, "CMonitor");
-    hyprListener_monitorBind.initCallback(&output->events.bind, &Events::listener_monitorBind, this, "CMonitor");
-    hyprListener_monitorPresented.initCallback(&output->events.present, ::onPresented, this, "CMonitor");
 
-    tearingState.canTear = wlr_backend_is_drm(output->backend); // tearing only works on drm
+    if (output->supportsExplicit) {
+        inTimeline  = CSyncTimeline::create(output->getBackend()->drmFD());
+        outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
+    }
+
+    listeners.frame   = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
+    listeners.destroy = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
+    listeners.commit  = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
+    listeners.needsFrame =
+        output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    listeners.presented = output->events.present.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
+        PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+    });
+
+    listeners.state = output->events.state.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IOutput::SStateEvent>(d);
+
+        if (E.size == Vector2D{}) {
+            // an indication to re-set state
+            // we can't do much for createdByUser displays I think
+            if (createdByUser)
+                return;
+
+            Debug::log(LOG, "Reapplying monitor rule for {} from a state request", szName);
+            g_pHyprRenderer->applyMonitorRule(this, &activeMonitorRule, true);
+            return;
+        }
+
+        if (!createdByUser)
+            return;
+
+        const auto SIZE = E.size;
+
+        forceSize = SIZE;
+
+        SMonitorRule rule = activeMonitorRule;
+        rule.resolution   = SIZE;
+
+        g_pHyprRenderer->applyMonitorRule(this, &rule);
+    });
+
+    tearingState.canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     if (m_bEnabled) {
-        wlr_output_state_set_enabled(state.wlr(), true);
+        output->state->setEnabled(true);
         state.commit();
         return;
     }
 
     szName = output->name;
 
-    szDescription = output->description ? output->description : "";
+    szDescription = output->description;
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
     std::erase(szDescription, ',');
 
     // field is backwards-compatible with intended usage of `szDescription` but excludes the parenthesized DRM node name suffix
-    szShortDescription = trim(std::format("{} {} {}", output->make ? output->make : "", output->model ? output->model : "", output->serial ? output->serial : ""));
+    szShortDescription = trim(std::format("{} {} {}", output->make, output->model, output->serial));
     std::erase(szShortDescription, ',');
 
-    if (!wlr_backend_is_drm(output->backend))
-        createdByUser = true; // should be true. WL, X11 and Headless backends should be addable / removable
+    if (output->getBackend()->type() != Aquamarine::AQ_BACKEND_DRM)
+        createdByUser = true; // should be true. WL and Headless backends should be addable / removable
 
     // get monitor rule that matches
     SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(*this);
@@ -84,54 +101,23 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
-        wlr_output_state_set_scale(state.wlr(), 1);
-        wlr_output_state_set_transform(state.wlr(), WL_OUTPUT_TRANSFORM_NORMAL);
-
-        auto PREFSTATE = wlr_output_preferred_mode(output);
-
-        if (!PREFSTATE) {
-            wlr_output_mode* mode;
-
-            wl_list_for_each(mode, &output->modes, link) {
-                wlr_output_state_set_mode(state.wlr(), mode);
-
-                if (!wlr_output_test_state(output, state.wlr()))
-                    continue;
-
-                PREFSTATE = mode;
-                break;
-            }
-        }
-
-        if (PREFSTATE)
-            wlr_output_state_set_mode(state.wlr(), PREFSTATE);
-        else
-            Debug::log(WARN, "No mode found for disabled output {}", output->name);
-
-        wlr_output_state_set_enabled(state.wlr(), 0);
+        output->state->setEnabled(false);
 
         if (!state.commit())
             Debug::log(ERR, "Couldn't commit disabled state on output {}", output->name);
 
         m_bEnabled = false;
 
-        hyprListener_monitorFrame.removeCallback();
+        listeners.frame.reset();
         return;
     }
 
-    if (output->non_desktop) {
+    if (output->nonDesktop) {
         Debug::log(LOG, "Not configuring non-desktop output");
-        if (g_pCompositor->m_sWRLDRMLeaseMgr) {
-            wlr_drm_lease_v1_manager_offer_output(g_pCompositor->m_sWRLDRMLeaseMgr, output);
-        }
-        return;
-    }
+        if (PROTO::lease)
+            PROTO::lease->offer(self.lock());
 
-    if (!m_bRenderingInitPassed) {
-        output->allocator = nullptr;
-        output->renderer  = nullptr;
-        wlr_output_init_render(output, g_pCompositor->m_sWLRAllocator, g_pCompositor->m_sWLRRenderer);
-        m_bRenderingInitPassed = true;
+        return;
     }
 
     SP<CMonitor>* thisWrapper = nullptr;
@@ -151,14 +137,14 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
-    wlr_output_state_set_enabled(state.wlr(), 1);
+    output->state->setEnabled(true);
 
     // set mode, also applies
     if (!noRule)
         g_pHyprRenderer->applyMonitorRule(this, &monitorRule, true);
 
     if (!state.commit())
-        Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onCommit");
+        Debug::log(WARN, "state.commit() failed in CMonitor::onCommit");
 
     damage.setSize(vecTransformedSize);
 
@@ -214,7 +200,7 @@ void CMonitor::onConnect(bool noRule) {
 
     renderTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ratHandler, this);
 
-    g_pCompositor->scheduleFrameForMonitor(this);
+    g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     PROTO::gamma->applyGammaToState(this);
 
@@ -261,12 +247,10 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pConfigManager->m_bWantsMonitorReload = true;
     }
 
-    hyprListener_monitorFrame.removeCallback();
-    hyprListener_monitorPresented.removeCallback();
-    hyprListener_monitorDamage.removeCallback();
-    hyprListener_monitorNeedsFrame.removeCallback();
-    hyprListener_monitorCommit.removeCallback();
-    hyprListener_monitorBind.removeCallback();
+    listeners.frame.reset();
+    listeners.presented.reset();
+    listeners.needsFrame.reset();
+    listeners.commit.reset();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto& ls : m_aLayerSurfaceLayers[i]) {
@@ -316,10 +300,10 @@ void CMonitor::onDisconnect(bool destroy) {
         activeWorkspace->m_bVisible = false;
     activeWorkspace.reset();
 
-    wlr_output_state_set_enabled(state.wlr(), false);
+    output->state->setEnabled(false);
 
     if (!state.commit())
-        Debug::log(WARN, "wlr_output_commit_state failed in CMonitor::onDisconnect");
+        Debug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
 
     if (g_pCompositor->m_pLastMonitor.get() == this)
         g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_pUnsafeOutput);
@@ -344,9 +328,9 @@ void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (damage.damage(rg))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 void CMonitor::addDamage(const CRegion* rg) {
@@ -357,11 +341,11 @@ void CMonitor::addDamage(const CBox* box) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == this) {
         damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 
     if (damage.damage(*box))
-        g_pCompositor->scheduleFrameForMonitor(this);
+        g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
@@ -369,8 +353,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    bool shouldSkip = *PNOBREAK && output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow &&
-        activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
+    bool shouldSkip =
+        *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
@@ -563,7 +547,7 @@ float CMonitor::getDefaultScale() {
     static constexpr double MMPERINCH = 25.4;
 
     const auto              DIAGONALPX = sqrt(pow(vecPixelSize.x, 2) + pow(vecPixelSize.y, 2));
-    const auto              DIAGONALIN = sqrt(pow(output->phys_width / MMPERINCH, 2) + pow(output->phys_height / MMPERINCH, 2));
+    const auto              DIAGONALIN = sqrt(pow(output->physicalSize.x / MMPERINCH, 2) + pow(output->physicalSize.y / MMPERINCH, 2));
 
     const auto              PPI = DIAGONALPX / DIAGONALIN;
 
@@ -767,11 +751,11 @@ Vector2D CMonitor::middle() {
 }
 
 void CMonitor::updateMatrix() {
-    wlr_matrix_identity(projMatrix.data());
+    matrixIdentity(projMatrix.data());
     if (transform != WL_OUTPUT_TRANSFORM_NORMAL) {
-        wlr_matrix_translate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
-        wlr_matrix_transform(projMatrix.data(), transform);
-        wlr_matrix_translate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
+        matrixTranslate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
+        matrixTransform(projMatrix.data(), wlTransformToHyprutils(transform));
+        matrixTranslate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
     }
 }
 
@@ -787,31 +771,124 @@ CBox CMonitor::logicalBox() {
     return {vecPosition, vecSize};
 }
 
+static void onDoneSource(void* data) {
+    auto pMonitor = (CMonitor*)data;
+
+    if (!PROTO::outputs.contains(pMonitor->szName))
+        return;
+
+    PROTO::outputs.at(pMonitor->szName)->sendDone();
+}
+
+void CMonitor::scheduleDone() {
+    if (doneSource)
+        return;
+
+    doneSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::onDoneSource, this);
+}
+
+bool CMonitor::attemptDirectScanout() {
+    if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
+        return false; // do not DS if this monitor is being mirrored. Will break the functionality.
+
+    if (g_pPointerManager->softwareLockedFor(self.lock()))
+        return false;
+
+    const auto PCANDIDATE = solitaryClient.lock();
+
+    if (!PCANDIDATE)
+        return false;
+
+    const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
+
+    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != vecPixelSize || PSURFACE->current.transform != transform)
+        return false;
+
+    // we can't scanout shm buffers.
+    if (!PSURFACE->current.buffer->dmabuf().success)
+        return false;
+
+    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
+    // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    output->state->setBuffer(PSURFACE->current.buffer);
+    output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+
+    if (!state.test())
+        return false;
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    Debug::log(TRACE, "presentFeedback for DS");
+    PSURFACE->presentFeedback(&now, this, true);
+
+    if (state.commit()) {
+        if (lastScanout.expired()) {
+            lastScanout = PCANDIDATE;
+            Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+        }
+    } else {
+        lastScanout.reset();
+        return false;
+    }
+
+    return true;
+}
+
 CMonitorState::CMonitorState(CMonitor* owner) {
     m_pOwner = owner;
-    wlr_output_state_init(&m_state);
 }
 
 CMonitorState::~CMonitorState() {
-    wlr_output_state_finish(&m_state);
+    ;
 }
 
-wlr_output_state* CMonitorState::wlr() {
-    return &m_state;
-}
+void CMonitorState::ensureBufferPresent() {
+    if (!m_pOwner->output->state->state().enabled) {
+        Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
+        return;
+    }
 
-void CMonitorState::clear() {
-    wlr_output_state_finish(&m_state);
-    m_state = {0};
-    wlr_output_state_init(&m_state);
+    if (m_pOwner->output->state->state().buffer)
+        return;
+
+    // this is required for modesetting being possible and might be missing in case of first tests in the renderer
+    // where we test modes and buffers
+    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer, attaching one from the swapchain for modeset being possible");
+    m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
+    m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
 
 bool CMonitorState::commit() {
-    bool ret = wlr_output_commit_state(m_pOwner->output, &m_state);
-    clear();
+    if (!updateSwapchain())
+        return false;
+
+    ensureBufferPresent();
+
+    bool ret = m_pOwner->output->commit();
     return ret;
 }
 
 bool CMonitorState::test() {
-    return wlr_output_test_state(m_pOwner->output, &m_state);
+    if (!updateSwapchain())
+        return false;
+
+    ensureBufferPresent();
+
+    return m_pOwner->output->test();
+}
+
+bool CMonitorState::updateSwapchain() {
+    auto        options = m_pOwner->output->swapchain->currentOptions();
+    const auto& STATE   = m_pOwner->output->state->state();
+    const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
+    if (!MODE) {
+        Debug::log(WARN, "updateSwapchain: No mode?");
+        return true;
+    }
+    options.format  = STATE.drmFormat;
+    options.scanout = true;
+    options.length  = 2;
+    options.size    = MODE->pixelSize;
+    return m_pOwner->output->swapchain->reconfigure(options);
 }

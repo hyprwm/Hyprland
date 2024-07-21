@@ -3,6 +3,8 @@
 #include "../helpers/Monitor.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "core/Compositor.hpp"
+#include "core/Output.hpp"
+#include <aquamarine/output/Output.hpp>
 
 #define LOGM PROTO::presentation->protoLog
 
@@ -41,13 +43,11 @@ bool CPresentationFeedback::good() {
 }
 
 void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
-    auto         client = resource->client();
-    wl_resource* res;
-    wl_resource_for_each(res, &data->pMonitor->output->resources) {
-        if (client == wl_resource_get_client(res)) {
-            resource->sendSyncOutput(res);
-            break;
-        }
+    auto client = resource->client();
+
+    if (PROTO::outputs.contains(data->pMonitor->szName)) {
+        if (auto outputResource = PROTO::outputs.at(data->pMonitor->szName)->outputResourceFrom(client); outputResource)
+            resource->sendSyncOutput(outputResource->getResource()->resource());
     }
 
     uint32_t flags = 0;
@@ -55,9 +55,9 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
         flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
     if (data->zeroCopy)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
-    if (reportedFlags & WLR_OUTPUT_PRESENT_HW_CLOCK)
+    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
-    if (reportedFlags & WLR_OUTPUT_PRESENT_HW_COMPLETION)
+    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
     if (data->wasPresented && when)

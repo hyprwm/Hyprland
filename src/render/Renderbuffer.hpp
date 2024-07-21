@@ -1,30 +1,35 @@
 #pragma once
 
+#include "../helpers/signal/Signal.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../helpers/WLListener.hpp"
 #include "Framebuffer.hpp"
+#include <aquamarine/buffer/Buffer.hpp>
 
 class CMonitor;
-class IWLBuffer;
 
 class CRenderbuffer {
   public:
-    CRenderbuffer(wlr_buffer* buffer, uint32_t format);
-    CRenderbuffer(SP<IWLBuffer> buffer, uint32_t format);
+    CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
     ~CRenderbuffer();
 
-    void          bind();
-    void          bindFB();
-    void          unbind();
-    CFramebuffer* getFB();
-    uint32_t      getFormat();
+    bool                    good();
+    void                    bind();
+    void                    bindFB();
+    void                    unbind();
+    CFramebuffer*           getFB();
+    uint32_t                getFormat();
 
-    wlr_buffer*   m_pWlrBuffer = nullptr;
-    WP<IWLBuffer> m_pHLBuffer  = {};
-
-    DYNLISTENER(destroyBuffer);
+    WP<Aquamarine::IBuffer> m_pHLBuffer;
 
   private:
-    EGLImageKHR  m_iImage = 0;
+    void*        m_iImage = nullptr;
     GLuint       m_iRBO   = 0;
     CFramebuffer m_sFramebuffer;
     uint32_t     m_uDrmFormat = 0;
+    bool         m_bGood      = false;
+
+    struct {
+        CHyprSignalListener destroyBuffer;
+    } listeners;
 };

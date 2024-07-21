@@ -259,7 +259,7 @@ void CAnimationManager::tick() {
 
         // manually schedule a frame
         if (PMONITOR)
-            g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
 
     // do it here, because if this alters the animation vars deque we would be in trouble above.

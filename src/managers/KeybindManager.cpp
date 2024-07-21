@@ -4,10 +4,12 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
 
@@ -15,6 +17,7 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <cstring>
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -157,37 +160,37 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
     std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
-        modMask |= WLR_MODIFIER_SHIFT;
+        modMask |= HL_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))
-        modMask |= WLR_MODIFIER_CAPS;
+        modMask |= HL_MODIFIER_CAPS;
     if (mods.contains("CTRL") || mods.contains("CONTROL"))
-        modMask |= WLR_MODIFIER_CTRL;
+        modMask |= HL_MODIFIER_CTRL;
     if (mods.contains("ALT") || mods.contains("MOD1"))
-        modMask |= WLR_MODIFIER_ALT;
+        modMask |= HL_MODIFIER_ALT;
     if (mods.contains("MOD2"))
-        modMask |= WLR_MODIFIER_MOD2;
+        modMask |= HL_MODIFIER_MOD2;
     if (mods.contains("MOD3"))
-        modMask |= WLR_MODIFIER_MOD3;
-    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4"))
-        modMask |= WLR_MODIFIER_LOGO;
+        modMask |= HL_MODIFIER_MOD3;
+    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4") || mods.contains("META"))
+        modMask |= HL_MODIFIER_META;
     if (mods.contains("MOD5"))
-        modMask |= WLR_MODIFIER_MOD5;
+        modMask |= HL_MODIFIER_MOD5;
 
     return modMask;
 }
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
     switch (keycode - 8) {
-        case KEY_LEFTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_RIGHTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_LEFTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_RIGHTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_LEFTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_RIGHTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_LEFTALT: return WLR_MODIFIER_ALT;
-        case KEY_RIGHTALT: return WLR_MODIFIER_ALT;
-        case KEY_CAPSLOCK: return WLR_MODIFIER_CAPS;
-        case KEY_NUMLOCK: return WLR_MODIFIER_MOD2;
+        case KEY_LEFTMETA: return HL_MODIFIER_META;
+        case KEY_RIGHTMETA: return HL_MODIFIER_META;
+        case KEY_LEFTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_RIGHTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_LEFTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_RIGHTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_LEFTALT: return HL_MODIFIER_ALT;
+        case KEY_RIGHTALT: return HL_MODIFIER_ALT;
+        case KEY_CAPSLOCK: return HL_MODIFIER_CAPS;
+        case KEY_NUMLOCK: return HL_MODIFIER_MOD2;
         default: return 0;
     }
 }
@@ -366,8 +369,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbTranslationState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->wlr()->xkb_state, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbStaticState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
 
     if (handleInternalKeybinds(internalKeysym))
         return true;
@@ -554,7 +557,7 @@ int repeatKeyHandler(void* data) {
     Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
     DISPATCHER->second((*ppActiveKeybind)->arg);
 
-    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->wlr()->repeat_info.rate);
+    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->repeatRate);
 
     return 0;
 }
@@ -786,7 +789,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // beyond this point, return true to not handle anything else.
     // we'll avoid printing shit to active windows.
 
-    if (g_pCompositor->m_sWLRSession) {
+    if (g_pCompositor->m_pAqBackend->hasSession()) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
@@ -810,8 +813,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
-        wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY);
-        return true;
+        g_pCompositor->m_pAqBackend->session->switchVT(TTY);
     }
 
     return true;
@@ -893,6 +895,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
             for (auto& e : HLENV) {
                 setenv(e.first.c_str(), e.second.c_str(), 1);
             }
+            setenv("WAYLAND_DISPLAY", g_pCompositor->m_szWLDisplaySocket.c_str(), 1);
             close(socket[0]);
             close(socket[1]);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
@@ -1659,7 +1662,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->m_bExitTriggered = true;
+    g_pEventLoopManager->doLater([]() { g_pCompositor->cleanup(); });
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
@@ -2121,8 +2124,8 @@ void CKeybindManager::sendshortcut(std::string args) {
         const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
-            xkb_keymap*   km = KB->wlr()->keymap;
-            xkb_state*    ks = KB->xkbTranslationState;
+            xkb_keymap*   km = KB->xkbKeymap;
+            xkb_state*    ks = KB->xkbState;
 
             xkb_keycode_t keycode_min, keycode_max;
             keycode_min = xkb_keymap_min_keycode(km);
@@ -2259,7 +2262,7 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
-        wlr_output_state_set_enabled(m->state.wlr(), enable);
+        m->output->state->setEnabled(enable);
 
         m->dpmsStatus = enable;
 

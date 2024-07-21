@@ -6,6 +6,7 @@
 #include "WaylandProtocol.hpp"
 #include "tablet-v2.hpp"
 #include "../helpers/math/Math.hpp"
+#include <aquamarine/input/Input.hpp>
 
 class CTablet;
 class CTabletTool;
@@ -51,7 +52,7 @@ class CTabletPadGroupV2Resource {
     CTabletPadGroupV2Resource(SP<CZwpTabletPadGroupV2> resource_, size_t idx);
 
     bool                                       good();
-    void                                       sendData(SP<CTabletPad> pad, wlr_tablet_pad_group* group);
+    void                                       sendData(SP<CTabletPad> pad, SP<Aquamarine::ITabletPad::STabletPadGroup> group);
 
     std::vector<WP<CTabletPadRingV2Resource>>  rings;
     std::vector<WP<CTabletPadStripV2Resource>> strips;
@@ -83,7 +84,7 @@ class CTabletPadV2Resource {
   private:
     SP<CZwpTabletPadV2> resource;
 
-    void                createGroup(wlr_tablet_pad_group* group, size_t idx);
+    void                createGroup(SP<Aquamarine::ITabletPad::STabletPadGroup> group, size_t idx);
 
     friend class CTabletSeat;
     friend class CTabletV2Protocol;

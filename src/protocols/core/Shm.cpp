@@ -41,20 +41,20 @@ CWLSHMBuffer::~CWLSHMBuffer() {
     ;
 }
 
-eBufferCapability CWLSHMBuffer::caps() {
-    return BUFFER_CAPABILITY_DATAPTR;
+Aquamarine::eBufferCapability CWLSHMBuffer::caps() {
+    return Aquamarine::eBufferCapability::BUFFER_CAPABILITY_DATAPTR;
 }
 
-eBufferType CWLSHMBuffer::type() {
-    return BUFFER_TYPE_SHM;
+Aquamarine::eBufferType CWLSHMBuffer::type() {
+    return Aquamarine::eBufferType::BUFFER_TYPE_SHM;
 }
 
 bool CWLSHMBuffer::isSynchronous() {
     return true;
 }
 
-SSHMAttrs CWLSHMBuffer::shm() {
-    SSHMAttrs attrs;
+Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
+    Aquamarine::SSHMAttrs attrs;
     attrs.success = true;
     attrs.fd      = pool->fd;
     attrs.format  = FormatUtils::shmToDRM(fmt);
@@ -188,11 +188,18 @@ CWLSHMProtocol::CWLSHMProtocol(const wl_interface* iface, const int& ver, const 
 
 void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     if (shmFormats.empty()) {
-        size_t          len     = 0;
-        const uint32_t* formats = wlr_renderer_get_shm_texture_formats(g_pCompositor->m_sWLRRenderer, &len);
+        shmFormats.push_back(WL_SHM_FORMAT_ARGB8888);
+        shmFormats.push_back(WL_SHM_FORMAT_XRGB8888);
 
-        for (size_t i = 0; i < len; ++i) {
-            shmFormats.push_back(FormatUtils::drmToShm(formats[i]));
+        static const std::array<DRMFormat, 6> supportedShmFourccFormats = {
+            DRM_FORMAT_XBGR8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_XRGB2101010, DRM_FORMAT_ARGB2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_ABGR2101010,
+        };
+
+        for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+            if (std::find(supportedShmFourccFormats.begin(), supportedShmFourccFormats.end(), fmt.drmFormat) == supportedShmFourccFormats.end())
+                continue;
+
+            shmFormats.push_back(fmt.drmFormat);
         }
     }
 

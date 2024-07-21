@@ -463,7 +463,7 @@ void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, boo
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
-    FEEDBACK->discarded();
+    FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
     if (!pMonitor || !pMonitor->outTimeline || !syncobj || !needsExplicitSync)

@@ -24,8 +24,6 @@ if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
 
-wlroots = subproject('wlroots-hyprland', default_options: ['examples=false', 'renderers=gles2'])
-have_xwlr = wlroots.get_variable('features').get('xwayland')
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 xcb_composite_dep = dependency('xcb-composite', required: get_option('xwayland'))
 xcb_errors_dep = dependency('xcb-errors', required: get_option('xwayland'))
@@ -38,12 +36,7 @@ cmake = import('cmake')
 udis = cmake.subproject('udis86')
 udis86 = udis.dependency('libudis86')
 
-if get_option('xwayland').enabled() and not have_xwlr
-	error('Cannot enable Xwayland in Hyprland: wlroots has been built without Xwayland support')
-endif
-have_xwayland = xcb_dep.found() and have_xwlr
-
-if not have_xwayland
+if not xcb_dep.found()
   add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif
 
@@ -86,5 +79,5 @@ import('pkgconfig').generate(
   url: 'https://github.com/hyprwm/Hyprland',
   description: 'Hyprland header files',
   install_dir: pkg_install_dir,
-  subdirs: ['', 'hyprland/protocols', 'hyprland', 'hyprland/wlr'],
+  subdirs: ['', 'hyprland/protocols', 'hyprland'],
 )

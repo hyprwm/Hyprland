@@ -2,10 +2,6 @@
 
 #define LOGM PROTO::virtualPointer->protoLog
 
-static const wlr_pointer_impl pointerImpl = {
-    .name = "virtual-pointer-v1",
-};
-
 CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_) : resource(resource_) {
     if (!good())
         return;
@@ -19,41 +15,30 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         PROTO::virtualPointer->destroyResource(this);
     });
 
-    wlr_pointer_init(&pointer, &pointerImpl, "CVirtualPointerV1Resource");
-
     resource->setMotion([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, wl_fixed_t dx, wl_fixed_t dy) {
-        wlr_pointer_motion_event event = {
-            .pointer    = &pointer,
-            .time_msec  = timeMs,
-            .delta_x    = wl_fixed_to_double(dx),
-            .delta_y    = wl_fixed_to_double(dy),
-            .unaccel_dx = wl_fixed_to_double(dx),
-            .unaccel_dy = wl_fixed_to_double(dy),
-        };
-        wl_signal_emit_mutable(&pointer.events.motion, &event);
+        events.move.emit(IPointer::SMotionEvent{
+            .timeMs  = timeMs,
+            .delta   = {wl_fixed_to_double(dx), wl_fixed_to_double(dy)},
+            .unaccel = {wl_fixed_to_double(dx), wl_fixed_to_double(dy)},
+        });
     });
 
     resource->setMotionAbsolute([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t x, uint32_t y, uint32_t xExtent, uint32_t yExtent) {
         if (!xExtent || !yExtent)
             return;
 
-        wlr_pointer_motion_absolute_event event = {
-            .pointer   = &pointer,
-            .time_msec = timeMs,
-            .x         = (double)x / xExtent,
-            .y         = (double)y / yExtent,
-        };
-        wl_signal_emit_mutable(&pointer.events.motion_absolute, &event);
+        events.warp.emit(IPointer::SMotionAbsoluteEvent{
+            .timeMs   = timeMs,
+            .absolute = {(double)x / xExtent, (double)y / yExtent},
+        });
     });
 
     resource->setButton([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t button, uint32_t state) {
-        struct wlr_pointer_button_event event = {
-            .pointer   = &pointer,
-            .time_msec = timeMs,
-            .button    = button,
-            .state     = (wl_pointer_button_state)state,
-        };
-        wl_signal_emit_mutable(&pointer.events.button, &event);
+        events.button.emit(IPointer::SButtonEvent{
+            .timeMs = timeMs,
+            .button = button,
+            .state  = (wl_pointer_button_state)state,
+        });
     });
 
     resource->setAxis([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_, wl_fixed_t value) {
@@ -63,18 +48,18 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         }
 
         axis             = axis_;
-        axisEvents[axis] = wlr_pointer_axis_event{.pointer = &pointer, .time_msec = timeMs, .orientation = (wl_pointer_axis)axis, .delta = wl_fixed_to_double(value)};
+        axisEvents[axis] = IPointer::SAxisEvent{.timeMs = timeMs, .axis = (wl_pointer_axis)axis, .delta = wl_fixed_to_double(value)};
     });
 
     resource->setFrame([this](CZwlrVirtualPointerV1* r) {
         for (auto& e : axisEvents) {
-            if (!e.pointer)
+            if (!e.timeMs)
                 continue;
-            wl_signal_emit_mutable(&pointer.events.axis, &e);
-            e.pointer = nullptr;
+            events.axis.emit(e);
+            e.timeMs = 0;
         }
 
-        wl_signal_emit_mutable(&pointer.events.frame, &pointer);
+        events.frame.emit();
     });
 
     resource->setAxisSource([this](CZwlrVirtualPointerV1* r, uint32_t source) { axisEvents[axis].source = (wl_pointer_axis_source)source; });
@@ -85,12 +70,11 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
             return;
         }
 
-        axis                            = axis_;
-        axisEvents[axis].pointer        = &pointer;
-        axisEvents[axis].time_msec      = timeMs;
-        axisEvents[axis].orientation    = (wl_pointer_axis)axis;
-        axisEvents[axis].delta          = 0;
-        axisEvents[axis].delta_discrete = 0;
+        axis                           = axis_;
+        axisEvents[axis].timeMs        = timeMs;
+        axisEvents[axis].axis          = (wl_pointer_axis)axis;
+        axisEvents[axis].delta         = 0;
+        axisEvents[axis].deltaDiscrete = 0;
     });
 
     resource->setAxisDiscrete([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_, wl_fixed_t value, int32_t discrete) {
@@ -99,26 +83,20 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
             return;
         }
 
-        axis                            = axis_;
-        axisEvents[axis].pointer        = &pointer;
-        axisEvents[axis].time_msec      = timeMs;
-        axisEvents[axis].orientation    = (wl_pointer_axis)axis;
-        axisEvents[axis].delta          = wl_fixed_to_double(value);
-        axisEvents[axis].delta_discrete = discrete * 120;
+        axis                           = axis_;
+        axisEvents[axis].timeMs        = timeMs;
+        axisEvents[axis].axis          = (wl_pointer_axis)axis;
+        axisEvents[axis].delta         = wl_fixed_to_double(value);
+        axisEvents[axis].deltaDiscrete = discrete * 120;
     });
 }
 
 CVirtualPointerV1Resource::~CVirtualPointerV1Resource() {
-    wlr_pointer_finish(&pointer);
     events.destroy.emit();
 }
 
 bool CVirtualPointerV1Resource::good() {
     return resource->resource();
-}
-
-wlr_pointer* CVirtualPointerV1Resource::wlr() {
-    return &pointer;
 }
 
 wl_client* CVirtualPointerV1Resource::client() {

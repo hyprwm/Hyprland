@@ -66,6 +66,8 @@ new_protocols = [
   [wl_protocol_dir, 'staging/xwayland-shell/xwayland-shell-v1.xml'],
   [wl_protocol_dir, 'stable/viewporter/viewporter.xml'],
   [wl_protocol_dir, 'stable/linux-dmabuf/linux-dmabuf-v1.xml'],
+  [wl_protocol_dir, 'staging/drm-lease/drm-lease-v1.xml'],
+  [wl_protocol_dir, 'staging/linux-drm-syncobj/linux-drm-syncobj-v1.xml'],
 ]
 
 wl_protos_src = []

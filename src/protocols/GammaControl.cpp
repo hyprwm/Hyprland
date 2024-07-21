@@ -34,7 +34,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         }
     }
 
-    gammaSize = wlr_output_get_gamma_size(pMonitor->output);
+    gammaSize = pMonitor->output->getGammaSize();
 
     if (gammaSize <= 0) {
         LOGM(ERR, "Output {} doesn't support gamma", pMonitor->szName);
@@ -81,6 +81,24 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
         gammaTableSet = true;
         close(fd);
+
+        // translate the table to AQ format
+        std::vector<uint16_t> red, green, blue;
+        red.resize(gammaTable.size() / 3);
+        green.resize(gammaTable.size() / 3);
+        blue.resize(gammaTable.size() / 3);
+        for (size_t i = 0; i < gammaTable.size() / 3; ++i) {
+            red.at(i)   = gammaTable.at(i);
+            green.at(i) = gammaTable.at(gammaTable.size() / 3 + i);
+            blue.at(i)  = gammaTable.at((gammaTable.size() / 3) * 2 + i);
+        }
+
+        for (size_t i = 0; i < gammaTable.size() / 3; ++i) {
+            gammaTable.at(i * 3)     = red.at(i);
+            gammaTable.at(i * 3 + 1) = green.at(i);
+            gammaTable.at(i * 3 + 2) = blue.at(i);
+        }
+
         applyToMonitor();
     });
 
@@ -95,7 +113,7 @@ CGammaControl::~CGammaControl() {
         return;
 
     // reset the LUT if the client dies for whatever reason and doesn't unset the gamma
-    wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
+    pMonitor->output->state->setGammaLut({});
 }
 
 bool CGammaControl::good() {
@@ -109,19 +127,15 @@ void CGammaControl::applyToMonitor() {
     LOGM(LOG, "setting to monitor {}", pMonitor->szName);
 
     if (!gammaTableSet) {
-        wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
+        pMonitor->output->state->setGammaLut({});
         return;
     }
 
-    uint16_t* red   = &gammaTable.at(0);
-    uint16_t* green = &gammaTable.at(gammaSize);
-    uint16_t* blue  = &gammaTable.at(gammaSize * 2);
-
-    wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), gammaSize, red, green, blue);
+    pMonitor->output->state->setGammaLut(gammaTable);
 
     if (!pMonitor->state.test()) {
         LOGM(LOG, "setting to monitor {} failed", pMonitor->szName);
-        wlr_output_state_set_gamma_lut(pMonitor->state.wlr(), 0, nullptr, nullptr, nullptr);
+        pMonitor->output->state->setGammaLut({});
     }
 
     g_pHyprRenderer->damageMonitor(pMonitor);

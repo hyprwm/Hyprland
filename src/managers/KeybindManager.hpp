@@ -6,6 +6,7 @@
 #include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
+#include <xkbcommon/xkbcommon.h>
 #include "../devices/IPointer.hpp"
 
 class CInputManager;

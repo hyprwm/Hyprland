@@ -373,7 +373,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         auto options     = state->monitor->cursorSwapchain->currentOptions();
         options.size     = maxSize;
-        options.length   = 2;
+        // TODO: this is a band-aid. If the current cursor image has not yet been committed (no rendering has yet been done)
+        // we should revert the swapchain and avoid rendering to the front buffer.
+        // as a band-aid, extend the swapchain to 3 as we sometimes double-render on a cursor shape change.
+        options.length   = 3;
         options.scanout  = true;
         options.cursor   = true;
         options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;

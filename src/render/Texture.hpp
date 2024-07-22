@@ -2,9 +2,11 @@
 
 #include "../defines.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
+#include <hyprutils/math/Misc.hpp>
 
 class IHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
+using namespace Hyprutils::Math;
 
 enum TEXTURETYPE {
     TEXTURE_INVALID,  // Invalid
@@ -33,11 +35,12 @@ class CTexture {
     void        allocate();
     void        update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage);
 
-    TEXTURETYPE m_iType   = TEXTURE_RGBA;
-    GLenum      m_iTarget = GL_TEXTURE_2D;
-    GLuint      m_iTexID  = 0;
-    Vector2D    m_vSize;
-    void*       m_pEglImage = nullptr;
+    TEXTURETYPE m_iType      = TEXTURE_RGBA;
+    GLenum      m_iTarget    = GL_TEXTURE_2D;
+    GLuint      m_iTexID     = 0;
+    Vector2D    m_vSize      = {};
+    void*       m_pEglImage  = nullptr;
+    eTransform  m_eTransform = HYPRUTILS_TRANSFORM_NORMAL;
 
   private:
     void createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);

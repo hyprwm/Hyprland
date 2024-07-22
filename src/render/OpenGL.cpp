@@ -1277,9 +1277,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     static auto PDIMINACTIVE = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
     static auto PDT          = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
 
-    // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
-    float      matrix[9];
+    // get the needed transform for this texture
+    const bool TRANSFORMS_MATCH = wlTransformToHyprutils(m_RenderData.pMonitor->transform) == tex->m_eTransform; // FIXME: combine them properly!!!
+    eTransform TRANSFORM        = HYPRUTILS_TRANSFORM_NORMAL;
+    if (m_bEndFrame || TRANSFORMS_MATCH)
+        TRANSFORM = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
+
+    float matrix[9];
     projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
 
     float glMatrix[9];

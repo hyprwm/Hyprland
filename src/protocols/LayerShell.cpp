@@ -152,6 +152,8 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
     });
 
     resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
+        // TODO: validate anchor
+
         pending.committed |= STATE_EDGE;
         pending.exclusiveEdge = anchor;
     });

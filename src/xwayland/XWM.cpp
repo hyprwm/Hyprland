@@ -937,7 +937,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
     if (surf->client() != g_pXWayland->pServer->xwaylandClient)
         return;
 
-    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf);
+    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf.get());
 
     const auto WLID = surf->id();
 

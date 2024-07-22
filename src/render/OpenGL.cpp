@@ -130,12 +130,15 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
     }
 
+#ifndef GLES2
     attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
     attrs.push_back(3);
     attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
     attrs.push_back(2);
-    attrs.push_back(EGL_CONTEXT_OPENGL_DEBUG);
-    attrs.push_back(ISDEBUG ? EGL_TRUE : EGL_FALSE);
+#else
+    attrs.push_back(EGL_CONTEXT_CLIENT_VERSION);
+    attrs.push_back(2);
+#endif
 
     attrs.push_back(EGL_NONE);
 

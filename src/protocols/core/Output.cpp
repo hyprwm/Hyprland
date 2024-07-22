@@ -49,7 +49,7 @@ SP<CWlOutput> CWLOutputResource::getResource() {
 }
 
 void CWLOutputResource::updateState() {
-    if (!monitor)
+    if (!monitor || (owner && owner->defunct))
         return;
 
     if (resource->version() >= 2)
@@ -83,7 +83,8 @@ void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver,
         return;
     }
 
-    RESOURCE->self = RESOURCE;
+    RESOURCE->self  = RESOURCE;
+    RESOURCE->owner = self;
 }
 
 void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {

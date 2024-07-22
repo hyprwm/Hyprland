@@ -24,6 +24,14 @@ CPointerManager::CPointerManager() {
             },
             nullptr);
     });
+
+    hooks.monitorPreRender = g_pHookSystem->hookDynamic("preRender", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto state = stateFor(std::any_cast<CMonitor*>(data)->self.lock());
+        if (!state)
+            return;
+
+        state->cursorRendered = false;
+    });
 }
 
 void CPointerManager::lockSoftwareAll() {
@@ -373,10 +381,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         auto options     = state->monitor->cursorSwapchain->currentOptions();
         options.size     = maxSize;
-        // TODO: this is a band-aid. If the current cursor image has not yet been committed (no rendering has yet been done)
-        // we should revert the swapchain and avoid rendering to the front buffer.
-        // as a band-aid, extend the swapchain to 3 as we sometimes double-render on a cursor shape change.
-        options.length   = 3;
+        options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
         options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
@@ -388,6 +393,14 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             return nullptr;
         }
     }
+
+    // if we already rendered the cursor, revert the swapchain to avoid rendering the cursor over
+    // the current front buffer
+    // this flag will be reset in the preRender hook, so when we commit this buffer to KMS
+    if (state->cursorRendered)
+        state->monitor->cursorSwapchain->rollback();
+
+    state->cursorRendered = true;
 
     auto buf = state->monitor->cursorSwapchain->next(nullptr);
     if (!buf) {

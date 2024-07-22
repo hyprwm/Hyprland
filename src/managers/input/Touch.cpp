@@ -6,6 +6,8 @@
 #include "../SeatManager.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
+    m_bLastInputTouch = true;
+
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
     auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
@@ -54,8 +56,6 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         }
     }
 
-    m_bLastInputTouch = true;
-
     m_sTouchData.touchFocusWindow  = m_pFoundWindowToFocus;
     m_sTouchData.touchFocusSurface = m_pFoundSurfaceToFocus;
     m_sTouchData.touchFocusLS      = m_pFoundLSToFocus;
@@ -83,6 +83,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 }
 
 void CInputManager::onTouchUp(ITouch::SUpEvent e) {
+    m_bLastInputTouch = true;
+
     EMIT_HOOK_EVENT_CANCELLABLE("touchUp", e);
     if (m_sActiveSwipe.pWorkspaceBegin) {
         // If there was a swipe from this finger, end it.
@@ -96,6 +98,8 @@ void CInputManager::onTouchUp(ITouch::SUpEvent e) {
 }
 
 void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
+    m_bLastInputTouch = true;
+
     EMIT_HOOK_EVENT_CANCELLABLE("touchMove", e);
     if (m_sActiveSwipe.pWorkspaceBegin) {
         // Do nothing if this is using a different finger.

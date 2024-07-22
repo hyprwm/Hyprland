@@ -148,7 +148,7 @@ void CMonitor::onConnect(bool noRule) {
 
     damage.setSize(vecTransformedSize);
 
-    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output.get());
 
     setupDefaultWS(monitorRule);
 

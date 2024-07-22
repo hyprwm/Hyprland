@@ -228,7 +228,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             return;
 
         } else
-            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF, (uintptr_t)CONSTRAINT.get());
+            Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF.get(), (uintptr_t)CONSTRAINT.get());
     }
 
     // if we are holding a pointer button,
@@ -570,7 +570,7 @@ void CInputManager::processMouseRequest(std::any E) {
 
     auto e = std::any_cast<CSeatManager::SSetCursorEvent>(E);
 
-    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)e.surf);
+    Debug::log(LOG, "cursorImage request: surface {:x}", (uintptr_t)e.surf.get());
 
     if (e.surf != m_sCursorSurfaceInfo.wlSurface->resource()) {
         m_sCursorSurfaceInfo.wlSurface->unassign();
@@ -850,7 +850,7 @@ void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and WLR: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard);
+    Debug::log(LOG, "New keyboard created, pointers Hypr: {:x} and AQ: {:x}", (uintptr_t)PNEWKEYBOARD.get(), (uintptr_t)keyboard.get());
 }
 
 void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) {
@@ -992,7 +992,7 @@ void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
 
     setupMouse(PMOUSE);
 
-    Debug::log(LOG, "New mouse created, pointer WLR: {:x}", (uintptr_t)mouse);
+    Debug::log(LOG, "New mouse created, pointer AQ: {:x}", (uintptr_t)mouse.get());
 }
 
 void CInputManager::setupMouse(SP<IPointer> mauz) {

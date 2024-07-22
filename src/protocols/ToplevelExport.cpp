@@ -221,7 +221,7 @@ void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* r
     const auto PWINDOW = PFRAME->pWindow.lock();
 
     if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", (uintptr_t)PWINDOW.get());
+        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", PWINDOW);
         hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
         removeFrame(PFRAME);
         return;

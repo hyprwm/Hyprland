@@ -74,7 +74,7 @@ CLayerSurface::~CLayerSurface() {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
@@ -114,7 +114,7 @@ void CLayerSurface::onDestroy() {
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
 
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
@@ -177,7 +177,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", self.lock());

@@ -1693,7 +1693,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         return;
 
     const auto WLSURF    = CWLSurface::fromResource(pSurface);
-    CRegion    damageBox = WLSURF ? WLSURF->logicalDamage() : CRegion{};
+    CRegion    damageBox = WLSURF ? WLSURF->computeDamage() : CRegion{};
     if (!WLSURF) {
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;

@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    g_pCompositor->initServer();
+    g_pCompositor->initServer(socketName, socketFd);
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         Init::gainRealTime();
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     Debug::log(LOG, "Hyprland init finished.");
 
     // If all's good to go, start.
-    g_pCompositor->startCompositor(socketName, socketFd);
+    g_pCompositor->startCompositor();
 
     g_pCompositor->m_bIsShuttingDown = true;
 

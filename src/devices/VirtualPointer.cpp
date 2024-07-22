@@ -20,7 +20,12 @@ CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : point
     });
 
     listeners.motion         = pointer->events.move.registerListener([this](std::any d) { pointerEvents.motion.emit(d); });
-    listeners.motionAbsolute = pointer->events.warp.registerListener([this](std::any d) { pointerEvents.motionAbsolute.emit(d); });
+    listeners.motionAbsolute = pointer->events.warp.registerListener([this](std::any d) {
+        // we need to unpack the event and add our device here because it's required to calculate the position correctly
+        auto E   = std::any_cast<SMotionAbsoluteEvent>(d);
+        E.device = self.lock();
+        pointerEvents.motionAbsolute.emit(E);
+    });
     listeners.button         = pointer->events.button.registerListener([this](std::any d) { pointerEvents.button.emit(d); });
     listeners.axis           = pointer->events.axis.registerListener([this](std::any d) { pointerEvents.axis.emit(d); });
     listeners.frame          = pointer->events.frame.registerListener([this](std::any d) { pointerEvents.frame.emit(); });

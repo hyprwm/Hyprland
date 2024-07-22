@@ -620,7 +620,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
 void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
     SP<CMonitor> currentMonitor = g_pCompositor->m_pLastMonitor.lock();
-    if (!currentMonitor)
+    if (!currentMonitor || !dev)
         return;
 
     if (!std::isnan(abs.x))

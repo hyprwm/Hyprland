@@ -378,6 +378,20 @@ void CXWM::handleFocusIn(xcb_focus_in_event_t* e) {
         focusWindow(focusedSurface.lock());
 }
 
+void CXWM::handleFocusOut(xcb_focus_out_event_t* e) {
+    Debug::log(TRACE, "[xwm] focusOut mode={}, detail={}, event={}", e->mode, e->detail, e->event);
+
+    const auto XSURF = windowForXID(e->event);
+
+    if (!XSURF)
+        return;
+
+    Debug::log(TRACE, "[xwm] focusOut for {} {} {} surface {}", XSURF->mapped ? "mapped" : "unmapped", XSURF->fullscreen ? "fullscreen" : "windowed",
+               XSURF == focusedSurface ? "focused" : "unfocused", XSURF->state.title);
+
+    // do something?
+}
+
 void CXWM::sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask) {
     xcb_client_message_event_t event = {
         .response_type = XCB_CLIENT_MESSAGE,
@@ -674,9 +688,10 @@ int CXWM::onEvent(int fd, uint32_t mask) {
             case XCB_PROPERTY_NOTIFY: handlePropertyNotify((xcb_property_notify_event_t*)event); break;
             case XCB_CLIENT_MESSAGE: handleClientMessage((xcb_client_message_event_t*)event); break;
             case XCB_FOCUS_IN: handleFocusIn((xcb_focus_in_event_t*)event); break;
+            case XCB_FOCUS_OUT: handleFocusOut((xcb_focus_out_event_t*)event); break;
             case 0: handleError((xcb_value_error_t*)event); break;
             default: {
-                ;
+                Debug::log(TRACE, "[xwm] unhandled event {}", event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK);
             }
         }
         free(event);
@@ -891,6 +906,11 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
 }
 
 void CXWM::sendState(SP<CXWaylandSurface> surf) {
+    Debug::log(TRACE, "[xwm] sendState for {} {} {} surface {}", surf->mapped ? "mapped" : "unmapped", surf->fullscreen ? "fullscreen" : "windowed",
+               surf == focusedSurface ? "focused" : "unfocused", surf->state.title);
+    if (surf->fullscreen && surf->mapped && surf == focusedSurface)
+        surf->setWithdrawn(false); // resend normal state
+
     if (surf->withdrawn) {
         xcb_delete_property(connection, surf->xID, HYPRATOMS["_NET_WM_STATE"]);
         return;

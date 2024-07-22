@@ -1506,7 +1506,8 @@ void CHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMo
 
 // taken from Sway.
 // this is just too much of a spaghetti for me to understand
-static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive, int32_t marginTop, int32_t marginRight, int32_t marginBottom, int32_t marginLeft) {
+static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive, uint32_t exclusiveEdge, int32_t marginTop, int32_t marginRight, int32_t marginBottom,
+                           int32_t marginLeft) {
     if (exclusive <= 0) {
         return;
     }
@@ -1551,7 +1552,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
         },
     };
     for (size_t i = 0; i < sizeof(edges) / sizeof(edges[0]); ++i) {
-        if ((anchor == edges[i].singular_anchor || anchor == edges[i].anchor_triplet) && exclusive + edges[i].margin > 0) {
+        if ((exclusiveEdge == edges[i].singular_anchor || anchor == edges[i].singular_anchor || anchor == edges[i].anchor_triplet) && exclusive + edges[i].margin > 0) {
             if (edges[i].positive_axis) {
                 *edges[i].positive_axis += exclusive + edges[i].margin;
             }
@@ -1638,7 +1639,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
         // Apply
         ls->geometry = box;
 
-        applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
+        applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->exclusiveEdge, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
         if (Vector2D{box.width, box.height} != OLDSIZE)
             ls->layerSurface->configure(box.size());

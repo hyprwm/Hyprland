@@ -163,8 +163,9 @@ class CPointerManager {
         int                     softwareLocks  = 0;
         bool                    hardwareFailed = false;
         CBox                    box; // logical
-        bool                    entered   = false;
-        bool                    hwApplied = false;
+        bool                    entered        = false;
+        bool                    hwApplied      = false;
+        bool                    cursorRendered = false;
 
         SP<Aquamarine::IBuffer> cursorFrontBuffer;
     };
@@ -177,6 +178,7 @@ class CPointerManager {
 
     struct {
         SP<HOOK_CALLBACK_FN> monitorAdded;
+        SP<HOOK_CALLBACK_FN> monitorPreRender;
     } hooks;
 };
 

@@ -74,6 +74,16 @@ Vector2D CWLSurface::correctSmallVec() const {
     return Vector2D{(O->m_vReportedSize.x - SIZE.x) / 2, (O->m_vReportedSize.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_vRealSize.value() / O->m_vReportedSize);
 }
 
+Vector2D CWLSurface::correctSmallVecBuf() const {
+    if (!exists() || !small() || m_bFillIgnoreSmall || !m_pResource->current.buffer)
+        return {};
+
+    const auto SIZE = getViewporterCorrectedSize();
+    const auto BS   = m_pResource->current.buffer->size;
+
+    return Vector2D{(BS.x - SIZE.x) / 2, (BS.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY});
+}
+
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
     if (!exists() || !m_pResource->current.buffer)
         return {};
@@ -81,16 +91,15 @@ Vector2D CWLSurface::getViewporterCorrectedSize() const {
     return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.buffer->size;
 }
 
-CRegion CWLSurface::logicalDamage() const {
+CRegion CWLSurface::computeDamage() const {
     if (!m_pResource->current.buffer)
         return {};
 
     CRegion damage = m_pResource->accumulateCurrentBufferDamage();
     damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.buffer->size.x, m_pResource->current.buffer->size.y);
-    damage.scale(1.0 / m_pResource->current.scale);
 
-    const auto VPSIZE     = getViewporterCorrectedSize();
-    const auto CORRECTVEC = correctSmallVec();
+    const auto BUFSIZE    = m_pResource->current.buffer->size;
+    const auto CORRECTVEC = correctSmallVecBuf();
 
     if (m_pResource->current.viewport.hasSource)
         damage.intersect(m_pResource->current.viewport.source);
@@ -98,8 +107,16 @@ CRegion CWLSurface::logicalDamage() const {
     const auto SCALEDSRCSIZE =
         m_pResource->current.viewport.hasSource ? m_pResource->current.viewport.source.size() * m_pResource->current.scale : m_pResource->current.buffer->size;
 
-    damage.scale({VPSIZE.x / SCALEDSRCSIZE.x, VPSIZE.y / SCALEDSRCSIZE.y});
+    damage.scale({BUFSIZE.x / SCALEDSRCSIZE.x, BUFSIZE.y / SCALEDSRCSIZE.y});
     damage.translate(CORRECTVEC);
+
+    // go from buffer coords in the damage to hl logical
+
+    const auto     BOX   = getSurfaceBoxGlobal();
+    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_pResource->current.buffer->size :
+                                             Vector2D{1.0 / m_pResource->current.scale, 1.0 / m_pResource->current.scale /* Wrong... but we can't really do better */};
+
+    damage.scale(SCALE);
 
     return damage;
 }
@@ -141,27 +158,27 @@ void CWLSurface::init() {
     Debug::log(LOG, "CWLSurface {:x} called init()", (uintptr_t)this);
 }
 
-PHLWINDOW CWLSurface::getWindow() {
+PHLWINDOW CWLSurface::getWindow() const {
     return m_pWindowOwner.lock();
 }
 
-PHLLS CWLSurface::getLayer() {
+PHLLS CWLSurface::getLayer() const {
     return m_pLayerOwner.lock();
 }
 
-CPopup* CWLSurface::getPopup() {
+CPopup* CWLSurface::getPopup() const {
     return m_pPopupOwner;
 }
 
-CSubsurface* CWLSurface::getSubsurface() {
+CSubsurface* CWLSurface::getSubsurface() const {
     return m_pSubsurfaceOwner;
 }
 
-bool CWLSurface::desktopComponent() {
+bool CWLSurface::desktopComponent() const {
     return !m_pLayerOwner.expired() || !m_pWindowOwner.expired() || m_pSubsurfaceOwner || m_pPopupOwner;
 }
 
-std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() {
+std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() const {
     if (!desktopComponent())
         return {};
 
@@ -181,7 +198,7 @@ void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
     m_pConstraint = constraint;
 }
 
-SP<CPointerConstraint> CWLSurface::constraint() {
+SP<CPointerConstraint> CWLSurface::constraint() const {
     return m_pConstraint.lock();
 }
 

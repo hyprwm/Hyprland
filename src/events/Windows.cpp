@@ -702,12 +702,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
         return;
 
-    if (PWINDOW->m_bIsX11)
-        PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
-    else if (PWINDOW->m_pPendingSizeAck.has_value()) {
-        PWINDOW->m_vReportedSize = PWINDOW->m_pPendingSizeAck->second;
-        PWINDOW->m_pPendingSizeAck.reset();
-    }
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_bIsX11 && !PWINDOW->m_bIsFullscreen && PWINDOW->m_bIsFloating) {
         const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;

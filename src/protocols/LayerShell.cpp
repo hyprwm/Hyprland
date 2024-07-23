@@ -11,7 +11,7 @@ void CLayerShellResource::SState::reset() {
     exclusive     = 0;
     interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
-    exclusiveEdge = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+    exclusiveEdge = (zwlrLayerSurfaceV1Anchor)0;
     desiredSize   = {};
     margin        = {0, 0, 0, 0};
 }
@@ -152,7 +152,15 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
     });
 
     resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
-        // TODO: validate anchor
+        if (anchor > (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+            r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Invalid exclusive edge");
+            return;
+        }
+
+        if (!pending.anchor || !(pending.anchor & anchor)) {
+            r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Exclusive edge doesn't align with anchor");
+            return;
+        }
 
         pending.committed |= STATE_EDGE;
         pending.exclusiveEdge = anchor;

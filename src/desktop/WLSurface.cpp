@@ -118,6 +118,9 @@ CRegion CWLSurface::computeDamage() const {
 
     damage.scale(SCALE);
 
+    if (m_pWindowOwner)
+        damage.scale(m_pWindowOwner->m_fX11SurfaceScaledBy); // fix xwayland:force_zero_scaling stuff that will be fucked by the above a bit
+
     return damage;
 }
 

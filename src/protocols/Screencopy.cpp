@@ -16,14 +16,21 @@ static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint
 }
 
 static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    g_pProtocolManager->m_pScreencopyProtocolManager->displayDestroy();
+    CScreencopyProtocolManager* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
+    proto->displayDestroy();
 }
 
 void CScreencopyProtocolManager::displayDestroy() {
+    wl_list_remove(&m_liDisplayDestroy.link);
+    wl_list_init(&m_liDisplayDestroy.link);
     wl_global_destroy(m_pGlobal);
 }
 
 static SScreencopyFrame* frameFromResource(wl_resource*);
+
+CScreencopyProtocolManager::~CScreencopyProtocolManager() {
+    displayDestroy();
+}
 
 CScreencopyProtocolManager::CScreencopyProtocolManager() {
 

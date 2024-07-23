@@ -507,8 +507,7 @@ void CCompositor::cleanup() {
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
 
-    wl_event_loop_destroy(m_sWLEventLoop);
-    wl_display_terminate(m_sWLDisplay);
+    wl_display_destroy(m_sWLDisplay);
     m_sWLDisplay = nullptr;
 
     std::string waylandSocket = std::string{getenv("XDG_RUNTIME_DIR")} + "/" + m_szWLDisplaySocket;

@@ -399,8 +399,10 @@ int CMonitor::findAvailableDefaultWS() {
 SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor) {
     if (!swapchain || size != swapchain->currentOptions().size) {
 
-        if (!swapchain)
+        if (!swapchain) {
+            Debug::log(TRACE, "creating new cursor {} swapchain", isCursor);
             swapchain = Aquamarine::CSwapchain::create(output->getBackend()->preferredAllocator(), output->getBackend());
+        }
 
         auto options     = swapchain->currentOptions();
         options.size     = size;
@@ -408,6 +410,8 @@ SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> 
         options.scanout  = true;
         options.cursor   = isCursor;
         options.multigpu = output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
+        if (!isCursor && cursorSwapchain)
+            options.format = cursorSwapchain->currentOptions().format;
         // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
 
@@ -860,6 +864,7 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 bool CMonitor::resizeCursorSwapchain(Vector2D size) {
+    Debug::log(TRACE, "resizeCursorSwapchain");
     auto swapchain = resizeSwapchain(cursorSwapchain, size, true);
     if (!cursorSwapchain)
         cursorSwapchain = swapchain;
@@ -868,6 +873,7 @@ bool CMonitor::resizeCursorSwapchain(Vector2D size) {
 }
 
 bool CMonitor::resizeCursorFallbackSwapchain(Vector2D size) {
+    Debug::log(TRACE, "resizeCursorFallbackSwapchain");
     auto swapchain = resizeSwapchain(cursorFallbackSwapchain, size, false);
     if (!cursorFallbackSwapchain)
         cursorFallbackSwapchain = swapchain;

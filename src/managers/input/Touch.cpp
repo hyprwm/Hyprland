@@ -14,7 +14,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     // TODO: WORKSPACERULE.gapsOut.value_or()
     auto        gapsOut     = *PGAPSOUT;
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PSWIPEINVR  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+    static auto PSWIPEINVR  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
     EMIT_HOOK_EVENT_CANCELLABLE("touchDown", e);
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");

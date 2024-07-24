@@ -159,5 +159,7 @@ int main(int argc, char** argv) {
 
     g_pCompositor->cleanup();
 
+    Debug::log(LOG, "Hyprland has reached the end.");
+
     return EXIT_SUCCESS;
 }

@@ -435,6 +435,8 @@ void CCompositor::cleanEnvironment() {
 
 void CCompositor::stopCompositor() {
     Debug::log(LOG, "Hyprland is stopping!");
+
+    // this stops the wayland loop, wl_display_run
     wl_display_terminate(m_sWLDisplay);
     m_bIsShuttingDown = true;
 }
@@ -514,6 +516,7 @@ void CCompositor::cleanup() {
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
 
+    // this frees all wayland resources, including sockets
     wl_display_destroy(m_sWLDisplay);
 }
 

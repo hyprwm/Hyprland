@@ -216,6 +216,7 @@ class CHyprOpenGLImpl {
     gbm_device*                                       m_pGbmDevice  = nullptr;
     EGLContext                                        m_pEglContext = nullptr;
     EGLDisplay                                        m_pEglDisplay = nullptr;
+    EGLDeviceEXT                                      m_pEglDevice  = nullptr;
 
     bool                                              m_bReloadScreenShader = true; // at launch it can be set
 
@@ -280,6 +281,7 @@ class CHyprOpenGLImpl {
     void                    initShaders();
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
+    EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

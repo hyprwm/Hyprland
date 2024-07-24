@@ -1184,15 +1184,10 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
 }
 
 PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
-    for (auto& w : m_vWindows) {
-        if (!w->m_bIsMapped || w->m_bFadingOut)
-            continue;
+    if (!pSurface || !pSurface->hlSurface)
+        return nullptr;
 
-        if (w->m_pWLSurface->resource() == pSurface)
-            return w;
-    }
-
-    return nullptr;
+    return pSurface->hlSurface->getWindow();
 }
 
 PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {

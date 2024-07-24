@@ -101,7 +101,6 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pass"]                           = pass;
     m_mDispatchers["sendshortcut"]                   = sendshortcut;
     m_mDispatchers["layoutmsg"]                      = layoutmsg;
-    m_mDispatchers["toggleopaque"]                   = toggleOpaque;
     m_mDispatchers["dpms"]                           = dpms;
     m_mDispatchers["movewindowpixel"]                = moveWindow;
     m_mDispatchers["resizewindowpixel"]              = resizeWindow;
@@ -2235,17 +2234,6 @@ void CKeybindManager::sendshortcut(std::string args) {
 void CKeybindManager::layoutmsg(std::string msg) {
     SLayoutMessageHeader hd = {g_pCompositor->m_pLastWindow.lock()};
     g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
-}
-
-void CKeybindManager::toggleOpaque(std::string unused) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
-
-    if (!PWINDOW)
-        return;
-
-    PWINDOW->m_sWindowData.opaque = CWindowOverridableVar(!PWINDOW->m_sWindowData.opaque.valueOrDefault(), PRIORITY_SET_PROP);
-
-    g_pHyprRenderer->damageWindow(PWINDOW);
 }
 
 void CKeybindManager::dpms(std::string arg) {

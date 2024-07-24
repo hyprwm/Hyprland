@@ -33,6 +33,7 @@ struct SKeybind {
     bool                   ignoreMods     = false;
     bool                   multiKey       = false;
     bool                   hasDescription = false;
+    bool                   dontInhibit    = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;

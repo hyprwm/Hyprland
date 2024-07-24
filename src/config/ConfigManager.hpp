@@ -182,6 +182,7 @@ class CConfigManager {
         {"nomaxsize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
         {"norounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noRounding; }},
         {"noshadow", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShadow; }},
+        {"noshortcutsinhibit", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
         {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},

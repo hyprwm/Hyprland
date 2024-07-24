@@ -1977,6 +1977,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       ignoreMods     = false;
     bool       multiKey       = false;
     bool       hasDescription = false;
+    bool       dontInhibit    = false;
     const auto BINDARGS       = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -1998,6 +1999,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             multiKey = true;
         } else if (arg == 'd') {
             hasDescription = true;
+        } else if (arg == 'p') {
+            dontInhibit = true;
         } else {
             return "bind: invalid flag";
         }
@@ -2066,8 +2069,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
-                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey, hasDescription});
+        g_pKeybindManager->addKeybind(SKeybind{
+            parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD,        MODS,     HANDLER,        COMMAND,    locked, m_szCurrentSubmap, DESCRIPTION, release,
+            repeat,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, hasDescription, dontInhibit});
     }
 
     return {};

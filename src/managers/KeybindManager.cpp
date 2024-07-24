@@ -281,13 +281,18 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
         return false;
 
     const auto LASTMONITOR = g_pCompositor->m_pLastMonitor.get();
+    if (!LASTMONITOR)
+        return false;
     if (LASTMONITOR == monitor) {
         Debug::log(LOG, "Tried to move to active monitor");
         return false;
     }
 
-    const auto PWORKSPACE        = g_pCompositor->m_pLastMonitor->activeWorkspace;
-    const auto PNEWMAINWORKSPACE = monitor->activeWorkspace;
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+
+    const auto  PWORKSPACE        = g_pCompositor->m_pLastMonitor->activeWorkspace;
+    const auto  PNEWMAINWORKSPACE = monitor->activeWorkspace;
 
     g_pInputManager->unconstrainMouse();
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
@@ -300,9 +305,11 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
         g_pCompositor->focusWindow(PNEWWINDOW);
         PNEWWINDOW->warpCursor();
 
-        g_pInputManager->m_pForcedFocus = PNEWWINDOW;
-        g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+            g_pInputManager->m_pForcedFocus = PNEWWINDOW;
+            g_pInputManager->simulateMouseMovement();
+            g_pInputManager->m_pForcedFocus.reset();
+        }
     } else {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->warpCursorTo(monitor->middle());
@@ -313,7 +320,10 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
 }
 
 void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
-    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+
+    const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
@@ -337,9 +347,12 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
         PWINDOWTOCHANGETO->warpCursor();
 
-        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
-        g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        // Move mouse focus to the new window if required by current follow_mouse and warp modes
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+            g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+            g_pInputManager->simulateMouseMovement();
+            g_pInputManager->m_pForcedFocus.reset();
+        }
 
         if (PLASTWINDOW && PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
             // event

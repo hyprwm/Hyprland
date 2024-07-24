@@ -607,10 +607,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
     static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
 
-    if (!*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited()) {
+    if (!*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
         Debug::log(LOG, "Keybind handling is disabled due to an inhibitor");
-        return false;
-    }
 
     for (auto& k : m_lKeybinds) {
         const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "sendshortcut" || k.handler == "mouse";
@@ -618,6 +616,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+
+        if (!k.dontInhibit && !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
+            continue;
 
         if (!k.locked && g_pSessionLockManager->isSessionLocked())
             continue;

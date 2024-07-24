@@ -12,6 +12,7 @@
 class CProtocolManager {
   public:
     CProtocolManager();
+    ~CProtocolManager();
 
     // TODO: rewrite to use the new protocol framework
     std::unique_ptr<CToplevelExportProtocolManager>  m_pToplevelExportProtocolManager;

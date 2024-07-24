@@ -166,3 +166,57 @@ CProtocolManager::CProtocolManager() {
     m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
     m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
 }
+
+CProtocolManager::~CProtocolManager() {
+    // this is dumb but i don't want to replace all 600 PROTO with the right thing
+
+    // Output
+    PROTO::outputs.clear();
+
+    // Core
+    PROTO::seat.reset();
+    PROTO::data.reset();
+    PROTO::compositor.reset();
+    PROTO::subcompositor.reset();
+    PROTO::shm.reset();
+
+    // Extensions
+    PROTO::viewport.reset();
+    PROTO::tearing.reset();
+    PROTO::fractional.reset();
+    PROTO::xdgOutput.reset();
+    PROTO::cursorShape.reset();
+    PROTO::idleInhibit.reset();
+    PROTO::relativePointer.reset();
+    PROTO::xdgDecoration.reset();
+    PROTO::alphaModifier.reset();
+    PROTO::gamma.reset();
+    PROTO::foreignToplevel.reset();
+    PROTO::pointerGestures.reset();
+    PROTO::foreignToplevelWlr.reset();
+    PROTO::shortcutsInhibit.reset();
+    PROTO::textInputV3.reset();
+    PROTO::constraints.reset();
+    PROTO::outputPower.reset();
+    PROTO::activation.reset();
+    PROTO::idle.reset();
+    PROTO::sessionLock.reset();
+    PROTO::ime.reset();
+    PROTO::virtualKeyboard.reset();
+    PROTO::virtualPointer.reset();
+    PROTO::outputManagement.reset();
+    PROTO::serverDecorationKDE.reset();
+    PROTO::focusGrab.reset();
+    PROTO::tablet.reset();
+    PROTO::layerShell.reset();
+    PROTO::presentation.reset();
+    PROTO::xdgShell.reset();
+    PROTO::dataWlr.reset();
+    PROTO::primarySelection.reset();
+    PROTO::xwaylandShell.reset();
+
+    PROTO::lease.reset();
+    PROTO::sync.reset();
+    PROTO::mesaDRM.reset();
+    PROTO::linuxDma.reset();
+}

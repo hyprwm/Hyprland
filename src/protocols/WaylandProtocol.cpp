@@ -6,7 +6,8 @@ static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uin
 }
 
 static void displayDestroyInternal(struct wl_listener* listener, void* data) {
-    ((IWaylandProtocol*)data)->onDisplayDestroy();
+    IWaylandProtocol* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
+    proto->onDisplayDestroy();
 }
 
 void IWaylandProtocol::onDisplayDestroy() {

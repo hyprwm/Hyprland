@@ -43,7 +43,7 @@ int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
 
     if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
-        g_pCompositor->cleanup();
+        g_pCompositor->stopCompositor();
 
     return 0;
 }
@@ -193,7 +193,8 @@ CCompositor::CCompositor() {
 }
 
 CCompositor::~CCompositor() {
-    cleanup();
+    if (!m_bIsShuttingDown)
+        cleanup();
 }
 
 void CCompositor::setRandomSplash() {
@@ -432,8 +433,16 @@ void CCompositor::cleanEnvironment() {
     }
 }
 
+void CCompositor::stopCompositor() {
+    Debug::log(LOG, "Hyprland is stopping!");
+
+    // this stops the wayland loop, wl_display_run
+    wl_display_terminate(m_sWLDisplay);
+    m_bIsShuttingDown = true;
+}
+
 void CCompositor::cleanup() {
-    if (!m_sWLDisplay || m_bIsShuttingDown)
+    if (!m_sWLDisplay)
         return;
 
     signal(SIGABRT, SIG_DFL);
@@ -507,13 +516,8 @@ void CCompositor::cleanup() {
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
 
-    wl_event_loop_destroy(m_sWLEventLoop);
-    wl_display_terminate(m_sWLDisplay);
-    m_sWLDisplay = nullptr;
-
-    std::string waylandSocket = std::string{getenv("XDG_RUNTIME_DIR")} + "/" + m_szWLDisplaySocket;
-    std::filesystem::remove(waylandSocket);
-    std::filesystem::remove(waylandSocket + ".lock");
+    // this frees all wayland resources, including sockets
+    wl_display_destroy(m_sWLDisplay);
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

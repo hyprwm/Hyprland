@@ -17,6 +17,8 @@ struct SShortcutClient {
 class CGlobalShortcutsProtocolManager {
   public:
     CGlobalShortcutsProtocolManager();
+    ~CGlobalShortcutsProtocolManager();
+
     void                   bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
     void                   displayDestroy();
 
@@ -29,11 +31,12 @@ class CGlobalShortcutsProtocolManager {
 
     std::vector<SShortcut> getAllShortcuts();
 
+    wl_listener            m_liDisplayDestroy;
+
   private:
     std::vector<std::unique_ptr<SShortcutClient>> m_vClients;
 
     SShortcutClient*                              clientFromWlClient(wl_client* client);
 
     wl_global*                                    m_pGlobal = nullptr;
-    wl_listener                                   m_liDisplayDestroy;
 };

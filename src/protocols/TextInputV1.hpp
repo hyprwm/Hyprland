@@ -47,6 +47,7 @@ struct STextInputV1 {
 class CTextInputV1ProtocolManager {
   public:
     CTextInputV1ProtocolManager();
+    ~CTextInputV1ProtocolManager();
 
     void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
     void createTI(wl_client* client, wl_resource* resource, uint32_t id);
@@ -55,21 +56,22 @@ class CTextInputV1ProtocolManager {
     void displayDestroy();
 
     // handlers for tiv1
-    void handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface);
-    void handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat);
-    void handleShowInputPanel(wl_client* client, wl_resource* resource);
-    void handleHideInputPanel(wl_client* client, wl_resource* resource);
-    void handleReset(wl_client* client, wl_resource* resource);
-    void handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor);
-    void handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose);
-    void handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height);
-    void handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language);
-    void handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial);
-    void handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index);
+    void        handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface);
+    void        handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat);
+    void        handleShowInputPanel(wl_client* client, wl_resource* resource);
+    void        handleHideInputPanel(wl_client* client, wl_resource* resource);
+    void        handleReset(wl_client* client, wl_resource* resource);
+    void        handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor);
+    void        handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose);
+    void        handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height);
+    void        handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language);
+    void        handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial);
+    void        handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index);
+
+    wl_listener m_liDisplayDestroy;
 
   private:
     wl_global*                                 m_pGlobal = nullptr;
-    wl_listener                                m_liDisplayDestroy;
 
     std::vector<std::unique_ptr<STextInputV1>> m_pClients;
 };

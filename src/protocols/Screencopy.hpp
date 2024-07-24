@@ -70,17 +70,20 @@ struct SScreencopyFrame {
 class CScreencopyProtocolManager {
   public:
     CScreencopyProtocolManager();
+    ~CScreencopyProtocolManager();
 
-    void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void removeClient(CScreencopyClient* client, bool force = false);
-    void removeFrame(SScreencopyFrame* frame, bool force = false);
-    void displayDestroy();
+    void        bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
+    void        removeClient(CScreencopyClient* client, bool force = false);
+    void        removeFrame(SScreencopyFrame* frame, bool force = false);
+    void        displayDestroy();
 
-    void captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, CBox box = {0, 0, 0, 0});
+    void        captureOutput(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* output, CBox box = {0, 0, 0, 0});
 
-    void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
+    void        copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer);
 
-    void onOutputCommit(CMonitor* pMonitor);
+    void        onOutputCommit(CMonitor* pMonitor);
+
+    wl_listener m_liDisplayDestroy;
 
   private:
     wl_global*                     m_pGlobal = nullptr;
@@ -89,8 +92,6 @@ class CScreencopyProtocolManager {
 
     SP<CEventLoopTimer>            m_pSoftwareCursorTimer;
     bool                           m_bTimerArmed = false;
-
-    wl_listener                    m_liDisplayDestroy;
 
     std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
 

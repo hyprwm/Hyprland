@@ -101,7 +101,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
 
     attrs.push_back(EGL_NONE);
 
-    m_pEglDisplay = m_sProc.eglGetPlatformDisplayEXT(gbm ? EGL_PLATFORM_GBM_KHR : EGL_PLATFORM_DEVICE_EXT, gbm ? m_pGbmDevice : nullptr, attrs.data());
+    m_pEglDisplay = m_sProc.eglGetPlatformDisplayEXT(gbm ? EGL_PLATFORM_GBM_KHR : EGL_PLATFORM_DEVICE_EXT, gbm ? m_pGbmDevice : m_pEglDevice, attrs.data());
     if (m_pEglDisplay == EGL_NO_DISPLAY)
         RASSERT(false, "EGL: failed to create a platform display");
 
@@ -158,6 +158,60 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, m_pEglContext);
 }
 
+static bool drmDeviceHasName(const drmDevice* device, const std::string& name) {
+    for (size_t i = 0; i < DRM_NODE_MAX; i++) {
+        if (!(device->available_nodes & (1 << i)))
+            continue;
+
+        if (device->nodes[i] == name)
+            return true;
+    }
+    return false;
+}
+
+EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
+    EGLint nDevices = 0;
+    if (!m_sProc.eglQueryDevicesEXT(0, nullptr, &nDevices)) {
+        Debug::log(ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed");
+        return EGL_NO_DEVICE_EXT;
+    }
+
+    if (nDevices <= 0) {
+        Debug::log(ERR, "eglDeviceFromDRMFD: no devices");
+        return EGL_NO_DEVICE_EXT;
+    }
+
+    std::vector<EGLDeviceEXT> devices;
+    devices.resize(nDevices);
+
+    if (!m_sProc.eglQueryDevicesEXT(nDevices, devices.data(), &nDevices)) {
+        Debug::log(ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed (2)");
+        return EGL_NO_DEVICE_EXT;
+    }
+
+    drmDevice* drmDev = nullptr;
+    if (int ret = drmGetDevice(drmFD, &drmDev); ret < 0) {
+        Debug::log(ERR, "eglDeviceFromDRMFD: drmGetDevice failed");
+        return EGL_NO_DEVICE_EXT;
+    }
+
+    for (auto& d : devices) {
+        auto devName = m_sProc.eglQueryDeviceStringEXT(d, EGL_DRM_DEVICE_FILE_EXT);
+        if (!devName)
+            continue;
+
+        if (drmDeviceHasName(drmDev, devName)) {
+            Debug::log(LOG, "eglDeviceFromDRMFD: Using device {}", devName);
+            drmFreeDevice(&drmDev);
+            return d;
+        }
+    }
+
+    drmFreeDevice(&drmDev);
+    Debug::log(LOG, "eglDeviceFromDRMFD: No drm devices found");
+    return EGL_NO_DEVICE_EXT;
+}
+
 CHyprOpenGLImpl::CHyprOpenGLImpl() {
     const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
@@ -202,22 +256,33 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     RASSERT(eglBindAPI(EGL_OPENGL_ES_API) != EGL_FALSE, "Couldn't bind to EGL's opengl ES API. This means your gpu driver f'd up. This is not a hyprland issue.");
 
-    // if (m_sProc.eglQueryDevicesEXT) {
-    //     // TODO:
-    // }
+    bool success = false;
+    if (EGLEXTENSIONS.contains("EXT_platform_device") || !m_sProc.eglQueryDevicesEXT || !m_sProc.eglQueryDeviceStringEXT) {
+        m_pEglDevice = eglDeviceFromDRMFD(m_iDRMFD);
 
-    if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
-        m_iGBMFD = openRenderNode(m_iDRMFD);
-        if (m_iGBMFD < 0)
-            RASSERT(false, "Couldn't open a gbm fd");
+        if (m_pEglDevice != EGL_NO_DEVICE_EXT) {
+            success = true;
+            initEGL(false);
+        }
+    }
 
-        m_pGbmDevice = gbm_create_device(m_iGBMFD);
-        if (!m_pGbmDevice)
-            RASSERT(false, "Couldn't open a gbm device");
+    if (!success) {
+        Debug::log(WARN, "EGL: EXT_platform_device or EGL_EXT_device_query not supported, using gbm");
+        if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
+            success  = true;
+            m_iGBMFD = openRenderNode(m_iDRMFD);
+            if (m_iGBMFD < 0)
+                RASSERT(false, "Couldn't open a gbm fd");
 
-        initEGL(true);
-    } else
-        RASSERT(false, "EGL does not support KHR_platform_gbm, this is an issue with your gpu driver.");
+            m_pGbmDevice = gbm_create_device(m_iGBMFD);
+            if (!m_pGbmDevice)
+                RASSERT(false, "Couldn't open a gbm device");
+
+            initEGL(true);
+        }
+    }
+
+    RASSERT(success, "EGL does not support KHR_platform_gbm or EXT_platform_device, this is an issue with your gpu driver.");
 
     auto* const EXTENSIONS = (const char*)glGetString(GL_EXTENSIONS);
     RASSERT(EXTENSIONS, "Couldn't retrieve openGL extensions!");

@@ -105,7 +105,19 @@ void CrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport += GIT_COMMIT_HASH;
     finalCrashReport += "\nTag: ";
     finalCrashReport += GIT_TAG;
-    finalCrashReport += "\n\n";
+    finalCrashReport += "\nDate: ";
+    finalCrashReport += GIT_COMMIT_DATE;
+    finalCrashReport += "\nFlags:\n";
+#ifdef LEGACY_RENDERER
+    finalCrashReport += "legacyrenderer\n";
+#endif
+#ifndef ISDEBUG
+    finalCrashReport += "debug\n";
+#endif
+#ifdef NO_XWAYLAND
+    finalCrashReport += "no xwayland\n";
+#endif
+    finalCrashReport += "\n";
 
     if (g_pPluginSystem && g_pPluginSystem->pluginCount() > 0) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";

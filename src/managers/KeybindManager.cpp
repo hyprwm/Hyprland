@@ -2366,7 +2366,7 @@ void CKeybindManager::mouse(std::string args) {
     const auto PRESSED = args[0] == '1';
 
     if (ARGS[0] == "movewindow") {
-        if (PRESSED) {
+        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
@@ -2380,7 +2380,7 @@ void CKeybindManager::mouse(std::string args) {
 
             g_pInputManager->dragMode = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else {
+        } else if (!PRESSED && g_pInputManager->dragMode == MBIND_MOVE) {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
             if (!g_pInputManager->currentlyDraggedWindow.expired()) {
@@ -2390,7 +2390,7 @@ void CKeybindManager::mouse(std::string args) {
             }
         }
     } else if (ARGS[0] == "resizewindow") {
-        if (PRESSED) {
+        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             g_pInputManager->currentlyDraggedWindow =
@@ -2404,7 +2404,8 @@ void CKeybindManager::mouse(std::string args) {
                 }
             } catch (std::exception& e) { g_pInputManager->dragMode = MBIND_RESIZE; }
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else {
+        } else if (!PRESSED &&
+                   (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO || g_pInputManager->dragMode == MBIND_RESIZE)) {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
             if (!g_pInputManager->currentlyDraggedWindow.expired()) {

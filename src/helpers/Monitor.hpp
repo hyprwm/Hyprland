@@ -100,6 +100,7 @@ class CMonitor {
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;
+    SP<Aquamarine::CSwapchain>  cursorFallbackSwapchain;
 
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
@@ -178,6 +179,8 @@ class CMonitor {
     CBox     logicalBox();
     void     scheduleDone();
     bool     attemptDirectScanout();
+    bool     resizeCursorSwapchain(Vector2D size);
+    bool     resizeCursorFallbackSwapchain(Vector2D size);
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;
@@ -189,10 +192,11 @@ class CMonitor {
     }
 
   private:
-    void             setupDefaultWS(const SMonitorRule&);
-    int              findAvailableDefaultWS();
+    void                       setupDefaultWS(const SMonitorRule&);
+    int                        findAvailableDefaultWS();
+    SP<Aquamarine::CSwapchain> resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor);
 
-    wl_event_source* doneSource = nullptr;
+    wl_event_source*           doneSource = nullptr;
 
     struct {
         CHyprSignalListener frame;

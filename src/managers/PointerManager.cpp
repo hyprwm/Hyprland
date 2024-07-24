@@ -374,25 +374,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     } else
         maxSize = cursorSize;
 
-    if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size) {
-
-        if (!state->monitor->cursorSwapchain)
-            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(state->monitor->output->getBackend()->preferredAllocator(), state->monitor->output->getBackend());
-
-        auto options     = state->monitor->cursorSwapchain->currentOptions();
-        options.size     = maxSize;
-        options.length   = 2;
-        options.scanout  = true;
-        options.cursor   = true;
-        options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
-        // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
-        // but if it's set, we don't wanna change it.
-
-        if (!state->monitor->cursorSwapchain->reconfigure(options)) {
-            Debug::log(TRACE, "Failed to reconfigure cursor swapchain");
-            return nullptr;
-        }
-    }
+    if (!state->monitor->resizeCursorSwapchain(maxSize))
+        return nullptr;
 
     // if we already rendered the cursor, revert the swapchain to avoid rendering the cursor over
     // the current front buffer

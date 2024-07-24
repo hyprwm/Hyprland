@@ -396,6 +396,30 @@ int CMonitor::findAvailableDefaultWS() {
     return INT32_MAX; // shouldn't be reachable
 }
 
+SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor) {
+    if (!swapchain || size != swapchain->currentOptions().size) {
+
+        if (!swapchain)
+            swapchain = Aquamarine::CSwapchain::create(output->getBackend()->preferredAllocator(), output->getBackend());
+
+        auto options     = swapchain->currentOptions();
+        options.size     = size;
+        options.length   = 2;
+        options.scanout  = true;
+        options.cursor   = isCursor;
+        options.multigpu = output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
+        // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
+        // but if it's set, we don't wanna change it.
+
+        if (!swapchain->reconfigure(options)) {
+            Debug::log(TRACE, "Failed to reconfigure {} swapchain", isCursor ? "cursor" : "cursor fallback");
+            return nullptr;
+        }
+    }
+
+    return swapchain;
+}
+
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
@@ -833,6 +857,22 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     return true;
+}
+
+bool CMonitor::resizeCursorSwapchain(Vector2D size) {
+    auto swapchain = resizeSwapchain(cursorSwapchain, size, true);
+    if (!cursorSwapchain)
+        cursorSwapchain = swapchain;
+
+    return !!swapchain;
+}
+
+bool CMonitor::resizeCursorFallbackSwapchain(Vector2D size) {
+    auto swapchain = resizeSwapchain(cursorFallbackSwapchain, size, false);
+    if (!cursorFallbackSwapchain)
+        cursorFallbackSwapchain = swapchain;
+
+    return !!swapchain;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

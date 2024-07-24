@@ -2478,6 +2478,11 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
 
+    if (pWindow->m_iMonitorID != pWindowInDirection->m_iMonitorID) {
+        pWindow->moveToWorkspace(pWindowInDirection->m_pWorkspace);
+        pWindow->m_iMonitorID = pWindowInDirection->m_iMonitorID;
+    }
+
     static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
     pWindowInDirection     = *USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail();
 

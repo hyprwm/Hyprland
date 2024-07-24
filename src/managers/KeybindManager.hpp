@@ -190,7 +190,6 @@ class CKeybindManager {
     static void     pass(std::string);
     static void     sendshortcut(std::string);
     static void     layoutmsg(std::string);
-    static void     toggleOpaque(std::string);
     static void     dpms(std::string);
     static void     swapnext(std::string);
     static void     swapActiveWorkspaces(std::string);

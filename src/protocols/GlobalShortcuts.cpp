@@ -8,11 +8,18 @@ static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint
 }
 
 static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->displayDestroy();
+    CGlobalShortcutsProtocolManager* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
+    proto->displayDestroy();
 }
 
 void CGlobalShortcutsProtocolManager::displayDestroy() {
+    wl_list_remove(&m_liDisplayDestroy.link);
+    wl_list_init(&m_liDisplayDestroy.link);
     wl_global_destroy(m_pGlobal);
+}
+
+CGlobalShortcutsProtocolManager::~CGlobalShortcutsProtocolManager() {
+    displayDestroy();
 }
 
 CGlobalShortcutsProtocolManager::CGlobalShortcutsProtocolManager() {

@@ -71,6 +71,7 @@ class CCompositor {
 
     void                                      initServer(std::string socketName, int socketFd);
     void                                      startCompositor();
+    void                                      stopCompositor();
     void                                      cleanup();
     void                                      createLockFile();
     void                                      removeLockFile();

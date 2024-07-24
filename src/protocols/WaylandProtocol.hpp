@@ -26,8 +26,9 @@ class IWaylandProtocol {
         Debug::log(level, std::format("[{}] ", m_szName) + std::vformat(fmt.get(), std::make_format_args(args...)));
     };
 
+    wl_listener m_liDisplayDestroy;
+
   private:
     std::string m_szName;
     wl_global*  m_pGlobal = nullptr;
-    wl_listener m_liDisplayDestroy;
 };

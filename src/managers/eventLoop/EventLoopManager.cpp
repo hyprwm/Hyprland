@@ -19,8 +19,14 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
 }
 
 CEventLoopManager::~CEventLoopManager() {
+    for (auto& eventSource : m_sWayland.aqEventSources) {
+        wl_event_source_remove(eventSource);
+    }
+
     if (m_sWayland.eventSource)
         wl_event_source_remove(m_sWayland.eventSource);
+    if (m_sIdle.eventSource)
+        wl_event_source_remove(m_sIdle.eventSource);
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
@@ -44,8 +50,6 @@ void CEventLoopManager::enterLoop() {
     }
 
     wl_display_run(m_sWayland.display);
-
-    Debug::log(LOG, "Kicked off the event loop! :(");
 }
 
 void CEventLoopManager::onTimerFire() {

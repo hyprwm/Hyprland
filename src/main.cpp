@@ -157,11 +157,7 @@ int main(int argc, char** argv) {
     // If all's good to go, start.
     g_pCompositor->startCompositor();
 
-    g_pCompositor->m_bIsShuttingDown = true;
-
-    // If we are here it means we got yote.
-    Debug::log(LOG, "Hyprland reached the end.");
-    g_pCompositor.reset();
+    g_pCompositor->cleanup();
 
     return EXIT_SUCCESS;
 }

@@ -399,10 +399,8 @@ int CMonitor::findAvailableDefaultWS() {
 SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor) {
     if (!swapchain || size != swapchain->currentOptions().size) {
 
-        if (!swapchain) {
-            Debug::log(TRACE, "creating new cursor {} swapchain", isCursor);
+        if (!swapchain)
             swapchain = Aquamarine::CSwapchain::create(output->getBackend()->preferredAllocator(), output->getBackend());
-        }
 
         auto options     = swapchain->currentOptions();
         options.size     = size;
@@ -864,7 +862,6 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 bool CMonitor::resizeCursorSwapchain(Vector2D size) {
-    Debug::log(TRACE, "resizeCursorSwapchain");
     auto swapchain = resizeSwapchain(cursorSwapchain, size, true);
     if (!cursorSwapchain)
         cursorSwapchain = swapchain;
@@ -873,7 +870,6 @@ bool CMonitor::resizeCursorSwapchain(Vector2D size) {
 }
 
 bool CMonitor::resizeCursorFallbackSwapchain(Vector2D size) {
-    Debug::log(TRACE, "resizeCursorFallbackSwapchain");
     auto swapchain = resizeSwapchain(cursorFallbackSwapchain, size, false);
     if (!cursorFallbackSwapchain)
         cursorFallbackSwapchain = swapchain;

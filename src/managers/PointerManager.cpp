@@ -7,6 +7,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
 #include "render/OpenGL.hpp"
+#include "render/Texture.hpp"
 #include <GLES3/gl32.h>
 #include <aquamarine/buffer/Buffer.hpp>
 #include <cstdint>
@@ -420,14 +421,13 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             Debug::log(TRACE, "Failed to acquire a buffer from the cursor fallback swapchain");
             return nullptr;
         }
+
         RBO = g_pHyprRenderer->getOrCreateRenderbuffer(fallback, state->monitor->cursorFallbackSwapchain->currentOptions().format);
         if (!RBO) {
             Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", fallback->dmabuf().format, fallback->dmabuf().modifier);
             return nullptr;
-        } else
-            Debug::log(TRACE, "Created cursor RB with format {}, mod {}", fallback->dmabuf().format, fallback->dmabuf().modifier);
-    } else
-        Debug::log(TRACE, "Created cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
+        }
+    }
 
     RBO->bind();
 
@@ -441,65 +441,42 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->renderTexture(texture, &xbox, 1.F);
 
     g_pHyprOpenGL->end();
-    if (needsFallback)
-        glFinish();
-    else
+    if (!needsFallback)
         glFlush();
-    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+    else {
+        glFinish();
 
-    g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
-
-    if (needsFallback) {
         // wlroots tries to blit here but it'll fail the same way we've got here in the first place
         auto bufAttrs = buf->dmabuf();
-        Debug::log(TRACE, "mapping cursor buffer for writing");
+        auto texAttrs = fallback->dmabuf();
+
         auto bufData = buf->beginDataPtr(GBM_BO_TRANSFER_WRITE);
         auto bufPtr  = std::get<0>(bufData);
 
-        auto textAttrs = fallback->dmabuf();
-        Debug::log(TRACE, "mapping cursor fallback buffer for reading");
-        auto texData = fallback->beginDataPtr(GBM_BO_TRANSFER_WRITE);
-        auto texPtr  = std::get<0>(texData);
-        Debug::log(TRACE, "cursor buffer {}x{} {} format={}({}) stride={}({})", bufAttrs.size.x, bufAttrs.size.y, (void*)bufPtr, bufAttrs.format, std::get<1>(bufData),
-                   bufAttrs.strides[0], std::get<2>(bufData));
-        Debug::log(TRACE, "cursor fallback buffer {}x{} {} format={}({}) stride={}({})", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, std::get<1>(texData),
-                   textAttrs.strides[0], std::get<2>(texData));
+        Debug::log(TRACE, "cursor buffer {}x{} {} format={} stride={}", bufAttrs.size.x, bufAttrs.size.y, (void*)bufPtr, bufAttrs.format, bufAttrs.strides[0]);
+        Debug::log(TRACE, "fallback buffer {}x{} format={} stride={}", texAttrs.size.x, texAttrs.size.y, texAttrs.format, texAttrs.strides[0]);
 
-        const auto dma = fallback->dmabuf();
-
-        auto       image = g_pHyprOpenGL->createEGLImage(dma);
-        if (image == EGL_NO_IMAGE_KHR) {
-            Debug::log(TRACE, "texture fallback failed");
-            return nullptr;
-        }
-
+        g_pHyprRenderer->makeEGLCurrent();
+        auto   fallbackTexture = new CTexture(fallback);
         GLuint id;
+        glGenFramebuffers(1, &id);
+        glBindFramebuffer(GL_FRAMEBUFFER, id);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fallbackTexture->m_iTarget, fallbackTexture->m_iTexID, 0);
 
-        GLCALL(glGenTextures(1, &id));
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            Debug::log(ERR, "cursor dumb copy: glCheckFramebufferStatus failed");
+        else {
+            const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(bufAttrs.format);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-        GLCALL(glBindTexture(GL_TEXTURE_2D, id));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        GLCALL(g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image));
-        GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
-
-        Debug::log(TRACE, "texture fallback got {}", image);
-        if (!texPtr)
-            texPtr = (uint8_t*)image;
-
-        if (!bufPtr || !texPtr)
-            return nullptr;
-
-        // copy rendered cursor
-        for (int i = 0; i < textAttrs.size.y; i++) {
-            Debug::log(TRACE, "copying {}/{} dst start={}, src start={}, length={}", i + 1, textAttrs.size.y, (void*)(bufPtr + i * bufAttrs.strides[0]),
-                       (void*)(texPtr + i * textAttrs.strides[0]), textAttrs.strides[0]);
-            memcpy(bufPtr + i * bufAttrs.strides[0], texPtr + i * textAttrs.strides[0], textAttrs.strides[0]);
+            glReadPixels(0, 0, bufAttrs.size.x, bufAttrs.size.y, GL_RGBA, PFORMAT->glType, bufPtr);
         }
 
         buf->endDataPtr();
-        fallback->endDataPtr();
     }
+
+    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+    g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 
     return buf;
 }

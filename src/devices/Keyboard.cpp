@@ -32,13 +32,13 @@ CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
     listeners.key = keeb->events.key.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
 
-        updateXkbStateWithKey(E.key + 8, E.pressed);
-
         keyboardEvents.key.emit(SKeyEvent{
             .timeMs  = E.timeMs,
             .keycode = E.key,
             .state   = E.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         });
+
+        updateXkbStateWithKey(E.key + 8, E.pressed);
     });
 
     listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {

@@ -438,7 +438,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             auto bufPtr  = std::get<0>(bufData);
 
             // clear buffer
-            memset(bufPtr, 0, buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB ? std::get<2>(bufData) * buf->size.y : std::get<2>(bufData));
+            memset(bufPtr, 0, buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB ? std::get<2>(bufData) * buf->dmabuf().size.y : std::get<2>(bufData));
 
             auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
             if (texBuffer) {

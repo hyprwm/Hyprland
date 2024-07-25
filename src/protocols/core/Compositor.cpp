@@ -336,6 +336,17 @@ void CWLSurfaceResource::unmap() {
     mapped = false;
 
     events.unmap.emit();
+
+    // release the buffers.
+    // this is necessary for XWayland to function correctly,
+    // as it does not unmap via the traditional commit(null buffer) method, but via the X11 protocol.
+    if (!bufferReleased && current.buffer)
+        current.buffer->sendRelease();
+    if (pending.buffer)
+        pending.buffer->sendRelease();
+
+    pending.buffer.reset();
+    current.buffer.reset();
 }
 
 void CWLSurfaceResource::error(int code, const std::string& str) {

@@ -472,6 +472,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             glReadPixels(0, 0, bufAttrs.size.x, bufAttrs.size.y, GL_RGBA, PFORMAT->glType, bufPtr);
         }
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &id);
+
         buf->endDataPtr();
     }
 

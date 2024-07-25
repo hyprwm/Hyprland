@@ -36,7 +36,7 @@ using namespace Hyprutils::String;
 static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    if (!*PINITIALWSTRACKING)
+    if (!*PINITIALWSTRACKING || g_pConfigManager->isLaunchingExecOnce)
         return {};
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;

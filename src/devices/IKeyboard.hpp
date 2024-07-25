@@ -61,18 +61,24 @@ class IKeyboard : public IHID {
         std::string rules   = "";
     };
 
-    void               setKeymap(const SStringRuleNames& rules);
-    void               updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
-    std::string        getActiveLayout();
-    void               updateLEDs();
-    void               updateLEDs(uint32_t leds);
-    uint32_t           getModifiers();
-    void               updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
-    bool               updateModifiersState(); // rets whether changed
-    void               updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
+    void        setKeymap(const SStringRuleNames& rules);
+    void        updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+    std::string getActiveLayout();
+    void        updateLEDs();
+    void        updateLEDs(uint32_t leds);
+    uint32_t    getModifiers();
+    void        updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
+    bool        updateModifiersState(); // rets whether changed
+    void        updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
+    void        updateKeymapFD();
 
-    bool               active  = false;
-    bool               enabled = true;
+    bool        active  = false;
+    bool        enabled = true;
+
+    // if the keymap is overridden by the implementation,
+    // don't try to set keyboard rules anymore, to avoid overwriting the requested one.
+    // e.g. Virtual keyboards with custom maps.
+    bool               keymapOverridden = false;
 
     xkb_layout_index_t activeLayout = 0;
     xkb_state *        xkbState = nullptr, *xkbStaticState /* Static state: never gets modifiers or layout changes sent, used for keybinds. */ = nullptr;

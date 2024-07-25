@@ -51,6 +51,11 @@ void IKeyboard::clearManuallyAllocd() {
 }
 
 void IKeyboard::setKeymap(const SStringRuleNames& rules) {
+    if (keymapOverridden) {
+        Debug::log(LOG, "Ignoring setKeymap: keymap is overridden");
+        return;
+    }
+
     currentRules            = rules;
     xkb_rule_names XKBRULES = {
         .rules   = rules.rules.c_str(),
@@ -103,10 +108,6 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         xkbKeymap = xkb_keymap_new_from_names(CONTEXT, &XKBRULES, XKB_KEYMAP_COMPILE_NO_FLAGS);
     }
 
-    // set internal translation state
-    // demo sunao ni ienai
-    xkbStaticState = xkb_state_new(xkbKeymap);
-
     updateXKBTranslationState(xkbKeymap);
 
     const auto NUMLOCKON = g_pConfigManager->getDeviceInt(hlName, "numlock_by_default", "input:numlock_by_default");
@@ -131,6 +132,20 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         Debug::log(LOG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES.at(i), modIndexes.at(i));
     }
 
+    updateKeymapFD();
+
+    xkb_context_unref(CONTEXT);
+
+    g_pSeatManager->updateActiveKeyboardData();
+}
+
+void IKeyboard::updateKeymapFD() {
+    Debug::log(LOG, "Updating keymap fd for keyboard {}", deviceName);
+
+    if (xkbKeymapFD >= 0)
+        close(xkbKeymapFD);
+    xkbKeymapFD = -1;
+
     auto cKeymapStr = xkb_keymap_get_as_string(xkbKeymap, XKB_KEYMAP_FORMAT_TEXT_V1);
     xkbKeymapString = cKeymapStr;
     free(cKeymapStr);
@@ -151,21 +166,24 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         }
     }
 
-    xkb_context_unref(CONTEXT);
-
-    g_pSeatManager->updateActiveKeyboardData();
+    Debug::log(LOG, "Updated keymap fd to {}", xkbKeymapFD);
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
+    if (xkbStaticState)
+        xkb_state_unref(xkbStaticState);
+
     if (xkbState)
         xkb_state_unref(xkbState);
 
-    xkbState = nullptr;
+    xkbState       = nullptr;
+    xkbStaticState = nullptr;
 
     if (keymap) {
         Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", (uintptr_t)this);
-        xkbState = xkb_state_new(keymap);
+        xkbStaticState = xkb_state_new(keymap);
+        xkbState       = xkb_state_new(keymap);
         return;
     }
 
@@ -209,7 +227,8 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
                 KEYMAP       = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
 
-            xkbState = xkb_state_new(KEYMAP);
+            xkbState       = xkb_state_new(KEYMAP);
+            xkbStaticState = xkb_state_new(KEYMAP);
 
             xkb_keymap_unref(KEYMAP);
             xkb_context_unref(PCONTEXT);
@@ -230,7 +249,8 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
     const auto NEWKEYMAP = xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    xkbState = xkb_state_new(NEWKEYMAP);
+    xkbState       = xkb_state_new(NEWKEYMAP);
+    xkbStaticState = xkb_state_new(NEWKEYMAP);
 
     xkb_keymap_unref(NEWKEYMAP);
     xkb_context_unref(PCONTEXT);

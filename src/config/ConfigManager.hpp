@@ -129,9 +129,6 @@ class CConfigManager {
     void                      performMonitorReload();
     void                      appendMonitorRule(const SMonitorRule&);
     bool                      replaceMonitorRule(const SMonitorRule&);
-    bool                      m_bWantsMonitorReload = false;
-    bool                      m_bForceReload        = false;
-    bool                      m_bNoMonitorReload    = false;
     void                      ensureMonitorStatus();
     void                      ensureVRR(CMonitor* pMonitor = nullptr);
 
@@ -191,6 +188,11 @@ class CConfigManager {
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(PHLWINDOW)>> miWindowProperties = {
         {"rounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.rounding; }}, {"bordersize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.borderSize; }}};
+
+    bool m_bWantsMonitorReload = false;
+    bool m_bForceReload        = false;
+    bool m_bNoMonitorReload    = false;
+    bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
     std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;

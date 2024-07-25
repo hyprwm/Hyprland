@@ -1299,12 +1299,14 @@ void CConfigManager::dispatchExecOnce() {
                       "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS");
 
     firstExecDispatched = true;
+    isLaunchingExecOnce = true;
 
     for (auto& c : firstExecRequests) {
         handleRawExec("", c);
     }
 
     firstExecRequests.clear(); // free some kb of memory :P
+    isLaunchingExecOnce = false;
 
     // set input, fixes some certain issues
     g_pInputManager->setKeyboardLayout();

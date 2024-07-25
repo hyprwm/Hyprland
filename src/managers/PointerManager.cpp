@@ -404,28 +404,60 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     bool                    needsFallback = false;
     SP<Aquamarine::IBuffer> fallback;
 
-    auto                    RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
+    auto                    RBO =
+        buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB ? nullptr : g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
     if (!RBO) {
         Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
         static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:allow_dumb_copy");
-        if (!*PDUMB)
+        static auto PSLOW = CConfigValue<Hyprlang::INT>("cursor:allow_slow_copy");
+
+        if (!*PDUMB && !*PSLOW)
             return nullptr;
 
-        needsFallback = true;
+        if (*PSLOW) {
+            Debug::log(TRACE, "[pointer] performing slow copy");
+            needsFallback = true;
 
-        if (!state->monitor->resizeCursorFallbackSwapchain(maxSize))
-            return nullptr;
+            if (!state->monitor->resizeCursorFallbackSwapchain(maxSize))
+                return nullptr;
 
-        fallback = state->monitor->cursorFallbackSwapchain->next(nullptr);
-        if (!fallback) {
-            Debug::log(TRACE, "Failed to acquire a buffer from the cursor fallback swapchain");
-            return nullptr;
-        }
+            fallback = state->monitor->cursorFallbackSwapchain->next(nullptr);
+            if (!fallback) {
+                Debug::log(TRACE, "Failed to acquire a buffer from the cursor fallback swapchain");
+                return nullptr;
+            }
 
-        RBO = g_pHyprRenderer->getOrCreateRenderbuffer(fallback, state->monitor->cursorFallbackSwapchain->currentOptions().format);
-        if (!RBO) {
-            Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", fallback->dmabuf().format, fallback->dmabuf().modifier);
-            return nullptr;
+            RBO = g_pHyprRenderer->getOrCreateRenderbuffer(fallback, state->monitor->cursorFallbackSwapchain->currentOptions().format);
+            if (!RBO) {
+                Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", fallback->dmabuf().format, fallback->dmabuf().modifier);
+                return nullptr;
+            }
+        } else {
+            Debug::log(TRACE, "[pointer] performing dumb copy");
+            auto bufData = buf->beginDataPtr(0);
+            auto bufPtr  = std::get<0>(bufData);
+
+            // clear buffer
+            memset(bufPtr, 0, buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB ? std::get<2>(bufData) * buf->size.y : std::get<2>(bufData));
+
+            auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
+            if (texBuffer) {
+                auto textAttrs = texBuffer->shm();
+                auto texData   = texBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
+                auto texPtr    = std::get<0>(texData);
+                Debug::log(TRACE, "cursor texture {}x{} {} {} {}", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, textAttrs.stride);
+
+                // copy cursor texture
+                if (buf->dmabuf().strides[0] == textAttrs.stride && buf->dmabuf().size == textAttrs.size)
+                    memcpy(bufPtr, texPtr, textAttrs.stride * textAttrs.size.y);
+                else
+                    for (int i = 0; i < texBuffer->shm().size.y; i++)
+                        memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
+            }
+
+            buf->endDataPtr();
+
+            return buf;
         }
     }
 
@@ -464,7 +496,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fallbackTexture->m_iTarget, fallbackTexture->m_iTexID, 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            Debug::log(ERR, "cursor dumb copy: glCheckFramebufferStatus failed");
+            Debug::log(ERR, "cursor slow copy: glCheckFramebufferStatus failed");
         else {
             const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(bufAttrs.format);
             glPixelStorei(GL_PACK_ALIGNMENT, 1);

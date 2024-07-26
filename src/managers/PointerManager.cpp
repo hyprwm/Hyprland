@@ -411,10 +411,25 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:allow_dumb_copy");
         static auto PSLOW = CConfigValue<Hyprlang::INT>("cursor:allow_slow_copy");
 
+        auto        isDumb = buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB;
+        if (isDumb != *PDUMB) {
+            Debug::log(TRACE, "[pointer] switching swapchain to {}", *PDUMB ? "dumb" : "gbm");
+            if (!state->monitor->resizeCursorSwapchain(maxSize, *PDUMB))
+                return nullptr;
+
+            buf = state->monitor->cursorSwapchain->next(nullptr);
+            if (!buf) {
+                Debug::log(TRACE, "Failed to acquire a buffer from the cursor swapchain");
+                return nullptr;
+            }
+            isDumb = buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB;
+        }
+
         if (!*PDUMB && !*PSLOW)
             return nullptr;
 
-        if (*PSLOW) {
+        // slow copy will fail with dumb buffer
+        if (*PSLOW && !*PDUMB) {
             Debug::log(TRACE, "[pointer] performing slow copy");
             needsFallback = true;
 
@@ -437,8 +452,11 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             auto bufData = buf->beginDataPtr(0);
             auto bufPtr  = std::get<0>(bufData);
 
+            auto bufSize   = isDumb ? buf->shm().size : buf->dmabuf().size;
+            auto bufStride = isDumb ? buf->shm().stride : buf->dmabuf().strides[0];
+
             // clear buffer
-            memset(bufPtr, 0, buf->type() == Aquamarine::BUFFER_TYPE_DMABUF_DUMB ? std::get<2>(bufData) * buf->dmabuf().size.y : std::get<2>(bufData));
+            memset(bufPtr, 0, bufStride * bufSize.y);
 
             auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
             if (texBuffer) {
@@ -448,11 +466,11 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 Debug::log(TRACE, "cursor texture {}x{} {} {} {}", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, textAttrs.stride);
 
                 // copy cursor texture
-                if (buf->dmabuf().strides[0] == textAttrs.stride && buf->dmabuf().size == textAttrs.size)
+                if (bufStride == textAttrs.stride && bufSize == textAttrs.size)
                     memcpy(bufPtr, texPtr, textAttrs.stride * textAttrs.size.y);
                 else
                     for (int i = 0; i < texBuffer->shm().size.y; i++)
-                        memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
+                        memcpy(bufPtr + i * bufStride, texPtr + i * textAttrs.stride, textAttrs.stride);
             }
 
             buf->endDataPtr();

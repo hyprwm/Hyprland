@@ -396,25 +396,27 @@ int CMonitor::findAvailableDefaultWS() {
     return INT32_MAX; // shouldn't be reachable
 }
 
-SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor) {
+SP<Aquamarine::CSwapchain> CMonitor::resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor, bool isDumb) {
     if (!swapchain || size != swapchain->currentOptions().size) {
 
-        if (!swapchain)
-            swapchain = Aquamarine::CSwapchain::create(output->getBackend()->preferredAllocator(), output->getBackend());
+        if (!swapchain) {
+            auto allocator = isDumb && output->getBackend()->fallbackAllocator() ? output->getBackend()->fallbackAllocator() : output->getBackend()->preferredAllocator();
+            swapchain      = Aquamarine::CSwapchain::create(allocator, output->getBackend());
+        }
 
         auto options     = swapchain->currentOptions();
         options.size     = size;
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = isCursor;
-        options.multigpu = output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
+        options.multigpu = !isDumb && output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
         if (!isCursor && cursorSwapchain)
             options.format = cursorSwapchain->currentOptions().format;
         // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
 
         if (!swapchain->reconfigure(options)) {
-            Debug::log(TRACE, "Failed to reconfigure {} swapchain", isCursor ? "cursor" : "cursor fallback");
+            Debug::log(TRACE, "Failed to reconfigure{} {} swapchain", isCursor ? "cursor" : "cursor fallback", isDumb ? " dumb" : "");
             return nullptr;
         }
     }
@@ -862,11 +864,19 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 bool CMonitor::resizeCursorSwapchain(Vector2D size) {
-    auto swapchain = resizeSwapchain(cursorSwapchain, size, true);
+    auto swapchain = resizeSwapchain(cursorSwapchain, size, true, useDumbCursorBuffer);
     if (!cursorSwapchain)
         cursorSwapchain = swapchain;
 
     return !!swapchain;
+}
+
+bool CMonitor::resizeCursorSwapchain(Vector2D size, bool useDumb) {
+    if (useDumbCursorBuffer != useDumb && cursorSwapchain) {
+        useDumbCursorBuffer = useDumb;
+        cursorSwapchain     = nullptr; // recreate swapchain with a different allocator
+    }
+    return resizeCursorSwapchain(size);
 }
 
 bool CMonitor::resizeCursorFallbackSwapchain(Vector2D size) {

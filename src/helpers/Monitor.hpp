@@ -180,6 +180,7 @@ class CMonitor {
     void     scheduleDone();
     bool     attemptDirectScanout();
     bool     resizeCursorSwapchain(Vector2D size);
+    bool     resizeCursorSwapchain(Vector2D size, bool useDumb);
     bool     resizeCursorFallbackSwapchain(Vector2D size);
 
     bool     m_bEnabled             = false;
@@ -194,9 +195,10 @@ class CMonitor {
   private:
     void                       setupDefaultWS(const SMonitorRule&);
     int                        findAvailableDefaultWS();
-    SP<Aquamarine::CSwapchain> resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor);
+    SP<Aquamarine::CSwapchain> resizeSwapchain(SP<Aquamarine::CSwapchain> swapchain, Vector2D size, bool isCursor, bool isDumb = false);
 
-    wl_event_source*           doneSource = nullptr;
+    wl_event_source*           doneSource          = nullptr;
+    bool                       useDumbCursorBuffer = false;
 
     struct {
         CHyprSignalListener frame;

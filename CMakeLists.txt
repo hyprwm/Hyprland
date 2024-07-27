@@ -115,7 +115,7 @@ pkg_check_modules(
   gbm
   hyprlang>=0.3.2
   hyprcursor>=0.1.7
-  hyprutils>=0.2.0)
+  hyprutils>=0.2.1)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

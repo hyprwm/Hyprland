@@ -8,6 +8,20 @@
 
 #define LOGM PROTO::xdgShell->protoLog
 
+void SXDGPositionerState::setAnchor(xdgPositionerAnchor edges) {
+    anchor.setTop(edges == XDG_POSITIONER_ANCHOR_TOP || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_RIGHT);
+    anchor.setLeft(edges == XDG_POSITIONER_ANCHOR_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_BOTTOM_LEFT);
+    anchor.setBottom(edges == XDG_POSITIONER_ANCHOR_BOTTOM || edges == XDG_POSITIONER_ANCHOR_BOTTOM_LEFT || edges == XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT);
+    anchor.setRight(edges == XDG_POSITIONER_ANCHOR_RIGHT || edges == XDG_POSITIONER_ANCHOR_TOP_RIGHT || edges == XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT);
+}
+
+void SXDGPositionerState::setGravity(xdgPositionerGravity edges) {
+    gravity.setTop(edges == XDG_POSITIONER_GRAVITY_TOP || edges == XDG_POSITIONER_GRAVITY_TOP_LEFT || edges == XDG_POSITIONER_GRAVITY_TOP_RIGHT);
+    gravity.setLeft(edges == XDG_POSITIONER_GRAVITY_LEFT || edges == XDG_POSITIONER_GRAVITY_TOP_LEFT || edges == XDG_POSITIONER_GRAVITY_BOTTOM_LEFT);
+    gravity.setBottom(edges == XDG_POSITIONER_GRAVITY_BOTTOM || edges == XDG_POSITIONER_GRAVITY_BOTTOM_LEFT || edges == XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+    gravity.setRight(edges == XDG_POSITIONER_GRAVITY_RIGHT || edges == XDG_POSITIONER_GRAVITY_TOP_RIGHT || edges == XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+}
+
 CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceResource> owner_, SP<CXDGSurfaceResource> surface_, SP<CXDGPositionerResource> positioner) :
     surface(surface_), parent(owner_), resource(resource_), positionerRules(positioner) {
     if (!good())
@@ -490,9 +504,9 @@ CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<
 
     resource->setSetOffset([this](CXdgPositioner* r, int32_t x, int32_t y) { state.offset = {x, y}; });
 
-    resource->setSetAnchor([this](CXdgPositioner* r, xdgPositionerAnchor a) { state.anchor = a; });
+    resource->setSetAnchor([this](CXdgPositioner* r, xdgPositionerAnchor a) { state.setAnchor(a); });
 
-    resource->setSetGravity([this](CXdgPositioner* r, xdgPositionerGravity g) { state.gravity = g; });
+    resource->setSetGravity([this](CXdgPositioner* r, xdgPositionerGravity g) { state.setGravity(g); });
 
     resource->setSetConstraintAdjustment([this](CXdgPositioner* r, xdgPositionerConstraintAdjustment a) { state.constraintAdjustment = (uint32_t)a; });
 
@@ -513,125 +527,96 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
     state = positioner->state;
 }
 
-static Vector2D pointForAnchor(const CBox& box, const Vector2D& predictionSize, xdgPositionerAnchor anchor) {
-    switch (anchor) {
-        case XDG_POSITIONER_ANCHOR_TOP: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, 0.0};
-        case XDG_POSITIONER_ANCHOR_BOTTOM: return box.pos() + Vector2D{box.size().x / 2.0 - predictionSize.x / 2.0, box.size().y};
-        case XDG_POSITIONER_ANCHOR_LEFT: return box.pos() + Vector2D{0.0, box.size().y / 2.0 - predictionSize.y / 2.0};
-        case XDG_POSITIONER_ANCHOR_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y / 2.F - predictionSize.y / 2.0};
-        case XDG_POSITIONER_ANCHOR_TOP_LEFT: return box.pos();
-        case XDG_POSITIONER_ANCHOR_BOTTOM_LEFT: return box.pos() + Vector2D{0.0, box.size().y};
-        case XDG_POSITIONER_ANCHOR_TOP_RIGHT: return box.pos() + Vector2D{box.size().x, 0.0};
-        case XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT: return box.pos() + Vector2D{box.size().x, box.size().y};
-        default: return box.pos();
-    }
-
-    return {};
-}
-
-CBox CXDGPositionerRules::getPosition(const CBox& constraint, const Vector2D& parentCoord) {
-
+CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoord) {
     Debug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
 
-    CBox predictedBox = {parentCoord + constraint.pos() + pointForAnchor(state.anchorRect, state.requestedSize, state.anchor) + state.offset, state.requestedSize};
+    // padding
+    constraint.expand(-4);
 
-    bool success = predictedBox.inside(constraint);
+    auto anchorRect = state.anchorRect.copy().translate(parentCoord);
 
-    if (success)
-        return predictedBox.translate(-parentCoord - constraint.pos());
+    auto width  = state.requestedSize.x;
+    auto height = state.requestedSize.y;
 
-    CBox test = predictedBox;
+    auto anchorX = state.anchor.left() ? anchorRect.x : state.anchor.right() ? anchorRect.extent().x : anchorRect.middle().x;
+    auto anchorY = state.anchor.top() ? anchorRect.y : state.anchor.bottom() ? anchorRect.extent().y : anchorRect.middle().y;
 
-    if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y)) {
-        // attempt to flip
-        const bool flipX      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X;
-        const bool flipY      = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y;
-        auto       countEdges = [constraint](const CBox& test) -> int {
-            int edgeCount = 0;
-            edgeCount += test.x < constraint.x ? 1 : 0;
-            edgeCount += test.x + test.w > constraint.x + constraint.w ? 1 : 0;
-            edgeCount += test.y < constraint.y ? 1 : 0;
-            edgeCount += test.y + test.h > constraint.y + constraint.h ? 1 : 0;
-            return edgeCount;
-        };
-        int edgeCount = countEdges(test);
+    auto calcEffectiveX = [&]() { return state.gravity.left() ? anchorX - width : state.gravity.right() ? anchorX : anchorX - width / 2; };
+    auto calcEffectiveY = [&]() { return state.gravity.top() ? anchorY - height : state.gravity.bottom() ? anchorY : anchorY - height / 2; };
 
-        if (flipX && edgeCount > countEdges(test.copy().translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0})))
-            test.translate(Vector2D{-predictedBox.w - state.anchorRect.w, 0.0});
-        if (flipY && edgeCount > countEdges(test.copy().translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h})))
-            test.translate(Vector2D{0.0, -predictedBox.h - state.anchorRect.h});
+    auto effectiveX = calcEffectiveX();
+    auto effectiveY = calcEffectiveY();
 
-        success = test.copy().expand(-1).inside(constraint);
+    // Note: the usage of offset is a guess which maintains compatibility with other compositors that were tested.
+    // It considers the offset when deciding whether or not to flip but does not actually flip the offset, instead
+    // applying it after the flip step.
 
-        if (success)
-            return test.translate(-parentCoord - constraint.pos());
-    }
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X) {
+        auto flip = (state.gravity.left() && effectiveX + state.offset.x < constraint.x) || (state.gravity.right() && effectiveX + state.offset.x + width > constraint.extent().x);
 
-    // for slide and resize, defines the padding around the edge for the positioned
-    // surface.
-    constexpr int EDGE_PADDING = 4;
-
-    if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y)) {
-        // attempt to slide
-        const bool slideX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X;
-        const bool slideY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y;
-
-        //const bool gravityLeft = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_BOTTOM_LEFT;
-        //const bool gravityTop = state.gravity == XDG_POSITIONER_GRAVITY_NONE || state.gravity == XDG_POSITIONER_GRAVITY_TOP || state.gravity == XDG_POSITIONER_GRAVITY_TOP_LEFT || state.gravity == XDG_POSITIONER_GRAVITY_TOP_RIGHT;
-
-        const bool leftEdgeOut   = test.x < constraint.x;
-        const bool topEdgeOut    = test.y < constraint.y;
-        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
-
-        // TODO: this isn't truly conformant.
-        if (leftEdgeOut && slideX)
-            test.x = constraint.x + EDGE_PADDING;
-        if (rightEdgeOut && slideX)
-            test.x = std::clamp((double)(constraint.x + constraint.w - test.w), (double)(constraint.x + EDGE_PADDING), (double)INFINITY);
-        if (topEdgeOut && slideY)
-            test.y = constraint.y + EDGE_PADDING;
-        if (bottomEdgeOut && slideY)
-            test.y = std::clamp((double)(constraint.y + constraint.h - test.h), (double)(constraint.y + EDGE_PADDING), (double)INFINITY);
-
-        success = test.copy().expand(-1).inside(constraint);
-
-        if (success)
-            return test.translate(-parentCoord - constraint.pos());
-    }
-
-    if (state.constraintAdjustment & (XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y)) {
-        const bool resizeX = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X;
-        const bool resizeY = state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y;
-
-        const bool leftEdgeOut   = test.x < constraint.x;
-        const bool topEdgeOut    = test.y < constraint.y;
-        const bool rightEdgeOut  = test.x + test.w > constraint.x + constraint.w;
-        const bool bottomEdgeOut = test.y + test.h > constraint.y + constraint.h;
-
-        // TODO: this isn't truly conformant.
-        if (leftEdgeOut && resizeX) {
-            test.w = test.x + test.w - constraint.x - EDGE_PADDING;
-            test.x = constraint.x + EDGE_PADDING;
+        if (flip) {
+            state.gravity ^= CEdges::LEFT | CEdges::RIGHT;
+            anchorX    = state.anchor.left() ? anchorRect.extent().x : state.anchor.right() ? anchorRect.x : anchorX;
+            effectiveX = calcEffectiveX();
         }
-        if (rightEdgeOut && resizeX)
-            test.w = constraint.w - (test.x - constraint.w) - EDGE_PADDING;
-        if (topEdgeOut && resizeY) {
-            test.h = test.y + test.h - constraint.y - EDGE_PADDING;
-            test.y = constraint.y + EDGE_PADDING;
-        }
-        if (bottomEdgeOut && resizeY)
-            test.h = constraint.h - (test.y - constraint.y) - EDGE_PADDING;
-
-        success = test.copy().expand(-1).inside(constraint);
-
-        if (success)
-            return test.translate(-parentCoord - constraint.pos());
     }
 
-    LOGM(WARN, "Compositor/client bug: xdg_positioner couldn't find a place");
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y) {
+        auto flip = (state.gravity.top() && effectiveY + state.offset.y < constraint.y) || (state.gravity.bottom() && effectiveY + state.offset.y + height > constraint.extent().y);
 
-    return test.translate(-parentCoord - constraint.pos());
+        if (flip) {
+            state.gravity ^= CEdges::TOP | CEdges::BOTTOM;
+            anchorY    = state.anchor.top() ? anchorRect.extent().y : state.anchor.bottom() ? anchorRect.y : anchorY;
+            effectiveX = calcEffectiveX();
+        }
+    }
+
+    effectiveX += state.offset.x;
+    effectiveY += state.offset.y;
+
+    // Slide order is important for the case where the window is too large to fit on screen.
+
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X) {
+        if (effectiveX + width > constraint.extent().x)
+            effectiveX = constraint.extent().x - width;
+
+        if (effectiveX < constraint.x)
+            effectiveX = constraint.x;
+    }
+
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y) {
+        if (effectiveY + height > constraint.extent().y)
+            effectiveY = constraint.extent().y - height;
+
+        if (effectiveY < constraint.y)
+            effectiveY = constraint.y;
+    }
+
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X) {
+        if (effectiveX < constraint.x) {
+            auto diff  = constraint.x - effectiveX;
+            effectiveX = constraint.x;
+            width -= diff;
+        }
+
+        auto effectiveX2 = effectiveX + width;
+        if (effectiveX2 > constraint.extent().x)
+            width -= effectiveX2 - constraint.extent().x;
+    }
+
+    if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y) {
+        if (effectiveY < constraint.y) {
+            auto diff  = constraint.y - effectiveY;
+            effectiveY = constraint.y;
+            height -= diff;
+        }
+
+        auto effectiveY2 = effectiveY + height;
+        if (effectiveY2 > constraint.extent().y)
+            height -= effectiveY2 - constraint.extent().y;
+    }
+
+    return {effectiveX - parentCoord.x, effectiveY - parentCoord.y, width, height};
 }
 
 CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {

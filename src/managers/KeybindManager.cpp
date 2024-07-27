@@ -242,26 +242,13 @@ void CKeybindManager::updateXKBTranslationState() {
 }
 
 bool CKeybindManager::ensureMouseBindState() {
-    if (!m_bIsMouseBindActive)
+    if (!g_pInputManager->currentlyDraggedWindow)
         return false;
 
     if (!g_pInputManager->currentlyDraggedWindow.expired()) {
-        PHLWINDOW lastDraggedWindow = g_pInputManager->currentlyDraggedWindow.lock();
-
-        m_bIsMouseBindActive = false;
-        g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
-        g_pInputManager->currentlyDraggedWindow.reset();
-        g_pInputManager->dragMode = MBIND_INVALID;
-
-        g_pCompositor->updateWorkspaceWindows(lastDraggedWindow->workspaceID());
-        g_pCompositor->updateWorkspaceWindowData(lastDraggedWindow->workspaceID());
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(lastDraggedWindow->m_iMonitorID);
-        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
+        changeMouseBindMode(MBIND_INVALID);
         return true;
     }
-
-    m_bIsMouseBindActive = false;
 
     return false;
 }
@@ -540,10 +527,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
 }
 
 void CKeybindManager::resizeWithBorder(const IPointer::SButtonEvent& e) {
-    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
-        mouse("1resizewindow");
-    else
-        mouse("0resizewindow");
+    changeMouseBindMode(e.state == WL_POINTER_BUTTON_STATE_PRESSED ? MBIND_RESIZE : MBIND_INVALID);
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
@@ -971,7 +955,8 @@ static void toggleActiveFloatingCore(std::string args, std::optional<bool> float
         return;
 
     // remove drag status
-    g_pInputManager->currentlyDraggedWindow.reset();
+    if (!g_pInputManager->currentlyDraggedWindow.expired())
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
 
     if (PWINDOW->m_sGroupData.pNextWindow.lock() && PWINDOW->m_sGroupData.pNextWindow.lock() != PWINDOW) {
         const auto PCURRENT = PWINDOW->getGroupCurrent();
@@ -2365,55 +2350,50 @@ void CKeybindManager::mouse(std::string args) {
     const auto ARGS    = CVarList(args.substr(1), 2, ' ');
     const auto PRESSED = args[0] == '1';
 
+    if (!PRESSED) {
+        changeMouseBindMode(MBIND_INVALID);
+        return;
+    }
+
     if (ARGS[0] == "movewindow") {
-        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
-            g_pKeybindManager->m_bIsMouseBindActive = true;
-
-            const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-            PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
-
-            if (pWindow && !pWindow->m_bIsFullscreen)
-                pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_START, mouseCoords);
-
-            if (g_pInputManager->currentlyDraggedWindow.expired())
-                g_pInputManager->currentlyDraggedWindow = pWindow;
-
-            g_pInputManager->dragMode = MBIND_MOVE;
-            g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else if (!PRESSED && g_pInputManager->dragMode == MBIND_MOVE) {
-            g_pKeybindManager->m_bIsMouseBindActive = false;
-
-            if (!g_pInputManager->currentlyDraggedWindow.expired()) {
-                g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
-                g_pInputManager->currentlyDraggedWindow.reset();
-                g_pInputManager->dragMode = MBIND_INVALID;
+        changeMouseBindMode(MBIND_MOVE);
+    } else {
+        try {
+            switch (std::stoi(ARGS[1])) {
+                case 1: changeMouseBindMode(MBIND_RESIZE_FORCE_RATIO); break;
+                case 2: changeMouseBindMode(MBIND_RESIZE_BLOCK_RATIO); break;
+                default: changeMouseBindMode(MBIND_RESIZE);
             }
-        }
-    } else if (ARGS[0] == "resizewindow") {
-        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
-            g_pKeybindManager->m_bIsMouseBindActive = true;
+        } catch (std::exception& e) { changeMouseBindMode(MBIND_RESIZE); }
+    }
+}
 
-            g_pInputManager->currentlyDraggedWindow =
-                g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+void CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) {
+    if (MODE != MBIND_INVALID) {
+        if (!g_pInputManager->currentlyDraggedWindow.expired() || g_pInputManager->dragMode != MBIND_INVALID)
+            return;
 
-            try {
-                switch (std::stoi(ARGS[1])) {
-                    case 1: g_pInputManager->dragMode = MBIND_RESIZE_FORCE_RATIO; break;
-                    case 2: g_pInputManager->dragMode = MBIND_RESIZE_BLOCK_RATIO; break;
-                    default: g_pInputManager->dragMode = MBIND_RESIZE;
-                }
-            } catch (std::exception& e) { g_pInputManager->dragMode = MBIND_RESIZE; }
-            g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else if (!PRESSED &&
-                   (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO || g_pInputManager->dragMode == MBIND_RESIZE)) {
-            g_pKeybindManager->m_bIsMouseBindActive = false;
+        const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+        const PHLWINDOW PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-            if (!g_pInputManager->currentlyDraggedWindow.expired()) {
-                g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
-                g_pInputManager->currentlyDraggedWindow.reset();
-                g_pInputManager->dragMode = MBIND_INVALID;
-            }
-        }
+        if (!PWINDOW)
+            return;
+
+        if (!PWINDOW->m_bIsFullscreen && MODE == MBIND_MOVE)
+            PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS);
+
+        if (g_pInputManager->currentlyDraggedWindow.expired())
+            g_pInputManager->currentlyDraggedWindow = PWINDOW;
+
+        g_pInputManager->dragMode = MODE;
+
+        g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+    } else {
+        if (g_pInputManager->currentlyDraggedWindow.expired() || g_pInputManager->dragMode == MBIND_INVALID)
+            return;
+
+        g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
+        g_pInputManager->dragMode = MODE;
     }
 }
 

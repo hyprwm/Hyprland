@@ -1677,7 +1677,7 @@ void CInputManager::releaseAllMouseButtons() {
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // do not override cursor icons set by mouse binds
-    if (g_pKeybindManager->m_bIsMouseBindActive) {
+    if (g_pInputManager->currentlyDraggedWindow.expired()) {
         m_eBorderIconDirection = BORDERICON_NONE;
         return;
     }

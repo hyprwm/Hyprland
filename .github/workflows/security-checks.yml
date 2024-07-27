@@ -3,7 +3,7 @@ name: Security Checks
 on: [push, pull_request]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

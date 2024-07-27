@@ -5,6 +5,8 @@
 #include "Events.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
 #include <aquamarine/output/Output.hpp>
 
 // --------------------------------------------------------- //
@@ -118,8 +120,8 @@ void Events::listener_monitorCommit(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
 
     if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
-        g_pProtocolManager->m_pScreencopyProtocolManager->onOutputCommit(PMONITOR);
-        g_pProtocolManager->m_pToplevelExportProtocolManager->onOutputCommit(PMONITOR);
+        PROTO::screencopy->onOutputCommit(PMONITOR);
+        PROTO::toplevelExport->onOutputCommit(PMONITOR);
     }
 }
 

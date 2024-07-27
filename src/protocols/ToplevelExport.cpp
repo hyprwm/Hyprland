@@ -8,363 +8,240 @@
 
 #include <algorithm>
 
-#define TOPLEVEL_EXPORT_VERSION 2
+#define LOGM PROTO::toplevelExport->protoLog
 
-static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint32_t id) {
-    g_pProtocolManager->m_pToplevelExportProtocolManager->bindManager(client, data, version, id);
-}
-
-static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    CToplevelExportProtocolManager* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
-    proto->displayDestroy();
-}
-
-void CToplevelExportProtocolManager::displayDestroy() {
-    wl_list_remove(&m_liDisplayDestroy.link);
-    wl_list_init(&m_liDisplayDestroy.link);
-    wl_global_destroy(m_pGlobal);
-}
-
-CToplevelExportProtocolManager::~CToplevelExportProtocolManager() {
-    displayDestroy();
-}
-
-CToplevelExportProtocolManager::CToplevelExportProtocolManager() {
-
-#ifndef GLES32
-    Debug::log(WARN, "Toplevel sharing is not supported on LEGACY_RENDERER!");
-    return;
-#endif
-
-    m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, &hyprland_toplevel_export_manager_v1_interface, TOPLEVEL_EXPORT_VERSION, this, bindManagerInt);
-
-    if (!m_pGlobal) {
-        Debug::log(ERR, "ToplevelExportManager could not start! Sharing windows will not work!");
-        return;
-    }
-
-    m_liDisplayDestroy.notify = handleDisplayDestroy;
-    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
-
-    Debug::log(LOG, "ToplevelExportManager started successfully!");
-}
-
-static void handleCaptureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, uint32_t handle) {
-    g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, g_pCompositor->getWindowFromHandle(handle));
-}
-
-static void handleCaptureToplevelWithWlr(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, wl_resource* handle) {
-    g_pProtocolManager->m_pToplevelExportProtocolManager->captureToplevel(client, resource, frame, overlay_cursor, PROTO::foreignToplevelWlr->windowFromHandleResource(handle));
-}
-
-static void handleDestroy(wl_client* client, wl_resource* resource) {
-    wl_resource_destroy(resource);
-}
-
-static void handleCopyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
-    g_pProtocolManager->m_pToplevelExportProtocolManager->copyFrame(client, resource, buffer, ignore_damage);
-}
-
-static void handleDestroyFrame(wl_client* client, wl_resource* resource) {
-    wl_resource_destroy(resource);
-}
-
-static const struct hyprland_toplevel_export_manager_v1_interface toplevelExportManagerImpl = {
-    .capture_toplevel                          = handleCaptureToplevel,
-    .destroy                                   = handleDestroy,
-    .capture_toplevel_with_wlr_toplevel_handle = handleCaptureToplevelWithWlr,
-};
-
-static const struct hyprland_toplevel_export_frame_v1_interface toplevelFrameImpl = {.copy = handleCopyFrame, .destroy = handleDestroyFrame};
-
-//
-static CScreencopyClient* clientFromResource(wl_resource* resource) {
-    ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_manager_v1_interface, &toplevelExportManagerImpl));
-    return (CScreencopyClient*)wl_resource_get_user_data(resource);
-}
-
-static SScreencopyFrame* frameFromResource(wl_resource* resource) {
-    ASSERT(wl_resource_instance_of(resource, &hyprland_toplevel_export_frame_v1_interface, &toplevelFrameImpl));
-    return (SScreencopyFrame*)wl_resource_get_user_data(resource);
-}
-
-void CToplevelExportProtocolManager::removeClient(CScreencopyClient* client, bool force) {
-    if (!force) {
-        if (!client || client->ref <= 0)
-            return;
-
-        if (--client->ref != 0)
-            return;
-    }
-
-    m_lClients.remove(*client); // TODO: this doesn't get cleaned up after sharing app exits???
-}
-
-static void handleManagerResourceDestroy(wl_resource* resource) {
-    const auto PCLIENT = clientFromResource(resource);
-
-    g_pProtocolManager->m_pToplevelExportProtocolManager->removeClient(PCLIENT, true);
-}
-
-void CToplevelExportProtocolManager::bindManager(wl_client* client, void* data, uint32_t version, uint32_t id) {
-    const auto PCLIENT = &m_lClients.emplace_back();
-
-    PCLIENT->clientOwner = CLIENT_TOPLEVEL_EXPORT;
-    PCLIENT->resource    = wl_resource_create(client, &hyprland_toplevel_export_manager_v1_interface, version, id);
-
-    if (!PCLIENT->resource) {
-        Debug::log(ERR, "ToplevelExportManager could not bind! (out of memory?)");
-        m_lClients.remove(*PCLIENT);
-        wl_client_post_no_memory(client);
-        return;
-    }
-
-    PCLIENT->ref = 1;
-
-    wl_resource_set_implementation(PCLIENT->resource, &toplevelExportManagerImpl, PCLIENT, handleManagerResourceDestroy);
-
-    Debug::log(LOG, "ToplevelExportManager bound successfully!");
-}
-
-static void handleFrameResourceDestroy(wl_resource* resource) {
-    const auto PFRAME = frameFromResource(resource);
-
-    g_pProtocolManager->m_pToplevelExportProtocolManager->removeFrame(PFRAME);
-}
-
-void CToplevelExportProtocolManager::removeFrame(SScreencopyFrame* frame, bool force) {
-    if (!frame)
+CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : resource(resource_) {
+    if (!good())
         return;
 
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other == frame; });
+    resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
+    resource->setDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
+    resource->setCaptureToplevel([this](CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, uint32_t handle) {
+        this->captureToplevel(pMgr, frame, overlayCursor, g_pCompositor->getWindowFromHandle(handle));
+    });
+    resource->setCaptureToplevelWithWlrToplevelHandle([this](CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, wl_resource* handle) {
+        this->captureToplevel(pMgr, frame, overlayCursor, PROTO::foreignToplevelWlr->windowFromHandleResource(handle));
+    });
 
-    wl_resource_set_user_data(frame->resource, nullptr);
-    if (frame->buffer && frame->buffer->locked() > 0)
-        frame->buffer->unlock();
-    removeClient(frame->client, force);
-    m_lFrames.remove(*frame);
+    lastMeasure.reset();
+    lastFrame.reset();
+    tickCallback = g_pHookSystem->hookDynamic("tick", [&](void* self, SCallbackInfo& info, std::any data) { onTick(); });
 }
 
-void CToplevelExportProtocolManager::captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, PHLWINDOW pWindow) {
-    const auto PCLIENT = clientFromResource(resource);
-
+void CToplevelExportClient::captureToplevel(CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor_, PHLWINDOW handle) {
     // create a frame
-    const auto PFRAME     = &m_lFrames.emplace_back();
-    PFRAME->overlayCursor = !!overlay_cursor;
-    PFRAME->resource      = wl_resource_create(client, &hyprland_toplevel_export_frame_v1_interface, wl_resource_get_version(resource), frame);
-    PFRAME->pWindow       = pWindow;
+    const auto FRAME = PROTO::toplevelExport->m_vFrames.emplace_back(
+        makeShared<CToplevelExportFrame>(makeShared<CHyprlandToplevelExportFrameV1>(resource->client(), resource->version(), frame), overlayCursor_, handle));
+
+    if (!FRAME->good()) {
+        LOGM(ERR, "Couldn't alloc frame for sharing! (no memory)");
+        resource->noMemory();
+        PROTO::toplevelExport->destroyResource(FRAME.get());
+        return;
+    }
+
+    FRAME->self   = FRAME;
+    FRAME->client = self;
+}
+
+void CToplevelExportClient::onTick() {
+    if (lastMeasure.getMillis() < 500)
+        return;
+
+    framesInLastHalfSecond = frameCounter;
+    frameCounter           = 0;
+    lastMeasure.reset();
+
+    const auto LASTFRAMEDELTA = lastFrame.getMillis() / 1000.0;
+    const bool FRAMEAWAITING  = std::ranges::any_of(PROTO::toplevelExport->m_vFrames, [&](const auto& frame) { return frame->client.get() == this; });
+
+    if (framesInLastHalfSecond > 3 && !sentScreencast) {
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{1, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
+        g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "1," + std::to_string(clientOwner)});
+        sentScreencast = true;
+    } else if (framesInLastHalfSecond < 4 && sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
+        EMIT_HOOK_EVENT("screencast", (std::vector<uint64_t>{0, (uint64_t)framesInLastHalfSecond, (uint64_t)clientOwner}));
+        g_pEventManager->postEvent(SHyprIPCEvent{"screencast", "0," + std::to_string(clientOwner)});
+        sentScreencast = false;
+    }
+}
+
+bool CToplevelExportClient::good() {
+    return resource->resource();
+}
+
+CToplevelExportFrame::~CToplevelExportFrame() {
+    if (buffer && buffer->locked())
+        buffer->unlock();
+}
+
+CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
+    if (!good())
+        return;
+
+    overlayCursor = !!overlayCursor_;
 
     if (!pWindow) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which does not exist!", pWindow);
-        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
-        removeFrame(PFRAME);
+        LOGM(ERR, "Client requested sharing of window handle {:x} which does not exist!", pWindow);
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
     if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
-        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
-        removeFrame(PFRAME);
+        LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (!PFRAME->resource) {
-        Debug::log(ERR, "Couldn't alloc frame for sharing! (no memory)");
-        m_lFrames.remove(*PFRAME);
-        wl_client_post_no_memory(client);
-        return;
-    }
-
-    wl_resource_set_implementation(PFRAME->resource, &toplevelFrameImpl, PFRAME, handleFrameResourceDestroy);
-
-    PFRAME->client = PCLIENT;
-    PCLIENT->ref++;
+    resource->setOnDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
+    resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
+    resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { this->copy(pFrame, res, ignoreDamage); });
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    PFRAME->shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
-    if (PFRAME->shmFormat == DRM_FORMAT_INVALID) {
-        Debug::log(ERR, "No format supported by renderer in capture toplevel");
-        hyprland_toplevel_export_frame_v1_send_failed(resource);
-        removeFrame(PFRAME);
+    shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    if (shmFormat == DRM_FORMAT_INVALID) {
+        LOGM(ERR, "No format supported by renderer in capture toplevel");
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(PFRAME->shmFormat);
+    const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {
-        Debug::log(ERR, "No pixel format supported by renderer in capture toplevel");
-        hyprland_toplevel_export_frame_v1_send_failed(resource);
-        removeFrame(PFRAME);
+        LOGM(ERR, "No pixel format supported by renderer in capture toplevel");
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    PFRAME->dmabufFormat = PMONITOR->output->state->state().drmFormat;
+    dmabufFormat = PMONITOR->output->state->state().drmFormat;
 
-    PFRAME->box = {0, 0, (int)(pWindow->m_vRealSize.value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize.value().y * PMONITOR->scale)};
+    box = {0, 0, (int)(pWindow->m_vRealSize.value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize.value().y * PMONITOR->scale)};
 
-    PFRAME->box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
+    box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
 
-    PFRAME->shmStride = FormatUtils::minStride(PSHMINFO, PFRAME->box.w);
+    shmStride = FormatUtils::minStride(PSHMINFO, box.w);
 
-    hyprland_toplevel_export_frame_v1_send_buffer(PFRAME->resource, FormatUtils::drmToShm(PFRAME->shmFormat), PFRAME->box.width, PFRAME->box.height, PFRAME->shmStride);
+    resource->sendBuffer(FormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
 
-    if (PFRAME->dmabufFormat != DRM_FORMAT_INVALID) {
-        hyprland_toplevel_export_frame_v1_send_linux_dmabuf(PFRAME->resource, PFRAME->dmabufFormat, PFRAME->box.width, PFRAME->box.height);
+    if (dmabufFormat != DRM_FORMAT_INVALID) {
+        resource->sendLinuxDmabuf(dmabufFormat, box.width, box.height);
     }
 
-    hyprland_toplevel_export_frame_v1_send_buffer_done(PFRAME->resource);
+    resource->sendBufferDone();
 }
 
-void CToplevelExportProtocolManager::copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage) {
-    const auto PFRAME = frameFromResource(resource);
-
-    if (!PFRAME) {
-        Debug::log(ERR, "No frame in copyFrame??");
+void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer_, int32_t ignoreDamage) {
+    if (!good()) {
+        LOGM(ERR, "No frame in copyFrame??");
         return;
     }
 
-    const auto PWINDOW = PFRAME->pWindow.lock();
-
-    if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", PWINDOW);
-        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
-        removeFrame(PFRAME);
+    if (!validMapped(pWindow)) {
+        LOGM(ERR, "Client requested sharing of window handle {:x} which is gone!", pWindow);
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden()) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", PWINDOW);
-        hyprland_toplevel_export_frame_v1_send_failed(PFRAME->resource);
-        removeFrame(PFRAME);
+    if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
+        LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
+        resource->sendFailed();
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    const auto PBUFFER = CWLBufferResource::fromResource(buffer);
+    const auto PBUFFER = CWLBufferResource::fromResource(buffer_);
     if (!PBUFFER) {
-        wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
-        removeFrame(PFRAME);
+        resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer");
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
     PBUFFER->buffer->lock();
 
-    if (PBUFFER->buffer->size != PFRAME->box.size()) {
-        wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
-        removeFrame(PFRAME);
+    if (PBUFFER->buffer->size != box.size()) {
+        resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer dimensions");
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    if (PFRAME->buffer) {
-        wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
-        removeFrame(PFRAME);
+    if (buffer) {
+        resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_ALREADY_USED, "frame already used");
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
     if (auto attrs = PBUFFER->buffer->dmabuf(); attrs.success) {
-        PFRAME->bufferDMA = true;
+        bufferDMA = true;
 
-        if (attrs.format != PFRAME->dmabufFormat) {
-            wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
-            removeFrame(PFRAME);
+        if (attrs.format != dmabufFormat) {
+            resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
+            PROTO::toplevelExport->destroyResource(this);
             return;
         }
     } else if (auto attrs = PBUFFER->buffer->shm(); attrs.success) {
-        if (attrs.format != PFRAME->shmFormat) {
-            wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
-            removeFrame(PFRAME);
+        if (attrs.format != shmFormat) {
+            resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer format");
+            PROTO::toplevelExport->destroyResource(this);
             return;
-        } else if ((int)attrs.stride != PFRAME->shmStride) {
-            wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
-            removeFrame(PFRAME);
+        } else if ((int)attrs.stride != shmStride) {
+            resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer stride");
+            PROTO::toplevelExport->destroyResource(this);
             return;
         }
     } else {
-        wl_resource_post_error(PFRAME->resource, HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer type");
-        removeFrame(PFRAME);
+        resource->error(HYPRLAND_TOPLEVEL_EXPORT_FRAME_V1_ERROR_INVALID_BUFFER, "invalid buffer type");
+        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
-    PFRAME->buffer = PBUFFER->buffer;
+    buffer = PBUFFER->buffer;
 
-    m_vFramesAwaitingWrite.emplace_back(PFRAME);
+    PROTO::toplevelExport->m_vFramesAwaitingWrite.emplace_back(self);
 }
 
-void CToplevelExportProtocolManager::onOutputCommit(CMonitor* pMonitor) {
-    if (m_vFramesAwaitingWrite.empty())
-        return; // nothing to share
-
-    std::vector<SScreencopyFrame*> framesToRemove;
-
-    // share frame if correct output
-    for (auto& f : m_vFramesAwaitingWrite) {
-        const auto PWINDOW = f->pWindow.lock();
-
-        if (!validMapped(PWINDOW)) {
-            framesToRemove.push_back(f);
-            continue;
-        }
-
-        if (pMonitor != g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID))
-            continue;
-
-        CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};
-
-        if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
-            continue;
-
-        shareFrame(f);
-
-        f->client->lastFrame.reset();
-        ++f->client->frameCounter;
-
-        framesToRemove.push_back(f);
-    }
-
-    for (auto& f : framesToRemove) {
-        removeFrame(f);
-    }
-}
-
-void CToplevelExportProtocolManager::shareFrame(SScreencopyFrame* frame) {
-    if (!frame->buffer || !validMapped(frame->pWindow))
+void CToplevelExportFrame::share() {
+    if (!buffer || !validMapped(pWindow))
         return;
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    uint32_t flags = 0;
-    if (frame->bufferDMA) {
-        if (!copyFrameDmabuf(frame, &now)) {
-            hyprland_toplevel_export_frame_v1_send_failed(frame->resource);
+    if (bufferDMA) {
+        if (!copyDmabuf(&now)) {
+            resource->sendFailed();
             return;
         }
     } else {
-        if (!copyFrameShm(frame, &now)) {
-            hyprland_toplevel_export_frame_v1_send_failed(frame->resource);
+        if (!copyShm(&now)) {
+            resource->sendFailed();
             return;
         }
     }
 
-    hyprland_toplevel_export_frame_v1_send_flags(frame->resource, flags);
-    sendDamage(frame);
+    resource->sendFlags((hyprlandToplevelExportFrameV1Flags)0);
+
+    if (!ignoreDamage) {
+        resource->sendDamage(0, 0, box.width, box.height);
+    }
+
     uint32_t tvSecHi = (sizeof(now.tv_sec) > 4) ? now.tv_sec >> 32 : 0;
     uint32_t tvSecLo = now.tv_sec & 0xFFFFFFFF;
-    hyprland_toplevel_export_frame_v1_send_ready(frame->resource, tvSecHi, tvSecLo, now.tv_nsec);
+    resource->sendReady(tvSecHi, tvSecLo, now.tv_nsec);
 }
 
-void CToplevelExportProtocolManager::sendDamage(SScreencopyFrame* frame) {
-    // TODO: send proper dmg
-    hyprland_toplevel_export_frame_v1_send_damage(frame->resource, 0, 0, frame->box.width, frame->box.height);
-}
-
-bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, timespec* now) {
-    auto shm                      = frame->buffer->shm();
-    auto [pixelData, fmt, bufLen] = frame->buffer->beginDataPtr(0); // no need for end, cuz it's shm
+bool CToplevelExportFrame::copyShm(timespec* now) {
+    auto shm                      = buffer->shm();
+    auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     // render the client
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -372,7 +249,7 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     CFramebuffer outFB;
     outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->output->state->state().drmFormat);
 
-    if (frame->overlayCursor) {
+    if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
@@ -383,12 +260,12 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
     // render client at 0,0
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(frame->pWindow.lock()); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(frame->pWindow.lock(), PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if (frame->overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
+    if (overlayCursor)
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.value());
 
     const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -410,9 +287,9 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-    glReadPixels(0, 0, frame->box.width, frame->box.height, glFormat, PFORMAT->glType, pixelData);
+    glReadPixels(0, 0, box.width, box.height, glFormat, PFORMAT->glType, pixelData);
 
-    if (frame->overlayCursor) {
+    if (overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
     }
@@ -420,31 +297,112 @@ bool CToplevelExportProtocolManager::copyFrameShm(SScreencopyFrame* frame, times
     return true;
 }
 
-bool CToplevelExportProtocolManager::copyFrameDmabuf(SScreencopyFrame* frame, timespec* now) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(frame->pWindow->m_iMonitorID);
+bool CToplevelExportFrame::copyDmabuf(timespec* now) {
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, frame->buffer.lock()))
+    if (overlayCursor) {
+        g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+    }
+
+    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock()))
         return false;
 
     g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
 
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(frame->pWindow.lock()); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(frame->pWindow.lock(), PMONITOR, now, false, RENDER_PASS_ALL, true, true);
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
+    g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if (frame->overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - frame->pWindow->m_vRealPosition.value());
+    if (overlayCursor)
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.value());
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
+
+    if (overlayCursor) {
+        g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->self.lock());
+        g_pPointerManager->damageCursor(PMONITOR->self.lock());
+    }
+
     return true;
 }
 
-void CToplevelExportProtocolManager::onWindowUnmap(PHLWINDOW pWindow) {
-    for (auto& f : m_lFrames) {
-        if (f.pWindow.lock() == pWindow)
-            f.pWindow.reset();
+bool CToplevelExportFrame::good() {
+    return resource->resource();
+}
+
+CToplevelExportProtocol::CToplevelExportProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+    ;
+}
+
+void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
+    const auto CLIENT = m_vClients.emplace_back(makeShared<CToplevelExportClient>(makeShared<CHyprlandToplevelExportManagerV1>(client, ver, id)));
+
+    if (!CLIENT->good()) {
+        LOGM(LOG, "Failed to bind client! (out of memory)");
+        wl_client_post_no_memory(client);
+        m_vClients.pop_back();
+        return;
+    }
+
+    CLIENT->self = CLIENT;
+
+    LOGM(LOG, "Bound client successfully!");
+}
+
+void CToplevelExportProtocol::destroyResource(CToplevelExportClient* client) {
+    std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
+    std::erase_if(m_vFrames, [&](const auto& other) { return other->client.get() == client; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other->client.get() == client; });
+}
+
+void CToplevelExportProtocol::destroyResource(CToplevelExportFrame* frame) {
+    std::erase_if(m_vFrames, [&](const auto& other) { return other.get() == frame; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other.get() == frame; });
+}
+
+void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
+    if (m_vFramesAwaitingWrite.empty())
+        return; // nothing to share
+
+    std::vector<WP<CToplevelExportFrame>> framesToRemove;
+
+    // share frame if correct output
+    for (auto& f : m_vFramesAwaitingWrite) {
+        if (!f->pWindow || !validMapped(f->pWindow)) {
+            framesToRemove.push_back(f);
+            continue;
+        }
+
+        const auto PWINDOW = f->pWindow;
+
+        if (pMonitor != g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID))
+            continue;
+
+        CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};
+
+        if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
+            continue;
+
+        f->share();
+
+        f->client->lastFrame.reset();
+        ++f->client->frameCounter;
+
+        framesToRemove.push_back(f);
+    }
+
+    for (auto& f : framesToRemove) {
+        destroyResource(f.get());
+    }
+}
+
+void CToplevelExportProtocol::onWindowUnmap(PHLWINDOW pWindow) {
+    for (auto& f : m_vFrames) {
+        if (f->pWindow == pWindow)
+            f->pWindow.reset();
     }
 }

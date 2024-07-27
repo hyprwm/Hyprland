@@ -2610,6 +2610,8 @@ void CHyprOpenGLImpl::createBackgroundTexture(const std::string& texPath) {
     }
 #endif
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, m_pBackgroundTexture->m_vSize.x, m_pBackgroundTexture->m_vSize.y, 0, glFormat, glType, DATA);
+
+    cairo_surface_destroy(CAIROSURFACE);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {

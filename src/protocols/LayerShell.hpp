@@ -70,6 +70,7 @@ class CLayerShellResource : public ISurfaceRole {
     struct {
         CHyprSignalListener commitSurface;
         CHyprSignalListener destroySurface;
+        CHyprSignalListener unmapSurface;
     } listeners;
 
     bool                                       closed = false;

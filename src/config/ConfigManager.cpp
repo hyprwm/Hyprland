@@ -642,7 +642,7 @@ std::optional<std::string> CConfigManager::generateConfig(std::string configPath
         Debug::log(WARN, "Creating config home directory");
         try {
             std::filesystem::create_directories(parentPath);
-        } catch (std::exception e) { throw e; }
+        } catch (std::exception& e) { throw e; }
     }
 
     Debug::log(WARN, "No config file found; attempting to generate.");

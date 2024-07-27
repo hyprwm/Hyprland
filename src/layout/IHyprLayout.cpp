@@ -187,7 +187,7 @@ void IHyprLayout::onBeginDragWindow() {
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
-        g_pInputManager->currentlyDraggedWindow.reset();
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
@@ -200,7 +200,7 @@ void IHyprLayout::onBeginDragWindow() {
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
         Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-        g_pInputManager->currentlyDraggedWindow.reset();
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
@@ -288,7 +288,6 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pInputManager->unsetCursorImage();
-
     g_pInputManager->currentlyDraggedWindow.reset();
     g_pInputManager->m_bWasDraggingWindow = true;
 
@@ -325,12 +324,14 @@ void IHyprLayout::onEndDragWindow() {
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
+    if (g_pInputManager->currentlyDraggedWindow.expired())
+        return;
+
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
-    if (!validMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D()) {
-        onEndDragWindow();
-        g_pInputManager->currentlyDraggedWindow.reset();
+    if ((!validMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D())) {
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 

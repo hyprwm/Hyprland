@@ -79,11 +79,6 @@ class CToplevelExportProtocol : IWaylandProtocol {
     void destroyResource(CToplevelExportClient* client);
     void destroyResource(CToplevelExportFrame* frame);
 
-    void captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, PHLWINDOW handle);
-    void removeClient(CToplevelExportClient* client, bool force = false);
-    void removeFrame(CToplevelExportFrame* frame, bool force = false);
-    void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
-    void displayDestroy();
     void onWindowUnmap(PHLWINDOW pWindow);
     void onOutputCommit(CMonitor* pMonitor);
 

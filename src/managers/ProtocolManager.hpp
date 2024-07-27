@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
-// #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <unordered_map>

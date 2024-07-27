@@ -143,7 +143,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
     }
 
     if (!validMapped(pWindow)) {
-        Debug::log(ERR, "Client requested sharing of window handle {:x} which is gone!", pWindow);
+        LOGM(ERR, "Client requested sharing of window handle {:x} which is gone!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
         return;

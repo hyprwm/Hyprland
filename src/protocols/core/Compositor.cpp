@@ -79,6 +79,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
             pending.buffer  = res && res->buffer ? res->buffer.lock() : nullptr;
             pending.size    = res && res->buffer ? res->buffer->size : Vector2D{};
             pending.texture = res && res->buffer ? res->buffer->texture : nullptr;
+            if (res)
+                res->released = false;
         }
 
         Vector2D oldBufSize = current.buffer ? current.buffer->size : Vector2D{};
@@ -86,8 +88,6 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-
-        bufferReleased = false;
     });
 
     resource->setCommit([this](CWlSurface* r) {
@@ -340,9 +340,9 @@ void CWLSurfaceResource::unmap() {
     // release the buffers.
     // this is necessary for XWayland to function correctly,
     // as it does not unmap via the traditional commit(null buffer) method, but via the X11 protocol.
-    if (!bufferReleased && current.buffer)
+    if (current.buffer && !current.buffer->resource->released)
         current.buffer->sendRelease();
-    if (pending.buffer)
+    if (pending.buffer && !pending.buffer->resource->released)
         pending.buffer->sendRelease();
 
     pending.buffer.reset();
@@ -420,15 +420,13 @@ void CWLSurfaceResource::commitPendingState() {
     if (current.buffer && current.buffer->texture)
         current.buffer->texture->m_eTransform = wlTransformToHyprutils(current.transform);
 
-    if (current.buffer && !bufferReleased) {
+    if (current.buffer && !current.buffer->resource->released) {
         current.buffer->update(accumulateCurrentBufferDamage());
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        if (current.buffer->isSynchronous()) {
+        if (current.buffer->isSynchronous())
             current.buffer->sendReleaseWithSurface(self.lock());
-            bufferReleased = true;
-        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
@@ -453,7 +451,7 @@ void CWLSurfaceResource::commitPendingState() {
     }
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
-    if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
+    if (previousBuffer && !previousBuffer->isSynchronous() && !previousBuffer->resource->released) {
         if (previousBuffer->lockedByBackend) {
             previousBuffer->hlEvents.backendRelease = previousBuffer->events.backendRelease.registerListener([this, previousBuffer](std::any data) {
                 if (!self.expired()) // could be dead in the dtor
@@ -461,12 +459,11 @@ void CWLSurfaceResource::commitPendingState() {
                 else
                     previousBuffer->sendRelease();
                 previousBuffer->hlEvents.backendRelease.reset();
-                bufferReleased = true;
             });
         } else
             previousBuffer->sendReleaseWithSurface(self.lock());
 
-        bufferReleased = true;
+        previousBuffer->resource->released = true; // set it here regardless so we dont set more listeners for backendRelease
     }
 }
 

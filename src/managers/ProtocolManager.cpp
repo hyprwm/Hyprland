@@ -1,5 +1,7 @@
 #include "ProtocolManager.hpp"
 
+#include "../config/ConfigValue.hpp"
+
 #include "../protocols/TearingControl.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/XDGOutput.hpp"
@@ -35,6 +37,10 @@
 #include "../protocols/Viewporter.hpp"
 #include "../protocols/MesaDRM.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
+#include "../protocols/DRMLease.hpp"
+#include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -45,6 +51,10 @@
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
+#include "../Compositor.hpp"
+
+#include <aquamarine/buffer/Buffer.hpp>
+#include <aquamarine/backend/Backend.hpp>
 
 void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();
@@ -58,12 +68,13 @@ void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
     else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->szName) || PROTO::outputs.at(pMonitor->szName)->isDefunct())) {
         if (PROTO::outputs.contains(pMonitor->szName))
             PROTO::outputs.erase(pMonitor->szName);
-        PROTO::outputs.emplace(pMonitor->szName,
-                               std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
+        PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
     }
 }
 
 CProtocolManager::CProtocolManager() {
+
+    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -76,7 +87,10 @@ CProtocolManager::CProtocolManager() {
 
         if (PROTO::outputs.contains(M->szName))
             PROTO::outputs.erase(M->szName);
-        PROTO::outputs.emplace(M->szName, std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock()));
+
+        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock());
+        PROTO::outputs.emplace(M->szName, ref);
+        ref->self = ref;
 
         m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });
@@ -130,6 +144,18 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
+    PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
+    PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+
+    for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+        if (b->type() != Aquamarine::AQ_BACKEND_DRM)
+            continue;
+
+        PROTO::lease = std::make_unique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease");
+        if (*PENABLEEXPLICIT)
+            PROTO::sync = std::make_unique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
+        break;
+    }
 
     if (g_pHyprOpenGL->getDRMFormats().size() > 0) {
         PROTO::mesaDRM  = std::make_unique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
@@ -139,8 +165,62 @@ CProtocolManager::CProtocolManager() {
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.
-    m_pToplevelExportProtocolManager  = std::make_unique<CToplevelExportProtocolManager>();
     m_pTextInputV1ProtocolManager     = std::make_unique<CTextInputV1ProtocolManager>();
     m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
-    m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
+}
+
+CProtocolManager::~CProtocolManager() {
+    // this is dumb but i don't want to replace all 600 PROTO with the right thing
+
+    // Output
+    PROTO::outputs.clear();
+
+    // Core
+    PROTO::seat.reset();
+    PROTO::data.reset();
+    PROTO::compositor.reset();
+    PROTO::subcompositor.reset();
+    PROTO::shm.reset();
+
+    // Extensions
+    PROTO::viewport.reset();
+    PROTO::tearing.reset();
+    PROTO::fractional.reset();
+    PROTO::xdgOutput.reset();
+    PROTO::cursorShape.reset();
+    PROTO::idleInhibit.reset();
+    PROTO::relativePointer.reset();
+    PROTO::xdgDecoration.reset();
+    PROTO::alphaModifier.reset();
+    PROTO::gamma.reset();
+    PROTO::foreignToplevel.reset();
+    PROTO::pointerGestures.reset();
+    PROTO::foreignToplevelWlr.reset();
+    PROTO::shortcutsInhibit.reset();
+    PROTO::textInputV3.reset();
+    PROTO::constraints.reset();
+    PROTO::outputPower.reset();
+    PROTO::activation.reset();
+    PROTO::idle.reset();
+    PROTO::sessionLock.reset();
+    PROTO::ime.reset();
+    PROTO::virtualKeyboard.reset();
+    PROTO::virtualPointer.reset();
+    PROTO::outputManagement.reset();
+    PROTO::serverDecorationKDE.reset();
+    PROTO::focusGrab.reset();
+    PROTO::tablet.reset();
+    PROTO::layerShell.reset();
+    PROTO::presentation.reset();
+    PROTO::xdgShell.reset();
+    PROTO::dataWlr.reset();
+    PROTO::primarySelection.reset();
+    PROTO::xwaylandShell.reset();
+    PROTO::screencopy.reset();
+    PROTO::toplevelExport.reset();
+
+    PROTO::lease.reset();
+    PROTO::sync.reset();
+    PROTO::mesaDRM.reset();
+    PROTO::linuxDma.reset();
 }

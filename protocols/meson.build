@@ -25,8 +25,6 @@ hyprwayland_scanner = find_program(
 
 protocols = [
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
-  ['wlr-screencopy-unstable-v1.xml'],
-  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-global-shortcuts-v1.xml']
 ]
 
@@ -42,6 +40,8 @@ new_protocols = [
   ['wlr-layer-shell-unstable-v1.xml'],
   ['wayland-drm.xml'],
   ['wlr-data-control-unstable-v1.xml'],
+  ['wlr-screencopy-unstable-v1.xml'],
+  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
   [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],
@@ -66,6 +66,8 @@ new_protocols = [
   [wl_protocol_dir, 'staging/xwayland-shell/xwayland-shell-v1.xml'],
   [wl_protocol_dir, 'stable/viewporter/viewporter.xml'],
   [wl_protocol_dir, 'stable/linux-dmabuf/linux-dmabuf-v1.xml'],
+  [wl_protocol_dir, 'staging/drm-lease/drm-lease-v1.xml'],
+  [wl_protocol_dir, 'staging/linux-drm-syncobj/linux-drm-syncobj-v1.xml'],
 ]
 
 wl_protos_src = []
@@ -113,7 +115,8 @@ foreach p : wl_server_protos
 	wl_server_protos_gen += custom_target(
 		p.underscorify(),
 		input: p,
-		install: false,
+		install: true,
+		install_dir: [false, join_paths(get_option('includedir'), 'hyprland/protocols')],
 		output: ['@BASENAME@.cpp', '@BASENAME@.hpp'],
 		command: [hyprwayland_scanner, '--wayland-enums', '@INPUT@', '@OUTDIR@'],
 	)

@@ -1,7 +1,10 @@
 #include "Keyboard.hpp"
 #include "../defines.hpp"
+#include "../Compositor.hpp"
 
-SP<CKeyboard> CKeyboard::create(wlr_keyboard* keeb) {
+#include <aquamarine/input/Input.hpp>
+
+SP<CKeyboard> CKeyboard::create(SP<Aquamarine::IKeyboard> keeb) {
     SP<CKeyboard> pKeeb = SP<CKeyboard>(new CKeyboard(keeb));
 
     pKeeb->self = pKeeb;
@@ -13,52 +16,41 @@ bool CKeyboard::isVirtual() {
     return false;
 }
 
-wlr_keyboard* CKeyboard::wlr() {
-    return keyboard;
+SP<Aquamarine::IKeyboard> CKeyboard::aq() {
+    return keyboard.lock();
 }
 
-CKeyboard::CKeyboard(wlr_keyboard* keeb) : keyboard(keeb) {
+CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : keyboard(keeb) {
     if (!keeb)
         return;
 
-    // clang-format off
-    hyprListener_destroy.initCallback(&keeb->base.events.destroy, [this] (void* owner, void* data) {
-        disconnectCallbacks();
-        keyboard = nullptr;
-	events.destroy.emit();
-    }, this, "CKeyboard");
+    listeners.destroy = keeb->events.destroy.registerListener([this](std::any d) {
+        keyboard.reset();
+        events.destroy.emit();
+    });
 
-    hyprListener_key.initCallback(&keeb->events.key, [this] (void* owner, void* data) {
-        auto E = (wlr_keyboard_key_event*)data;
+    listeners.key = keeb->events.key.registerListener([this](std::any d) {
+        auto E = std::any_cast<Aquamarine::IKeyboard::SKeyEvent>(d);
 
         keyboardEvents.key.emit(SKeyEvent{
-            .timeMs     = E->time_msec,
-            .keycode    = E->keycode,
-            .updateMods = E->update_state,
-            .state      = E->state,
+            .timeMs  = E.timeMs,
+            .keycode = E.key,
+            .state   = E.pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED,
         });
-    }, this, "CKeyboard");
 
-    hyprListener_keymap.initCallback(&keeb->events.keymap, [this] (void* owner, void* data) {
-        keyboardEvents.keymap.emit();
-    }, this, "CKeyboard");
+        updateXkbStateWithKey(E.key + 8, E.pressed);
+    });
 
-    hyprListener_modifiers.initCallback(&keeb->events.modifiers, [this] (void* owner, void* data) {
-        keyboardEvents.modifiers.emit();
-    }, this, "CKeyboard");
+    listeners.modifiers = keeb->events.modifiers.registerListener([this](std::any d) {
+        updateModifiersState();
 
-    hyprListener_repeatInfo.initCallback(&keeb->events.repeat_info, [this] (void* owner, void* data) {
-        keyboardEvents.repeatInfo.emit();
-    }, this, "CKeyboard");
-    // clang-format on
+        keyboardEvents.modifiers.emit(SModifiersEvent{
+            .depressed = modifiersState.depressed,
+            .latched   = modifiersState.latched,
+            .locked    = modifiersState.locked,
+            .group     = modifiersState.group,
+        });
+    });
 
-    deviceName = keeb->base.name ? keeb->base.name : "UNKNOWN";
-}
-
-void CKeyboard::disconnectCallbacks() {
-    hyprListener_destroy.removeCallback();
-    hyprListener_key.removeCallback();
-    hyprListener_keymap.removeCallback();
-    hyprListener_repeatInfo.removeCallback();
-    hyprListener_modifiers.removeCallback();
+    deviceName = keeb->getName();
 }

@@ -34,6 +34,7 @@ runs:
           libglvnd \
           libinput \
           libliftoff \
+          libxcursor \
           libxcvt \
           libxfont2 \
           libxkbcommon \
@@ -72,6 +73,11 @@ runs:
       shell: bash
       run: |
         git clone https://github.com/hyprwm/hyprutils && cd hyprutils && cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -B build && cmake --build build --target hyprutils && cmake --install build
+
+    - name: Get aquamarine-git
+      shell: bash
+      run: |
+        git clone https://github.com/hyprwm/aquamarine && cd aquamarine && cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -B build && cmake --build build --target aquamarine && cmake --install build
 
     - name: Get Xorg pacman pkgs
       shell: bash

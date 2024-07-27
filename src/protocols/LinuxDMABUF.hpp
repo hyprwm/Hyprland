@@ -7,15 +7,16 @@
 #include "wayland.hpp"
 #include "linux-dmabuf-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../helpers/Format.hpp"
+#include "../helpers/Monitor.hpp"
+#include <aquamarine/buffer/Buffer.hpp>
 
 class CDMABuffer;
-struct SDRMFormat;
-struct SDMABUFAttrs;
 class CWLSurfaceResource;
 
 class CLinuxDMABuffer {
   public:
-    CLinuxDMABuffer(uint32_t id, wl_client* client, SDMABUFAttrs attrs);
+    CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
     ~CLinuxDMABuffer();
 
     bool good();
@@ -31,34 +32,29 @@ class CLinuxDMABuffer {
 };
 
 #pragma pack(push, 1)
-struct SDMABUFFeedbackTableEntry {
+struct SDMABUFFormatTableEntry {
     uint32_t fmt = 0;
     char     pad[4];
     uint64_t modifier = 0;
 };
 #pragma pack(pop)
 
-class SCompiledDMABUFTranche {
-    dev_t                 device = 0;
-    uint32_t              flags  = 0;
-    std::vector<uint16_t> indices;
-};
-
-struct SDMABufTranche {
+struct SDMABUFTranche {
     dev_t                   device = 0;
     uint32_t                flags  = 0;
     std::vector<SDRMFormat> formats;
+    std::vector<uint16_t>   indicies;
 };
 
-class CCompiledDMABUFFeedback {
+class CDMABUFFormatTable {
   public:
-    CCompiledDMABUFFeedback(dev_t device, std::vector<SDMABufTranche> tranches);
-    ~CCompiledDMABUFFeedback();
+    CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tranches);
+    ~CDMABUFFormatTable();
 
-    dev_t                                      mainDevice = 0;
-    int                                        tableFD    = -1;
-    size_t                                     tableLen   = 0;
-    std::vector<std::pair<uint32_t, uint64_t>> tranches;
+    int                                                  tableFD   = -1;
+    size_t                                               tableSize = 0;
+    SDMABUFTranche                                       rendererTranche;
+    std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> monitorTranches;
 };
 
 class CLinuxDMABBUFParamsResource {
@@ -66,12 +62,12 @@ class CLinuxDMABBUFParamsResource {
     CLinuxDMABBUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
     ~CLinuxDMABBUFParamsResource();
 
-    bool                good();
-    void                create(uint32_t id); // 0 means not immed
+    bool                         good();
+    void                         create(uint32_t id); // 0 means not immed
 
-    SP<SDMABUFAttrs>    attrs;
-    WP<CLinuxDMABuffer> createdBuffer;
-    bool                used = false;
+    SP<Aquamarine::SDMABUFAttrs> attrs;
+    WP<CLinuxDMABuffer>          createdBuffer;
+    bool                         used = false;
 
   private:
     SP<CZwpLinuxBufferParamsV1> resource;
@@ -86,11 +82,16 @@ class CLinuxDMABUFFeedbackResource {
     ~CLinuxDMABUFFeedbackResource();
 
     bool                   good();
+    void                   sendDefaultFeedback();
+    void                   sendTranche(SDMABUFTranche& tranche);
 
     SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
 
   private:
     SP<CZwpLinuxDmabufFeedbackV1> resource;
+    bool                          lastFeedbackWasScanout = false;
+
+    friend class CLinuxDMABufV1Protocol;
 };
 
 class CLinuxDMABUFResource {
@@ -110,6 +111,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     ~CLinuxDMABufV1Protocol();
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    void         updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor);
 
   private:
     void destroyResource(CLinuxDMABUFResource* resource);
@@ -117,13 +119,15 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     void destroyResource(CLinuxDMABBUFParamsResource* resource);
     void destroyResource(CLinuxDMABuffer* resource);
 
+    void resetFormatTable();
+
     //
     std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
     std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
     std::vector<SP<CLinuxDMABBUFParamsResource>>  m_vParams;
     std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
 
-    UP<CCompiledDMABUFFeedback>                   defaultFeedback;
+    UP<CDMABUFFormatTable>                        formatTable;
     dev_t                                         mainDevice;
     int                                           mainDeviceFD = -1;
 

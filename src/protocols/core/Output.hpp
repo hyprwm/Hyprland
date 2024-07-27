@@ -8,6 +8,7 @@
 #include "../../helpers/signal/Signal.hpp"
 
 class CMonitor;
+class CWLOutputProtocol;
 
 class CWLOutputResource {
   public:
@@ -20,12 +21,14 @@ class CWLOutputResource {
     void                         updateState();
 
     WP<CMonitor>                 monitor;
-
+    WP<CWLOutputProtocol>        owner;
     WP<CWLOutputResource>        self;
 
   private:
     SP<CWlOutput> resource;
     wl_client*    pClient = nullptr;
+
+    friend class CWLOutputProtocol;
 };
 
 class CWLOutputProtocol : public IWaylandProtocol {
@@ -35,8 +38,10 @@ class CWLOutputProtocol : public IWaylandProtocol {
     virtual void          bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     SP<CWLOutputResource> outputResourceFrom(wl_client* client);
+    void                  sendDone();
 
     WP<CMonitor>          monitor;
+    WP<CWLOutputProtocol> self;
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();
@@ -58,5 +63,5 @@ class CWLOutputProtocol : public IWaylandProtocol {
 };
 
 namespace PROTO {
-    inline std::unordered_map<std::string, UP<CWLOutputProtocol>> outputs;
+    inline std::unordered_map<std::string, SP<CWLOutputProtocol>> outputs;
 };

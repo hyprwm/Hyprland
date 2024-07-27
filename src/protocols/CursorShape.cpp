@@ -1,47 +1,8 @@
 #include "CursorShape.hpp"
 #include <algorithm>
+#include "../helpers/CursorShapes.hpp"
 
 #define LOGM PROTO::cursorShape->protoLog
-
-// clang-format off
-constexpr const char* SHAPE_NAMES[] = {
-    "invalid",
-    "default",
-    "context-menu",
-    "help",
-    "pointer",
-    "progress",
-    "wait",
-    "cell",
-    "crosshair",
-    "text",
-    "vertical-text",
-    "alias",
-    "copy",
-    "move",
-    "no-drop",
-    "not-allowed",
-    "grab",
-    "grabbing",
-    "e-resize",
-    "n-resize",
-    "ne-resize",
-    "nw-resize",
-    "s-resize",
-    "se-resize",
-    "sw-resize",
-    "w-resize",
-    "ew-resize",
-    "ns-resize",
-    "nesw-resize",
-    "nwse-resize",
-    "col-resize",
-    "row-resize",
-    "all-scroll",
-    "zoom-in",
-    "zoom-out",
-};
-// clang-format on
 
 CCursorShapeProtocol::CCursorShapeProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
@@ -82,7 +43,7 @@ void CCursorShapeProtocol::createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr
 }
 
 void CCursorShapeProtocol::onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t serial, wpCursorShapeDeviceV1Shape shape) {
-    if ((uint32_t)shape == 0 || (uint32_t)shape > sizeof(SHAPE_NAMES)) {
+    if ((uint32_t)shape == 0 || (uint32_t)shape > CURSOR_SHAPE_NAMES.size()) {
         pMgr->error(WP_CURSOR_SHAPE_DEVICE_V1_ERROR_INVALID_SHAPE, "The shape is invalid");
         return;
     }
@@ -90,7 +51,7 @@ void CCursorShapeProtocol::onSetShape(CWpCursorShapeDeviceV1* pMgr, uint32_t ser
     SSetShapeEvent event;
     event.pMgr      = pMgr;
     event.shape     = shape;
-    event.shapeName = SHAPE_NAMES[shape];
+    event.shapeName = CURSOR_SHAPE_NAMES.at(shape);
 
     events.setShape.emit(event);
 }

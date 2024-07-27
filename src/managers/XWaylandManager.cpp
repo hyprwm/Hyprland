@@ -76,13 +76,21 @@ void CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow, CBox* pbox) {
         const auto SIZEHINTS = pWindow->m_pXWaylandSurface->sizeHints.get();
 
         if (SIZEHINTS && pWindow->m_iX11Type != 2) {
-            pbox->x      = SIZEHINTS->x;
-            pbox->y      = SIZEHINTS->y;
-            pbox->width  = SIZEHINTS->width;
-            pbox->height = SIZEHINTS->height;
-        } else {
+            // WM_SIZE_HINTS' x,y,w,h is deprecated it seems.
+            // Source: https://x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html#wm_normal_hints_property
+            pbox->x = pWindow->m_pXWaylandSurface->geometry.x;
+            pbox->y = pWindow->m_pXWaylandSurface->geometry.y;
+
+            if ((SIZEHINTS->flags & 0x2 /* ICCCM USSize */) || (SIZEHINTS->flags & 0x8 /* ICCCM PSize */)) {
+                pbox->w = SIZEHINTS->base_width;
+                pbox->h = SIZEHINTS->base_height;
+            } else {
+                pbox->w = pWindow->m_pXWaylandSurface->geometry.w;
+                pbox->h = pWindow->m_pXWaylandSurface->geometry.h;
+            }
+        } else
             *pbox = pWindow->m_pXWaylandSurface->geometry;
-        }
+
     } else if (pWindow->m_pXDGSurface)
         *pbox = pWindow->m_pXDGSurface->current.geometry;
 }
@@ -206,7 +214,8 @@ Vector2D CHyprXWaylandManager::getMaxSizeForWindow(PHLWINDOW pWindow) {
     if (!validMapped(pWindow))
         return Vector2D(99999, 99999);
 
-    if ((pWindow->m_bIsX11 && !pWindow->m_pXWaylandSurface->sizeHints) || (!pWindow->m_bIsX11 && !pWindow->m_pXDGSurface->toplevel) || pWindow->m_sAdditionalConfigData.noMaxSize)
+    if ((pWindow->m_bIsX11 && !pWindow->m_pXWaylandSurface->sizeHints) || (!pWindow->m_bIsX11 && !pWindow->m_pXDGSurface->toplevel) ||
+        pWindow->m_sWindowData.noMaxSize.valueOrDefault())
         return Vector2D(99999, 99999);
 
     auto MAXSIZE = pWindow->m_bIsX11 ? Vector2D(pWindow->m_pXWaylandSurface->sizeHints->max_width, pWindow->m_pXWaylandSurface->sizeHints->max_height) :

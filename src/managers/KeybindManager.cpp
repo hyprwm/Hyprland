@@ -4,10 +4,12 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
 
@@ -15,6 +17,7 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <cstring>
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -33,7 +36,7 @@ using namespace Hyprutils::String;
 static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    if (!*PINITIALWSTRACKING)
+    if (!*PINITIALWSTRACKING || g_pConfigManager->isLaunchingExecOnce)
         return {};
 
     const auto PMONITOR = g_pCompositor->m_pLastMonitor;
@@ -98,7 +101,6 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["pass"]                           = pass;
     m_mDispatchers["sendshortcut"]                   = sendshortcut;
     m_mDispatchers["layoutmsg"]                      = layoutmsg;
-    m_mDispatchers["toggleopaque"]                   = toggleOpaque;
     m_mDispatchers["dpms"]                           = dpms;
     m_mDispatchers["movewindowpixel"]                = moveWindow;
     m_mDispatchers["resizewindowpixel"]              = resizeWindow;
@@ -157,37 +159,37 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
     std::transform(mods.begin(), mods.end(), mods.begin(), ::toupper);
     if (mods.contains("SHIFT"))
-        modMask |= WLR_MODIFIER_SHIFT;
+        modMask |= HL_MODIFIER_SHIFT;
     if (mods.contains("CAPS"))
-        modMask |= WLR_MODIFIER_CAPS;
+        modMask |= HL_MODIFIER_CAPS;
     if (mods.contains("CTRL") || mods.contains("CONTROL"))
-        modMask |= WLR_MODIFIER_CTRL;
+        modMask |= HL_MODIFIER_CTRL;
     if (mods.contains("ALT") || mods.contains("MOD1"))
-        modMask |= WLR_MODIFIER_ALT;
+        modMask |= HL_MODIFIER_ALT;
     if (mods.contains("MOD2"))
-        modMask |= WLR_MODIFIER_MOD2;
+        modMask |= HL_MODIFIER_MOD2;
     if (mods.contains("MOD3"))
-        modMask |= WLR_MODIFIER_MOD3;
-    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4"))
-        modMask |= WLR_MODIFIER_LOGO;
+        modMask |= HL_MODIFIER_MOD3;
+    if (mods.contains("SUPER") || mods.contains("WIN") || mods.contains("LOGO") || mods.contains("MOD4") || mods.contains("META"))
+        modMask |= HL_MODIFIER_META;
     if (mods.contains("MOD5"))
-        modMask |= WLR_MODIFIER_MOD5;
+        modMask |= HL_MODIFIER_MOD5;
 
     return modMask;
 }
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
     switch (keycode - 8) {
-        case KEY_LEFTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_RIGHTMETA: return WLR_MODIFIER_LOGO;
-        case KEY_LEFTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_RIGHTSHIFT: return WLR_MODIFIER_SHIFT;
-        case KEY_LEFTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_RIGHTCTRL: return WLR_MODIFIER_CTRL;
-        case KEY_LEFTALT: return WLR_MODIFIER_ALT;
-        case KEY_RIGHTALT: return WLR_MODIFIER_ALT;
-        case KEY_CAPSLOCK: return WLR_MODIFIER_CAPS;
-        case KEY_NUMLOCK: return WLR_MODIFIER_MOD2;
+        case KEY_LEFTMETA: return HL_MODIFIER_META;
+        case KEY_RIGHTMETA: return HL_MODIFIER_META;
+        case KEY_LEFTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_RIGHTSHIFT: return HL_MODIFIER_SHIFT;
+        case KEY_LEFTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_RIGHTCTRL: return HL_MODIFIER_CTRL;
+        case KEY_LEFTALT: return HL_MODIFIER_ALT;
+        case KEY_RIGHTALT: return HL_MODIFIER_ALT;
+        case KEY_CAPSLOCK: return HL_MODIFIER_CAPS;
+        case KEY_NUMLOCK: return HL_MODIFIER_MOD2;
         default: return 0;
     }
 }
@@ -252,7 +254,7 @@ bool CKeybindManager::ensureMouseBindState() {
         g_pInputManager->dragMode = MBIND_INVALID;
 
         g_pCompositor->updateWorkspaceWindows(lastDraggedWindow->workspaceID());
-        g_pCompositor->updateWorkspaceSpecialRenderData(lastDraggedWindow->workspaceID());
+        g_pCompositor->updateWorkspaceWindowData(lastDraggedWindow->workspaceID());
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(lastDraggedWindow->m_iMonitorID);
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -279,13 +281,18 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
         return false;
 
     const auto LASTMONITOR = g_pCompositor->m_pLastMonitor.get();
+    if (!LASTMONITOR)
+        return false;
     if (LASTMONITOR == monitor) {
         Debug::log(LOG, "Tried to move to active monitor");
         return false;
     }
 
-    const auto PWORKSPACE        = g_pCompositor->m_pLastMonitor->activeWorkspace;
-    const auto PNEWMAINWORKSPACE = monitor->activeWorkspace;
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+
+    const auto  PWORKSPACE        = g_pCompositor->m_pLastMonitor->activeWorkspace;
+    const auto  PNEWMAINWORKSPACE = monitor->activeWorkspace;
 
     g_pInputManager->unconstrainMouse();
     PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
@@ -298,9 +305,11 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
         g_pCompositor->focusWindow(PNEWWINDOW);
         PNEWWINDOW->warpCursor();
 
-        g_pInputManager->m_pForcedFocus = PNEWWINDOW;
-        g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+            g_pInputManager->m_pForcedFocus = PNEWWINDOW;
+            g_pInputManager->simulateMouseMovement();
+            g_pInputManager->m_pForcedFocus.reset();
+        }
     } else {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->warpCursorTo(monitor->middle());
@@ -311,7 +320,10 @@ bool CKeybindManager::tryMoveFocusToMonitor(CMonitor* monitor) {
 }
 
 void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
-    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+
+    const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
@@ -335,9 +347,12 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
         PWINDOWTOCHANGETO->warpCursor();
 
-        g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
-        g_pInputManager->simulateMouseMovement();
-        g_pInputManager->m_pForcedFocus.reset();
+        // Move mouse focus to the new window if required by current follow_mouse and warp modes
+        if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+            g_pInputManager->m_pForcedFocus = PWINDOWTOCHANGETO;
+            g_pInputManager->simulateMouseMovement();
+            g_pInputManager->m_pForcedFocus.reset();
+        }
 
         if (PLASTWINDOW && PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
             // event
@@ -366,8 +381,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto         KEYCODE = e.keycode + 8; // Because to xkbcommon it's +8 from libinput
 
-    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbTranslationState : m_pXKBTranslationState, KEYCODE);
-    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->wlr()->xkb_state, KEYCODE);
+    const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbStaticState : m_pXKBTranslationState, KEYCODE);
+    const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
 
     if (handleInternalKeybinds(internalKeysym))
         return true;
@@ -554,7 +569,7 @@ int repeatKeyHandler(void* data) {
     Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
     DISPATCHER->second((*ppActiveKeybind)->arg);
 
-    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->wlr()->repeat_info.rate);
+    wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->repeatRate);
 
     return 0;
 }
@@ -604,10 +619,8 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
 
     static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
 
-    if (!*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited()) {
+    if (!*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
         Debug::log(LOG, "Keybind handling is disabled due to an inhibitor");
-        return false;
-    }
 
     for (auto& k : m_lKeybinds) {
         const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "sendshortcut" || k.handler == "mouse";
@@ -615,6 +628,9 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
+
+        if (!k.dontInhibit && !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
+            continue;
 
         if (!k.locked && g_pSessionLockManager->isSessionLocked())
             continue;
@@ -786,7 +802,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // beyond this point, return true to not handle anything else.
     // we'll avoid printing shit to active windows.
 
-    if (g_pCompositor->m_sWLRSession) {
+    if (g_pCompositor->m_pAqBackend->hasSession()) {
         const unsigned int TTY = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
 
         // vtnr is bugged for some reason.
@@ -810,8 +826,7 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         Debug::log(LOG, "Switching from VT {} to VT {}", ttynum, TTY);
 
-        wlr_session_change_vt(g_pCompositor->m_sWLRSession, TTY);
-        return true;
+        g_pCompositor->m_pAqBackend->session->switchVT(TTY);
     }
 
     return true;
@@ -893,6 +908,7 @@ uint64_t CKeybindManager::spawnRaw(std::string args) {
             for (auto& e : HLENV) {
                 setenv(e.first.c_str(), e.second.c_str(), 1);
             }
+            setenv("WAYLAND_DISPLAY", g_pCompositor->m_szWLDisplaySocket.c_str(), 1);
             close(socket[0]);
             close(socket[1]);
             execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
@@ -974,7 +990,7 @@ static void toggleActiveFloatingCore(std::string args, std::optional<bool> float
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
     g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
-    g_pCompositor->updateWorkspaceSpecialRenderData(PWINDOW->workspaceID());
+    g_pCompositor->updateWorkspaceWindowData(PWINDOW->workspaceID());
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 }
@@ -1659,7 +1675,7 @@ void CKeybindManager::renameWorkspace(std::string args) {
 }
 
 void CKeybindManager::exitHyprland(std::string argz) {
-    g_pCompositor->m_bExitTriggered = true;
+    g_pCompositor->stopCompositor();
 }
 
 void CKeybindManager::moveCurrentWorkspaceToMonitor(std::string args) {
@@ -2121,8 +2137,8 @@ void CKeybindManager::sendshortcut(std::string args) {
         const auto KEYPAIRSTRING = std::format("{}{}", (uintptr_t)KB.get(), KEY);
 
         if (!g_pKeybindManager->m_mKeyToCodeCache.contains(KEYPAIRSTRING)) {
-            xkb_keymap*   km = KB->wlr()->keymap;
-            xkb_state*    ks = KB->xkbTranslationState;
+            xkb_keymap*   km = KB->xkbKeymap;
+            xkb_state*    ks = KB->xkbState;
 
             xkb_keycode_t keycode_min, keycode_max;
             keycode_min = xkb_keymap_min_keycode(km);
@@ -2233,18 +2249,6 @@ void CKeybindManager::layoutmsg(std::string msg) {
     g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
 }
 
-void CKeybindManager::toggleOpaque(std::string unused) {
-    const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
-
-    if (!PWINDOW)
-        return;
-
-    PWINDOW->m_sAdditionalConfigData.forceOpaque           = !PWINDOW->m_sAdditionalConfigData.forceOpaque;
-    PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden = true;
-
-    g_pHyprRenderer->damageWindow(PWINDOW);
-}
-
 void CKeybindManager::dpms(std::string arg) {
     bool        enable = arg.starts_with("on");
     std::string port   = "";
@@ -2260,7 +2264,7 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
-        wlr_output_state_set_enabled(m->state.wlr(), enable);
+        m->output->state->setEnabled(enable);
 
         m->dpmsStatus = enable;
 
@@ -2362,7 +2366,7 @@ void CKeybindManager::mouse(std::string args) {
     const auto PRESSED = args[0] == '1';
 
     if (ARGS[0] == "movewindow") {
-        if (PRESSED) {
+        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
@@ -2376,7 +2380,7 @@ void CKeybindManager::mouse(std::string args) {
 
             g_pInputManager->dragMode = MBIND_MOVE;
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else {
+        } else if (!PRESSED && g_pInputManager->dragMode == MBIND_MOVE) {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
             if (!g_pInputManager->currentlyDraggedWindow.expired()) {
@@ -2386,7 +2390,7 @@ void CKeybindManager::mouse(std::string args) {
             }
         }
     } else if (ARGS[0] == "resizewindow") {
-        if (PRESSED) {
+        if (PRESSED && g_pInputManager->dragMode == MBIND_INVALID) {
             g_pKeybindManager->m_bIsMouseBindActive = true;
 
             g_pInputManager->currentlyDraggedWindow =
@@ -2400,7 +2404,8 @@ void CKeybindManager::mouse(std::string args) {
                 }
             } catch (std::exception& e) { g_pInputManager->dragMode = MBIND_RESIZE; }
             g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
-        } else {
+        } else if (!PRESSED &&
+                   (g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO || g_pInputManager->dragMode == MBIND_RESIZE)) {
             g_pKeybindManager->m_bIsMouseBindActive = false;
 
             if (!g_pInputManager->currentlyDraggedWindow.expired()) {
@@ -2486,6 +2491,11 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
     updateRelativeCursorCoords();
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
+
+    if (pWindow->m_iMonitorID != pWindowInDirection->m_iMonitorID) {
+        pWindow->moveToWorkspace(pWindowInDirection->m_pWorkspace);
+        pWindow->m_iMonitorID = pWindowInDirection->m_iMonitorID;
+    }
 
     static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
     pWindowInDirection     = *USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail();

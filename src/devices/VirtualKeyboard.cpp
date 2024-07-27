@@ -14,58 +14,42 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : keybo
     if (!keeb_)
         return;
 
-    auto keeb = keeb_->wlr();
-
-    // clang-format off
-    hyprListener_destroy.initCallback(&keeb->base.events.destroy, [this] (void* owner, void* data) {
-        disconnectCallbacks();
+    listeners.destroy = keeb_->events.destroy.registerListener([this](std::any d) {
         keyboard.reset();
-	events.destroy.emit();
-    }, this, "CVirtualKeyboard");
+        events.destroy.emit();
+    });
 
-    hyprListener_key.initCallback(&keeb->events.key, [this] (void* owner, void* data) {
-        auto E = (wlr_keyboard_key_event*)data;
-
-        keyboardEvents.key.emit(SKeyEvent{
-            .timeMs     = E->time_msec,
-            .keycode    = E->keycode,
-            .updateMods = E->update_state,
-            .state      = E->state,
+    listeners.key       = keeb_->events.key.registerListener([this](std::any d) { keyboardEvents.key.emit(d); });
+    listeners.modifiers = keeb_->events.modifiers.registerListener([this](std::any d) {
+        auto E = std::any_cast<SModifiersEvent>(d);
+        updateModifiers(E.depressed, E.latched, E.locked, E.group);
+        keyboardEvents.modifiers.emit(SModifiersEvent{
+            .depressed = modifiersState.depressed,
+            .latched   = modifiersState.latched,
+            .locked    = modifiersState.locked,
+            .group     = modifiersState.group,
         });
-    }, this, "CVirtualKeyboard");
+    });
+    listeners.keymap    = keeb_->events.keymap.registerListener([this](std::any d) {
+        auto E = std::any_cast<SKeymapEvent>(d);
+        if (xkbKeymap)
+            xkb_keymap_unref(xkbKeymap);
+        xkbKeymap        = xkb_keymap_ref(E.keymap);
+        keymapOverridden = true;
+        updateXKBTranslationState(xkbKeymap);
+        updateKeymapFD();
+        keyboardEvents.keymap.emit(d);
+    });
 
-    hyprListener_keymap.initCallback(&keeb->events.keymap, [this] (void* owner, void* data) {
-        keyboardEvents.keymap.emit();
-    }, this, "CVirtualKeyboard");
-
-    hyprListener_modifiers.initCallback(&keeb->events.modifiers, [this] (void* owner, void* data) {
-        keyboardEvents.modifiers.emit();
-    }, this, "CVirtualKeyboard");
-
-    hyprListener_repeatInfo.initCallback(&keeb->events.repeat_info, [this] (void* owner, void* data) {
-        keyboardEvents.repeatInfo.emit();
-    }, this, "CVirtualKeyboard");
-    // clang-format on
-
-    deviceName = keeb->base.name ? keeb->base.name : "UNKNOWN";
+    deviceName = keeb_->name;
 }
 
 bool CVirtualKeyboard::isVirtual() {
     return true;
 }
 
-wlr_keyboard* CVirtualKeyboard::wlr() {
-    if (keyboard.expired())
-        return nullptr;
-    return keyboard->wlr();
-}
-
-void CVirtualKeyboard::disconnectCallbacks() {
-    hyprListener_destroy.removeCallback();
-    hyprListener_key.removeCallback();
-    hyprListener_keymap.removeCallback();
-    hyprListener_repeatInfo.removeCallback();
-    hyprListener_modifiers.removeCallback();
+SP<Aquamarine::IKeyboard> CVirtualKeyboard::aq() {
+    return nullptr;
 }
 
 wl_client* CVirtualKeyboard::getClient() {

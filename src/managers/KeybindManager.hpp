@@ -6,6 +6,7 @@
 #include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
+#include <xkbcommon/xkbcommon.h>
 #include "../devices/IPointer.hpp"
 
 class CInputManager;
@@ -33,6 +34,7 @@ struct SKeybind {
     bool                   ignoreMods     = false;
     bool                   multiKey       = false;
     bool                   hasDescription = false;
+    bool                   dontInhibit    = false;
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -188,7 +190,6 @@ class CKeybindManager {
     static void     pass(std::string);
     static void     sendshortcut(std::string);
     static void     layoutmsg(std::string);
-    static void     toggleOpaque(std::string);
     static void     dpms(std::string);
     static void     swapnext(std::string);
     static void     swapActiveWorkspaces(std::string);

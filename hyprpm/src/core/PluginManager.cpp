@@ -172,6 +172,9 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not check out revision " << rev << ". shell returned:\n" << ret << "\n";
             return false;
         }
+        ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
+        if (m_bVerbose)
+            std::cout << Colors::BLUE << "[v] " << Colors::RESET << "git submodule update --init returned: " << ret << "\n";
     }
 
     progress.m_iSteps = 1;
@@ -226,6 +229,12 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " commit pin " + plugin + " matched hl, resetting");
 
             execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+
+            ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
+            if (m_bVerbose)
+                std::cout << Colors::BLUE << "[v] " << Colors::RESET << "git submodule update --init returned: " << ret << "\n";
+
+            break;
         }
     }
 
@@ -356,7 +365,7 @@ eHeadersErrors CPluginManager::headersValid() {
         else
             headers = "";
 
-        if (PATH.ends_with("protocols") || PATH.ends_with("wlroots-hyprland"))
+        if (PATH.ends_with("protocols"))
             continue;
 
         verHeader = trim(PATH.substr(2)) + "/hyprland/src/version.h";
@@ -492,11 +501,6 @@ bool CPluginManager::updateHeaders(bool force) {
                   << missing << "\n\nThis likely means that you are missing the above dependencies or they are out of date.\n";
         return false;
     }
-
-    // le hack. Wlroots has to generate its build/include
-    ret = execAndGet("cd " + WORKINGDIR + "/subprojects/wlroots-hyprland && meson setup -Drenderers=gles2 -Dexamples=false build");
-    if (m_bVerbose)
-        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "meson returned: " + ret);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " configured Hyprland");
     progress.m_iSteps           = 4;

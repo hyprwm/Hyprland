@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
+#include <algorithm>
 
 SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
     pWlrSurface = surface->surface();
@@ -77,7 +78,6 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
-    pLock->sendLocked();
     g_pCompositor->focusSurface(nullptr);
 }
 
@@ -102,7 +102,6 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
 }
 
 // We don't want the red screen to flash.
-// This violates the protocol a bit, but tries to handle the missing sync between a lock surface beeing created and the red screen beeing drawn.
 float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
     if (!m_pSessionLock)
         return 0.F;
@@ -116,6 +115,18 @@ float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
     }
 
     return std::clamp(NOMAPPEDSURFACETIMER->second.getSeconds() - /* delay for screencopy */ 0.5f, 0.f, 1.f);
+}
+
+void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
+    if (!m_pSessionLock || m_pSessionLock->m_hasSentLocked)
+        return;
+    m_pSessionLock->m_lockedMonitors.emplace(id);
+    const auto MONITORS = g_pCompositor->m_vMonitors;
+    const bool LOCKED   = std::all_of(MONITORS.begin(), MONITORS.end(), [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->ID); });
+    if (LOCKED) {
+        m_pSessionLock->lock->sendLocked();
+        m_pSessionLock->m_hasSentLocked = true;
+    }
 }
 
 bool CSessionLockManager::isSurfaceSessionLock(SP<CWLSurfaceResource> pSurface) {

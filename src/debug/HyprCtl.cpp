@@ -12,6 +12,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <sys/poll.h>
+#include <filesystem>
+#include <ranges>
 
 #include <sstream>
 #include <string>
@@ -20,6 +22,7 @@
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+#include <aquamarine/input/Input.hpp>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../config/ConfigValue.hpp"
@@ -53,19 +56,14 @@ static std::string formatToString(uint32_t drmFormat) {
 static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
-    if (!wl_list_empty(&pMonitor->output->modes)) {
-        wlr_output_mode* mode;
-
-        wl_list_for_each(mode, &pMonitor->output->modes, link) {
-
-            if (format == FORMAT_NORMAL)
-                result += std::format("{}x{}@{:.2f}Hz ", mode->width, mode->height, mode->refresh / 1000.0);
-            else
-                result += std::format("\"{}x{}@{:.2f}Hz\",", mode->width, mode->height, mode->refresh / 1000.0);
-        }
-
-        result.pop_back();
+    for (auto& m : pMonitor->output->modes) {
+        if (format == FORMAT_NORMAL)
+            result += std::format("{}x{}@{:.2f}Hz ", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
+        else
+            result += std::format("\"{}x{}@{:.2f}Hz\",", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
     }
+
+    trimTrailingComma(result);
 
     return result;
 }
@@ -75,8 +73,10 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     if (!m->output || m->ID == -1ull)
         return "";
 
-    result += std::format(
-        R"#({{
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+
+        result += std::format(
+            R"#({{
     "id": {},
     "name": "{}",
     "description": "{}",
@@ -107,14 +107,27 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "currentFormat": "{}",
     "availableModes": [{}]
 }},)#",
-        m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make ? m->output->make : ""),
-        escapeJSONStrings(m->output->model ? m->output->model : ""), escapeJSONStrings(m->output->serial ? m->output->serial : ""), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y,
-        m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)),
-        m->activeSpecialWorkspaceID(), escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
-        (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-        (m == g_pCompositor->m_pLastMonitor ? "true" : "false"), (m->dpmsStatus ? "true" : "false"),
-        (m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED ? "true" : "false"), (m->tearingState.activelyTearing ? "true" : "false"),
-        (m->m_bEnabled ? "false" : "true"), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+
+            m->ID, escapeJSONStrings(m->szName), escapeJSONStrings(m->szShortDescription), escapeJSONStrings(m->output->make), escapeJSONStrings(m->output->model),
+            escapeJSONStrings(m->output->serial), (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y,
+            m->activeWorkspaceID(), (!m->activeWorkspace ? "" : escapeJSONStrings(m->activeWorkspace->m_szName)), m->activeSpecialWorkspaceID(),
+            escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+            (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
+            (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (m->tearingState.activelyTearing ? "true" : "false"),
+            (m->m_bEnabled ? "false" : "true"), formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
+
+    } else {
+        result += std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                              "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                              "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                              m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                              m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
+                              m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
+                              (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+                              (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, m->tearingState.activelyTearing,
+                              !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
+    }
+
     return result;
 }
 
@@ -144,16 +157,16 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
             if (!m->output || m->ID == -1ull)
                 continue;
 
-            result += std::format(
-                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
-                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
-                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                (m->output->make ? m->output->make : ""), (m->output->model ? m->output->model : ""), (m->output->serial ? m->output->serial : ""), m->activeWorkspaceID(),
-                (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName), m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""),
-                (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->adaptive_sync_status == WLR_OUTPUT_ADAPTIVE_SYNC_ENABLED),
-                m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
+            result +=
+                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                            "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                            "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
+                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                            m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
+                            m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
+                            (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
+                            (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false),
+                            m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
         }
     }
 
@@ -317,10 +330,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().top, r.gapsOut.value().right, r.gapsOut.value().bottom, r.gapsOut.value().left) :
                "";
         const std::string borderSize = (bool)(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
-        const std::string border     = (bool)(r.border) ? std::format(",\n    \"border\": {}", boolToString(r.border.value())) : "";
-        const std::string rounding   = (bool)(r.rounding) ? std::format(",\n    \"rounding\": {}", boolToString(r.rounding.value())) : "";
+        const std::string border     = (bool)(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
+        const std::string rounding   = (bool)(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
         const std::string decorate   = (bool)(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
-        const std::string shadow     = (bool)(r.shadow) ? std::format(",\n    \"shadow\": {}", boolToString(r.shadow.value())) : "";
+        const std::string shadow     = (bool)(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
 
         std::string       result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}
@@ -339,10 +352,10 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                                                                        std::to_string(r.gapsOut.value().bottom), std::to_string(r.gapsOut.value().left)) :
                                                            std::format("\tgapsOut: <unset>\n");
         const std::string borderSize = std::format("\tborderSize: {}\n", (bool)(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border     = std::format("\tborder: {}\n", (bool)(r.border) ? boolToString(r.border.value()) : "<unset>");
-        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.rounding) ? boolToString(r.rounding.value()) : "<unset>");
+        const std::string border     = std::format("\tborder: {}\n", (bool)(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
+        const std::string rounding   = std::format("\trounding: {}\n", (bool)(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
         const std::string decorate   = std::format("\tdecorate: {}\n", (bool)(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.shadow) ? boolToString(r.shadow.value()) : "<unset>");
+        const std::string shadow     = std::format("\tshadow: {}\n", (bool)(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
 
         std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
                                                borderSize, border, rounding, decorate, shadow);
@@ -552,8 +565,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "defaultSpeed": {:.5f}
     }},)#",
                 (uintptr_t)m.get(), escapeJSONStrings(m->hlName),
-                wlr_input_device_is_libinput(&m->wlr()->base) ? libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
-                                                                0.f);
+                m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f);
         }
 
         trimTrailingComma(result);
@@ -611,9 +623,8 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
                 R"#(    {{
         "address": "0x{:x}",
         "type": "tabletTool",
-        "belongsTo": "0x{:x}"
     }},)#",
-                (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
+                (uintptr_t)d.get());
         }
 
         trimTrailingComma(result);
@@ -641,7 +652,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "address": "0x{:x}",
         "name": "{}"
     }},)#",
-                (uintptr_t)&d, escapeJSONStrings(d.pWlrDevice ? d.pWlrDevice->name : ""));
+                (uintptr_t)&d, escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""));
         }
 
         trimTrailingComma(result);
@@ -654,9 +665,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         for (auto& m : g_pInputManager->m_vPointers) {
             result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
-                                  (wlr_input_device_is_libinput(&m->wlr()->base) ?
-                                       libinput_device_config_accel_get_default_speed((libinput_device*)wlr_libinput_get_device_handle(&m->wlr()->base)) :
-                                       0.f));
+                                  (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";
@@ -675,11 +684,11 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         }
 
         for (auto& d : g_pInputManager->m_vTablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->wlr()->width_mm, d->wlr()->height_mm);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
         for (auto& d : g_pInputManager->m_vTabletTools) {
-            result += std::format("\tTablet Tool at {:x} (belongs to {:x})\n", (uintptr_t)d.get(), d->wlr() ? (uintptr_t)d->wlr()->data : 0);
+            result += std::format("\tTablet Tool at {:x}\n", (uintptr_t)d.get());
         }
 
         result += "\n\nTouch:\n";
@@ -691,7 +700,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "\n\nSwitches:\n";
 
         for (auto& d : g_pInputManager->m_lSwitches) {
-            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pWlrDevice ? d.pWlrDevice->name : "");
+            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pDevice ? d.pDevice->getName() : "");
         }
     }
 
@@ -1125,24 +1134,22 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
     if (PKEYBOARD == g_pInputManager->m_vKeyboards.end())
         return "device not found";
 
-    const auto         PWLRKEYBOARD = (*PKEYBOARD)->wlr();
-    const auto         LAYOUTS      = xkb_keymap_num_layouts(PWLRKEYBOARD->keymap);
+    const auto         KEEB = *PKEYBOARD;
+
+    const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->xkbKeymap);
     xkb_layout_index_t activeLayout = 0;
     while (activeLayout < LAYOUTS) {
-        if (xkb_state_layout_index_is_active(PWLRKEYBOARD->xkb_state, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
+        if (xkb_state_layout_index_is_active(KEEB->xkbState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
             break;
 
         activeLayout++;
     }
 
-    if (CMD == "next") {
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked,
-                                      activeLayout > LAYOUTS ? 0 : activeLayout + 1);
-    } else if (CMD == "prev") {
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked,
-                                      activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
-    } else {
-
+    if (CMD == "next")
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
+    else if (CMD == "prev")
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
+    else {
         int requestedLayout = 0;
         try {
             requestedLayout = std::stoi(CMD);
@@ -1152,7 +1159,7 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
             return "layout idx out of range of " + std::to_string(LAYOUTS);
         }
 
-        wlr_keyboard_notify_modifiers(PWLRKEYBOARD, PWLRKEYBOARD->modifiers.depressed, PWLRKEYBOARD->modifiers.latched, PWLRKEYBOARD->modifiers.locked, requestedLayout);
+        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, requestedLayout);
     }
 
     return "ok";
@@ -1202,74 +1209,44 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
     const auto PROP = vars[2];
     const auto VAL  = vars[3];
 
-    auto       noFocus = PWINDOW->m_sAdditionalConfigData.noFocus;
-
-    bool       lock = false;
-
-    if (request.ends_with("lock"))
-        lock = true;
+    bool       noFocus = PWINDOW->m_sWindowData.noFocus.valueOrDefault();
 
     try {
         if (PROP == "animationstyle") {
-            PWINDOW->m_sAdditionalConfigData.animationStyle = VAL;
-        } else if (PROP == "rounding") {
-            PWINDOW->m_sAdditionalConfigData.rounding.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoblur") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBlur.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaque") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaque.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceopaqueoverriden") {
-            PWINDOW->m_sAdditionalConfigData.forceOpaqueOverridden.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forceallowsinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoanims") {
-            PWINDOW->m_sAdditionalConfigData.forceNoAnims.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoborder") {
-            PWINDOW->m_sAdditionalConfigData.forceNoBorder.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenoshadow") {
-            PWINDOW->m_sAdditionalConfigData.forceNoShadow.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "forcenodim") {
-            PWINDOW->m_sAdditionalConfigData.forceNoDim.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nofocus") {
-            PWINDOW->m_sAdditionalConfigData.noFocus.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "windowdancecompat") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.animationStyle = CWindowOverridableVar(VAL, PRIORITY_SET_PROP);
         } else if (PROP == "maxsize") {
-            PWINDOW->m_sAdditionalConfigData.maxSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::min((double)PWINDOW->m_sAdditionalConfigData.maxSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
+            PWINDOW->m_sWindowData.maxSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
+            PWINDOW->m_vRealSize           = Vector2D(std::min((double)PWINDOW->m_sWindowData.maxSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::min((double)PWINDOW->m_sWindowData.maxSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "minsize") {
-            PWINDOW->m_sAdditionalConfigData.minSize.forceSetIgnoreLocked(configStringToVector2D(VAL + " " + vars[4]), lock);
-            if (lock) {
-                PWINDOW->m_vRealSize = Vector2D(std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().x, PWINDOW->m_vRealSize.goal().x),
-                                                std::max((double)PWINDOW->m_sAdditionalConfigData.minSize.toUnderlying().y, PWINDOW->m_vRealSize.goal().y));
-                g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-                PWINDOW->setHidden(false);
-            }
-        } else if (PROP == "dimaround") {
-            PWINDOW->m_sAdditionalConfigData.dimAround.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "alphaoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL + " " + vars[4]), PRIORITY_SET_PROP);
+            PWINDOW->m_vRealSize           = Vector2D(std::max((double)PWINDOW->m_sWindowData.minSize.value().x, PWINDOW->m_vRealSize.goal().x),
+                                                      std::max((double)PWINDOW->m_sWindowData.minSize.value().y, PWINDOW->m_vRealSize.goal().y));
+            g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+            PWINDOW->setHidden(false);
         } else if (PROP == "alpha") {
-            PWINDOW->m_sSpecialRenderData.alpha.forceSetIgnoreLocked(std::stof(VAL), lock);
-        } else if (PROP == "alphainactiveoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaInactiveOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphainactive") {
-            PWINDOW->m_sSpecialRenderData.alphaInactive.forceSetIgnoreLocked(std::stof(VAL), lock);
-        } else if (PROP == "alphafullscreenoverride") {
-            PWINDOW->m_sSpecialRenderData.alphaFullscreenOverride.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
         } else if (PROP == "alphafullscreen") {
-            PWINDOW->m_sSpecialRenderData.alphaFullscreen.forceSetIgnoreLocked(std::stof(VAL), lock);
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sWindowData.alpha =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alpha.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphafullscreenoverride") {
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
         } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
             CGradientValueData colorData = {};
             if (vars.size() > 4) {
-                for (int i = 3; i < static_cast<int>(lock ? vars.size() - 1 : vars.size()); ++i) {
+                for (int i = 3; i < static_cast<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
                         colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
@@ -1280,19 +1257,22 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
                 colorData.m_vColors.push_back(configStringToInt(VAL));
 
             if (PROP == "activebordercolor")
-                PWINDOW->m_sSpecialRenderData.activeBorderColor.forceSetIgnoreLocked(colorData, lock);
+                PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
             else
-                PWINDOW->m_sSpecialRenderData.inactiveBorderColor.forceSetIgnoreLocked(colorData, lock);
-        } else if (PROP == "forcergbx") {
-            PWINDOW->m_sAdditionalConfigData.forceRGBX.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "bordersize") {
-            PWINDOW->m_sSpecialRenderData.borderSize.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "keepaspectratio") {
-            PWINDOW->m_sAdditionalConfigData.keepAspectRatio.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "immediate") {
-            PWINDOW->m_sAdditionalConfigData.forceTearing.forceSetIgnoreLocked(configStringToInt(VAL), lock);
-        } else if (PROP == "nearestneighbor") {
-            PWINDOW->m_sAdditionalConfigData.nearestNeighbor.forceSetIgnoreLocked(configStringToInt(VAL), lock);
+                PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
+            auto pWindowDataElement = search->second(PWINDOW);
+            if (VAL == "toggle")
+                *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->valueOrDefault(), PRIORITY_SET_PROP);
+            else if (VAL == "unset")
+                pWindowDataElement->unset(PRIORITY_SET_PROP);
+            else
+                *pWindowDataElement = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
+            if (VAL == "unset")
+                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
+            else
+                *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
         } else {
             return "prop not found";
         }
@@ -1300,7 +1280,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    if (!(PWINDOW->m_sAdditionalConfigData.noFocus.toUnderlying() == noFocus.toUnderlying())) {
+    if (!(PWINDOW->m_sWindowData.noFocus.valueOrDefault() == noFocus)) {
         g_pCompositor->focusWindow(nullptr);
         g_pCompositor->focusWindow(PWINDOW);
         g_pCompositor->focusWindow(PLASTWINDOW);
@@ -1395,43 +1375,6 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-static bool addOutput(wlr_backend* backend, const std::string& type, const std::string& name) {
-    wlr_output* output = nullptr;
-
-    if (type.empty() || type == "auto") {
-        if (wlr_backend_is_wl(backend))
-            output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_headless(backend))
-            output = wlr_headless_add_output(backend, 1920, 1080);
-    } else {
-        if (wlr_backend_is_wl(backend) && type == "wayland")
-            output = wlr_wl_output_create(backend);
-        else if (wlr_backend_is_headless(backend) && type == "headless")
-            output = wlr_headless_add_output(backend, 1920, 1080);
-    }
-
-    if (output && !name.empty())
-        g_pCompositor->getMonitorFromOutput(output)->szName = name;
-
-    return output != nullptr;
-}
-
-struct outputData {
-    std::string type;
-    std::string name;
-    bool        added;
-};
-
-void createOutputIter(wlr_backend* backend, void* data) {
-    const auto DATA = static_cast<outputData*>(data);
-
-    if (DATA->added)
-        return;
-
-    if (addOutput(backend, DATA->type, DATA->name))
-        DATA->added = true;
-}
-
 std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
@@ -1440,15 +1383,36 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
 
     const auto MODE = vars[1];
 
+    bool       added = false;
+
+    if (!vars[3].empty()) {
+        for (auto& m : g_pCompositor->m_vRealMonitors) {
+            if (m->szName == vars[3])
+                return "Name already taken";
+        }
+    }
+
     if (MODE == "create" || MODE == "add") {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        outputData result{vars[2], vars[3], false};
+        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations() | std::views::reverse) {
+            auto type = impl->type();
 
-        wlr_multi_for_each_backend(g_pCompositor->m_sWLRBackend, createOutputIter, &result);
+            if (type == Aquamarine::AQ_BACKEND_HEADLESS && (vars[2] == "headless" || vars[2] == "auto")) {
+                added = true;
+                impl->createOutput(vars[3]);
+                break;
+            }
 
-        if (!result.added)
+            if (type == Aquamarine::AQ_BACKEND_WAYLAND && (vars[2] == "wayland" || vars[2] == "auto")) {
+                added = true;
+                impl->createOutput(vars[3]);
+                break;
+            }
+        }
+
+        if (!added)
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
@@ -1460,7 +1424,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (!PMONITOR->createdByUser)
             return "cannot remove a real display. Use the monitor keyword.";
 
-        wlr_output_destroy(PMONITOR->output);
+        PMONITOR->output->destroy();
     }
 
     return "ok";
@@ -1848,7 +1812,6 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-
     m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
     if (m_iSocketFD < 0) {

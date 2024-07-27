@@ -33,22 +33,24 @@ class CWLSurface {
 
     SP<CWLSurfaceResource> resource() const;
     bool                   exists() const;
-    bool                   small() const;           // means surface is smaller than the requested size
-    Vector2D               correctSmallVec() const; // returns a corrective vector for small() surfaces
+    bool                   small() const;              // means surface is smaller than the requested size
+    Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
+    Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
     Vector2D               getViewporterCorrectedSize() const;
-    CRegion                logicalDamage() const;
+    CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
     bool                   visible();
+    bool                   keyboardFocusable() const;
 
     // getters for owners.
-    PHLWINDOW    getWindow();
-    PHLLS        getLayer();
-    CPopup*      getPopup();
-    CSubsurface* getSubsurface();
+    PHLWINDOW    getWindow() const;
+    PHLLS        getLayer() const;
+    CPopup*      getPopup() const;
+    CSubsurface* getSubsurface() const;
 
     // desktop components misc utils
-    std::optional<CBox>    getSurfaceBoxGlobal();
+    std::optional<CBox>    getSurfaceBoxGlobal() const;
     void                   appendConstraint(WP<CPointerConstraint> constraint);
-    SP<CPointerConstraint> constraint();
+    SP<CPointerConstraint> constraint() const;
 
     // allow stretching. Useful for plugins.
     bool m_bFillIgnoreSmall = false;
@@ -107,7 +109,7 @@ class CWLSurface {
 
     void                   destroy();
     void                   init();
-    bool                   desktopComponent();
+    bool                   desktopComponent() const;
 
     struct {
         CHyprSignalListener destroy;

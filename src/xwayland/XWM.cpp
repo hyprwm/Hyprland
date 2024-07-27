@@ -153,13 +153,16 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
 }
 
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
-    std::string propName = std::format("{}?", atom);
-    for (auto& ha : HYPRATOMS) {
-        if (ha.second != atom)
-            continue;
+    std::string propName;
+    if (Debug::trace) {
+        propName = std::format("{}?", atom);
+        for (auto& ha : HYPRATOMS) {
+            if (ha.second != atom)
+                continue;
 
-        propName = ha.first;
-        break;
+            propName = ha.first;
+            break;
+        }
     }
 
     if (atom == XCB_ATOM_WM_CLASS) {
@@ -299,8 +302,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         auto id       = e->data.data32[0];
         auto resource = wl_client_get_object(g_pXWayland->pServer->xwaylandClient, id);
         if (resource) {
-            auto wlrSurface = CWLSurfaceResource::fromResource(resource);
-            associate(XSURF, wlrSurface);
+            auto surf = CWLSurfaceResource::fromResource(resource);
+            associate(XSURF, surf);
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"]) {
         if (XSURF->wlSerial) {
@@ -378,6 +381,20 @@ void CXWM::handleFocusIn(xcb_focus_in_event_t* e) {
         focusWindow(focusedSurface.lock());
 }
 
+void CXWM::handleFocusOut(xcb_focus_out_event_t* e) {
+    Debug::log(TRACE, "[xwm] focusOut mode={}, detail={}, event={}", e->mode, e->detail, e->event);
+
+    const auto XSURF = windowForXID(e->event);
+
+    if (!XSURF)
+        return;
+
+    Debug::log(TRACE, "[xwm] focusOut for {} {} {} surface {}", XSURF->mapped ? "mapped" : "unmapped", XSURF->fullscreen ? "fullscreen" : "windowed",
+               XSURF == focusedSurface ? "focused" : "unfocused", XSURF->state.title);
+
+    // do something?
+}
+
 void CXWM::sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask) {
     xcb_client_message_event_t event = {
         .response_type = XCB_CLIENT_MESSAGE,
@@ -398,10 +415,10 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
 
     focusedSurface = surf;
 
-    // send state to all surfaces, sometimes we might lose some
+    // send state to all toplevel surfaces, sometimes we might lose some
     // that could still stick with the focused atom
     for (auto& s : mappedSurfaces) {
-        if (!s)
+        if (!s || s->overrideRedirect)
             continue;
 
         sendState(s.lock());
@@ -522,7 +539,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 
     // Debug::log(ERR, "[xwm] FIXME: CXWM::handleSelectionPropertyNotify stub");
 
-    return false;
+    return true;
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
@@ -674,9 +691,10 @@ int CXWM::onEvent(int fd, uint32_t mask) {
             case XCB_PROPERTY_NOTIFY: handlePropertyNotify((xcb_property_notify_event_t*)event); break;
             case XCB_CLIENT_MESSAGE: handleClientMessage((xcb_client_message_event_t*)event); break;
             case XCB_FOCUS_IN: handleFocusIn((xcb_focus_in_event_t*)event); break;
+            case XCB_FOCUS_OUT: handleFocusOut((xcb_focus_out_event_t*)event); break;
             case 0: handleError((xcb_value_error_t*)event); break;
             default: {
-                ;
+                Debug::log(TRACE, "[xwm] unhandled event {}", event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK);
             }
         }
         free(event);
@@ -755,7 +773,7 @@ void CXWM::getVisual() {
     }
 
     if (visualtype == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit visualtype\n");
+        Debug::log(LOG, "xwm: No 32-bit visualtype");
         return;
     }
 
@@ -768,7 +786,7 @@ void CXWM::getRenderFormat() {
     xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(connection);
     xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(connection, cookie, NULL);
     if (!reply) {
-        wlr_log(WLR_ERROR, "Did not get any reply from xcb_render_query_pict_formats");
+        Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
     xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply);
@@ -783,7 +801,7 @@ void CXWM::getRenderFormat() {
     }
 
     if (format == NULL) {
-        wlr_log(WLR_DEBUG, "No 32 bit render format");
+        Debug::log(LOG, "xwm: No 32-bit render format");
         free(reply);
         return;
     }
@@ -879,7 +897,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!activate || !surf) {
+    if (!surf) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {
@@ -891,6 +909,11 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
 }
 
 void CXWM::sendState(SP<CXWaylandSurface> surf) {
+    Debug::log(TRACE, "[xwm] sendState for {} {} {} surface {}", surf->mapped ? "mapped" : "unmapped", surf->fullscreen ? "fullscreen" : "windowed",
+               surf == focusedSurface ? "focused" : "unfocused", surf->state.title);
+    if (surf->fullscreen && surf->mapped && surf == focusedSurface)
+        surf->setWithdrawn(false); // resend normal state
+
     if (surf->withdrawn) {
         xcb_delete_property(connection, surf->xID, HYPRATOMS["_NET_WM_STATE"]);
         return;
@@ -917,7 +940,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
     if (surf->client() != g_pXWayland->pServer->xwaylandClient)
         return;
 
-    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf);
+    Debug::log(LOG, "[xwm] New XWayland surface at {:x}", (uintptr_t)surf.get());
 
     const auto WLID = surf->id();
 

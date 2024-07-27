@@ -5,6 +5,7 @@
 #include "../helpers/signal/Signal.hpp"
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 
 class CSessionLockSurface;
 class CSessionLock;
@@ -37,6 +38,9 @@ struct SSessionLock {
         CHyprSignalListener unlock;
         CHyprSignalListener destroy;
     } listeners;
+
+    bool                         m_hasSentLocked = false;
+    std::unordered_set<uint64_t> m_lockedMonitors;
 };
 
 class CSessionLockManager {
@@ -53,6 +57,8 @@ class CSessionLockManager {
     bool                 isSurfaceSessionLock(SP<CWLSurfaceResource>);
 
     void                 removeSessionLockSurface(SSessionLockSurface*);
+
+    void                 onLockscreenRenderedOnMonitor(uint64_t id);
 
   private:
     UP<SSessionLock> m_pSessionLock;

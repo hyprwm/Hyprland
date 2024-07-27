@@ -4,21 +4,19 @@
 
 class CKeyboard : public IKeyboard {
   public:
-    static SP<CKeyboard>  create(wlr_keyboard* keeb);
+    static SP<CKeyboard>              create(SP<Aquamarine::IKeyboard> keeb);
 
-    virtual bool          isVirtual();
-    virtual wlr_keyboard* wlr();
+    virtual bool                      isVirtual();
+    virtual SP<Aquamarine::IKeyboard> aq();
 
   private:
-    CKeyboard(wlr_keyboard* keeb);
+    CKeyboard(SP<Aquamarine::IKeyboard> keeb);
 
-    wlr_keyboard* keyboard = nullptr;
+    WP<Aquamarine::IKeyboard> keyboard;
 
-    void          disconnectCallbacks();
-
-    DYNLISTENER(destroy);
-    DYNLISTENER(key);
-    DYNLISTENER(modifiers);
-    DYNLISTENER(keymap);
-    DYNLISTENER(repeatInfo);
+    struct {
+        CHyprSignalListener destroy;
+        CHyprSignalListener key;
+        CHyprSignalListener modifiers;
+    } listeners;
 };

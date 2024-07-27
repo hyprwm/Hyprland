@@ -7,6 +7,14 @@
     # <https://github.com/nix-systems/nix-systems>
     systems.url = "github:nix-systems/default-linux";
 
+    aquamarine = {
+      url = "github:hyprwm/aquamarine";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
+    };
+
     hyprcursor = {
       url = "github:hyprwm/hyprcursor";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -90,9 +98,13 @@
           stdenv = pkgsFor.${system}.gcc13Stdenv;
         } {
           name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [expat libxml2];
+          nativeBuildInputs = with pkgsFor.${system}; [
+            expat
+            libxml2
+          ];
           hardeningDisable = ["fortify"];
           inputsFrom = [pkgsFor.${system}.hyprland];
+          packages = [pkgsFor.${system}.clang-tools];
         };
     });
 

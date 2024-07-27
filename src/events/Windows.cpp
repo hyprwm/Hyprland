@@ -10,6 +10,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
 
 #include <hyprutils/string/String.hpp>
@@ -196,8 +197,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bIsFloating = false;
         } else if (r.szRule.starts_with("pseudo")) {
             PWINDOW->m_bIsPseudotiled = true;
-        } else if (r.szRule.starts_with("nofocus")) {
-            PWINDOW->m_sAdditionalConfigData.noFocus = true;
         } else if (r.szRule.starts_with("noinitialfocus")) {
             PWINDOW->m_bNoInitialFocus = true;
         } else if (r.szRule.starts_with("suppressevent")) {
@@ -219,12 +218,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
             overridingNoFullscreen = true;
         } else if (r.szRule == "fakefullscreen") {
             requestsFakeFullscreen = true;
-        } else if (r.szRule == "windowdance") {
-            PWINDOW->m_sAdditionalConfigData.windowDanceCompat = true;
-        } else if (r.szRule == "nomaxsize") {
-            PWINDOW->m_sAdditionalConfigData.noMaxSize = true;
-        } else if (r.szRule == "forceinput") {
-            PWINDOW->m_sAdditionalConfigData.forceAllowsInput = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
         } else if (r.szRule == "maximize") {
@@ -321,7 +314,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             workspaceSilent = false;
     }
 
-    PWINDOW->updateSpecialRenderData();
+    PWINDOW->updateWindowData();
 
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
@@ -457,10 +450,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
 
-    if (PWINDOW->m_sAdditionalConfigData.forceAllowsInput) {
-        PWINDOW->m_sAdditionalConfigData.noFocus = false;
-        PWINDOW->m_bNoInitialFocus               = false;
-        PWINDOW->m_bX11ShouldntFocus             = false;
+    if (PWINDOW->m_sWindowData.allowsInput.valueOrDefault()) { // if default value wasn't set to false getPriority() would throw an exception
+        PWINDOW->m_sWindowData.noFocus = CWindowOverridableVar(false, PWINDOW->m_sWindowData.allowsInput.getPriority());
+        PWINDOW->m_bNoInitialFocus     = false;
+        PWINDOW->m_bX11ShouldntFocus   = false;
     }
 
     // check LS focus grab
@@ -473,18 +466,20 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 2)
             g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), false, FULLSCREEN_INVALID);
-        else if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED)
+        else if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
             requestsMaximize = true;
-        else
+            if (*PNEWTAKESOVERFS == 1)
+                overridingNoMaximize = true;
+        } else
             requestsFullscreen = true;
     }
 
-    if (!PWINDOW->m_sAdditionalConfigData.noFocus && !PWINDOW->m_bNoInitialFocus &&
+    if (!PWINDOW->m_sWindowData.noFocus.valueOrDefault() && !PWINDOW->m_bNoInitialFocus &&
         (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
-        PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sAdditionalConfigData.forceNoDim ? 0.f : *PDIMSTRENGTH);
+        PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sWindowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
@@ -586,6 +581,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
+    static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
+
+    const auto  CURRENTWINDOWFSSTATE = PWINDOW->m_bIsFullscreen;
+    const auto  CURRENTWINDOWFSMODE  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
         PWINDOW->m_bFadingOut = false;
@@ -602,7 +602,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
-    g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
+    PROTO::toplevelExport->onWindowUnmap(PWINDOW);
 
     if (PWINDOW->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
@@ -644,8 +644,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
-        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE)
+        if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
+            if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
+                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, CURRENTWINDOWFSMODE);
+        }
 
         if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
             g_pInputManager->refocus();
@@ -700,12 +703,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped || PWINDOW->isHidden())
         return;
 
-    if (PWINDOW->m_bIsX11)
-        PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
-    else if (PWINDOW->m_pPendingSizeAck.has_value()) {
-        PWINDOW->m_vReportedSize = PWINDOW->m_pPendingSizeAck->second;
-        PWINDOW->m_pPendingSizeAck.reset();
-    }
+    PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_bIsX11 && !PWINDOW->m_bIsFullscreen && PWINDOW->m_bIsFloating) {
         const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;

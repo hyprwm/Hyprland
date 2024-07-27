@@ -6,6 +6,7 @@
   makeWrapper,
   cmake,
   ninja,
+  aquamarine,
   binutils,
   cairo,
   expat,
@@ -30,7 +31,6 @@
   libuuid,
   libxkbcommon,
   mesa,
-  meson,
   pango,
   pciutils,
   pcre2,
@@ -89,7 +89,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       jq
       makeWrapper
       cmake
-      meson # for wlroots
       ninja
       pkg-config
       python3 # for udis86
@@ -104,6 +103,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
 
     buildInputs = lib.concatLists [
       [
+        aquamarine
         cairo
         expat
         fribidi
@@ -112,10 +112,12 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         hyprcursor
         hyprlang
         hyprutils
-        libGL
-        libdrm
         libdatrie
+        libdisplay-info
+        libdrm
+        libGL
         libinput
+        libliftoff
         libselinux
         libsepol
         libthai
@@ -125,17 +127,15 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         pango
         pciutils
         pcre2
+        seatd
         tomlplusplus
         wayland
         wayland-protocols
-        # for wlroots
-        seatd
-        libdisplay-info
-        libliftoff
       ]
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [
         xorg.libxcb
+        xorg.libXcursor
         xorg.libXdmcp
         xorg.xcbutil
         xorg.xcbutilerrors

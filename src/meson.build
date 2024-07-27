@@ -2,18 +2,19 @@ globber = run_command('sh', '-c', 'find . -name "*.cpp" | sort', check: true)
 src = globber.stdout().strip().split('\n')
 
 executable('Hyprland', src,
-  cpp_args: ['-DWLR_USE_UNSTABLE'],
   link_args: '-rdynamic',
   cpp_pch: 'pch/pch.hpp',
   dependencies: [
     server_protos,
+    dependency('aquamarine'),
+    dependency('gbm'),
+    dependency('xcursor'),
     dependency('wayland-server'),
     dependency('wayland-client'),
-    wlroots.get_variable('wlroots'),
     dependency('cairo'),
-    dependency('hyprcursor'),
+    dependency('hyprcursor', version: '>=0.1.7'),
     dependency('hyprlang', version: '>= 0.3.2'),
-    dependency('hyprutils', version: '>= 0.1.1'),
+    dependency('hyprutils', version: '>= 0.2.0'),
     dependency('libdrm'),
     dependency('egl'),
     dependency('xkbcommon'),

@@ -104,6 +104,7 @@ class CXWM {
     void        handlePropertyNotify(xcb_property_notify_event_t* e);
     void        handleClientMessage(xcb_client_message_event_t* e);
     void        handleFocusIn(xcb_focus_in_event_t* e);
+    void        handleFocusOut(xcb_focus_out_event_t* e);
     void        handleError(xcb_value_error_t* e);
 
     bool        handleSelectionEvent(xcb_generic_event_t* e);

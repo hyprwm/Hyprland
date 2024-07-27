@@ -20,11 +20,11 @@ class ICustomConfigValueData {
 
 class CGradientValueData : public ICustomConfigValueData {
   public:
-    CGradientValueData(){};
+    CGradientValueData() {};
     CGradientValueData(CColor col) {
         m_vColors.push_back(col);
     };
-    virtual ~CGradientValueData(){};
+    virtual ~CGradientValueData() {};
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_GRADIENT;
@@ -67,11 +67,11 @@ class CGradientValueData : public ICustomConfigValueData {
 
 class CCssGapData : public ICustomConfigValueData {
   public:
-    CCssGapData() : top(0), right(0), bottom(0), left(0){};
-    CCssGapData(int64_t global) : top(global), right(global), bottom(global), left(global){};
-    CCssGapData(int64_t vertical, int64_t horizontal) : top(vertical), right(horizontal), bottom(vertical), left(horizontal){};
-    CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : top(top), right(horizontal), bottom(bottom), left(horizontal){};
-    CCssGapData(int64_t top, int64_t right, int64_t bottom, int64_t left) : top(top), right(right), bottom(bottom), left(left){};
+    CCssGapData() : top(0), right(0), bottom(0), left(0) {};
+    CCssGapData(int64_t global) : top(global), right(global), bottom(global), left(global) {};
+    CCssGapData(int64_t vertical, int64_t horizontal) : top(vertical), right(horizontal), bottom(vertical), left(horizontal) {};
+    CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : top(top), right(horizontal), bottom(bottom), left(horizontal) {};
+    CCssGapData(int64_t top, int64_t right, int64_t bottom, int64_t left) : top(top), right(right), bottom(bottom), left(left) {};
 
     /* Css like directions */
     int64_t top;

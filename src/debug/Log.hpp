@@ -67,6 +67,4 @@ namespace Debug {
 
         log(level, logMsg);
     }
-
-    void wlrLog(wlr_log_importance level, const char* fmt, va_list args);
 };

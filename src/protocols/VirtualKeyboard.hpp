@@ -14,19 +14,24 @@ class CVirtualKeyboardV1Resource {
 
     struct {
         CSignal destroy;
+        CSignal key;
+        CSignal modifiers;
+        CSignal keymap;
     } events;
 
-    bool          good();
-    wlr_keyboard* wlr();
-    wl_client*    client();
+    bool        good();
+    wl_client*  client();
+
+    std::string name = "";
 
   private:
     SP<CZwpVirtualKeyboardV1> resource;
-    wlr_keyboard              keyboard;
 
     void                      releasePressed();
 
     bool                      hasKeymap = false;
+
+    std::vector<uint32_t>     pressed;
 };
 
 class CVirtualKeyboardProtocol : public IWaylandProtocol {

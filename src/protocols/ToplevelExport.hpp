@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "hyprland-toplevel-export-v1-protocol.h"
+#include "hyprland-toplevel-export-v1.hpp"
+#include "WaylandProtocol.hpp"
 #include "Screencopy.hpp"
 
 #include <list>
@@ -10,32 +11,91 @@
 class CMonitor;
 class CWindow;
 
-class CToplevelExportProtocolManager {
+class CToplevelExportClient {
   public:
-    CToplevelExportProtocolManager();
+    CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_);
 
-    void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void captureToplevel(wl_client* client, wl_resource* resource, uint32_t frame, int32_t overlay_cursor, PHLWINDOW handle);
-    void removeClient(CScreencopyClient* client, bool force = false);
-    void removeFrame(SScreencopyFrame* frame, bool force = false);
-    void copyFrame(wl_client* client, wl_resource* resource, wl_resource* buffer, int32_t ignore_damage);
-    void displayDestroy();
-    void onWindowUnmap(PHLWINDOW pWindow);
-    void onOutputCommit(CMonitor* pMonitor, wlr_output_event_commit* e);
+    bool                      good();
+
+    WP<CToplevelExportClient> self;
+    eClientOwners             clientOwner = CLIENT_TOPLEVEL_EXPORT;
+
+    CTimer                    lastFrame;
+    int                       frameCounter = 0;
 
   private:
-    wl_global*                     m_pGlobal = nullptr;
-    std::list<SScreencopyFrame>    m_lFrames;
-    std::list<CScreencopyClient>   m_lClients;
+    SP<CHyprlandToplevelExportManagerV1> resource;
 
-    wl_listener                    m_liDisplayDestroy;
+    int                                  framesInLastHalfSecond = 0;
+    CTimer                               lastMeasure;
+    bool                                 sentScreencast = false;
 
-    std::vector<SScreencopyFrame*> m_vFramesAwaitingWrite;
+    SP<HOOK_CALLBACK_FN>                 tickCallback;
+    void                                 onTick();
 
-    void                           shareFrame(SScreencopyFrame* frame);
-    bool                           copyFrameDmabuf(SScreencopyFrame* frame, timespec* now);
-    bool                           copyFrameShm(SScreencopyFrame* frame, timespec* now);
-    void                           sendDamage(SScreencopyFrame* frame);
+    void                                 captureToplevel(CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, PHLWINDOW handle);
 
-    friend class CScreencopyClient;
+    friend class CToplevelExportProtocol;
+};
+
+class CToplevelExportFrame {
+  public:
+    CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor, PHLWINDOW pWindow);
+    ~CToplevelExportFrame();
+
+    bool                      good();
+
+    SP<CToplevelExportFrame>  self;
+    WP<CToplevelExportClient> client;
+
+  private:
+    SP<CHyprlandToplevelExportFrameV1> resource;
+
+    PHLWINDOW                          pWindow;
+    bool                               overlayCursor   = false;
+    bool                               ignoreDamage    = false;
+    bool                               lockedSWCursors = false;
+
+    WP<IHLBuffer>                      buffer;
+    bool                               bufferDMA    = false;
+    uint32_t                           shmFormat    = 0;
+    uint32_t                           dmabufFormat = 0;
+    int                                shmStride    = 0;
+    CBox                               box          = {};
+
+    void                               copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
+    bool                               copyDmabuf(timespec* now);
+    bool                               copyShm(timespec* now);
+    void                               share();
+
+    friend class CToplevelExportProtocol;
+};
+
+class CToplevelExportProtocol : IWaylandProtocol {
+  public:
+    CToplevelExportProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+
+    void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    void destroyResource(CToplevelExportClient* client);
+    void destroyResource(CToplevelExportFrame* frame);
+
+    void onWindowUnmap(PHLWINDOW pWindow);
+    void onOutputCommit(CMonitor* pMonitor);
+
+  private:
+    std::vector<SP<CToplevelExportClient>> m_vClients;
+    std::vector<SP<CToplevelExportFrame>>  m_vFrames;
+    std::vector<SP<CToplevelExportFrame>>  m_vFramesAwaitingWrite;
+
+    void                                   shareFrame(CToplevelExportFrame* frame);
+    bool                                   copyFrameDmabuf(CToplevelExportFrame* frame, timespec* now);
+    bool                                   copyFrameShm(CToplevelExportFrame* frame, timespec* now);
+    void                                   sendDamage(CToplevelExportFrame* frame);
+
+    friend class CToplevelExportClient;
+    friend class CToplevelExportFrame;
+};
+
+namespace PROTO {
+    inline UP<CToplevelExportProtocol> toplevelExport;
 };

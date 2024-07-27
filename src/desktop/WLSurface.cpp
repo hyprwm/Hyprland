@@ -227,7 +227,7 @@ SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
 bool CWLSurface::keyboardFocusable() const {
     if (m_pWindowOwner || m_pPopupOwner || m_pSubsurfaceOwner)
         return true;
-    if (m_pLayerOwner)
+    if (m_pLayerOwner && m_pLayerOwner->layerSurface)
         return m_pLayerOwner->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
 }

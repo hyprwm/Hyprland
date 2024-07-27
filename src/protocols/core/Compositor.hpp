@@ -134,11 +134,11 @@ class CWLSurfaceResource {
     SP<CWlSurface> resource;
     wl_client*     pClient = nullptr;
 
-    int  stateLocks = 0;
+    int            stateLocks = 0;
 
-    void destroy();
-    void commitPendingState();
-    void bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    void           destroy();
+    void           commitPendingState();
+    void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
 };
 
 class CWLCompositorResource {

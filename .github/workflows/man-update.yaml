@@ -8,14 +8,13 @@ on:
     branches:
       - 'main'
 
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   main:
     name: Build man pages
     runs-on: ubuntu-latest
+    concurrency:
+      group: man
+      cancel-in-progress: true
     steps:
     - name: Install deps
       run: sudo apt install pandoc

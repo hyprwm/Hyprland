@@ -1,14 +1,13 @@
 name: Build Hyprland
 
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
-
 on: [push, pull_request, workflow_dispatch]
 jobs:
   gcc:
     name: "Build Hyprland (Arch)"
     runs-on: ubuntu-latest
+    concurrency:
+      group: gcc
+      cancel-in-progress: true
     container:
       image: archlinux
     steps:
@@ -50,6 +49,9 @@ jobs:
   meson:
     name: "Build Hyprland with Meson (Arch)"
     runs-on: ubuntu-latest
+    concurrency:
+      group: meson
+      cancel-in-progress: true
     container:
       image: archlinux
     steps:
@@ -70,6 +72,9 @@ jobs:
   no-pch:
     name: "Build Hyprland without precompiled headers (Arch)"
     runs-on: ubuntu-latest
+    concurrency:
+      group: nopch
+      cancel-in-progress: true
     container:
       image: archlinux
     steps:
@@ -89,6 +94,9 @@ jobs:
   noxwayland:
     name: "Build Hyprland in pure Wayland (Arch)"
     runs-on: ubuntu-latest
+    concurrency:
+      group: noxwayland
+      cancel-in-progress: true
     container:
       image: archlinux
     steps:
@@ -109,6 +117,9 @@ jobs:
   clang-format:
     name: "Code Style (Arch)"
     runs-on: ubuntu-latest
+    concurrency:
+      group: clangformat
+      cancel-in-progress: true
     container:
       image: archlinux
     steps:

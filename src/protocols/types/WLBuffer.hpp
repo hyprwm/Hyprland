@@ -24,6 +24,8 @@ class CWLBufferResource {
 
     WP<CWLBufferResource>        self;
 
+    bool                         released = false;
+
   private:
     CWLBufferResource(SP<CWlBuffer> resource_);
 

@@ -134,9 +134,6 @@ class CWLSurfaceResource {
     SP<CWlSurface> resource;
     wl_client*     pClient = nullptr;
 
-    // tracks whether we should release the buffer
-    bool bufferReleased = false;
-
     int  stateLocks = 0;
 
     void destroy();

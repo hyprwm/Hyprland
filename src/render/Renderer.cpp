@@ -824,8 +824,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
         // locked with no exclusive, draw only red
-        CBox boxe = {0, 0, INT16_MAX, INT16_MAX};
-        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+        CBox        boxe = {0, 0, INT16_MAX, INT16_MAX};
+        const float A    = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
+        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, A));
         return;
     }
 

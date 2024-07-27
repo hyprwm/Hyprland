@@ -4,11 +4,9 @@ on: [push, pull_request]
 
 jobs:
   flawfinder:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     name: Flawfinder Checks
     runs-on: ubuntu-latest
-    concurrency:
-      group: security
-      cancel-in-progress: true
     permissions:
       actions: read
       contents: read

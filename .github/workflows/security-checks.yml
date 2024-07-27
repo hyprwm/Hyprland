@@ -2,9 +2,12 @@ name: Security Checks
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   flawfinder:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: Flawfinder Checks
     runs-on: ubuntu-latest
     permissions:

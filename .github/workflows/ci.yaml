@@ -1,9 +1,12 @@
 name: Build Hyprland
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on: [push, pull_request, workflow_dispatch]
 jobs:
   gcc:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Build Hyprland (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -45,7 +48,6 @@ jobs:
           path: Hyprland.tar.xz
 
   meson:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Build Hyprland with Meson (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -66,7 +68,6 @@ jobs:
         run: ninja -C build
 
   no-pch:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Build Hyprland without precompiled headers (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -86,7 +87,6 @@ jobs:
         run: make nopch
 
   noxwayland:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Build Hyprland in pure Wayland (Arch)"
     runs-on: ubuntu-latest
     container:
@@ -107,7 +107,6 @@ jobs:
         run: make release
 
   clang-format:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     name: "Code Style (Arch)"
     runs-on: ubuntu-latest
     container:

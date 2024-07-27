@@ -17,6 +17,7 @@
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Seat.hpp"
 #include "../../protocols/core/DataDevice.hpp"
+#include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 
 #include "../../devices/Mouse.hpp"
@@ -1382,6 +1383,12 @@ void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
         g_pCompositor->focusWindow(PLASTWINDOW);
     } else {
         // otherwise fall back to a normal refocus.
+
+        if (foundSurface && !foundSurface->hlSurface->keyboardFocusable()) {
+            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+            g_pCompositor->focusWindow(PLASTWINDOW);
+        }
+
         refocus();
     }
 }

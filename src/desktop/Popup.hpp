@@ -74,7 +74,7 @@ class CPopup {
     } listeners;
 
     void        initAllSignals();
-    void        unconstrain();
+    void        reposition();
     void        recheckChildrenRecursive();
     void        sendScale();
 

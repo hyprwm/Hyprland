@@ -4,9 +4,9 @@
 #include <vector>
 #include <cstdint>
 #include <optional>
+#include <hyprutils/math/Edges.hpp>
 #include "WaylandProtocol.hpp"
 #include "xdg-shell.hpp"
-#include "../helpers/math/Math.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceRole.hpp"
@@ -20,21 +20,24 @@ class CSeatGrab;
 class CWLSurfaceResource;
 
 struct SXDGPositionerState {
-    Vector2D             requestedSize;
-    CBox                 anchorRect;
-    xdgPositionerAnchor  anchor               = XDG_POSITIONER_ANCHOR_NONE;
-    xdgPositionerGravity gravity              = XDG_POSITIONER_GRAVITY_NONE;
-    uint32_t             constraintAdjustment = 0;
-    Vector2D             offset;
-    bool                 reactive = false;
-    Vector2D             parentSize;
+    Vector2D requestedSize;
+    CBox     anchorRect;
+    CEdges   anchor;
+    CEdges   gravity;
+    uint32_t constraintAdjustment = 0;
+    Vector2D offset;
+    bool     reactive = false;
+    Vector2D parentSize;
+
+    void     setAnchor(xdgPositionerAnchor edges);
+    void     setGravity(xdgPositionerGravity edges);
 };
 
 class CXDGPositionerRules {
   public:
     CXDGPositionerRules(SP<CXDGPositionerResource> positioner);
 
-    CBox getPosition(const CBox& constraint, const Vector2D& parentPos);
+    CBox getPosition(CBox constraint, const Vector2D& parentPos);
 
   private:
     SXDGPositionerState state;

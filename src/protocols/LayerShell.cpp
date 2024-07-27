@@ -38,6 +38,8 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         PROTO::layerShell->destroyResource(this);
     });
 
+    listeners.unmapSurface = surf_->events.unmap.registerListener([this](std::any d) { events.unmap.emit(); });
+
     listeners.commitSurface = surf_->events.commit.registerListener([this](std::any d) {
         current           = pending;
         pending.committed = 0;

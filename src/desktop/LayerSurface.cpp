@@ -119,6 +119,8 @@ void CLayerSurface::onMap() {
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
 
+    layerSurface->surface->map();
+
     // this layer might be re-mapped.
     fadingOut = false;
     g_pCompositor->removeFromFadingOutSafe(self.lock());
@@ -190,6 +192,7 @@ void CLayerSurface::onUnmap() {
         g_pCompositor->addToFadingOutSafe(self.lock());
 
         mapped = false;
+        layerSurface->surface->unmap();
 
         startAnimation(false);
         return;
@@ -201,6 +204,7 @@ void CLayerSurface::onUnmap() {
     startAnimation(false);
 
     mapped = false;
+    layerSurface->surface->unmap();
 
     g_pCompositor->addToFadingOutSafe(self.lock());
 

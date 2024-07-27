@@ -39,6 +39,8 @@
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -142,6 +144,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
+    PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
+    PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
 
     for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
@@ -161,10 +165,8 @@ CProtocolManager::CProtocolManager() {
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.
-    m_pToplevelExportProtocolManager  = std::make_unique<CToplevelExportProtocolManager>();
     m_pTextInputV1ProtocolManager     = std::make_unique<CTextInputV1ProtocolManager>();
     m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
-    m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
 }
 
 CProtocolManager::~CProtocolManager() {
@@ -214,6 +216,8 @@ CProtocolManager::~CProtocolManager() {
     PROTO::dataWlr.reset();
     PROTO::primarySelection.reset();
     PROTO::xwaylandShell.reset();
+    PROTO::screencopy.reset();
+    PROTO::toplevelExport.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

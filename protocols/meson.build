@@ -25,8 +25,6 @@ hyprwayland_scanner = find_program(
 
 protocols = [
   [wl_protocol_dir, 'unstable/text-input/text-input-unstable-v1.xml'],
-  ['wlr-screencopy-unstable-v1.xml'],
-  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-global-shortcuts-v1.xml']
 ]
 
@@ -42,6 +40,8 @@ new_protocols = [
   ['wlr-layer-shell-unstable-v1.xml'],
   ['wayland-drm.xml'],
   ['wlr-data-control-unstable-v1.xml'],
+  ['wlr-screencopy-unstable-v1.xml'],
+  [hl_protocol_dir, 'protocols/hyprland-toplevel-export-v1.xml'],
   [hl_protocol_dir, 'protocols/hyprland-focus-grab-v1.xml'],
   [wl_protocol_dir, 'staging/tearing-control/tearing-control-v1.xml'],
   [wl_protocol_dir, 'staging/fractional-scale/fractional-scale-v1.xml'],

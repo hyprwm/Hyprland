@@ -10,6 +10,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
 
 #include <hyprutils/string/String.hpp>
@@ -601,7 +602,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
-    g_pProtocolManager->m_pToplevelExportProtocolManager->onWindowUnmap(PWINDOW);
+    PROTO::toplevelExport->onWindowUnmap(PWINDOW);
 
     if (PWINDOW->m_bIsFullscreen)
         g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);

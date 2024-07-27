@@ -325,6 +325,13 @@ void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t l
     if (!updateModifiersState())
         return;
 
+    keyboardEvents.modifiers.emit(SModifiersEvent{
+        .depressed = modifiersState.depressed,
+        .latched   = modifiersState.latched,
+        .locked    = modifiersState.locked,
+        .group     = modifiersState.group,
+    });
+
     updateLEDs();
 }
 

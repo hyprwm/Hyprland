@@ -212,8 +212,11 @@ void CLayerSurface::onUnmap() {
         return;
 
     // refocus if needed
-    if (WASLASTFOCUS)
+    //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
+    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
         g_pInputManager->refocusLastWindow(PMONITOR);
+    else if (g_pCompositor->m_pLastFocus)
+        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);

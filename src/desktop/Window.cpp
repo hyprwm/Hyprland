@@ -477,13 +477,7 @@ void unregisterVar(void* ptr) {
 
 void CWindow::onUnmap() {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
-
-    if (g_pCompositor->m_pLastWindow.lock().get() == this)
-        g_pCompositor->m_pLastWindow.reset();
-    if (g_pInputManager->currentlyDraggedWindow.lock().get() == this)
-        g_pInputManager->currentlyDraggedWindow.reset();
-
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PINITIALWSTRACKING  = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     if (!m_szInitialWorkspaceToken.empty()) {
         const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);

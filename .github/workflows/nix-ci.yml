@@ -4,12 +4,12 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   update-inputs:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name)
     uses: ./.github/workflows/nix-update-inputs.yml
     secrets: inherit
 
   build:
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    if: (always() && !cancelled() && !contains(needs.*.result, 'failure')) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name)
     needs: update-inputs
     uses: ./.github/workflows/nix-build.yml
     secrets: inherit

@@ -39,6 +39,7 @@ class CWLSurface {
     Vector2D               getViewporterCorrectedSize() const;
     CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
     bool                   visible();
+    bool                   keyboardFocusable() const;
 
     // getters for owners.
     PHLWINDOW    getWindow() const;

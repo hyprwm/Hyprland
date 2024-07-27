@@ -1,6 +1,7 @@
 #include "WLSurface.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/LayerShell.hpp"
 
 void CWLSurface::assign(SP<CWLSurfaceResource> pSurface) {
     m_pResource = pSurface;
@@ -221,4 +222,12 @@ SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return nullptr;
     return pSurface->hlSurface.lock();
+}
+
+bool CWLSurface::keyboardFocusable() const {
+    if (m_pWindowOwner || m_pPopupOwner || m_pSubsurfaceOwner)
+        return true;
+    if (m_pLayerOwner)
+        return m_pLayerOwner->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+    return false;
 }

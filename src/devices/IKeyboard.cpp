@@ -274,9 +274,9 @@ std::string IKeyboard::getActiveLayout() {
     return "none";
 }
 
-void IKeyboard::updateLEDs() {
+std::optional<uint32_t> IKeyboard::getLEDs() {
     if (xkbState == nullptr)
-        return;
+        return {};
 
     uint32_t leds = 0;
     for (uint32_t i = 0; i < LED_COUNT; ++i) {
@@ -284,7 +284,16 @@ void IKeyboard::updateLEDs() {
             leds |= (1 << i);
     }
 
-    updateLEDs(leds);
+    return leds;
+}
+
+void IKeyboard::updateLEDs() {
+    std::optional<uint32_t> leds = getLEDs();
+
+    if (!leds.has_value())
+        return;
+
+    updateLEDs(leds.value());
 }
 
 void IKeyboard::updateLEDs(uint32_t leds) {

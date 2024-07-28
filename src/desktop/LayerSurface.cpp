@@ -192,7 +192,8 @@ void CLayerSurface::onUnmap() {
         g_pCompositor->addToFadingOutSafe(self.lock());
 
         mapped = false;
-        layerSurface->surface->unmap();
+        if (layerSurface && layerSurface->surface)
+            layerSurface->surface->unmap();
 
         startAnimation(false);
         return;
@@ -204,7 +205,8 @@ void CLayerSurface::onUnmap() {
     startAnimation(false);
 
     mapped = false;
-    layerSurface->surface->unmap();
+    if (layerSurface && layerSurface->surface)
+        layerSurface->surface->unmap();
 
     g_pCompositor->addToFadingOutSafe(self.lock());
 

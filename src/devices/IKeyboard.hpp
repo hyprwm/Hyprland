@@ -5,6 +5,7 @@
 #include "../macros.hpp"
 #include "../helpers/math/Math.hpp"
 
+#include <optional>
 #include <xkbcommon/xkbcommon.h>
 
 AQUAMARINE_FORWARD(IKeyboard);
@@ -61,19 +62,20 @@ class IKeyboard : public IHID {
         std::string rules   = "";
     };
 
-    void        setKeymap(const SStringRuleNames& rules);
-    void        updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
-    std::string getActiveLayout();
-    void        updateLEDs();
-    void        updateLEDs(uint32_t leds);
-    uint32_t    getModifiers();
-    void        updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
-    bool        updateModifiersState(); // rets whether changed
-    void        updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
-    void        updateKeymapFD();
+    void                    setKeymap(const SStringRuleNames& rules);
+    void                    updateXKBTranslationState(xkb_keymap* const keymap = nullptr);
+    std::string             getActiveLayout();
+    std::optional<uint32_t> getLEDs();
+    void                    updateLEDs();
+    void                    updateLEDs(uint32_t leds);
+    uint32_t                getModifiers();
+    void                    updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
+    bool                    updateModifiersState(); // rets whether changed
+    void                    updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
+    void                    updateKeymapFD();
 
-    bool        active  = false;
-    bool        enabled = true;
+    bool                    active  = false;
+    bool                    enabled = true;
 
     // if the keymap is overridden by the implementation,
     // don't try to set keyboard rules anymore, to avoid overwriting the requested one.

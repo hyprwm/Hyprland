@@ -319,8 +319,6 @@ void CWLSurfaceResource::map() {
 
     mapped = true;
 
-    events.map.emit();
-
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     frame(&now);
@@ -334,8 +332,6 @@ void CWLSurfaceResource::unmap() {
         return;
 
     mapped = false;
-
-    events.unmap.emit();
 
     // release the buffers.
     // this is necessary for XWayland to function correctly,

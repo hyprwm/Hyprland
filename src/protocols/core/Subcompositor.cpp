@@ -82,11 +82,13 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
     listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
         if (surface->current.buffer && !surface->mapped) {
             surface->map();
+            surface->events.map.emit();
             return;
         }
 
         if (!surface->current.buffer && surface->mapped) {
             surface->unmap();
+            surface->events.unmap.emit();
             return;
         }
     });

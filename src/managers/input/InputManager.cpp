@@ -1265,7 +1265,14 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard)
         return;
 
-    pKeyboard->updateLEDs();
+    std::optional<uint32_t> leds = pKeyboard->getLEDs();
+
+    if (!leds.has_value())
+        return;
+
+    for (auto& k : m_vKeyboards) {
+        k->updateLEDs(leds.value());
+    }
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {

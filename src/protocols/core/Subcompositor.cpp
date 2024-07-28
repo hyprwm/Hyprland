@@ -87,8 +87,8 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         }
 
         if (!surface->current.buffer && surface->mapped) {
-            surface->unmap();
             surface->events.unmap.emit();
+            surface->unmap();
             return;
         }
     });

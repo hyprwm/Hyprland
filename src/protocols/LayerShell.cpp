@@ -73,8 +73,8 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
 
         if (!attachedBuffer && mapped) {
             mapped = false;
-            surface->unmap();
             events.unmap.emit();
+            surface->unmap();
             configured = false;
             return;
         }

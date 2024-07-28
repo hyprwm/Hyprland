@@ -152,8 +152,8 @@ CWLSurfaceResource::~CWLSurfaceResource() {
 
 void CWLSurfaceResource::destroy() {
     if (mapped) {
-        unmap();
         events.unmap.emit();
+        unmap();
     }
     events.destroy.emit();
     PROTO::compositor->destroyResource(this);

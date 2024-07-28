@@ -114,11 +114,10 @@ void CXWaylandSurface::unmap() {
     std::erase(g_pXWayland->pWM->mappedSurfacesStacking, self);
 
     mapped = false;
+    events.unmap.emit();
     surface->unmap();
 
     Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
-
-    events.unmap.emit();
 
     g_pXWayland->pWM->updateClientList();
 }

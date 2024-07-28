@@ -365,8 +365,8 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         if (!surface->current.buffer && mapped) {
             mapped = false;
-            surface->unmap();
             events.unmap.emit();
+            surface->unmap();
             return;
         }
 

@@ -35,20 +35,15 @@ CTextInputV1::CTextInputV1(SP<CZwpTextInputV1> resource_) : resource(resource_) 
         pendingContentType.isPending = false;
     });
 
-    resource->setSetSurroundingText([this](CZwpTextInputV1* pMgr, const char* text, uint32_t cursor, uint32_t anchor) {
-        pendingSurrounding = {true, std::string(text), cursor, anchor};
-        ;
-    });
+    resource->setSetSurroundingText(
+        [this](CZwpTextInputV1* pMgr, const char* text, uint32_t cursor, uint32_t anchor) { pendingSurrounding = {true, std::string(text), cursor, anchor}; });
 
     resource->setSetContentType([this](CZwpTextInputV1* pMgr, uint32_t hint, uint32_t purpose) {
         pendingContentType = {true, hint == (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_HINT_DEFAULT ? (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_HINT_NONE : hint,
                               purpose > (uint32_t)ZWP_TEXT_INPUT_V1_CONTENT_PURPOSE_PASSWORD ? hint + 1 : hint};
     });
 
-    resource->setSetCursorRectangle([this](CZwpTextInputV1* pMgr, int32_t x, int32_t y, int32_t width, int32_t height) {
-        cursorRectangle = CBox{x, y, width, height};
-        ;
-    });
+    resource->setSetCursorRectangle([this](CZwpTextInputV1* pMgr, int32_t x, int32_t y, int32_t width, int32_t height) { cursorRectangle = CBox{x, y, width, height}; });
 
     resource->setCommitState([this](CZwpTextInputV1* pMgr, uint32_t serial_) {
         serial = serial_;

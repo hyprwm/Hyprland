@@ -134,7 +134,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
     attrs.push_back(3);
     attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
-    attrs.push_back(2);
+    attrs.push_back(0);
 #else
     attrs.push_back(EGL_CONTEXT_CLIENT_VERSION);
     attrs.push_back(2);

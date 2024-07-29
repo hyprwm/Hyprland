@@ -1,7 +1,6 @@
 #include "PluginSystem.hpp"
 
 #include <dlfcn.h>
-#include <hyprland/src/config/ConfigManager.hpp>
 #include <ranges>
 #include "../Compositor.hpp"
 

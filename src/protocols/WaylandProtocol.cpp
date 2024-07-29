@@ -6,13 +6,14 @@ static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uin
 }
 
 static void displayDestroyInternal(struct wl_listener* listener, void* data) {
-    IWaylandProtocol* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
+    IWaylandProtocolDestroyWrapper* wrap  = wl_container_of(listener, wrap, listener);
+    IWaylandProtocol*               proto = wrap->parent;
     proto->onDisplayDestroy();
 }
 
 void IWaylandProtocol::onDisplayDestroy() {
-    wl_list_remove(&m_liDisplayDestroy.link);
-    wl_list_init(&m_liDisplayDestroy.link);
+    wl_list_remove(&m_liDisplayDestroy.listener.link);
+    wl_list_init(&m_liDisplayDestroy.listener.link);
     wl_global_destroy(m_pGlobal);
 }
 
@@ -24,8 +25,10 @@ IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, co
         return;
     }
 
-    m_liDisplayDestroy.notify = displayDestroyInternal;
-    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
+    wl_list_init(&m_liDisplayDestroy.listener.link);
+    m_liDisplayDestroy.listener.notify = displayDestroyInternal;
+    m_liDisplayDestroy.parent          = this;
+    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy.listener);
 
     protoLog(LOG, "Registered global");
 }

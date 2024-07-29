@@ -8,13 +8,14 @@ static void bindManagerInt(wl_client* client, void* data, uint32_t version, uint
 }
 
 static void handleDisplayDestroy(struct wl_listener* listener, void* data) {
-    CGlobalShortcutsProtocolManager* proto = wl_container_of(listener, proto, m_liDisplayDestroy);
+    CGlobalShortcutsProtocolManagerDestroyWrapper* wrap  = wl_container_of(listener, wrap, listener);
+    CGlobalShortcutsProtocolManager*               proto = wrap->parent;
     proto->displayDestroy();
 }
 
 void CGlobalShortcutsProtocolManager::displayDestroy() {
-    wl_list_remove(&m_liDisplayDestroy.link);
-    wl_list_init(&m_liDisplayDestroy.link);
+    wl_list_remove(&m_liDisplayDestroy.listener.link);
+    wl_list_init(&m_liDisplayDestroy.listener.link);
     wl_global_destroy(m_pGlobal);
 }
 
@@ -30,8 +31,10 @@ CGlobalShortcutsProtocolManager::CGlobalShortcutsProtocolManager() {
         return;
     }
 
-    m_liDisplayDestroy.notify = handleDisplayDestroy;
-    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy);
+    wl_list_init(&m_liDisplayDestroy.listener.link);
+    m_liDisplayDestroy.listener.notify = handleDisplayDestroy;
+    m_liDisplayDestroy.parent          = this;
+    wl_display_add_destroy_listener(g_pCompositor->m_sWLDisplay, &m_liDisplayDestroy.listener);
 
     Debug::log(LOG, "GlobalShortcutsManager started successfully!");
 }

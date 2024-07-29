@@ -345,6 +345,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     m_tGlobalTimer.reset();
 }
 
+CHyprOpenGLImpl::~CHyprOpenGLImpl() {
+    if (m_pEglDisplay && m_pEglContext != EGL_NO_CONTEXT)
+        eglDestroyContext(m_pEglDisplay, m_pEglContext);
+
+    if (m_pEglDisplay)
+        eglTerminate(m_pEglDisplay);
+
+    eglReleaseThread();
+
+    if (m_pGbmDevice)
+        gbm_device_destroy(m_pGbmDevice);
+
+    if (m_iGBMFD >= 0)
+        close(m_iGBMFD);
+}
+
 std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
     // TODO: return std::expected when clang supports it
 

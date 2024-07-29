@@ -676,8 +676,24 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         }
         case HID_TYPE_POINTER: {
             IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
-            if (!POINTER->boundOutput.empty() && POINTER->boundOutput != "auto") {
-                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
+            if (!POINTER->boundOutput.empty()) {
+                if (POINTER->boundOutput == "entire") {
+                    // find x and y size of the entire space
+                    Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
+                    for (auto& m : g_pCompositor->m_vMonitors) {
+                        const auto EXTENT = m->logicalBox().extent();
+                        const auto POS    = m->logicalBox().pos();
+                        if (EXTENT.x > bottomRight.x)
+                            bottomRight.x = EXTENT.x;
+                        if (EXTENT.y > bottomRight.y)
+                            bottomRight.y = EXTENT.y;
+                        if (POS.x < topLeft.x)
+                            topLeft.x = POS.x;
+                        if (POS.y < topLeft.y)
+                            topLeft.y = POS.y;
+                    }
+                    mappedArea = {topLeft, bottomRight - topLeft};
+                } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
                     currentMonitor = PMONITOR->self.lock();
                     mappedArea     = currentMonitor->logicalBox();
                 }

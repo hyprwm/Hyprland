@@ -567,7 +567,7 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
         if (flip) {
             state.gravity ^= CEdges::TOP | CEdges::BOTTOM;
             anchorY    = state.anchor.top() ? anchorRect.extent().y : state.anchor.bottom() ? anchorRect.y : anchorY;
-            effectiveX = calcEffectiveX();
+            effectiveY = calcEffectiveY();
         }
     }
 

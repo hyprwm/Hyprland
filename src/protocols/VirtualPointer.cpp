@@ -1,8 +1,9 @@
 #include "VirtualPointer.hpp"
+#include "core/Output.hpp"
 
 #define LOGM PROTO::virtualPointer->protoLog
 
-CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_) : resource(resource_) {
+CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, WP<CMonitor> boundOutput_) : boundOutput(boundOutput_), resource(resource_) {
     if (!good())
         return;
 
@@ -112,10 +113,18 @@ void CVirtualPointerProtocol::bindManager(wl_client* client, void* data, uint32_
     RESOURCE->setOnDestroy([this](CZwlrVirtualPointerManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
     RESOURCE->setDestroy([this](CZwlrVirtualPointerManagerV1* p) { this->onManagerResourceDestroy(p->resource()); });
 
-    RESOURCE->setCreateVirtualPointer([this](CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id) { this->onCreatePointer(pMgr, seat, id); });
+    RESOURCE->setCreateVirtualPointer([this](CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id) { this->onCreatePointer(pMgr, seat, id, {}); });
     RESOURCE->setCreateVirtualPointerWithOutput([this](CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, wl_resource* output, uint32_t id) {
-        LOGM(WARN, "TODO: CreateWithOutput is not supported yet. Ignoring for now.");
-        this->onCreatePointer(pMgr, seat, id);
+        if (output) {
+            auto RES = CWLOutputResource::fromResource(output);
+            if (!RES) {
+                this->onCreatePointer(pMgr, seat, id, {});
+                return;
+            }
+
+            this->onCreatePointer(pMgr, seat, id, RES->monitor);
+        } else
+            this->onCreatePointer(pMgr, seat, id, {});
     });
 }
 
@@ -127,9 +136,9 @@ void CVirtualPointerProtocol::destroyResource(CVirtualPointerV1Resource* pointer
     std::erase_if(m_vPointers, [&](const auto& other) { return other.get() == pointer; });
 }
 
-void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id) {
+void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id, WP<CMonitor> output) {
 
-    const auto RESOURCE = m_vPointers.emplace_back(makeShared<CVirtualPointerV1Resource>(makeShared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id)));
+    const auto RESOURCE = m_vPointers.emplace_back(makeShared<CVirtualPointerV1Resource>(makeShared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id), output));
 
     if (!RESOURCE->good()) {
         pMgr->noMemory();

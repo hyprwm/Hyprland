@@ -674,6 +674,16 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
             }
             break;
         }
+        case HID_TYPE_POINTER: {
+            IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
+            if (!POINTER->boundOutput.empty() && POINTER->boundOutput != "auto") {
+                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
+                    currentMonitor = PMONITOR->self.lock();
+                    mappedArea     = currentMonitor->logicalBox();
+                }
+            }
+            break;
+        }
         default: break;
     }
 

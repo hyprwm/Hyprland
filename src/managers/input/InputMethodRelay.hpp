@@ -10,7 +10,7 @@
 
 class CInputManager;
 class CHyprRenderer;
-struct STextInputV1;
+class CTextInputV1;
 class CInputMethodV2;
 
 class CInputMethodRelay {
@@ -18,8 +18,8 @@ class CInputMethodRelay {
     CInputMethodRelay();
 
     void               onNewIME(SP<CInputMethodV2>);
-    void               onNewTextInput(std::any tiv3);
-    void               onNewTextInput(STextInputV1* pTIV1);
+    void               onNewTextInput(WP<CTextInputV3> tiv3);
+    void               onNewTextInput(WP<CTextInputV1> pTIV1);
 
     void               activateIME(CTextInput* pInput);
     void               deactivateIME(CTextInput* pInput);
@@ -48,6 +48,7 @@ class CInputMethodRelay {
 
     struct {
         CHyprSignalListener newTIV3;
+        CHyprSignalListener newTIV1;
         CHyprSignalListener newIME;
         CHyprSignalListener commitIME;
         CHyprSignalListener destroyIME;

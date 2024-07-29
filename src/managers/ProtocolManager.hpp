@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/memory/Memory.hpp"
@@ -14,7 +13,6 @@ class CProtocolManager {
     ~CProtocolManager();
 
     // TODO: rewrite to use the new protocol framework
-    std::unique_ptr<CTextInputV1ProtocolManager>     m_pTextInputV1ProtocolManager;
     std::unique_ptr<CGlobalShortcutsProtocolManager> m_pGlobalShortcutsProtocolManager;
 
   private:

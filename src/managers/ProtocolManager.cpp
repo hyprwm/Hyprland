@@ -41,6 +41,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
+#include "../protocols/TextInputV1.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -125,6 +126,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::pointerGestures     = std::make_unique<CPointerGesturesProtocol>(&zwp_pointer_gestures_v1_interface, 3, "PointerGestures");
     PROTO::foreignToplevelWlr  = std::make_unique<CForeignToplevelWlrProtocol>(&zwlr_foreign_toplevel_manager_v1_interface, 3, "ForeignToplevelWlr");
     PROTO::shortcutsInhibit    = std::make_unique<CKeyboardShortcutsInhibitProtocol>(&zwp_keyboard_shortcuts_inhibit_manager_v1_interface, 1, "ShortcutsInhibit");
+    PROTO::textInputV1         = std::make_unique<CTextInputV1Protocol>(&zwp_text_input_manager_v1_interface, 1, "TextInputV1");
     PROTO::textInputV3         = std::make_unique<CTextInputV3Protocol>(&zwp_text_input_manager_v3_interface, 1, "TextInputV3");
     PROTO::constraints         = std::make_unique<CPointerConstraintsProtocol>(&zwp_pointer_constraints_v1_interface, 1, "PointerConstraints");
     PROTO::outputPower         = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
@@ -165,7 +167,6 @@ CProtocolManager::CProtocolManager() {
 
     // Old protocol implementations.
     // TODO: rewrite them to use hyprwayland-scanner.
-    m_pTextInputV1ProtocolManager     = std::make_unique<CTextInputV1ProtocolManager>();
     m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
 }
 
@@ -197,6 +198,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::pointerGestures.reset();
     PROTO::foreignToplevelWlr.reset();
     PROTO::shortcutsInhibit.reset();
+    PROTO::textInputV1.reset();
     PROTO::textInputV3.reset();
     PROTO::constraints.reset();
     PROTO::outputPower.reset();

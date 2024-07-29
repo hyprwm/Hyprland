@@ -292,10 +292,7 @@ protocol(
   "subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml"
   "hyprland-global-shortcuts-v1" true)
 
-protocol(
-  "unstable/text-input/text-input-unstable-v1.xml"
-  "text-input-unstable-v1" false)
-
+protocolnew("unstable/text-input" "text-input-unstable-v1" false)
 protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-toplevel-export-v1" true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)

@@ -1,6 +1,7 @@
 #include "PluginSystem.hpp"
 
 #include <dlfcn.h>
+#include <hyprland/src/config/ConfigManager.hpp>
 #include <ranges>
 #include "../Compositor.hpp"
 
@@ -79,6 +80,8 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
     PLUGIN->description = PLUGINDATA.description;
     PLUGIN->version     = PLUGINDATA.version;
     PLUGIN->name        = PLUGINDATA.name;
+
+    g_pConfigManager->m_bForceReload = true;
 
     Debug::log(LOG, " [PluginSystem] Plugin {} loaded. Handle: {:x}, path: \"{}\", author: \"{}\", description: \"{}\", version: \"{}\"", PLUGINDATA.name, (uintptr_t)MODULE, path,
                PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);

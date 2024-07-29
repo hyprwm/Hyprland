@@ -156,6 +156,7 @@ void CWLSurfaceResource::destroy() {
         unmap();
     }
     events.destroy.emit();
+    releaseBuffers(false);
     PROTO::compositor->destroyResource(this);
 }
 
@@ -338,13 +339,18 @@ void CWLSurfaceResource::unmap() {
     // release the buffers.
     // this is necessary for XWayland to function correctly,
     // as it does not unmap via the traditional commit(null buffer) method, but via the X11 protocol.
+    releaseBuffers();
+}
+
+void CWLSurfaceResource::releaseBuffers(bool onlyCurrent) {
     if (current.buffer && !current.buffer->resource->released)
         current.buffer->sendRelease();
-    if (pending.buffer && !pending.buffer->resource->released)
+    if (pending.buffer && !pending.buffer->resource->released && !onlyCurrent)
         pending.buffer->sendRelease();
 
     pending.buffer.reset();
-    current.buffer.reset();
+    if (!onlyCurrent)
+        current.buffer.reset();
 }
 
 void CWLSurfaceResource::error(int code, const std::string& str) {

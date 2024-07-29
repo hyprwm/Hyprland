@@ -151,6 +151,8 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
         currentCursorImage.surface = surf;
         currentCursorImage.scale   = surf->resource()->current.scale;
 
+        surf->resource()->map();
+
         currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
         currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
@@ -221,6 +223,8 @@ void CPointerManager::resetCursorImage(bool apply) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             currentCursorImage.surface->resource()->leave(m);
         }
+
+        currentCursorImage.surface->resource()->unmap();
 
         currentCursorImage.destroySurface.reset();
         currentCursorImage.commitSurface.reset();

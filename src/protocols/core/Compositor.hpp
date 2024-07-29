@@ -137,6 +137,7 @@ class CWLSurfaceResource {
     int            stateLocks = 0;
 
     void           destroy();
+    void           releaseBuffers(bool onlyCurrent = true);
     void           commitPendingState();
     void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
 };

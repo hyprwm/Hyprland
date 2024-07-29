@@ -130,11 +130,13 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
     }
 
+    auto attrsNoVer = attrs;
+
 #ifndef GLES2
     attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
     attrs.push_back(3);
     attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
-    attrs.push_back(0);
+    attrs.push_back(2);
 #else
     attrs.push_back(EGL_CONTEXT_CLIENT_VERSION);
     attrs.push_back(2);
@@ -143,8 +145,24 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     attrs.push_back(EGL_NONE);
 
     m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
-    if (m_pEglContext == EGL_NO_CONTEXT)
-        RASSERT(false, "EGL: failed to create a context");
+    if (m_pEglContext == EGL_NO_CONTEXT) {
+#ifdef GLES2
+        RASSERT(false, "EGL: failed to create a context with GLES2.0");
+#endif
+        Debug::log(WARN, "EGL: Failed to create a context with GLES3.2, retrying 3.0");
+
+        attrs = attrsNoVer;
+        attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
+        attrs.push_back(3);
+        attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
+        attrs.push_back(0);
+        attrs.push_back(EGL_NONE);
+
+        m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
+
+        if (m_pEglContext == EGL_NO_CONTEXT)
+            RASSERT(false, "EGL: failed to create a context with either GLES3.2 or 3.0");
+    }
 
     if (m_sExts.IMG_context_priority) {
         EGLint priority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;

@@ -288,10 +288,7 @@ endfunction()
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
                       libudis86 uuid)
 
-protocol(
-  "subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml"
-  "hyprland-global-shortcuts-v1" true)
-
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-global-shortcuts-v1" true)
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
 protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-toplevel-export-v1" true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)

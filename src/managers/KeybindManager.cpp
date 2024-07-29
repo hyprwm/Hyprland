@@ -3,6 +3,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
@@ -2664,10 +2665,10 @@ void CKeybindManager::global(std::string args) {
     if (NAME.empty())
         return;
 
-    if (!g_pProtocolManager->m_pGlobalShortcutsProtocolManager->globalShortcutExists(APPID, NAME))
+    if (!PROTO::globalShortcuts->isTaken(APPID, NAME))
         return;
 
-    g_pProtocolManager->m_pGlobalShortcutsProtocolManager->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
+    PROTO::globalShortcuts->sendGlobalShortcutEvent(APPID, NAME, g_pKeybindManager->m_iPassPressed);
 }
 
 void CKeybindManager::moveGroupWindow(std::string args) {

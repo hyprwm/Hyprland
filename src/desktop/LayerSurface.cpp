@@ -219,7 +219,7 @@ void CLayerSurface::onUnmap() {
 
     // refocus if needed
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
-    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
+    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
         g_pInputManager->refocusLastWindow(PMONITOR);
     else if (g_pCompositor->m_pLastFocus)
         g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());

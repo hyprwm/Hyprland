@@ -21,7 +21,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                          unlockWithSurface(SP<CWLSurfaceResource> surf);
     virtual bool                          locked();
 
-    void unlockOnBufferRelease(WP<CWLSurfaceResource> surf /* optional */);
+    void                                  unlockOnBufferRelease(WP<CWLSurfaceResource> surf /* optional */);
 
     SP<CTexture>                          texture;
     bool                                  opaque = false;
@@ -32,7 +32,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     } hlEvents;
 
   private:
-    int nLocks = 0;
+    int                    nLocks = 0;
 
     WP<CWLSurfaceResource> unlockSurface;
 };

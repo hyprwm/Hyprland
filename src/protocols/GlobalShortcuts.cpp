@@ -55,10 +55,10 @@ void CGlobalShortcutsProtocol::destroyResource(CShortcutClient* client) {
     std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
 }
 
-bool CGlobalShortcutsProtocol::isTaken(std::string id, std::string app_id) {
+bool CGlobalShortcutsProtocol::isTaken(std::string appid, std::string trigger) {
     for (auto& c : m_vClients) {
         for (auto& sh : c->shortcuts) {
-            if (sh->appid == app_id && sh->id == id) {
+            if (sh->appid == appid && sh->id == trigger) {
                 return true;
             }
         }

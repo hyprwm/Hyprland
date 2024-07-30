@@ -23,6 +23,8 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                          unlockWithSurface(SP<CWLSurfaceResource> surf);
     virtual bool                          locked();
 
+    void unlockOnBufferRelease(WP<CWLSurfaceResource> surf /* optional */);
+
     SP<CTexture>                          texture;
     bool                                  opaque = false;
     SP<CWLBufferResource>                 resource;
@@ -33,6 +35,8 @@ class IHLBuffer : public Aquamarine::IBuffer {
 
   private:
     int nLocks = 0;
+
+    WP<CWLSurfaceResource> unlockSurface;
 };
 
 // for ref-counting. Releases in ~dtor

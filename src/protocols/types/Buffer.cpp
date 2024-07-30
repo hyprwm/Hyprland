@@ -35,6 +35,17 @@ bool IHLBuffer::locked() {
     return nLocks > 0;
 }
 
+void IHLBuffer::unlockOnBufferRelease(WP<CWLSurfaceResource> surf) {
+    unlockSurface           = surf;
+    hlEvents.backendRelease = events.backendRelease.registerListener([this](std::any data) {
+        if (unlockSurface.expired())
+            unlock();
+        else
+            unlockWithSurface(unlockSurface.lock());
+        hlEvents.backendRelease.reset();
+    });
+}
+
 CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_, SP<CWLSurfaceResource> surface_) : buffer(buffer_), surface(surface_) {
     buffer->lock();
 }

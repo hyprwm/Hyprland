@@ -462,10 +462,8 @@ void CWLSurfaceResource::commitPendingState() {
     // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
     if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
         if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
-            previousBuffer->buffer->hlEvents.backendRelease = previousBuffer->buffer->events.backendRelease.registerListener([previousBuffer](std::any data) {
-                // copy magic
-                previousBuffer->buffer->hlEvents.backendRelease.reset();
-            });
+            previousBuffer->buffer->lock();
+            previousBuffer->buffer->unlockOnBufferRelease(self);
         }
     }
 }

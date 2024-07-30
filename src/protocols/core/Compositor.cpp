@@ -21,8 +21,6 @@ class CDefaultSurfaceRole : public ISurfaceRole {
     }
 };
 
-SP<CDefaultSurfaceRole> defaultRole = makeShared<CDefaultSurfaceRole>();
-
 CWLCallbackResource::CWLCallbackResource(SP<CWlCallback> resource_) : resource(resource_) {
     ;
 }
@@ -65,7 +63,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
     resource->setData(this);
 
-    role = defaultRole;
+    role = makeShared<CDefaultSurfaceRole>();
 
     resource->setDestroy([this](CWlSurface* r) { destroy(); });
     resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
@@ -251,7 +249,7 @@ void CWLSurfaceResource::frame(timespec* now) {
 }
 
 void CWLSurfaceResource::resetRole() {
-    role = defaultRole;
+    role = makeShared<CDefaultSurfaceRole>();
 }
 
 void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {

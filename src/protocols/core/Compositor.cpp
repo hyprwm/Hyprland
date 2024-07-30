@@ -428,7 +428,7 @@ void CWLSurfaceResource::commitPendingState() {
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
 
-    if (current.buffer) {
+    if (current.buffer && current.buffer->buffer) {
         current.buffer->buffer->update(accumulateCurrentBufferDamage());
 
         // release the buffer if it's synchronous as update() has done everything thats needed

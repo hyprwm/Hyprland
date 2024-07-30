@@ -8,9 +8,7 @@
 
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
-    virtual ~IHLBuffer() {
-        ;
-    }
+    virtual ~IHLBuffer();
     virtual Aquamarine::eBufferCapability caps()                        = 0;
     virtual Aquamarine::eBufferType       type()                        = 0;
     virtual void                          update(const CRegion& damage) = 0;

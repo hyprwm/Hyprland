@@ -1,5 +1,10 @@
 #include "Buffer.hpp"
 
+IHLBuffer::~IHLBuffer() {
+    if (locked() && resource)
+        sendRelease();
+}
+
 void IHLBuffer::sendRelease() {
     resource->sendRelease();
 }

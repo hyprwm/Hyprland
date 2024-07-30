@@ -1100,7 +1100,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     // since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_bIsFloating;
-    bool hasFullscreen = pWindow->m_bIsFullscreen;
+    bool hasFullscreen = pWindow->isFullscreen();
 
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
@@ -1448,7 +1448,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (!PWORKSPACE)
                 return; // ???
 
-            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
                 m->output->state->setAdaptiveSync(true);

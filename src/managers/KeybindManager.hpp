@@ -155,7 +155,7 @@ class CKeybindManager {
     static void     setActiveTiled(std::string);
     static void     changeworkspace(std::string);
     static void     fullscreenActive(std::string);
-    static void     fakeFullscreenActive(std::string);
+    static void     fullscreenStateActive(std::string args);
     static void     moveActiveToWorkspace(std::string);
     static void     moveActiveToWorkspaceSilent(std::string);
     static void     moveFocusTo(std::string);

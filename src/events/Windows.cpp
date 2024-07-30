@@ -465,8 +465,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (*PNEWTAKESOVERFS == 0)
             PWINDOW->m_bNoInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 2)
-            g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), false, FULLSCREEN_INVALID);
-        else if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
+            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), FSMODE_NONE);
+        else if (PWINDOW->isEffectiveInternalFSMode(FSMODE_MAXIMIZED)) {
             requestsMaximize = true;
             if (*PNEWTAKESOVERFS == 1)
                 overridingNoMaximize = true;
@@ -490,7 +490,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID);
-            g_pCompositor->setWindowFullscreen(PFULLWINDOW, false, FULLSCREEN_FULL);
+            g_pCompositor->setWindowFullscreenInternal(PFULLWINDOW, FSMODE_NONE);
         }
 
         if (requestsFakeFullscreen && !PWINDOW->m_bFakeFullscreenState) {
@@ -501,7 +501,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             overridingNoMaximize   = false;
             PWINDOW->m_vRealPosition.warp();
             PWINDOW->m_vRealSize.warp();
-            g_pCompositor->setWindowFullscreen(PWINDOW, true, requestsFullscreen ? FULLSCREEN_FULL : FULLSCREEN_MAXIMIZED);
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestsFullscreen ? FSMODE_FULLSCREEN : FSMODE_MAXIMIZED);
         }
     }
 
@@ -558,7 +558,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     // avoid this window being visible
-    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->m_bIsFullscreen && !PWINDOW->m_bIsFloating)
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_bIsFloating)
         PWINDOW->m_fAlpha.setValueAndWarp(0.f);
 
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->scale);
@@ -583,8 +583,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
 
-    const auto  CURRENTWINDOWFSSTATE = PWINDOW->m_bIsFullscreen;
-    const auto  CURRENTWINDOWFSMODE  = PWINDOW->m_pWorkspace->m_efFullscreenMode;
+    const auto  CURRENTWINDOWFSSTATE = PWINDOW->isFullscreen();
+    const auto  CURRENTFSMODE        = PWINDOW->m_sFullscreenState.internal;
 
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);
@@ -604,8 +604,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     PROTO::toplevelExport->onWindowUnmap(PWINDOW);
 
-    if (PWINDOW->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(PWINDOW, false, FULLSCREEN_FULL);
+    if (PWINDOW->isFullscreen())
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
     // Allow the renderer to catch the last frame.
     g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
@@ -633,7 +633,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = PWINDOW->m_pWorkspace;
 
-    if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->m_bIsFullscreen)
+    if (PWORKSPACE->m_bHasFullscreenWindow && PWINDOW->isFullscreen())
         PWORKSPACE->m_bHasFullscreenWindow = false;
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
@@ -650,7 +650,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         if (PWINDOWCANDIDATE != g_pCompositor->m_pLastWindow.lock() && PWINDOWCANDIDATE) {
             g_pCompositor->focusWindow(PWINDOWCANDIDATE);
             if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
-                g_pCompositor->setWindowFullscreen(PWINDOWCANDIDATE, true, CURRENTWINDOWFSMODE);
+                g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
 
         if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
@@ -708,7 +708,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
 
-    if (!PWINDOW->m_bIsX11 && !PWINDOW->m_bIsFullscreen && PWINDOW->m_bIsFloating) {
+    if (!PWINDOW->m_bIsX11 && !PWINDOW->isFullscreen() && PWINDOW->m_bIsFloating) {
         const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;
         const auto MAXSIZE = PWINDOW->m_pXDGSurface->toplevel->current.maxSize;
 
@@ -835,7 +835,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     else
         PWINDOW->setHidden(true);
 
-    if (PWINDOW->m_bIsFullscreen || !PWINDOW->m_bIsFloating) {
+    if (PWINDOW->isFullscreen() || !PWINDOW->m_bIsFloating) {
         g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal(), true);
         g_pHyprRenderer->damageWindow(PWINDOW);
         return;

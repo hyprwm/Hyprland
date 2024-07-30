@@ -480,15 +480,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                             return false;
                         break;
                     case 0: // fullscreen full
-                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL)
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 1: // maximized
-                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_MAXIMIZED)
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 2: // fullscreen without sending fullscreen state to window
-                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FULLSCREEN_FULL || !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID) ||
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FSMODE_FULLSCREEN || !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID) ||
                             !g_pCompositor->getFullscreenWindowOnWorkspace(m_iID)->m_bDontSendFullscreen)
                             return false;
                         break;

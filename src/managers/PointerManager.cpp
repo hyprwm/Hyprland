@@ -25,7 +25,7 @@ CPointerManager::CPointerManager() {
             nullptr);
     });
 
-    hooks.monitorPreRender = g_pHookSystem->hookDynamic("preRender", [this](void* self, SCallbackInfo& info, std::any data) {
+    hooks.monitorPreRender = g_pHookSystem->hookDynamic("preMonitorCommit", [this](void* self, SCallbackInfo& info, std::any data) {
         auto state = stateFor(std::any_cast<CMonitor*>(data)->self.lock());
         if (!state)
             return;

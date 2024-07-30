@@ -863,6 +863,8 @@ bool CMonitorState::commit() {
     if (!updateSwapchain())
         return false;
 
+    EMIT_HOOK_EVENT("preMonitorCommit", m_pOwner);
+
     ensureBufferPresent();
 
     bool ret = m_pOwner->output->commit();

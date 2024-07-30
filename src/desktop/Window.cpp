@@ -1096,10 +1096,10 @@ bool CWindow::opaque() {
     if (PWORKSPACE->m_fAlpha.value() != 1.f)
         return false;
 
-    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.buffer)
+    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.texture)
         return m_pXWaylandSurface->surface->current.texture->m_bOpaque;
 
-    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.buffer)
+    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.texture)
         return false;
 
     // TODO: this is wrong

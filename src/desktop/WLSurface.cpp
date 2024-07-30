@@ -57,7 +57,7 @@ bool CWLSurface::small() const {
     if (!validMapped(m_pWindowOwner) || !exists())
         return false;
 
-    if (!m_pResource->current.buffer)
+    if (!m_pResource->current.texture)
         return false;
 
     const auto O = m_pWindowOwner.lock();
@@ -76,7 +76,7 @@ Vector2D CWLSurface::correctSmallVec() const {
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
-    if (!exists() || !small() || m_bFillIgnoreSmall || !m_pResource->current.buffer)
+    if (!exists() || !small() || m_bFillIgnoreSmall || !m_pResource->current.texture)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
@@ -86,14 +86,14 @@ Vector2D CWLSurface::correctSmallVecBuf() const {
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
-    if (!exists() || !m_pResource->current.buffer)
+    if (!exists() || !m_pResource->current.texture)
         return {};
 
     return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.bufferSize;
 }
 
 CRegion CWLSurface::computeDamage() const {
-    if (!m_pResource->current.buffer)
+    if (!m_pResource->current.texture)
         return {};
 
     CRegion damage = m_pResource->accumulateCurrentBufferDamage();

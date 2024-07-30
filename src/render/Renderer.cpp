@@ -102,7 +102,7 @@ CHyprRenderer::~CHyprRenderer() {
 }
 
 static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
-    if (!surface->current.buffer || !surface->current.texture)
+    if (!surface->current.texture)
         return;
 
     const auto& TEXTURE                     = surface->current.texture;

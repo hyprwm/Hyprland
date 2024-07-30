@@ -107,14 +107,14 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
     });
 
     listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-        if (pSurface->current.buffer && !mapped) {
+        if (pSurface->current.texture && !mapped) {
             mapped = true;
             pSurface->map();
             events.map.emit();
             return;
         }
 
-        if (!pSurface->current.buffer && mapped) {
+        if (!pSurface->current.texture && mapped) {
             mapped = false;
             pSurface->unmap();
             events.unmap.emit();

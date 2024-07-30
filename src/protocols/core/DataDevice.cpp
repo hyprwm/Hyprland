@@ -469,12 +469,12 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     if (dragSurface) {
         dnd.dndSurfaceDestroy = dragSurface->events.destroy.registerListener([this](std::any d) { abortDrag(); });
         dnd.dndSurfaceCommit  = dragSurface->events.commit.registerListener([this](std::any d) {
-            if (dnd.dndSurface->current.buffer && !dnd.dndSurface->mapped) {
+            if (dnd.dndSurface->current.texture && !dnd.dndSurface->mapped) {
                 dnd.dndSurface->map();
                 return;
             }
 
-            if (dnd.dndSurface->current.buffer <= 0 && dnd.dndSurface->mapped) {
+            if (dnd.dndSurface->current.texture <= 0 && dnd.dndSurface->mapped) {
                 dnd.dndSurface->unmap();
                 return;
             }
@@ -660,7 +660,7 @@ void CWLDataDeviceProtocol::abortDrag() {
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
-    if (!dnd.dndSurface || !dnd.dndSurface->current.buffer || !dnd.dndSurface->current.texture)
+    if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
     const auto POS = g_pInputManager->getMouseCoordsInternal();

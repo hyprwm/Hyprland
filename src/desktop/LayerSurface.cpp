@@ -242,7 +242,7 @@ void CLayerSurface::onCommit() {
 
     if (!mapped) {
         // we're re-mapping if this is the case
-        if (layerSurface->surface && !layerSurface->surface->current.buffer) {
+        if (layerSurface->surface && !layerSurface->surface->current.texture) {
             fadingOut = false;
             geometry  = {};
             g_pHyprRenderer->arrangeLayersForMonitor(monitorID);

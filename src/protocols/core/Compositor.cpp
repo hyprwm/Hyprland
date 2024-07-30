@@ -90,10 +90,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     });
 
     resource->setCommit([this](CWlSurface* r) {
-        if (pending.buffer)
+        if (pending.texture)
             pending.bufferDamage.intersect(CBox{{}, pending.bufferSize});
 
-        if (!pending.buffer)
+        if (!pending.texture)
             pending.size = {};
         else if (pending.viewport.hasDestination)
             pending.size = pending.viewport.destination;
@@ -379,7 +379,7 @@ CBox CWLSurfaceResource::extends() {
 }
 
 Vector2D CWLSurfaceResource::sourceSize() {
-    if (!current.buffer)
+    if (!current.texture)
         return {};
 
     if (current.viewport.hasSource)
@@ -390,7 +390,7 @@ Vector2D CWLSurfaceResource::sourceSize() {
 }
 
 CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
-    if (!current.buffer)
+    if (!current.texture)
         return {};
 
     CRegion surfaceDamage = current.damage;

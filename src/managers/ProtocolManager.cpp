@@ -42,6 +42,7 @@
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/TextInputV1.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -148,6 +149,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
     PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::globalShortcuts     = std::make_unique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
 
     for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
@@ -164,10 +166,6 @@ CProtocolManager::CProtocolManager() {
         PROTO::linuxDma = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
         Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
-
-    // Old protocol implementations.
-    // TODO: rewrite them to use hyprwayland-scanner.
-    m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
 }
 
 CProtocolManager::~CProtocolManager() {
@@ -220,6 +218,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xwaylandShell.reset();
     PROTO::screencopy.reset();
     PROTO::toplevelExport.reset();
+    PROTO::globalShortcuts.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

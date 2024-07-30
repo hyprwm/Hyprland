@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../protocols/GlobalShortcuts.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -11,9 +10,6 @@ class CProtocolManager {
   public:
     CProtocolManager();
     ~CProtocolManager();
-
-    // TODO: rewrite to use the new protocol framework
-    std::unique_ptr<CGlobalShortcutsProtocolManager> m_pGlobalShortcutsProtocolManager;
 
   private:
     std::unordered_map<std::string, CHyprSignalListener> m_mModeChangeListeners;

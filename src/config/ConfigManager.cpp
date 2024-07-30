@@ -2102,8 +2102,8 @@ bool windowRuleValid(const std::string& RULE) {
         "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile",
     };
     static const auto rulesPrefix = std::vector<std::string>{
-        "animation", "bordercolor", "bordersize", "center",   "group", "idleinhibit",   "maxsize", "minsize",   "monitor", "move",
-        "opacity",   "plugin:",     "pseudo",     "rounding", "size",  "suppressevent", "tag",     "workspace", "xray",
+        "animation", "bordercolor", "bordersize", "center", "fullscreenstate", "group", "idleinhibit",   "maxsize", "minsize",   "monitor",
+        "move",      "opacity",     "plugin:",    "pseudo", "rounding",        "size",  "suppressevent", "tag",     "workspace", "xray",
     };
 
     const auto VALS = CVarList(RULE, 2, ' ');

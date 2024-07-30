@@ -135,7 +135,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // window rules
     PWINDOW->m_vMatchedRules    = g_pConfigManager->getMatchingRules(PWINDOW, false);
     bool requestsFullscreen     = PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen);
-    bool requestsFakeFullscreen = false;
     bool requestsMaximize       = false;
     bool overridingNoFullscreen = false;
     bool overridingNoMaximize   = false;
@@ -216,8 +215,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         } else if (r.szRule == "fullscreen") {
             requestsFullscreen     = true;
             overridingNoFullscreen = true;
-        } else if (r.szRule == "fakefullscreen") {
-            requestsFakeFullscreen = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
         } else if (r.szRule == "maximize") {
@@ -486,23 +483,18 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if ((requestsFullscreen && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN) || overridingNoFullscreen)) ||
-        (requestsMaximize && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE) || overridingNoMaximize)) || requestsFakeFullscreen) {
+        (requestsMaximize && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE) || overridingNoMaximize))) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow) {
             const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID);
             g_pCompositor->setWindowFullscreenInternal(PFULLWINDOW, FSMODE_NONE);
         }
 
-        if (requestsFakeFullscreen && !PWINDOW->m_bFakeFullscreenState) {
-            PWINDOW->m_bFakeFullscreenState = !PWINDOW->m_bFakeFullscreenState;
-            g_pXWaylandManager->setWindowFullscreen(PWINDOW, true);
-        } else {
-            overridingNoFullscreen = false;
-            overridingNoMaximize   = false;
-            PWINDOW->m_vRealPosition.warp();
-            PWINDOW->m_vRealSize.warp();
-            g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestsFullscreen ? FSMODE_FULLSCREEN : FSMODE_MAXIMIZED);
-        }
+        overridingNoFullscreen = false;
+        overridingNoMaximize   = false;
+        PWINDOW->m_vRealPosition.warp();
+        PWINDOW->m_vRealSize.warp();
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestsFullscreen ? FSMODE_FULLSCREEN : FSMODE_MAXIMIZED);
     }
 
     // recheck idle inhibitors

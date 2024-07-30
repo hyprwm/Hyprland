@@ -1150,7 +1150,7 @@ void CKeybindManager::fullscreenActive(std::string args) {
 
     const eFullscreenMode MODE = args == "1" ? FSMODE_MAXIMIZED : FSMODE_FULLSCREEN;
 
-    if (PWINDOW->m_sFullscreenState.internal == MODE)
+    if (PWINDOW->isEffectiveInternalFSMode(MODE))
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
     else
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, MODE);

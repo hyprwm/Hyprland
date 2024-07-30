@@ -460,7 +460,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 // if there is no data, hide the cursor
                 memset(bufPtr, '\0', buf->size.x * buf->size.y * 4 /* assume 32bpp */);
             }
-            
+
         } else {
             Debug::log(TRACE, "Unsupported cursor buffer/surface, falling back to sw (can't dumb copy)");
             return nullptr;

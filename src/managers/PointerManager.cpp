@@ -449,11 +449,18 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
             const auto SURFACE   = currentCursorImage.surface->resource();
             auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
             Debug::log(TRACE, "cursor texture pixel data length: {}B", shmBuffer.size());
-            // copy cursor texture
-            // assume format is 32bpp
-            size_t STRIDE = 4 * SURFACE->current.bufferSize.x;
-            for (int i = 0; i < SURFACE->current.bufferSize.y; i++)
-                memcpy(bufPtr + i * buf->dmabuf().strides[0], shmBuffer.data() + i * STRIDE, STRIDE);
+
+            if (shmBuffer.data()) {
+                // copy cursor texture
+                // assume format is 32bpp
+                size_t STRIDE = 4 * SURFACE->current.bufferSize.x;
+                for (int i = 0; i < SURFACE->current.bufferSize.y; i++)
+                    memcpy(bufPtr + i * buf->dmabuf().strides[0], shmBuffer.data() + i * STRIDE, STRIDE);
+            } else {
+                // if there is no data, hide the cursor
+                memset(bufPtr, '\0', buf->size.x * buf->size.y * 4 /* assume 32bpp */);
+            }
+            
         } else {
             Debug::log(TRACE, "Unsupported cursor buffer/surface, falling back to sw (can't dumb copy)");
             return nullptr;

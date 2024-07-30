@@ -49,8 +49,6 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 
-pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
-message(STATUS "Found WaylandScanner at ${WaylandScanner}")
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
 pkg_get_variable(WAYLAND_SERVER_DIR wayland-server pkgdatadir)
@@ -232,30 +230,6 @@ target_link_libraries(Hyprland rt PkgConfig::deps)
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)
 
-function(protocol protoPath protoName external)
-  if(external)
-    set(path ${CMAKE_SOURCE_DIR}/${protoPath})
-  else()
-    set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
-  endif()
-
-  add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h
-    COMMAND ${WaylandScanner} server-header ${path}
-            protocols/${protoName}-protocol.h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c
-    COMMAND ${WaylandScanner} private-code ${path}
-            protocols/${protoName}-protocol.c
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_sources(
-    Hyprland PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h
-                     ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.c)
-  target_sources(generate-protocol-headers
-                 PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}-protocol.h)
-endfunction()
-
 function(protocolnew protoPath protoName external)
   if(external)
     set(path ${CMAKE_SOURCE_DIR}/${protoPath})
@@ -288,10 +262,7 @@ endfunction()
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
                       libudis86 uuid)
 
-protocol(
-  "subprojects/hyprland-protocols/protocols/hyprland-global-shortcuts-v1.xml"
-  "hyprland-global-shortcuts-v1" true)
-
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-global-shortcuts-v1" true)
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
 protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-toplevel-export-v1" true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)

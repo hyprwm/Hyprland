@@ -32,6 +32,7 @@ using namespace Hyprutils::String;
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
@@ -776,7 +777,7 @@ std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) 
 
 std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret       = "";
-    const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
+    const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         for (auto& sh : SHORTCUTS)
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);

@@ -812,7 +812,8 @@ bool CMonitor::attemptDirectScanout() {
     // and comes from the appropriate device. This may implode on multi-gpu!!
 
     output->state->setBuffer(PSURFACE->current.buffer);
-    output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+    output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
+                                                                      Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!state.test())
         return false;

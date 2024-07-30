@@ -1193,6 +1193,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             shouldTear = true;
     }
 
+    pMonitor->tearingState.activelyTearing = shouldTear;
+
     if (!*PNODIRECTSCANOUT && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
@@ -1200,11 +1202,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
         }
-    }
-
-    if (pMonitor->tearingState.activelyTearing != shouldTear) {
-        // change of state
-        pMonitor->tearingState.activelyTearing = shouldTear;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);

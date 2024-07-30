@@ -1097,17 +1097,17 @@ bool CWindow::opaque() {
         return false;
 
     if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.buffer)
-        return m_pXWaylandSurface->surface->current.buffer->opaque;
+        return m_pXWaylandSurface->surface->current.texture->m_bOpaque;
 
     if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.buffer)
         return false;
 
     // TODO: this is wrong
     const auto EXTENTS = m_pXDGSurface->surface->current.opaque.getExtents();
-    if (EXTENTS.w >= m_pXDGSurface->surface->current.buffer->size.x && EXTENTS.h >= m_pXDGSurface->surface->current.buffer->size.y)
+    if (EXTENTS.w >= m_pXDGSurface->surface->current.bufferSize.x && EXTENTS.h >= m_pXDGSurface->surface->current.bufferSize.y)
         return true;
 
-    return m_pWLSurface->resource()->current.buffer->opaque;
+    return m_pWLSurface->resource()->current.texture->m_bOpaque;
 }
 
 float CWindow::rounding() {

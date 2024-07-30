@@ -18,6 +18,10 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual bool                          good()                        = 0;
     virtual void                          sendRelease();
     virtual void                          sendReleaseWithSurface(SP<CWLSurfaceResource>);
+    virtual void                          lock();
+    virtual void                          unlock();
+    virtual void                          unlockWithSurface(SP<CWLSurfaceResource> surf);
+    virtual bool                          locked();
 
     SP<CTexture>                          texture;
     bool                                  opaque = false;
@@ -26,4 +30,20 @@ class IHLBuffer : public Aquamarine::IBuffer {
     struct {
         CHyprSignalListener backendRelease;
     } hlEvents;
+
+  private:
+    int nLocks = 0;
+};
+
+// for ref-counting. Releases in ~dtor
+// surface optional
+class CHLBufferReference {
+  public:
+    CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
+    ~CHLBufferReference();
+
+    WP<IHLBuffer> buffer;
+
+  private:
+    WP<CWLSurfaceResource> surface;
 };

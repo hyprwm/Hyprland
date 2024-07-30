@@ -156,7 +156,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
         currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
         currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
-            currentCursorImage.size  = currentCursorImage.surface->resource()->current.buffer ? currentCursorImage.surface->resource()->current.buffer->size : Vector2D{};
+            currentCursorImage.size  = currentCursorImage.surface->resource()->current.buffer ? currentCursorImage.surface->resource()->current.bufferSize : Vector2D{};
             currentCursorImage.scale = currentCursorImage.surface ? currentCursorImage.surface->resource()->current.scale : 1.F;
             recheckEnteredOutputs();
             updateCursorBackend();
@@ -164,7 +164,7 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
         });
 
         if (surf->resource()->current.buffer) {
-            currentCursorImage.size = surf->resource()->current.buffer->size;
+            currentCursorImage.size = surf->resource()->current.bufferSize;
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             surf->resource()->frame(&now);
@@ -430,7 +430,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         // clear buffer
         memset(bufPtr, 0, std::get<2>(bufData));
 
-        auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
+        auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer->buffer.lock();
 
         if (texBuffer) {
             auto textAttrs = texBuffer->shm();
@@ -749,7 +749,7 @@ SP<CTexture> CPointerManager::getCurrentCursorTexture() {
         return currentCursorImage.bufferTex;
     }
 
-    return currentCursorImage.surface->resource()->current.buffer->texture;
+    return currentCursorImage.surface->resource()->current.texture;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {

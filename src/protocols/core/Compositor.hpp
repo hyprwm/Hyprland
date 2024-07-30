@@ -84,13 +84,13 @@ class CWLSurfaceResource {
     } events;
 
     struct SState {
-        CRegion             opaque, input = CBox{{}, {INT32_MAX, INT32_MAX}}, damage, bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}} /* initial damage */;
-        wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL;
-        int                 scale     = 1;
-        SP<IHLBuffer>       buffer;
-        SP<CTexture>        texture;
-        Vector2D            offset;
-        Vector2D            size;
+        CRegion                opaque, input = CBox{{}, {INT32_MAX, INT32_MAX}}, damage, bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}} /* initial damage */;
+        wl_output_transform    transform = WL_OUTPUT_TRANSFORM_NORMAL;
+        int                    scale     = 1;
+        SP<CHLBufferReference> buffer;
+        SP<CTexture>           texture;
+        Vector2D               offset;
+        Vector2D               size, bufferSize;
         struct {
             bool     hasDestination = false;
             bool     hasSource      = false;
@@ -138,6 +138,8 @@ class CWLSurfaceResource {
 
     void           destroy();
     void           releaseBuffers(bool onlyCurrent = true);
+    void           dropPendingBuffer();
+    void           dropCurrentBuffer();
     void           commitPendingState();
     void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
 };

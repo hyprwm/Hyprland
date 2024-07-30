@@ -822,6 +822,8 @@ bool CMonitor::attemptDirectScanout() {
     Debug::log(TRACE, "presentFeedback for DS");
     PSURFACE->presentFeedback(&now, this, true);
 
+    output->state->addDamage(CBox{{}, vecPixelSize});
+
     if (state.commit()) {
         if (lastScanout.expired()) {
             lastScanout = PCANDIDATE;

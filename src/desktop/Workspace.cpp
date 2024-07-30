@@ -484,7 +484,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                             return false;
                         break;
                     case 1: // maximized
-                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FSMODE_FULLSCREEN)
+                        if (!m_bHasFullscreenWindow || m_efFullscreenMode != FSMODE_MAXIMIZED)
                             return false;
                         break;
                     default: break;

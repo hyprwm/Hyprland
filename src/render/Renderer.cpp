@@ -1371,6 +1371,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             frameDamage.add(damage);
 
         g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
+
+        pMonitor->output->state->addDamage(frameDamage);
     }
 
     pMonitor->renderingActive = false;

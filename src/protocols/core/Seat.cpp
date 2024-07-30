@@ -126,8 +126,10 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
             return;
         }
 
-        if (surfResource)
+        if (surfResource) {
             surfResource->role = makeShared<CCursorSurfaceRole>();
+            surfResource->updateCursorShm();
+        }
 
         g_pSeatManager->onSetCursor(owner.lock(), serial, surfResource, {hotX, hotY});
     });

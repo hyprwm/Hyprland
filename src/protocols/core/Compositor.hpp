@@ -143,6 +143,8 @@ class CWLSurfaceResource {
     void           commitPendingState();
     void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     void           updateCursorShm();
+
+    friend class CWLPointerResource;
 };
 
 class CWLCompositorResource {

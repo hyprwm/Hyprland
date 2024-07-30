@@ -66,6 +66,7 @@ class CPluginManager {
 
   private:
     std::string headerError(const eHeadersErrors err);
+    std::string headerErrorShort(const eHeadersErrors err);
 
     std::string m_szWorkingPluginDirectory = "";
 };

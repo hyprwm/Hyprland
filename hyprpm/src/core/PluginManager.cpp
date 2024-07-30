@@ -529,7 +529,8 @@ bool CPluginManager::updateHeaders(bool force) {
 
         std::cout << "\n";
     } else {
-        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID));
+        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID) + " (" +
+                                   headerErrorShort(HEADERSVALID) + ")");
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";
         progress.print();
@@ -878,6 +879,18 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
     }
 
     return std::string{Colors::RED} + "✖" + Colors::RESET + " Unknown header error. Please run hyprpm update to fix those.\n";
+}
+
+std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
+    switch (err) {
+        case HEADERS_CORRUPTED: return "Headers corrupted";
+        case HEADERS_MISMATCHED: return "Headers version mismatched";
+        case HEADERS_NOT_HYPRLAND: return "Not running on Hyprland";
+        case HEADERS_MISSING: return "Headers missing";
+        case HEADERS_DUPLICATED: return "Headers duplicated";
+        default: break;
+    }
+    return "?";
 }
 
 bool CPluginManager::hasDeps() {

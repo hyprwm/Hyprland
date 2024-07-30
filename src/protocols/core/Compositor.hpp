@@ -134,15 +134,19 @@ class CWLSurfaceResource {
     SP<CWlSurface> resource;
     wl_client*     pClient = nullptr;
 
-    int            stateLocks = 0;
+    // this is for cursor dumb copy. Due to our (and wayland's...) architecture,
+    // this stupid-ass hack is used
+    WP<IHLBuffer> lastBuffer;
 
-    void           destroy();
-    void           releaseBuffers(bool onlyCurrent = true);
-    void           dropPendingBuffer();
-    void           dropCurrentBuffer();
-    void           commitPendingState();
-    void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
-    void           updateCursorShm();
+    int           stateLocks = 0;
+
+    void          destroy();
+    void          releaseBuffers(bool onlyCurrent = true);
+    void          dropPendingBuffer();
+    void          dropCurrentBuffer();
+    void          commitPendingState();
+    void          bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    void          updateCursorShm();
 
     friend class CWLPointerResource;
 };

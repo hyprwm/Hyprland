@@ -471,9 +471,16 @@ void CWLSurfaceResource::commitPendingState() {
             previousBuffer->buffer->unlockOnBufferRelease(self);
         }
     }
+
+    lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 }
 
 void CWLSurfaceResource::updateCursorShm() {
+    auto buf = current.buffer ? current.buffer : lastBuffer;
+
+    if (!buf)
+        return;
+
     // TODO: actually use damage
     auto& shmData  = CCursorSurfaceRole::cursorPixelData(self.lock());
     auto  shmAttrs = current.buffer->buffer->shm();

@@ -133,11 +133,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     // window rules
-    PWINDOW->m_vMatchedRules    = g_pConfigManager->getMatchingRules(PWINDOW, false);
-    bool requestsFullscreen     = PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen);
-    bool requestsMaximize       = false;
-    bool overridingNoFullscreen = false;
-    bool overridingNoMaximize   = false;
+    PWINDOW->m_vMatchedRules = g_pConfigManager->getMatchingRules(PWINDOW, false);
+    std::optional<eFullscreenMode> requestedInternalFSMode, requestedClientFSMode;
+    if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
+        requestedClientFSMode = FSMODE_FULLSCREEN;
 
     for (auto& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
@@ -212,14 +211,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else
                     Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
             }
-        } else if (r.szRule == "fullscreen") {
-            requestsFullscreen     = true;
-            overridingNoFullscreen = true;
         } else if (r.szRule == "pin") {
             PWINDOW->m_bPinned = true;
+        } else if (r.szRule == "fullscreen") {
+            requestedInternalFSMode = FSMODE_FULLSCREEN;
         } else if (r.szRule == "maximize") {
-            requestsMaximize     = true;
-            overridingNoMaximize = true;
+            requestedInternalFSMode = FSMODE_MAXIMIZED;
         } else if (r.szRule == "stayfocused") {
             PWINDOW->m_bStayFocused = true;
         } else if (r.szRule.starts_with("group")) {
@@ -458,17 +455,14 @@ void Events::listener_mapWindow(void* owner, void* data) {
     const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(g_pCompositor->m_pLastFocus.lock());
     if (PLSFROMFOCUS && PLSFROMFOCUS->layerSurface->current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         PWINDOW->m_bNoInitialFocus = true;
-    if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow && !requestsFullscreen && !PWINDOW->m_bIsFloating) {
+
+    if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !PWINDOW->m_bIsFloating) {
         if (*PNEWTAKESOVERFS == 0)
             PWINDOW->m_bNoInitialFocus = true;
+        else if (*PNEWTAKESOVERFS == 1)
+            requestedInternalFSMode = PWINDOW->m_pWorkspace->m_efFullscreenMode;
         else if (*PNEWTAKESOVERFS == 2)
             g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), FSMODE_NONE);
-        else if (PWINDOW->isEffectiveInternalFSMode(FSMODE_MAXIMIZED)) {
-            requestsMaximize = true;
-            if (*PNEWTAKESOVERFS == 1)
-                overridingNoMaximize = true;
-        } else
-            requestsFullscreen = true;
     }
 
     if (!PWINDOW->m_sWindowData.noFocus.valueOrDefault() && !PWINDOW->m_bNoInitialFocus &&
@@ -482,19 +476,24 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }
 
-    if ((requestsFullscreen && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN) || overridingNoFullscreen)) ||
-        (requestsMaximize && (!(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE) || overridingNoMaximize))) {
-        // fix fullscreen on requested (basically do a switcheroo)
-        if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow) {
-            const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID);
-            g_pCompositor->setWindowFullscreenInternal(PFULLWINDOW, FSMODE_NONE);
-        }
+    if (requestedClientFSMode.has_value() && !(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN))
+        requestedClientFSMode = (eFullscreenMode)((uint8_t)requestedClientFSMode.value_or(FSMODE_NONE) & ~(uint8_t)FSMODE_FULLSCREEN);
+    if (requestedClientFSMode.has_value() && !(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE))
+        requestedClientFSMode = (eFullscreenMode)((uint8_t)requestedClientFSMode.value_or(FSMODE_NONE) & ~(uint8_t)FSMODE_MAXIMIZED);
 
-        overridingNoFullscreen = false;
-        overridingNoMaximize   = false;
+    if (!PWINDOW->m_bNoInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value())) {
+        // fix fullscreen on requested (basically do a switcheroo)
+        if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow)
+            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), FSMODE_NONE);
+
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestsFullscreen ? FSMODE_FULLSCREEN : FSMODE_MAXIMIZED);
+        if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
+            g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
+        else if (requestedInternalFSMode.has_value())
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestedInternalFSMode.value());
+        else if (requestedClientFSMode.has_value())
+            g_pCompositor->setWindowFullscreenClient(PWINDOW, requestedClientFSMode.value());
     }
 
     // recheck idle inhibitors

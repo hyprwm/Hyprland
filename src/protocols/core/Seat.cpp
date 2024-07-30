@@ -121,7 +121,7 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
 
         auto surfResource = surf ? CWLSurfaceResource::fromResource(surf) : nullptr;
 
-        if (surfResource->role->role() != SURFACE_ROLE_CURSOR && surfResource->role->role() != SURFACE_ROLE_UNASSIGNED) {
+        if (surfResource && surfResource->role->role() != SURFACE_ROLE_CURSOR && surfResource->role->role() != SURFACE_ROLE_UNASSIGNED) {
             r->error(-1, "Cursor surface already has a different role");
             return;
         }

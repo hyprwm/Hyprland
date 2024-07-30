@@ -740,7 +740,7 @@ void CPointerManager::onMonitorLayoutChange() {
 }
 
 SP<CTexture> CPointerManager::getCurrentCursorTexture() {
-    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.buffer))
+    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.texture))
         return nullptr;
 
     if (currentCursorImage.pBuffer) {

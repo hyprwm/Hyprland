@@ -425,7 +425,7 @@ void CWLSurfaceResource::commitPendingState() {
     pending.damage.clear();
     pending.bufferDamage.clear();
 
-    if (current.buffer && current.texture)
+    if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
 
     if (current.buffer) {

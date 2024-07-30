@@ -1,5 +1,6 @@
 #include "Compositor.hpp"
 #include "Output.hpp"
+#include "Seat.hpp"
 #include "../types/WLBuffer.hpp"
 #include <algorithm>
 #include <ranges>
@@ -9,6 +10,7 @@
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
+#include <cstring>
 
 #define LOGM PROTO::compositor->protoLog
 
@@ -431,6 +433,11 @@ void CWLSurfaceResource::commitPendingState() {
     if (current.buffer && current.buffer->buffer) {
         current.buffer->buffer->update(accumulateCurrentBufferDamage());
 
+        // if the surface is a cursor, update the shm buffer
+        // TODO: don't update the entire texture
+        if (role->role() == SURFACE_ROLE_CURSOR)
+            updateCursorShm();
+
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
         if (current.buffer->buffer->isSynchronous())
@@ -466,6 +473,23 @@ void CWLSurfaceResource::commitPendingState() {
             previousBuffer->buffer->unlockOnBufferRelease(self);
         }
     }
+}
+
+void CWLSurfaceResource::updateCursorShm() {
+    // TODO: actually use damage
+    auto& shmData  = CCursorSurfaceRole::cursorPixelData(self.lock());
+    auto  shmAttrs = current.buffer->buffer->shm();
+
+    if (!shmAttrs.success) {
+        LOGM(TRACE, "updateCursorShm: ignoring, not a shm buffer");
+        return;
+    }
+
+    // no need to end, shm.
+    auto [pixelData, fmt, bufLen] = current.buffer->buffer->beginDataPtr(0);
+
+    shmData.resize(bufLen);
+    memcpy(shmData.data(), pixelData, bufLen);
 }
 
 void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync) {

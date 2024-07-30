@@ -116,7 +116,7 @@ class CWLSurfaceResource {
     std::vector<WP<CMonitor>>              enteredOutputs;
     bool                                   mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> subsurfaces;
-    WP<ISurfaceRole>                       role;
+    SP<ISurfaceRole>                       role;
     WP<CViewportResource>                  viewportResource;
     WP<CDRMSyncobjSurfaceResource>         syncobj; // may not be present
 
@@ -142,6 +142,7 @@ class CWLSurfaceResource {
     void           dropCurrentBuffer();
     void           commitPendingState();
     void           bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    void           updateCursorShm();
 };
 
 class CWLCompositorResource {

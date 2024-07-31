@@ -41,6 +41,7 @@ class CXWaylandServer {
     std::array<wl_event_source*, 2> xFDReadEvents = {nullptr, nullptr};
     wl_event_source*                idleSource    = nullptr;
     wl_event_source*                pipeSource    = nullptr;
+    int                             pipeFd        = -1;
     std::array<int, 2>              xwmFDs        = {-1, -1};
     std::array<int, 2>              waylandFDs    = {-1, -1};
 

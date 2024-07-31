@@ -518,6 +518,8 @@ void CCompositor::cleanup() {
 
     // this frees all wayland resources, including sockets
     wl_display_destroy(m_sWLDisplay);
+
+    Debug::close();
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

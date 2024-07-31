@@ -263,6 +263,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
         for (auto& c : n->subsurfaces) {
             if (c->zIndex >= 0)
                 break;
+            if (c->surface.expired())
+                continue;
             nodes2.push_back(c->surface.lock());
         }
     }
@@ -285,6 +287,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     for (auto& n : nodes) {
         for (auto& c : n->subsurfaces) {
             if (c->zIndex < 0)
+                continue;
+            if (c->surface.expired())
                 continue;
             nodes2.push_back(c->surface.lock());
         }

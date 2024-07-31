@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <mutex>
 #include "../includes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 
@@ -22,6 +23,7 @@ enum LogLevel {
 
 namespace Debug {
     inline std::string     logFile;
+    inline std::ofstream   logOfs;
     inline int64_t* const* disableLogs   = nullptr;
     inline int64_t* const* disableTime   = nullptr;
     inline bool            disableStdout = false;
@@ -30,14 +32,18 @@ namespace Debug {
     inline int64_t* const* coloredLogs   = nullptr;
 
     inline std::string     rollingLog = ""; // rolling log contains the ROLLING_LOG_SIZE tail of the log
+    inline std::mutex      logMutex;
 
     void                   init(const std::string& IS);
+    void                   close();
 
     //
     void log(LogLevel level, std::string str);
 
     template <typename... Args>
     void log(LogLevel level, std::format_string<Args...> fmt, Args&&... args) {
+        std::lock_guard<std::mutex> guard(logMutex);
+
         if (level == TRACE && !trace)
             return;
 
@@ -66,5 +72,6 @@ namespace Debug {
         logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
         log(level, logMsg);
+        logMutex.unlock();
     }
 };

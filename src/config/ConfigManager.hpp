@@ -182,6 +182,7 @@ class CConfigManager {
         {"noshortcutsinhibit", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
         {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+        {"syncfullscreen", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
     };

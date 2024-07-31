@@ -354,7 +354,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
 
     // skip scheduling extra frames for fullsreen apps with vrr
     bool shouldSkip =
-        *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
+        *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {

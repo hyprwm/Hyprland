@@ -194,7 +194,7 @@ void CInputManager::endWorkspaceSwipe() {
 
     // apply alpha
     for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
-        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }
 

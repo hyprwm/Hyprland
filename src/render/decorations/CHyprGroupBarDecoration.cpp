@@ -464,7 +464,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
     static auto PSTACKED = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    if (m_pWindow->m_bIsFullscreen && m_pWindow->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)
+    if (m_pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;

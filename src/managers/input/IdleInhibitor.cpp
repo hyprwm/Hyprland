@@ -63,7 +63,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
             return;
         }
 
-        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->m_bIsFullscreen && g_pCompositor->isWorkspaceVisible(w->m_pWorkspace)) {
+        if (w->m_eIdleInhibitMode == IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && g_pCompositor->isWorkspaceVisible(w->m_pWorkspace)) {
             PROTO::idle->setInhibit(true);
             return;
         }

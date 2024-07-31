@@ -7,9 +7,10 @@
 #include "../helpers/MiscFunctions.hpp"
 
 enum eFullscreenMode : int8_t {
-    FULLSCREEN_INVALID = -1,
-    FULLSCREEN_FULL    = 0,
-    FULLSCREEN_MAXIMIZED
+    FSMODE_NONE       = 0,
+    FSMODE_MAXIMIZED  = 1 << 0,
+    FSMODE_FULLSCREEN = 1 << 1,
+    FSMODE_MAX        = (1 << 2) - 1
 };
 
 class CWindow;
@@ -31,7 +32,7 @@ class CWorkspace {
     SWorkspaceIDName m_sPrevWorkspace, m_sPrevWorkspacePerMonitor;
 
     bool             m_bHasFullscreenWindow = false;
-    eFullscreenMode  m_efFullscreenMode     = FULLSCREEN_FULL;
+    eFullscreenMode  m_efFullscreenMode     = FSMODE_NONE;
 
     wl_array         m_wlrCoordinateArr;
 

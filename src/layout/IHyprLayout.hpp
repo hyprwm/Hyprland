@@ -110,7 +110,7 @@ class IHyprLayout {
         The layout sets all the fullscreen flags.
         It can either accept or ignore.
     */
-    virtual void fullscreenRequestForWindow(PHLWINDOW, eFullscreenMode, bool) = 0;
+    virtual void fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE) = 0;
 
     /*
         Called when a dispatcher requests a custom message

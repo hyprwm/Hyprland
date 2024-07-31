@@ -102,10 +102,10 @@ CHyprRenderer::~CHyprRenderer() {
 }
 
 static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
-    if (!surface->current.buffer || !surface->current.buffer->texture)
+    if (!surface->current.texture)
         return;
 
-    const auto& TEXTURE                     = surface->current.buffer->texture;
+    const auto& TEXTURE                     = surface->current.texture;
     const auto  RDATA                       = (SRenderData*)data;
     const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
@@ -192,8 +192,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     windowBox.round();
 
     const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != surface->current.buffer->size /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.buffer->size.x, 3) &&
-        DELTALESSTHAN(windowBox.height, surface->current.buffer->size.y, 3) /* off by one-or-two */ &&
+        windowBox.size() != surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.bufferSize.x, 3) &&
+        DELTALESSTHAN(windowBox.height, surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), MISALIGNEDFSV1);
@@ -1014,7 +1014,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         if (pSurface->current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
-            Vector2D bufferSize   = pSurface->current.buffer->size;
+            Vector2D bufferSize   = pSurface->current.bufferSize;
             auto     bufferSource = pSurface->current.viewport.source;
 
             // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
@@ -1030,8 +1030,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (projSize != Vector2D{} && fixMisalignedFSV1) {
             // instead of nearest_neighbor (we will repeat / skip)
             // just cut off / expand surface
-            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.buffer->size;
-            const Vector2D MISALIGNMENT = pSurface->current.buffer->size - projSize;
+            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.bufferSize;
+            const Vector2D MISALIGNMENT = pSurface->current.bufferSize - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
         }

@@ -62,12 +62,12 @@ void CXWaylandSurface::ensureListeners() {
         });
 
         listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-            if (surface->pending.buffer && !mapped) {
+            if (surface->pending.texture && !mapped) {
                 map();
                 return;
             }
 
-            if (!surface->pending.buffer && mapped) {
+            if (!surface->pending.texture && mapped) {
                 unmap();
                 return;
             }
@@ -131,7 +131,7 @@ void CXWaylandSurface::considerMap() {
         return;
     }
 
-    if (surface->pending.buffer) {
+    if (surface->pending.texture) {
         Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;

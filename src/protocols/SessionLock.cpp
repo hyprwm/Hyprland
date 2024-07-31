@@ -24,7 +24,7 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
     resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) { ackdConfigure = true; });
 
     listeners.surfaceCommit = pSurface->events.commit.registerListener([this](std::any d) {
-        if (!pSurface->current.buffer) {
+        if (!pSurface->current.texture) {
             LOGM(ERR, "SessionLock attached a null buffer");
             resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
             return;

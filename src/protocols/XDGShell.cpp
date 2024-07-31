@@ -347,12 +347,12 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         if (toplevel)
             toplevel->current = toplevel->pending;
 
-        if (initialCommit && surface->pending.buffer) {
+        if (initialCommit && surface->pending.texture) {
             resource->error(-1, "Buffer attached before initial commit");
             return;
         }
 
-        if (surface->current.buffer && !mapped) {
+        if (surface->current.texture && !mapped) {
             // this forces apps to not draw CSD.
             if (toplevel)
                 toplevel->setMaximized(true);
@@ -363,7 +363,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
             return;
         }
 
-        if (!surface->current.buffer && mapped) {
+        if (!surface->current.texture && mapped) {
             mapped = false;
             events.unmap.emit();
             surface->unmap();

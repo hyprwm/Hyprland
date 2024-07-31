@@ -29,7 +29,6 @@ bool CWLBufferResource::good() {
 }
 
 void CWLBufferResource::sendRelease() {
-    released = true;
     resource->sendRelease();
 }
 

@@ -211,8 +211,8 @@ struct SInitialWorkspaceToken {
 };
 
 struct sFullscreenState {
-    eFullscreenMode internal;
-    eFullscreenMode client;
+    eFullscreenMode internal = FSMODE_NONE;
+    eFullscreenMode client   = FSMODE_NONE;
 };
 
 class CWindow {

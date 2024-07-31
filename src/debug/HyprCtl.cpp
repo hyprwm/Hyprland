@@ -1604,6 +1604,10 @@ CHyprCtl::CHyprCtl() {
 CHyprCtl::~CHyprCtl() {
     if (m_eventSource)
         wl_event_source_remove(m_eventSource);
+    if (m_iSocketFD >= 0)
+        close(m_iSocketFD);
+    if (!m_socketPath.empty())
+        unlink(m_socketPath.c_str());
 }
 
 SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
@@ -1821,9 +1825,9 @@ void CHyprCtl::startHyprCtlSocket() {
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-    std::string socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
+    m_socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
 
-    strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
+    strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
     if (bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
@@ -1833,7 +1837,7 @@ void CHyprCtl::startHyprCtlSocket() {
     // 10 max queued.
     listen(m_iSocketFD, 10);
 
-    Debug::log(LOG, "Hypr socket started at {}", socketPath);
+    Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

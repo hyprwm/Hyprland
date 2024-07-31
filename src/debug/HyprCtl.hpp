@@ -31,6 +31,7 @@ class CHyprCtl {
 
     std::vector<SP<SHyprCtlCommand>> m_vCommands;
     wl_event_source*                 m_eventSource = nullptr;
+    std::string                      m_socketPath;
 };
 
 inline std::unique_ptr<CHyprCtl> g_pHyprCtl;

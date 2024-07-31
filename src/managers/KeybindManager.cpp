@@ -1174,9 +1174,13 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
         clientMode = std::stoi(ARGS[1]);
     } catch (std::exception& e) { clientMode = -1; }
 
-    g_pCompositor->setWindowFullscreenState(PWINDOW,
-                                            sFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
-                                                             .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)});
+    const sFullscreenState STATE = sFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
+                                                    .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)};
+
+    if (PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client)
+        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+    else
+        g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {

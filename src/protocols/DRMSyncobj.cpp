@@ -47,7 +47,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if ((acquireTimeline || releaseTimeline) && !surface->pending.buffer) {
+        if ((acquireTimeline || releaseTimeline) && !surface->pending.texture) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
             surface->pending.rejected = true;
             return;

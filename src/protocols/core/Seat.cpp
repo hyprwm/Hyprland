@@ -119,7 +119,19 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
             return;
         }
 
-        g_pSeatManager->onSetCursor(owner.lock(), serial, surf ? CWLSurfaceResource::fromResource(surf) : nullptr, {hotX, hotY});
+        auto surfResource = surf ? CWLSurfaceResource::fromResource(surf) : nullptr;
+
+        if (surfResource && surfResource->role->role() != SURFACE_ROLE_CURSOR && surfResource->role->role() != SURFACE_ROLE_UNASSIGNED) {
+            r->error(-1, "Cursor surface already has a different role");
+            return;
+        }
+
+        if (surfResource) {
+            surfResource->role = makeShared<CCursorSurfaceRole>();
+            surfResource->updateCursorShm();
+        }
+
+        g_pSeatManager->onSetCursor(owner.lock(), serial, surfResource, {hotX, hotY});
     });
 
     if (g_pSeatManager->state.pointerFocus && g_pSeatManager->state.pointerFocus->client() == resource->client())
@@ -545,4 +557,11 @@ SP<CWLSeatResource> CWLSeatProtocol::seatResourceForClient(wl_client* client) {
     }
 
     return nullptr;
+}
+
+std::vector<uint8_t>& CCursorSurfaceRole::cursorPixelData(SP<CWLSurfaceResource> surface) {
+    RASSERT(surface->role->role() == SURFACE_ROLE_CURSOR, "cursorPixelData called on a non-cursor surface");
+
+    auto role = (CCursorSurfaceRole*)surface->role.get();
+    return role->cursorShmPixelData;
 }

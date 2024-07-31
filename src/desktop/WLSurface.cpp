@@ -57,12 +57,12 @@ bool CWLSurface::small() const {
     if (!validMapped(m_pWindowOwner) || !exists())
         return false;
 
-    if (!m_pResource->current.buffer)
+    if (!m_pResource->current.texture)
         return false;
 
     const auto O = m_pWindowOwner.lock();
 
-    return O->m_vReportedSize.x > m_pResource->current.buffer->size.x + 1 || O->m_vReportedSize.y > m_pResource->current.buffer->size.y + 1;
+    return O->m_vReportedSize.x > m_pResource->current.bufferSize.x + 1 || O->m_vReportedSize.y > m_pResource->current.bufferSize.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
@@ -76,37 +76,36 @@ Vector2D CWLSurface::correctSmallVec() const {
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
-    if (!exists() || !small() || m_bFillIgnoreSmall || !m_pResource->current.buffer)
+    if (!exists() || !small() || m_bFillIgnoreSmall || !m_pResource->current.texture)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
-    const auto BS   = m_pResource->current.buffer->size;
+    const auto BS   = m_pResource->current.bufferSize;
 
     return Vector2D{(BS.x - SIZE.x) / 2, (BS.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY});
 }
 
 Vector2D CWLSurface::getViewporterCorrectedSize() const {
-    if (!exists() || !m_pResource->current.buffer)
+    if (!exists() || !m_pResource->current.texture)
         return {};
 
-    return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.buffer->size;
+    return m_pResource->current.viewport.hasDestination ? m_pResource->current.viewport.destination : m_pResource->current.bufferSize;
 }
 
 CRegion CWLSurface::computeDamage() const {
-    if (!m_pResource->current.buffer)
+    if (!m_pResource->current.texture)
         return {};
 
     CRegion damage = m_pResource->accumulateCurrentBufferDamage();
-    damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.buffer->size.x, m_pResource->current.buffer->size.y);
+    damage.transform(wlTransformToHyprutils(m_pResource->current.transform), m_pResource->current.bufferSize.x, m_pResource->current.bufferSize.y);
 
-    const auto BUFSIZE    = m_pResource->current.buffer->size;
+    const auto BUFSIZE    = m_pResource->current.bufferSize;
     const auto CORRECTVEC = correctSmallVecBuf();
 
     if (m_pResource->current.viewport.hasSource)
         damage.intersect(m_pResource->current.viewport.source);
 
-    const auto SCALEDSRCSIZE =
-        m_pResource->current.viewport.hasSource ? m_pResource->current.viewport.source.size() * m_pResource->current.scale : m_pResource->current.buffer->size;
+    const auto SCALEDSRCSIZE = m_pResource->current.viewport.hasSource ? m_pResource->current.viewport.source.size() * m_pResource->current.scale : m_pResource->current.bufferSize;
 
     damage.scale({BUFSIZE.x / SCALEDSRCSIZE.x, BUFSIZE.y / SCALEDSRCSIZE.y});
     damage.translate(CORRECTVEC);
@@ -114,7 +113,7 @@ CRegion CWLSurface::computeDamage() const {
     // go from buffer coords in the damage to hl logical
 
     const auto     BOX   = getSurfaceBoxGlobal();
-    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_pResource->current.buffer->size :
+    const Vector2D SCALE = BOX.has_value() ? BOX->size() / m_pResource->current.bufferSize :
                                              Vector2D{1.0 / m_pResource->current.scale, 1.0 / m_pResource->current.scale /* Wrong... but we can't really do better */};
 
     damage.scale(SCALE);

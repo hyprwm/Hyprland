@@ -801,17 +801,16 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != vecPixelSize || PSURFACE->current.transform != transform)
+    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.bufferSize != vecPixelSize || PSURFACE->current.transform != transform)
         return false;
 
     // we can't scanout shm buffers.
-    if (!PSURFACE->current.buffer->dmabuf().success)
+    if (!PSURFACE->current.buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
-
-    output->state->setBuffer(PSURFACE->current.buffer);
+    output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 

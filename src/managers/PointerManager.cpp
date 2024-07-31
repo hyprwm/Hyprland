@@ -4,6 +4,7 @@
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/Seat.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
 #include <cstring>
@@ -156,15 +157,15 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
         currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
         currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
-            currentCursorImage.size  = currentCursorImage.surface->resource()->current.buffer ? currentCursorImage.surface->resource()->current.buffer->size : Vector2D{};
+            currentCursorImage.size  = currentCursorImage.surface->resource()->current.texture ? currentCursorImage.surface->resource()->current.bufferSize : Vector2D{};
             currentCursorImage.scale = currentCursorImage.surface ? currentCursorImage.surface->resource()->current.scale : 1.F;
             recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
         });
 
-        if (surf->resource()->current.buffer) {
-            currentCursorImage.size = surf->resource()->current.buffer->size;
+        if (surf->resource()->current.texture) {
+            currentCursorImage.size = surf->resource()->current.bufferSize;
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             surf->resource()->frame(&now);
@@ -430,16 +431,39 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         // clear buffer
         memset(bufPtr, 0, std::get<2>(bufData));
 
-        auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
+        if (currentCursorImage.pBuffer) {
+            auto texAttrs = currentCursorImage.pBuffer->shm();
 
-        if (texBuffer) {
-            auto textAttrs = texBuffer->shm();
-            auto texData   = texBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
-            auto texPtr    = std::get<0>(texData);
-            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, textAttrs.stride);
+            if (!texAttrs.success) {
+                Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
+                return nullptr;
+            }
+
+            auto texData = currentCursorImage.pBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
+            auto texPtr  = std::get<0>(texData);
+            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", texAttrs.size.x, texAttrs.size.y, (void*)texPtr, texAttrs.format, texAttrs.stride);
             // copy cursor texture
-            for (int i = 0; i < texBuffer->shm().size.y; i++)
-                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
+            for (int i = 0; i < texAttrs.size.y; i++)
+                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * texAttrs.stride, texAttrs.stride);
+        } else if (currentCursorImage.surface && currentCursorImage.surface->resource()->role->role() == SURFACE_ROLE_CURSOR) {
+            const auto SURFACE   = currentCursorImage.surface->resource();
+            auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
+            Debug::log(TRACE, "cursor texture pixel data length: {}B", shmBuffer.size());
+
+            if (shmBuffer.data()) {
+                // copy cursor texture
+                // assume format is 32bpp
+                size_t STRIDE = 4 * SURFACE->current.bufferSize.x;
+                for (int i = 0; i < SURFACE->current.bufferSize.y; i++)
+                    memcpy(bufPtr + i * buf->dmabuf().strides[0], shmBuffer.data() + i * STRIDE, STRIDE);
+            } else {
+                // if there is no data, hide the cursor
+                memset(bufPtr, '\0', buf->size.x * buf->size.y * 4 /* assume 32bpp */);
+            }
+
+        } else {
+            Debug::log(TRACE, "Unsupported cursor buffer/surface, falling back to sw (can't dumb copy)");
+            return nullptr;
         }
 
         buf->endDataPtr();
@@ -740,7 +764,7 @@ void CPointerManager::onMonitorLayoutChange() {
 }
 
 SP<CTexture> CPointerManager::getCurrentCursorTexture() {
-    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.buffer))
+    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.texture))
         return nullptr;
 
     if (currentCursorImage.pBuffer) {
@@ -749,7 +773,7 @@ SP<CTexture> CPointerManager::getCurrentCursorTexture() {
         return currentCursorImage.bufferTex;
     }
 
-    return currentCursorImage.surface->resource()->current.buffer->texture;
+    return currentCursorImage.surface->resource()->current.texture;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {

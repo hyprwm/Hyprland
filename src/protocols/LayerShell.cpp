@@ -44,7 +44,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         current           = pending;
         pending.committed = 0;
 
-        bool attachedBuffer = surface->current.buffer;
+        bool attachedBuffer = surface->current.texture;
 
         if (attachedBuffer && !configured) {
             surface->error(-1, "layerSurface was not configured, but a buffer was attached");

@@ -666,8 +666,9 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
             return;
         }
 
-        RESOURCE->self = RESOURCE;
-        SURF->role     = RESOURCE;
+        RESOURCE->self    = RESOURCE;
+        RESOURCE->surface = SURF;
+        SURF->role        = RESOURCE;
 
         surfaces.emplace_back(RESOURCE);
 

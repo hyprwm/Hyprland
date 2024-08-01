@@ -480,14 +480,14 @@ void CWLSurfaceResource::commitPendingState() {
 }
 
 void CWLSurfaceResource::updateCursorShm() {
-    auto buf = current.buffer ? current.buffer : lastBuffer;
+    auto buf = current.buffer ? current.buffer->buffer : lastBuffer;
 
     if (!buf)
         return;
 
     // TODO: actually use damage
     auto& shmData  = CCursorSurfaceRole::cursorPixelData(self.lock());
-    auto  shmAttrs = current.buffer->buffer->shm();
+    auto  shmAttrs = buf->shm();
 
     if (!shmAttrs.success) {
         LOGM(TRACE, "updateCursorShm: ignoring, not a shm buffer");
@@ -495,7 +495,7 @@ void CWLSurfaceResource::updateCursorShm() {
     }
 
     // no need to end, shm.
-    auto [pixelData, fmt, bufLen] = current.buffer->buffer->beginDataPtr(0);
+    auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
 
     shmData.resize(bufLen);
     memcpy(shmData.data(), pixelData, bufLen);

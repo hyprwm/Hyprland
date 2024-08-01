@@ -790,6 +790,11 @@ void Events::listener_destroyWindow(void* owner, void* data) {
         Debug::log(LOG, "Unmapped {} removed instantly", PWINDOW);
         g_pCompositor->removeWindowFromVectorSafe(PWINDOW); // most likely X11 unmanaged or sumn
     }
+
+    PWINDOW->listeners.unmap.reset();
+    PWINDOW->listeners.destroy.reset();
+    PWINDOW->listeners.map.reset();
+    PWINDOW->listeners.commit.reset();
 }
 
 void Events::listener_setTitleWindow(void* owner, void* data) {

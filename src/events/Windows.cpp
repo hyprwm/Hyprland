@@ -487,9 +487,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_fDimPercent.setValueAndWarp(0);
     }
 
-    if (requestedClientFSMode.has_value() && !(PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN))
+    if (requestedClientFSMode.has_value() && (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN))
         requestedClientFSMode = (eFullscreenMode)((uint8_t)requestedClientFSMode.value_or(FSMODE_NONE) & ~(uint8_t)FSMODE_FULLSCREEN);
-    if (requestedClientFSMode.has_value() && !(PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE))
+    if (requestedClientFSMode.has_value() && (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE))
         requestedClientFSMode = (eFullscreenMode)((uint8_t)requestedClientFSMode.value_or(FSMODE_NONE) & ~(uint8_t)FSMODE_MAXIMIZED);
 
     if (!PWINDOW->m_bNoInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {

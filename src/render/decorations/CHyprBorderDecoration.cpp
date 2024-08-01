@@ -1,6 +1,7 @@
 #include "CHyprBorderDecoration.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
     m_pWindow = pWindow;
@@ -82,8 +83,17 @@ eDecorationType CHyprBorderDecoration::getDecorationType() {
 }
 
 void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
-    if (m_pWindow->getRealBorderSize() != m_seExtents.topLeft.x)
-        g_pDecorationPositioner->repositionDeco(this);
+    auto borderSize = m_pWindow->getRealBorderSize();
+
+    if (borderSize == m_iLastBorderSize)
+        return;
+
+    if (borderSize <= 0 && m_iLastBorderSize <= 0)
+        return;
+
+    m_iLastBorderSize = borderSize;
+
+    g_pEventLoopManager->doLater([this]() { g_pDecorationPositioner->repositionDeco(this); });
 }
 
 void CHyprBorderDecoration::damageEntire() {

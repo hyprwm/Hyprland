@@ -111,6 +111,11 @@ void CLayerSurface::onDestroy() {
     layerSurface.reset();
     if (surface)
         surface->unassign();
+
+    listeners.unmap.reset();
+    listeners.destroy.reset();
+    listeners.map.reset();
+    listeners.commit.reset();
 }
 
 void CLayerSurface::onMap() {

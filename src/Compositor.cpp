@@ -2316,9 +2316,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
     g_pEventManager->postEvent(SHyprIPCEvent{"fullscreen", std::to_string((int)EFFECTIVE_MODE != FSMODE_NONE)});
     EMIT_HOOK_EVENT("fullscreen", PWINDOW);
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
+    PWINDOW->updateDynamicRules();
     PWINDOW->updateWindowDecos();
     updateWindowAnimatedDecorationValues(PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
 
     // make all windows on the same workspace under the fullscreen window
     for (auto& w : m_vWindows) {

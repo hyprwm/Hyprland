@@ -131,11 +131,13 @@ class CEGLSync {
 
     EGLSyncKHR sync = nullptr;
 
-    int        dupFenceFD();
+    int        fd();
     bool       wait();
 
   private:
     CEGLSync() = default;
+
+    int m_iFd = -1;
 
     friend class CHyprOpenGLImpl;
 };

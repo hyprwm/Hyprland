@@ -11,6 +11,7 @@
 */
 
 class CSyncTimeline;
+class CEGLSync;
 
 class CSyncReleaser {
   public:
@@ -21,10 +22,11 @@ class CSyncReleaser {
     void drop();
 
     // wait for this gpu job to finish before releasing
-    void addReleaseSyncFD(int syncFD);
+    void addReleaseSync(SP<CEGLSync> sync);
 
   private:
     WP<CSyncTimeline> timeline;
     uint64_t          point = 0;
     int               fd    = -1;
+    SP<CEGLSync>      sync;
 };

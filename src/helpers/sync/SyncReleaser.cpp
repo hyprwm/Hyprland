@@ -14,8 +14,8 @@ CSyncReleaser::~CSyncReleaser() {
         timeline->signal(point);
 }
 
-void CSyncReleaser::addReleaseSyncFD(int syncFD) {
-    fd = syncFD;
+void CSyncReleaser::addReleaseSync(SP<CEGLSync> sync_) {
+    sync = sync_;
 }
 
 void CSyncReleaser::drop() {

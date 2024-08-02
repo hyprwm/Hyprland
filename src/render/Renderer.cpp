@@ -1436,12 +1436,11 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     if (!sync)
         Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
     else {
-        int fd = sync->dupFenceFD();
         for (auto& e : explicitPresented) {
             if (!e->current.buffer || !e->current.buffer->releaser)
                 continue;
 
-            e->current.buffer->releaser->addReleaseSyncFD(fd);
+            e->current.buffer->releaser->addReleaseSync(sync);
         }
     }
 
@@ -2662,7 +2661,7 @@ void CHyprRenderer::endRender() {
                 return;
             }
 
-            auto dupedfd = sync->dupFenceFD();
+            auto dupedfd = sync->fd();
             sync.reset();
             if (dupedfd < 0) {
                 m_pCurrentRenderbuffer->unbind();

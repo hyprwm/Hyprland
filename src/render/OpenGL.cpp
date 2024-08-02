@@ -2887,11 +2887,18 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
         return nullptr;
     }
 
-    // we need to flush otherwise we might not get a valid fd later
+    // we need to flush otherwise we might not get a valid fd
     glFlush();
 
-    auto eglsync  = SP<CEGLSync>(new CEGLSync);
-    eglsync->sync = sync;
+    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
+    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
+        return nullptr;
+    }
+
+    auto eglsync   = SP<CEGLSync>(new CEGLSync);
+    eglsync->sync  = sync;
+    eglsync->m_iFd = fd;
     return eglsync;
 }
 
@@ -2984,19 +2991,13 @@ CEGLSync::~CEGLSync() {
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
+
+    if (m_iFd >= 0)
+        close(m_iFd);
 }
 
-int CEGLSync::dupFenceFD() {
-    if (sync == EGL_NO_SYNC_KHR)
-        return -1;
-
-    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
-        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
-        return -1;
-    }
-
-    return fd;
+int CEGLSync::fd() {
+    return m_iFd;
 }
 
 bool CEGLSync::wait() {

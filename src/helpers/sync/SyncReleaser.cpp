@@ -8,8 +8,8 @@ CSyncReleaser::~CSyncReleaser() {
     if (timeline.expired())
         return;
 
-    if (fd >= 0)
-        timeline->importFromSyncFileFD(point, fd);
+    if (sync)
+        timeline->importFromSyncFileFD(point, sync->fd());
     else
         timeline->signal(point);
 }

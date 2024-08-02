@@ -27,6 +27,5 @@ class CSyncReleaser {
   private:
     WP<CSyncTimeline> timeline;
     uint64_t          point = 0;
-    int               fd    = -1;
     SP<CEGLSync>      sync;
 };

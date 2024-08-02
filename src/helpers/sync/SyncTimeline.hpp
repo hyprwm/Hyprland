@@ -35,6 +35,7 @@ class CSyncTimeline {
     int                 exportAsSyncFileFD(uint64_t src);
     bool                importFromSyncFileFD(uint64_t dst, int fd);
     bool                transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint);
+    void                signal(uint64_t point);
 
     int                 drmFD  = -1;
     uint32_t            handle = 0;

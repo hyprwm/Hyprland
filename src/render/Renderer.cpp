@@ -1445,8 +1445,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         close(pMonitor->output->state->state().explicitInFence);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        if (ok)
+        if (ok) {
             pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
+            pMonitor->outTimeline->signal(pMonitor->commitSeq);
+        }
         close(pMonitor->output->state->state().explicitOutFence);
     }
 

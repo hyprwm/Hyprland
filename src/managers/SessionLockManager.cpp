@@ -71,7 +71,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
-    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([](std::any data) {
+    m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([this](std::any data) {
+        m_pSessionLock.reset();
         g_pCompositor->focusSurface(nullptr);
 
         for (auto& m : g_pCompositor->m_vMonitors)
@@ -104,7 +105,7 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
 // We don't want the red screen to flash.
 float CSessionLockManager::getRedScreenAlphaForMonitor(uint64_t id) {
     if (!m_pSessionLock)
-        return 0.F;
+        return 1.F;
 
     const auto& NOMAPPEDSURFACETIMER = m_pSessionLock->mMonitorsWithoutMappedSurfaceTimers.find(id);
 

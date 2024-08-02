@@ -83,14 +83,15 @@ class CCursorManager {
     };
 
     struct SXCursorManager {
-        void                                          loadTheme(const std::string& name, int size);
+        void                                              loadTheme(const std::string& name, int size);
+        std::string                                       getLegacyShapeName(std::string const& shape);
+        SP<SXCursor>                                      createDefaultCursor();
 
-        int                                           lastLoadSize = 0;
-
-        bool                                          themeLoaded = false;
-        std::string                                   themeName   = "";
-        SP<SXCursor>                                  defaultCursor;
-        std::unordered_map<std::string, SP<SXCursor>> cursors;
+        int                                               lastLoadSize = 0;
+        bool                                              themeLoaded  = false;
+        std::string                                       themeName    = "";
+        SP<SXCursor>                                      defaultCursor;
+        std::vector<std::pair<std::string, SP<SXCursor>>> cursors;
     } xcursor;
 };
 

@@ -124,7 +124,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
     m_pSessionLock->m_lockedMonitors.emplace(id);
     const auto MONITORS = g_pCompositor->m_vMonitors;
     const bool LOCKED   = std::all_of(MONITORS.begin(), MONITORS.end(), [this](auto m) { return m_pSessionLock->m_lockedMonitors.contains(m->ID); });
-    if (LOCKED) {
+    if (LOCKED && m_pSessionLock->lock->good()) {
         m_pSessionLock->lock->sendLocked();
         m_pSessionLock->m_hasSentLocked = true;
     }

@@ -32,10 +32,6 @@ void CWLBufferResource::sendRelease() {
     resource->sendRelease();
 }
 
-void CWLBufferResource::sendReleaseWithSurface(SP<CWLSurfaceResource> surf) {
-    sendRelease();
-}
-
 wl_resource* CWLBufferResource::getResource() {
     return resource->resource();
 }

@@ -142,6 +142,7 @@ class CHyprRenderer {
     friend class CToplevelExportFrame;
     friend class CInputManager;
     friend class CPointerManager;
+    friend class CMonitor;
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

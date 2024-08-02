@@ -8,6 +8,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
+#include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -817,6 +818,11 @@ bool CMonitor::attemptDirectScanout() {
     if (!state.test())
         return false;
 
+    // wait for the implicit fence if present
+    const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline;
+    if (DOEXPLICIT)
+        g_pHyprOpenGL->waitForTimelinePoint(PSURFACE->syncobj->acquireTimeline->timeline, PSURFACE->syncobj->acquirePoint);
+
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     Debug::log(TRACE, "presentFeedback for DS");
@@ -824,10 +830,19 @@ bool CMonitor::attemptDirectScanout() {
 
     output->state->addDamage(CBox{{}, vecPixelSize});
 
-    if (state.commit()) {
+    if (output->commit()) {
         if (lastScanout.expired()) {
             lastScanout = PCANDIDATE;
             Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
+        }
+
+        // delay explicit sync feedback until kms release of the buffer
+        if (DOEXPLICIT) {
+            PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
+                const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->releaseTimeline && PSURFACE->syncobj->releaseTimeline->timeline;
+                if (DOEXPLICIT)
+                    PSURFACE->syncobj->releaseTimeline->timeline->signal(PSURFACE->syncobj->releasePoint);
+            });
         }
     } else {
         lastScanout.reset();

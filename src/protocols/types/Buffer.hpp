@@ -15,10 +15,8 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual bool                          isSynchronous()               = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
     virtual bool                          good()                        = 0;
     virtual void                          sendRelease();
-    virtual void                          sendReleaseWithSurface(SP<CWLSurfaceResource>);
     virtual void                          lock();
     virtual void                          unlock();
-    virtual void                          unlockWithSurface(SP<CWLSurfaceResource> surf);
     virtual bool                          locked();
 
     void                                  unlockOnBufferRelease(WP<CWLSurfaceResource> surf /* optional */);
@@ -29,12 +27,11 @@ class IHLBuffer : public Aquamarine::IBuffer {
 
     struct {
         CHyprSignalListener backendRelease;
+        CHyprSignalListener backendRelease2; // for explicit ds
     } hlEvents;
 
   private:
-    int                    nLocks = 0;
-
-    WP<CWLSurfaceResource> unlockSurface;
+    int nLocks = 0;
 };
 
 // for ref-counting. Releases in ~dtor

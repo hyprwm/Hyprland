@@ -1425,12 +1425,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         }
 
         explicitPresented.clear();
-        auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
-        if (outFence < 0)
-            Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
-
-        pMonitor->output->state->setExplicitOutFence(outFence);
-        Debug::log(TRACE, "Explicit sync presented end");
     }
 
     pMonitor->lastWaitPoint = 0;

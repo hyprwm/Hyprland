@@ -1,6 +1,7 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "math/Math.hpp"
+#include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -838,6 +839,9 @@ bool CMonitor::attemptDirectScanout() {
 
         // delay explicit sync feedback until kms release of the buffer
         if (DOEXPLICIT) {
+            Debug::log(TRACE, "Delaying explicit sync release feedback until kms release");
+            PSURFACE->current.buffer->releaser->drop();
+
             PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
                 const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->releaseTimeline && PSURFACE->syncobj->releaseTimeline->timeline;
                 if (DOEXPLICIT)

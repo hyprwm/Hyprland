@@ -2651,7 +2651,36 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (!PMONITOR->inTimeline || !*PENABLEEXPLICIT) {
+        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
+            auto sync = g_pHyprOpenGL->createEGLSync(-1);
+            if (!sync) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
+                return;
+            }
+
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
+            if (!ok) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
+                return;
+            }
+
+            auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
+            if (fd <= 0) {
+                m_pCurrentRenderbuffer->unbind();
+                m_pCurrentRenderbuffer = nullptr;
+                m_pCurrentBuffer       = nullptr;
+                Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
+                return;
+            }
+
+            PMONITOR->output->state->setExplicitInFence(fd);
+        } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();
             else

@@ -1403,7 +1403,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
-    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
 
     // apply timelines for explicit sync
     pMonitor->output->state->resetExplicitFences();
@@ -2636,7 +2636,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
-    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
 
     PMONITOR->commitSeq++;
 

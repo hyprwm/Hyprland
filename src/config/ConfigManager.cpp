@@ -560,7 +560,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:col.locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66ff5500"});
     m_pConfig->addConfigValue("group:groupbar:col.locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66775500"});
 
-    m_pConfig->addConfigValue("experimental:explicit_sync", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("render:explicit_sync", Hyprlang::INT{1});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});

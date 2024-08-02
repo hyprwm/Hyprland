@@ -3,6 +3,7 @@
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
+#include "config/ConfigValue.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
@@ -798,6 +799,9 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
+    static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static bool       prevEnabledExplicit = *PENABLEEXPLICIT;
+
     for (auto& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
     }
@@ -815,6 +819,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     if (!isFirstLaunch)
         g_pHyprOpenGL->m_bReloadScreenShader = true;
+
+    if (!isFirstLaunch && *PENABLEEXPLICIT != prevEnabledExplicit)
+        g_pHyprError->queueCreate("Warning: You changed the render:explicit_sync option, this requires you to restart Hyprland.", CColor(0.9, 0.76, 0.221, 1.0));
 
     // parseError will be displayed next frame
 

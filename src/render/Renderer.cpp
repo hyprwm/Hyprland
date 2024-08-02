@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
@@ -1408,22 +1409,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
     pMonitor->output->state->resetExplicitFences();
 
-    auto signalPresented = [this]() {
-        if (explicitPresented.empty())
-            return;
-
-        Debug::log(TRACE, "Explicit sync presented begin, {} syncobjs to signal", explicitPresented.size());
-
-        for (auto& e : explicitPresented) {
-            if (!e->syncobj || !e->syncobj->releaseTimeline || e->syncobj->releasePoint <= 0)
-                continue;
-
-            Debug::log(TRACE, "Explicit sync presented releasePoint {} for timeline handle {}", e->syncobj->releasePoint, e->syncobj->releaseTimeline->timeline->handle);
-
-            e->syncobj->releaseTimeline->timeline->signal(e->syncobj->releasePoint);
-        }
-    };
-
     bool ok = pMonitor->state.commit();
     if (!ok) {
         Debug::log(TRACE, "Monitor state commit failed");
@@ -1445,7 +1430,20 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     } else
         Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
 
-    signalPresented();
+    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
+    auto sync = g_pHyprOpenGL->createEGLSync(-1);
+
+    if (!sync)
+        Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
+    else {
+        int fd = sync->dupFenceFD();
+        for (auto& e : explicitPresented) {
+            if (!e->current.buffer || !e->current.buffer->releaser)
+                continue;
+
+            e->current.buffer->releaser->addReleaseSyncFD(fd);
+        }
+    }
 
     explicitPresented.clear();
 

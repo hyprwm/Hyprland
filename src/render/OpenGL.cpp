@@ -2887,6 +2887,9 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
         return nullptr;
     }
 
+    // we need to flush otherwise we might not get a valid fd later
+    glFlush();
+
     auto eglsync  = SP<CEGLSync>(new CEGLSync);
     eglsync->sync = sync;
     return eglsync;

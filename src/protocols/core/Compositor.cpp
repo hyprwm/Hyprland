@@ -7,6 +7,7 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
@@ -428,6 +429,9 @@ void CWLSurfaceResource::commitPendingState() {
     current = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
+
+    if (syncobj && syncobj->releaseTimeline && syncobj->releaseTimeline->timeline && current.buffer && current.buffer->buffer)
+        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->releaseTimeline->timeline, syncobj->releasePoint);
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);

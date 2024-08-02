@@ -6,6 +6,8 @@
 
 #include <aquamarine/buffer/Buffer.hpp>
 
+class CSyncReleaser;
+
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
     virtual ~IHLBuffer();
@@ -41,7 +43,8 @@ class CHLBufferReference {
     CHLBufferReference(SP<IHLBuffer> buffer, SP<CWLSurfaceResource> surface);
     ~CHLBufferReference();
 
-    WP<IHLBuffer> buffer;
+    WP<IHLBuffer>     buffer;
+    SP<CSyncReleaser> releaser;
 
   private:
     WP<CWLSurfaceResource> surface;

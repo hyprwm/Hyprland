@@ -1408,26 +1408,21 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // apply timelines for explicit sync
     pMonitor->output->state->resetExplicitFences();
 
-    bool anyExplicit = !explicitPresented.empty();
-    if (anyExplicit) {
-        Debug::log(TRACE, "Explicit sync presented begin");
-        auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
-        if (inFence < 0)
-            Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
+    auto signalPresented = [this]() {
+        if (explicitPresented.empty())
+            return;
 
-        pMonitor->output->state->setExplicitInFence(inFence);
+        Debug::log(TRACE, "Explicit sync presented begin, {} syncobjs to signal", explicitPresented.size());
 
         for (auto& e : explicitPresented) {
-            Debug::log(TRACE, "Explicit sync presented releasePoint {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
-            if (!e->syncobj || !e->syncobj->releaseTimeline)
+            if (!e->syncobj || !e->syncobj->releaseTimeline || e->syncobj->releasePoint <= 0)
                 continue;
-            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
+
+            Debug::log(TRACE, "Explicit sync presented releasePoint {} for timeline handle {}", e->syncobj->releasePoint, e->syncobj->releaseTimeline->timeline->handle);
+
+            e->syncobj->releaseTimeline->timeline->signal(e->syncobj->releasePoint);
         }
-
-        explicitPresented.clear();
-    }
-
-    pMonitor->lastWaitPoint = 0;
+    };
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
@@ -1445,12 +1440,14 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         close(pMonitor->output->state->state().explicitInFence);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        if (ok) {
-            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
-            pMonitor->outTimeline->signal(pMonitor->commitSeq);
-        }
+        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
         close(pMonitor->output->state->state().explicitOutFence);
-    }
+    } else
+        Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
+
+    signalPresented();
+
+    explicitPresented.clear();
 
     return ok;
 }

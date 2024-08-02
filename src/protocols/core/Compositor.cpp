@@ -501,23 +501,18 @@ void CWLSurfaceResource::updateCursorShm() {
     memcpy(shmData.data(), pixelData, bufLen);
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync) {
+void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->outTimeline || !syncobj || !needsExplicitSync)
+    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
         return;
 
     // attach explicit sync
     g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
-
-    if (syncobj->acquirePoint > pMonitor->lastWaitPoint) {
-        Debug::log(TRACE, "presentFeedback lastWaitPoint {} -> {}", pMonitor->lastWaitPoint, syncobj->acquirePoint);
-        pMonitor->lastWaitPoint = syncobj->acquirePoint;
-    }
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

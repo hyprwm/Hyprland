@@ -820,7 +820,7 @@ bool CMonitor::attemptDirectScanout() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     Debug::log(TRACE, "presentFeedback for DS");
-    PSURFACE->presentFeedback(&now, this, true);
+    PSURFACE->presentFeedback(&now, this);
 
     output->state->addDamage(CBox{{}, vecPixelSize});
 

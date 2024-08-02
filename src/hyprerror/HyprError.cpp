@@ -88,14 +88,14 @@ void CHyprError::createQueued() {
     cairo_arc(CAIRO, X + RADIUS, Y + RADIUS, RADIUS, 180 * DEGREES, 270 * DEGREES);
     cairo_close_path(CAIRO);
 
-    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
+    cairo_set_source_rgba(CAIRO, 0.06, 0.06, 0.06, 1.0);
     cairo_fill_preserve(CAIRO);
-    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
     cairo_set_line_width(CAIRO, 2);
     cairo_stroke(CAIRO);
 
     // draw the text with a common font
-    const CColor textColor = m_cQueued.r + m_cQueued.g + m_cQueued.b < 0.2f ? CColor(1.0, 1.0, 1.0, 1.0) : CColor(0, 0, 0, 1.0);
+    const CColor textColor = CColor(0.9, 0.9, 0.9, 1.0);
     cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
 
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");

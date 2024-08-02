@@ -2651,36 +2651,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
-            auto sync = g_pHyprOpenGL->createEGLSync(-1);
-            if (!sync) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
-                Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
-                return;
-            }
-
-            auto dupedfd = sync->fd();
-            sync.reset();
-            if (dupedfd < 0) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
-                Debug::log(ERR, "renderer: couldn't dup an EGLSync fence for out in endRender");
-                return;
-            }
-
-            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
-            close(dupedfd);
-            if (!ok) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
-                Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
-                return;
-            }
-        } else {
+        if (!PMONITOR->inTimeline || !*PENABLEEXPLICIT) {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();
             else

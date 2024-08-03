@@ -830,7 +830,8 @@ bool CMonitor::attemptDirectScanout() {
     if (DOEXPLICIT)
         explicitWaitFD = PSURFACE->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->acquirePoint);
 
-    auto     closeExplicitFD = CScopeGuard([explicitWaitFD]() {
+    auto     cleanup = CScopeGuard([explicitWaitFD, this]() {
+        output->state->resetExplicitFences();
         if (explicitWaitFD >= 0)
             close(explicitWaitFD);
     });

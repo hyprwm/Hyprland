@@ -831,8 +831,11 @@ bool CMonitor::attemptDirectScanout() {
     // wait for the implicit fence if present
     bool DOEXPLICIT     = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline;
     int  explicitWaitFD = -1;
-    if (DOEXPLICIT)
+    if (DOEXPLICIT) {
         explicitWaitFD = PSURFACE->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->acquirePoint);
+        if (explicitWaitFD < 0)
+            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
+    }
     DOEXPLICIT = DOEXPLICIT && explicitWaitFD >= 0;
 
     auto     cleanup = CScopeGuard([explicitWaitFD, this]() {

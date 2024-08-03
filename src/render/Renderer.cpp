@@ -1410,7 +1410,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     // save inFD otherwise reset will reset it
     auto inFD = pMonitor->output->state->state().explicitInFence;
     pMonitor->output->state->resetExplicitFences();
-    pMonitor->output->state->setExplicitInFence(inFD);
+    if (inFD >= 0)
+        pMonitor->output->state->setExplicitInFence(inFD);
 
     bool ok = pMonitor->state.commit();
     if (!ok) {

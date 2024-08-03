@@ -650,7 +650,6 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
-    PWINDOW->updateWindowDecos();
 
     static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("master:no_gaps_when_only");
     static auto PANIMATE        = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
@@ -688,6 +687,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
         return;
     }
+
+    PWINDOW->updateWindowDecos();
 
     auto       calcPos  = PWINDOW->m_vPosition;
     auto       calcSize = PWINDOW->m_vSize;
@@ -731,8 +732,6 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
-
-    PWINDOW->updateWindowDecos();
 }
 
 bool CHyprMasterLayout::isWindowTiled(PHLWINDOW pWindow) {

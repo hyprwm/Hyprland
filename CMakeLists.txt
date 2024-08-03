@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.27)
 
-include(CheckIncludeFile)
-include(GNUInstallDirs)
-
 # Get version
 file(READ "${CMAKE_SOURCE_DIR}/VERSION" VER_RAW)
 string(STRIP ${VER_RAW} VER)
@@ -11,6 +8,9 @@ project(
   Hyprland
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
+
+include(CheckIncludeFile)
+include(GNUInstallDirs)
 
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})

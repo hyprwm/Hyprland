@@ -93,7 +93,7 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 
     m_iLastBorderSize = borderSize;
 
-    g_pEventLoopManager->doLater([this]() { g_pDecorationPositioner->repositionDeco(this); });
+    g_pDecorationPositioner->repositionDeco(this);
 }
 
 void CHyprBorderDecoration::damageEntire() {

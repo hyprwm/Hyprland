@@ -1424,7 +1424,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
         if (USEVRR == 0) {
             if (m->vrrActive) {
-
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())
@@ -1434,6 +1434,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             return;
         } else if (USEVRR == 1) {
             if (!m->vrrActive) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
@@ -1458,6 +1459,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
@@ -1469,6 +1471,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
             } else if (!WORKSPACEFULL) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())

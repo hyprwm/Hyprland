@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/ScopeGuard.hpp"
 #include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -1415,18 +1416,26 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        Debug::log(TRACE, "Monitor state commit failed");
-        // rollback the buffer to avoid writing to the front buffer that is being
-        // displayed
-        pMonitor->output->swapchain->rollback();
-        pMonitor->damage.damageEntire();
+        if (inFD >= 0) {
+            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+            pMonitor->output->state->resetExplicitFences();
+            ok = pMonitor->state.commit();
+        }
+
+        if (!ok) {
+            Debug::log(TRACE, "Monitor state commit failed");
+            // rollback the buffer to avoid writing to the front buffer that is being
+            // displayed
+            pMonitor->output->swapchain->rollback();
+            pMonitor->damage.damageEntire();
+        }
     }
 
     if (!*PENABLEEXPLICIT)
         return ok;
 
-    if (pMonitor->output->state->state().explicitInFence >= 0)
-        close(pMonitor->output->state->state().explicitInFence);
+    if (inFD >= 0)
+        close(inFD);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
         Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
@@ -1892,6 +1901,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
+    pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;
 
@@ -2641,6 +2651,12 @@ void CHyprRenderer::endRender() {
 
     PMONITOR->commitSeq++;
 
+    auto cleanup = CScopeGuard([this]() {
+        m_pCurrentRenderbuffer->unbind();
+        m_pCurrentRenderbuffer = nullptr;
+        m_pCurrentBuffer       = nullptr;
+    });
+
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
     else {
@@ -2658,27 +2674,18 @@ void CHyprRenderer::endRender() {
         if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
             }
 
             bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
             if (!ok) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
 
             auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
             if (fd <= 0) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
                 return;
             }
@@ -2691,11 +2698,6 @@ void CHyprRenderer::endRender() {
                 glFlush();
         }
     }
-
-    m_pCurrentRenderbuffer->unbind();
-
-    m_pCurrentRenderbuffer = nullptr;
-    m_pCurrentBuffer       = nullptr;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {

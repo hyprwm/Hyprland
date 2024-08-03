@@ -2,6 +2,7 @@
 #include "MiscFunctions.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
+#include "ScopeGuard.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -79,6 +80,7 @@ void CMonitor::onConnect(bool noRule) {
     tearingState.canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     if (m_bEnabled) {
+        output->state->resetExplicitFences();
         output->state->setEnabled(true);
         state.commit();
         return;
@@ -103,6 +105,7 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
+        output->state->resetExplicitFences();
         output->state->setEnabled(false);
 
         if (!state.commit())
@@ -139,6 +142,7 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
+    output->state->resetExplicitFences();
     output->state->setEnabled(true);
 
     // set mode, also applies
@@ -302,6 +306,7 @@ void CMonitor::onDisconnect(bool destroy) {
         activeWorkspace->m_bVisible = false;
     activeWorkspace.reset();
 
+    output->state->resetExplicitFences();
     output->state->setEnabled(false);
 
     if (!state.commit())
@@ -820,9 +825,15 @@ bool CMonitor::attemptDirectScanout() {
         return false;
 
     // wait for the implicit fence if present
-    const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline;
+    const bool DOEXPLICIT     = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline;
+    int        explicitWaitFD = -1;
     if (DOEXPLICIT)
-        g_pHyprOpenGL->waitForTimelinePoint(PSURFACE->syncobj->acquireTimeline->timeline, PSURFACE->syncobj->acquirePoint);
+        explicitWaitFD = PSURFACE->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->acquirePoint);
+
+    auto     closeExplicitFD = CScopeGuard([explicitWaitFD]() {
+        if (explicitWaitFD >= 0)
+            close(explicitWaitFD);
+    });
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -830,6 +841,10 @@ bool CMonitor::attemptDirectScanout() {
     PSURFACE->presentFeedback(&now, this);
 
     output->state->addDamage(CBox{{}, vecPixelSize});
+    output->state->resetExplicitFences();
+
+    if (DOEXPLICIT)
+        output->state->setExplicitInFence(explicitWaitFD);
 
     if (output->commit()) {
         if (lastScanout.expired()) {

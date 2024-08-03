@@ -443,10 +443,6 @@ CXDGSurfaceResource::~CXDGSurfaceResource() {
         surface->resetRole();
 }
 
-eSurfaceRole CXDGSurfaceResource::role() {
-    return SURFACE_ROLE_XDG_SHELL;
-}
-
 bool CXDGSurfaceResource::good() {
     return resource->resource();
 }
@@ -668,7 +664,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : resource(resource_) {
 
         RESOURCE->self    = RESOURCE;
         RESOURCE->surface = SURF;
-        SURF->role        = RESOURCE;
+        SURF->role        = makeShared<CXDGSurfaceRole>(RESOURCE);
 
         surfaces.emplace_back(RESOURCE);
 
@@ -764,4 +760,8 @@ void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
     std::erase(grabbed, popup);
     if (popup->surface)
         grab->remove(popup->surface->surface.lock());
+}
+
+CXDGSurfaceRole::CXDGSurfaceRole(SP<CXDGSurfaceResource> xdg) : xdgSurface(xdg) {
+    ;
 }

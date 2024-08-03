@@ -141,14 +141,23 @@ class CXDGToplevelResource {
     void             applyState();
 };
 
-class CXDGSurfaceResource : public ISurfaceRole {
+class CXDGSurfaceRole : public ISurfaceRole {
+  public:
+    CXDGSurfaceRole(SP<CXDGSurfaceResource> xdg);
+
+    virtual eSurfaceRole role() {
+        return SURFACE_ROLE_XDG_SHELL;
+    }
+
+    WP<CXDGSurfaceResource> xdgSurface;
+};
+
+class CXDGSurfaceResource {
   public:
     CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_);
     ~CXDGSurfaceResource();
 
     static SP<CXDGSurfaceResource> fromResource(wl_resource*);
-
-    virtual eSurfaceRole           role();
 
     bool                           good();
 

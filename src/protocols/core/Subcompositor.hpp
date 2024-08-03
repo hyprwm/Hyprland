@@ -16,15 +16,26 @@
 #include "../types/SurfaceRole.hpp"
 
 class CWLSurfaceResource;
+class CWLSubsurfaceResource;
 
-class CWLSubsurfaceResource : public ISurfaceRole {
+class CSubsurfaceRole : public ISurfaceRole {
+  public:
+    CSubsurfaceRole(SP<CWLSubsurfaceResource> sub);
+
+    virtual eSurfaceRole role() {
+        return SURFACE_ROLE_SUBSURFACE;
+    }
+
+    WP<CWLSubsurfaceResource> subsurface;
+};
+
+class CWLSubsurfaceResource {
   public:
     CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_);
     ~CWLSubsurfaceResource();
 
     Vector2D                  posRelativeToParent();
     bool                      good();
-    virtual eSurfaceRole      role();
     SP<CWLSurfaceResource>    t1Parent();
 
     bool                      sync = false;

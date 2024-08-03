@@ -175,10 +175,6 @@ CLayerShellResource::~CLayerShellResource() {
         surface->resetRole();
 }
 
-eSurfaceRole CLayerShellResource::role() {
-    return SURFACE_ROLE_LAYER_SHELL;
-}
-
 bool CLayerShellResource::good() {
     return resource->resource();
 }
@@ -245,8 +241,12 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
-    SURF->role = RESOURCE;
+    SURF->role = makeShared<CLayerShellRole>(RESOURCE);
     g_pCompositor->m_vLayers.emplace_back(CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
+}
+
+CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : layerSurface(ls) {
+    ;
 }

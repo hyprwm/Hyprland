@@ -12,16 +12,26 @@
 
 class CMonitor;
 class CWLSurfaceResource;
+class CLayerShellResource;
 
-class CLayerShellResource : public ISurfaceRole {
+class CLayerShellRole : public ISurfaceRole {
+  public:
+    CLayerShellRole(SP<CLayerShellResource> ls);
+
+    virtual eSurfaceRole role() {
+        return SURFACE_ROLE_LAYER_SHELL;
+    }
+
+    WP<CLayerShellResource> layerSurface;
+};
+class CLayerShellResource {
   public:
     CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
     ~CLayerShellResource();
 
-    bool                 good();
-    void                 configure(const Vector2D& size);
-    void                 sendClosed();
-    virtual eSurfaceRole role();
+    bool good();
+    void configure(const Vector2D& size);
+    void sendClosed();
 
     enum eCommittedState {
         STATE_SIZE          = (1 << 0),

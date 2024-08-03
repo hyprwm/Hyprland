@@ -277,7 +277,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     for (auto& n : nodes) {
         Vector2D offset = {};
         if (n->role->role() == SURFACE_ROLE_SUBSURFACE) {
-            auto subsurface = (CWLSubsurfaceResource*)n->role.get();
+            auto subsurface = ((CSubsurfaceRole*)n->role.get())->subsurface.lock();
             offset          = subsurface->posRelativeToParent();
         }
 
@@ -448,7 +448,7 @@ void CWLSurfaceResource::commitPendingState() {
 
     // TODO: we should _accumulate_ and not replace above if sync
     if (role->role() == SURFACE_ROLE_SUBSURFACE) {
-        auto subsurface = (CWLSubsurfaceResource*)role.get();
+        auto subsurface = ((CSubsurfaceRole*)role.get())->subsurface.lock();
         if (subsurface->sync)
             return;
 
@@ -458,7 +458,7 @@ void CWLSurfaceResource::commitPendingState() {
         breadthfirst(
             [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                 if (surf->role->role() == SURFACE_ROLE_SUBSURFACE) {
-                    auto subsurface = (CWLSubsurfaceResource*)surf->role.get();
+                    auto subsurface = ((CSubsurfaceRole*)surf->role.get())->subsurface.lock();
                     if (!subsurface->sync)
                         return;
                 }

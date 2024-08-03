@@ -7,6 +7,7 @@
 #include "managers/SeatManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/output/Output.hpp>
+#include <bit>
 #include <random>
 #include <cstring>
 #include <filesystem>

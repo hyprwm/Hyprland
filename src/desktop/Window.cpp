@@ -1,4 +1,5 @@
 #include <any>
+#include <bit>
 #include <string_view>
 #include <algorithm>
 #include "Window.hpp"

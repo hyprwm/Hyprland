@@ -1459,6 +1459,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
 
     explicitPresented.clear();
 
+    pMonitor->output->state->resetExplicitFences();
+
     return ok;
 }
 

@@ -2986,14 +2986,14 @@ float SRenderModifData::combinedScale() {
 }
 
 CEGLSync::~CEGLSync() {
+    if (m_iFd >= 0)
+        close(m_iFd);
+
     if (sync == EGL_NO_SYNC_KHR)
         return;
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
-
-    if (m_iFd >= 0)
-        close(m_iFd);
 }
 
 int CEGLSync::fd() {

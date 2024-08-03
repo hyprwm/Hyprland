@@ -1407,7 +1407,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
 
     // apply timelines for explicit sync
+    // save inFD otherwise reset will reset it
+    auto inFD = pMonitor->output->state->state().explicitInFence;
     pMonitor->output->state->resetExplicitFences();
+    pMonitor->output->state->setExplicitInFence(inFD);
 
     bool ok = pMonitor->state.commit();
     if (!ok) {

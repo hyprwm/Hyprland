@@ -1,4 +1,6 @@
 #include "SyncReleaser.hpp"
+#include "SyncTimeline.hpp"
+#include "../../render/OpenGL.hpp"
 
 CSyncReleaser::CSyncReleaser(WP<CSyncTimeline> timeline_, uint64_t point_) : timeline(timeline_), point(point_) {
     ;

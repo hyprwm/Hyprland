@@ -2868,7 +2868,7 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     std::vector<EGLint> attribs;
     int                 dupFd = -1;
     if (fenceFD > 0) {
-        int dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+        dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
         if (dupFd < 0) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;

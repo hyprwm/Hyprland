@@ -2650,6 +2650,7 @@ void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
     static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static auto PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:render:explicit_sync_kms");
 
     PMONITOR->commitSeq++;
 
@@ -2673,7 +2674,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
+        if (PMONITOR->inTimeline && *PENABLEEXPLICIT && *PENABLEEXPLICITKMS) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");

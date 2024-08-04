@@ -795,6 +795,8 @@ void CMonitor::scheduleDone() {
 }
 
 bool CMonitor::attemptDirectScanout() {
+    static auto PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:render:explicit_sync_kms");
+
     if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.
 
@@ -828,8 +830,8 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    // wait for the implicit fence if present
-    bool DOEXPLICIT     = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline;
+    // wait for the explicit fence if present, and if kms explicit is allowed
+    bool DOEXPLICIT     = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline && *PENABLEEXPLICITKMS;
     int  explicitWaitFD = -1;
     if (DOEXPLICIT) {
         explicitWaitFD = PSURFACE->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->acquirePoint);

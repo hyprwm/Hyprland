@@ -4,8 +4,9 @@
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
 
-static int cursorAnimTimer(void* data) {
-    g_pCursorManager->tickAnimatedCursor();
+static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
+    const auto cursorMgr = reinterpret_cast<CCursorManager*>(data);
+    cursorMgr->tickAnimatedCursor();
     return 1;
 }
 
@@ -51,7 +52,8 @@ CCursorManager::CCursorManager() {
         m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize * std::ceil(m_fCursorScale));
     }
 
-    m_pAnimationTimer = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, ::cursorAnimTimer, nullptr);
+    m_pAnimationTimer = makeShared<CEventLoopTimer>(std::nullopt, cursorAnimTimer, this);
+    g_pEventLoopManager->addTimer(m_pAnimationTimer);
 
     updateTheme();
 
@@ -59,8 +61,10 @@ CCursorManager::CCursorManager() {
 }
 
 CCursorManager::~CCursorManager() {
-    if (m_pAnimationTimer)
-        wl_event_source_remove(m_pAnimationTimer);
+    if (m_pAnimationTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_pAnimationTimer);
+        m_pAnimationTimer.reset();
+    }
 }
 
 void CCursorManager::dropBufferRef(CCursorManager::CCursorBuffer* ref) {
@@ -150,11 +154,11 @@ void CCursorManager::setXCursor(const std::string& name) {
 
     if (m_currentXcursor->images.size() > 1) {
         // animated
-        wl_event_source_timer_update(m_pAnimationTimer, m_currentXcursor->images[0].delay);
+        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(m_currentXcursor->images[0].delay));
         m_iCurrentAnimationFrame = 0;
     } else {
         // disarm
-        wl_event_source_timer_update(m_pAnimationTimer, 0);
+        m_pAnimationTimer->updateTimeout(std::nullopt);
     }
 }
 
@@ -208,11 +212,11 @@ void CCursorManager::setCursorFromName(const std::string& name) {
 
     if (m_sCurrentCursorShapeData.images.size() > 1) {
         // animated
-        wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[0].delay);
+        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(m_sCurrentCursorShapeData.images[0].delay));
         m_iCurrentAnimationFrame = 0;
     } else {
         // disarm
-        wl_event_source_timer_update(m_pAnimationTimer, 0);
+        m_pAnimationTimer->updateTimeout(std::nullopt);
     }
 }
 
@@ -232,7 +236,7 @@ void CCursorManager::tickAnimatedCursor() {
         if (m_vCursorBuffers.size() > 1)
             dropBufferRef(m_vCursorBuffers.at(0).get());
 
-        wl_event_source_timer_update(m_pAnimationTimer, m_currentXcursor->images[m_iCurrentAnimationFrame].delay);
+        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(m_currentXcursor->images[m_iCurrentAnimationFrame].delay));
 
         return;
     }
@@ -257,7 +261,7 @@ void CCursorManager::tickAnimatedCursor() {
     if (m_vCursorBuffers.size() > 1)
         dropBufferRef(m_vCursorBuffers.at(0).get());
 
-    wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay);
+    m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay));
 }
 
 SCursorImageData CCursorManager::dataFor(const std::string& name) {

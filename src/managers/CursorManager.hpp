@@ -7,6 +7,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../macros.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/XCursorManager.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
@@ -73,7 +74,7 @@ class CCursorManager {
 
     Hyprcursor::SCursorStyleInfo                    m_sCurrentStyleInfo;
 
-    wl_event_source*                                m_pAnimationTimer        = nullptr;
+    SP<CEventLoopTimer>                             m_pAnimationTimer;
     int                                             m_iCurrentAnimationFrame = 0;
     Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
 };

@@ -7,6 +7,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../macros.hpp"
+#include "managers/XCursorManager.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CWLSurface;
@@ -63,6 +64,8 @@ class CCursorManager {
     std::vector<SP<CCursorBuffer>>                  m_vCursorBuffers;
 
     std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
+    std::unique_ptr<CXCursorManager>                m_pXcursor;
+    SP<SXCursors>                                   m_currentXcursor;
 
     std::string                                     m_szTheme      = "";
     int                                             m_iSize        = 0;
@@ -73,26 +76,6 @@ class CCursorManager {
     wl_event_source*                                m_pAnimationTimer        = nullptr;
     int                                             m_iCurrentAnimationFrame = 0;
     Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
-
-    // gangsta bootleg XCursor impl. Whenever Hyprland has to use
-    // an xcursor, just use the pointer.
-    struct SXCursor {
-        Vector2D              size;
-        Vector2D              hotspot;
-        std::vector<uint32_t> pixels; // XPixel is a u32
-    };
-
-    struct SXCursorManager {
-        void                                              loadTheme(const std::string& name, int size);
-        std::string                                       getLegacyShapeName(std::string const& shape);
-        SP<SXCursor>                                      createDefaultCursor();
-
-        int                                               lastLoadSize = 0;
-        bool                                              themeLoaded  = false;
-        std::string                                       themeName    = "";
-        SP<SXCursor>                                      defaultCursor;
-        std::vector<std::pair<std::string, SP<SXCursor>>> cursors;
-    } xcursor;
 };
 
 inline std::unique_ptr<CCursorManager> g_pCursorManager;

@@ -262,9 +262,11 @@ endfunction()
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
                       libudis86 uuid)
 
-protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-global-shortcuts-v1" true)
+protocolnew("subprojects/hyprland-protocols/protocols"
+            "hyprland-global-shortcuts-v1" true)
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
-protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-toplevel-export-v1" true)
+protocolnew("subprojects/hyprland-protocols/protocols"
+            "hyprland-toplevel-export-v1" true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)
 protocolnew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
@@ -326,19 +328,22 @@ install(
 
 # session file
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions)
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
+
+# allow Hyprland to find wallpapers
+add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
 # wallpapers
 file(GLOB_RECURSE WALLPAPERS "assets/wall*")
-install(FILES ${WALLPAPERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+install(FILES ${WALLPAPERS} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # portal config
 install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/xdg-desktop-portal)
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/xdg-desktop-portal)
 
 # man pages
 file(GLOB_RECURSE MANPAGES "docs/*.1")

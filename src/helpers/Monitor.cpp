@@ -795,7 +795,7 @@ void CMonitor::scheduleDone() {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    static auto PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:render:explicit_sync_kms");
+    static auto PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
 
     if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.

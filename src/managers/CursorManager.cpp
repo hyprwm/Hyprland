@@ -254,6 +254,9 @@ void CCursorManager::tickAnimatedCursor() {
         Vector2D{m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotX, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].hotspotY} / m_fCursorScale,
         m_fCursorScale);
 
+    if (m_vCursorBuffers.size() > 1)
+        dropBufferRef(m_vCursorBuffers.at(0).get());
+
     wl_event_source_timer_update(m_pAnimationTimer, m_sCurrentCursorShapeData.images[m_iCurrentAnimationFrame].delay);
 }
 

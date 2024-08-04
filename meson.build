@@ -9,6 +9,7 @@ project('Hyprland', 'cpp', 'c',
     'cpp_std=c++23',
   ])
 
+datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'
 add_project_arguments(
   [
     '-Wno-unused-parameter',
@@ -16,6 +17,7 @@ add_project_arguments(
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
     '-Wno-pointer-arith',
+    datarootdir,
   ],
   language: 'cpp')
 

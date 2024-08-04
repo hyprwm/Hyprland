@@ -2669,10 +2669,12 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
 
     if (!m_pBackgroundTexture) {
-        // TODO: use relative paths to the installation
-        // or configure the paths at build time
         std::string texPath = "";
-        texPath             = "/usr/share/hyprland/wall";
+#ifndef DATAROOTDIR
+        texPath = "/usr/share/hypr/wall";
+#else
+        texPath = std::format("{}{}", DATAROOTDIR, "/hypr/wall");
+#endif
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {

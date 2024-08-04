@@ -1164,8 +1164,6 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     if (!PWINDOW)
         return;
 
-    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
-
     int internalMode, clientMode;
     try {
         internalMode = std::stoi(ARGS[0]);
@@ -1177,10 +1175,26 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     const sFullscreenState STATE = sFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
                                                     .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)};
 
-    if (PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client)
+    if (internalMode != -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client) {
         g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
-    else
-        g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
+        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
+        return;
+    }
+
+    if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal) {
+        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.client, .client = PWINDOW->m_sFullscreenState.client});
+        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
+        return;
+    }
+
+    if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client) {
+        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = PWINDOW->m_sFullscreenState.internal});
+        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
+        return;
+    }
+
+    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
+    g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {

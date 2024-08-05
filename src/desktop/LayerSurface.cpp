@@ -406,13 +406,13 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
 
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
-        const auto MIDDLE = geometry.middle();
+        const auto                  MIDDLE = geometry.middle();
 
-        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+        const auto                  PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
 
-        int        force = -1;
+        int                         force = -1;
 
-        CVarList   args(ANIMSTYLE, 0, 's');
+        Hyprutils::String::CVarList args(ANIMSTYLE, 0, 's');
         if (args.size() > 1) {
             const auto ARG2 = args[1];
             if (ARG2 == "top")

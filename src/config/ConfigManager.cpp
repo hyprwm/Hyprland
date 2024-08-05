@@ -5,10 +5,14 @@
 #include "config/ConfigDataValues.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "config/defaultConfig.hpp"
 
 #include <cstddef>
 #include <cstdint>
-#include <hyprutils/path/Path.hpp>
+
+#include <hyprlang.hpp>
+#include <hyprutils/string/VarList.hpp>
+
 #include <string.h>
 #include <string>
 #include <sys/stat.h>
@@ -27,8 +31,14 @@
 #include <filesystem>
 using namespace Hyprutils::String;
 
-extern "C" char**             environ;
+extern "C" char** environ;
 
+/**
+* @brief Parses a gradient configuration value and sets it to the provided data.
+* @param VALUE The string representation of the gradient value.
+* @param data Pointer to the gradient data.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** data) {
     std::string V = VALUE;
 
@@ -83,11 +93,21 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
     return result;
 }
 
+/**
+* @brief Destroys the gradient configuration data.
+* @param data Pointer to the gradient data.
+*/
 static void configHandleGradientDestroy(void** data) {
     if (*data)
         delete reinterpret_cast<CGradientValueData*>(*data);
 }
 
+/**
+* @brief Parses a gap configuration value and sets it to the provided data.
+* @param VALUE The string representation of the gap value.
+* @param data Pointer to the gap data.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data) {
     std::string V = VALUE;
 
@@ -108,209 +128,204 @@ static Hyprlang::CParseResult configHandleGapSet(const char* VALUE, void** data)
     return result;
 }
 
+/**
+* @brief Destroys the gap configuration data.
+* @param data Pointer to the gap data.
+*/
 static void configHandleGapDestroy(void** data) {
     if (*data)
         delete reinterpret_cast<CCssGapData*>(*data);
 }
 
+/**
+* @brief Template function to handle command parsing and execution.
+* @param c The command.
+* @param v The value.
+* @param handler Function pointer to the specific handler in the ConfigManager.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
+template <typename Handler>
+static Hyprlang::CParseResult handleCommand(const char* c, const char* v, Handler handler) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = (g_pConfigManager.get()->*handler)(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+/**
+* @brief Handles raw execution commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleRawExec(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleRawExec(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleRawExec);
 }
 
+/**
+* @brief Handles exec-once commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleExecOnce(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleExecOnce(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleExecOnce);
 }
 
+/**
+* @brief Handles monitor commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleMonitor(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleMonitor(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleMonitor);
 }
 
+/**
+* @brief Handles Bezier curve commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleBezier(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleBezier(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleBezier);
 }
 
+/**
+* @brief Handles animation commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleAnimation(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleAnimation(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleAnimation);
 }
 
+/**
+* @brief Handles keybind commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleBind(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleBind(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleBind);
 }
 
+/**
+* @brief Handles unbind commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleUnbind(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleUnbind(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleUnbind);
 }
 
+/**
+* @brief Handles window rule commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleWindowRule(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleWindowRule(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleWindowRule);
 }
 
+/**
+* @brief Handles layer rule commands from the configuration.
+* @param c The command.
+* @param v The value.
+* @return CParseResult object indicating the success or failure of the operation.
+*/
 static Hyprlang::CParseResult handleLayerRule(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleLayerRule(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleLayerRule);
 }
 
+/**
+ * @brief Handles window rule version 2 commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleWindowRuleV2(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleWindowRuleV2(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleWindowRuleV2);
 }
 
+/**
+ * @brief Handles blur layer shell commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleBlurLS(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleBlurLS(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleBlurLS);
 }
 
+/**
+ * @brief Handles workspace rule commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleWorkspaceRules(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleWorkspaceRules(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleWorkspaceRules);
 }
 
+/**
+ * @brief Handles submap commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleSubmap(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleSubmap(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleSubmap);
 }
 
+/**
+ * @brief Handles source commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleSource(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleSource(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleSource);
 }
 
+/**
+ * @brief Handles environment variable commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handleEnv(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleEnv(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handleEnv);
 }
 
+/**
+ * @brief Handles plugin commands from the configuration.
+ * @param c The command.
+ * @param v The value.
+ * @return CParseResult object indicating the success or failure of the operation.
+ */
 static Hyprlang::CParseResult handlePlugin(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handlePlugin(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    return handleCommand(c, v, &CConfigManager::handlePlugin);
 }
 
+/** @brief Constructs a CConfigManager object, initializes configuration settings, and sets default values. */
 CConfigManager::CConfigManager() {
     const auto ERR = verifyConfigExists();
 
-    configPaths.emplace_back(getMainConfigPath());
+    configPaths.emplace_back(getMainConfigPath()); // Add the main configuration path to configPaths
+
+    // Initialize the m_pConfig object with the main config path and configuration options
     m_pConfig = std::make_unique<Hyprlang::CConfig>(configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
+    // Add general configuration values
     m_pConfig->addConfigValue("general:sensitivity", {1.0f});
     m_pConfig->addConfigValue("general:apply_sens_to_raw", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:border_size", Hyprlang::INT{1});
@@ -327,6 +342,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:allow_tearing", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:resize_corner", Hyprlang::INT{0});
 
+    // Add miscellaneous configuration values
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:col.splash", Hyprlang::INT{0x55ffffff});
@@ -358,6 +374,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
 
+    // Add group-related configuration values
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
@@ -371,6 +388,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:text_color", Hyprlang::INT{0xffffffff});
     m_pConfig->addConfigValue("group:groupbar:stacked", Hyprlang::INT{0});
 
+    // Add debug configuration values
     m_pConfig->addConfigValue("debug:int", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:overlay", Hyprlang::INT{0});
@@ -387,6 +405,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
 
+    // Add decoration-related configuration values
     m_pConfig->addConfigValue("decoration:rounding", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:size", Hyprlang::INT{8});
@@ -560,9 +579,10 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:col.locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66ff5500"});
     m_pConfig->addConfigValue("group:groupbar:col.locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66775500"});
 
+
+    // Devices
     m_pConfig->addConfigValue("experimental:explicit_sync", Hyprlang::INT{0});
 
-    // devices
     m_pConfig->addSpecialCategory("device", {"name"});
     m_pConfig->addSpecialConfigValue("device", "sensitivity", {0.F});
     m_pConfig->addSpecialConfigValue("device", "accel_profile", {STRVAL_EMPTY});
@@ -598,7 +618,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "active_area_position", Hyprlang::VEC2{0, 0}); // only for tablets
     m_pConfig->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
 
-    // keywords
+    // Keywords
     m_pConfig->registerHandler(&::handleRawExec, "exec", {false});
     m_pConfig->registerHandler(&::handleExecOnce, "exec-once", {false});
     m_pConfig->registerHandler(&::handleMonitor, "monitor", {false});
@@ -635,8 +655,15 @@ CConfigManager::CConfigManager() {
         g_pHyprError->queueCreate(ERR.value(), CColor{1.0, 0.1, 0.1, 1.0});
 }
 
-std::optional<std::string> CConfigManager::generateConfig(std::string configPath) {
-    std::string parentPath = std::filesystem::path(configPath).parent_path();
+
+/**
+ * @brief Retrieves the configuration directory path.
+ * @return The absolute path to the configuration directory.
+ * @throws std::runtime_error if neither HOME nor XDG_CONFIG_HOME is set.
+ */
+std::string CConfigManager::getConfigDir() {
+    static const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
+
 
     if (!std::filesystem::is_directory(parentPath)) {
         Debug::log(WARN, "Creating config home directory");
@@ -657,6 +684,10 @@ std::optional<std::string> CConfigManager::generateConfig(std::string configPath
     return configPath;
 }
 
+/**
+* @brief Retrieves the main configuration file path. 
+* @return The absolute path to the main configuration file.
+*/
 std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
@@ -680,6 +711,10 @@ std::optional<std::string> CConfigManager::verifyConfigExists() {
     return {};
 }
 
+/**
+ * @brief Retrieves concatenated string contents of all configuration files specified in `configPaths`.
+ * @return A string containing concatenated contents of all configuration files.
+ */
 const std::string CConfigManager::getConfigString() {
     std::string configString;
     std::string currFileContent;
@@ -699,10 +734,15 @@ const std::string CConfigManager::getConfigString() {
     return configString;
 }
 
+/**
+ * @brief Retrieves the current configuration errors as a string.
+ * @return A string containing current configuration errors.
+ */
 std::string CConfigManager::getErrors() {
     return m_szConfigErrors;
 }
 
+/** @brief Reloads the configuration. */
 void CConfigManager::reload() {
     EMIT_HOOK_EVENT("preConfigReload", nullptr);
     setDefaultAnimationVars();
@@ -712,6 +752,7 @@ void CConfigManager::reload() {
     postConfigReload(ERR);
 }
 
+/** @brief Initializes default animation variables if it's the first launch. */
 void CConfigManager::setDefaultAnimationVars() {
     if (isFirstLaunch) {
         INITANIMCFG("global");
@@ -1098,11 +1139,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     Debug::log(LOG, "Searching for matching rules for {} (title: {})", appidclass, title);
 
-    // since some rules will be applied later, we need to store some flags
+    // Since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_bIsFloating;
     bool hasFullscreen = pWindow->isFullscreen();
 
-    // local tags for dynamic tag rule match
+    // Local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
 
     for (auto& rule : m_dWindowRules) {

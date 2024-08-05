@@ -6,6 +6,7 @@ enum eSurfaceRole {
     SURFACE_ROLE_LAYER_SHELL,
     SURFACE_ROLE_EASTER_EGG,
     SURFACE_ROLE_SUBSURFACE,
+    SURFACE_ROLE_CURSOR,
 };
 
 class ISurfaceRole {

@@ -262,13 +262,16 @@ void CXWaylandServer::die() {
     if (pipeSource)
         wl_event_source_remove(pipeSource);
 
-    if (waylandFDs[0])
+    if (pipeFd >= 0)
+        close(pipeFd);
+
+    if (waylandFDs[0] >= 0)
         close(waylandFDs[0]);
-    if (waylandFDs[1])
+    if (waylandFDs[1] >= 0)
         close(waylandFDs[1]);
-    if (xwmFDs[0])
+    if (xwmFDs[0] >= 0)
         close(xwmFDs[0]);
-    if (xwmFDs[1])
+    if (xwmFDs[1] >= 0)
         close(xwmFDs[1]);
 
     // possible crash. Better to leak a bit.
@@ -364,6 +367,7 @@ bool CXWaylandServer::start() {
     }
 
     pipeSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, notify[0], WL_EVENT_READABLE, ::xwaylandReady, nullptr);
+    pipeFd     = notify[0];
 
     serverPID = fork();
     if (serverPID < 0) {

@@ -87,7 +87,7 @@ void CAlphaModifierProtocol::destroyModifier(CAlphaModifier* modifier) {
 
 void CAlphaModifierProtocol::onGetSurface(CWpAlphaModifierV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surface) {
     if (std::find_if(m_mAlphaModifiers.begin(), m_mAlphaModifiers.end(), [surface](const auto& e) { return e.first == surface; }) != m_mAlphaModifiers.end()) {
-        LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface);
+        LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
         pMgr->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
         return;
     }

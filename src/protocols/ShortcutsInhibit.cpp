@@ -73,6 +73,9 @@ bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
     if (!g_pCompositor->m_pLastFocus)
         return false;
 
+    if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus.lock()); PWINDOW && PWINDOW->m_sWindowData.noShortcutsInhibit.valueOrDefault())
+        return false;
+
     for (auto& in : m_vInhibitors) {
         if (in->surface() != g_pCompositor->m_pLastFocus)
             continue;

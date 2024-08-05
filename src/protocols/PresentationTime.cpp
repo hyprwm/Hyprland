@@ -60,7 +60,7 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    if (data->wasPresented && when)
+    if (data->wasPresented)
         resource->sendPresented((uint32_t)(when->tv_sec >> 32), (uint32_t)(when->tv_sec & 0xFFFFFFFF), (uint32_t)(when->tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
                                 (uint32_t)(seq & 0xFFFFFFFF), (wpPresentationFeedbackKind)flags);
     else
@@ -104,6 +104,14 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
 }
 
 void CPresentationProtocol::onPresented(CMonitor* pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+    timespec  now;
+    timespec* presentedAt = when;
+    if (!presentedAt) {
+        // just put the current time, we don't have anything better
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        when = &now;
+    }
+
     for (auto& feedback : m_vFeedbacks) {
         if (!feedback->surface)
             continue;

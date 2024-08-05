@@ -148,7 +148,7 @@ void CMonitor::onConnect(bool noRule) {
 
     damage.setSize(vecTransformedSize);
 
-    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output);
+    Debug::log(LOG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", output->name, vecPosition, vecPixelSize, (uintptr_t)output.get());
 
     setupDefaultWS(monitorRule);
 
@@ -354,7 +354,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
 
     // skip scheduling extra frames for fullsreen apps with vrr
     bool shouldSkip =
-        *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FULLSCREEN_FULL;
+        *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
@@ -801,18 +801,18 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PSURFACE = g_pXWaylandManager->getWindowSurface(PCANDIDATE);
 
-    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.buffer->size != vecPixelSize || PSURFACE->current.transform != transform)
+    if (!PSURFACE || !PSURFACE->current.buffer || PSURFACE->current.bufferSize != vecPixelSize || PSURFACE->current.transform != transform)
         return false;
 
     // we can't scanout shm buffers.
-    if (!PSURFACE->current.buffer->dmabuf().success)
+    if (!PSURFACE->current.buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
-
-    output->state->setBuffer(PSURFACE->current.buffer);
-    output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
+    output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
+    output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
+                                                                      Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!state.test())
         return false;
@@ -821,6 +821,8 @@ bool CMonitor::attemptDirectScanout() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     Debug::log(TRACE, "presentFeedback for DS");
     PSURFACE->presentFeedback(&now, this, true);
+
+    output->state->addDamage(CBox{{}, vecPixelSize});
 
     if (state.commit()) {
         if (lastScanout.expired()) {
@@ -862,6 +864,8 @@ void CMonitorState::ensureBufferPresent() {
 bool CMonitorState::commit() {
     if (!updateSwapchain())
         return false;
+
+    EMIT_HOOK_EVENT("preMonitorCommit", m_pOwner);
 
     ensureBufferPresent();
 

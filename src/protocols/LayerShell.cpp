@@ -11,7 +11,7 @@ void CLayerShellResource::SState::reset() {
     exclusive     = 0;
     interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
-    exclusiveEdge = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+    exclusiveEdge = (zwlrLayerSurfaceV1Anchor)0;
     desiredSize   = {};
     margin        = {0, 0, 0, 0};
 }
@@ -38,11 +38,13 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
         PROTO::layerShell->destroyResource(this);
     });
 
+    listeners.unmapSurface = surf_->events.unmap.registerListener([this](std::any d) { events.unmap.emit(); });
+
     listeners.commitSurface = surf_->events.commit.registerListener([this](std::any d) {
         current           = pending;
         pending.committed = 0;
 
-        bool attachedBuffer = surface->current.buffer;
+        bool attachedBuffer = surface->current.texture;
 
         if (attachedBuffer && !configured) {
             surface->error(-1, "layerSurface was not configured, but a buffer was attached");
@@ -71,8 +73,8 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
 
         if (!attachedBuffer && mapped) {
             mapped = false;
-            surface->unmap();
             events.unmap.emit();
+            surface->unmap();
             configured = false;
             return;
         }
@@ -152,6 +154,16 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
     });
 
     resource->setSetExclusiveEdge([this](CZwlrLayerSurfaceV1* r, zwlrLayerSurfaceV1Anchor anchor) {
+        if (anchor > (ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+            r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Invalid exclusive edge");
+            return;
+        }
+
+        if (anchor && (!pending.anchor || !(pending.anchor & anchor))) {
+            r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Exclusive edge doesn't align with anchor");
+            return;
+        }
+
         pending.committed |= STATE_EDGE;
         pending.exclusiveEdge = anchor;
     });
@@ -161,10 +173,6 @@ CLayerShellResource::~CLayerShellResource() {
     events.destroy.emit();
     if (surface)
         surface->resetRole();
-}
-
-eSurfaceRole CLayerShellResource::role() {
-    return SURFACE_ROLE_LAYER_SHELL;
 }
 
 bool CLayerShellResource::good() {
@@ -233,8 +241,12 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         return;
     }
 
-    SURF->role = RESOURCE;
+    SURF->role = makeShared<CLayerShellRole>(RESOURCE);
     g_pCompositor->m_vLayers.emplace_back(CLayerSurface::create(RESOURCE));
 
     LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
+}
+
+CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : layerSurface(ls) {
+    ;
 }

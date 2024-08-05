@@ -74,7 +74,7 @@ CLayerSurface::~CLayerSurface() {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
 
@@ -111,13 +111,20 @@ void CLayerSurface::onDestroy() {
     layerSurface.reset();
     if (surface)
         surface->unassign();
+
+    listeners.unmap.reset();
+    listeners.destroy.reset();
+    listeners.map.reset();
+    listeners.commit.reset();
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} mapped", (uintptr_t)layerSurface.get());
 
     mapped        = true;
     interactivity = layerSurface->current.interactivity;
+
+    layerSurface->surface->map();
 
     // this layer might be re-mapped.
     fadingOut = false;
@@ -163,7 +170,7 @@ void CLayerSurface::onMap() {
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
     const auto WORKSPACE  = PMONITOR->activeWorkspace;
-    const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+    const bool FULLSCREEN = WORKSPACE->m_bHasFullscreenWindow && WORKSPACE->m_efFullscreenMode == FSMODE_FULLSCREEN;
 
     startAnimation(!(layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && FULLSCREEN && !GRABSFOCUS));
     readyToDelete = false;
@@ -177,7 +184,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface);
+    Debug::log(LOG, "LayerSurface {:x} unmapped", (uintptr_t)layerSurface.get());
 
     g_pEventManager->postEvent(SHyprIPCEvent{"closelayer", layerSurface->layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", self.lock());
@@ -190,6 +197,8 @@ void CLayerSurface::onUnmap() {
         g_pCompositor->addToFadingOutSafe(self.lock());
 
         mapped = false;
+        if (layerSurface && layerSurface->surface)
+            layerSurface->surface->unmap();
 
         startAnimation(false);
         return;
@@ -201,6 +210,8 @@ void CLayerSurface::onUnmap() {
     startAnimation(false);
 
     mapped = false;
+    if (layerSurface && layerSurface->surface)
+        layerSurface->surface->unmap();
 
     g_pCompositor->addToFadingOutSafe(self.lock());
 
@@ -212,8 +223,11 @@ void CLayerSurface::onUnmap() {
         return;
 
     // refocus if needed
-    if (WASLASTFOCUS)
+    //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
+    if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
         g_pInputManager->refocusLastWindow(PMONITOR);
+    else if (g_pCompositor->m_pLastFocus)
+        g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
     g_pHyprRenderer->damageBox(&geomFixed);
@@ -233,7 +247,7 @@ void CLayerSurface::onCommit() {
 
     if (!mapped) {
         // we're re-mapping if this is the case
-        if (layerSurface->surface && !layerSurface->surface->current.buffer) {
+        if (layerSurface->surface && !layerSurface->surface->current.texture) {
             fadingOut = false;
             geometry  = {};
             g_pHyprRenderer->arrangeLayersForMonitor(monitorID);

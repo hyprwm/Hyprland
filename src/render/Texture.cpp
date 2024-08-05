@@ -28,6 +28,8 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer) {
     if (!buffer)
         return;
 
+    m_bOpaque = buffer->opaque;
+
     auto attrs = buffer->dmabuf();
 
     if (!attrs.success) {
@@ -86,6 +88,7 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
         return;
     }
 
+    m_bOpaque = FormatUtils::isFormatOpaque(attrs.format);
     m_iTarget = GL_TEXTURE_2D;
     m_iType   = TEXTURE_RGBA;
     m_vSize   = attrs.size;

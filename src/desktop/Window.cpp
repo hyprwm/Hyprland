@@ -1,4 +1,5 @@
 #include <any>
+#include <bit>
 #include <string_view>
 #include <algorithm>
 #include "Window.hpp"
@@ -192,7 +193,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS  = m_vPosition;
     auto SIZE = m_vSize;
 
-    if (m_bIsFullscreen) {
+    if (isFullscreen()) {
         POS  = PMONITOR->vecPosition;
         SIZE = PMONITOR->vecSize;
 
@@ -477,13 +478,7 @@ void unregisterVar(void* ptr) {
 
 void CWindow::onUnmap() {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
-
-    if (g_pCompositor->m_pLastWindow.lock().get() == this)
-        g_pCompositor->m_pLastWindow.reset();
-    if (g_pInputManager->currentlyDraggedWindow.lock().get() == this)
-        g_pInputManager->currentlyDraggedWindow.reset();
-
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PINITIALWSTRACKING  = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     if (!m_szInitialWorkspaceToken.empty()) {
         const auto TOKEN = g_pTokenManager->getToken(m_szInitialWorkspaceToken);
@@ -976,8 +971,9 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
         return;
 
     const auto PCURRENT   = getGroupCurrent();
-    const bool FULLSCREEN = PCURRENT->m_bIsFullscreen;
+    const bool FULLSCREEN = PCURRENT->isFullscreen();
     const auto WORKSPACE  = PCURRENT->m_pWorkspace;
+    const auto MODE       = PCURRENT->m_sFullscreenState.client;
 
     const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
     const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();
@@ -985,7 +981,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow.lock();
 
     if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreen(PCURRENT, false, WORKSPACE->m_efFullscreenMode);
+        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
@@ -1003,7 +999,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
         g_pCompositor->focusWindow(pWindow);
 
     if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreen(pWindow, true, WORKSPACE->m_efFullscreenMode);
+        g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);
 
     g_pHyprRenderer->damageWindow(pWindow);
 
@@ -1102,18 +1098,18 @@ bool CWindow::opaque() {
     if (PWORKSPACE->m_fAlpha.value() != 1.f)
         return false;
 
-    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.buffer)
-        return m_pXWaylandSurface->surface->current.buffer->opaque;
+    if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.texture)
+        return m_pXWaylandSurface->surface->current.texture->m_bOpaque;
 
-    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.buffer)
+    if (!m_pWLSurface->resource() || !m_pWLSurface->resource()->current.texture)
         return false;
 
     // TODO: this is wrong
     const auto EXTENTS = m_pXDGSurface->surface->current.opaque.getExtents();
-    if (EXTENTS.w >= m_pXDGSurface->surface->current.buffer->size.x && EXTENTS.h >= m_pXDGSurface->surface->current.buffer->size.y)
+    if (EXTENTS.w >= m_pXDGSurface->surface->current.bufferSize.x && EXTENTS.h >= m_pXDGSurface->surface->current.bufferSize.y)
         return true;
 
-    return m_pWLSurface->resource()->current.buffer->opaque;
+    return m_pWLSurface->resource()->current.texture->m_bOpaque;
 }
 
 float CWindow::rounding() {
@@ -1146,7 +1142,7 @@ void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
 }
 
 int CWindow::getRealBorderSize() {
-    if (m_sWindowData.noBorder.valueOrDefault() || (m_pWorkspace && m_bIsFullscreen && (m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)))
+    if (m_sWindowData.noBorder.valueOrDefault() || (m_pWorkspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)))
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -1157,11 +1153,6 @@ int CWindow::getRealBorderSize() {
 bool CWindow::canBeTorn() {
     static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
     return m_sWindowData.tearing.valueOr(m_bTearingHint) && *PTEARING;
-}
-
-bool CWindow::shouldSendFullscreenState() {
-    const auto MODE = m_pWorkspace->m_efFullscreenMode;
-    return m_bDontSendFullscreen ? false : (m_bFakeFullscreenState || (m_bIsFullscreen && (MODE == FULLSCREEN_FULL)));
 }
 
 void CWindow::setSuspended(bool suspend) {
@@ -1190,7 +1181,7 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_bIsFloating || m_bPinned || m_bIsFullscreen) {
+    if (!m_bIsFloating || m_bPinned || isFullscreen()) {
         m_vFloatingOffset = Vector2D(0, 0);
         return;
     }
@@ -1242,6 +1233,14 @@ int CWindow::surfacesCount() {
     int no = 0;
     m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
     return no;
+}
+
+bool CWindow::isFullscreen() {
+    return m_sFullscreenState.internal != FSMODE_NONE;
+}
+
+bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
+    return (eFullscreenMode)std::bit_floor((uint8_t)m_sFullscreenState.internal) == MODE;
 }
 
 int CWindow::workspaceID() {
@@ -1321,19 +1320,17 @@ void CWindow::onUpdateState() {
 
     if (requestsFS.has_value() && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN)) {
         bool fs = requestsFS.value();
-
-        if (fs != m_bIsFullscreen && m_bIsMapped)
-            g_pCompositor->setWindowFullscreen(m_pSelf.lock(), fs, FULLSCREEN_FULL);
+        if (m_bIsMapped) {
+            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_FULLSCREEN, requestsFS.value());
+        }
 
         if (!m_bIsMapped)
             m_bWantsInitialFullscreen = fs;
     }
 
     if (requestsMX.has_value() && !(m_eSuppressedEvents & SUPPRESS_MAXIMIZE)) {
-        bool fs = requestsMX.value();
-
-        if (fs != m_bIsFullscreen && m_bIsMapped)
-            g_pCompositor->setWindowFullscreen(m_pSelf.lock(), fs, FULLSCREEN_MAXIMIZED);
+        if (m_bIsMapped)
+            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_MAXIMIZED, requestsMX.value());
     }
 }
 
@@ -1438,7 +1435,7 @@ void CWindow::onX11Configure(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
 
-    if (!m_bIsFloating || m_bIsFullscreen || g_pInputManager->currentlyDraggedWindow == m_pSelf) {
+    if (!m_bIsFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_pSelf) {
         g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal(), true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_pSelf.lock());

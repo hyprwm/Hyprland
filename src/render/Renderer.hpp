@@ -139,7 +139,7 @@ class CHyprRenderer {
     std::vector<SP<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;
-    friend class CToplevelExportProtocolManager;
+    friend class CToplevelExportFrame;
     friend class CInputManager;
     friend class CPointerManager;
 };

@@ -12,16 +12,26 @@
 
 class CMonitor;
 class CWLSurfaceResource;
+class CLayerShellResource;
 
-class CLayerShellResource : public ISurfaceRole {
+class CLayerShellRole : public ISurfaceRole {
+  public:
+    CLayerShellRole(SP<CLayerShellResource> ls);
+
+    virtual eSurfaceRole role() {
+        return SURFACE_ROLE_LAYER_SHELL;
+    }
+
+    WP<CLayerShellResource> layerSurface;
+};
+class CLayerShellResource {
   public:
     CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
     ~CLayerShellResource();
 
-    bool                 good();
-    void                 configure(const Vector2D& size);
-    void                 sendClosed();
-    virtual eSurfaceRole role();
+    bool good();
+    void configure(const Vector2D& size);
+    void sendClosed();
 
     enum eCommittedState {
         STATE_SIZE          = (1 << 0),
@@ -47,7 +57,7 @@ class CLayerShellResource : public ISurfaceRole {
         Vector2D                                desiredSize;
         zwlrLayerSurfaceV1KeyboardInteractivity interactivity = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
         zwlrLayerShellV1Layer                   layer         = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
-        zwlrLayerSurfaceV1Anchor                exclusiveEdge = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+        zwlrLayerSurfaceV1Anchor                exclusiveEdge = (zwlrLayerSurfaceV1Anchor)0;
         uint32_t                                committed     = 0;
 
         struct {
@@ -70,6 +80,7 @@ class CLayerShellResource : public ISurfaceRole {
     struct {
         CHyprSignalListener commitSurface;
         CHyprSignalListener destroySurface;
+        CHyprSignalListener unmapSurface;
     } listeners;
 
     bool                                       closed = false;

@@ -158,9 +158,6 @@ class CConfigManager {
     void                      performMonitorReload();
     void                      appendMonitorRule(const SMonitorRule&);
     bool                      replaceMonitorRule(const SMonitorRule&);
-    bool                      m_bWantsMonitorReload = false;
-    bool                      m_bForceReload        = false;
-    bool                      m_bNoMonitorReload    = false;
     void                      ensureMonitorStatus();
     void                      ensureVRR(CMonitor* pMonitor = nullptr);
 
@@ -212,14 +209,22 @@ class CConfigManager {
         {"nomaxsize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noMaxSize; }},
         {"norounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noRounding; }},
         {"noshadow", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShadow; }},
+        {"noshortcutsinhibit", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
         {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+        {"syncfullscreen", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
     };
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<int>*(PHLWINDOW)>> miWindowProperties = {
         {"rounding", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.rounding; }}, {"bordersize", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.borderSize; }}};
+
+
+    bool m_bWantsMonitorReload = false;
+    bool m_bForceReload        = false;
+    bool m_bNoMonitorReload    = false;
+    bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
 
   private:

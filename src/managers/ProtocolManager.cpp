@@ -39,6 +39,10 @@
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
+#include "../protocols/TextInputV1.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -66,8 +70,7 @@ void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
     else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->szName) || PROTO::outputs.at(pMonitor->szName)->isDefunct())) {
         if (PROTO::outputs.contains(pMonitor->szName))
             PROTO::outputs.erase(pMonitor->szName);
-        PROTO::outputs.emplace(pMonitor->szName,
-                               std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
+        PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
     }
 }
 
@@ -86,7 +89,10 @@ CProtocolManager::CProtocolManager() {
 
         if (PROTO::outputs.contains(M->szName))
             PROTO::outputs.erase(M->szName);
-        PROTO::outputs.emplace(M->szName, std::make_unique<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock()));
+
+        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock());
+        PROTO::outputs.emplace(M->szName, ref);
+        ref->self = ref;
 
         m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
     });
@@ -121,6 +127,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::pointerGestures     = std::make_unique<CPointerGesturesProtocol>(&zwp_pointer_gestures_v1_interface, 3, "PointerGestures");
     PROTO::foreignToplevelWlr  = std::make_unique<CForeignToplevelWlrProtocol>(&zwlr_foreign_toplevel_manager_v1_interface, 3, "ForeignToplevelWlr");
     PROTO::shortcutsInhibit    = std::make_unique<CKeyboardShortcutsInhibitProtocol>(&zwp_keyboard_shortcuts_inhibit_manager_v1_interface, 1, "ShortcutsInhibit");
+    PROTO::textInputV1         = std::make_unique<CTextInputV1Protocol>(&zwp_text_input_manager_v1_interface, 1, "TextInputV1");
     PROTO::textInputV3         = std::make_unique<CTextInputV3Protocol>(&zwp_text_input_manager_v3_interface, 1, "TextInputV3");
     PROTO::constraints         = std::make_unique<CPointerConstraintsProtocol>(&zwp_pointer_constraints_v1_interface, 1, "PointerConstraints");
     PROTO::outputPower         = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
@@ -140,6 +147,9 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
+    PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
+    PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::globalShortcuts     = std::make_unique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
 
     for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
@@ -156,11 +166,62 @@ CProtocolManager::CProtocolManager() {
         PROTO::linuxDma = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
         Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
+}
 
-    // Old protocol implementations.
-    // TODO: rewrite them to use hyprwayland-scanner.
-    m_pToplevelExportProtocolManager  = std::make_unique<CToplevelExportProtocolManager>();
-    m_pTextInputV1ProtocolManager     = std::make_unique<CTextInputV1ProtocolManager>();
-    m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
-    m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
+CProtocolManager::~CProtocolManager() {
+    // this is dumb but i don't want to replace all 600 PROTO with the right thing
+
+    // Output
+    PROTO::outputs.clear();
+
+    // Core
+    PROTO::seat.reset();
+    PROTO::data.reset();
+    PROTO::compositor.reset();
+    PROTO::subcompositor.reset();
+    PROTO::shm.reset();
+
+    // Extensions
+    PROTO::viewport.reset();
+    PROTO::tearing.reset();
+    PROTO::fractional.reset();
+    PROTO::xdgOutput.reset();
+    PROTO::cursorShape.reset();
+    PROTO::idleInhibit.reset();
+    PROTO::relativePointer.reset();
+    PROTO::xdgDecoration.reset();
+    PROTO::alphaModifier.reset();
+    PROTO::gamma.reset();
+    PROTO::foreignToplevel.reset();
+    PROTO::pointerGestures.reset();
+    PROTO::foreignToplevelWlr.reset();
+    PROTO::shortcutsInhibit.reset();
+    PROTO::textInputV1.reset();
+    PROTO::textInputV3.reset();
+    PROTO::constraints.reset();
+    PROTO::outputPower.reset();
+    PROTO::activation.reset();
+    PROTO::idle.reset();
+    PROTO::sessionLock.reset();
+    PROTO::ime.reset();
+    PROTO::virtualKeyboard.reset();
+    PROTO::virtualPointer.reset();
+    PROTO::outputManagement.reset();
+    PROTO::serverDecorationKDE.reset();
+    PROTO::focusGrab.reset();
+    PROTO::tablet.reset();
+    PROTO::layerShell.reset();
+    PROTO::presentation.reset();
+    PROTO::xdgShell.reset();
+    PROTO::dataWlr.reset();
+    PROTO::primarySelection.reset();
+    PROTO::xwaylandShell.reset();
+    PROTO::screencopy.reset();
+    PROTO::toplevelExport.reset();
+    PROTO::globalShortcuts.reset();
+
+    PROTO::lease.reset();
+    PROTO::sync.reset();
+    PROTO::mesaDRM.reset();
+    PROTO::linuxDma.reset();
 }

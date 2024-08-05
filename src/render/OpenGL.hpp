@@ -145,6 +145,7 @@ class CGradientValueData;
 class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
+    ~CHyprOpenGLImpl();
 
     void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
     void     beginSimple(CMonitor*, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
@@ -216,6 +217,7 @@ class CHyprOpenGLImpl {
     gbm_device*                                       m_pGbmDevice  = nullptr;
     EGLContext                                        m_pEglContext = nullptr;
     EGLDisplay                                        m_pEglDisplay = nullptr;
+    EGLDeviceEXT                                      m_pEglDevice  = nullptr;
 
     bool                                              m_bReloadScreenShader = true; // at launch it can be set
 
@@ -273,6 +275,8 @@ class CHyprOpenGLImpl {
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;
 
+    SP<CTexture>            m_pBackgroundTexture;
+
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
     GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
@@ -280,6 +284,8 @@ class CHyprOpenGLImpl {
     void                    initShaders();
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
+    EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
+    void                    createBackgroundTexture(const std::string& path);
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

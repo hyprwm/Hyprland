@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    g_pCompositor->initServer();
+    g_pCompositor->initServer(socketName, socketFd);
 
     if (!envEnabled("HYPRLAND_NO_RT"))
         Init::gainRealTime();
@@ -155,13 +155,11 @@ int main(int argc, char** argv) {
     Debug::log(LOG, "Hyprland init finished.");
 
     // If all's good to go, start.
-    g_pCompositor->startCompositor(socketName, socketFd);
+    g_pCompositor->startCompositor();
 
-    g_pCompositor->m_bIsShuttingDown = true;
+    g_pCompositor->cleanup();
 
-    // If we are here it means we got yote.
-    Debug::log(LOG, "Hyprland reached the end.");
-    g_pCompositor.reset();
+    Debug::log(LOG, "Hyprland has reached the end.");
 
     return EXIT_SUCCESS;
 }

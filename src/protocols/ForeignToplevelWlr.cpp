@@ -51,7 +51,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             }
         }
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_FULL);
+        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, true);
         g_pHyprRenderer->damageWindow(PWINDOW);
     });
 
@@ -64,7 +64,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN)
             return;
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, false);
+        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, false);
     });
 
     resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -81,7 +81,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
         }
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, true, FULLSCREEN_MAXIMIZED);
+        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, true);
     });
 
     resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -93,7 +93,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if (PWINDOW->m_eSuppressedEvents & SUPPRESS_MAXIMIZE)
             return;
 
-        g_pCompositor->setWindowFullscreen(PWINDOW, false);
+        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);
     });
 
     resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
@@ -155,9 +155,9 @@ void CForeignToplevelHandleWlr::sendState() {
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
 
-    if (PWINDOW->m_bIsFullscreen) {
+    if (PWINDOW->isFullscreen()) {
         auto p = (uint32_t*)wl_array_add(&state, sizeof(uint32_t));
-        if (PWINDOW->m_pWorkspace->m_efFullscreenMode == FULLSCREEN_FULL)
+        if (PWINDOW->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_FULLSCREEN;
         else
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;

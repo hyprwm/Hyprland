@@ -31,8 +31,13 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : keybo
         });
     });
     listeners.keymap    = keeb_->events.keymap.registerListener([this](std::any d) {
-        auto E    = std::any_cast<SKeymapEvent>(d);
-        xkbKeymap = xkb_keymap_ref(E.keymap);
+        auto E = std::any_cast<SKeymapEvent>(d);
+        if (xkbKeymap)
+            xkb_keymap_unref(xkbKeymap);
+        xkbKeymap        = xkb_keymap_ref(E.keymap);
+        keymapOverridden = true;
+        updateXKBTranslationState(xkbKeymap);
+        updateKeymapFD();
         keyboardEvents.keymap.emit(d);
     });
 

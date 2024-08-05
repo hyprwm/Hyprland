@@ -11,6 +11,12 @@
 
 #define PROTO NProtocols
 
+class IWaylandProtocol;
+struct IWaylandProtocolDestroyWrapper {
+    wl_listener       listener;
+    IWaylandProtocol* parent = nullptr;
+};
+
 class IWaylandProtocol {
   public:
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
@@ -26,8 +32,9 @@ class IWaylandProtocol {
         Debug::log(level, std::format("[{}] ", m_szName) + std::vformat(fmt.get(), std::make_format_args(args...)));
     };
 
+    IWaylandProtocolDestroyWrapper m_liDisplayDestroy;
+
   private:
     std::string m_szName;
     wl_global*  m_pGlobal = nullptr;
-    wl_listener m_liDisplayDestroy;
 };

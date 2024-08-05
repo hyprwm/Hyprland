@@ -1,39 +1,43 @@
 #pragma once
 #include "../defines.hpp"
-#include "hyprland-global-shortcuts-v1-protocol.h"
+#include "hyprland-global-shortcuts-v1.hpp"
+#include "../protocols/WaylandProtocol.hpp"
 #include <vector>
 
 struct SShortcut {
-    wl_resource* resource;
-    std::string  id, description, appid;
-    uint32_t     shortcut = 0;
+    SP<CHyprlandGlobalShortcutV1> resource;
+    std::string                   id, description, appid;
+    uint32_t                      shortcut = 0;
 };
 
-struct SShortcutClient {
-    wl_client*                              client = nullptr;
-    std::vector<std::unique_ptr<SShortcut>> shortcuts;
-};
-
-class CGlobalShortcutsProtocolManager {
+class CShortcutClient {
   public:
-    CGlobalShortcutsProtocolManager();
+    CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource);
+
+    bool good();
+
+  private:
+    SP<CHyprlandGlobalShortcutsManagerV1> resource;
+    std::vector<SP<SShortcut>>            shortcuts;
+
+    friend class CGlobalShortcutsProtocol;
+};
+
+class CGlobalShortcutsProtocol : IWaylandProtocol {
+  public:
+    CGlobalShortcutsProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+
     void                   bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void                   displayDestroy();
+    void                   destroyResource(CShortcutClient* client);
 
-    void                   registerShortcut(wl_client* client, wl_resource* resource, uint32_t shortcut, const char* id, const char* app_id, const char* description,
-                                            const char* trigger_description);
-    void                   destroyShortcut(wl_resource* resource);
-
-    bool                   globalShortcutExists(std::string appid, std::string trigger);
     void                   sendGlobalShortcutEvent(std::string appid, std::string trigger, bool pressed);
-
+    bool                   isTaken(std::string id, std::string app_id);
     std::vector<SShortcut> getAllShortcuts();
 
   private:
-    std::vector<std::unique_ptr<SShortcutClient>> m_vClients;
+    std::vector<SP<CShortcutClient>> m_vClients;
+};
 
-    SShortcutClient*                              clientFromWlClient(wl_client* client);
-
-    wl_global*                                    m_pGlobal = nullptr;
-    wl_listener                                   m_liDisplayDestroy;
+namespace PROTO {
+    inline UP<CGlobalShortcutsProtocol> globalShortcuts;
 };

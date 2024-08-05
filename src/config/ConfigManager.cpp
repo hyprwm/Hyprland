@@ -669,7 +669,7 @@ std::string CConfigManager::getConfigDir() {
         Debug::log(WARN, "Creating config home directory");
         try {
             std::filesystem::create_directories(parentPath);
-        } catch (std::exception e) { throw e; }
+        } catch (std::exception& e) { throw e; }
     }
 
     Debug::log(WARN, "No config file found; attempting to generate.");
@@ -1141,7 +1141,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     // Since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_bIsFloating;
-    bool hasFullscreen = pWindow->m_bIsFullscreen;
+    bool hasFullscreen = pWindow->isFullscreen();
 
     // Local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
@@ -1340,12 +1340,14 @@ void CConfigManager::dispatchExecOnce() {
                       "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS");
 
     firstExecDispatched = true;
+    isLaunchingExecOnce = true;
 
     for (auto& c : firstExecRequests) {
         handleRawExec("", c);
     }
 
     firstExecRequests.clear(); // free some kb of memory :P
+    isLaunchingExecOnce = false;
 
     // set input, fixes some certain issues
     g_pInputManager->setKeyboardLayout();
@@ -1487,7 +1489,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             if (!PWORKSPACE)
                 return; // ???
 
-            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL;
+            const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
                 m->output->state->setAdaptiveSync(true);
@@ -2024,6 +2026,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       ignoreMods     = false;
     bool       multiKey       = false;
     bool       hasDescription = false;
+    bool       dontInhibit    = false;
     const auto BINDARGS       = command.substr(4);
 
     for (auto& arg : BINDARGS) {
@@ -2045,6 +2048,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             multiKey = true;
         } else if (arg == 'd') {
             hasDescription = true;
+        } else if (arg == 'p') {
+            dontInhibit = true;
         } else {
             return "bind: invalid flag";
         }
@@ -2113,8 +2118,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD, MODS, HANDLER, COMMAND, locked, m_szCurrentSubmap, DESCRIPTION,
-                                               release, repeat, mouse, nonConsuming, transparent, ignoreMods, multiKey, hasDescription});
+        g_pKeybindManager->addKeybind(SKeybind{
+            parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD,        MODS,     HANDLER,        COMMAND,    locked, m_szCurrentSubmap, DESCRIPTION, release,
+            repeat,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, hasDescription, dontInhibit});
     }
 
     return {};
@@ -2134,11 +2140,11 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
 bool windowRuleValid(const std::string& RULE) {
     static const auto rules = std::unordered_set<std::string>{
-        "fakefullscreen", "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile",
+        "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile",
     };
     static const auto rulesPrefix = std::vector<std::string>{
-        "animation", "bordercolor", "bordersize", "center",   "group", "idleinhibit",   "maxsize", "minsize",   "monitor", "move",
-        "opacity",   "plugin:",     "pseudo",     "rounding", "size",  "suppressevent", "tag",     "workspace", "xray",
+        "animation", "bordercolor", "bordersize", "center", "fullscreenstate", "group", "idleinhibit",   "maxsize", "minsize",   "monitor",
+        "move",      "opacity",     "plugin:",    "pseudo", "rounding",        "size",  "suppressevent", "tag",     "workspace", "xray",
     };
 
     const auto VALS = CVarList(RULE, 2, ' ');

@@ -52,7 +52,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     recalculateWindow(PHLWINDOW);
     virtual void                     onBeginDragWindow();
     virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, PHLWINDOW pWindow = nullptr);
-    virtual void                     fullscreenRequestForWindow(PHLWINDOW, eFullscreenMode, bool);
+    virtual void                     fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);
     virtual void                     switchWindows(PHLWINDOW, PHLWINDOW);

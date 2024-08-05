@@ -19,8 +19,16 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
 }
 
 CEventLoopManager::~CEventLoopManager() {
+    for (auto& eventSource : m_sWayland.aqEventSources) {
+        wl_event_source_remove(eventSource);
+    }
+
     if (m_sWayland.eventSource)
         wl_event_source_remove(m_sWayland.eventSource);
+    if (m_sIdle.eventSource)
+        wl_event_source_remove(m_sIdle.eventSource);
+    if (m_sTimers.timerfd >= 0)
+        close(m_sTimers.timerfd);
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {

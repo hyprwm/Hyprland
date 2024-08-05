@@ -8,10 +8,11 @@
 #include "wlr-virtual-pointer-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../devices/IPointer.hpp"
+#include "../helpers/Monitor.hpp"
 
 class CVirtualPointerV1Resource {
   public:
-    CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_);
+    CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, WP<CMonitor> boundOutput_);
     ~CVirtualPointerV1Resource();
 
     struct {
@@ -34,10 +35,12 @@ class CVirtualPointerV1Resource {
         CSignal holdEnd;
     } events;
 
-    bool        good();
-    wl_client*  client();
+    bool         good();
+    wl_client*   client();
 
-    std::string name;
+    std::string  name;
+
+    WP<CMonitor> boundOutput;
 
   private:
     SP<CZwlrVirtualPointerV1>           resource;
@@ -60,7 +63,7 @@ class CVirtualPointerProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(wl_resource* res);
     void destroyResource(CVirtualPointerV1Resource* pointer);
-    void onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id);
+    void onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id, WP<CMonitor> output);
 
     //
     std::vector<UP<CZwlrVirtualPointerManagerV1>> m_vManagers;

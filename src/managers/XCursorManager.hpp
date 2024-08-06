@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <array>
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
@@ -32,15 +33,15 @@ class CXCursorManager {
     SP<SXCursors> getShape(std::string const& shape, int size);
 
   private:
-    SP<SXCursors>              createCursor(std::string const& shape, XcursorImages* xImages);
-    std::vector<std::string>   themePaths(std::string const& theme);
-    std::string                getLegacyShapeName(std::string const& shape);
-    std::vector<SP<SXCursors>> loadStandardCursors(std::string const& name, int size);
-    std::vector<SP<SXCursors>> loadAllFromDir(std::string const& path, int size);
+    SP<SXCursors>                   createCursor(std::string const& shape, XcursorImages* xImages);
+    std::unordered_set<std::string> themePaths(std::string const& theme);
+    std::string                     getLegacyShapeName(std::string const& shape);
+    std::vector<SP<SXCursors>>      loadStandardCursors(std::string const& name, int size);
+    std::vector<SP<SXCursors>>      loadAllFromDir(std::string const& path, int size);
 
-    int                        lastLoadSize = 0;
-    std::string                themeName    = "";
-    SP<SXCursors>              defaultCursor;
-    SP<SXCursors>              hyprCursor;
-    std::vector<SP<SXCursors>> cursors;
+    int                             lastLoadSize = 0;
+    std::string                     themeName    = "";
+    SP<SXCursors>                   defaultCursor;
+    SP<SXCursors>                   hyprCursor;
+    std::vector<SP<SXCursors>>      cursors;
 };

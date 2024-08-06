@@ -2730,25 +2730,40 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
         if (!m_bNvidia)
             settings.explicitKMSEnabled = true;
         else {
-            if (!std::filesystem::exists("/proc/driver/nvidia/version"))
-                settings.explicitKMSEnabled = false;
-            else {
-                // check nvidia version. Explicit KMS is supported in >=560
-                std::ifstream ifs("/proc/driver/nvidia/version");
-                if (!ifs.good())
-                    settings.explicitKMSEnabled = false;
-                else {
-                    std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-                    if (driverInfo.contains("550.") || driverInfo.contains("555.") || driverInfo.contains("545.") || driverInfo.contains("540.") || driverInfo.contains("535.") ||
-                        driverInfo.contains("530.") || driverInfo.contains("525.") || driverInfo.contains("520.") || driverInfo.contains("515.") || driverInfo.contains("510.") ||
-                        driverInfo.contains("505.") || driverInfo.contains("500.") || driverInfo.contains("470."))
-                        settings.explicitKMSEnabled = false;
-                    else
-                        settings.explicitKMSEnabled = true;
 
-                    ifs.close();
+            // check nvidia version. Explicit KMS is supported in >=560
+            // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
+            int         driverMajor = 0;
+
+            static bool once = true;
+            if (once) {
+                once = false;
+
+                Debug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
+
+                if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
+                    Debug::log(LOG, "Renderer: Nvidia version file exists");
+
+                    std::ifstream ifs("/sys/module/nvidia_drm/version");
+                    if (ifs.good()) {
+                        try {
+                            std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+                            Debug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
+
+                            CVarList ver(driverInfo, 0, '.', true);
+                            driverMajor = std::stoi(ver[0]);
+
+                            Debug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
+
+                        } catch (std::exception& e) { settings.explicitKMSEnabled = false; }
+
+                        ifs.close();
+                    }
                 }
             }
+
+            settings.explicitKMSEnabled = driverMajor >= 560;
         }
     }
 

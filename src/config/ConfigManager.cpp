@@ -3,6 +3,7 @@
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
+#include "config/ConfigValue.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 
@@ -346,7 +347,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:swallow_regex", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("misc:swallow_exception_regex", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("misc:focus_on_activate", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("misc:no_direct_scanout", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:mouse_move_focuses_monitor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_ahead_of_time", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:render_ahead_safezone", Hyprlang::INT{1});
@@ -560,7 +560,9 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:groupbar:col.locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66ff5500"});
     m_pConfig->addConfigValue("group:groupbar:col.locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66775500"});
 
-    m_pConfig->addConfigValue("experimental:explicit_sync", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("render:explicit_sync", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});
@@ -798,6 +800,9 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
+    static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static int        prevEnabledExplicit = *PENABLEEXPLICIT;
+
     for (auto& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
     }
@@ -815,6 +820,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     if (!isFirstLaunch)
         g_pHyprOpenGL->m_bReloadScreenShader = true;
+
+    if (!isFirstLaunch && *PENABLEEXPLICIT != prevEnabledExplicit)
+        g_pHyprError->queueCreate("Warning: You changed the render:explicit_sync option, this requires you to restart Hyprland.", CColor(0.9, 0.76, 0.221, 1.0));
 
     // parseError will be displayed next frame
 
@@ -1417,7 +1425,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
 
         if (USEVRR == 0) {
             if (m->vrrActive) {
-
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())
@@ -1427,6 +1435,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             return;
         } else if (USEVRR == 1) {
             if (!m->vrrActive) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
@@ -1451,6 +1460,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
             const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
                 if (!m->state.test()) {
@@ -1462,6 +1472,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
             } else if (!WORKSPACEFULL) {
+                m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 
                 if (!m->state.commit())

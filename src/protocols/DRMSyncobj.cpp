@@ -24,9 +24,9 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        auto timeline   = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        acquireTimeline = timeline;
-        acquirePoint    = ((uint64_t)hi << 32) | (uint64_t)lo;
+        auto timeline           = CDRMSyncobjTimelineResource::fromResource(timeline_);
+        pending.acquireTimeline = timeline;
+        pending.acquirePoint    = ((uint64_t)hi << 32) | (uint64_t)lo;
     });
 
     resource->setSetReleasePoint([this](CWpLinuxDrmSyncobjSurfaceV1* r, wl_resource* timeline_, uint32_t hi, uint32_t lo) {
@@ -35,29 +35,33 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        auto timeline   = CDRMSyncobjTimelineResource::fromResource(timeline_);
-        releaseTimeline = timeline;
-        releasePoint    = ((uint64_t)hi << 32) | (uint64_t)lo;
+        auto timeline           = CDRMSyncobjTimelineResource::fromResource(timeline_);
+        pending.releaseTimeline = timeline;
+        pending.releasePoint    = ((uint64_t)hi << 32) | (uint64_t)lo;
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!!acquireTimeline != !!releaseTimeline) {
-            resource->error(acquireTimeline ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing timeline");
-            surface->pending.rejected = true;
-            return;
-        }
-
-        if ((acquireTimeline || releaseTimeline) && !surface->pending.texture) {
+        if ((pending.acquireTimeline || pending.releaseTimeline) && !surface->pending.texture) {
             resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
             surface->pending.rejected = true;
             return;
         }
 
-        if (!acquireTimeline)
+        if (!surface->pending.newBuffer)
+            return; // this commit does not change the state here
+
+        if (!!pending.acquireTimeline != !!pending.releaseTimeline) {
+            resource->error(pending.acquireTimeline ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT,
+                            "Missing timeline");
+            surface->pending.rejected = true;
+            return;
+        }
+
+        if (!pending.acquireTimeline)
             return;
 
         // wait for the acquire timeline to materialize
-        auto materialized = acquireTimeline->timeline->check(acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
+        auto materialized = pending.acquireTimeline->timeline->check(pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
         if (!materialized.has_value()) {
             LOGM(ERR, "Failed to check the acquire timeline");
             resource->noMemory();
@@ -68,7 +72,24 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
 
         surface->lockPendingState();
-        acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
+        pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
+    });
+
+    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+        // apply timelines if new ones have been attached, otherwise don't touch
+        // the current ones
+        if (pending.releaseTimeline) {
+            current.releaseTimeline = pending.releaseTimeline;
+            current.releasePoint    = pending.releasePoint;
+        }
+
+        if (pending.acquireTimeline) {
+            current.acquireTimeline = pending.acquireTimeline;
+            current.acquirePoint    = pending.acquirePoint;
+        }
+
+        pending.releaseTimeline.reset();
+        pending.acquireTimeline.reset();
     });
 }
 

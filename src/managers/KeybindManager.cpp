@@ -2293,6 +2293,7 @@ void CKeybindManager::dpms(std::string arg) {
         if (!port.empty() && m->szName != port)
             continue;
 
+        m->output->state->resetExplicitFences();
         m->output->state->setEnabled(enable);
 
         m->dpmsStatus = enable;

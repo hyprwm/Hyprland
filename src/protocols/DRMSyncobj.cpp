@@ -47,6 +47,9 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
+        if (!surface->pending.texture)
+            return; // this commit does not change the state here
+
         if (!!pending.acquireTimeline != !!pending.releaseTimeline) {
             resource->error(pending.acquireTimeline ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT,
                             "Missing timeline");

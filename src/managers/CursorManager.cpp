@@ -98,9 +98,11 @@ CCursorManager::CCursorManager() {
             Debug::log(WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
             m_iSize = 24;
         }
-
-        m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize * std::ceil(m_fCursorScale));
     }
+
+    // since we fallback to xcursor always load it on startup. otherwise we end up with a empty theme if hyprcursor is enabled in the config
+    // and then later is disabled.
+    m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize * std::ceil(m_fCursorScale));
 
     m_pAnimationTimer = makeShared<CEventLoopTimer>(std::nullopt, cursorAnimTimer, this);
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
@@ -315,6 +317,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
     m_szTheme                  = name.empty() ? "" : name;
     m_iSize                    = size <= 0 ? 24 : size;
+    auto xcursor_theme         = getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default";
 
     if (*PUSEHYPRCURSOR) {
         auto options                 = Hyprcursor::SManagerOptions();
@@ -326,10 +329,10 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
         m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
         if (!m_pHyprcursor->valid()) {
             Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
-            m_pXcursor->loadTheme(m_szTheme.empty() ? "default" : m_szTheme, m_iSize);
+            m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize);
         }
     } else
-        m_pXcursor->loadTheme(m_szTheme.empty() ? "default" : m_szTheme, m_iSize);
+        m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize);
 
     updateTheme();
 

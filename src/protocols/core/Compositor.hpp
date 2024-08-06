@@ -97,7 +97,8 @@ class CWLSurfaceResource {
             Vector2D destination;
             CBox     source;
         } viewport;
-        bool rejected = false;
+        bool rejected  = false;
+        bool newBuffer = false;
 
         //
         void reset() {

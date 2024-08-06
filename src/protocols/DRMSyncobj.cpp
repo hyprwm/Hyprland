@@ -47,7 +47,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if (!surface->pending.texture)
+        if (!surface->pending.newBuffer)
             return; // this commit does not change the state here
 
         if (!!pending.acquireTimeline != !!pending.releaseTimeline) {

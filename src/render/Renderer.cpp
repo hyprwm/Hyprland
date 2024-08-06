@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
+#include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"

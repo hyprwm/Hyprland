@@ -1405,8 +1405,6 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
-    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
     auto inFD = pMonitor->output->state->state().explicitInFence;
@@ -1431,7 +1429,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
         }
     }
 
-    if (!*PENABLEEXPLICIT)
+    auto explicitOptions = getExplicitSyncSettings();
+
+    if (!explicitOptions.explicitEnabled)
         return ok;
 
     if (inFD >= 0)
@@ -2649,8 +2649,6 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
-    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static auto PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
 
     PMONITOR->commitSeq++;
 
@@ -2674,7 +2672,9 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline && *PENABLEEXPLICIT && *PENABLEEXPLICITKMS) {
+        auto explicitOptions = getExplicitSyncSettings();
+
+        if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
@@ -2713,4 +2713,41 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_bNvidia;
+}
+
+SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
+    static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
+
+    SExplicitSyncSettings settings;
+    settings.explicitEnabled    = *PENABLEEXPLICIT;
+    settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
+
+    if (*PENABLEEXPLICIT == 2 /* auto */)
+        settings.explicitEnabled = true;
+    if (*PENABLEEXPLICITKMS == 2 /* auto */) {
+        if (!m_bNvidia)
+            settings.explicitKMSEnabled = true;
+        else {
+            if (!std::filesystem::exists("/proc/driver/nvidia/version"))
+                settings.explicitKMSEnabled = false;
+            else {
+                // check nvidia version. Explicit KMS is supported in 560+
+                std::ifstream ifs("/proc/driver/nvidia/version");
+                if (!ifs.good())
+                    settings.explicitKMSEnabled = false;
+                else {
+                    std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+                    if (driverInfo.contains("550.") || driverInfo.contains("555."))
+                        settings.explicitKMSEnabled = false;
+                    else
+                        settings.explicitKMSEnabled = true;
+
+                    ifs.close();
+                }
+            }
+        }
+    }
+
+    return settings;
 }

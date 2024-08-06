@@ -1,6 +1,8 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "math/Math.hpp"
+#include "sync/SyncReleaser.hpp"
+#include "ScopeGuard.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -8,6 +10,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
+#include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -77,6 +80,7 @@ void CMonitor::onConnect(bool noRule) {
     tearingState.canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
     if (m_bEnabled) {
+        output->state->resetExplicitFences();
         output->state->setEnabled(true);
         state.commit();
         return;
@@ -101,6 +105,7 @@ void CMonitor::onConnect(bool noRule) {
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
 
+        output->state->resetExplicitFences();
         output->state->setEnabled(false);
 
         if (!state.commit())
@@ -137,6 +142,7 @@ void CMonitor::onConnect(bool noRule) {
 
     m_bEnabled = true;
 
+    output->state->resetExplicitFences();
     output->state->setEnabled(true);
 
     // set mode, also applies
@@ -300,6 +306,7 @@ void CMonitor::onDisconnect(bool destroy) {
         activeWorkspace->m_bVisible = false;
     activeWorkspace.reset();
 
+    output->state->resetExplicitFences();
     output->state->setEnabled(false);
 
     if (!state.commit())
@@ -808,28 +815,77 @@ bool CMonitor::attemptDirectScanout() {
     if (!PSURFACE->current.buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
+    Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt", (uintptr_t)PSURFACE.get());
+
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
     output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    if (!state.test())
+    if (!state.test()) {
+        Debug::log(TRACE, "attemptDirectScanout: failed basic test");
         return false;
+    }
+
+    auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings();
+
+    // wait for the explicit fence if present, and if kms explicit is allowed
+    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
+    int  explicitWaitFD = -1;
+    if (DOEXPLICIT) {
+        explicitWaitFD = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
+        if (explicitWaitFD < 0)
+            Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
+    }
+    DOEXPLICIT = DOEXPLICIT && explicitWaitFD >= 0;
+
+    auto     cleanup = CScopeGuard([explicitWaitFD, this]() {
+        output->state->resetExplicitFences();
+        if (explicitWaitFD >= 0)
+            close(explicitWaitFD);
+    });
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    Debug::log(TRACE, "presentFeedback for DS");
-    PSURFACE->presentFeedback(&now, this, true);
+    PSURFACE->presentFeedback(&now, this);
 
     output->state->addDamage(CBox{{}, vecPixelSize});
+    output->state->resetExplicitFences();
 
-    if (state.commit()) {
+    if (DOEXPLICIT) {
+        Debug::log(TRACE, "attemptDirectScanout: setting IN_FENCE for aq to {}", explicitWaitFD);
+        output->state->setExplicitInFence(explicitWaitFD);
+    }
+
+    bool ok = output->commit();
+
+    if (!ok && DOEXPLICIT) {
+        Debug::log(TRACE, "attemptDirectScanout: EXPLICIT SYNC FAILED: commit() returned false. Resetting fences and retrying, might result in glitches.");
+        output->state->resetExplicitFences();
+
+        ok = output->commit();
+    }
+
+    if (ok) {
         if (lastScanout.expired()) {
             lastScanout = PCANDIDATE;
             Debug::log(LOG, "Entered a direct scanout to {:x}: \"{}\"", (uintptr_t)PCANDIDATE.get(), PCANDIDATE->m_szTitle);
         }
+
+        // delay explicit sync feedback until kms release of the buffer
+        if (DOEXPLICIT) {
+            Debug::log(TRACE, "attemptDirectScanout: Delaying explicit sync release feedback until kms release");
+            PSURFACE->current.buffer->releaser->drop();
+
+            PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
+                const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.releaseTimeline && PSURFACE->syncobj->current.releaseTimeline->timeline;
+                if (DOEXPLICIT)
+                    PSURFACE->syncobj->current.releaseTimeline->timeline->signal(PSURFACE->syncobj->current.releasePoint);
+            });
+        }
     } else {
+        Debug::log(TRACE, "attemptDirectScanout: failed to scanout surface");
         lastScanout.reset();
         return false;
     }

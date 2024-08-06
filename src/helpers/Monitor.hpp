@@ -121,8 +121,7 @@ class CMonitor {
     // explicit sync
     SP<CSyncTimeline> inTimeline;
     SP<CSyncTimeline> outTimeline;
-    uint64_t          lastWaitPoint = 0;
-    uint64_t          commitSeq     = 0;
+    uint64_t          commitSeq = 0;
 
     WP<CMonitor>      self;
 

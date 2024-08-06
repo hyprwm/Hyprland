@@ -97,7 +97,8 @@ class CWLSurfaceResource {
             Vector2D destination;
             CBox     source;
         } viewport;
-        bool rejected = false;
+        bool rejected  = false;
+        bool newBuffer = false;
 
         //
         void reset() {
@@ -122,7 +123,7 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     CRegion                                accumulateCurrentBufferDamage();
-    void                                   presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync = false);
+    void                                   presentFeedback(timespec* when, CMonitor* pMonitor);
     void                                   lockPendingState();
     void                                   unlockPendingState();
 

@@ -7,6 +7,7 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
@@ -69,7 +70,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
-        pending.offset = {x, y};
+        pending.offset    = {x, y};
+        pending.newBuffer = true;
 
         if (!buffer) {
             pending.buffer.reset();
@@ -428,6 +430,10 @@ void CWLSurfaceResource::commitPendingState() {
     current = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
+    pending.newBuffer = false;
+
+    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
+        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -501,23 +507,18 @@ void CWLSurfaceResource::updateCursorShm() {
     memcpy(shmData.data(), pixelData, bufLen);
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync) {
+void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->outTimeline || !syncobj || !needsExplicitSync)
+    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
         return;
 
     // attach explicit sync
     g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
-
-    if (syncobj->acquirePoint > pMonitor->lastWaitPoint) {
-        Debug::log(TRACE, "presentFeedback lastWaitPoint {} -> {}", pMonitor->lastWaitPoint, syncobj->acquirePoint);
-        pMonitor->lastWaitPoint = syncobj->acquirePoint;
-    }
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

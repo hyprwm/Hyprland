@@ -76,7 +76,7 @@ void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {

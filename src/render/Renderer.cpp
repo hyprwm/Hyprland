@@ -1,9 +1,12 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/ScopeGuard.hpp"
+#include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
+#include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
@@ -115,8 +118,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         return;
 
     // explicit sync: wait for the timeline, if any
-    if (surface->syncobj && surface->syncobj->acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->acquireTimeline->timeline, surface->syncobj->acquirePoint)) {
+    if (surface->syncobj && surface->syncobj->current.acquireTimeline) {
+        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->current.acquireTimeline->timeline, surface->syncobj->current.acquirePoint)) {
             Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }
@@ -1095,7 +1098,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PNODIRECTSCANOUT    = CConfigValue<Hyprlang::INT>("misc:no_direct_scanout");
+    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
@@ -1195,7 +1198,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if (!*PNODIRECTSCANOUT && !shouldTear) {
+    if (*PDIRECTSCANOUT && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {
@@ -1403,58 +1406,61 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
-    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
-
     // apply timelines for explicit sync
+    // save inFD otherwise reset will reset it
+    auto inFD = pMonitor->output->state->state().explicitInFence;
     pMonitor->output->state->resetExplicitFences();
-
-    bool anyExplicit = !explicitPresented.empty();
-    if (anyExplicit) {
-        Debug::log(TRACE, "Explicit sync presented begin");
-        auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
-        if (inFence < 0)
-            Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
-
-        pMonitor->output->state->setExplicitInFence(inFence);
-
-        for (auto& e : explicitPresented) {
-            Debug::log(TRACE, "Explicit sync presented releasePoint {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
-            if (!e->syncobj || !e->syncobj->releaseTimeline)
-                continue;
-            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
-        }
-
-        explicitPresented.clear();
-        auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
-        if (outFence < 0)
-            Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
-
-        pMonitor->output->state->setExplicitOutFence(outFence);
-        Debug::log(TRACE, "Explicit sync presented end");
-    }
-
-    pMonitor->lastWaitPoint = 0;
+    if (inFD >= 0)
+        pMonitor->output->state->setExplicitInFence(inFD);
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        Debug::log(TRACE, "Monitor state commit failed");
-        // rollback the buffer to avoid writing to the front buffer that is being
-        // displayed
-        pMonitor->output->swapchain->rollback();
-        pMonitor->damage.damageEntire();
+        if (inFD >= 0) {
+            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+            pMonitor->output->state->resetExplicitFences();
+            ok = pMonitor->state.commit();
+        }
+
+        if (!ok) {
+            Debug::log(TRACE, "Monitor state commit failed");
+            // rollback the buffer to avoid writing to the front buffer that is being
+            // displayed
+            pMonitor->output->swapchain->rollback();
+            pMonitor->damage.damageEntire();
+        }
     }
 
-    if (!*PENABLEEXPLICIT)
+    auto explicitOptions = getExplicitSyncSettings();
+
+    if (!explicitOptions.explicitEnabled)
         return ok;
 
-    if (pMonitor->output->state->state().explicitInFence >= 0)
-        close(pMonitor->output->state->state().explicitInFence);
+    if (inFD >= 0)
+        close(inFD);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        if (ok)
-            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
+        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
         close(pMonitor->output->state->state().explicitOutFence);
+    } else
+        Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
+
+    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
+    auto sync = g_pHyprOpenGL->createEGLSync(-1);
+
+    if (!sync)
+        Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
+    else {
+        for (auto& e : explicitPresented) {
+            if (!e->current.buffer || !e->current.buffer->releaser)
+                continue;
+
+            e->current.buffer->releaser->addReleaseSync(sync);
+        }
     }
+
+    explicitPresented.clear();
+
+    pMonitor->output->state->resetExplicitFences();
 
     return ok;
 }
@@ -1898,6 +1904,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
+    pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;
 
@@ -2643,9 +2650,15 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
-    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
 
     PMONITOR->commitSeq++;
+
+    auto cleanup = CScopeGuard([this]() {
+        if (m_pCurrentRenderbuffer)
+            m_pCurrentRenderbuffer->unbind();
+        m_pCurrentRenderbuffer = nullptr;
+        m_pCurrentBuffer       = nullptr;
+    });
 
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
@@ -2661,35 +2674,28 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
+        auto explicitOptions = getExplicitSyncSettings();
+
+        if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
             }
 
-            auto dupedfd = sync->dupFenceFD();
-            sync.reset();
-            if (dupedfd < 0) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
-                Debug::log(ERR, "renderer: couldn't dup an EGLSync fence for out in endRender");
-                return;
-            }
-
-            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
-            close(dupedfd);
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
             if (!ok) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
+
+            auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
+            if (fd <= 0) {
+                Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
+                return;
+            }
+
+            PMONITOR->output->state->setExplicitInFence(fd);
         } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();
@@ -2697,11 +2703,6 @@ void CHyprRenderer::endRender() {
                 glFlush();
         }
     }
-
-    m_pCurrentRenderbuffer->unbind();
-
-    m_pCurrentRenderbuffer = nullptr;
-    m_pCurrentBuffer       = nullptr;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
@@ -2714,4 +2715,58 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_bNvidia;
+}
+
+SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
+    static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
+
+    SExplicitSyncSettings settings;
+    settings.explicitEnabled    = *PENABLEEXPLICIT;
+    settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
+
+    if (*PENABLEEXPLICIT == 2 /* auto */)
+        settings.explicitEnabled = true;
+    if (*PENABLEEXPLICITKMS == 2 /* auto */) {
+        if (!m_bNvidia)
+            settings.explicitKMSEnabled = true;
+        else {
+
+            // check nvidia version. Explicit KMS is supported in >=560
+            // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
+            int         driverMajor = 0;
+
+            static bool once = true;
+            if (once) {
+                once = false;
+
+                Debug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
+
+                if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
+                    Debug::log(LOG, "Renderer: Nvidia version file exists");
+
+                    std::ifstream ifs("/sys/module/nvidia_drm/version");
+                    if (ifs.good()) {
+                        try {
+                            std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+                            Debug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
+
+                            CVarList ver(driverInfo, 0, '.', true);
+                            driverMajor = std::stoi(ver[0]);
+
+                            Debug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
+
+                        } catch (std::exception& e) { settings.explicitKMSEnabled = false; }
+
+                        ifs.close();
+                    }
+                }
+            }
+
+            settings.explicitKMSEnabled = driverMajor >= 560;
+        }
+    }
+
+    return settings;
 }

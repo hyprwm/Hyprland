@@ -188,3 +188,8 @@ bool CSyncTimeline::transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_
 
     return true;
 }
+
+void CSyncTimeline::signal(uint64_t point) {
+    if (drmSyncobjTimelineSignal(drmFD, &handle, &point, 1))
+        Debug::log(ERR, "CSyncTimeline::signal: drmSyncobjTimelineSignal failed");
+}

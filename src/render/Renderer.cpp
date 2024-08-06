@@ -2732,13 +2732,15 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
             if (!std::filesystem::exists("/proc/driver/nvidia/version"))
                 settings.explicitKMSEnabled = false;
             else {
-                // check nvidia version. Explicit KMS is supported in 560+
+                // check nvidia version. Explicit KMS is supported in >=560
                 std::ifstream ifs("/proc/driver/nvidia/version");
                 if (!ifs.good())
                     settings.explicitKMSEnabled = false;
                 else {
                     std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-                    if (driverInfo.contains("550.") || driverInfo.contains("555."))
+                    if (driverInfo.contains("550.") || driverInfo.contains("555.") || driverInfo.contains("545.") || driverInfo.contains("540.") || driverInfo.contains("535.") ||
+                        driverInfo.contains("530.") || driverInfo.contains("525.") || driverInfo.contains("520.") || driverInfo.contains("515.") || driverInfo.contains("510.") ||
+                        driverInfo.contains("505.") || driverInfo.contains("500.") || driverInfo.contains("470."))
                         settings.explicitKMSEnabled = false;
                     else
                         settings.explicitKMSEnabled = true;

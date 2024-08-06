@@ -639,18 +639,17 @@ bool CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWi
             if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
-            // in this case, we only have the keysym to go off.
-            // if the keysym failed resolving, we can't do anything. It's likely missing
-            // from the keymap.
-            if (key.keysym == 0)
-                return false;
+            // in this case, we only have the keysym to go off of for this keybind, and it's invalid
+            // since there might be something like keycode to match with other keybinds, try the next
+            if (key.keysym == XKB_KEY_NoSymbol)
+                continue;
 
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);
             const auto KBKEYLOWER = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
 
-            if (KBKEY == 0 && KBKEYLOWER == 0) {
+            if (KBKEY == XKB_KEY_NoSymbol && KBKEYLOWER == XKB_KEY_NoSymbol) {
                 // Keysym failed to resolve from the key name of the currently iterated bind.
                 // This happens for names such as `switch:off:Lid Switch` as well as some keys
                 // (such as yen and ro).

@@ -118,8 +118,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         return;
 
     // explicit sync: wait for the timeline, if any
-    if (surface->syncobj && surface->syncobj->acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->acquireTimeline->timeline, surface->syncobj->acquirePoint)) {
+    if (surface->syncobj && surface->syncobj->current.acquireTimeline) {
+        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->current.acquireTimeline->timeline, surface->syncobj->current.acquirePoint)) {
             Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }

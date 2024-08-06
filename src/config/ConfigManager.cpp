@@ -801,7 +801,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static bool       prevEnabledExplicit = *PENABLEEXPLICIT;
+    static int        prevEnabledExplicit = *PENABLEEXPLICIT;
 
     for (auto& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();

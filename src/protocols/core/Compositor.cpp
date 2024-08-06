@@ -430,8 +430,8 @@ void CWLSurfaceResource::commitPendingState() {
     pending.damage.clear();
     pending.bufferDamage.clear();
 
-    if (syncobj && syncobj->releaseTimeline && syncobj->releaseTimeline->timeline && current.buffer && current.buffer->buffer)
-        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->releaseTimeline->timeline, syncobj->releasePoint);
+    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
+        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);

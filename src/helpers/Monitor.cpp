@@ -831,10 +831,10 @@ bool CMonitor::attemptDirectScanout() {
     auto explicitOptions = g_pHyprRenderer->getExplicitSyncSettings();
 
     // wait for the explicit fence if present, and if kms explicit is allowed
-    bool DOEXPLICIT     = PSURFACE->syncobj && PSURFACE->syncobj->acquireTimeline && PSURFACE->syncobj->acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
+    bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.acquireTimeline && PSURFACE->syncobj->current.acquireTimeline->timeline && explicitOptions.explicitKMSEnabled;
     int  explicitWaitFD = -1;
     if (DOEXPLICIT) {
-        explicitWaitFD = PSURFACE->syncobj->acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->acquirePoint);
+        explicitWaitFD = PSURFACE->syncobj->current.acquireTimeline->timeline->exportAsSyncFileFD(PSURFACE->syncobj->current.acquirePoint);
         if (explicitWaitFD < 0)
             Debug::log(TRACE, "attemptDirectScanout: failed to acquire an explicit wait fd");
     }
@@ -879,9 +879,9 @@ bool CMonitor::attemptDirectScanout() {
             PSURFACE->current.buffer->releaser->drop();
 
             PSURFACE->current.buffer->buffer->hlEvents.backendRelease2 = PSURFACE->current.buffer->buffer->events.backendRelease.registerListener([PSURFACE](std::any d) {
-                const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->releaseTimeline && PSURFACE->syncobj->releaseTimeline->timeline;
+                const bool DOEXPLICIT = PSURFACE->syncobj && PSURFACE->syncobj->current.releaseTimeline && PSURFACE->syncobj->current.releaseTimeline->timeline;
                 if (DOEXPLICIT)
-                    PSURFACE->syncobj->releaseTimeline->timeline->signal(PSURFACE->syncobj->releasePoint);
+                    PSURFACE->syncobj->current.releaseTimeline->timeline->signal(PSURFACE->syncobj->current.releasePoint);
             });
         }
     } else {

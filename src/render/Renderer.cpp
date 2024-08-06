@@ -1097,7 +1097,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PNODIRECTSCANOUT    = CConfigValue<Hyprlang::INT>("misc:no_direct_scanout");
+    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
@@ -1197,7 +1197,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->tearingState.activelyTearing = shouldTear;
 
-    if (!*PNODIRECTSCANOUT && !shouldTear) {
+    if (*PDIRECTSCANOUT && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {

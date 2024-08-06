@@ -347,7 +347,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:swallow_regex", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("misc:swallow_exception_regex", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("misc:focus_on_activate", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("misc:no_direct_scanout", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:mouse_move_focuses_monitor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_ahead_of_time", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:render_ahead_safezone", Hyprlang::INT{1});
@@ -563,6 +562,7 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("render:explicit_sync", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});

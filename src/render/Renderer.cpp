@@ -2654,7 +2654,8 @@ void CHyprRenderer::endRender() {
     PMONITOR->commitSeq++;
 
     auto cleanup = CScopeGuard([this]() {
-        m_pCurrentRenderbuffer->unbind();
+        if (m_pCurrentRenderbuffer)
+            m_pCurrentRenderbuffer->unbind();
         m_pCurrentRenderbuffer = nullptr;
         m_pCurrentBuffer       = nullptr;
     });

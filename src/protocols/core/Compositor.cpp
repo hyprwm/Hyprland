@@ -448,8 +448,10 @@ void CWLSurfaceResource::commitPendingState() {
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        if (current.buffer->buffer->isSynchronous())
+        if (current.buffer->buffer->isSynchronous()) {
             dropCurrentBuffer();
+            dropPendingBuffer(); // pending atm is just a copied ref of the current, drop it too to send a release
+        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync

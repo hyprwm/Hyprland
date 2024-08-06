@@ -429,6 +429,8 @@ void CWLSurfaceResource::commitPendingState() {
     current = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
+    pending.texture.reset();
+    pending.buffer.reset();
 
     if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
         current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);

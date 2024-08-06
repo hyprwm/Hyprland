@@ -41,14 +41,14 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!!acquireTimeline != !!releaseTimeline) {
-            resource->error(acquireTimeline ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing timeline");
+        if ((acquireTimeline || releaseTimeline) && !surface->pending.texture) {
+            resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
             surface->pending.rejected = true;
             return;
         }
 
-        if ((acquireTimeline || releaseTimeline) && !surface->pending.texture) {
-            resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_BUFFER, "Missing buffer");
+        if (!!acquireTimeline != !!releaseTimeline) {
+            resource->error(acquireTimeline ? WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_RELEASE_POINT : WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_ACQUIRE_POINT, "Missing timeline");
             surface->pending.rejected = true;
             return;
         }

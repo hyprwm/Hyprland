@@ -531,29 +531,66 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
 
     auto anchorRect = state.anchorRect.copy().translate(parentCoord);
 
-    auto width  = state.requestedSize.x;
-    auto height = state.requestedSize.y;
+    auto width   = state.requestedSize.x;
+    auto height  = state.requestedSize.y;
+    auto gravity = state.gravity;
 
     auto anchorX = state.anchor.left() ? anchorRect.x : state.anchor.right() ? anchorRect.extent().x : anchorRect.middle().x;
     auto anchorY = state.anchor.top() ? anchorRect.y : state.anchor.bottom() ? anchorRect.extent().y : anchorRect.middle().y;
 
-    auto calcEffectiveX = [&]() { return state.gravity.left() ? anchorX - width : state.gravity.right() ? anchorX : anchorX - width / 2; };
-    auto calcEffectiveY = [&]() { return state.gravity.top() ? anchorY - height : state.gravity.bottom() ? anchorY : anchorY - height / 2; };
+    auto calcEffectiveX = [&](CEdges anchorGravity, double anchorX) { return anchorGravity.left() ? anchorX - width : anchorGravity.right() ? anchorX : anchorX - width / 2; };
+    auto calcEffectiveY = [&](CEdges anchorGravity, double anchorY) { return anchorGravity.top() ? anchorY - height : anchorGravity.bottom() ? anchorY : anchorY - height / 2; };
 
-    auto effectiveX = calcEffectiveX();
-    auto effectiveY = calcEffectiveY();
+    auto calcRemainingWidth = [&](double effectiveX) {
+        auto width = state.requestedSize.x;
+        if (effectiveX < constraint.x) {
+            auto diff  = constraint.x - effectiveX;
+            effectiveX = constraint.x;
+            width -= diff;
+        }
+
+        auto effectiveX2 = effectiveX + width;
+        if (effectiveX2 > constraint.extent().x)
+            width -= effectiveX2 - constraint.extent().x;
+
+        return std::make_pair(effectiveX, width);
+    };
+
+    auto calcRemainingHeight = [&](double effectiveY) {
+        auto height = state.requestedSize.y;
+        if (effectiveY < constraint.y) {
+            auto diff  = constraint.y - effectiveY;
+            effectiveY = constraint.y;
+            height -= diff;
+        }
+
+        auto effectiveY2 = effectiveY + height;
+        if (effectiveY2 > constraint.extent().y)
+            height -= effectiveY2 - constraint.extent().y;
+
+        return std::make_pair(effectiveY, height);
+    };
+
+    auto effectiveX = calcEffectiveX(gravity, anchorX);
+    auto effectiveY = calcEffectiveY(gravity, anchorY);
 
     // Note: the usage of offset is a guess which maintains compatibility with other compositors that were tested.
     // It considers the offset when deciding whether or not to flip but does not actually flip the offset, instead
     // applying it after the flip step.
 
     if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X) {
-        auto flip = (state.gravity.left() && effectiveX + state.offset.x < constraint.x) || (state.gravity.right() && effectiveX + state.offset.x + width > constraint.extent().x);
+        auto flip = (gravity.left() && effectiveX + state.offset.x < constraint.x) || (gravity.right() && effectiveX + state.offset.x + width > constraint.extent().x);
 
         if (flip) {
-            state.gravity ^= CEdges::LEFT | CEdges::RIGHT;
-            anchorX    = state.anchor.left() ? anchorRect.extent().x : state.anchor.right() ? anchorRect.x : anchorX;
-            effectiveX = calcEffectiveX();
+            auto newGravity    = gravity ^ (CEdges::LEFT | CEdges::RIGHT);
+            auto newAnchorX    = state.anchor.left() ? anchorRect.extent().x : state.anchor.right() ? anchorRect.x : anchorX;
+            auto newEffectiveX = calcEffectiveX(newGravity, newAnchorX);
+
+            if (calcRemainingWidth(newEffectiveX).second > calcRemainingWidth(effectiveX).second) {
+                gravity    = newGravity;
+                anchorX    = newAnchorX;
+                effectiveX = newEffectiveX;
+            }
         }
     }
 
@@ -561,9 +598,15 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
         auto flip = (state.gravity.top() && effectiveY + state.offset.y < constraint.y) || (state.gravity.bottom() && effectiveY + state.offset.y + height > constraint.extent().y);
 
         if (flip) {
-            state.gravity ^= CEdges::TOP | CEdges::BOTTOM;
-            anchorY    = state.anchor.top() ? anchorRect.extent().y : state.anchor.bottom() ? anchorRect.y : anchorY;
-            effectiveY = calcEffectiveY();
+            auto newGravity    = gravity ^ (CEdges::TOP | CEdges::BOTTOM);
+            auto newAnchorY    = state.anchor.top() ? anchorRect.extent().y : state.anchor.bottom() ? anchorRect.y : anchorY;
+            auto newEffectiveY = calcEffectiveY(newGravity, newAnchorY);
+
+            if (calcRemainingHeight(newEffectiveY).second > calcRemainingHeight(effectiveY).second) {
+                gravity    = newGravity;
+                anchorY    = newAnchorY;
+                effectiveY = newEffectiveY;
+            }
         }
     }
 
@@ -589,27 +632,15 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
     }
 
     if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_X) {
-        if (effectiveX < constraint.x) {
-            auto diff  = constraint.x - effectiveX;
-            effectiveX = constraint.x;
-            width -= diff;
-        }
-
-        auto effectiveX2 = effectiveX + width;
-        if (effectiveX2 > constraint.extent().x)
-            width -= effectiveX2 - constraint.extent().x;
+        auto [newX, newWidth] = calcRemainingWidth(effectiveX);
+        effectiveX            = newX;
+        width                 = newWidth;
     }
 
     if (state.constraintAdjustment & XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_RESIZE_Y) {
-        if (effectiveY < constraint.y) {
-            auto diff  = constraint.y - effectiveY;
-            effectiveY = constraint.y;
-            height -= diff;
-        }
-
-        auto effectiveY2 = effectiveY + height;
-        if (effectiveY2 > constraint.extent().y)
-            height -= effectiveY2 - constraint.extent().y;
+        auto [newY, newHeight] = calcRemainingHeight(effectiveY);
+        effectiveY             = newY;
+        height                 = newHeight;
     }
 
     return {effectiveX - parentCoord.x, effectiveY - parentCoord.y, width, height};

@@ -62,7 +62,7 @@ else()
 endif()
 
 include_directories(. "src/" "subprojects/udis86/" "protocols/")
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 add_compile_options(
   -Wall
   -Wextra

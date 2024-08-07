@@ -114,6 +114,11 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTi
     }
 }
 
+CDRMSyncobjTimelineResource::~CDRMSyncobjTimelineResource() {
+    if (fd >= 0)
+        close(fd);
+}
+
 SP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
     auto data = (CDRMSyncobjTimelineResource*)(((CWpLinuxDrmSyncobjTimelineV1*)wl_resource_get_user_data(res))->data());
     return data ? data->self.lock() : nullptr;

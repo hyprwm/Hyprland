@@ -34,6 +34,7 @@ class CDRMSyncobjSurfaceResource {
 class CDRMSyncobjTimelineResource {
   public:
     CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, int fd_);
+    ~CDRMSyncobjTimelineResource();
     static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();

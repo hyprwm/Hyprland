@@ -95,7 +95,7 @@
     devShells = eachSystem (system: {
       default =
         pkgsFor.${system}.mkShell.override {
-          stdenv = pkgsFor.${system}.gcc13Stdenv;
+          stdenv = pkgsFor.${system}.gcc14Stdenv;
         } {
           name = "hyprland-shell";
           nativeBuildInputs = with pkgsFor.${system}; [

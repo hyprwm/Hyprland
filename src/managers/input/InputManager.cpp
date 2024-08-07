@@ -919,6 +919,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     applyConfigToKeyboard(keeb);
 
     g_pSeatManager->setKeyboard(keeb);
+
+    keeb->updateLEDs();
 }
 
 void CInputManager::setKeyboardLayout() {

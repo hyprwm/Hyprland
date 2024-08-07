@@ -1738,7 +1738,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
         return;
     }
 
-    const int WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
+    const auto WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
 
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
@@ -1756,7 +1756,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
-    int workspaceID = getWorkspaceIDNameFromString(args).id;
+    auto workspaceID = getWorkspaceIDNameFromString(args).id;
     if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return;
@@ -1816,7 +1816,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
     const auto PMONITOR                        = g_pCompositor->m_pLastMonitor;
-    int        specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
+    auto       specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (m->activeSpecialWorkspaceID() == workspaceID) {

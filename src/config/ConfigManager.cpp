@@ -2425,7 +2425,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     // }
 
     const static std::string ruleOnCreatedEmpty    = "on-created-empty:";
-    const static int         ruleOnCreatedEmptyLen = ruleOnCreatedEmpty.length();
+    const static auto        ruleOnCreatedEmptyLen = ruleOnCreatedEmpty.length();
 
     auto                     assignRule = [&](std::string rule) -> std::optional<std::string> {
         size_t delim = std::string::npos;

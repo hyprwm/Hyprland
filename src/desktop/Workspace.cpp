@@ -5,13 +5,13 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
-PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special, bool isEmtpy) {
+PHLWORKSPACE CWorkspace::create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmtpy) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmtpy);
     workspace->init(workspace);
     return workspace;
 }
 
-CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special, bool isEmtpy) {
+CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmtpy) {
     m_iMonitorID          = monitorID;
     m_iID                 = id;
     m_szName              = name;
@@ -190,7 +190,7 @@ void CWorkspace::setActive(bool on) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
-void CWorkspace::moveToMonitor(const int& id) {
+void CWorkspace::moveToMonitor(const MONITORID& id) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
@@ -275,7 +275,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             i                     = std::min(NEXTSPACE, std::string::npos - 1);
 
             if (cur == 'r') {
-                int from = 0, to = 0;
+                WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("r[") || !prop.ends_with("]")) {
                     Debug::log(LOG, "Invalid selector {}", selector);
                     return false;
@@ -365,7 +365,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             }
 
             if (cur == 'w') {
-                int from = 0, to = 0;
+                WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("w[") || !prop.ends_with("]")) {
                     Debug::log(LOG, "Invalid selector {}", selector);
                     return false;
@@ -446,7 +446,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     return false;
                 }
 
-                int count;
+                WORKSPACEID count;
                 if (wantsCountGroup)
                     count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
                                                                 wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
@@ -506,7 +506,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 void CWorkspace::markInert() {
     m_bInert     = true;
     m_iID        = WORKSPACE_INVALID;
-    m_iMonitorID = -1;
+    m_iMonitorID = MONITOR_INVALID;
     m_bVisible   = false;
 }
 

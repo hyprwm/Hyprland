@@ -389,8 +389,8 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     }
 }
 
-int CMonitor::findAvailableDefaultWS() {
-    for (size_t i = 1; i < INT32_MAX; ++i) {
+WORKSPACEID CMonitor::findAvailableDefaultWS() {
+    for (WORKSPACEID i = 1; i < LONG_MAX; ++i) {
         if (g_pCompositor->getWorkspaceByID(i))
             continue;
 
@@ -400,7 +400,7 @@ int CMonitor::findAvailableDefaultWS() {
         return i;
     }
 
-    return INT32_MAX; // shouldn't be reachable
+    return LONG_MAX; // shouldn't be reachable
 }
 
 void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
@@ -638,7 +638,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         g_pCompositor->updateFullscreenFadeOnWorkspace(activeSpecialWorkspace);
 }
 
-void CMonitor::changeWorkspace(const int& id, bool internal, bool noMouseMove, bool noFocus) {
+void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
     changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
 }
 
@@ -745,7 +745,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     g_pCompositor->updateSuspendedStates();
 }
 
-void CMonitor::setSpecialWorkspace(const int& id) {
+void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
     setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
 }
 
@@ -766,11 +766,11 @@ void CMonitor::updateMatrix() {
     }
 }
 
-int64_t CMonitor::activeWorkspaceID() {
+WORKSPACEID CMonitor::activeWorkspaceID() {
     return activeWorkspace ? activeWorkspace->m_iID : 0;
 }
 
-int64_t CMonitor::activeSpecialWorkspaceID() {
+WORKSPACEID CMonitor::activeSpecialWorkspaceID() {
     return activeSpecialWorkspace ? activeSpecialWorkspace->m_iID : 0;
 }
 

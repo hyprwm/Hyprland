@@ -20,7 +20,7 @@ class CForeignToplevelHandleWlr {
     SP<CZwlrForeignToplevelHandleV1> resource;
     PHLWINDOWREF                     pWindow;
     bool                             closed        = false;
-    int64_t                          lastMonitorID = -1;
+    MONITORID                        lastMonitorID = MONITOR_INVALID;
 
     void                             sendMonitor(CMonitor* pMonitor);
     void                             sendState();

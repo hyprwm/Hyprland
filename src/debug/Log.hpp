@@ -72,6 +72,5 @@ namespace Debug {
         logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
         log(level, logMsg);
-        logMutex.unlock();
     }
 };

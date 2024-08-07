@@ -1425,12 +1425,16 @@ void CCompositor::cleanupFadingOut(const int& monid) {
         }
     }
 
+    bool layersDirty = false;
+
     for (auto& lsr : m_vSurfacesFadingOut) {
 
         auto ls = lsr.lock();
 
-        if (!ls)
+        if (!ls) {
+            layersDirty = true;
             continue;
+        }
 
         if (ls->monitorID != monid)
             continue;
@@ -1443,7 +1447,7 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             for (auto& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](auto& other) { return other == ls; }) != lsl.end()) {
-                        std::erase_if(lsl, [&](auto& other) { return other == ls; });
+                        std::erase_if(lsl, [&](auto& other) { return other == ls || !other; });
                     }
                 }
             }
@@ -1459,6 +1463,9 @@ void CCompositor::cleanupFadingOut(const int& monid) {
             return;
         }
     }
+
+    if (layersDirty)
+        std::erase_if(m_vSurfacesFadingOut, [](const auto& el) { return el.expired(); });
 }
 
 void CCompositor::addToFadingOutSafe(PHLLS pLS) {

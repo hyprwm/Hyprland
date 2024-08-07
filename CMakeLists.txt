@@ -88,6 +88,12 @@ endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(
+  hyprctl_deps
+  REQUIRED
+  IMPORTED_TARGET
+  hyprutils>=0.2.1)
+
+pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET

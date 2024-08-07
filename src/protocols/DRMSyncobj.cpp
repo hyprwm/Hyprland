@@ -75,7 +75,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
     });
 
-    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+    listeners.surfaceCommit = surface->events.roleCommit.registerListener([this](std::any d) {
         // apply timelines if new ones have been attached, otherwise don't touch
         // the current ones
         if (pending.releaseTimeline) {

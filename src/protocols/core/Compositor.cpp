@@ -432,6 +432,8 @@ void CWLSurfaceResource::commitPendingState() {
     pending.bufferDamage.clear();
     pending.newBuffer = false;
 
+    events.roleCommit.emit();
+
     if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
         current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
 

@@ -15,6 +15,28 @@ class CWLSurface;
 
 AQUAMARINE_FORWARD(IBuffer);
 
+class CCursorBuffer : public Aquamarine::IBuffer {
+  public:
+    CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
+    CCursorBuffer(uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
+    ~CCursorBuffer() = default;
+
+    virtual Aquamarine::eBufferCapability          caps();
+    virtual Aquamarine::eBufferType                type();
+    virtual void                                   update(const Hyprutils::Math::CRegion& damage);
+    virtual bool                                   isSynchronous(); // whether the updates to this buffer are synchronous, aka happen over cpu
+    virtual bool                                   good();
+    virtual Aquamarine::SSHMAttrs                  shm();
+    virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
+    virtual void                                   endDataPtr();
+
+  private:
+    Vector2D         hotspot;
+    cairo_surface_t* surface   = nullptr;
+    uint8_t*         pixelData = nullptr;
+    size_t           stride    = 0;
+};
+
 class CCursorManager {
   public:
     CCursorManager();
@@ -24,7 +46,8 @@ class CCursorManager {
 
     void                    setCursorFromName(const std::string& name);
     void                    setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot);
-    void                    setXCursor(const std::string& name);
+    void                    setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale);
+    void                    setAnimationTimer(const int& frame, const int& delay);
 
     bool                    changeTheme(const std::string& name, const int size);
     void                    updateTheme();
@@ -33,35 +56,8 @@ class CCursorManager {
 
     void                    tickAnimatedCursor();
 
-    class CCursorBuffer : public Aquamarine::IBuffer {
-      public:
-        CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
-        CCursorBuffer(uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
-        ~CCursorBuffer();
-
-        virtual Aquamarine::eBufferCapability          caps();
-        virtual Aquamarine::eBufferType                type();
-        virtual void                                   update(const Hyprutils::Math::CRegion& damage);
-        virtual bool                                   isSynchronous(); // whether the updates to this buffer are synchronous, aka happen over cpu
-        virtual bool                                   good();
-        virtual Aquamarine::SSHMAttrs                  shm();
-        virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
-        virtual void                                   endDataPtr();
-
-      private:
-        Vector2D         hotspot;
-        cairo_surface_t* surface   = nullptr;
-        uint8_t*         pixelData = nullptr;
-        size_t           stride    = 0;
-
-        friend class CCursorManager;
-    };
-
-    void dropBufferRef(CCursorBuffer* ref);
-
-    bool m_bOurBufferConnected = false;
-
   private:
+    bool                                            m_bOurBufferConnected = false;
     std::vector<SP<CCursorBuffer>>                  m_vCursorBuffers;
 
     std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;

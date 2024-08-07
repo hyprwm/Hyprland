@@ -205,23 +205,56 @@ std::unordered_set<std::string> CXCursorManager::themePaths(std::string const& t
         Debug::log(LOG, "XCursor parsing index.theme {}", indexTheme);
 
         while (std::getline(infile, line)) {
-            // Trim leading and trailing whitespace
-            line.erase(0, line.find_first_not_of(" \t\n\r"));
-            line.erase(line.find_last_not_of(" \t\n\r") + 1);
+            if (line.empty())
+                continue;
 
-            if (line.rfind("Inherits", 0) == 0) {           // Check if line starts with "Inherits"
-                std::string inheritThemes = line.substr(8); // Extract the part after "Inherits"
+            // Trim leading and trailing whitespace
+            auto pos = line.find_first_not_of(" \t\n\r");
+            if (pos != std::string::npos)
+                line.erase(0, pos);
+
+            pos = line.find_last_not_of(" \t\n\r");
+            if (pos != std::string::npos && pos < line.length()) {
+                line.erase(pos + 1);
+            }
+
+            if (line.rfind("Inherits", 8) != std::string::npos) { // Check if line starts with "Inherits"
+                std::string inheritThemes = line.substr(8);       // Extract the part after "Inherits"
+                if (inheritThemes.empty())
+                    continue;
+
                 // Remove leading whitespace from inheritThemes and =
-                inheritThemes.erase(0, inheritThemes.find_first_not_of(" \t\n\r"));
-                inheritThemes.erase(0, 1);
-                inheritThemes.erase(0, inheritThemes.find_first_not_of(" \t\n\r"));
+                pos = inheritThemes.find_first_not_of(" \t\n\r");
+                if (pos != std::string::npos)
+                    inheritThemes.erase(0, pos);
+
+                if (inheritThemes.empty())
+                    continue;
+
+                if (inheritThemes.at(0) == '=')
+                    inheritThemes.erase(0, 1);
+                else
+                    continue; // not correct formatted index.theme
+
+                pos = inheritThemes.find_first_not_of(" \t\n\r");
+                if (pos != std::string::npos)
+                    inheritThemes.erase(0, pos);
 
                 std::stringstream inheritStream(inheritThemes);
                 std::string       inheritTheme;
                 while (std::getline(inheritStream, inheritTheme, ',')) {
+                    if (inheritTheme.empty())
+                        continue;
+
                     // Trim leading and trailing whitespace from each theme
-                    inheritTheme.erase(0, inheritTheme.find_first_not_of(" \t\n\r"));
-                    inheritTheme.erase(inheritTheme.find_last_not_of(" \t\n\r") + 1);
+                    pos = inheritTheme.find_first_not_of(" \t\n\r");
+                    if (pos != std::string::npos)
+                        inheritTheme.erase(0, pos);
+
+                    pos = inheritTheme.find_last_not_of(" \t\n\r");
+                    if (pos != std::string::npos && pos < inheritTheme.length())
+                        inheritTheme.erase(inheritTheme.find_last_not_of(" \t\n\r") + 1);
+
                     themes.push_back(inheritTheme);
                 }
             }

@@ -47,7 +47,7 @@ void SDwindleNodeData::getAllChildrenRecursive(std::deque<SDwindleNodeData*>* pD
     }
 }
 
-int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
+int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
     int no = 0;
     for (auto& n : m_lDwindleNodesData) {
         if (n.workspaceID == id && n.valid)
@@ -56,7 +56,7 @@ int CHyprDwindleLayout::getNodesOnWorkspace(const int& id) {
     return no;
 }
 
-SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const int& id) {
+SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const WORKSPACEID& id) {
     for (auto& n : m_lDwindleNodesData) {
         if (n.workspaceID == id && validMapped(n.pWindow))
             return &n;
@@ -64,7 +64,7 @@ SDwindleNodeData* CHyprDwindleLayout::getFirstNodeOnWorkspace(const int& id) {
     return nullptr;
 }
 
-SDwindleNodeData* CHyprDwindleLayout::getClosestNodeOnWorkspace(const int& id, const Vector2D& point) {
+SDwindleNodeData* CHyprDwindleLayout::getClosestNodeOnWorkspace(const WORKSPACEID& id, const Vector2D& point) {
     SDwindleNodeData* res         = nullptr;
     double            distClosest = -1;
     for (auto& n : m_lDwindleNodesData) {
@@ -88,7 +88,7 @@ SDwindleNodeData* CHyprDwindleLayout::getNodeFromWindow(PHLWINDOW pWindow) {
     return nullptr;
 }
 
-SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const int& id) {
+SDwindleNodeData* CHyprDwindleLayout::getMasterNodeOnWorkspace(const WORKSPACEID& id) {
     for (auto& n : m_lDwindleNodesData) {
         if (!n.pParent && n.workspaceID == id)
             return &n;
@@ -535,7 +535,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     m_lDwindleNodesData.remove(*PNODE);
 }
 
-void CHyprDwindleLayout::recalculateMonitor(const int& monid) {
+void CHyprDwindleLayout::recalculateMonitor(const MONITORID& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
 
     if (!PMONITOR || !PMONITOR->activeWorkspace)
@@ -872,7 +872,7 @@ void CHyprDwindleLayout::moveWindowTo(PHLWINDOW pWindow, const std::string& dir,
         return;
 
     const auto     PNODE               = getNodeFromWindow(pWindow);
-    const int      originalWorkspaceID = pWindow->workspaceID();
+    const auto     originalWorkspaceID = pWindow->workspaceID();
     const Vector2D originalPos         = pWindow->middle();
 
     if (!PNODE)

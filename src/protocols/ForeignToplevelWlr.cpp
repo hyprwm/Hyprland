@@ -119,7 +119,7 @@ wl_resource* CForeignToplevelHandleWlr::res() {
 }
 
 void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
-    if (lastMonitorID == (int64_t)pMonitor->ID)
+    if (lastMonitorID == pMonitor->ID)
         return;
 
     const auto CLIENT = resource->client();

@@ -6,6 +6,8 @@
 #include "math/Math.hpp"
 #include <vector>
 #include <format>
+#include "SharedDefs.hpp"
+#include "macros.hpp"
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
@@ -13,7 +15,7 @@ struct SCallstackFrameInfo {
 };
 
 struct SWorkspaceIDName {
-    int         id = -1;
+    WORKSPACEID id = WORKSPACE_INVALID;
     std::string name;
 };
 

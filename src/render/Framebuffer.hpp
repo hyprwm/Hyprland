@@ -18,7 +18,8 @@ class CFramebuffer {
     Vector2D     m_vSize;
 
     SP<CTexture> m_cTex;
-    GLuint       m_iFb = -1;
+    GLuint       m_iFb;
+    bool         m_iFbAllocated{false};
 
     SP<CTexture> m_pStencilTex;
 };

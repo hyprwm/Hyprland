@@ -113,7 +113,7 @@ int rollingRead(const int socket) {
 
     constexpr size_t              BUFFER_SIZE = 8192;
     std::array<char, BUFFER_SIZE> buffer      = {0};
-    int                           sizeWritten = 0;
+    long                          sizeWritten = 0;
     std::cout << "[hyprctl] reading from socket following up log:" << std::endl;
     while (!sigintReceived) {
         sizeWritten = read(socket, buffer.data(), BUFFER_SIZE);

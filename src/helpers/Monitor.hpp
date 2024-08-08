@@ -70,7 +70,7 @@ class CMonitor {
 
     bool                        primary = false;
 
-    uint64_t                    ID                     = -1;
+    MONITORID                   ID                     = MONITOR_INVALID;
     PHLWORKSPACE                activeWorkspace        = nullptr;
     PHLWORKSPACE                activeSpecialWorkspace = nullptr;
     float                       setScale               = 1; // scale set by cfg
@@ -155,31 +155,31 @@ class CMonitor {
     std::array<std::vector<PHLLSREF>, 4> m_aLayerSurfaceLayers;
 
     // methods
-    void     onConnect(bool noRule);
-    void     onDisconnect(bool destroy = false);
-    void     addDamage(const pixman_region32_t* rg);
-    void     addDamage(const CRegion* rg);
-    void     addDamage(const CBox* box);
-    bool     shouldSkipScheduleFrameOnMouseEvent();
-    void     setMirror(const std::string&);
-    bool     isMirror();
-    bool     matchesStaticSelector(const std::string& selector) const;
-    float    getDefaultScale();
-    void     changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void     changeWorkspace(const int& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void     setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-    void     setSpecialWorkspace(const int& id);
-    void     moveTo(const Vector2D& pos);
-    Vector2D middle();
-    void     updateMatrix();
-    int64_t  activeWorkspaceID();
-    int64_t  activeSpecialWorkspaceID();
-    CBox     logicalBox();
-    void     scheduleDone();
-    bool     attemptDirectScanout();
+    void        onConnect(bool noRule);
+    void        onDisconnect(bool destroy = false);
+    void        addDamage(const pixman_region32_t* rg);
+    void        addDamage(const CRegion* rg);
+    void        addDamage(const CBox* box);
+    bool        shouldSkipScheduleFrameOnMouseEvent();
+    void        setMirror(const std::string&);
+    bool        isMirror();
+    bool        matchesStaticSelector(const std::string& selector) const;
+    float       getDefaultScale();
+    void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+    void        setSpecialWorkspace(const WORKSPACEID& id);
+    void        moveTo(const Vector2D& pos);
+    Vector2D    middle();
+    void        updateMatrix();
+    WORKSPACEID activeWorkspaceID();
+    WORKSPACEID activeSpecialWorkspaceID();
+    CBox        logicalBox();
+    void        scheduleDone();
+    bool        attemptDirectScanout();
 
-    bool     m_bEnabled             = false;
-    bool     m_bRenderingInitPassed = false;
+    bool        m_bEnabled             = false;
+    bool        m_bRenderingInitPassed = false;
 
     // For the list lookup
 
@@ -189,7 +189,7 @@ class CMonitor {
 
   private:
     void             setupDefaultWS(const SMonitorRule&);
-    int              findAvailableDefaultWS();
+    WORKSPACEID      findAvailableDefaultWS();
 
     wl_event_source* doneSource = nullptr;
 

@@ -71,7 +71,7 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
 
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
-    if (!m->output || m->ID == -1ull)
+    if (!m->output || m->ID == -1)
         return "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -155,7 +155,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1ull)
+            if (!m->output || m->ID == -1)
                 continue;
 
             result +=

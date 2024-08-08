@@ -270,7 +270,7 @@ class CWindow {
     bool             m_bDraggingTiled   = false; // for dragging around tiled windows
     bool             m_bWasMaximized    = false;
     sFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-    uint64_t         m_iMonitorID       = -1;
+    MONITORID        m_iMonitorID       = -1;
     std::string      m_szTitle          = "";
     std::string      m_szClass          = "";
     std::string      m_szInitialTitle   = "";
@@ -358,8 +358,8 @@ class CWindow {
     bool m_bStayFocused = false;
 
     // for toplevel monitor events
-    uint64_t m_iLastToplevelMonitorID = -1;
-    uint64_t m_iLastSurfaceMonitorID  = -1;
+    MONITORID m_iLastToplevelMonitorID = -1;
+    MONITORID m_iLastSurfaceMonitorID  = -1;
 
     // for idle inhibiting windows
     eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
@@ -421,7 +421,7 @@ class CWindow {
     bool                   canBeTorn();
     void                   setSuspended(bool suspend);
     bool                   visibleOnMonitor(CMonitor* pMonitor);
-    int                    workspaceID();
+    WORKSPACEID            workspaceID();
     bool                   onSpecialWorkspace();
     void                   activate(bool force = false);
     int                    surfacesCount();
@@ -490,9 +490,9 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden        = false;
-    bool m_bSuspended     = false;
-    int  m_iLastWorkspace = WORKSPACE_INVALID;
+    bool        m_bHidden        = false;
+    bool        m_bSuspended     = false;
+    WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
 };
 
 inline bool valid(PHLWINDOW w) {

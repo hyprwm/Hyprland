@@ -14,7 +14,7 @@ SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(PHLWINDOW pWindow) {
     return nullptr;
 }
 
-int CHyprMasterLayout::getNodesOnWorkspace(const int& ws) {
+int CHyprMasterLayout::getNodesOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
     for (auto& n : m_lMasterNodesData) {
         if (n.workspaceID == ws)
@@ -24,7 +24,7 @@ int CHyprMasterLayout::getNodesOnWorkspace(const int& ws) {
     return no;
 }
 
-int CHyprMasterLayout::getMastersOnWorkspace(const int& ws) {
+int CHyprMasterLayout::getMastersOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
     for (auto& n : m_lMasterNodesData) {
         if (n.workspaceID == ws && n.isMaster)
@@ -34,7 +34,7 @@ int CHyprMasterLayout::getMastersOnWorkspace(const int& ws) {
     return no;
 }
 
-SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const int& ws) {
+SMasterWorkspaceData* CHyprMasterLayout::getMasterWorkspaceData(const WORKSPACEID& ws) {
     for (auto& n : m_lMasterWorkspacesData) {
         if (n.workspaceID == ws)
             return &n;
@@ -63,7 +63,7 @@ std::string CHyprMasterLayout::getLayoutName() {
     return "Master";
 }
 
-SMasterNodeData* CHyprMasterLayout::getMasterNodeOnWorkspace(const int& ws) {
+SMasterNodeData* CHyprMasterLayout::getMasterNodeOnWorkspace(const WORKSPACEID& ws) {
     for (auto& n : m_lMasterNodesData) {
         if (n.isMaster && n.workspaceID == ws)
             return &n;
@@ -304,7 +304,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     recalculateMonitor(pWindow->m_iMonitorID);
 }
 
-void CHyprMasterLayout::recalculateMonitor(const int& monid) {
+void CHyprMasterLayout::recalculateMonitor(const MONITORID& monid) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monid);
 
     if (!PMONITOR || !PMONITOR->activeWorkspace)

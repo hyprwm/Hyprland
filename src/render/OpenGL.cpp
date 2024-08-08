@@ -1247,14 +1247,14 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
 
     glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     renderRect(box, CColor(0, 0, 0, 0), round);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     scissor(box);
@@ -1269,7 +1269,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
     glDisable(GL_STENCIL_TEST);
-    glStencilMask(-1);
+    glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     scissor((CBox*)nullptr);
 
@@ -1802,12 +1802,12 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     CRegion tempDamage{damage};
 
     // and draw
-    for (int i = 1; i <= *PBLURPASSES; ++i) {
+    for (auto i = 1; i <= *PBLURPASSES; ++i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 
-    for (int i = *PBLURPASSES - 1; i >= 0; --i) {
+    for (auto i = *PBLURPASSES - 1; i >= 0; --i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));                // when upsampling we make the region twice as big
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage); // up
     }
@@ -2091,7 +2091,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
 
     glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -2101,7 +2101,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
         renderTexture(tex, pBox, a, round, true, true); // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
@@ -2124,7 +2124,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     glDisable(GL_STENCIL_TEST);
     renderTextureInternalWithDamage(tex, pBox, a, &texDamage, round, false, false, true, true);
 
-    glStencilMask(-1);
+    glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     scissor((CBox*)nullptr);
 }

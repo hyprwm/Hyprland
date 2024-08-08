@@ -10,7 +10,7 @@
 extern char** environ;
 
 char const*   sig_getenv(char const* name) {
-    int len = strlen(name);
+    size_t len = strlen(name);
     for (char** var = environ; *var != NULL; var++) {
         if (strncmp(*var, name, len) == 0 && (*var)[len] == '=') {
             return (*var) + len + 1;

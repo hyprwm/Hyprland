@@ -49,7 +49,7 @@ class CHyprRenderer {
     ~CHyprRenderer();
 
     void                            renderMonitor(CMonitor* pMonitor);
-    void                            arrangeLayersForMonitor(const int&);
+    void                            arrangeLayersForMonitor(const MONITORID&);
     void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
     void                            damageWindow(PHLWINDOW, bool forceFull = false);
     void                            damageBox(CBox*, bool skipFrameSchedule = false);

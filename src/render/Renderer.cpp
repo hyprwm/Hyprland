@@ -1658,7 +1658,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
     }
 }
 
-void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
+void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
     if (!PMONITOR)

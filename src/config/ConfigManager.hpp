@@ -33,7 +33,7 @@ struct SWorkspaceRule {
     std::string                        monitor         = "";
     std::string                        workspaceString = "";
     std::string                        workspaceName   = "";
-    int                                workspaceId     = -1;
+    WORKSPACEID                        workspaceId     = -1;
     bool                               isDefault       = false;
     bool                               isPersistent    = false;
     std::optional<CCssGapData>         gapsIn;

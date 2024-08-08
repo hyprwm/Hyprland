@@ -1,0 +1,12 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cfbd431f..73e8e0c2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -64,6 +64,7 @@ endif()
+ include_directories(. "src/" "subprojects/udis86/" "protocols/")
+ set(CMAKE_CXX_STANDARD 26)
+ add_compile_options(
++  -std=c++26
+   -Wall
+   -Wextra
+   -Wno-unused-parameter

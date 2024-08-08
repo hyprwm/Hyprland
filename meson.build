@@ -6,7 +6,7 @@ project('Hyprland', 'cpp', 'c',
     'optimization=3',
     'buildtype=release',
     'debug=false',
-    'cpp_std=c++23',
+    'cpp_std=c++26',
   ])
 
 datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'

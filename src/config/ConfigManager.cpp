@@ -2635,11 +2635,12 @@ std::string SConfigOptionDescription::jsonify() const {
     "value": "{}",
     "description": "{}",
     "type": {},
+    "flags": {},
     "data": {{
         {}
     }}
 }})#",
-                                   value, description, (uint16_t)type, parseData());
+                                   value, description, (uint16_t)type, (uint32_t)flags, parseData());
 
     return json;
 }

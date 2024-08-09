@@ -92,6 +92,10 @@ enum eConfigOptionType : uint16_t {
     CONFIG_OPTION_COLOR        = 5,
 };
 
+enum eConfigOptionFlags : uint32_t {
+    CONFIG_OPTION_FLAG_PERCENTAGE = (1 << 0),
+};
+
 struct SConfigOptionDescription {
 
     struct SBoolData {
@@ -119,6 +123,7 @@ struct SConfigOptionDescription {
     std::string       specialCategory; // if value is special (e.g. device:abc) value will be abc and special device
     bool              specialKey = false;
     eConfigOptionType type       = CONFIG_OPTION_BOOL;
+    uint32_t          flags      = 0; // eConfigOptionFlags
 
     std::string       jsonify() const;
 

@@ -120,12 +120,16 @@ class CXWM {
     void        getTransferData(SXSelection& sel);
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
+    double      applyScale(double val);
+    double      applyUnScale(double val);
+
     //
     xcb_connection_t*                         connection = nullptr;
     xcb_errors_context_t*                     errors     = nullptr;
     xcb_screen_t*                             screen     = nullptr;
 
     xcb_window_t                              wmWindow;
+    double                                    scale = 1.0;
 
     wl_event_source*                          eventSource = nullptr;
 

@@ -35,6 +35,7 @@ in {
         version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         inherit date;
+        inherit (inputs) self;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
       hyprland-debug = final.hyprland.override {debug = true;};

@@ -1,4 +1,5 @@
 {
+  self,
   lib,
   stdenv,
   pkg-config,
@@ -68,7 +69,16 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         baseName = baseNameOf (toString name);
       in
         ! (lib.hasSuffix ".nix" baseName);
-      src = lib.cleanSource ../.;
+      src = lib.cleanSource (
+        if self ? rev
+        then builtins.fetchGit {
+          url = "https://github.com/hyprwm/Hyprland";
+          inherit (self) rev;
+          submodules = true;
+          allRefs = true;
+        }
+        else ../.
+      );
     };
 
     patches = [

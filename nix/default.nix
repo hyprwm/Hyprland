@@ -12,7 +12,6 @@
   expat,
   fribidi,
   git,
-  hwdata,
   hyprcursor,
   hyprlang,
   hyprutils,
@@ -89,6 +88,12 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     DIRTY = lib.optionalString (commit == "") "dirty";
     HASH = commit;
 
+    strictDeps = true;
+
+    depsBuildBuild = [
+      pkg-config
+    ];
+
     nativeBuildInputs = [
       hyprwayland-scanner
       jq
@@ -113,7 +118,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         expat
         fribidi
         git
-        hwdata
         hyprcursor
         hyprlang
         hyprutils
@@ -136,6 +140,9 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         tomlplusplus
         wayland
         wayland-protocols
+        seatd
+        libdisplay-info
+        libliftoff
       ]
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [

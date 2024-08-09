@@ -100,6 +100,8 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
     static auto PENABLED       = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PRENDERTITLES  = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
+    static auto PROUNDING      = CConfigValue<Hyprlang::INT>("group:groupbar:rounding");
+    static auto PBOTTOMBAR     = CConfigValue<Hyprlang::INT>("group:groupbar:bottom_bar");
     static auto PTITLEFONTSIZE = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
     static auto PHEIGHT        = CConfigValue<Hyprlang::INT>("group:groupbar:height");
     static auto PGRADIENTS     = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
@@ -125,9 +127,9 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
+        CBox       rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x + *PROUNDING,
                            ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - BAR_INDICATOR_HEIGHT - BAR_PADDING_OUTER_VERT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y,
-                           m_fBarWidth, BAR_INDICATOR_HEIGHT};
+                           m_fBarWidth - (*PROUNDING * 2), BAR_INDICATOR_HEIGHT};
 
         if (rect.width <= 0 || rect.height <= 0)
             break;
@@ -149,18 +151,21 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 
         CColor            color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
         color.a *= a;
-        g_pHyprOpenGL->renderRect(&rect, color);
+
+        if (*PBOTTOMBAR)
+            g_pHyprOpenGL->renderRect(&rect, color);
 
         rect = {ASSIGNEDBOX.x + floor(xoff) - pMonitor->vecPosition.x + m_pWindow->m_vFloatingOffset.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->vecPosition.y + m_pWindow->m_vFloatingOffset.y, m_fBarWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
+
         rect.scale(pMonitor->scale);
 
         if (*PGRADIENTS) {
             const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
                                                                                                       (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
             if (GRADIENTTEX->m_iTexID != 0)
-                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0);
+                g_pHyprOpenGL->renderTexture(GRADIENTTEX, &rect, 1.0, *PROUNDING);
         }
 
         if (*PRENDERTITLES) {

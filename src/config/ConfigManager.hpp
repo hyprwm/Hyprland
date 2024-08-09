@@ -90,6 +90,7 @@ enum eConfigOptionType : uint16_t {
     CONFIG_OPTION_STRING_SHORT = 3, /* e.g. "auto" */
     CONFIG_OPTION_STRING_LONG  = 4, /* e.g. a command */
     CONFIG_OPTION_COLOR        = 5,
+    CONFIG_OPTION_CHOICE       = 6, /* e.g. "one", "two", "three" */
 };
 
 enum eConfigOptionFlags : uint32_t {
@@ -118,6 +119,10 @@ struct SConfigOptionDescription {
         CColor color;
     };
 
+    struct SChoiceData {
+        std::string choices; // comma-separated
+    };
+
     std::string       value; // e.g. general:gaps_in
     std::string       description;
     std::string       specialCategory; // if value is special (e.g. device:abc) value will be abc and special device
@@ -128,7 +133,7 @@ struct SConfigOptionDescription {
     std::string       jsonify() const;
 
     //
-    std::variant<SBoolData, SRangeData, SFloatData, SStringData, SColorData> data;
+    std::variant<SBoolData, SRangeData, SFloatData, SStringData, SColorData, SChoiceData> data;
 };
 
 class CConfigManager {

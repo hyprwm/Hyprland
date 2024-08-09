@@ -2625,6 +2625,8 @@ std::string SConfigOptionDescription::jsonify() const {
                     return std::format(R"#(     "value": {})#", val.color.getAsHex());
                 } else if constexpr (std::is_same_v<T, SBoolData>) {
                     return std::format(R"#(     "value": {})#", val.value);
+                } else if constexpr (std::is_same_v<T, SChoiceData>) {
+                    return std::format(R"#(     "value": {})#", val.choices);
                 }
                 return std::string{""};
             },

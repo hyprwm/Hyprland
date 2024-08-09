@@ -107,7 +107,7 @@ void                 intHandler(int sig) {
     std::cout << "[hyprctl] SIGINT received, closing connection" << std::endl;
 }
 
-int rollingRead(const int socket) {
+int rollingRead(const int socket, int rate) {
     sigintReceived = false;
     signal(SIGINT, intHandler);
 
@@ -132,13 +132,13 @@ int rollingRead(const int socket) {
             buffer.fill('\0');
         }
 
-        usleep(100000);
+        usleep(static_cast<int>((1.0 / rate) * 1000000));
     }
     close(socket);
     return 0;
 }
 
-int request(std::string arg, int minArgs = 0, bool needRoll = false) {
+int request(std::string arg, int minArgs = 0, bool needRoll = false, int rollRate = 20) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     auto       t = timeval{.tv_sec = 5, .tv_usec = 0};
@@ -183,7 +183,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     }
 
     if (needRoll)
-        return rollingRead(SERVERSOCKET);
+        return rollingRead(SERVERSOCKET, rollRate);
 
     std::string reply        = "";
     char        buffer[8192] = {0};
@@ -331,6 +331,7 @@ int main(int argc, char** argv) {
     const auto  ARGS             = splitArgs(argc, argv);
     bool        json             = false;
     bool        needRoll         = false;
+    int         rollRate         = 20;
     std::string overrideInstance = "";
 
     for (std::size_t i = 0; i < ARGS.size(); ++i) {
@@ -353,6 +354,13 @@ int main(int argc, char** argv) {
             } else if ((ARGS[i] == "-f" || ARGS[i] == "--follow") && !fullArgs.contains("f")) {
                 fullArgs += "f";
                 needRoll = true;
+                if (ARGS.size() >= 3)
+                    try {
+                        rollRate = std::stoi(ARGS[2]);
+                    } catch (std::invalid_argument& e) {
+                        log("invalid argument\n");
+                        return 1;
+                    }
             } else if (ARGS[i] == "--batch") {
                 fullRequest = "--batch ";
             } else if (ARGS[i] == "--instance" || ARGS[i] == "-i") {
@@ -477,7 +485,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/--help"))
         std::cout << USAGE << std::endl;
     else if (fullRequest.contains("/rollinglog") && needRoll)
-        exitStatus = request(fullRequest, 0, true);
+        exitStatus = request(fullRequest, 0, true, rollRate);
     else {
         exitStatus = request(fullRequest);
     }

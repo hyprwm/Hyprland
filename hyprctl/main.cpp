@@ -26,6 +26,7 @@
 #include <regex>
 #include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
+#include <cstring>
 using namespace Hyprutils::String;
 
 #include "Strings.hpp"

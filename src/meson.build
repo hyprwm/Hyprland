@@ -28,6 +28,7 @@ executable('Hyprland', src,
     xcb_xfixes_dep,
     backtrace_dep,
     epoll_dep,
+    gio_dep,
     udis86,
 
     dependency('pixman-1'),

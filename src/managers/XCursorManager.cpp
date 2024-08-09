@@ -1,6 +1,9 @@
 #include <cstring>
 #include <dirent.h>
 #include <filesystem>
+#include <gio/gio.h>
+#include <gio/gsettingsschema.h>
+#include "config/ConfigValue.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
@@ -146,6 +149,10 @@ void CXCursorManager::loadTheme(std::string const& name, int size) {
 
         cursors.emplace_back(cursor);
     }
+
+    static auto SYNCGSETTINGS = CConfigValue<Hyprlang::INT>("cursor:sync_gsettings_theme");
+    if (*SYNCGSETTINGS)
+        syncGsettings();
 }
 
 SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size) {
@@ -541,4 +548,56 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
         defaultCursor = newCursors.front();
 
     return newCursors;
+}
+
+void CXCursorManager::syncGsettings() {
+    auto checkParamExists = [](std::string const& paramName, std::string const& category) {
+        auto* gSettingsSchemaSource = g_settings_schema_source_get_default();
+
+        if (!gSettingsSchemaSource) {
+            Debug::log(WARN, "GSettings default schema source does not exist, cant sync GSettings");
+            return false;
+        }
+
+        auto* gSettingsSchema = g_settings_schema_source_lookup(gSettingsSchemaSource, category.c_str(), true);
+        bool  hasParam        = false;
+
+        if (gSettingsSchema != NULL) {
+            hasParam = gSettingsSchema && g_settings_schema_has_key(gSettingsSchema, paramName.c_str());
+            g_settings_schema_unref(gSettingsSchema);
+        }
+
+        return hasParam;
+    };
+
+    using SettingValue = std::variant<std::string, int>;
+    auto setValue      = [&checkParamExists](std::string const& paramName, const SettingValue& paramValue, std::string const& category) {
+        if (!checkParamExists(paramName, category)) {
+            Debug::log(WARN, "GSettings parameter doesnt exist {} in {}", paramName, category);
+            return;
+        }
+
+        auto* gsettings = g_settings_new(category.c_str());
+
+        if (!gsettings) {
+            Debug::log(WARN, "GSettings failed to allocate new settings with category {}", category);
+            return;
+        }
+
+        std::visit(
+            [&](auto&& value) {
+                using T = std::decay_t<decltype(value)>;
+                if constexpr (std::is_same_v<T, std::string>)
+                    g_settings_set_string(gsettings, paramName.c_str(), value.c_str());
+                else if constexpr (std::is_same_v<T, int>)
+                    g_settings_set_int(gsettings, paramName.c_str(), value);
+            },
+            paramValue);
+
+        g_settings_sync();
+        g_object_unref(gsettings);
+    };
+
+    setValue("cursor-theme", themeName, "org.gnome.desktop.interface");
+    setValue("cursor-size", lastLoadSize, "org.gnome.desktop.interface");
 }

@@ -539,6 +539,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("cursor:zoom_factor", {1.f});
     m_pConfig->addConfigValue("cursor:zoom_rigid", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:enable_hyprcursor", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("cursor:sync_gsettings_theme", Hyprlang::INT{1});
     m_pConfig->addConfigValue("cursor:hide_on_key_press", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:hide_on_touch", Hyprlang::INT{1});
     m_pConfig->addConfigValue("cursor:allow_dumb_copy", Hyprlang::INT{0});

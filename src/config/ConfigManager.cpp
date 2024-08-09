@@ -2610,8 +2610,7 @@ std::string SConfigOptionDescription::jsonify() const {
             [](auto&& val) {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, SStringData>) {
-                    return std::format(R"#(     "value": "{}")#",
-                                       val.value);
+                    return std::format(R"#(     "value": "{}")#", val.value);
                 } else if constexpr (std::is_same_v<T, SRangeData>) {
                     return std::format(R"#(     "value": {},
         "min": {},
@@ -2623,11 +2622,9 @@ std::string SConfigOptionDescription::jsonify() const {
         "max": {})#",
                                        val.value, val.min, val.max);
                 } else if constexpr (std::is_same_v<T, SColorData>) {
-                    return std::format(R"#(     "value": {})#",
-                                       val.color.getAsHex());
+                    return std::format(R"#(     "value": {})#", val.color.getAsHex());
                 } else if constexpr (std::is_same_v<T, SBoolData>) {
-                    return std::format(R"#(     "value": {})#",
-                                       val.value);
+                    return std::format(R"#(     "value": {})#", val.value);
                 }
                 return std::string{""};
             },

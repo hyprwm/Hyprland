@@ -38,6 +38,7 @@ class CXCursorManager {
     std::string                     getLegacyShapeName(std::string const& shape);
     std::vector<SP<SXCursors>>      loadStandardCursors(std::string const& name, int size);
     std::vector<SP<SXCursors>>      loadAllFromDir(std::string const& path, int size);
+    void                            syncGsettings();
 
     int                             lastLoadSize = 0;
     std::string                     themeName    = "";

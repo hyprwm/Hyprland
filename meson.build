@@ -34,6 +34,8 @@ xcb_render_dep = dependency('xcb-render', required: get_option('xwayland'))
 xcb_res_dep = dependency('xcb-res', required: get_option('xwayland'))
 xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
 
+gio_dep = dependency('gio-2.0', required:true)
+
 cmake = import('cmake')
 udis = cmake.subproject('udis86')
 udis86 = udis.dependency('libudis86')

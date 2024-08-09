@@ -6,8 +6,8 @@
 #include "math/Math.hpp"
 #include <vector>
 #include <format>
-#include "SharedDefs.hpp"
-#include "macros.hpp"
+#include "../SharedDefs.hpp"
+#include "../macros.hpp"
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;

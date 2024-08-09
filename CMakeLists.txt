@@ -117,6 +117,7 @@ pkg_check_modules(
   libliftoff
   libudev
   gbm
+  gio-2.0
   hyprlang>=0.3.2
   hyprcursor>=0.1.7
   hyprutils>=0.2.1)

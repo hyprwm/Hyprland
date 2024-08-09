@@ -83,6 +83,49 @@ struct SExecRequestedRule {
     uint64_t    iPid   = 0;
 };
 
+enum eConfigOptionType : uint16_t {
+    CONFIG_OPTION_BOOL         = 0,
+    CONFIG_OPTION_INT          = 1, /* e.g. 0/1/2*/
+    CONFIG_OPTION_FLOAT        = 2,
+    CONFIG_OPTION_STRING_SHORT = 3, /* e.g. "auto" */
+    CONFIG_OPTION_STRING_LONG  = 4, /* e.g. a command */
+    CONFIG_OPTION_COLOR        = 5,
+};
+
+struct SConfigOptionDescription {
+
+    struct SBoolData {
+        bool value = false;
+    };
+
+    struct SRangeData {
+        int value = 0, min = 0, max = 2;
+    };
+
+    struct SFloatData {
+        float value = 0, min = 0, max = 100;
+    };
+
+    struct SStringData {
+        std::string value;
+    };
+
+    struct SColorData {
+        CColor color;
+    };
+
+    std::string       value; // e.g. general:gaps_in
+    std::string       description;
+    std::string       specialCategory; // if value is special (e.g. device:abc) value will be abc and special device
+    bool              specialKey = false;
+    eConfigOptionType type       = CONFIG_OPTION_BOOL;
+
+    std::string       jsonify() const;
+
+    //
+    std::variant<SBoolData, SRangeData, SFloatData, SStringData, SColorData> data;
+};
+
 class CConfigManager {
   public:
     CConfigManager();
@@ -114,6 +157,8 @@ class CConfigManager {
 
     std::vector<SWindowRule>                                        getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
     std::vector<SLayerRule>                                         getMatchingRules(PHLLS);
+
+    const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 

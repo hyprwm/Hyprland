@@ -28,7 +28,9 @@
 #include <filesystem>
 using namespace Hyprutils::String;
 
-extern "C" char**             environ;
+extern "C" char** environ;
+
+#include "ConfigDescriptions.hpp"
 
 static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** data) {
     std::string V = VALUE;
@@ -2596,4 +2598,51 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
     m_vDeclaredPlugins.push_back(path);
 
     return {};
+}
+
+const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {
+    return CONFIG_OPTIONS;
+}
+
+std::string SConfigOptionDescription::jsonify() const {
+    auto parseData = [this]() -> std::string {
+        return std::visit(
+            [](auto&& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, SStringData>) {
+                    return std::format(R"#(     "value": "{}")#",
+                                       val.value);
+                } else if constexpr (std::is_same_v<T, SRangeData>) {
+                    return std::format(R"#(     "value": {},
+        "min": {},
+        "max": {})#",
+                                       val.value, val.min, val.max);
+                } else if constexpr (std::is_same_v<T, SFloatData>) {
+                    return std::format(R"#(     "value": {},
+        "min": {},
+        "max": {})#",
+                                       val.value, val.min, val.max);
+                } else if constexpr (std::is_same_v<T, SColorData>) {
+                    return std::format(R"#(     "value": {})#",
+                                       val.color.getAsHex());
+                } else if constexpr (std::is_same_v<T, SBoolData>) {
+                    return std::format(R"#(     "value": {})#",
+                                       val.value);
+                }
+                return std::string{""};
+            },
+            data);
+    };
+
+    std::string json = std::format(R"#({{
+    "value": "{}",
+    "description": "{}",
+    "type": {},
+    "data": {{
+        {}
+    }}
+}})#",
+                                   value, description, (uint16_t)type, parseData());
+
+    return json;
 }

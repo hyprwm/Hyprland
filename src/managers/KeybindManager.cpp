@@ -91,6 +91,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["focusworkspaceoncurrentmonitor"] = focusWorkspaceOnCurrentMonitor;
     m_mDispatchers["moveworkspacetomonitor"]         = moveWorkspaceToMonitor;
     m_mDispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
+    m_mDispatchers["hidespecialworkspace"]           = hideSpecialWorkspace;
     m_mDispatchers["forcerendererreload"]            = forceRendererReload;
     m_mDispatchers["resizeactive"]                   = resizeActive;
     m_mDispatchers["moveactive"]                     = moveActive;
@@ -1838,6 +1839,11 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
         PMONITOR->setSpecialWorkspace(PSPECIALWORKSPACE);
     }
+}
+
+void CKeybindManager::hideSpecialWorkspace(std::string args) {
+    const auto PMONITOR = g_pCompositor->m_pLastMonitor;
+    PMONITOR->setSpecialWorkspace(nullptr);
 }
 
 void CKeybindManager::forceRendererReload(std::string args) {

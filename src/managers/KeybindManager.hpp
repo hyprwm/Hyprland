@@ -179,6 +179,7 @@ class CKeybindManager {
     static void     moveWorkspaceToMonitor(std::string);
     static void     focusWorkspaceOnCurrentMonitor(std::string);
     static void     toggleSpecialWorkspace(std::string);
+    static void     hideSpecialWorkspace(std::string);
     static void     forceRendererReload(std::string);
     static void     resizeActive(std::string);
     static void     moveActive(std::string);

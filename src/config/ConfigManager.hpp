@@ -120,6 +120,7 @@ struct SConfigOptionDescription {
     };
 
     struct SChoiceData {
+        int         firstIndex = 0;
         std::string choices; // comma-separated
     };
 

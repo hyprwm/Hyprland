@@ -2299,7 +2299,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("cursor:inactive_timeout");
+    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
     static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
 

@@ -180,6 +180,9 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
 }
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
+    if (keycode == 0)
+        return 0;
+
     switch (keycode - 8) {
         case KEY_LEFTMETA: return HL_MODIFIER_META;
         case KEY_RIGHTMETA: return HL_MODIFIER_META;

@@ -2305,6 +2305,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
 
     const bool            CHANGEINTERNAL = !(PWINDOW->m_bPinned || CURRENT_EFFECTIVE_MODE == EFFECTIVE_MODE || (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen()));
 
+    // TODO: update the state on syncFullscreen changes
+    if (!CHANGEINTERNAL && PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
+        return;
+
     PWINDOW->m_sFullscreenState.client = state.client;
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
 

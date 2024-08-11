@@ -171,7 +171,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               noShortcutsInhibit = false;
     CWindowOverridableVar<bool>               opaque             = false;
     CWindowOverridableVar<bool>               RGBX               = false;
-    CWindowOverridableVar<bool>               syncFullscreen     = false;
+    CWindowOverridableVar<bool>               syncFullscreen     = true;
     CWindowOverridableVar<bool>               tearing            = false;
     CWindowOverridableVar<bool>               xray               = false;
 

@@ -1,5 +1,6 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>
 
@@ -225,7 +226,7 @@ CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : backe
     auto fd = drm->getNonMasterFD();
 
     if (fd < 0) {
-        LOGM(ERR, "Failed to dup fd for drm node {}", drm->gpuName);
+        Debug::log(ERR, "[DRMLease] Failed to dup fd for drm node {}", drm->gpuName);
         return;
     }
 
@@ -247,10 +248,8 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
             break;
     }
 
-    if (!primaryDevice || primaryDevice->success) {
-        PROTO::lease.reset();
-        return;
-    }
+    if (!primaryDevice || !primaryDevice->success)
+        g_pEventLoopManager->doLater([]() { PROTO::lease.reset(); });
 }
 
 void CDRMLeaseProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

@@ -11,13 +11,21 @@
 #include <gbm.h>
 
 CPointerManager::CPointerManager() {
-    hooks.monitorAdded = g_pHookSystem->hookDynamic("newMonitor", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto PMONITOR = std::any_cast<SP<CMonitor>>(data);
+    hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto PMONITOR = std::any_cast<CMonitor*>(data)->self.lock();
 
         onMonitorLayoutChange();
 
-        PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
-        PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
+        PMONITOR->events.modeChanged.registerStaticListener(
+            [this, PMONITOR](void* owner, std::any data) {
+                g_pEventLoopManager->doLater([this, PMONITOR]() {
+                    onMonitorLayoutChange();
+                    checkDefaultCursorWarp(PMONITOR, PMONITOR->output->name);
+                });
+            },
+            nullptr);
+        PMONITOR->events.disconnect.registerStaticListener(
+            [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
             [this](void* owner, std::any data) {
                 if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)
@@ -33,6 +41,38 @@ CPointerManager::CPointerManager() {
 
         state->cursorRendered = false;
     });
+}
+
+void CPointerManager::checkDefaultCursorWarp(SP<CMonitor> monitor, std::string monitorName) {
+    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
+    static bool cursorDefaultDone = false;
+    static bool firstLaunch       = true;
+
+    const auto  POS = monitor->middle();
+
+    // by default, cursor should be set to first monitor detected
+    // this is needed as a default if the monitor given in config above doesn't exist
+    if (firstLaunch) {
+        firstLaunch = false;
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+        return;
+    }
+
+    if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
+        if (*PCURSORMONITOR == monitorName) {
+            cursorDefaultDone = true;
+            g_pCompositor->warpCursorTo(POS, true);
+            g_pInputManager->refocus();
+            return;
+        }
+    }
+
+    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
+    if (g_pCompositor->getMonitorFromCursor() == monitor.get()) {
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+    }
 }
 
 void CPointerManager::lockSoftwareAll() {

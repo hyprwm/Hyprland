@@ -500,7 +500,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
         if (requestedFSState.has_value()) {
-            PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
             g_pCompositor->setWindowFullscreenState(PWINDOW, requestedFSState.value());
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
             g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});

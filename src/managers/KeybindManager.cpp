@@ -1163,6 +1163,8 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     if (!PWINDOW)
         return;
 
+    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
+
     int internalMode, clientMode;
     try {
         internalMode = std::stoi(ARGS[0]);
@@ -1182,17 +1184,14 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
 
     if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal) {
         g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_sFullscreenState.client});
-        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
         return;
     }
 
     if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client) {
         g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = FSMODE_NONE});
-        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
         return;
     }
 
-    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
     g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 }
 

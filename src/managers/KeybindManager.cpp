@@ -497,6 +497,19 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
         m_pActiveKeybind            = nullptr;
     }
 
+    static auto PTOPLAYERIGNORE = CConfigValue<Hyprlang::INT>("binds:top_layer_ignore_mouse");
+    if (*PTOPLAYERIGNORE) {
+        Vector2D   surfaceCoords;
+        PHLLS      pFoundLayerSurface;
+        const auto MOUSECORDS = g_pInputManager->getMouseCoordsInternal();
+        const auto PMONITOR   = g_pCompositor->getMonitorFromVector(MOUSECORDS);
+
+        g_pCompositor->vectorToLayerSurface(MOUSECORDS, &PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
+
+        if (pFoundLayerSurface)
+            return true;
+    }
+
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_dPressedKeys.push_back(KEY);
 

@@ -5,9 +5,17 @@
 
 #include <fstream>
 #include <iostream>
+#include <fcntl.h>
 
 void Debug::init(const std::string& IS) {
     logFile = IS + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log");
+    logOfs.open(logFile, std::ios::out | std::ios::app);
+    auto handle = logOfs.native_handle();
+    fcntl(handle, F_SETFD, FD_CLOEXEC);
+}
+
+void Debug::close() {
+    logOfs.close();
 }
 
 void Debug::log(LogLevel level, std::string str) {
@@ -55,11 +63,8 @@ void Debug::log(LogLevel level, std::string str) {
 
     if (!disableLogs || !**disableLogs) {
         // log to a file
-        std::ofstream ofs;
-        ofs.open(logFile, std::ios::out | std::ios::app);
-        ofs << str << "\n";
-
-        ofs.close();
+        logOfs << str << "\n";
+        logOfs.flush();
     }
 
     // log it to the stdout too.

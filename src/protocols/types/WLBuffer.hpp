@@ -17,14 +17,11 @@ class CWLBufferResource {
 
     bool                         good();
     void                         sendRelease();
-    void                         sendReleaseWithSurface(SP<CWLSurfaceResource>);
     wl_resource*                 getResource();
 
     WP<IHLBuffer>                buffer;
 
     WP<CWLBufferResource>        self;
-
-    bool                         released = false;
 
   private:
     CWLBufferResource(SP<CWlBuffer> resource_);

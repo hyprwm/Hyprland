@@ -8,7 +8,7 @@
 
 struct wl_client;
 
-struct STextInputV1;
+class CTextInputV1;
 class CTextInputV3;
 class CInputMethodV2;
 class CWLSurfaceResource;
@@ -16,8 +16,7 @@ class CWLSurfaceResource;
 class CTextInput {
   public:
     CTextInput(WP<CTextInputV3> ti);
-    CTextInput(STextInputV1* ti);
-    ~CTextInput();
+    CTextInput(WP<CTextInputV1> ti);
 
     bool                   isV3();
     void                   enter(SP<CWLSurfaceResource> pSurface);
@@ -43,12 +42,7 @@ class CTextInput {
     WP<CWLSurfaceResource> pFocusedSurface;
     int                    enterLocks = 0;
     WP<CTextInputV3>       pV3Input;
-    STextInputV1*          pV1Input = nullptr;
-
-    DYNLISTENER(textInputEnable);
-    DYNLISTENER(textInputDisable);
-    DYNLISTENER(textInputCommit);
-    DYNLISTENER(textInputDestroy);
+    WP<CTextInputV1>       pV1Input;
 
     struct {
         CHyprSignalListener enable;

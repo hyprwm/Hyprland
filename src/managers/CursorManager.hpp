@@ -7,11 +7,35 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../macros.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
+#include "managers/XCursorManager.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CWLSurface;
 
 AQUAMARINE_FORWARD(IBuffer);
+
+class CCursorBuffer : public Aquamarine::IBuffer {
+  public:
+    CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
+    CCursorBuffer(uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
+    ~CCursorBuffer() = default;
+
+    virtual Aquamarine::eBufferCapability          caps();
+    virtual Aquamarine::eBufferType                type();
+    virtual void                                   update(const Hyprutils::Math::CRegion& damage);
+    virtual bool                                   isSynchronous(); // whether the updates to this buffer are synchronous, aka happen over cpu
+    virtual bool                                   good();
+    virtual Aquamarine::SSHMAttrs                  shm();
+    virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
+    virtual void                                   endDataPtr();
+
+  private:
+    Vector2D         hotspot;
+    cairo_surface_t* surface   = nullptr;
+    uint8_t*         pixelData = nullptr;
+    size_t           stride    = 0;
+};
 
 class CCursorManager {
   public:
@@ -22,7 +46,8 @@ class CCursorManager {
 
     void                    setCursorFromName(const std::string& name);
     void                    setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot);
-    void                    setXCursor(const std::string& name);
+    void                    setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale);
+    void                    setAnimationTimer(const int& frame, const int& delay);
 
     bool                    changeTheme(const std::string& name, const int size);
     void                    updateTheme();
@@ -31,38 +56,13 @@ class CCursorManager {
 
     void                    tickAnimatedCursor();
 
-    class CCursorBuffer : public Aquamarine::IBuffer {
-      public:
-        CCursorBuffer(cairo_surface_t* surf, const Vector2D& size, const Vector2D& hotspot);
-        CCursorBuffer(uint8_t* pixelData, const Vector2D& size, const Vector2D& hotspot);
-        ~CCursorBuffer();
-
-        virtual Aquamarine::eBufferCapability          caps();
-        virtual Aquamarine::eBufferType                type();
-        virtual void                                   update(const Hyprutils::Math::CRegion& damage);
-        virtual bool                                   isSynchronous(); // whether the updates to this buffer are synchronous, aka happen over cpu
-        virtual bool                                   good();
-        virtual Aquamarine::SSHMAttrs                  shm();
-        virtual std::tuple<uint8_t*, uint32_t, size_t> beginDataPtr(uint32_t flags);
-        virtual void                                   endDataPtr();
-
-      private:
-        Vector2D         hotspot;
-        cairo_surface_t* surface   = nullptr;
-        uint8_t*         pixelData = nullptr;
-        size_t           stride    = 0;
-
-        friend class CCursorManager;
-    };
-
-    void dropBufferRef(CCursorBuffer* ref);
-
-    bool m_bOurBufferConnected = false;
-
   private:
+    bool                                            m_bOurBufferConnected = false;
     std::vector<SP<CCursorBuffer>>                  m_vCursorBuffers;
 
     std::unique_ptr<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
+    std::unique_ptr<CXCursorManager>                m_pXcursor;
+    SP<SXCursors>                                   m_currentXcursor;
 
     std::string                                     m_szTheme      = "";
     int                                             m_iSize        = 0;
@@ -70,28 +70,9 @@ class CCursorManager {
 
     Hyprcursor::SCursorStyleInfo                    m_sCurrentStyleInfo;
 
-    wl_event_source*                                m_pAnimationTimer        = nullptr;
+    SP<CEventLoopTimer>                             m_pAnimationTimer;
     int                                             m_iCurrentAnimationFrame = 0;
     Hyprcursor::SCursorShapeData                    m_sCurrentCursorShapeData;
-
-    // gangsta bootleg XCursor impl. Whenever Hyprland has to use
-    // an xcursor, just use the pointer.
-    struct SXCursor {
-        Vector2D              size;
-        Vector2D              hotspot;
-        std::vector<uint32_t> pixels; // XPixel is a u32
-    };
-
-    struct SXCursorManager {
-        void                                          loadTheme(const std::string& name, int size);
-
-        int                                           lastLoadSize = 0;
-
-        bool                                          themeLoaded = false;
-        std::string                                   themeName   = "";
-        SP<SXCursor>                                  defaultCursor;
-        std::unordered_map<std::string, SP<SXCursor>> cursors;
-    } xcursor;
 };
 
 inline std::unique_ptr<CCursorManager> g_pCursorManager;

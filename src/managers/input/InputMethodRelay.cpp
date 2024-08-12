@@ -2,6 +2,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/TextInputV3.hpp"
+#include "../../protocols/TextInputV1.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
 
@@ -9,7 +10,8 @@ CInputMethodRelay::CInputMethodRelay() {
     static auto P =
         g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
 
-    listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(ti); });
+    listeners.newTIV3 = PROTO::textInputV3->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV3>>(ti)); });
+    listeners.newTIV1 = PROTO::textInputV1->events.newTextInput.registerListener([this](std::any ti) { onNewTextInput(std::any_cast<WP<CTextInputV1>>(ti)); });
     listeners.newIME  = PROTO::ime->events.newIME.registerListener([this](std::any ime) { onNewIME(std::any_cast<SP<CInputMethodV2>>(ime)); });
 }
 
@@ -86,11 +88,11 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
     return nullptr;
 }
 
-void CInputMethodRelay::onNewTextInput(std::any tiv3) {
-    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(std::any_cast<WP<CTextInputV3>>(tiv3)));
+void CInputMethodRelay::onNewTextInput(WP<CTextInputV3> tiv3) {
+    m_vTextInputs.emplace_back(std::make_unique<CTextInput>(tiv3));
 }
 
-void CInputMethodRelay::onNewTextInput(STextInputV1* pTIV1) {
+void CInputMethodRelay::onNewTextInput(WP<CTextInputV1> pTIV1) {
     m_vTextInputs.emplace_back(std::make_unique<CTextInput>(pTIV1));
 }
 

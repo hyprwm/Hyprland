@@ -4,19 +4,28 @@
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/core/Seat.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "SeatManager.hpp"
 #include <cstring>
 #include <gbm.h>
 
 CPointerManager::CPointerManager() {
-    hooks.monitorAdded = g_pHookSystem->hookDynamic("newMonitor", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto PMONITOR = std::any_cast<SP<CMonitor>>(data);
+    hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto PMONITOR = std::any_cast<CMonitor*>(data)->self.lock();
 
         onMonitorLayoutChange();
 
-        PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
-        PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
+        PMONITOR->events.modeChanged.registerStaticListener(
+            [this, PMONITOR](void* owner, std::any data) {
+                g_pEventLoopManager->doLater([this, PMONITOR]() {
+                    onMonitorLayoutChange();
+                    checkDefaultCursorWarp(PMONITOR, PMONITOR->output->name);
+                });
+            },
+            nullptr);
+        PMONITOR->events.disconnect.registerStaticListener(
+            [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
             [this](void* owner, std::any data) {
                 if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)
@@ -25,13 +34,45 @@ CPointerManager::CPointerManager() {
             nullptr);
     });
 
-    hooks.monitorPreRender = g_pHookSystem->hookDynamic("preRender", [this](void* self, SCallbackInfo& info, std::any data) {
+    hooks.monitorPreRender = g_pHookSystem->hookDynamic("preMonitorCommit", [this](void* self, SCallbackInfo& info, std::any data) {
         auto state = stateFor(std::any_cast<CMonitor*>(data)->self.lock());
         if (!state)
             return;
 
         state->cursorRendered = false;
     });
+}
+
+void CPointerManager::checkDefaultCursorWarp(SP<CMonitor> monitor, std::string monitorName) {
+    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
+    static bool cursorDefaultDone = false;
+    static bool firstLaunch       = true;
+
+    const auto  POS = monitor->middle();
+
+    // by default, cursor should be set to first monitor detected
+    // this is needed as a default if the monitor given in config above doesn't exist
+    if (firstLaunch) {
+        firstLaunch = false;
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+        return;
+    }
+
+    if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
+        if (*PCURSORMONITOR == monitorName) {
+            cursorDefaultDone = true;
+            g_pCompositor->warpCursorTo(POS, true);
+            g_pInputManager->refocus();
+            return;
+        }
+    }
+
+    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
+    if (g_pCompositor->getMonitorFromCursor() == monitor.get()) {
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+    }
 }
 
 void CPointerManager::lockSoftwareAll() {
@@ -151,18 +192,20 @@ void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hots
         currentCursorImage.surface = surf;
         currentCursorImage.scale   = surf->resource()->current.scale;
 
+        surf->resource()->map();
+
         currentCursorImage.destroySurface = surf->events.destroy.registerListener([this](std::any data) { resetCursorImage(); });
         currentCursorImage.commitSurface  = surf->resource()->events.commit.registerListener([this](std::any data) {
             damageIfSoftware();
-            currentCursorImage.size  = currentCursorImage.surface->resource()->current.buffer ? currentCursorImage.surface->resource()->current.buffer->size : Vector2D{};
+            currentCursorImage.size  = currentCursorImage.surface->resource()->current.texture ? currentCursorImage.surface->resource()->current.bufferSize : Vector2D{};
             currentCursorImage.scale = currentCursorImage.surface ? currentCursorImage.surface->resource()->current.scale : 1.F;
             recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
         });
 
-        if (surf->resource()->current.buffer) {
-            currentCursorImage.size = surf->resource()->current.buffer->size;
+        if (surf->resource()->current.texture) {
+            currentCursorImage.size = surf->resource()->current.bufferSize;
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
             surf->resource()->frame(&now);
@@ -221,6 +264,8 @@ void CPointerManager::resetCursorImage(bool apply) {
         for (auto& m : g_pCompositor->m_vMonitors) {
             currentCursorImage.surface->resource()->leave(m);
         }
+
+        currentCursorImage.surface->resource()->unmap();
 
         currentCursorImage.destroySurface.reset();
         currentCursorImage.commitSurface.reset();
@@ -426,16 +471,39 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         // clear buffer
         memset(bufPtr, 0, std::get<2>(bufData));
 
-        auto texBuffer = currentCursorImage.pBuffer ? currentCursorImage.pBuffer : currentCursorImage.surface->resource()->current.buffer;
+        if (currentCursorImage.pBuffer) {
+            auto texAttrs = currentCursorImage.pBuffer->shm();
 
-        if (texBuffer) {
-            auto textAttrs = texBuffer->shm();
-            auto texData   = texBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
-            auto texPtr    = std::get<0>(texData);
-            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", textAttrs.size.x, textAttrs.size.y, (void*)texPtr, textAttrs.format, textAttrs.stride);
+            if (!texAttrs.success) {
+                Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
+                return nullptr;
+            }
+
+            auto texData = currentCursorImage.pBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
+            auto texPtr  = std::get<0>(texData);
+            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", texAttrs.size.x, texAttrs.size.y, (void*)texPtr, texAttrs.format, texAttrs.stride);
             // copy cursor texture
-            for (int i = 0; i < texBuffer->shm().size.y; i++)
-                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * textAttrs.stride, textAttrs.stride);
+            for (int i = 0; i < texAttrs.size.y; i++)
+                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * texAttrs.stride, texAttrs.stride);
+        } else if (currentCursorImage.surface && currentCursorImage.surface->resource()->role->role() == SURFACE_ROLE_CURSOR) {
+            const auto SURFACE   = currentCursorImage.surface->resource();
+            auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
+            Debug::log(TRACE, "cursor texture pixel data length: {}B", shmBuffer.size());
+
+            if (shmBuffer.data()) {
+                // copy cursor texture
+                // assume format is 32bpp
+                size_t STRIDE = 4 * SURFACE->current.bufferSize.x;
+                for (int i = 0; i < SURFACE->current.bufferSize.y; i++)
+                    memcpy(bufPtr + i * buf->dmabuf().strides[0], shmBuffer.data() + i * STRIDE, STRIDE);
+            } else {
+                // if there is no data, hide the cursor
+                memset(bufPtr, '\0', buf->size.x * buf->size.y * 4 /* assume 32bpp */);
+            }
+
+        } else {
+            Debug::log(TRACE, "Unsupported cursor buffer/surface, falling back to sw (can't dumb copy)");
+            return nullptr;
         }
 
         buf->endDataPtr();
@@ -674,6 +742,32 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
             }
             break;
         }
+        case HID_TYPE_POINTER: {
+            IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
+            if (!POINTER->boundOutput.empty()) {
+                if (POINTER->boundOutput == "entire") {
+                    // find x and y size of the entire space
+                    Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
+                    for (auto& m : g_pCompositor->m_vMonitors) {
+                        const auto EXTENT = m->logicalBox().extent();
+                        const auto POS    = m->logicalBox().pos();
+                        if (EXTENT.x > bottomRight.x)
+                            bottomRight.x = EXTENT.x;
+                        if (EXTENT.y > bottomRight.y)
+                            bottomRight.y = EXTENT.y;
+                        if (POS.x < topLeft.x)
+                            topLeft.x = POS.x;
+                        if (POS.y < topLeft.y)
+                            topLeft.y = POS.y;
+                    }
+                    mappedArea = {topLeft, bottomRight - topLeft};
+                } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
+                    currentMonitor = PMONITOR->self.lock();
+                    mappedArea     = currentMonitor->logicalBox();
+                }
+            }
+            break;
+        }
         default: break;
     }
 
@@ -710,7 +804,7 @@ void CPointerManager::onMonitorLayoutChange() {
 }
 
 SP<CTexture> CPointerManager::getCurrentCursorTexture() {
-    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.buffer))
+    if (!currentCursorImage.pBuffer && (!currentCursorImage.surface || !currentCursorImage.surface->resource()->current.texture))
         return nullptr;
 
     if (currentCursorImage.pBuffer) {
@@ -719,7 +813,7 @@ SP<CTexture> CPointerManager::getCurrentCursorTexture() {
         return currentCursorImage.bufferTex;
     }
 
-    return currentCursorImage.surface->resource()->current.buffer->texture;
+    return currentCursorImage.surface->resource()->current.texture;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {

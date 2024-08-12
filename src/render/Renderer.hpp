@@ -39,13 +39,17 @@ class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
 
+struct SExplicitSyncSettings {
+    bool explicitEnabled = false, explicitKMSEnabled = false;
+};
+
 class CHyprRenderer {
   public:
     CHyprRenderer();
     ~CHyprRenderer();
 
     void                            renderMonitor(CMonitor* pMonitor);
-    void                            arrangeLayersForMonitor(const int&);
+    void                            arrangeLayersForMonitor(const MONITORID&);
     void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
     void                            damageWindow(PHLWINDOW, bool forceFull = false);
     void                            damageBox(CBox*, bool skipFrameSchedule = false);
@@ -73,6 +77,7 @@ class CHyprRenderer {
     bool                            isNvidia();
     void                            makeEGLCurrent();
     void                            unsetEGL();
+    SExplicitSyncSettings           getExplicitSyncSettings();
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -142,6 +147,7 @@ class CHyprRenderer {
     friend class CToplevelExportFrame;
     friend class CInputManager;
     friend class CPointerManager;
+    friend class CMonitor;
 };
 
 inline std::unique_ptr<CHyprRenderer> g_pHyprRenderer;

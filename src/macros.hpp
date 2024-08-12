@@ -27,6 +27,8 @@
 #define WORKSPACE_INVALID     -1L
 #define WORKSPACE_NOT_CHANGED -101
 
+#define MONITOR_INVALID -1L
+
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \
     inline wl_listener listen_##name = {.notify = listener_##name}

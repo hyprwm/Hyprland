@@ -11,21 +11,23 @@ class CWatchdog {
     CWatchdog();
     ~CWatchdog();
 
-    void startWatching();
-    void endWatching();
+    void              startWatching();
+    void              endWatching();
+
+    std::atomic<bool> m_bWatchdogInitialized{false};
 
   private:
     std::chrono::high_resolution_clock::time_point m_tTriggered;
 
     pthread_t                                      m_iMainThreadPID = 0;
 
-    bool                                           m_bWatching  = false;
-    bool                                           m_bWillWatch = false;
+    std::atomic<bool>                              m_bWatching  = false;
+    std::atomic<bool>                              m_bWillWatch = false;
 
     std::unique_ptr<std::thread>                   m_pWatchdog;
     std::mutex                                     m_mWatchdogMutex;
-    bool                                           m_bNotified   = false;
-    bool                                           m_bExitThread = false;
+    std::atomic<bool>                              m_bNotified   = false;
+    std::atomic<bool>                              m_bExitThread = false;
     std::condition_variable                        m_cvWatchdogCondition;
 };
 

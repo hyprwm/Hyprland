@@ -30,7 +30,7 @@ struct SMasterNodeData {
 
     float        percSize = 1.f; // size multiplier for resizing children
 
-    int          workspaceID = -1;
+    WORKSPACEID  workspaceID = WORKSPACE_INVALID;
 
     bool         ignoreFullscreenChecks = false;
 
@@ -41,7 +41,7 @@ struct SMasterNodeData {
 };
 
 struct SMasterWorkspaceData {
-    int          workspaceID = -1;
+    WORKSPACEID  workspaceID = WORKSPACE_INVALID;
     eOrientation orientation = ORIENTATION_LEFT;
 
     //
@@ -55,10 +55,10 @@ class CHyprMasterLayout : public IHyprLayout {
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);
     virtual bool                     isWindowTiled(PHLWINDOW);
-    virtual void                     recalculateMonitor(const int&);
+    virtual void                     recalculateMonitor(const MONITORID&);
     virtual void                     recalculateWindow(PHLWINDOW);
     virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, PHLWINDOW pWindow = nullptr);
-    virtual void                     fullscreenRequestForWindow(PHLWINDOW, eFullscreenMode, bool);
+    virtual void                     fullscreenRequestForWindow(PHLWINDOW pWindow, const eFullscreenMode CURRENT_EFFECTIVE_MODE, const eFullscreenMode EFFECTIVE_MODE);
     virtual std::any                 layoutMessage(SLayoutMessageHeader, std::string);
     virtual SWindowRenderLayoutHints requestRenderHints(PHLWINDOW);
     virtual void                     switchWindows(PHLWINDOW, PHLWINDOW);
@@ -81,14 +81,14 @@ class CHyprMasterLayout : public IHyprLayout {
     void                              buildOrientationCycleVectorFromEOperation(std::vector<eOrientation>& cycle);
     void                              runOrientationCycle(SLayoutMessageHeader& header, CVarList* vars, int next);
     eOrientation                      getDynamicOrientation(PHLWORKSPACE);
-    int                               getNodesOnWorkspace(const int&);
+    int                               getNodesOnWorkspace(const WORKSPACEID&);
     void                              applyNodeDataToWindow(SMasterNodeData*);
     SMasterNodeData*                  getNodeFromWindow(PHLWINDOW);
-    SMasterNodeData*                  getMasterNodeOnWorkspace(const int&);
-    SMasterWorkspaceData*             getMasterWorkspaceData(const int&);
+    SMasterNodeData*                  getMasterNodeOnWorkspace(const WORKSPACEID&);
+    SMasterWorkspaceData*             getMasterWorkspaceData(const WORKSPACEID&);
     void                              calculateWorkspace(PHLWORKSPACE);
     PHLWINDOW                         getNextWindow(PHLWINDOW, bool);
-    int                               getMastersOnWorkspace(const int&);
+    int                               getMastersOnWorkspace(const WORKSPACEID&);
 
     friend struct SMasterNodeData;
     friend struct SMasterWorkspaceData;

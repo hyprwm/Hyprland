@@ -62,12 +62,12 @@ void CXWaylandSurface::ensureListeners() {
         });
 
         listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-            if (surface->pending.buffer && !mapped) {
+            if (surface->pending.texture && !mapped) {
                 map();
                 return;
             }
 
-            if (!surface->pending.buffer && mapped) {
+            if (!surface->pending.texture && mapped) {
                 unmap();
                 return;
             }
@@ -114,11 +114,10 @@ void CXWaylandSurface::unmap() {
     std::erase(g_pXWayland->pWM->mappedSurfacesStacking, self);
 
     mapped = false;
+    events.unmap.emit();
     surface->unmap();
 
     Debug::log(LOG, "XWayland surface {:x} unmapping", (uintptr_t)this);
-
-    events.unmap.emit();
 
     g_pXWayland->pWM->updateClientList();
 }
@@ -132,7 +131,7 @@ void CXWaylandSurface::considerMap() {
         return;
     }
 
-    if (surface->pending.buffer) {
+    if (surface->pending.texture) {
         Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;

@@ -8,7 +8,7 @@ std::chrono::steady_clock::duration CTimer::getDuration() {
     return std::chrono::steady_clock::now() - m_tpLastReset;
 }
 
-int CTimer::getMillis() {
+long CTimer::getMillis() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(getDuration()).count();
 }
 

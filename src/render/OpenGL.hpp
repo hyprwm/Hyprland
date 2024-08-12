@@ -131,11 +131,13 @@ class CEGLSync {
 
     EGLSyncKHR sync = nullptr;
 
-    int        dupFenceFD();
+    int        fd();
     bool       wait();
 
   private:
     CEGLSync() = default;
+
+    int m_iFd = -1;
 
     friend class CHyprOpenGLImpl;
 };
@@ -145,6 +147,7 @@ class CGradientValueData;
 class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
+    ~CHyprOpenGLImpl();
 
     void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
     void     beginSimple(CMonitor*, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);

@@ -1,9 +1,12 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/ScopeGuard.hpp"
+#include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
+#include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
@@ -102,10 +105,10 @@ CHyprRenderer::~CHyprRenderer() {
 }
 
 static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
-    if (!surface->current.buffer || !surface->current.buffer->texture)
+    if (!surface->current.texture)
         return;
 
-    const auto& TEXTURE                     = surface->current.buffer->texture;
+    const auto& TEXTURE                     = surface->current.texture;
     const auto  RDATA                       = (SRenderData*)data;
     const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
@@ -115,8 +118,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         return;
 
     // explicit sync: wait for the timeline, if any
-    if (surface->syncobj && surface->syncobj->acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->acquireTimeline->timeline, surface->syncobj->acquirePoint)) {
+    if (surface->syncobj && surface->syncobj->current.acquireTimeline) {
+        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->current.acquireTimeline->timeline, surface->syncobj->current.acquirePoint)) {
             Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
             return;
         }
@@ -192,8 +195,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     windowBox.round();
 
     const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != surface->current.buffer->size /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.buffer->size.x, 3) &&
-        DELTALESSTHAN(windowBox.height, surface->current.buffer->size.y, 3) /* off by one-or-two */ &&
+        windowBox.size() != surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.bufferSize.x, 3) &&
+        DELTALESSTHAN(windowBox.height, surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
     g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), MISALIGNEDFSV1);
@@ -269,7 +272,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
             return true;
 
         // if hidden behind fullscreen
-        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->m_bIsFullscreen && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
+        if (PWINDOWWORKSPACE->m_bHasFullscreenWindow && !pWindow->isFullscreen() && (!pWindow->m_bIsFloating || !pWindow->m_bCreatedOverFullscreen) &&
             pWindow->m_fAlpha.value() == 0)
             return false;
 
@@ -285,7 +288,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
 
     // if not, check if it maybe is active on a different monitor.
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace) && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
-        return !pWindow->m_bIsFullscreen; // Do not draw fullscreen windows on other monitors
+        return !pWindow->isFullscreen(); // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->activeSpecialWorkspace == pWindow->m_pWorkspace)
         return true;
@@ -352,7 +355,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (w->m_fAlpha.value() == 0.f)
             continue;
 
-        if (w->m_bIsFullscreen || w->m_bIsFloating)
+        if (w->isFullscreen() || w->m_bIsFloating)
             continue;
 
         if (pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
@@ -369,7 +372,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
         if (w->m_fAlpha.value() == 0.f)
             continue;
 
-        if (w->m_bIsFullscreen || !w->m_bIsFloating)
+        if (w->isFullscreen() || !w->m_bIsFloating)
             continue;
 
         if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
@@ -385,7 +388,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
     for (auto& w : g_pCompositor->m_vWindows) {
         const auto PWORKSPACE = w->m_pWorkspace;
 
-        if (w->m_pWorkspace != pWorkspace || !w->m_bIsFullscreen) {
+        if (w->m_pWorkspace != pWorkspace || !w->isFullscreen()) {
             if (!(PWORKSPACE && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated() || PWORKSPACE->m_bForceRendering)))
                 continue;
 
@@ -393,14 +396,14 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
                 continue;
         }
 
-        if (!w->m_bIsFullscreen)
+        if (!w->isFullscreen())
             continue;
 
         if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         if (shouldRenderWindow(w, pMonitor))
-            renderWindow(w, pMonitor, time, pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL, RENDER_PASS_ALL);
+            renderWindow(w, pMonitor, time, pWorkspace->m_efFullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
         if (w->m_pWorkspace != pWorkspace)
             continue;
@@ -416,7 +419,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
 
     // then render windows over fullscreen.
     for (auto& w : g_pCompositor->m_vWindows) {
-        if (w->m_pWorkspace != pWorkspaceWindow->m_pWorkspace || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || (!w->m_bIsMapped && !w->m_bFadingOut) || w->m_bIsFullscreen)
+        if (w->m_pWorkspace != pWorkspaceWindow->m_pWorkspace || (!w->m_bCreatedOverFullscreen && !w->m_bPinned) || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isFullscreen())
             continue;
 
         if (w->m_iMonitorID == pWorkspace->m_iMonitorID && pWorkspace->m_bIsSpecialWorkspace != w->onSpecialWorkspace())
@@ -538,10 +541,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
         decorate = false;
 
     renderdata.surface   = pWindow->m_pWLSurface->resource();
-    renderdata.dontRound = (pWindow->m_bIsFullscreen && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) || pWindow->m_sWindowData.noRounding.valueOrDefault();
+    renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
     renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.value());
     renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.value();
-    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && (!pWindow->m_bIsFullscreen || PWORKSPACE->m_efFullscreenMode != FULLSCREEN_FULL);
+    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
     renderdata.rounding  = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
     renderdata.blur      = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
     renderdata.pWindow   = pWindow;
@@ -568,7 +571,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     renderdata.y += pWindow->m_vFloatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->m_bIsFullscreen && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned) {
+    if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->isFullscreen() && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned) {
         CRegion rg =
             pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value() + pWindow->m_vFloatingOffset).scale(pMonitor->scale);
         g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
@@ -713,6 +716,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
+    if (!pLayer)
+        return;
+
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot && !popups) {
@@ -824,8 +830,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
         // locked with no exclusive, draw only red
-        CBox boxe = {0, 0, INT16_MAX, INT16_MAX};
-        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, 1.0));
+        CBox        boxe = {0, 0, INT16_MAX, INT16_MAX};
+        const float A    = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
+        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, A));
         return;
     }
 
@@ -870,7 +877,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     // if we have a fullscreen, opaque window that convers the screen, we can skip this.
     // TODO: check better with solitary after MR for tearing.
     const auto PFULLWINDOW = pWorkspace ? g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID) : nullptr;
-    if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FULLSCREEN_FULL || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
+    if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FSMODE_FULLSCREEN || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.value() != Vector2D{} || g_pHyprOpenGL->preBlurQueued()) {
 
         if (!g_pHyprOpenGL->m_RenderData.pCurrentMonData->blurFBShouldRender)
@@ -1013,7 +1020,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         if (pSurface->current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
-            Vector2D bufferSize   = pSurface->current.buffer->size;
+            Vector2D bufferSize   = pSurface->current.bufferSize;
             auto     bufferSource = pSurface->current.viewport.source;
 
             // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
@@ -1029,8 +1036,8 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         if (projSize != Vector2D{} && fixMisalignedFSV1) {
             // instead of nearest_neighbor (we will repeat / skip)
             // just cut off / expand surface
-            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.buffer->size;
-            const Vector2D MISALIGNMENT = pSurface->current.buffer->size - projSize;
+            const Vector2D PIXELASUV    = Vector2D{1, 1} / pSurface->current.bufferSize;
+            const Vector2D MISALIGNMENT = pSurface->current.bufferSize - projSize;
             if (MISALIGNMENT != Vector2D{})
                 uvBR -= MISALIGNMENT * PIXELASUV;
         }
@@ -1094,7 +1101,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PNODIRECTSCANOUT    = CConfigValue<Hyprlang::INT>("misc:no_direct_scanout");
+    static auto                                           PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
     static auto                                           PZOOMFACTOR         = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     static auto                                           PANIMENABLED        = CConfigValue<Hyprlang::INT>("animations:enabled");
@@ -1192,18 +1199,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             shouldTear = true;
     }
 
-    if (!*PNODIRECTSCANOUT && !shouldTear) {
+    pMonitor->tearingState.activelyTearing = shouldTear;
+
+    if (*PDIRECTSCANOUT && !shouldTear) {
         if (pMonitor->attemptDirectScanout()) {
             return;
         } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
         }
-    }
-
-    if (pMonitor->tearingState.activelyTearing != shouldTear) {
-        // change of state
-        pMonitor->tearingState.activelyTearing = shouldTear;
     }
 
     EMIT_HOOK_EVENT("preRender", pMonitor);
@@ -1370,6 +1374,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             frameDamage.add(damage);
 
         g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
+
+        pMonitor->output->state->addDamage(frameDamage);
     }
 
     pMonitor->renderingActive = false;
@@ -1389,72 +1395,75 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->pendingFrame = false;
 
-    const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-    g_pDebugOverlay->renderData(pMonitor, µs);
+    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+    g_pDebugOverlay->renderData(pMonitor, durationUs);
 
     if (*PDEBUGOVERLAY == 1) {
         if (pMonitor == g_pCompositor->m_vMonitors.front().get()) {
-            const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, µsNoOverlay);
+            const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
+            g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else {
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
+            g_pDebugOverlay->renderDataNoOverlay(pMonitor, durationUs);
         }
     }
 }
 
 bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
-    static auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
-
     // apply timelines for explicit sync
+    // save inFD otherwise reset will reset it
+    auto inFD = pMonitor->output->state->state().explicitInFence;
     pMonitor->output->state->resetExplicitFences();
-
-    bool anyExplicit = !explicitPresented.empty();
-    if (anyExplicit) {
-        Debug::log(TRACE, "Explicit sync presented begin");
-        auto inFence = pMonitor->inTimeline->exportAsSyncFileFD(pMonitor->lastWaitPoint);
-        if (inFence < 0)
-            Debug::log(ERR, "Export lastWaitPoint {} as sync explicitInFence failed", pMonitor->lastWaitPoint);
-
-        pMonitor->output->state->setExplicitInFence(inFence);
-
-        for (auto& e : explicitPresented) {
-            Debug::log(TRACE, "Explicit sync presented releasePoint {}", e->syncobj && e->syncobj->releaseTimeline ? e->syncobj->releasePoint : -1);
-            if (!e->syncobj || !e->syncobj->releaseTimeline)
-                continue;
-            e->syncobj->releaseTimeline->timeline->transfer(pMonitor->outTimeline, pMonitor->commitSeq, e->syncobj->releasePoint);
-        }
-
-        explicitPresented.clear();
-        auto outFence = pMonitor->outTimeline->exportAsSyncFileFD(pMonitor->commitSeq);
-        if (outFence < 0)
-            Debug::log(ERR, "Export commitSeq {} as sync explicitOutFence failed", pMonitor->commitSeq);
-
-        pMonitor->output->state->setExplicitOutFence(outFence);
-        Debug::log(TRACE, "Explicit sync presented end");
-    }
-
-    pMonitor->lastWaitPoint = 0;
+    if (inFD >= 0)
+        pMonitor->output->state->setExplicitInFence(inFD);
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        Debug::log(TRACE, "Monitor state commit failed");
-        // rollback the buffer to avoid writing to the front buffer that is being
-        // displayed
-        pMonitor->output->swapchain->rollback();
-        pMonitor->damage.damageEntire();
+        if (inFD >= 0) {
+            Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
+            pMonitor->output->state->resetExplicitFences();
+            ok = pMonitor->state.commit();
+        }
+
+        if (!ok) {
+            Debug::log(TRACE, "Monitor state commit failed");
+            // rollback the buffer to avoid writing to the front buffer that is being
+            // displayed
+            pMonitor->output->swapchain->rollback();
+            pMonitor->damage.damageEntire();
+        }
     }
 
-    if (!*PENABLEEXPLICIT)
+    auto explicitOptions = getExplicitSyncSettings();
+
+    if (!explicitOptions.explicitEnabled)
         return ok;
 
-    if (pMonitor->output->state->state().explicitInFence >= 0)
-        close(pMonitor->output->state->state().explicitInFence);
+    if (inFD >= 0)
+        close(inFD);
 
     if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        if (ok)
-            pMonitor->outTimeline->importFromSyncFileFD(pMonitor->commitSeq, pMonitor->output->state->state().explicitOutFence);
+        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
         close(pMonitor->output->state->state().explicitOutFence);
+    } else
+        Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
+
+    Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
+    auto sync = g_pHyprOpenGL->createEGLSync(-1);
+
+    if (!sync)
+        Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
+    else {
+        for (auto& e : explicitPresented) {
+            if (!e->current.buffer || !e->current.buffer->releaser)
+                continue;
+
+            e->current.buffer->releaser->addReleaseSync(sync);
+        }
     }
+
+    explicitPresented.clear();
+
+    pMonitor->output->state->resetExplicitFences();
 
     return ok;
 }
@@ -1649,7 +1658,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
     }
 }
 
-void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
+void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
     if (!PMONITOR)
@@ -1898,6 +1907,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
+    pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;
 
@@ -2289,7 +2299,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("cursor:inactive_timeout");
+    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
     static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
 
@@ -2643,9 +2653,15 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
 void CHyprRenderer::endRender() {
     const auto  PMONITOR           = g_pHyprOpenGL->m_RenderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
-    static auto PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
 
     PMONITOR->commitSeq++;
+
+    auto cleanup = CScopeGuard([this]() {
+        if (m_pCurrentRenderbuffer)
+            m_pCurrentRenderbuffer->unbind();
+        m_pCurrentRenderbuffer = nullptr;
+        m_pCurrentBuffer       = nullptr;
+    });
 
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
@@ -2661,35 +2677,28 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
         PMONITOR->output->state->setBuffer(m_pCurrentBuffer);
 
-        if (PMONITOR->inTimeline && *PENABLEEXPLICIT) {
+        auto explicitOptions = getExplicitSyncSettings();
+
+        if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
             auto sync = g_pHyprOpenGL->createEGLSync(-1);
             if (!sync) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;
             }
 
-            auto dupedfd = sync->dupFenceFD();
-            sync.reset();
-            if (dupedfd < 0) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
-                Debug::log(ERR, "renderer: couldn't dup an EGLSync fence for out in endRender");
-                return;
-            }
-
-            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, dupedfd);
-            close(dupedfd);
+            bool ok = PMONITOR->inTimeline->importFromSyncFileFD(PMONITOR->commitSeq, sync->fd());
             if (!ok) {
-                m_pCurrentRenderbuffer->unbind();
-                m_pCurrentRenderbuffer = nullptr;
-                m_pCurrentBuffer       = nullptr;
                 Debug::log(ERR, "renderer: couldn't import from sync file fd in endRender");
                 return;
             }
+
+            auto fd = PMONITOR->inTimeline->exportAsSyncFileFD(PMONITOR->commitSeq);
+            if (fd <= 0) {
+                Debug::log(ERR, "renderer: couldn't export from sync timeline in endRender");
+                return;
+            }
+
+            PMONITOR->output->state->setExplicitInFence(fd);
         } else {
             if (isNvidia() && *PNVIDIAANTIFLICKER)
                 glFinish();
@@ -2697,11 +2706,6 @@ void CHyprRenderer::endRender() {
                 glFlush();
         }
     }
-
-    m_pCurrentRenderbuffer->unbind();
-
-    m_pCurrentRenderbuffer = nullptr;
-    m_pCurrentBuffer       = nullptr;
 }
 
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
@@ -2714,4 +2718,58 @@ SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
 
 bool CHyprRenderer::isNvidia() {
     return m_bNvidia;
+}
+
+SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
+    static auto           PENABLEEXPLICIT    = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static auto           PENABLEEXPLICITKMS = CConfigValue<Hyprlang::INT>("render:explicit_sync_kms");
+
+    SExplicitSyncSettings settings;
+    settings.explicitEnabled    = *PENABLEEXPLICIT;
+    settings.explicitKMSEnabled = *PENABLEEXPLICITKMS;
+
+    if (*PENABLEEXPLICIT == 2 /* auto */)
+        settings.explicitEnabled = true;
+    if (*PENABLEEXPLICITKMS == 2 /* auto */) {
+        if (!m_bNvidia)
+            settings.explicitKMSEnabled = true;
+        else {
+
+            // check nvidia version. Explicit KMS is supported in >=560
+            // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
+            static int  driverMajor = 0;
+
+            static bool once = true;
+            if (once) {
+                once = false;
+
+                Debug::log(LOG, "Renderer: checking for explicit KMS support for nvidia");
+
+                if (std::filesystem::exists("/sys/module/nvidia_drm/version")) {
+                    Debug::log(LOG, "Renderer: Nvidia version file exists");
+
+                    std::ifstream ifs("/sys/module/nvidia_drm/version");
+                    if (ifs.good()) {
+                        try {
+                            std::string driverInfo((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+                            Debug::log(LOG, "Renderer: Read nvidia version {}", driverInfo);
+
+                            CVarList ver(driverInfo, 0, '.', true);
+                            driverMajor = std::stoi(ver[0]);
+
+                            Debug::log(LOG, "Renderer: Parsed nvidia major version: {}", driverMajor);
+
+                        } catch (std::exception& e) { settings.explicitKMSEnabled = false; }
+
+                        ifs.close();
+                    }
+                }
+            }
+
+            settings.explicitKMSEnabled = driverMajor >= 560;
+        }
+    }
+
+    return settings;
 }

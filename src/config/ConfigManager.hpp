@@ -33,7 +33,7 @@ struct SWorkspaceRule {
     std::string                        monitor         = "";
     std::string                        workspaceString = "";
     std::string                        workspaceName   = "";
-    int                                workspaceId     = -1;
+    WORKSPACEID                        workspaceId     = -1;
     bool                               isDefault       = false;
     bool                               isPersistent    = false;
     std::optional<CCssGapData>         gapsIn;
@@ -182,6 +182,7 @@ class CConfigManager {
         {"noshortcutsinhibit", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.noShortcutsInhibit; }},
         {"opaque", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.opaque; }},
         {"forcergbx", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.RGBX; }},
+        {"syncfullscreen", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.syncFullscreen; }},
         {"immediate", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.tearing; }},
         {"xray", [](PHLWINDOW pWindow) { return &pWindow->m_sWindowData.xray; }},
     };

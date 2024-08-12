@@ -469,12 +469,12 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     if (dragSurface) {
         dnd.dndSurfaceDestroy = dragSurface->events.destroy.registerListener([this](std::any d) { abortDrag(); });
         dnd.dndSurfaceCommit  = dragSurface->events.commit.registerListener([this](std::any d) {
-            if (dnd.dndSurface->current.buffer && !dnd.dndSurface->mapped) {
+            if (dnd.dndSurface->current.texture && !dnd.dndSurface->mapped) {
                 dnd.dndSurface->map();
                 return;
             }
 
-            if (dnd.dndSurface->current.buffer <= 0 && dnd.dndSurface->mapped) {
+            if (dnd.dndSurface->current.texture <= 0 && dnd.dndSurface->mapped) {
                 dnd.dndSurface->unmap();
                 return;
             }
@@ -660,13 +660,13 @@ void CWLDataDeviceProtocol::abortDrag() {
 }
 
 void CWLDataDeviceProtocol::renderDND(CMonitor* pMonitor, timespec* when) {
-    if (!dnd.dndSurface || !dnd.dndSurface->current.buffer || !dnd.dndSurface->current.buffer->texture)
+    if (!dnd.dndSurface || !dnd.dndSurface->current.texture)
         return;
 
     const auto POS = g_pInputManager->getMouseCoordsInternal();
 
     CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
-    g_pHyprOpenGL->renderTexture(dnd.dndSurface->current.buffer->texture, &box, 1.F);
+    g_pHyprOpenGL->renderTexture(dnd.dndSurface->current.texture, &box, 1.F);
 
     box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F);
     g_pHyprRenderer->damageBox(&box);

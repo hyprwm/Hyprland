@@ -338,3 +338,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 
     return true;
 }
+
+void CCursorManager::syncGsettings() {
+    m_pXcursor->syncGsettings();
+}

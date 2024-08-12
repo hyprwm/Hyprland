@@ -393,6 +393,7 @@ void CCompositor::initAllSignals() {
                     }
 
                     g_pConfigManager->m_bWantsMonitorReload = true;
+                    g_pCursorManager->syncGsettings();
                 } else {
                     Debug::log(LOG, "Session got deactivated!");
 

@@ -246,6 +246,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
+
+    PWINDOW->updateWindowDecos();
 }
 
 void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection direction) {

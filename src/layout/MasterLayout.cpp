@@ -732,6 +732,8 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
+
+    PWINDOW->updateWindowDecos();
 }
 
 bool CHyprMasterLayout::isWindowTiled(PHLWINDOW pWindow) {

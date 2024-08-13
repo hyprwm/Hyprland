@@ -102,7 +102,7 @@ CCursorManager::CCursorManager() {
 
     // since we fallback to xcursor always load it on startup. otherwise we end up with a empty theme if hyprcursor is enabled in the config
     // and then later is disabled.
-    m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize * std::ceil(m_fCursorScale));
+    m_pXcursor->loadTheme(getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default", m_iSize, m_fCursorScale);
 
     m_pAnimationTimer = makeShared<CEventLoopTimer>(std::nullopt, cursorAnimTimer, this);
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
@@ -163,7 +163,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
     auto        setXCursor = [this](auto const& name) {
         float scale = std::ceil(m_fCursorScale);
 
-        auto  xcursor = m_pXcursor->getShape(name, m_iSize * scale);
+        auto  xcursor = m_pXcursor->getShape(name, m_iSize, m_fCursorScale);
         auto& icon    = xcursor->images.front();
         auto  buf     = makeShared<CCursorBuffer>((uint8_t*)icon.pixels.data(), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
@@ -277,7 +277,7 @@ void CCursorManager::setXWaylandCursor() {
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
                                {CURSOR.hotspotX, CURSOR.hotspotY});
     else {
-        auto  xcursor = m_pXcursor->getShape("left_ptr", m_iSize * std::ceil(m_fCursorScale));
+        auto  xcursor = m_pXcursor->getShape("left_ptr", m_iSize, 1);
         auto& icon    = xcursor->images.front();
 
         g_pXWayland->setCursor((uint8_t*)icon.pixels.data(), icon.size.x * 4, icon.size, icon.hotspot);
@@ -329,10 +329,10 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
         m_pHyprcursor = std::make_unique<Hyprcursor::CHyprcursorManager>(m_szTheme.empty() ? nullptr : m_szTheme.c_str(), options);
         if (!m_pHyprcursor->valid()) {
             Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_szTheme);
-            m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize);
+            m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);
         }
     } else
-        m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize);
+        m_pXcursor->loadTheme(m_szTheme.empty() ? xcursor_theme : m_szTheme, m_iSize, m_fCursorScale);
 
     updateTheme();
 

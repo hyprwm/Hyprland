@@ -1196,6 +1196,9 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     }
 
     g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
+
+    if (internalMode == clientMode)
+        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {

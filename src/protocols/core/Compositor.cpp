@@ -13,8 +13,6 @@
 #include "../../render/Renderer.hpp"
 #include <cstring>
 
-#define LOGM PROTO::compositor->protoLog
-
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
     virtual eSurfaceRole role() {

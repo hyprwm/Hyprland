@@ -1,8 +1,6 @@
 #include "GlobalShortcuts.hpp"
 #include "../Compositor.hpp"
 
-#define LOGM PROTO::globalShortcuts->protoLog
-
 CShortcutClient::CShortcutClient(SP<CHyprlandGlobalShortcutsManagerV1> resource_) : resource(resource_) {
     if (!good())
         return;

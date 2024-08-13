@@ -5,8 +5,6 @@
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 
-#define LOGM PROTO::sessionLock->protoLog
-
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, CMonitor* pMonitor_, WP<CSessionLock> owner_) :
     resource(resource_), sessionLock(owner_), pSurface(surface_), pMonitor(pMonitor_) {
     if (!resource->resource())

@@ -31,6 +31,7 @@ class CXCursorManager {
 
     void          loadTheme(const std::string& name, int size);
     SP<SXCursors> getShape(std::string const& shape, int size);
+    void          syncGsettings();
 
   private:
     SP<SXCursors>                   createCursor(std::string const& shape, XcursorImages* xImages);
@@ -38,7 +39,6 @@ class CXCursorManager {
     std::string                     getLegacyShapeName(std::string const& shape);
     std::vector<SP<SXCursors>>      loadStandardCursors(std::string const& name, int size);
     std::vector<SP<SXCursors>>      loadAllFromDir(std::string const& path, int size);
-    void                            syncGsettings();
 
     int                             lastLoadSize = 0;
     std::string                     themeName    = "";

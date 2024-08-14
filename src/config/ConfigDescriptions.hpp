@@ -9,12 +9,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
-        .value       = "general:sensitivity",
-        .description = "mouse sensitivity (legacy, may cause bugs if not 1, prefer input:sensitivity)",
-        .type        = CONFIG_OPTION_FLOAT,
-        .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
-    },
-    SConfigOptionDescription{
         .value       = "general:border_size",
         .description = "size of the border around windows",
         .type        = CONFIG_OPTION_INT,
@@ -77,12 +71,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "general:no_focus_fallback",
         .description = "if true, will not fall back to the next available window when moving focus in a direction where no window was found",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "general:apply_sens_to_raw",
-        .description = "if on, will also apply the sensitivity to raw mouse output (e.g. sensitivity in games) NOTICE: really not recommended.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

@@ -314,8 +314,6 @@ CConfigManager::CConfigManager() {
     configPaths.emplace_back(getMainConfigPath());
     m_pConfig = std::make_unique<Hyprlang::CConfig>(configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
-    m_pConfig->addConfigValue("general:sensitivity", {1.0f});
-    m_pConfig->addConfigValue("general:apply_sens_to_raw", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:border_size", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:no_border_on_floating", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:border_part_of_window", Hyprlang::INT{1});

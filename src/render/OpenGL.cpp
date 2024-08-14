@@ -2690,7 +2690,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         // check if wallpapers exist
         std::error_code err;
         if (!std::filesystem::exists(texPath, err)) {
-            Debug::log(ERR, "createBGTextureForMonitor: failed, file doesn't exist or access denied, ec: {}", err.message());
+            Debug::log(ERR, "createBGTextureForMonitor: failed, file \"{}\" doesn't exist or access denied, ec: {}", texPath, err.message());
             return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
         }
 

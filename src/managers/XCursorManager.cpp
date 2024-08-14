@@ -511,8 +511,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
 
     if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            if (!entry.is_regular_file() && !entry.is_symlink())
+            std::error_code e1, e2;
+            if ((!entry.is_regular_file(e1) && !entry.is_symlink(e2)) || e1 || e2) {
+                Debug::log(WARN, "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
                 continue;
+            }
 
             auto const& full = entry.path().string();
             using PcloseType = int (*)(FILE*);

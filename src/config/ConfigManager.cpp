@@ -2625,6 +2625,16 @@ std::string SConfigOptionDescription::jsonify() const {
                     return std::format(R"#(     "value": {})#", val.value);
                 } else if constexpr (std::is_same_v<T, SChoiceData>) {
                     return std::format(R"#(     "value": {})#", val.choices);
+                } else if constexpr (std::is_same_v<T, SVectorData>) {
+                    return std::format(R"#(     "x": {},
+        "y": {},
+        "min_x": {},
+        "min_y": {},
+        "max_x": {},
+        "max_y": {})#",
+                                       val.vec.x, val.vec.y, val.min.x, val.min.y, val.max.x, val.max.y);
+                } else if constexpr (std::is_same_v<T, SGradientData>) {
+                    return std::format(R"#(     "value": "{}")#", val.gradient);
                 }
                 return std::string{""};
             },

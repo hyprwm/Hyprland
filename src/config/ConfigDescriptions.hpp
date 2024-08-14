@@ -41,26 +41,26 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "general:col.inactive_border",
         .description = "border color for inactive windows",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0xff444444},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0xff444444"},
     },
     SConfigOptionDescription{
         .value       = "general:col.active_border",
         .description = "border color for the active window",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0xffffffff},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0xffffffff"},
     },
     SConfigOptionDescription{
         .value       = "general:col.nogroup_border",
         .description = "inactive border color for window that cannot be added to a group (see denywindowfromgroup dispatcher)",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0xffffaaff},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0xffffaaff"},
     },
     SConfigOptionDescription{
         .value       = "general:col.nogroup_border_active",
         .description = "active border color for window that cannot be added to a group",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0xffff00ff},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0xffff00ff"},
     },
     SConfigOptionDescription{
         .value       = "general:layout",
@@ -172,8 +172,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "decoration:shadow_offset",
         .description = "shadow's rendering offset.",
-        .type        = CONFIG_OPTION_INT,                      //##TODO VECTOR?
-        .data        = SConfigOptionDescription::SRangeData{}, //##TODO VECTOR?
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{}, {-250, -250}, {250, 250}},
     },
     SConfigOptionDescription{
         .value       = "decoration:shadow_scale",
@@ -327,7 +327,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "input:kb_model",
         .description = "Appropriate XKB keymap parameter. See the note below.",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{STRVAL_EMPTY},
     },
     SConfigOptionDescription{
         .value       = "input:kb_layout",
@@ -339,19 +339,19 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "input:kb_variant",
         .description = "Appropriate XKB keymap parameter",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{""},
     },
     SConfigOptionDescription{
         .value       = "input:kb_options",
         .description = "Appropriate XKB keymap parameter",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{""},
     },
     SConfigOptionDescription{
         .value       = "input:kb_rules",
         .description = "Appropriate XKB keymap parameter",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{""},
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
@@ -590,14 +590,14 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "input:tablet:region_position",
         .description = "position of the mapped region in monitor layout.",
-        .type        = CONFIG_OPTION_INT,                      //##TODO VECTOR?
-        .data        = SConfigOptionDescription::SRangeData{}, //##TODO VECTOR?
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{}, {-20000, -20000}, {20000, 20000}},
     },
     SConfigOptionDescription{
         .value       = "input:tablet:region_size",
         .description = "size of the mapped region. When this variable is set, tablet input will be mapped to the region. [0, 0] or invalid size means unset.",
-        .type        = CONFIG_OPTION_INT,                      //##TODO VECTOR?
-        .data        = SConfigOptionDescription::SRangeData{}, //##TODO VECTOR?
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{}, {-100, -100}, {4000, 4000}},
     },
     SConfigOptionDescription{
         .value       = "input:tablet:relative_input",
@@ -614,14 +614,14 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "input:tablet:active_area_size",
         .description = "size of tablet's active area in mm",
-        .type        = CONFIG_OPTION_INT,                      //##TODO VECTOR?
-        .data        = SConfigOptionDescription::SRangeData{}, //##TODO VECTOR?
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{}, {}, {500, 500}},
     },
     SConfigOptionDescription{
         .value       = "input:tablet:active_area_position",
         .description = "position of the active area in mm",
-        .type        = CONFIG_OPTION_INT,                      //##TODO VECTOR?
-        .data        = SConfigOptionDescription::SRangeData{}, //##TODO VECTOR?
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{}, {}, {500, 500}},
     },
 
     /* ##TODO
@@ -738,26 +738,26 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "general:col.border_active",
         .description = "border color for inactive windows",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0x66ffff00},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0x66ffff00"},
     },
     SConfigOptionDescription{
         .value       = "general:col.border_inactive",
         .description = "border color for the active window",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0x66777700},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0x66777700"},
     },
     SConfigOptionDescription{
         .value       = "general:col.border_locked_active",
         .description = "inactive border color for window that cannot be added to a group (see denywindowfromgroup dispatcher)",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0x66ff5500},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0x66ff5500"},
     },
     SConfigOptionDescription{
         .value       = "general:col.border_locked_inactive",
         .description = "active border color for window that cannot be added to a group",
-        .type        = CONFIG_OPTION_COLOR,
-        .data        = SConfigOptionDescription::SColorData{0x66775500},
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0x66775500"},
     },
 
     /*
@@ -774,7 +774,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "group:groupbar:font_family",
         .description = "font used to display groupbar titles, use misc:font_family if not specified",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{STRVAL_EMPTY}, //##TODO UNSET?
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:font_size",
@@ -881,7 +881,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "misc:splash_font_family",
         .description = "Changes the font used to render the splash text, selected from system fonts (requires a monitor reload to take effect).",
         .type        = CONFIG_OPTION_STRING_SHORT,
-        .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
+        .data        = SConfigOptionDescription::SStringData{STRVAL_EMPTY}, //##TODO UNSET?
     },
     SConfigOptionDescription{
         .value       = "misc:force_default_wallpaper",

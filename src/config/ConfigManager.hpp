@@ -91,6 +91,8 @@ enum eConfigOptionType : uint16_t {
     CONFIG_OPTION_STRING_LONG  = 4, /* e.g. a command */
     CONFIG_OPTION_COLOR        = 5,
     CONFIG_OPTION_CHOICE       = 6, /* e.g. "one", "two", "three" */
+    CONFIG_OPTION_GRADIENT     = 7,
+    CONFIG_OPTION_VECTOR       = 8,
 };
 
 enum eConfigOptionFlags : uint32_t {
@@ -124,6 +126,14 @@ struct SConfigOptionDescription {
         std::string choices; // comma-separated
     };
 
+    struct SGradientData {
+        std::string gradient;
+    };
+
+    struct SVectorData {
+        Vector2D vec, min, max;
+    };
+
     std::string       value; // e.g. general:gaps_in
     std::string       description;
     std::string       specialCategory; // if value is special (e.g. device:abc) value will be abc and special device
@@ -134,7 +144,7 @@ struct SConfigOptionDescription {
     std::string       jsonify() const;
 
     //
-    std::variant<SBoolData, SRangeData, SFloatData, SStringData, SColorData, SChoiceData> data;
+    std::variant<SBoolData, SRangeData, SFloatData, SStringData, SColorData, SChoiceData, SGradientData, SVectorData> data;
 };
 
 class CConfigManager {

@@ -305,6 +305,10 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
     setenv("XDG_SESSION_TYPE", "wayland", 1);
+    if (!getenv("XDG_CURRENT_DESKTOP")) {
+        setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
+        m_bDesktopEnvSet = true;
+    }
 
     initManagers(STAGE_BASICINIT);
 
@@ -422,7 +426,8 @@ void CCompositor::cleanEnvironment() {
     // in main
     unsetenv("HYPRLAND_CMD");
     unsetenv("XDG_BACKEND");
-    unsetenv("XDG_CURRENT_DESKTOP");
+    if (m_bDesktopEnvSet)
+        unsetenv("XDG_CURRENT_DESKTOP");
 
     if (m_pAqBackend->hasSession()) {
         const auto CMD =

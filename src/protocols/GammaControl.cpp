@@ -5,8 +5,6 @@
 #include "../Compositor.hpp"
 #include "../protocols/core/Output.hpp"
 
-#define LOGM PROTO::gamma->protoLog
-
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if (!resource_->resource())
         return;

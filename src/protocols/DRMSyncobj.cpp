@@ -7,8 +7,6 @@
 
 #include <fcntl.h>
 
-#define LOGM PROTO::sync->protoLog
-
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;

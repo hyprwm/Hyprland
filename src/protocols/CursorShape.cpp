@@ -2,8 +2,6 @@
 #include <algorithm>
 #include "../helpers/CursorShapes.hpp"
 
-#define LOGM PROTO::cursorShape->protoLog
-
 CCursorShapeProtocol::CCursorShapeProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
 }

@@ -3,8 +3,6 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 
-#define LOGM PROTO::dataWlr->protoLog
-
 CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())
         return;

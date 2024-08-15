@@ -2,8 +2,6 @@
 #include "core/Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::viewport->protoLog
-
 CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;

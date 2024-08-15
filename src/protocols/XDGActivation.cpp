@@ -4,8 +4,6 @@
 #include "core/Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::activation->protoLog
-
 CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : resource(resource_) {
     if (!resource_->resource())
         return;

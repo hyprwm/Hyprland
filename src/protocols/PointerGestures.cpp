@@ -4,8 +4,6 @@
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::pointerGestures->protoLog
-
 CPointerGestureSwipe::CPointerGestureSwipe(SP<CZwpPointerGestureSwipeV1> resource_) : resource(resource_) {
     if (!resource->resource())
         return;

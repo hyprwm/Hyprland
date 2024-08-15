@@ -37,10 +37,6 @@ int main(int argc, char** argv) {
     setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 1);
     setenv("MOZ_ENABLE_WAYLAND", "1", 1);
 
-    // Set XDG_CURRENT_DESKTOP if it was not set for us
-    if (!getenv("XDG_CURRENT_DESKTOP"))
-        setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
-
     // parse some args
     std::string              configPath;
     std::string              socketName;

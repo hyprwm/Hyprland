@@ -109,7 +109,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 }
 
 CGammaControl::~CGammaControl() {
-    if (!gammaTableSet || !pMonitor)
+    if (!gammaTableSet || !pMonitor || !pMonitor->output)
         return;
 
     // reset the LUT if the client dies for whatever reason and doesn't unset the gamma

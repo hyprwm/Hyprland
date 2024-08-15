@@ -5,6 +5,7 @@
 #include <gio/gsettingsschema.h>
 #include "config/ConfigValue.hpp"
 #include "helpers/CursorShapes.hpp"
+#include "../managers/CursorManager.hpp"
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
 

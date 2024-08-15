@@ -14,8 +14,6 @@
 #include "../render/OpenGL.hpp"
 #include "../Compositor.hpp"
 
-#define LOGM PROTO::linuxDma->protoLog
-
 static std::optional<dev_t> devIDFromFD(int fd) {
     struct stat stat;
     if (fstat(fd, &stat) != 0)
@@ -425,7 +423,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         auto dev        = devIDFromFD(rendererFD);
 
         if (!dev.has_value()) {
-            protoLog(ERR, "failed to get drm dev, disabling linux dmabuf");
+            LOGM(ERR, "failed to get drm dev, disabling linux dmabuf");
             removeGlobal();
             return;
         }
@@ -477,7 +475,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
         drmDevice* device = nullptr;
         if (drmGetDeviceFromDevId(mainDevice, 0, &device) != 0) {
-            protoLog(ERR, "failed to get drm dev, disabling linux dmabuf");
+            LOGM(ERR, "failed to get drm dev, disabling linux dmabuf");
             removeGlobal();
             return;
         }
@@ -487,12 +485,12 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             mainDeviceFD     = open(name, O_RDWR | O_CLOEXEC);
             drmFreeDevice(&device);
             if (mainDeviceFD < 0) {
-                protoLog(ERR, "failed to open drm dev, disabling linux dmabuf");
+                LOGM(ERR, "failed to open drm dev, disabling linux dmabuf");
                 removeGlobal();
                 return;
             }
         } else {
-            protoLog(ERR, "DRM device {} has no render node, disabling linux dmabuf", device->nodes[DRM_NODE_PRIMARY] ? device->nodes[DRM_NODE_PRIMARY] : "null");
+            LOGM(ERR, "DRM device {} has no render node, disabling linux dmabuf", device->nodes[DRM_NODE_PRIMARY] ? device->nodes[DRM_NODE_PRIMARY] : "null");
             drmFreeDevice(&device);
             removeGlobal();
         }

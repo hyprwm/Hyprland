@@ -9,8 +9,6 @@
 
 #include <algorithm>
 
-#define LOGM PROTO::screencopy->protoLog
-
 CScreencopyFrame::~CScreencopyFrame() {
     if (buffer && buffer->locked())
         buffer->unlock();

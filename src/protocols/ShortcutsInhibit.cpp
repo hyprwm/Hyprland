@@ -3,8 +3,6 @@
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::shortcutsInhibit->protoLog
-
 CKeyboardShortcutsInhibitor::CKeyboardShortcutsInhibitor(SP<CZwpKeyboardShortcutsInhibitorV1> resource_, SP<CWLSurfaceResource> surf) : resource(resource_), pSurface(surf) {
     if (!resource->resource())
         return;

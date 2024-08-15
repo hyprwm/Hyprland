@@ -4,8 +4,6 @@
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>
 
-#define LOGM PROTO::lease->protoLog
-
 CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request) : resource(resource_) {
     if (!good())
         return;
@@ -226,7 +224,7 @@ CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : backe
     auto fd = drm->getNonMasterFD();
 
     if (fd < 0) {
-        Debug::log(ERR, "[DRMLease] Failed to dup fd for drm node {}", drm->gpuName);
+        LOGM(ERR, "Failed to dup fd for drm node {}", drm->gpuName);
         return;
     }
 

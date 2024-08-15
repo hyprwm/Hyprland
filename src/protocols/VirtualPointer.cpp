@@ -1,8 +1,6 @@
 #include "VirtualPointer.hpp"
 #include "core/Output.hpp"
 
-#define LOGM PROTO::virtualPointer->protoLog
-
 CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, WP<CMonitor> boundOutput_) : boundOutput(boundOutput_), resource(resource_) {
     if (!good())
         return;

@@ -1,8 +1,6 @@
 #include "XDGDecoration.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::xdgDecoration->protoLog
-
 CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel) : resource(resource_), pToplevelResource(toplevel) {
     if (!resource->resource())
         return;

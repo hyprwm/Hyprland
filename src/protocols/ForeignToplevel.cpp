@@ -1,8 +1,6 @@
 #include "ForeignToplevel.hpp"
 #include "../Compositor.hpp"
 
-#define LOGM PROTO::foreignToplevel->protoLog
-
 CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if (!resource_->resource())
         return;

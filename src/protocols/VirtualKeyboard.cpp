@@ -2,8 +2,6 @@
 #include <sys/mman.h>
 #include "../devices/IKeyboard.hpp"
 
-#define LOGM PROTO::virtualKeyboard->protoLog
-
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
     if (!good())
         return;

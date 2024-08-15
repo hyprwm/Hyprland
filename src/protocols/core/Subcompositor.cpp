@@ -2,8 +2,6 @@
 #include "Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::subcompositor->protoLog
-
 CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_) :
     surface(surface_), parent(parent_), resource(resource_) {
     if (!good())

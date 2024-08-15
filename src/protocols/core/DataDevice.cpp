@@ -6,8 +6,6 @@
 #include "Seat.hpp"
 #include "Compositor.hpp"
 
-#define LOGM PROTO::data->protoLog
-
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())
         return;

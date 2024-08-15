@@ -9,8 +9,6 @@
 
 #include <fcntl.h>
 
-#define LOGM PROTO::seat->protoLog
-
 CWLTouchResource::CWLTouchResource(SP<CWlTouch> resource_, SP<CWLSeatResource> owner_) : owner(owner_), resource(resource_) {
     if (!good())
         return;

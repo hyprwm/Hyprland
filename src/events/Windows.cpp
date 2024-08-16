@@ -648,11 +648,11 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        static auto FOCUSONCLOSE = CConfigValue<Hyprlang::INT>("input:focus_on_close");
-        PHLWINDOW PWINDOWCANDIDATE = nullptr;
-        if(*FOCUSONCLOSE)
+        static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+        PHLWINDOW   PWINDOWCANDIDATE = nullptr;
+        if (*FOCUSONCLOSE)
             PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING));
-        else 
+        else
             PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);

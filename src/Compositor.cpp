@@ -663,8 +663,7 @@ void CCompositor::startCompositor() {
         /* Session-less Hyprland usually means a nest, don't update the env in that case */
         m_pAqBackend->hasSession() &&
         /* Activation environment management is not disabled */
-        !envEnabled("HYPRLAND_NO_SD_VARS")
-    ) {
+        !envEnabled("HYPRLAND_NO_SD_VARS")) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "

@@ -660,8 +660,10 @@ void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
     if (
-        m_pAqBackend->hasSession() /* Session-less Hyprland usually means a nest, don't update the env in that case */
-        && !envEnabled("HYPRLAND_NO_SD_VARS") /* Activation environment management is not disabled */
+        /* Session-less Hyprland usually means a nest, don't update the env in that case */
+        m_pAqBackend->hasSession() &&
+        /* Activation environment management is not disabled */
+        !envEnabled("HYPRLAND_NO_SD_VARS")
     ) {
         const auto CMD =
 #ifdef USES_SYSTEMD

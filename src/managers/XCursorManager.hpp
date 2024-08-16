@@ -29,8 +29,8 @@ class CXCursorManager {
     CXCursorManager();
     ~CXCursorManager() = default;
 
-    void          loadTheme(const std::string& name, int size);
-    SP<SXCursors> getShape(std::string const& shape, int size);
+    void          loadTheme(const std::string& name, int size, float scale);
+    SP<SXCursors> getShape(std::string const& shape, int size, float scale);
     void          syncGsettings();
 
   private:
@@ -40,8 +40,9 @@ class CXCursorManager {
     std::vector<SP<SXCursors>>      loadStandardCursors(std::string const& name, int size);
     std::vector<SP<SXCursors>>      loadAllFromDir(std::string const& path, int size);
 
-    int                             lastLoadSize = 0;
-    std::string                     themeName    = "";
+    int                             lastLoadSize  = 0;
+    float                           lastLoadScale = 0;
+    std::string                     themeName     = "";
     SP<SXCursors>                   defaultCursor;
     SP<SXCursors>                   hyprCursor;
     std::vector<SP<SXCursors>>      cursors;

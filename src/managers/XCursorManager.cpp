@@ -100,12 +100,13 @@ CXCursorManager::CXCursorManager() {
     defaultCursor     = hyprCursor;
 }
 
-void CXCursorManager::loadTheme(std::string const& name, int size) {
-    if (lastLoadSize == size && themeName == name)
+void CXCursorManager::loadTheme(std::string const& name, int size, float scale) {
+    if (lastLoadSize == (size * std::ceil(scale)) && themeName == name && lastLoadScale == scale)
         return;
 
-    lastLoadSize = size;
-    themeName    = name.empty() ? "default" : name;
+    lastLoadSize  = size * std::ceil(scale);
+    lastLoadScale = scale;
+    themeName     = name.empty() ? "default" : name;
     defaultCursor.reset();
     cursors.clear();
 
@@ -156,10 +157,10 @@ void CXCursorManager::loadTheme(std::string const& name, int size) {
         syncGsettings();
 }
 
-SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size) {
+SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, float scale) {
     // monitor scaling changed etc, so reload theme with new size.
-    if (size != lastLoadSize)
-        loadTheme(themeName, size);
+    if ((size * std::ceil(scale)) != lastLoadSize || scale != lastLoadScale)
+        loadTheme(themeName, size, scale);
 
     // try to get an icon we know if we have one
     for (auto const& c : cursors) {
@@ -602,6 +603,7 @@ void CXCursorManager::syncGsettings() {
         g_object_unref(gsettings);
     };
 
+    int unscaledSize = lastLoadSize / std::ceil(lastLoadScale);
     setValue("cursor-theme", themeName, "org.gnome.desktop.interface");
-    setValue("cursor-size", lastLoadSize, "org.gnome.desktop.interface");
+    setValue("cursor-size", unscaledSize, "org.gnome.desktop.interface");
 }

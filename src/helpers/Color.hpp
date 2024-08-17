@@ -10,7 +10,7 @@ class CColor {
 
     float    r = 0, g = 0, b = 0, a = 1.f;
 
-    uint32_t getAsHex();
+    uint32_t getAsHex() const;
 
     CColor   operator-(const CColor& c2) const {
         return CColor(r - c2.r, g - c2.g, b - c2.b, a - c2.a);

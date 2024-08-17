@@ -1207,6 +1207,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
+
+            // reset DRM format, make sure it's the one we want.
+            pMonitor->output->state->setFormat(pMonitor->drmFormat);
         }
     }
 
@@ -2155,6 +2158,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     for (auto& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
+        pMonitor->drmFormat = fmt.second;
 
         if (!pMonitor->state.test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);

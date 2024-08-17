@@ -28,7 +28,9 @@
 #include <filesystem>
 using namespace Hyprutils::String;
 
-extern "C" char**             environ;
+extern "C" char** environ;
+
+#include "ConfigDescriptions.hpp"
 
 static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** data) {
     std::string V = VALUE;
@@ -312,8 +314,6 @@ CConfigManager::CConfigManager() {
     configPaths.emplace_back(getMainConfigPath());
     m_pConfig = std::make_unique<Hyprlang::CConfig>(configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
-    m_pConfig->addConfigValue("general:sensitivity", {1.0f});
-    m_pConfig->addConfigValue("general:apply_sens_to_raw", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:border_size", Hyprlang::INT{1});
     m_pConfig->addConfigValue("general:no_border_on_floating", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:border_part_of_window", Hyprlang::INT{1});
@@ -2606,4 +2606,61 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
     m_vDeclaredPlugins.push_back(path);
 
     return {};
+}
+
+const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {
+    return CONFIG_OPTIONS;
+}
+
+std::string SConfigOptionDescription::jsonify() const {
+    auto parseData = [this]() -> std::string {
+        return std::visit(
+            [](auto&& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, SStringData>) {
+                    return std::format(R"#(     "value": "{}")#", val.value);
+                } else if constexpr (std::is_same_v<T, SRangeData>) {
+                    return std::format(R"#(     "value": {},
+        "min": {},
+        "max": {})#",
+                                       val.value, val.min, val.max);
+                } else if constexpr (std::is_same_v<T, SFloatData>) {
+                    return std::format(R"#(     "value": {},
+        "min": {},
+        "max": {})#",
+                                       val.value, val.min, val.max);
+                } else if constexpr (std::is_same_v<T, SColorData>) {
+                    return std::format(R"#(     "value": {})#", val.color.getAsHex());
+                } else if constexpr (std::is_same_v<T, SBoolData>) {
+                    return std::format(R"#(     "value": {})#", val.value);
+                } else if constexpr (std::is_same_v<T, SChoiceData>) {
+                    return std::format(R"#(     "value": {})#", val.choices);
+                } else if constexpr (std::is_same_v<T, SVectorData>) {
+                    return std::format(R"#(     "x": {},
+        "y": {},
+        "min_x": {},
+        "min_y": {},
+        "max_x": {},
+        "max_y": {})#",
+                                       val.vec.x, val.vec.y, val.min.x, val.min.y, val.max.x, val.max.y);
+                } else if constexpr (std::is_same_v<T, SGradientData>) {
+                    return std::format(R"#(     "value": "{}")#", val.gradient);
+                }
+                return std::string{""};
+            },
+            data);
+    };
+
+    std::string json = std::format(R"#({{
+    "value": "{}",
+    "description": "{}",
+    "type": {},
+    "flags": {},
+    "data": {{
+        {}
+    }}
+}})#",
+                                   value, description, (uint16_t)type, (uint32_t)flags, parseData());
+
+    return json;
 }

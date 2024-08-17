@@ -1561,6 +1561,21 @@ std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
     return lockedStr;
 }
 
+std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
+    std::string json  = "{";
+    const auto& DESCS = g_pConfigManager->getAllDescriptions();
+
+    for (const auto& d : DESCS) {
+        json += d.jsonify() + ",\n";
+    }
+
+    json.pop_back();
+    json.pop_back();
+
+    json += "}\n";
+    return json;
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1581,6 +1596,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
+    registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

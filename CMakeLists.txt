@@ -62,7 +62,7 @@ else()
 endif()
 
 include_directories(. "src/" "subprojects/udis86/" "protocols/")
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 add_compile_options(
   -Wall
   -Wextra
@@ -88,6 +88,12 @@ endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(
+  hyprctl_deps
+  REQUIRED
+  IMPORTED_TARGET
+  hyprutils>=0.2.1)
+
+pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
@@ -111,6 +117,7 @@ pkg_check_modules(
   libliftoff
   libudev
   gbm
+  gio-2.0
   hyprlang>=0.3.2
   hyprcursor>=0.1.7
   hyprutils>=0.2.1)
@@ -323,7 +330,7 @@ install(
   CODE "execute_process( \
         COMMAND ${CMAKE_COMMAND} -E create_symlink \
         ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
-        ${CMAKE_INSTALL_FULL_BINDIR}/hyprland
+        \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
         )")
 
 # session file

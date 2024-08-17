@@ -1243,7 +1243,7 @@ bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
     return (eFullscreenMode)std::bit_floor((uint8_t)m_sFullscreenState.internal) == MODE;
 }
 
-int CWindow::workspaceID() {
+WORKSPACEID CWindow::workspaceID() {
     return m_pWorkspace ? m_pWorkspace->m_iID : m_iLastWorkspace;
 }
 

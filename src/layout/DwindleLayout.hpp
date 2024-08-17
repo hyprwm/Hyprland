@@ -24,7 +24,7 @@ struct SDwindleNodeData {
 
     CBox                             box = {0};
 
-    int                              workspaceID = -1;
+    WORKSPACEID                      workspaceID = WORKSPACE_INVALID;
 
     float                            splitRatio = 1.f;
 
@@ -48,7 +48,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void                     onWindowRemovedTiling(PHLWINDOW);
     virtual bool                     isWindowTiled(PHLWINDOW);
-    virtual void                     recalculateMonitor(const int&);
+    virtual void                     recalculateMonitor(const MONITORID&);
     virtual void                     recalculateWindow(PHLWINDOW);
     virtual void                     onBeginDragWindow();
     virtual void                     resizeActiveWindow(const Vector2D&, eRectCorner corner = CORNER_NONE, PHLWINDOW pWindow = nullptr);
@@ -77,13 +77,13 @@ class CHyprDwindleLayout : public IHyprLayout {
 
     std::optional<Vector2D> m_vOverrideFocalPoint; // for onWindowCreatedTiling.
 
-    int                     getNodesOnWorkspace(const int&);
+    int                     getNodesOnWorkspace(const WORKSPACEID&);
     void                    applyNodeDataToWindow(SDwindleNodeData*, bool force = false);
     void                    calculateWorkspace(const PHLWORKSPACE& pWorkspace);
     SDwindleNodeData*       getNodeFromWindow(PHLWINDOW);
-    SDwindleNodeData*       getFirstNodeOnWorkspace(const int&);
-    SDwindleNodeData*       getClosestNodeOnWorkspace(const int&, const Vector2D&);
-    SDwindleNodeData*       getMasterNodeOnWorkspace(const int&);
+    SDwindleNodeData*       getFirstNodeOnWorkspace(const WORKSPACEID&);
+    SDwindleNodeData*       getClosestNodeOnWorkspace(const WORKSPACEID&, const Vector2D&);
+    SDwindleNodeData*       getMasterNodeOnWorkspace(const WORKSPACEID&);
 
     void                    toggleSplit(PHLWINDOW);
     void                    swapSplit(PHLWINDOW);

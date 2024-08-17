@@ -19,6 +19,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <filesystem>
+#include <cstring>
 
 // TODO: cleanup
 static bool set_cloexec(int fd, bool cloexec) {

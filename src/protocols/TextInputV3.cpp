@@ -2,8 +2,6 @@
 #include <algorithm>
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::textInputV3->protoLog
-
 void CTextInputV3::SState::reset() {
     cause               = ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_INPUT_METHOD;
     surrounding.updated = false;

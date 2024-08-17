@@ -77,7 +77,7 @@ void CInputManager::endWorkspaceSwipe() {
     // left of where we started.  Instead, it's one more than the greatest
     // workspace ID that currently exists.
     if (workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID && *PSWIPENEW) {
-        int maxWorkspace = 0;
+        WORKSPACEID maxWorkspace = 0;
         for (const auto& ws : g_pCompositor->m_vWorkspaces) {
             maxWorkspace = std::max(maxWorkspace, ws->m_iID);
         }

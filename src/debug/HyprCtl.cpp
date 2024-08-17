@@ -71,7 +71,7 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
 
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
-    if (!m->output || m->ID == -1ull)
+    if (!m->output || m->ID == -1)
         return "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -155,19 +155,19 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1ull)
+            if (!m->output || m->ID == -1)
                 continue;
 
-            result +=
-                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
-                            "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                            "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
-                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                            m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
-                            m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
-                            (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                            (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false),
-                            m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
+            result += std::format(
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: A {} H {}\n\tavailableModes: {}\n\n",
+                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
+                m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+                (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"),
+                (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false), m->tearingState.activelyTearing, !m->m_bEnabled,
+                formatToString(m->output->state->state().drmFormat), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
     }
 
@@ -1561,6 +1561,21 @@ std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
     return lockedStr;
 }
 
+std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
+    std::string json  = "{";
+    const auto& DESCS = g_pConfigManager->getAllDescriptions();
+
+    for (const auto& d : DESCS) {
+        json += d.jsonify() + ",\n";
+    }
+
+    json.pop_back();
+    json.pop_back();
+
+    json += "}\n";
+    return json;
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1581,6 +1596,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
+    registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

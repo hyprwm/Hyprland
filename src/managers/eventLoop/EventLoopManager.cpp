@@ -48,7 +48,6 @@ void CEventLoopManager::enterLoop() {
     aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
     for (auto& fd : aqPollFDs) {
         m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get()));
-        fd->onSignal(); // dispatch outstanding
     }
 
     wl_display_run(m_sWayland.display);
@@ -76,8 +75,8 @@ void CEventLoopManager::removeTimer(SP<CEventLoopTimer> timer) {
 }
 
 static void timespecAddNs(timespec* pTimespec, int64_t delta) {
-    int delta_ns_low = delta % TIMESPEC_NSEC_PER_SEC;
-    int delta_s_high = delta / TIMESPEC_NSEC_PER_SEC;
+    auto delta_ns_low = delta % TIMESPEC_NSEC_PER_SEC;
+    auto delta_s_high = delta / TIMESPEC_NSEC_PER_SEC;
 
     pTimespec->tv_sec += delta_s_high;
 

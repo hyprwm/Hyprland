@@ -75,8 +75,9 @@ class CWLSurfaceResource {
     Vector2D                      sourceSize();
 
     struct {
-        CSignal precommit;
-        CSignal commit;
+        CSignal precommit;  // before commit
+        CSignal roleCommit; // commit for role objects, before regular commit
+        CSignal commit;     // after commit
         CSignal map;
         CSignal unmap;
         CSignal newSubsurface;

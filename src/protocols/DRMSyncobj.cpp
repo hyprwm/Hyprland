@@ -7,8 +7,6 @@
 
 #include <fcntl.h>
 
-#define LOGM PROTO::sync->protoLog
-
 CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;
@@ -75,7 +73,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
     });
 
-    listeners.surfaceCommit = surface->events.commit.registerListener([this](std::any d) {
+    listeners.surfaceCommit = surface->events.roleCommit.registerListener([this](std::any d) {
         // apply timelines if new ones have been attached, otherwise don't touch
         // the current ones
         if (pending.releaseTimeline) {
@@ -112,6 +110,11 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTi
         resource->error(WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE, "Timeline failed importing");
         return;
     }
+}
+
+CDRMSyncobjTimelineResource::~CDRMSyncobjTimelineResource() {
+    if (fd >= 0)
+        close(fd);
 }
 
 SP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {

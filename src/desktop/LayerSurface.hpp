@@ -42,7 +42,7 @@ class CLayerSurface {
     bool                       mapped = false;
     uint32_t                   layer  = 0;
 
-    int                        monitorID = -1;
+    MONITORID                  monitorID = -1;
 
     bool                       fadingOut     = false;
     bool                       readyToDelete = false;
@@ -51,7 +51,7 @@ class CLayerSurface {
 
     bool                       forceBlur        = false;
     bool                       forceBlurPopups  = false;
-    int                        xray             = -1;
+    int64_t                    xray             = -1;
     bool                       ignoreAlpha      = false;
     float                      ignoreAlphaValue = 0.f;
     bool                       dimAround        = false;

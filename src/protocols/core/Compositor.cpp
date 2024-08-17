@@ -13,8 +13,6 @@
 #include "../../render/Renderer.hpp"
 #include <cstring>
 
-#define LOGM PROTO::compositor->protoLog
-
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
     virtual eSurfaceRole role() {
@@ -431,6 +429,8 @@ void CWLSurfaceResource::commitPendingState() {
     pending.damage.clear();
     pending.bufferDamage.clear();
     pending.newBuffer = false;
+
+    events.roleCommit.emit();
 
     if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
         current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);

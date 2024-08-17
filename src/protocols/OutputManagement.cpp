@@ -4,8 +4,6 @@
 
 using namespace Aquamarine;
 
-#define LOGM PROTO::outputManagement->protoLog
-
 COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(resource_) {
     if (!good())
         return;

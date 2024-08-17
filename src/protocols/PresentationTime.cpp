@@ -6,8 +6,6 @@
 #include "core/Output.hpp"
 #include <aquamarine/output/Output.hpp>
 
-#define LOGM PROTO::presentation->protoLog
-
 CQueuedPresentationData::CQueuedPresentationData(SP<CWLSurfaceResource> surf) : surface(surf) {
     ;
 }

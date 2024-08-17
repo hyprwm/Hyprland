@@ -1,9 +1,8 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>
-
-#define LOGM PROTO::lease->protoLog
 
 CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request) : resource(resource_) {
     if (!good())
@@ -247,10 +246,8 @@ CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, 
             break;
     }
 
-    if (!primaryDevice || primaryDevice->success) {
-        PROTO::lease.reset();
-        return;
-    }
+    if (!primaryDevice || !primaryDevice->success)
+        g_pEventLoopManager->doLater([]() { PROTO::lease.reset(); });
 }
 
 void CDRMLeaseProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

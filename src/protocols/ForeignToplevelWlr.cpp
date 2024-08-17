@@ -4,8 +4,6 @@
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
 
-#define LOGM PROTO::foreignToplevelWlr->protoLog
-
 CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if (!resource_->resource())
         return;
@@ -119,7 +117,7 @@ wl_resource* CForeignToplevelHandleWlr::res() {
 }
 
 void CForeignToplevelHandleWlr::sendMonitor(CMonitor* pMonitor) {
-    if (lastMonitorID == (int64_t)pMonitor->ID)
+    if (lastMonitorID == pMonitor->ID)
         return;
 
     const auto CLIENT = resource->client();

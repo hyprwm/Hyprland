@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <cstring>
 
-#define LOGM PROTO::tablet->protoLog
-
 CTabletPadStripV2Resource::CTabletPadStripV2Resource(SP<CZwpTabletPadStripV2> resource_, uint32_t id_) : id(id_), resource(resource_) {
     if (!good())
         return;

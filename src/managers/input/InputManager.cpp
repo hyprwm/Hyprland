@@ -82,18 +82,13 @@ CInputManager::~CInputManager() {
 }
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
-    static auto PSENS      = CConfigValue<Hyprlang::FLOAT>("general:sensitivity");
-    static auto PNOACCEL   = CConfigValue<Hyprlang::INT>("input:force_no_accel");
-    static auto PSENSTORAW = CConfigValue<Hyprlang::INT>("general:apply_sens_to_raw");
+    static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
 
     const auto  DELTA = *PNOACCEL == 1 ? e.unaccel : e.delta;
 
-    if (*PSENSTORAW == 1)
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA * *PSENS, e.unaccel * *PSENS);
-    else
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
 
-    g_pPointerManager->move(DELTA * *PSENS);
+    g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs);
 

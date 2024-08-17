@@ -1207,6 +1207,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
+
+            // reset DRM format, make sure it's the one we want.
+            pMonitor->output->state->setFormat(pMonitor->drmFormat);
         }
     }
 
@@ -1395,15 +1398,15 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     pMonitor->pendingFrame = false;
 
-    const float µs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-    g_pDebugOverlay->renderData(pMonitor, µs);
+    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+    g_pDebugOverlay->renderData(pMonitor, durationUs);
 
     if (*PDEBUGOVERLAY == 1) {
         if (pMonitor == g_pCompositor->m_vMonitors.front().get()) {
-            const float µsNoOverlay = µs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, µsNoOverlay);
+            const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
+            g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else {
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
+            g_pDebugOverlay->renderDataNoOverlay(pMonitor, durationUs);
         }
     }
 }
@@ -1658,7 +1661,7 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
     }
 }
 
-void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
+void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
     if (!PMONITOR)
@@ -2155,6 +2158,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     for (auto& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
+        pMonitor->drmFormat = fmt.second;
 
         if (!pMonitor->state.test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
@@ -2299,7 +2303,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void CHyprRenderer::ensureCursorRenderingMode() {
-    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::INT>("cursor:inactive_timeout");
+    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
     static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
 
@@ -2737,7 +2741,7 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
 
             // check nvidia version. Explicit KMS is supported in >=560
             // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
-            int         driverMajor = 0;
+            static int  driverMajor = 0;
 
             static bool once = true;
             if (once) {

@@ -180,6 +180,9 @@ uint32_t CKeybindManager::stringToModMask(std::string mods) {
 }
 
 uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
+    if (keycode == 0)
+        return 0;
+
     switch (keycode - 8) {
         case KEY_LEFTMETA: return HL_MODIFIER_META;
         case KEY_RIGHTMETA: return HL_MODIFIER_META;
@@ -1163,6 +1166,8 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     if (!PWINDOW)
         return;
 
+    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
+
     int internalMode, clientMode;
     try {
         internalMode = std::stoi(ARGS[0]);
@@ -1174,26 +1179,16 @@ void CKeybindManager::fullscreenStateActive(std::string args) {
     const sFullscreenState STATE = sFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
                                                     .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)};
 
-    if (internalMode != -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client) {
+    if (internalMode != -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client)
         g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
-        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
-        return;
-    }
+    else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal)
+        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_sFullscreenState.client});
+    else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client)
+        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = FSMODE_NONE});
+    else
+        g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 
-    if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal) {
-        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.client, .client = PWINDOW->m_sFullscreenState.client});
-        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
-        return;
-    }
-
-    if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client) {
-        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = PWINDOW->m_sFullscreenState.internal});
-        PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(true, PRIORITY_SET_PROP);
-        return;
-    }
-
-    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_SET_PROP);
-    g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
+    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(PWINDOW->m_sFullscreenState.internal == PWINDOW->m_sFullscreenState.client, PRIORITY_SET_PROP);
 }
 
 void CKeybindManager::moveActiveToWorkspace(std::string args) {
@@ -1738,7 +1733,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
         return;
     }
 
-    const int WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
+    const auto WORKSPACEID = getWorkspaceIDNameFromString(workspace).id;
 
     if (WORKSPACEID == WORKSPACE_INVALID) {
         Debug::log(ERR, "moveWorkspaceToMonitor invalid workspace!");
@@ -1756,7 +1751,7 @@ void CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 }
 
 void CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
-    int workspaceID = getWorkspaceIDNameFromString(args).id;
+    auto workspaceID = getWorkspaceIDNameFromString(args).id;
     if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return;
@@ -1816,7 +1811,7 @@ void CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     bool       requestedWorkspaceIsAlreadyOpen = false;
     const auto PMONITOR                        = g_pCompositor->m_pLastMonitor;
-    int        specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
+    auto       specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
 
     for (auto& m : g_pCompositor->m_vMonitors) {
         if (m->activeSpecialWorkspaceID() == workspaceID) {

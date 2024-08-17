@@ -71,6 +71,11 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       src = lib.cleanSource ../.;
     };
 
+    patches = [
+      # forces GCC to use -std=c++26
+      ./stdcxx.patch
+    ];
+
     postPatch = ''
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp

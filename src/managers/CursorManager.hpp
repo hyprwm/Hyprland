@@ -53,6 +53,7 @@ class CCursorManager {
     void                    updateTheme();
     SCursorImageData        dataFor(const std::string& name); // for xwayland
     void                    setXWaylandCursor();
+    void                    syncGsettings();
 
     void                    tickAnimatedCursor();
 

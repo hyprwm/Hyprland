@@ -63,7 +63,7 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CWLSHMBuffer::beginDataPtr(uint32_t flags) {
-    return {(uint8_t*)pool->data + offset, fmt, size.x * size.y * 4};
+    return {(uint8_t*)pool->data + offset, fmt, stride * size.y};
 }
 
 void CWLSHMBuffer::endDataPtr() {

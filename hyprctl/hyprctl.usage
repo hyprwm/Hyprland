@@ -2,13 +2,14 @@
 # Repo: https://github.com/adaszko/complgen
 # Generate completion scripts: "complgen aot --bash-script hyprctl.bash --fish-script hyprctl.fish --zsh-script hyprctl.zsh ./hyprctl.usage"
 
-hyprctl [<OPTIONS>]... <ARGUMENTS>           
+hyprctl [<OPTIONS>]... <ARGUMENTS>
 
 <OPTIONS>  ::=  (-i | --instance)                                     "Specify the Hyprland instance"
             |   (-j)                                                  "Output in JSON format"
             |   (-r)                                                  "Refresh state after issuing the command"
             |   (--batch)                                             "Execute a batch of commands separated by ;"
             |   (-q | --quiet)                                        "Disable output"
+            |   (-h | --help)                                         "Prints the help message"
             ;
 
 <WINDOWS> ::= {{{ hyprctl clients | awk '/class/{print $2}' }}};
@@ -59,16 +60,18 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
 
 <ARGUMENTS> ::= (activewindow)                                        "Get the active window name and its properties"
             |   (activeworkspace)                                     "Get the active workspace name and its properties"
+            |   (animations)                                          "Gets the current config info about animations and beziers"
             |   (binds)                                               "List all registered binds"
             |   (clients)                                             "List all windows with their properties"
             |   (configerrors)                                        "List all current config parsing errors"
             |   (cursorpos)                                           "Get the current cursor pos in global layout coordinates"
             |   (decorations <WINDOWS>)                               "List all decorations and their info"
+            |   (descriptions)                                        "Return a parsable JSON with all the config options, descriptions, value types and ranges"
             |   (devices)                                             "List all connected keyboards and mice"
             |   (dismissnotify <NUM>)                                 "Dismiss all or up to amount of notifications"
             |   (dispatch <DISPATCHERS>)                              "Issue a dispatch to call a keybind dispatcher with an arg"
             |   (getoption)                                           "Get the config option status (values)"
-            |   (globalshortcuts)                                     ""
+            |   (globalshortcuts)                                     "Lists all global shortcuts"
             |   (hyprpaper)                                           "Interact with hyprpaper if present"
             |   (instances)                                           "List all running Hyprland instances and their info"
             |   (keyword <KEYWORDS>)                                  "Issue a keyword to call a config keyword dynamically"
@@ -79,8 +82,8 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
             |   (notify <NOTIFICATION_TYPES> <NUM>)                   "Send a notification using the built-in Hyprland notification system"
             |   (output (create (wayland | x11 | headless | auto) | remove <MONITORS>)) "Allows adding/removing fake outputs to a specific backend"
             |   (plugin <AVAILABLE_PLUGINS>)                          "Interact with a plugin"
-            |   (reload)                                              "Force reload the config"
-            |   (rollinglog)                                          "Print tail of the log"
+            |   (reload [config-only])                                "Force reload the config"
+            |   (rollinglog [-f])                                     "Print tail of the log"
             |   (setcursor)                                           "Set the cursor theme and reloads the cursor manager"
             |   (seterror [disable])                                  "Set the hyprctl error string"
             |   (setprop <PROPS>)                                     "Set a property of a window"
@@ -91,6 +94,13 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
             |   (workspacerules)                                      "Get the list of defined workspace rules"
             |   (workspaces)                                          "List all workspaces with their properties"
             ;
+
+<WINDOW_STATE> ::=  (-1)    "Current"
+                |   (0)     "None"
+                |   (1)     "Maximize no fullscreen"
+                |   (2)     "Fullscreen"
+                |   (3)     "Maximize and fullscreen"
+                ;
 
 <DISPATCHERS> ::=  (exec)         	                                  "Execute a shell command"
                 |  (execr)           	                              "Execute a raw shell command"
@@ -106,6 +116,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (settiled)            	                          "Set the current window's floating state to false"
                 |  (fullscreen)          	                          "Toggle the focused window's fullscreen state"
                 |  (fakefullscreen)          	                      "Toggle the focused window's internal fullscreen state"
+                |  (fullscreenstate <WINDOW_STATE>)                   "Sets the focused window’s fullscreen mode and the one sent to the client"
                 |  (dpms)            	                              "Set all monitors' DPMS status"
                 |  (pin)         	                                  "Pin a window"
                 |  (movefocus)           	                          "Move the focus in a direction"
@@ -148,4 +159,5 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (setignoregrouplock)          	                  "Temporarily enable or disable binds:ignore_group_lock"
                 |  (global)          	                              "Execute a Global Shortcut using the GlobalShortcuts portal"
                 |  (submap)          	                              "Change the current mapping group"
+                |  (event)                                            "Emits a custom event to socket2"
                 ;

@@ -38,17 +38,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(pMonitor)) {
-        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(pMonitor);
-        // bind the fb for its format. Suppress gl errors.
-#ifndef GLES2
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#else
-        glBindFramebuffer(GL_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#endif
-    } else
-        LOGM(ERR, "No RDATA in screencopy???");
-
     shmFormat = g_pHyprOpenGL->getPreferredReadFormat(pMonitor);
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");

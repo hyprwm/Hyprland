@@ -5,10 +5,11 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         |   (--help | -h)               "Show help menu"
         |   (--verbose | -v)            "Enable too much loggin"
         |   (--force | -f)              "Force an operation ignoring checks (e.g. update -f)"
+        |   (--no-shallow | -s)         "Disable shallow cloning of Hyprland sources"
         ;
 
 <ARGUMENT> ::= (add)                    "Install a new plugin repository from git"
-        |   (remove)                    "Remove a plugin repository"
+        |   (remove <PLUGIN_REPOS>)     "Remove a plugin repository"
         |   (update)                    "Check and update all plugins if needed"
         |   (list)                      "List all installed plugins"
         |   (enable <PLUGINS>)          "Load a plugin"
@@ -17,3 +18,4 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         ;
 
 <PLUGINS> ::= {{{ hyprpm list | awk '/Plugin/{print $4}' }}};
+<PLUGIN_REPOS> ::= {{{ hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//' }}};

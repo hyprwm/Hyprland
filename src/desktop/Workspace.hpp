@@ -7,31 +7,32 @@
 #include "../helpers/MiscFunctions.hpp"
 
 enum eFullscreenMode : int8_t {
-    FULLSCREEN_INVALID = -1,
-    FULLSCREEN_FULL    = 0,
-    FULLSCREEN_MAXIMIZED
+    FSMODE_NONE       = 0,
+    FSMODE_MAXIMIZED  = 1 << 0,
+    FSMODE_FULLSCREEN = 1 << 1,
+    FSMODE_MAX        = (1 << 2) - 1
 };
 
 class CWindow;
 
 class CWorkspace {
   public:
-    static PHLWORKSPACE create(int id, int monitorID, std::string name, bool special = false, bool isEmtpy = true);
+    static PHLWORKSPACE create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmtpy = true);
     // use create() don't use this
-    CWorkspace(int id, int monitorID, std::string name, bool special = false, bool isEmpty = true);
+    CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
-    int         m_iID        = -1;
+    WORKSPACEID m_iID        = WORKSPACE_INVALID;
     std::string m_szName     = "";
-    uint64_t    m_iMonitorID = -1;
+    MONITORID   m_iMonitorID = MONITOR_INVALID;
     // Previous workspace ID and name is stored during a workspace change, allowing travel
     // to the previous workspace.
     SWorkspaceIDName m_sPrevWorkspace, m_sPrevWorkspacePerMonitor;
 
     bool             m_bHasFullscreenWindow = false;
-    eFullscreenMode  m_efFullscreenMode     = FULLSCREEN_FULL;
+    eFullscreenMode  m_efFullscreenMode     = FSMODE_NONE;
 
     wl_array         m_wlrCoordinateArr;
 
@@ -66,7 +67,7 @@ class CWorkspace {
     void             startAnim(bool in, bool left, bool instant = false);
     void             setActive(bool on);
 
-    void             moveToMonitor(const int&);
+    void             moveToMonitor(const MONITORID&);
 
     PHLWINDOW        getLastFocusedWindow();
     void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);

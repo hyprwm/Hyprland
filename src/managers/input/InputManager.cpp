@@ -17,6 +17,7 @@
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Seat.hpp"
 #include "../../protocols/core/DataDevice.hpp"
+#include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 
 #include "../../devices/Mouse.hpp"
@@ -81,27 +82,18 @@ CInputManager::~CInputManager() {
 }
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
-    static auto PSENS      = CConfigValue<Hyprlang::FLOAT>("general:sensitivity");
-    static auto PNOACCEL   = CConfigValue<Hyprlang::INT>("input:force_no_accel");
-    static auto PSENSTORAW = CConfigValue<Hyprlang::INT>("general:apply_sens_to_raw");
+    static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
 
     const auto  DELTA = *PNOACCEL == 1 ? e.unaccel : e.delta;
 
-    if (*PSENSTORAW == 1) {
-        if (g_pSeatManager->isPointerFrameSkipped)
-            g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA * *PSENS, e.unaccel * *PSENS);
-        else
-            g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA * *PSENS, e.unaccel * *PSENS);
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA * *PSENS, e.unaccel * *PSENS);
-    } else {
-        if (g_pSeatManager->isPointerFrameSkipped)
-            g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
-        else
-            g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
-    }
+    if (g_pSeatManager->isPointerFrameSkipped)
+        g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
+    else
+        g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
 
-    g_pPointerManager->move(DELTA * *PSENS);
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
+
+    g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs);
 
@@ -306,7 +298,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // then, we check if the workspace doesnt have a fullscreen window
     const auto PWORKSPACE = PMONITOR->activeWorkspace;
-    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_FULL) {
+    if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FSMODE_FULLSCREEN) {
         pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
 
         if (!pFoundWindow) {
@@ -333,7 +325,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     // then windows
     if (!foundSurface) {
-        if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FULLSCREEN_MAXIMIZED) {
+        if (PWORKSPACE->m_bHasFullscreenWindow && PWORKSPACE->m_efFullscreenMode == FSMODE_MAXIMIZED) {
             if (!foundSurface) {
                 if (PMONITOR->activeSpecialWorkspace) {
                     pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
@@ -478,7 +470,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     else if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
-            if (!pFoundWindow->m_bIsFullscreen && !pFoundWindow->hasPopupAt(mouseCoords)) {
+            if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords)) {
                 setCursorIconOnBorder(pFoundWindow);
             } else if (m_eBorderIconDirection != BORDERICON_NONE) {
                 unsetCursorImage();
@@ -689,7 +681,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     // clicking on border triggers resize
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || w->m_iX11Type != 2)) {
-        if (w && !w->m_bIsFullscreen) {
+        if (w && !w->isFullscreen()) {
             const CBox real = {w->m_vRealPosition.value().x, w->m_vRealPosition.value().y, w->m_vRealSize.value().x, w->m_vRealSize.value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
@@ -927,6 +919,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     applyConfigToKeyboard(keeb);
 
     g_pSeatManager->setKeyboard(keeb);
+
+    keeb->updateLEDs();
 }
 
 void CInputManager::setKeyboardLayout() {
@@ -1118,8 +1112,9 @@ void CInputManager::setPointerConfigs() {
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
-                if (g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1)
-                    libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
+                libinput_device_config_tap_set_enabled(LIBINPUTDEV,
+                                                       g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1 ? LIBINPUT_CONFIG_TAP_ENABLED :
+                                                                                                                                                     LIBINPUT_CONFIG_TAP_DISABLED);
 
             if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
 
@@ -1273,7 +1268,14 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard)
         return;
 
-    pKeyboard->updateLEDs();
+    std::optional<uint32_t> leds = pKeyboard->getLEDs();
+
+    if (!leds.has_value())
+        return;
+
+    for (auto& k : m_vKeyboards) {
+        k->updateLEDs(leds.value());
+    }
 }
 
 void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
@@ -1391,6 +1393,12 @@ void CInputManager::refocusLastWindow(CMonitor* pMonitor) {
         g_pCompositor->focusWindow(PLASTWINDOW);
     } else {
         // otherwise fall back to a normal refocus.
+
+        if (foundSurface && !foundSurface->hlSurface->keyboardFocusable()) {
+            const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+            g_pCompositor->focusWindow(PLASTWINDOW);
+        }
+
         refocus();
     }
 }
@@ -1689,7 +1697,7 @@ void CInputManager::releaseAllMouseButtons() {
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // do not override cursor icons set by mouse binds
-    if (g_pKeybindManager->m_bIsMouseBindActive) {
+    if (g_pInputManager->currentlyDraggedWindow.expired()) {
         m_eBorderIconDirection = BORDERICON_NONE;
         return;
     }

@@ -77,7 +77,7 @@ void CInputManager::endWorkspaceSwipe() {
     // left of where we started.  Instead, it's one more than the greatest
     // workspace ID that currently exists.
     if (workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID && *PSWIPENEW) {
-        int maxWorkspace = 0;
+        WORKSPACEID maxWorkspace = 0;
         for (const auto& ws : g_pCompositor->m_vWorkspaces) {
             maxWorkspace = std::max(maxWorkspace, ws->m_iID);
         }
@@ -194,7 +194,7 @@ void CInputManager::endWorkspaceSwipe() {
 
     // apply alpha
     for (auto& ls : g_pCompositor->m_pLastMonitor->m_aLayerSurfaceLayers[2]) {
-        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FULLSCREEN_FULL ? 0.f : 1.f;
+        ls->alpha = pSwitchedTo->m_bHasFullscreenWindow && pSwitchedTo->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }
 

@@ -105,6 +105,8 @@ class CKeybindManager {
     //we also store the keyboard pointer (in the string) to differentiate between different keyboard (layouts)
     std::unordered_map<std::string, xkb_keycode_t> m_mKeyToCodeCache;
 
+    static void                                    changeMouseBindMode(const eMouseBindMode mode);
+
   private:
     std::deque<SPressedKeyWithMods> m_dPressedKeys;
 
@@ -116,7 +118,6 @@ class CKeybindManager {
     uint32_t                        m_uLastCode      = 0;
     uint32_t                        m_uLastMouseCode = 0;
 
-    bool                            m_bIsMouseBindActive = false;
     std::vector<SKeybind*>          m_vPressedSpecialBinds;
 
     int                             m_iPassPressed = -1; // used for pass
@@ -154,7 +155,7 @@ class CKeybindManager {
     static void     setActiveTiled(std::string);
     static void     changeworkspace(std::string);
     static void     fullscreenActive(std::string);
-    static void     fakeFullscreenActive(std::string);
+    static void     fullscreenStateActive(std::string args);
     static void     moveActiveToWorkspace(std::string);
     static void     moveActiveToWorkspaceSilent(std::string);
     static void     moveFocusTo(std::string);

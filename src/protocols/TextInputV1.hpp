@@ -1,28 +1,44 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "text-input-unstable-v1-protocol.h"
+#include "../protocols/core/Compositor.hpp"
+#include "text-input-unstable-v1.hpp"
+#include "WaylandProtocol.hpp"
 
 #include <vector>
 
 class CTextInput;
 
-struct STextInputV1 {
-    wl_client*   client         = nullptr;
-    wl_resource* resourceCaller = nullptr;
+class CTextInputV1 {
+  public:
+    CTextInputV1(SP<CZwpTextInputV1> resource);
+    ~CTextInputV1();
 
-    wl_resource* resourceImpl = nullptr;
+    void       enter(SP<CWLSurfaceResource> surface);
+    void       leave();
 
-    CTextInput*  pTextInput = nullptr;
+    void       preeditCursor(int32_t index);
+    void       preeditStyling(uint32_t index, uint32_t length, zwpTextInputV1PreeditStyle style);
+    void       preeditString(uint32_t serial, const char* text, const char* commit);
+    void       commitString(uint32_t serial, const char* text);
+    void       deleteSurroundingText(int32_t index, uint32_t length);
 
-    wl_signal    sEnable;
-    wl_signal    sDisable;
-    wl_signal    sCommit;
-    wl_signal    sDestroy;
+    bool       good();
+    wl_client* client();
 
-    uint32_t     serial = 0;
+  private:
+    SP<CZwpTextInputV1> resource;
+    WP<CTextInputV1>    self;
 
-    bool         active = false;
+    uint32_t            serial = 0;
+    bool                active = false;
+
+    struct {
+        CSignal onCommit;
+        CSignal enable;
+        CSignal disable;
+        CSignal destroy;
+    } events;
 
     struct SPendingSurr {
         bool        isPending = false;
@@ -39,39 +55,29 @@ struct STextInputV1 {
 
     CBox cursorRectangle = {0, 0, 0, 0};
 
-    bool operator==(const STextInputV1& other) {
-        return other.client == client && other.resourceCaller == resourceCaller && other.resourceImpl == resourceImpl;
-    }
+    friend class CTextInput;
+    friend class CTextInputV1Protocol;
 };
 
-class CTextInputV1ProtocolManager {
+class CTextInputV1Protocol : IWaylandProtocol {
   public:
-    CTextInputV1ProtocolManager();
-    ~CTextInputV1ProtocolManager();
+    CTextInputV1Protocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
-    void createTI(wl_client* client, wl_resource* resource, uint32_t id);
-    void removeTI(STextInputV1* pTI);
+    virtual void bindManager(wl_client* client, void* data, uint32_t version, uint32_t id);
+    void         destroyResource(CTextInputV1* resource);
+    void         destroyResource(CZwpTextInputManagerV1* client);
 
-    void displayDestroy();
-
-    // handlers for tiv1
-    void        handleActivate(wl_client* client, wl_resource* resource, wl_resource* seat, wl_resource* surface);
-    void        handleDeactivate(wl_client* client, wl_resource* resource, wl_resource* seat);
-    void        handleShowInputPanel(wl_client* client, wl_resource* resource);
-    void        handleHideInputPanel(wl_client* client, wl_resource* resource);
-    void        handleReset(wl_client* client, wl_resource* resource);
-    void        handleSetSurroundingText(wl_client* client, wl_resource* resource, const char* text, uint32_t cursor, uint32_t anchor);
-    void        handleSetContentType(wl_client* client, wl_resource* resource, uint32_t hint, uint32_t purpose);
-    void        handleSetCursorRectangle(wl_client* client, wl_resource* resource, int32_t x, int32_t y, int32_t width, int32_t height);
-    void        handleSetPreferredLanguage(wl_client* client, wl_resource* resource, const char* language);
-    void        handleCommitState(wl_client* client, wl_resource* resource, uint32_t serial);
-    void        handleInvokeAction(wl_client* client, wl_resource* resource, uint32_t button, uint32_t index);
-
-    wl_listener m_liDisplayDestroy;
+    struct {
+        CSignal newTextInput; // WP<CTextInputV3>
+    } events;
 
   private:
-    wl_global*                                 m_pGlobal = nullptr;
+    std::vector<SP<CZwpTextInputManagerV1>> m_vManagers;
+    std::vector<SP<CTextInputV1>>           m_vClients;
 
-    std::vector<std::unique_ptr<STextInputV1>> m_pClients;
+    friend class CTextInputV1;
+};
+
+namespace PROTO {
+    inline UP<CTextInputV1Protocol> textInputV1;
 };

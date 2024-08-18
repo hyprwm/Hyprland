@@ -153,13 +153,16 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
 }
 
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
-    std::string propName = std::format("{}?", atom);
-    for (auto& ha : HYPRATOMS) {
-        if (ha.second != atom)
-            continue;
+    std::string propName;
+    if (Debug::trace) {
+        propName = std::format("{}?", atom);
+        for (auto& ha : HYPRATOMS) {
+            if (ha.second != atom)
+                continue;
 
-        propName = ha.first;
-        break;
+            propName = ha.first;
+            break;
+        }
     }
 
     if (atom == XCB_ATOM_WM_CLASS) {
@@ -536,7 +539,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 
     // Debug::log(ERR, "[xwm] FIXME: CXWM::handleSelectionPropertyNotify stub");
 
-    return false;
+    return true;
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {

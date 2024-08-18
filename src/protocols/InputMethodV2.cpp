@@ -6,8 +6,6 @@
 #include "core/Compositor.hpp"
 #include <cstring>
 
-#define LOGM PROTO::ime->protoLog
-
 CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboardGrabV2> resource_, SP<CInputMethodV2> owner_) : resource(resource_), owner(owner_) {
     if (!resource->resource())
         return;
@@ -107,14 +105,14 @@ CInputMethodPopupV2::CInputMethodPopupV2(SP<CZwpInputPopupSurfaceV2> resource_, 
     });
 
     listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-        if (pSurface->current.buffer && !mapped) {
+        if (pSurface->current.texture && !mapped) {
             mapped = true;
             pSurface->map();
             events.map.emit();
             return;
         }
 
-        if (!pSurface->current.buffer && mapped) {
+        if (!pSurface->current.texture && mapped) {
             mapped = false;
             pSurface->unmap();
             events.unmap.emit();

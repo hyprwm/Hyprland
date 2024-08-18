@@ -29,8 +29,8 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
-    if (pWindow->m_bIsFullscreen)
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+    if (pWindow->isFullscreen())
+        g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
     if (!pWindow->m_sGroupData.pNextWindow.expired()) {
         if (pWindow->m_sGroupData.pNextWindow.lock() == pWindow)
@@ -187,20 +187,20 @@ void IHyprLayout::onBeginDragWindow() {
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGWINDOW)) {
         Debug::log(ERR, "Dragging attempted on an invalid window!");
-        g_pInputManager->currentlyDraggedWindow.reset();
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
-    if (DRAGGINGWINDOW->m_bIsFullscreen) {
+    if (DRAGGINGWINDOW->isFullscreen()) {
         Debug::log(LOG, "Dragging a fullscreen window");
-        g_pCompositor->setWindowFullscreen(DRAGGINGWINDOW, false, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreenInternal(DRAGGINGWINDOW, FSMODE_NONE);
     }
 
     const auto PWORKSPACE = DRAGGINGWINDOW->m_pWorkspace;
 
     if (PWORKSPACE->m_bHasFullscreenWindow && (!DRAGGINGWINDOW->m_bCreatedOverFullscreen || !DRAGGINGWINDOW->m_bIsFloating)) {
         Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-        g_pInputManager->currentlyDraggedWindow.reset();
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
@@ -288,7 +288,6 @@ void IHyprLayout::onEndDragWindow() {
     }
 
     g_pInputManager->unsetCursorImage();
-
     g_pInputManager->currentlyDraggedWindow.reset();
     g_pInputManager->m_bWasDraggingWindow = true;
 
@@ -325,12 +324,14 @@ void IHyprLayout::onEndDragWindow() {
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
+    if (g_pInputManager->currentlyDraggedWindow.expired())
+        return;
+
     const auto DRAGGINGWINDOW = g_pInputManager->currentlyDraggedWindow.lock();
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
-    if (!validMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D()) {
-        onEndDragWindow();
-        g_pInputManager->currentlyDraggedWindow.reset();
+    if ((!validMapped(DRAGGINGWINDOW) || m_vBeginDragSizeXY == Vector2D())) {
+        g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
         return;
     }
 
@@ -474,9 +475,9 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
 void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
-    if (pWindow->m_bIsFullscreen) {
+    if (pWindow->isFullscreen()) {
         Debug::log(LOG, "changeWindowFloatingMode: fullscreen");
-        g_pCompositor->setWindowFullscreen(pWindow, false, FULLSCREEN_FULL);
+        g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
     }
 
     pWindow->m_bPinned = false;
@@ -496,7 +497,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         const auto PWORKSPACE = PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace;
 
         if (PWORKSPACE->m_bHasFullscreenWindow)
-            g_pCompositor->setWindowFullscreen(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), false);
+            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), FSMODE_NONE);
 
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS  = pWindow->m_vRealPosition.goal();

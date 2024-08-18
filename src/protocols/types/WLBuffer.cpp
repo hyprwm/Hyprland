@@ -32,16 +32,6 @@ void CWLBufferResource::sendRelease() {
     resource->sendRelease();
 }
 
-void CWLBufferResource::sendReleaseWithSurface(SP<CWLSurfaceResource> surf) {
-    sendRelease();
-
-    if (!surf || !surf->syncobj)
-        return;
-
-    if (drmSyncobjTimelineSignal(g_pCompositor->m_iDRMFD, &surf->syncobj->releaseTimeline->timeline->handle, &surf->syncobj->releasePoint, 1))
-        Debug::log(ERR, "sendReleaseWithSurface: drmSyncobjTimelineSignal failed");
-}
-
 wl_resource* CWLBufferResource::getResource() {
     return resource->resource();
 }

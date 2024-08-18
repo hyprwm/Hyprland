@@ -2,8 +2,6 @@
 #include "Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::subcompositor->protoLog
-
 CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_) :
     surface(surface_), parent(parent_), resource(resource_) {
     if (!good())
@@ -80,12 +78,14 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
     });
 
     listeners.commitSurface = surface->events.commit.registerListener([this](std::any d) {
-        if (surface->current.buffer && !surface->mapped) {
+        if (surface->current.texture && !surface->mapped) {
             surface->map();
+            surface->events.map.emit();
             return;
         }
 
-        if (!surface->current.buffer && surface->mapped) {
+        if (!surface->current.texture && surface->mapped) {
+            surface->events.unmap.emit();
             surface->unmap();
             return;
         }
@@ -117,7 +117,7 @@ Vector2D CWLSubsurfaceResource::posRelativeToParent() {
     while (surf->role->role() == SURFACE_ROLE_SUBSURFACE &&
            std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
-        auto subsurface = (CWLSubsurfaceResource*)parent->role.get();
+        auto subsurface = ((CSubsurfaceRole*)parent->role.get())->subsurface.lock();
         pos += subsurface->position;
         surf = subsurface->parent.lock();
     }
@@ -128,10 +128,6 @@ bool CWLSubsurfaceResource::good() {
     return resource->resource();
 }
 
-eSurfaceRole CWLSubsurfaceResource::role() {
-    return SURFACE_ROLE_SUBSURFACE;
-}
-
 SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
     SP<CWLSurfaceResource>              surf = parent.lock();
     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
@@ -139,7 +135,7 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
     while (surf->role->role() == SURFACE_ROLE_SUBSURFACE &&
            std::find_if(surfacesVisited.begin(), surfacesVisited.end(), [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
-        auto subsurface = (CWLSubsurfaceResource*)parent->role.get();
+        auto subsurface = ((CSubsurfaceRole*)parent->role.get())->subsurface.lock();
         surf            = subsurface->parent.lock();
     }
     return surf;
@@ -169,7 +165,7 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         SP<CWLSurfaceResource> t1Parent = nullptr;
 
         if (PARENT->role->role() == SURFACE_ROLE_SUBSURFACE) {
-            auto subsurface = (CWLSubsurfaceResource*)PARENT->role.get();
+            auto subsurface = ((CSubsurfaceRole*)PARENT->role.get())->subsurface.lock();
             t1Parent        = subsurface->t1Parent();
         } else
             t1Parent = PARENT;
@@ -189,7 +185,7 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         }
 
         RESOURCE->self = RESOURCE;
-        SURF->role     = RESOURCE;
+        SURF->role     = makeShared<CSubsurfaceRole>(RESOURCE);
         PARENT->subsurfaces.emplace_back(RESOURCE);
 
         LOGM(LOG, "New wl_subsurface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
@@ -222,4 +218,8 @@ void CWLSubcompositorProtocol::destroyResource(CWLSubcompositorResource* resourc
 
 void CWLSubcompositorProtocol::destroyResource(CWLSubsurfaceResource* resource) {
     std::erase_if(m_vSurfaces, [&](const auto& other) { return other.get() == resource; });
+}
+
+CSubsurfaceRole::CSubsurfaceRole(SP<CWLSubsurfaceResource> sub) : subsurface(sub) {
+    ;
 }

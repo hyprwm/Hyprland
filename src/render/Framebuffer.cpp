@@ -12,9 +12,10 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     uint32_t glFormat = FormatUtils::drmFormatToGL(drmFormat);
     uint32_t glType   = FormatUtils::glFormatToType(glFormat);
 
-    if (m_iFb == (uint32_t)-1) {
+    if (!m_iFbAllocated) {
         firstAlloc = true;
         glGenFramebuffers(1, &m_iFb);
+        m_iFbAllocated = true;
     }
 
     if (m_cTex->m_iTexID == 0) {
@@ -88,12 +89,12 @@ void CFramebuffer::bind() {
 }
 
 void CFramebuffer::release() {
-    if (m_iFb != (uint32_t)-1 && m_iFb)
+    if (m_iFbAllocated)
         glDeleteFramebuffers(1, &m_iFb);
 
     m_cTex->destroyTexture();
-    m_iFb   = -1;
-    m_vSize = Vector2D();
+    m_iFbAllocated = false;
+    m_vSize        = Vector2D();
 }
 
 CFramebuffer::~CFramebuffer() {
@@ -101,5 +102,5 @@ CFramebuffer::~CFramebuffer() {
 }
 
 bool CFramebuffer::isAllocated() {
-    return m_iFb != (GLuint)-1;
+    return m_iFbAllocated;
 }

@@ -31,7 +31,7 @@ in {
       date = mkDate (self.lastModifiedDate or "19700101");
     in {
       hyprland = final.callPackage ./default.nix {
-        stdenv = final.gcc13Stdenv;
+        stdenv = final.gcc14Stdenv;
         version = "${version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
         inherit date;

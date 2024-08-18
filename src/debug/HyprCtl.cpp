@@ -32,6 +32,7 @@ using namespace Hyprutils::String;
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
@@ -70,7 +71,7 @@ static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFor
 
 std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     std::string result;
-    if (!m->output || m->ID == -1ull)
+    if (!m->output || m->ID == -1)
         return "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -154,19 +155,19 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "]";
     } else {
         for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
-            if (!m->output || m->ID == -1ull)
+            if (!m->output || m->ID == -1)
                 continue;
 
-            result +=
-                std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
-                            "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                            "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tavailableModes: {}\n\n",
-                            m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
-                            m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
-                            m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
-                            (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
-                            (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false),
-                            m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
+            result += std::format(
+                "Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
+                "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
+                "dpmsStatus: {}\n\tvrr: {}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: A {} H {}\n\tavailableModes: {}\n\n",
+                m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
+                m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
+                m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
+                (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"),
+                (int)m->dpmsStatus, (int)(m->output->state ? m->output->state->state().adaptiveSync : false), m->tearingState.activelyTearing, !m->m_bEnabled,
+                formatToString(m->output->state->state().drmFormat), formatToString(m->drmFormat), availableModesForOutput(m.get(), format));
         }
     }
 
@@ -239,8 +240,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xwayland": {},
     "pinned": {},
     "fullscreen": {},
-    "fullscreenMode": {},
-    "fakeFullscreen": {},
+    "fullscreenClient": {},
     "grouped": [{}],
     "tags": [{}],
     "swallowing": "0x{:x}",
@@ -251,19 +251,19 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             escapeJSONStrings(!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName), ((int)w->m_bIsFloating == 1 ? "true" : "false"), (w->m_bIsPseudotiled ? "true" : "false"),
             (int64_t)w->m_iMonitorID, escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass),
             escapeJSONStrings(w->m_szInitialTitle), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
-            (w->m_bIsFullscreen ? "true" : "false"), (w->m_bIsFullscreen ? (w->m_pWorkspace ? (int)w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
-            w->m_bFakeFullscreenState ? "true" : "false", getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
+            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenmode: {}\n\tfakefullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
             (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
             (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName),
             (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->m_iMonitorID, w->m_szClass, w->m_szTitle, w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
-            (int)w->m_bIsX11, (int)w->m_bPinned, (int)w->m_bIsFullscreen, (w->m_bIsFullscreen ? (w->m_pWorkspace ? w->m_pWorkspace->m_efFullscreenMode : 0) : 0),
-            (int)w->m_bFakeFullscreenState, getGroupedData(w, format), getTagsData(w, format), (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            (int)w->m_bIsX11, (int)w->m_bPinned, (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
+            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
     }
 }
 
@@ -776,7 +776,7 @@ std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) 
 
 std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret       = "";
-    const auto  SHORTCUTS = g_pProtocolManager->m_pGlobalShortcutsProtocolManager->getAllShortcuts();
+    const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         for (auto& sh : SHORTCUTS)
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
@@ -1561,6 +1561,21 @@ std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
     return lockedStr;
 }
 
+std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
+    std::string json  = "{";
+    const auto& DESCS = g_pConfigManager->getAllDescriptions();
+
+    for (const auto& d : DESCS) {
+        json += d.jsonify() + ",\n";
+    }
+
+    json.pop_back();
+    json.pop_back();
+
+    json += "}\n";
+    return json;
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1581,6 +1596,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
+    registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
@@ -1604,6 +1620,10 @@ CHyprCtl::CHyprCtl() {
 CHyprCtl::~CHyprCtl() {
     if (m_eventSource)
         wl_event_source_remove(m_eventSource);
+    if (m_iSocketFD >= 0)
+        close(m_iSocketFD);
+    if (!m_socketPath.empty())
+        unlink(m_socketPath.c_str());
 }
 
 SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
@@ -1821,9 +1841,9 @@ void CHyprCtl::startHyprCtlSocket() {
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
 
-    std::string socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
+    m_socketPath = g_pCompositor->m_szInstancePath + "/.socket.sock";
 
-    strcpy(SERVERADDRESS.sun_path, socketPath.c_str());
+    strcpy(SERVERADDRESS.sun_path, m_socketPath.c_str());
 
     if (bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
@@ -1833,7 +1853,7 @@ void CHyprCtl::startHyprCtlSocket() {
     // 10 max queued.
     listen(m_iSocketFD, 10);
 
-    Debug::log(LOG, "Hypr socket started at {}", socketPath);
+    Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

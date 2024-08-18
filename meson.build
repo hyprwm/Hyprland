@@ -6,9 +6,10 @@ project('Hyprland', 'cpp', 'c',
     'optimization=3',
     'buildtype=release',
     'debug=false',
-    'cpp_std=c++23',
+    'cpp_std=c++26',
   ])
 
+datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'
 add_project_arguments(
   [
     '-Wno-unused-parameter',
@@ -16,6 +17,7 @@ add_project_arguments(
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
     '-Wno-pointer-arith',
+    datarootdir,
   ],
   language: 'cpp')
 
@@ -31,6 +33,8 @@ xcb_icccm_dep = dependency('xcb-icccm', required: get_option('xwayland'))
 xcb_render_dep = dependency('xcb-render', required: get_option('xwayland'))
 xcb_res_dep = dependency('xcb-res', required: get_option('xwayland'))
 xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
+
+gio_dep = dependency('gio-2.0', required:true)
 
 cmake = import('cmake')
 udis = cmake.subproject('udis86')

@@ -2,8 +2,6 @@
 #include <algorithm>
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::fractional->protoLog
-
 CFractionalScaleProtocol::CFractionalScaleProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
 }

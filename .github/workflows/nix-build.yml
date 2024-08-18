@@ -15,14 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           submodules: recursive
 
-      - uses: cachix/install-nix-action@v26
+      - uses: cachix/install-nix-action@v27
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - uses: cachix/cachix-action@v12
+      - uses: cachix/cachix-action@v15
         with:
           name: hyprland
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'

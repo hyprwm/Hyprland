@@ -1,6 +1,6 @@
 <div align = center>
 
-<img src="https://raw.githubusercontent.com/vaxerski/Hyprland/main/assets/header.svg" width="750" height="300" alt="banner">
+<img src="https://raw.githubusercontent.com/hyprwm/Hyprland/main/assets/header.svg" width="750" height="300" alt="banner">
 
 <br>
 
@@ -125,7 +125,6 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------{ Images }--------------------------------->
 
-[Stars Preview]: https://starchart.cc/vaxerski/Hyprland.svg
 [Preview A]: https://i.ibb.co/C1yTb0r/falf.png
 [Preview B]: https://linfindel.github.io/cdn/hyprland-preview-b.png
 [Preview C]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png

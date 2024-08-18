@@ -4,8 +4,6 @@
 #include "core/Seat.hpp"
 #include "../config/ConfigValue.hpp"
 
-#define LOGM PROTO::primarySelection->protoLog
-
 CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())
         return;

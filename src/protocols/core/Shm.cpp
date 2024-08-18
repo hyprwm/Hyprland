@@ -7,8 +7,6 @@
 #include "../../Compositor.hpp"
 #include "../../helpers/Format.hpp"
 
-#define LOGM PROTO::shm->protoLog
-
 CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
     if (!pool_->pool->data)
         return;

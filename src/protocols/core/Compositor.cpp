@@ -1,16 +1,17 @@
 #include "Compositor.hpp"
 #include "Output.hpp"
+#include "Seat.hpp"
 #include "../types/WLBuffer.hpp"
 #include <algorithm>
 #include <ranges>
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
-
-#define LOGM PROTO::compositor->protoLog
+#include <cstring>
 
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
@@ -18,8 +19,6 @@ class CDefaultSurfaceRole : public ISurfaceRole {
         return SURFACE_ROLE_UNASSIGNED;
     }
 };
-
-SP<CDefaultSurfaceRole> defaultRole = makeShared<CDefaultSurfaceRole>();
 
 CWLCallbackResource::CWLCallbackResource(SP<CWlCallback> resource_) : resource(resource_) {
     ;
@@ -63,53 +62,55 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
 
     resource->setData(this);
 
-    role = defaultRole;
+    role = makeShared<CDefaultSurfaceRole>();
 
     resource->setDestroy([this](CWlSurface* r) { destroy(); });
     resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
-        pending.offset = {x, y};
+        pending.offset    = {x, y};
+        pending.newBuffer = true;
 
         if (!buffer) {
             pending.buffer.reset();
             pending.texture.reset();
         } else {
-            auto res        = CWLBufferResource::fromResource(buffer);
-            pending.buffer  = res && res->buffer ? res->buffer.lock() : nullptr;
-            pending.size    = res && res->buffer ? res->buffer->size : Vector2D{};
-            pending.texture = res && res->buffer ? res->buffer->texture : nullptr;
+            auto res           = CWLBufferResource::fromResource(buffer);
+            pending.buffer     = res && res->buffer ? makeShared<CHLBufferReference>(res->buffer.lock(), self.lock()) : nullptr;
+            pending.size       = res && res->buffer ? res->buffer->size : Vector2D{};
+            pending.texture    = res && res->buffer ? res->buffer->texture : nullptr;
+            pending.bufferSize = res && res->buffer ? res->buffer->size : Vector2D{};
         }
 
-        Vector2D oldBufSize = current.buffer ? current.buffer->size : Vector2D{};
-        Vector2D newBufSize = pending.buffer ? pending.buffer->size : Vector2D{};
+        Vector2D oldBufSize = current.buffer ? current.bufferSize : Vector2D{};
+        Vector2D newBufSize = pending.buffer ? pending.bufferSize : Vector2D{};
 
         if (oldBufSize != newBufSize || current.buffer != pending.buffer)
             pending.bufferDamage = CBox{{}, {INT32_MAX, INT32_MAX}};
-
-        bufferReleased = false;
     });
 
     resource->setCommit([this](CWlSurface* r) {
-        if (pending.buffer)
-            pending.bufferDamage.intersect(CBox{{}, pending.buffer->size});
+        if (pending.texture)
+            pending.bufferDamage.intersect(CBox{{}, pending.bufferSize});
 
-        if (!pending.buffer)
+        if (!pending.texture)
             pending.size = {};
         else if (pending.viewport.hasDestination)
             pending.size = pending.viewport.destination;
         else if (pending.viewport.hasSource)
             pending.size = pending.viewport.source.size();
         else {
-            Vector2D tfs = pending.transform % 2 == 1 ? Vector2D{pending.buffer->size.y, pending.buffer->size.x} : pending.buffer->size;
+            Vector2D tfs = pending.transform % 2 == 1 ? Vector2D{pending.bufferSize.y, pending.bufferSize.x} : pending.bufferSize;
             pending.size = tfs / pending.scale;
         }
 
         pending.damage.intersect(CBox{{}, pending.size});
 
         events.precommit.emit();
-        if (pending.rejected)
+        if (pending.rejected) {
+            dropPendingBuffer();
             return;
+        }
 
         if (stateLocks <= 0)
             commitPendingState();
@@ -151,10 +152,21 @@ CWLSurfaceResource::~CWLSurfaceResource() {
 }
 
 void CWLSurfaceResource::destroy() {
-    if (mapped)
+    if (mapped) {
+        events.unmap.emit();
         unmap();
+    }
     events.destroy.emit();
+    releaseBuffers(false);
     PROTO::compositor->destroyResource(this);
+}
+
+void CWLSurfaceResource::dropPendingBuffer() {
+    pending.buffer.reset();
+}
+
+void CWLSurfaceResource::dropCurrentBuffer() {
+    current.buffer.reset();
 }
 
 SP<CWLSurfaceResource> CWLSurfaceResource::fromResource(wl_resource* res) {
@@ -237,7 +249,7 @@ void CWLSurfaceResource::frame(timespec* now) {
 }
 
 void CWLSurfaceResource::resetRole() {
-    role = defaultRole;
+    role = makeShared<CDefaultSurfaceRole>();
 }
 
 void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
@@ -251,6 +263,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
         for (auto& c : n->subsurfaces) {
             if (c->zIndex >= 0)
                 break;
+            if (c->surface.expired())
+                continue;
             nodes2.push_back(c->surface.lock());
         }
     }
@@ -263,7 +277,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     for (auto& n : nodes) {
         Vector2D offset = {};
         if (n->role->role() == SURFACE_ROLE_SUBSURFACE) {
-            auto subsurface = (CWLSubsurfaceResource*)n->role.get();
+            auto subsurface = ((CSubsurfaceRole*)n->role.get())->subsurface.lock();
             offset          = subsurface->posRelativeToParent();
         }
 
@@ -273,6 +287,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     for (auto& n : nodes) {
         for (auto& c : n->subsurfaces) {
             if (c->zIndex < 0)
+                continue;
+            if (c->surface.expired())
                 continue;
             nodes2.push_back(c->surface.lock());
         }
@@ -319,8 +335,6 @@ void CWLSurfaceResource::map() {
 
     mapped = true;
 
-    events.map.emit();
-
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     frame(&now);
@@ -335,18 +349,16 @@ void CWLSurfaceResource::unmap() {
 
     mapped = false;
 
-    events.unmap.emit();
-
     // release the buffers.
     // this is necessary for XWayland to function correctly,
     // as it does not unmap via the traditional commit(null buffer) method, but via the X11 protocol.
-    if (!bufferReleased && current.buffer)
-        current.buffer->sendRelease();
-    if (pending.buffer)
-        pending.buffer->sendRelease();
+    releaseBuffers();
+}
 
-    pending.buffer.reset();
-    current.buffer.reset();
+void CWLSurfaceResource::releaseBuffers(bool onlyCurrent) {
+    if (!onlyCurrent)
+        dropPendingBuffer();
+    dropCurrentBuffer();
 }
 
 void CWLSurfaceResource::error(int code, const std::string& str) {
@@ -371,18 +383,18 @@ CBox CWLSurfaceResource::extends() {
 }
 
 Vector2D CWLSurfaceResource::sourceSize() {
-    if (!current.buffer)
+    if (!current.texture)
         return {};
 
     if (current.viewport.hasSource)
         return current.viewport.source.size();
 
-    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.buffer->size.y, current.buffer->size.x} : current.buffer->size;
+    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.bufferSize.y, current.bufferSize.x} : current.bufferSize;
     return trc / current.scale;
 }
 
 CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
-    if (!current.buffer)
+    if (!current.texture)
         return {};
 
     CRegion surfaceDamage = current.damage;
@@ -394,7 +406,7 @@ CRegion CWLSurfaceResource::accumulateCurrentBufferDamage() {
     if (current.viewport.hasSource)
         surfaceDamage.translate(current.viewport.source.pos());
 
-    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.buffer->size.y, current.buffer->size.x} : current.buffer->size;
+    Vector2D trc = current.transform % 2 == 1 ? Vector2D{current.bufferSize.y, current.bufferSize.x} : current.bufferSize;
 
     return surfaceDamage.scale(current.scale).transform(wlTransformToHyprutils(invertTransform(current.transform)), trc.x, trc.y).add(current.bufferDamage);
 }
@@ -416,24 +428,35 @@ void CWLSurfaceResource::commitPendingState() {
     current = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
+    pending.newBuffer = false;
 
-    if (current.buffer && current.buffer->texture)
-        current.buffer->texture->m_eTransform = wlTransformToHyprutils(current.transform);
+    events.roleCommit.emit();
 
-    if (current.buffer && !bufferReleased) {
-        current.buffer->update(accumulateCurrentBufferDamage());
+    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
+        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
+
+    if (current.texture)
+        current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
+
+    if (current.buffer && current.buffer->buffer) {
+        current.buffer->buffer->update(accumulateCurrentBufferDamage());
+
+        // if the surface is a cursor, update the shm buffer
+        // TODO: don't update the entire texture
+        if (role->role() == SURFACE_ROLE_CURSOR)
+            updateCursorShm();
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        if (current.buffer->isSynchronous()) {
-            current.buffer->sendReleaseWithSurface(self.lock());
-            bufferReleased = true;
+        if (current.buffer->buffer->isSynchronous()) {
+            dropCurrentBuffer();
+            dropPendingBuffer(); // pending atm is just a copied ref of the current, drop it too to send a release
         }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
     if (role->role() == SURFACE_ROLE_SUBSURFACE) {
-        auto subsurface = (CWLSubsurfaceResource*)role.get();
+        auto subsurface = ((CSubsurfaceRole*)role.get())->subsurface.lock();
         if (subsurface->sync)
             return;
 
@@ -443,7 +466,7 @@ void CWLSurfaceResource::commitPendingState() {
         breadthfirst(
             [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                 if (surf->role->role() == SURFACE_ROLE_SUBSURFACE) {
-                    auto subsurface = (CWLSubsurfaceResource*)surf->role.get();
+                    auto subsurface = ((CSubsurfaceRole*)surf->role.get())->subsurface.lock();
                     if (!subsurface->sync)
                         return;
                 }
@@ -453,40 +476,51 @@ void CWLSurfaceResource::commitPendingState() {
     }
 
     // for async buffers, we can only release the buffer once we are unrefing it from current.
-    if (previousBuffer && !previousBuffer->isSynchronous() && !bufferReleased) {
-        if (previousBuffer->lockedByBackend) {
-            previousBuffer->hlEvents.backendRelease = previousBuffer->events.backendRelease.registerListener([this, previousBuffer](std::any data) {
-                if (!self.expired()) // could be dead in the dtor
-                    previousBuffer->sendReleaseWithSurface(self.lock());
-                else
-                    previousBuffer->sendRelease();
-                previousBuffer->hlEvents.backendRelease.reset();
-                bufferReleased = true;
-            });
-        } else
-            previousBuffer->sendReleaseWithSurface(self.lock());
-
-        bufferReleased = true;
+    // if the backend took it, ref it with the lambda. Otherwise, the end of this scope will release it.
+    if (previousBuffer && previousBuffer->buffer && !previousBuffer->buffer->isSynchronous()) {
+        if (previousBuffer->buffer->lockedByBackend && !previousBuffer->buffer->hlEvents.backendRelease) {
+            previousBuffer->buffer->lock();
+            previousBuffer->buffer->unlockOnBufferRelease(self);
+        }
     }
+
+    lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync) {
+void CWLSurfaceResource::updateCursorShm() {
+    auto buf = current.buffer ? current.buffer->buffer : lastBuffer;
+
+    if (!buf)
+        return;
+
+    // TODO: actually use damage
+    auto& shmData  = CCursorSurfaceRole::cursorPixelData(self.lock());
+    auto  shmAttrs = buf->shm();
+
+    if (!shmAttrs.success) {
+        LOGM(TRACE, "updateCursorShm: ignoring, not a shm buffer");
+        return;
+    }
+
+    // no need to end, shm.
+    auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
+
+    shmData.resize(bufLen);
+    memcpy(shmData.data(), pixelData, bufLen);
+}
+
+void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->outTimeline || !syncobj || !needsExplicitSync)
+    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
         return;
 
     // attach explicit sync
     g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
-
-    if (syncobj->acquirePoint > pMonitor->lastWaitPoint) {
-        Debug::log(TRACE, "presentFeedback lastWaitPoint {} -> {}", pMonitor->lastWaitPoint, syncobj->acquirePoint);
-        pMonitor->lastWaitPoint = syncobj->acquirePoint;
-    }
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {

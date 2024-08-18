@@ -26,6 +26,7 @@
 #include <regex>
 #include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
+#include <cstring>
 using namespace Hyprutils::String;
 
 #include "Strings.hpp"
@@ -113,7 +114,7 @@ int rollingRead(const int socket) {
 
     constexpr size_t              BUFFER_SIZE = 8192;
     std::array<char, BUFFER_SIZE> buffer      = {0};
-    int                           sizeWritten = 0;
+    long                          sizeWritten = 0;
     std::cout << "[hyprctl] reading from socket following up log:" << std::endl;
     while (!sigintReceived) {
         sizeWritten = read(socket, buffer.data(), BUFFER_SIZE);
@@ -141,7 +142,7 @@ int rollingRead(const int socket) {
 int request(std::string arg, int minArgs = 0, bool needRoll = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
-    auto       t = timeval{.tv_sec = 1, .tv_usec = 0};
+    auto       t = timeval{.tv_sec = 5, .tv_usec = 0};
     setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
 
     const auto ARGS = std::count(arg.begin(), arg.end(), ' ');

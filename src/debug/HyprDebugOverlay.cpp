@@ -7,8 +7,8 @@ CHyprDebugOverlay::CHyprDebugOverlay() {
     m_pTexture = makeShared<CTexture>();
 }
 
-void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
-    m_dLastRenderTimes.push_back(µs / 1000.f);
+void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float durationUs) {
+    m_dLastRenderTimes.push_back(durationUs / 1000.f);
 
     if (m_dLastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
         m_dLastRenderTimes.pop_front();
@@ -17,8 +17,8 @@ void CHyprMonitorDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
         m_pMonitor = pMonitor;
 }
 
-void CHyprMonitorDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
-    m_dLastRenderTimesNoOverlay.push_back(µs / 1000.f);
+void CHyprMonitorDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float durationUs) {
+    m_dLastRenderTimesNoOverlay.push_back(durationUs / 1000.f);
 
     if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
         m_dLastRenderTimesNoOverlay.pop_front();
@@ -188,12 +188,12 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     return posY - offset;
 }
 
-void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float µs) {
-    m_mMonitorOverlays[pMonitor].renderData(pMonitor, µs);
+void CHyprDebugOverlay::renderData(CMonitor* pMonitor, float durationUs) {
+    m_mMonitorOverlays[pMonitor].renderData(pMonitor, durationUs);
 }
 
-void CHyprDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float µs) {
-    m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, µs);
+void CHyprDebugOverlay::renderDataNoOverlay(CMonitor* pMonitor, float durationUs) {
+    m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, durationUs);
 }
 
 void CHyprDebugOverlay::frameData(CMonitor* pMonitor) {

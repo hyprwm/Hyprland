@@ -464,12 +464,22 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
-    ret = execAndGet("cd " + WORKINGDIR + " && git checkout " + HLVER.branch + " 2>&1");
+    if (m_bVerbose)
+        progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "will run: " + "cd " + WORKINGDIR + " && git checkout " + HLVER.hash + " 2>&1");
+
+    ret = execAndGet("cd " + WORKINGDIR + " && git checkout " + HLVER.hash + " 2>&1");
+
+    if (ret.contains("fatal: unable to read tree")) {
+        std::cerr << "\n"
+                  << Colors::RED << "✖" << Colors::RESET
+                  << " Could not checkout the running Hyprland commit. If you are on -git, try updating.\nYou can also try re-running hyprpm update with --no-shallow.\n";
+        return false;
+    }
 
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned (co): " + ret);
 
-    ret = execAndGet("cd " + WORKINGDIR + " && git rm subprojects/tracy && git submodule update --init 2>&1 && git reset --hard --recurse-submodules " + HLVER.hash);
+    ret = execAndGet("cd " + WORKINGDIR + " ; git rm subprojects/tracy ; git submodule update --init 2>&1 ; git reset --hard --recurse-submodules " + HLVER.hash);
 
     if (m_bVerbose)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned (rs): " + ret);
@@ -529,7 +539,8 @@ bool CPluginManager::updateHeaders(bool force) {
 
         std::cout << "\n";
     } else {
-        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID));
+        progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID) + " (" +
+                                   headerErrorShort(HEADERSVALID) + ")");
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";
         progress.print();
@@ -878,6 +889,18 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
     }
 
     return std::string{Colors::RED} + "✖" + Colors::RESET + " Unknown header error. Please run hyprpm update to fix those.\n";
+}
+
+std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
+    switch (err) {
+        case HEADERS_CORRUPTED: return "Headers corrupted";
+        case HEADERS_MISMATCHED: return "Headers version mismatched";
+        case HEADERS_NOT_HYPRLAND: return "Not running on Hyprland";
+        case HEADERS_MISSING: return "Headers missing";
+        case HEADERS_DUPLICATED: return "Headers duplicated";
+        default: break;
+    }
+    return "?";
 }
 
 bool CPluginManager::hasDeps() {

@@ -39,6 +39,10 @@
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
+#include "../protocols/TextInputV1.hpp"
+#include "../protocols/GlobalShortcuts.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -72,7 +76,7 @@ void CProtocolManager::onMonitorModeChange(CMonitor* pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("experimental:explicit_sync");
+    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -123,6 +127,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::pointerGestures     = std::make_unique<CPointerGesturesProtocol>(&zwp_pointer_gestures_v1_interface, 3, "PointerGestures");
     PROTO::foreignToplevelWlr  = std::make_unique<CForeignToplevelWlrProtocol>(&zwlr_foreign_toplevel_manager_v1_interface, 3, "ForeignToplevelWlr");
     PROTO::shortcutsInhibit    = std::make_unique<CKeyboardShortcutsInhibitProtocol>(&zwp_keyboard_shortcuts_inhibit_manager_v1_interface, 1, "ShortcutsInhibit");
+    PROTO::textInputV1         = std::make_unique<CTextInputV1Protocol>(&zwp_text_input_manager_v1_interface, 1, "TextInputV1");
     PROTO::textInputV3         = std::make_unique<CTextInputV3Protocol>(&zwp_text_input_manager_v3_interface, 1, "TextInputV3");
     PROTO::constraints         = std::make_unique<CPointerConstraintsProtocol>(&zwp_pointer_constraints_v1_interface, 1, "PointerConstraints");
     PROTO::outputPower         = std::make_unique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "OutputPower");
@@ -142,6 +147,9 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = std::make_unique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = std::make_unique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = std::make_unique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
+    PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
+    PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::globalShortcuts     = std::make_unique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
 
     for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
@@ -158,13 +166,6 @@ CProtocolManager::CProtocolManager() {
         PROTO::linuxDma = std::make_unique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
         Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
-
-    // Old protocol implementations.
-    // TODO: rewrite them to use hyprwayland-scanner.
-    m_pToplevelExportProtocolManager  = std::make_unique<CToplevelExportProtocolManager>();
-    m_pTextInputV1ProtocolManager     = std::make_unique<CTextInputV1ProtocolManager>();
-    m_pGlobalShortcutsProtocolManager = std::make_unique<CGlobalShortcutsProtocolManager>();
-    m_pScreencopyProtocolManager      = std::make_unique<CScreencopyProtocolManager>();
 }
 
 CProtocolManager::~CProtocolManager() {
@@ -195,6 +196,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::pointerGestures.reset();
     PROTO::foreignToplevelWlr.reset();
     PROTO::shortcutsInhibit.reset();
+    PROTO::textInputV1.reset();
     PROTO::textInputV3.reset();
     PROTO::constraints.reset();
     PROTO::outputPower.reset();
@@ -214,6 +216,9 @@ CProtocolManager::~CProtocolManager() {
     PROTO::dataWlr.reset();
     PROTO::primarySelection.reset();
     PROTO::xwaylandShell.reset();
+    PROTO::screencopy.reset();
+    PROTO::toplevelExport.reset();
+    PROTO::globalShortcuts.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

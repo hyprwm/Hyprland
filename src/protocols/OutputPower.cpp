@@ -2,8 +2,6 @@
 #include "../Compositor.hpp"
 #include "core/Output.hpp"
 
-#define LOGM PROTO::outputPower->protoLog
-
 COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, CMonitor* pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     if (!resource->resource())
         return;

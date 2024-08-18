@@ -5,8 +5,6 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::constraints->protoLog
-
 CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     resourceL(resource_), locked(true), lifetime(lifetime_) {
     if (!resource_->resource())

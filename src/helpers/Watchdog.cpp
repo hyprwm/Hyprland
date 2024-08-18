@@ -18,15 +18,14 @@ CWatchdog::CWatchdog() {
     m_pWatchdog = std::make_unique<std::thread>([this] {
         static auto PTIMEOUT = CConfigValue<Hyprlang::INT>("debug:watchdog_timeout");
 
-        while (1337) {
-            std::unique_lock lk(m_mWatchdogMutex);
+        m_bWatchdogInitialized = true;
+        while (!m_bExitThread) {
+            std::unique_lock<std::mutex> lk(m_mWatchdogMutex);
 
             if (!m_bWillWatch)
-                m_cvWatchdogCondition.wait(lk, [this] { return m_bNotified; });
-            else {
-                if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(*PTIMEOUT * 1000.0)), [this] { return m_bNotified; }) == false)
-                    pthread_kill(m_iMainThreadPID, SIGUSR1);
-            }
+                m_cvWatchdogCondition.wait(lk, [this] { return m_bNotified || m_bExitThread; });
+            else if (m_cvWatchdogCondition.wait_for(lk, std::chrono::milliseconds((int)(*PTIMEOUT * 1000.0)), [this] { return m_bNotified || m_bExitThread; }) == false)
+                pthread_kill(m_iMainThreadPID, SIGUSR1);
 
             if (m_bExitThread)
                 break;

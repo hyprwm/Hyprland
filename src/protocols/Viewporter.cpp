@@ -2,8 +2,6 @@
 #include "core/Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::viewport->protoLog
-
 CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;
@@ -54,13 +52,13 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
     });
 
     listeners.surfacePrecommit = surface->events.precommit.registerListener([this](std::any d) {
-        if (!surface || !surface->pending.buffer)
+        if (!surface || !surface->pending.texture)
             return;
 
         if (surface->pending.viewport.hasSource) {
             auto& src = surface->pending.viewport.source;
 
-            if (src.w + src.x > surface->pending.buffer->size.x || src.h + src.y > surface->pending.buffer->size.y) {
+            if (src.w + src.x > surface->pending.bufferSize.x || src.h + src.y > surface->pending.bufferSize.y) {
                 resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
                 surface->pending.rejected = true;
                 return;

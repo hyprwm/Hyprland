@@ -130,6 +130,8 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
     }
 
+    auto attrsNoVer = attrs;
+
 #ifndef GLES2
     attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
     attrs.push_back(3);
@@ -143,8 +145,24 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     attrs.push_back(EGL_NONE);
 
     m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
-    if (m_pEglContext == EGL_NO_CONTEXT)
-        RASSERT(false, "EGL: failed to create a context");
+    if (m_pEglContext == EGL_NO_CONTEXT) {
+#ifdef GLES2
+        RASSERT(false, "EGL: failed to create a context with GLES2.0");
+#endif
+        Debug::log(WARN, "EGL: Failed to create a context with GLES3.2, retrying 3.0");
+
+        attrs = attrsNoVer;
+        attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
+        attrs.push_back(3);
+        attrs.push_back(EGL_CONTEXT_MINOR_VERSION);
+        attrs.push_back(0);
+        attrs.push_back(EGL_NONE);
+
+        m_pEglContext = eglCreateContext(m_pEglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
+
+        if (m_pEglContext == EGL_NO_CONTEXT)
+            RASSERT(false, "EGL: failed to create a context with either GLES3.2 or 3.0");
+    }
 
     if (m_sExts.IMG_context_priority) {
         EGLint priority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
@@ -325,6 +343,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
     RASSERT(eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
     m_tGlobalTimer.reset();
+}
+
+CHyprOpenGLImpl::~CHyprOpenGLImpl() {
+    if (m_pEglDisplay && m_pEglContext != EGL_NO_CONTEXT)
+        eglDestroyContext(m_pEglDisplay, m_pEglContext);
+
+    if (m_pEglDisplay)
+        eglTerminate(m_pEglDisplay);
+
+    eglReleaseThread();
+
+    if (m_pGbmDevice)
+        gbm_device_destroy(m_pGbmDevice);
+
+    if (m_iGBMFD >= 0)
+        close(m_iGBMFD);
 }
 
 std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
@@ -1213,14 +1247,14 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
 
     glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     renderRect(box, CColor(0, 0, 0, 0), round);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     scissor(box);
@@ -1235,7 +1269,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
     glClearStencil(0);
     glClear(GL_STENCIL_BUFFER_BIT);
     glDisable(GL_STENCIL_TEST);
-    glStencilMask(-1);
+    glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     scissor((CBox*)nullptr);
 
@@ -1768,12 +1802,12 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     CRegion tempDamage{damage};
 
     // and draw
-    for (int i = 1; i <= *PBLURPASSES; ++i) {
+    for (auto i = 1; i <= *PBLURPASSES; ++i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR1, &tempDamage); // down
     }
 
-    for (int i = *PBLURPASSES - 1; i >= 0; --i) {
+    for (auto i = *PBLURPASSES - 1; i >= 0; --i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));                // when upsampling we make the region twice as big
         drawPass(&m_RenderData.pCurrentMonData->m_shBLUR2, &tempDamage); // up
     }
@@ -2057,7 +2091,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
 
     glEnable(GL_STENCIL_TEST);
 
-    glStencilFunc(GL_ALWAYS, 1, -1);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -2067,7 +2101,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
         renderTexture(tex, pBox, a, round, true, true); // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glStencilFunc(GL_EQUAL, 1, -1);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // stencil done. Render everything.
@@ -2090,7 +2124,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     glDisable(GL_STENCIL_TEST);
     renderTextureInternalWithDamage(tex, pBox, a, &texDamage, round, false, false, true, true);
 
-    glStencilMask(-1);
+    glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     scissor((CBox*)nullptr);
 }
@@ -2571,7 +2605,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     textW /= PANGO_SCALE;
     textH /= PANGO_SCALE;
 
-    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH * 2 + offsetY);
+    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH - offsetY);
     pango_cairo_show_layout(CAIRO, layoutText);
 
     pango_font_description_free(pangoFD);
@@ -2580,16 +2614,50 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
+void CHyprOpenGLImpl::createBackgroundTexture(const std::string& texPath) {
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
+    const auto CAIROFORMAT  = cairo_image_surface_get_format(CAIROSURFACE);
+
+    m_pBackgroundTexture = makeShared<CTexture>();
+
+    m_pBackgroundTexture->allocate();
+    m_pBackgroundTexture->m_vSize = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
+
+    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ?
+#ifdef GLES2
+        GL_RGB32F_EXT :
+#else
+        GL_RGB32F :
+#endif
+        GL_RGBA;
+    const GLint glFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
+    const GLint glType   = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    glBindTexture(GL_TEXTURE_2D, m_pBackgroundTexture->m_iTexID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+#ifndef GLES2
+    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+    }
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, m_pBackgroundTexture->m_vSize.x, m_pBackgroundTexture->m_vSize.y, 0, glFormat, glType, DATA);
+
+    cairo_surface_destroy(CAIROSURFACE);
+}
+
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
-    static auto        PRENDERTEX      = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto        PNOSPLASH       = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
-    static auto        PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+    Debug::log(LOG, "Creating a texture for BGTex");
 
-    const auto         FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+    static auto PRENDERTEX      = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PNOSPLASH       = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
 
-    static std::string texPath = "";
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
 
     if (*PRENDERTEX)
         return;
@@ -2599,12 +2667,14 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
     PFB->release();
 
     PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
-    Debug::log(LOG, "Allocated texture for BGTex");
 
-    // TODO: use relative paths to the installation
-    // or configure the paths at build time
-    if (texPath.empty()) {
-        texPath = "/usr/share/hyprland/wall";
+    if (!m_pBackgroundTexture) {
+        std::string texPath = "";
+#ifndef DATAROOTDIR
+        texPath = "/usr/share/hypr/wall";
+#else
+        texPath = std::format("{}{}", DATAROOTDIR, "/hypr/wall");
+#endif
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {
@@ -2618,91 +2688,82 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
         texPath += ".png";
 
         // check if wallpapers exist
-        if (!std::filesystem::exists(texPath)) {
-            // try local
-            texPath = texPath.substr(0, 5) + "local/" + texPath.substr(5);
-
-            if (!std::filesystem::exists(texPath))
-                return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
+        std::error_code err;
+        if (!std::filesystem::exists(texPath, err)) {
+            Debug::log(ERR, "createBGTextureForMonitor: failed, file \"{}\" doesn't exist or access denied, ec: {}", texPath, err.message());
+            return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
         }
+
+        createBackgroundTexture(texPath);
     }
 
     // create a new one with cairo
     SP<CTexture> tex = makeShared<CTexture>();
 
-    const auto   CAIROISURFACE = cairo_image_surface_create_from_png(texPath.c_str());
-    const auto   CAIROFORMAT   = cairo_image_surface_get_format(CAIROISURFACE);
-
     tex->allocate();
-    const Vector2D IMAGESIZE = {cairo_image_surface_get_width(CAIROISURFACE), cairo_image_surface_get_height(CAIROISURFACE)};
 
-    // calc the target box
-    const double MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
-    const double WPRATIO  = IMAGESIZE.x / IMAGESIZE.y;
-
-    Vector2D     origin;
-    double       scale;
-
-    if (MONRATIO > WPRATIO) {
-        scale = m_RenderData.pMonitor->vecTransformedSize.x / IMAGESIZE.x;
-
-        origin.y = (m_RenderData.pMonitor->vecTransformedSize.y - IMAGESIZE.y * scale) / 2.0;
-    } else {
-        scale = m_RenderData.pMonitor->vecTransformedSize.y / IMAGESIZE.y;
-
-        origin.x = (m_RenderData.pMonitor->vecTransformedSize.x - IMAGESIZE.x * scale) / 2.0;
-    }
-
-    const Vector2D scaledSize = IMAGESIZE * scale;
-
-    const auto     CAIROSURFACE = cairo_image_surface_create(CAIROFORMAT, scaledSize.x, scaledSize.y);
-    const auto     CAIRO        = cairo_create(CAIROSURFACE);
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
 
     cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_GOOD);
-    cairo_scale(CAIRO, scale, scale);
-    cairo_rectangle(CAIRO, 0, 0, 100, 100);
-    cairo_set_source_surface(CAIRO, CAIROISURFACE, 0, 0);
+    cairo_save(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 0);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
     cairo_paint(CAIRO);
+    cairo_restore(CAIRO);
 
     if (!*PNOSPLASH)
-        renderSplash(CAIRO, CAIROSURFACE, origin.y * WPRATIO / MONRATIO * scale, IMAGESIZE);
+        renderSplash(CAIRO, CAIROSURFACE, 0.02 * pMonitor->vecPixelSize.y, pMonitor->vecPixelSize);
 
     cairo_surface_flush(CAIROSURFACE);
 
-    CBox box     = {origin.x, origin.y, IMAGESIZE.x * scale, IMAGESIZE.y * scale};
-    tex->m_vSize = IMAGESIZE * scale;
+    tex->m_vSize = pMonitor->vecPixelSize;
 
     // copy the data to an OpenGL texture we have
-    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ?
-#ifdef GLES2
-        GL_RGB32F_EXT :
-#else
-        GL_RGB32F :
-#endif
-        GL_RGBA;
-    const GLint glFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
-    const GLint glType   = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    const GLint glFormat = GL_RGBA;
+    const GLint glType   = GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
     glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 #ifndef GLES2
-    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_vSize.x, tex->m_vSize.y, 0, glFormat, glType, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_vSize.x, tex->m_vSize.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
-    cairo_surface_destroy(CAIROISURFACE);
     cairo_destroy(CAIRO);
 
     // render the texture to our fb
     PFB->bind();
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-    renderTextureInternalWithDamage(tex, &box, 1.0, &fakeDamage);
+
+    blend(true);
+    clear(CColor{0, 0, 0, 1});
+
+    // first render the background
+    if (m_pBackgroundTexture) {
+        const double MONRATIO = m_RenderData.pMonitor->vecTransformedSize.x / m_RenderData.pMonitor->vecTransformedSize.y;
+        const double WPRATIO  = m_pBackgroundTexture->m_vSize.x / m_pBackgroundTexture->m_vSize.y;
+        Vector2D     origin;
+        double       scale = 1.0;
+
+        if (MONRATIO > WPRATIO) {
+            scale    = m_RenderData.pMonitor->vecTransformedSize.x / m_pBackgroundTexture->m_vSize.x;
+            origin.y = (m_RenderData.pMonitor->vecTransformedSize.y - m_pBackgroundTexture->m_vSize.y * scale) / 2.0;
+        } else {
+            scale    = m_RenderData.pMonitor->vecTransformedSize.y / m_pBackgroundTexture->m_vSize.y;
+            origin.x = (m_RenderData.pMonitor->vecTransformedSize.x - m_pBackgroundTexture->m_vSize.x * scale) / 2.0;
+        }
+
+        CBox texbox = CBox{origin, m_pBackgroundTexture->m_vSize * scale};
+        renderTextureInternalWithDamage(m_pBackgroundTexture, &texbox, 1.0, &fakeDamage);
+    }
+
+    CBox monbox = {{}, pMonitor->vecPixelSize};
+    renderTextureInternalWithDamage(tex, &monbox, 1.0, &fakeDamage);
 
     // bind back
     if (m_RenderData.currentFB)
@@ -2807,7 +2868,7 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     std::vector<EGLint> attribs;
     int                 dupFd = -1;
     if (fenceFD > 0) {
-        int dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+        dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
         if (dupFd < 0) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
@@ -2826,8 +2887,18 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
         return nullptr;
     }
 
-    auto eglsync  = SP<CEGLSync>(new CEGLSync);
-    eglsync->sync = sync;
+    // we need to flush otherwise we might not get a valid fd
+    glFlush();
+
+    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
+    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
+        return nullptr;
+    }
+
+    auto eglsync   = SP<CEGLSync>(new CEGLSync);
+    eglsync->sync  = sync;
+    eglsync->m_iFd = fd;
     return eglsync;
 }
 
@@ -2920,19 +2991,13 @@ CEGLSync::~CEGLSync() {
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
+
+    if (m_iFd >= 0)
+        close(m_iFd);
 }
 
-int CEGLSync::dupFenceFD() {
-    if (sync == EGL_NO_SYNC_KHR)
-        return -1;
-
-    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
-        Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
-        return -1;
-    }
-
-    return fd;
+int CEGLSync::fd() {
+    return m_iFd;
 }
 
 bool CEGLSync::wait() {

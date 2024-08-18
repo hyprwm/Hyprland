@@ -16,6 +16,7 @@
 #include "Popup.hpp"
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
+#include "Workspace.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -170,6 +171,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               noShortcutsInhibit = false;
     CWindowOverridableVar<bool>               opaque             = false;
     CWindowOverridableVar<bool>               RGBX               = false;
+    CWindowOverridableVar<bool>               syncFullscreen     = true;
     CWindowOverridableVar<bool>               tearing            = false;
     CWindowOverridableVar<bool>               xray               = false;
 
@@ -206,6 +208,11 @@ struct SWindowRule {
 struct SInitialWorkspaceToken {
     PHLWINDOWREF primaryOwner;
     std::string  workspace;
+};
+
+struct sFullscreenState {
+    eFullscreenMode internal = FSMODE_NONE;
+    eFullscreenMode client   = FSMODE_NONE;
 };
 
 class CWindow {
@@ -256,24 +263,23 @@ class CWindow {
     Vector2D m_vPseudoSize    = Vector2D(1280, 720);
 
     // for recovering relative cursor position
-    Vector2D     m_vRelativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+    Vector2D         m_vRelativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-    bool         m_bFirstMap           = false; // for layouts
-    bool         m_bIsFloating         = false;
-    bool         m_bDraggingTiled      = false; // for dragging around tiled windows
-    bool         m_bIsFullscreen       = false;
-    bool         m_bDontSendFullscreen = false;
-    bool         m_bWasMaximized       = false;
-    uint64_t     m_iMonitorID          = -1;
-    std::string  m_szTitle             = "";
-    std::string  m_szClass             = "";
-    std::string  m_szInitialTitle      = "";
-    std::string  m_szInitialClass      = "";
-    PHLWORKSPACE m_pWorkspace;
+    bool             m_bFirstMap        = false; // for layouts
+    bool             m_bIsFloating      = false;
+    bool             m_bDraggingTiled   = false; // for dragging around tiled windows
+    bool             m_bWasMaximized    = false;
+    sFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+    MONITORID        m_iMonitorID       = -1;
+    std::string      m_szTitle          = "";
+    std::string      m_szClass          = "";
+    std::string      m_szInitialTitle   = "";
+    std::string      m_szInitialClass   = "";
+    PHLWORKSPACE     m_pWorkspace;
 
-    bool         m_bIsMapped = false;
+    bool             m_bIsMapped = false;
 
-    bool         m_bRequestsFloat = false;
+    bool             m_bRequestsFloat = false;
 
     // This is for fullscreen apps
     bool m_bCreatedOverFullscreen = false;
@@ -322,9 +328,6 @@ class CWindow {
     // urgency hint
     bool m_bIsUrgent = false;
 
-    // fakefullscreen
-    bool m_bFakeFullscreenState = false;
-
     // for proper cycling. While cycling we can't just move the pointers, so we need to keep track of the last cycled window.
     PHLWINDOWREF m_pLastCycledWindow;
 
@@ -355,8 +358,8 @@ class CWindow {
     bool m_bStayFocused = false;
 
     // for toplevel monitor events
-    uint64_t m_iLastToplevelMonitorID = -1;
-    uint64_t m_iLastSurfaceMonitorID  = -1;
+    MONITORID m_iLastToplevelMonitorID = -1;
+    MONITORID m_iLastSurfaceMonitorID  = -1;
 
     // for idle inhibiting windows
     eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
@@ -416,13 +419,15 @@ class CWindow {
     bool                   opaque();
     float                  rounding();
     bool                   canBeTorn();
-    bool                   shouldSendFullscreenState();
     void                   setSuspended(bool suspend);
     bool                   visibleOnMonitor(CMonitor* pMonitor);
-    int                    workspaceID();
+    WORKSPACEID            workspaceID();
     bool                   onSpecialWorkspace();
     void                   activate(bool force = false);
     int                    surfacesCount();
+
+    bool                   isFullscreen();
+    bool                   isEffectiveInternalFSMode(const eFullscreenMode);
 
     int                    getRealBorderSize();
     void                   updateWindowData();
@@ -485,9 +490,9 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden        = false;
-    bool m_bSuspended     = false;
-    int  m_iLastWorkspace = WORKSPACE_INVALID;
+    bool        m_bHidden        = false;
+    bool        m_bSuspended     = false;
+    WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
 };
 
 inline bool valid(PHLWINDOW w) {

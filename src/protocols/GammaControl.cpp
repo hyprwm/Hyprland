@@ -5,8 +5,6 @@
 #include "../Compositor.hpp"
 #include "../protocols/core/Output.hpp"
 
-#define LOGM PROTO::gamma->protoLog
-
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if (!resource_->resource())
         return;
@@ -109,7 +107,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 }
 
 CGammaControl::~CGammaControl() {
-    if (!gammaTableSet || !pMonitor)
+    if (!gammaTableSet || !pMonitor || !pMonitor->output)
         return;
 
     // reset the LUT if the client dies for whatever reason and doesn't unset the gamma

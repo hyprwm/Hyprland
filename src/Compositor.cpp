@@ -2737,6 +2737,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     g_pCompositor->updateWorkspaceWindows(pWorkspace->m_iID);
     g_pCompositor->updateWorkspaceWindows(pWindow->workspaceID());
+    g_pCompositor->updateSuspendedStates();
 }
 
 PHLWINDOW CCompositor::getForceFocus() {

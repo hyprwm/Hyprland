@@ -46,6 +46,10 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
+    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT wont work here
+    if (shmFormat == DRM_FORMAT_XRGB2101010 || shmFormat == DRM_FORMAT_ARGB2101010)
+        shmFormat = DRM_FORMAT_XBGR2101010;
+
     const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture output");

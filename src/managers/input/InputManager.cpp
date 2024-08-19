@@ -82,18 +82,13 @@ CInputManager::~CInputManager() {
 }
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
-    static auto PSENS      = CConfigValue<Hyprlang::FLOAT>("general:sensitivity");
-    static auto PNOACCEL   = CConfigValue<Hyprlang::INT>("input:force_no_accel");
-    static auto PSENSTORAW = CConfigValue<Hyprlang::INT>("general:apply_sens_to_raw");
+    static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
 
     const auto  DELTA = *PNOACCEL == 1 ? e.unaccel : e.delta;
 
-    if (*PSENSTORAW == 1)
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA * *PSENS, e.unaccel * *PSENS);
-    else
-        PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
 
-    g_pPointerManager->move(DELTA * *PSENS);
+    g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs);
 
@@ -1112,8 +1107,9 @@ void CInputManager::setPointerConfigs() {
                 libinput_device_config_tap_set_drag_lock_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_DRAG_LOCK_ENABLED);
 
             if (libinput_device_config_tap_get_finger_count(LIBINPUTDEV)) // this is for tapping (like on a laptop)
-                if (g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1)
-                    libinput_device_config_tap_set_enabled(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_ENABLED);
+                libinput_device_config_tap_set_enabled(LIBINPUTDEV,
+                                                       g_pConfigManager->getDeviceInt(devname, "tap-to-click", "input:touchpad:tap-to-click") == 1 ? LIBINPUT_CONFIG_TAP_ENABLED :
+                                                                                                                                                     LIBINPUT_CONFIG_TAP_DISABLED);
 
             if (libinput_device_config_scroll_has_natural_scroll(LIBINPUTDEV)) {
 

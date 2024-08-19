@@ -9,8 +9,6 @@
 
 #include <algorithm>
 
-#define LOGM PROTO::screencopy->protoLog
-
 CScreencopyFrame::~CScreencopyFrame() {
     if (buffer && buffer->locked())
         buffer->unlock();
@@ -40,17 +38,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(pMonitor)) {
-        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(pMonitor);
-        // bind the fb for its format. Suppress gl errors.
-#ifndef GLES2
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#else
-        glBindFramebuffer(GL_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#endif
-    } else
-        LOGM(ERR, "No RDATA in screencopy???");
-
     shmFormat = g_pHyprOpenGL->getPreferredReadFormat(pMonitor);
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");
@@ -58,6 +45,10 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         PROTO::screencopy->destroyResource(this);
         return;
     }
+
+    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT wont work here
+    if (shmFormat == DRM_FORMAT_XRGB2101010 || shmFormat == DRM_FORMAT_ARGB2101010)
+        shmFormat = DRM_FORMAT_XBGR2101010;
 
     const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {

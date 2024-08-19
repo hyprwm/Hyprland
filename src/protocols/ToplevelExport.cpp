@@ -8,8 +8,6 @@
 
 #include <algorithm>
 
-#define LOGM PROTO::toplevelExport->protoLog
-
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : resource(resource_) {
     if (!good())
         return;

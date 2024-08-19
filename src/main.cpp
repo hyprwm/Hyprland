@@ -36,7 +36,6 @@ int main(int argc, char** argv) {
     setenv("XDG_BACKEND", "wayland", 1);
     setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 1);
     setenv("MOZ_ENABLE_WAYLAND", "1", 1);
-    setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
 
     // parse some args
     std::string              configPath;

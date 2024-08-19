@@ -7,8 +7,6 @@
 #include "../../Compositor.hpp"
 #include "../../helpers/Format.hpp"
 
-#define LOGM PROTO::shm->protoLog
-
 CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
     if (!pool_->pool->data)
         return;
@@ -65,7 +63,7 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CWLSHMBuffer::beginDataPtr(uint32_t flags) {
-    return {(uint8_t*)pool->data + offset, fmt, size.x * size.y * 4};
+    return {(uint8_t*)pool->data + offset, fmt, stride * size.y};
 }
 
 void CWLSHMBuffer::endDataPtr() {

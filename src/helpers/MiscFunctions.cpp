@@ -472,7 +472,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             std::sort(validWSes.begin(), validWSes.end());
 
-            size_t currentItem = -1;
+            ssize_t currentItem = -1;
 
             if (absolute) {
                 // 1-index
@@ -481,7 +481,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 // clamp
                 if (currentItem < 0) {
                     currentItem = 0;
-                } else if (currentItem >= validWSes.size()) {
+                } else if (currentItem >= (ssize_t)validWSes.size()) {
                     currentItem = validWSes.size() - 1;
                 }
             } else {
@@ -490,7 +490,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
                 // get the current item
                 WORKSPACEID activeWSID = g_pCompositor->m_pLastMonitor->activeWorkspace ? g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID : 1;
-                for (size_t i = 0; i < validWSes.size(); i++) {
+                for (ssize_t i = 0; i < (ssize_t)validWSes.size(); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
@@ -501,7 +501,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 currentItem += remains;
 
                 // sanitize
-                if (currentItem >= validWSes.size()) {
+                if (currentItem >= (ssize_t)validWSes.size()) {
                     currentItem = currentItem % validWSes.size();
                 } else if (currentItem < 0) {
                     currentItem = validWSes.size() + currentItem;

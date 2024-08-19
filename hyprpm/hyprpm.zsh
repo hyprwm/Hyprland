@@ -4,34 +4,40 @@ _hyprpm_cmd_0 () {
     hyprpm list | awk '/Plugin/{print $4}'
 }
 
+_hyprpm_cmd_1 () {
+    hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//'
+}
+
 _hyprpm () {
-    local -a literals=("-n" "::=" "list" "disable" "--help" "update" "add" "--verbose" "-v" "--force" "remove" "enable" "--notify" "-h" "reload" "-f")
+    local -a literals=("--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f")
 
     local -A descriptions
-    descriptions[1]="Send a hyprland notification for important events (e.g. load fail)"
-    descriptions[3]="List all installed plugins"
+    descriptions[1]="Disable shallow cloning of Hyprland sources"
+    descriptions[2]="Send a hyprland notification for important events (e.g. load fail)"
     descriptions[4]="Unload a plugin"
-    descriptions[5]="Show help menu"
-    descriptions[6]="Check and update all plugins if needed"
-    descriptions[7]="Install a new plugin repository from git"
-    descriptions[8]="Enable too much loggin"
+    descriptions[5]="List all installed plugins"
+    descriptions[6]="Show help menu"
+    descriptions[7]="Check and update all plugins if needed"
+    descriptions[8]="Install a new plugin repository from git"
     descriptions[9]="Enable too much loggin"
-    descriptions[10]="Force an operation ignoring checks (e.g. update -f)"
-    descriptions[11]="Remove a plugin repository"
-    descriptions[12]="Load a plugin"
-    descriptions[13]="Send a hyprland notification for important events (e.g. load fail)"
-    descriptions[14]="Show help menu"
-    descriptions[15]="Reload all plugins"
-    descriptions[16]="Force an operation ignoring checks (e.g. update -f)"
+    descriptions[10]="Enable too much loggin"
+    descriptions[11]="Force an operation ignoring checks (e.g. update -f)"
+    descriptions[12]="Disable shallow cloning of Hyprland sources"
+    descriptions[13]="Remove a plugin repository"
+    descriptions[14]="Load a plugin"
+    descriptions[15]="Send a hyprland notification for important events (e.g. load fail)"
+    descriptions[16]="Show help menu"
+    descriptions[17]="Reload all plugins"
+    descriptions[18]="Force an operation ignoring checks (e.g. update -f)"
 
     local -A literal_transitions
-    literal_transitions[1]="([10]=7 [3]=3 [8]=7 [9]=7 [5]=7 [11]=3 [12]=4 [6]=3 [14]=7 [4]=4 [15]=3 [16]=7 [7]=3)"
-    literal_transitions[2]="([11]=3 [12]=4 [4]=4 [3]=3 [15]=3 [6]=3 [7]=3)"
-    literal_transitions[5]="([2]=6)"
-    literal_transitions[6]="([1]=7 [13]=7)"
+    literal_transitions[1]="([1]=8 [4]=4 [5]=5 [9]=8 [10]=8 [7]=5 [8]=5 [12]=8 [6]=8 [11]=8 [13]=3 [14]=4 [16]=8 [17]=5 [18]=8)"
+    literal_transitions[2]="([13]=3 [14]=4 [4]=4 [5]=5 [17]=5 [7]=5 [8]=5)"
+    literal_transitions[6]="([3]=7)"
+    literal_transitions[7]="([2]=8 [15]=8)"
 
     local -A match_anything_transitions
-    match_anything_transitions=([4]=3 [3]=5 [1]=2 [2]=2)
+    match_anything_transitions=([2]=2 [5]=6 [4]=5 [3]=5 [1]=2)
 
     declare -A subword_transitions
 
@@ -91,7 +97,7 @@ _hyprpm () {
             fi
         done
     fi
-    local -A commands=([4]=0)
+    local -A commands=([4]=0 [3]=1)
 
     if [[ -v "commands[$state]" ]]; then
         local command_id=${commands[$state]}

@@ -6,8 +6,6 @@
 #include "core/Compositor.hpp"
 #include <cstring>
 
-#define LOGM PROTO::ime->protoLog
-
 CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboardGrabV2> resource_, SP<CInputMethodV2> owner_) : resource(resource_), owner(owner_) {
     if (!resource->resource())
         return;

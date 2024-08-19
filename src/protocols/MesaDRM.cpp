@@ -4,8 +4,6 @@
 #include "../Compositor.hpp"
 #include "types/WLBuffer.hpp"
 
-#define LOGM PROTO::mesaDRM->protoLog
-
 CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs_) {
     LOGM(LOG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
     for (int i = 0; i < attrs_.planes; ++i) {
@@ -115,7 +113,7 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
     drmDevice* dev   = nullptr;
     int        drmFD = g_pCompositor->m_iDRMFD;
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
-        protoLog(ERR, "Failed to get device, disabling MesaDRM");
+        LOGM(ERR, "Failed to get device, disabling MesaDRM");
         removeGlobal();
         return;
     }
@@ -126,13 +124,13 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
         ASSERT(dev->available_nodes & (1 << DRM_NODE_PRIMARY));
 
         if (!dev->nodes[DRM_NODE_PRIMARY]) {
-            protoLog(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
+            LOGM(ERR, "No DRM render node available, both render and primary are null, disabling MesaDRM");
             drmFreeDevice(&dev);
             removeGlobal();
             return;
         }
 
-        protoLog(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
+        LOGM(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
         nodeName = dev->nodes[DRM_NODE_PRIMARY];
     }
     drmFreeDevice(&dev);

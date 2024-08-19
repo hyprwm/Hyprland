@@ -100,12 +100,13 @@ CXCursorManager::CXCursorManager() {
     defaultCursor     = hyprCursor;
 }
 
-void CXCursorManager::loadTheme(std::string const& name, int size) {
-    if (lastLoadSize == size && themeName == name)
+void CXCursorManager::loadTheme(std::string const& name, int size, float scale) {
+    if (lastLoadSize == (size * std::ceil(scale)) && themeName == name && lastLoadScale == scale)
         return;
 
-    lastLoadSize = size;
-    themeName    = name.empty() ? "default" : name;
+    lastLoadSize  = size * std::ceil(scale);
+    lastLoadScale = scale;
+    themeName     = name.empty() ? "default" : name;
     defaultCursor.reset();
     cursors.clear();
 
@@ -156,10 +157,10 @@ void CXCursorManager::loadTheme(std::string const& name, int size) {
         syncGsettings();
 }
 
-SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size) {
+SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, float scale) {
     // monitor scaling changed etc, so reload theme with new size.
-    if (size != lastLoadSize)
-        loadTheme(themeName, size);
+    if ((size * std::ceil(scale)) != lastLoadSize || scale != lastLoadScale)
+        loadTheme(themeName, size, scale);
 
     // try to get an icon we know if we have one
     for (auto const& c : cursors) {
@@ -511,8 +512,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
 
     if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            if (!entry.is_regular_file() && !entry.is_symlink())
+            std::error_code e1, e2;
+            if ((!entry.is_regular_file(e1) && !entry.is_symlink(e2)) || e1 || e2) {
+                Debug::log(WARN, "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
                 continue;
+            }
 
             auto const& full = entry.path().string();
             using PcloseType = int (*)(FILE*);
@@ -599,6 +603,7 @@ void CXCursorManager::syncGsettings() {
         g_object_unref(gsettings);
     };
 
+    int unscaledSize = lastLoadSize / std::ceil(lastLoadScale);
     setValue("cursor-theme", themeName, "org.gnome.desktop.interface");
-    setValue("cursor-size", lastLoadSize, "org.gnome.desktop.interface");
+    setValue("cursor-size", unscaledSize, "org.gnome.desktop.interface");
 }

@@ -4,8 +4,6 @@
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 
-#define LOGM PROTO::layerShell->protoLog
-
 void CLayerShellResource::SState::reset() {
     anchor        = 0;
     exclusive     = 0;

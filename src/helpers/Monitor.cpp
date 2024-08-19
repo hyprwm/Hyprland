@@ -25,7 +25,7 @@ int ratHandler(void* data) {
     return 1;
 }
 
-CMonitor::CMonitor() : state(this) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : state(this), output(output_) {
     ;
 }
 
@@ -40,14 +40,27 @@ void CMonitor::onConnect(bool noRule) {
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame   = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
-    listeners.destroy = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
-    listeners.commit  = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
+    listeners.frame  = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
+    listeners.commit = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
     listeners.needsFrame =
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+
     listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
         PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+    });
+
+    listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
+        Debug::log(LOG, "Destroy called for monitor {}", szName);
+
+        onDisconnect(true);
+
+        output                 = nullptr;
+        m_bRenderingInitPassed = false;
+
+        Debug::log(LOG, "Removing monitor {} from realMonitors", szName);
+
+        std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
     });
 
     listeners.state = output->events.state.registerListener([this](std::any d) {
@@ -946,7 +959,7 @@ bool CMonitorState::updateSwapchain() {
         Debug::log(WARN, "updateSwapchain: No mode?");
         return true;
     }
-    options.format  = STATE.drmFormat;
+    options.format  = m_pOwner->drmFormat;
     options.scanout = true;
     options.length  = 2;
     options.size    = MODE->pixelSize;

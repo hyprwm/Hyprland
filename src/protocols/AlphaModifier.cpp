@@ -4,8 +4,6 @@
 #include "../render/Renderer.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::alphaModifier->protoLog
-
 CAlphaModifier::CAlphaModifier(SP<CWpAlphaModifierSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : resource(resource_), pSurface(surface_) {
     if (!resource->resource())
         return;

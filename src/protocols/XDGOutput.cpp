@@ -12,8 +12,6 @@
 
 //
 
-#define LOGM PROTO::xdgOutput->protoLog
-
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagerResources, [&](const auto& other) { return other->resource() == res; });
 }

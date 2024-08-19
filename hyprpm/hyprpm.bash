@@ -2,6 +2,10 @@ _hyprpm_cmd_0 () {
     hyprpm list | awk '/Plugin/{print $4}'
 }
 
+_hyprpm_cmd_1 () {
+    hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//'
+}
+
 _hyprpm () {
     if [[ $(type -t _get_comp_words_by_ref) != function ]]; then
         echo _get_comp_words_by_ref: function not defined.  Make sure the bash-completions system package is installed
@@ -11,16 +15,13 @@ _hyprpm () {
     local words cword
     _get_comp_words_by_ref -n "$COMP_WORDBREAKS" words cword
 
-    local -a literals=("-n" "::=" "list" "disable" "--help" "update" "add" "--verbose" "-v" "--force" "remove" "enable" "--notify" "-h" "reload" "-f")
-
+    declare -a literals=(--no-shallow -n ::= disable list --help update add --verbose -v --force -s remove enable --notify -h reload -f)
     declare -A literal_transitions
-    literal_transitions[0]="([9]=6 [2]=2 [7]=6 [8]=6 [4]=6 [10]=2 [11]=3 [5]=2 [13]=6 [3]=3 [14]=2 [15]=6 [6]=2)"
-    literal_transitions[1]="([10]=2 [11]=3 [3]=3 [2]=2 [14]=2 [5]=2 [6]=2)"
-    literal_transitions[4]="([1]=5)"
-    literal_transitions[5]="([0]=6 [12]=6)"
-
-    declare -A match_anything_transitions
-    match_anything_transitions=([3]=2 [2]=4 [0]=1 [1]=1)
+    literal_transitions[0]="([0]=7 [3]=3 [4]=4 [8]=7 [9]=7 [6]=4 [7]=4 [11]=7 [5]=7 [10]=7 [12]=2 [13]=3 [15]=7 [16]=4 [17]=7)"
+    literal_transitions[1]="([12]=2 [13]=3 [3]=3 [4]=4 [16]=4 [6]=4 [7]=4)"
+    literal_transitions[5]="([2]=6)"
+    literal_transitions[6]="([1]=7 [14]=7)"
+    declare -A match_anything_transitions=([1]=1 [4]=5 [3]=4 [2]=4 [0]=1)
     declare -A subword_transitions
 
     local state=0
@@ -58,21 +59,9 @@ _hyprpm () {
     done
 
 
+    local -a matches=()
+
     local prefix="${words[$cword]}"
-
-    local shortest_suffix="$word"
-    for ((i=0; i < ${#COMP_WORDBREAKS}; i++)); do
-        local char="${COMP_WORDBREAKS:$i:1}"
-        local candidate="${word##*$char}"
-        if [[ ${#candidate} -lt ${#shortest_suffix} ]]; then
-            shortest_suffix=$candidate
-        fi
-    done
-    local superfluous_prefix=""
-    if [[ "$shortest_suffix" != "$word" ]]; then
-        local superfluous_prefix=${word%$shortest_suffix}
-    fi
-
     if [[ -v "literal_transitions[$state]" ]]; then
         local state_transitions_initializer=${literal_transitions[$state]}
         declare -A state_transitions
@@ -81,24 +70,37 @@ _hyprpm () {
         for literal_id in "${!state_transitions[@]}"; do
             local literal="${literals[$literal_id]}"
             if [[ $literal = "${prefix}"* ]]; then
-                local completion=${literal#"$superfluous_prefix"}
-                COMPREPLY+=("$completion ")
+                matches+=("$literal ")
             fi
         done
     fi
     declare -A commands
-    commands=([3]=0)
+    commands=([3]=0 [2]=1)
     if [[ -v "commands[$state]" ]]; then
         local command_id=${commands[$state]}
         local completions=()
-        mapfile -t completions < <(_hyprpm_cmd_${command_id} "$prefix" | cut -f1)
+        readarray -t completions < <(_hyprpm_cmd_${command_id} "$prefix" | cut -f1)
         for item in "${completions[@]}"; do
             if [[ $item = "${prefix}"* ]]; then
-                COMPREPLY+=("$item")
+                matches+=("$item")
             fi
         done
     fi
 
+
+    local shortest_suffix="$prefix"
+    for ((i=0; i < ${#COMP_WORDBREAKS}; i++)); do
+        local char="${COMP_WORDBREAKS:$i:1}"
+        local candidate=${prefix##*$char}
+        if [[ ${#candidate} -lt ${#shortest_suffix} ]]; then
+            shortest_suffix=$candidate
+        fi
+    done
+    local superfluous_prefix=""
+    if [[ "$shortest_suffix" != "$prefix" ]]; then
+        local superfluous_prefix=${prefix%$shortest_suffix}
+    fi
+    COMPREPLY=("${matches[@]#$superfluous_prefix}")
 
     return 0
 }

@@ -3,8 +3,6 @@
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::textInputV1->protoLog
-
 CTextInputV1::~CTextInputV1() {
     events.destroy.emit();
 }

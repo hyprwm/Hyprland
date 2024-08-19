@@ -1207,6 +1207,9 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
         } else if (!pMonitor->lastScanout.expired()) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
+
+            // reset DRM format, make sure it's the one we want.
+            pMonitor->output->state->setFormat(pMonitor->drmFormat);
         }
     }
 
@@ -1991,17 +1994,9 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
                 if (pMonitor->output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM) {
                     Debug::log(ERR, "Tried to set custom modeline on non-DRM output");
                     fail = true;
-                } else {
-                    // FIXME:
-                    // auto* mode = wlr_drm_connector_add_mode(pMonitor->output, &RULE->drmMode);
-                    // if (mode) {
-                    //     wlr_output_state_set_mode(pMonitor->state.wlr(), mode);
-                    //     pMonitor->customDrmMode = RULE->drmMode;
-                    // } else {
-                    //     Debug::log(ERR, "wlr_drm_connector_add_mode failed");
-                    //     fail = true;
-                    // }
-                }
+                } else
+                    pMonitor->output->state->setCustomMode(makeShared<Aquamarine::SOutputMode>(
+                        Aquamarine::SOutputMode{.pixelSize = {RULE->drmMode.hdisplay, RULE->drmMode.vdisplay}, .refreshRate = RULE->drmMode.vrefresh, .modeInfo = RULE->drmMode}));
             } else
                 pMonitor->output->state->setCustomMode(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = WLRREFRESHRATE}));
 
@@ -2155,6 +2150,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     for (auto& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
+        pMonitor->drmFormat = fmt.second;
 
         if (!pMonitor->state.test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);

@@ -305,6 +305,10 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     setenv("WAYLAND_DISPLAY", m_szWLDisplaySocket.c_str(), 1);
     setenv("XDG_SESSION_TYPE", "wayland", 1);
+    if (!getenv("XDG_CURRENT_DESKTOP")) {
+        setenv("XDG_CURRENT_DESKTOP", "Hyprland", 1);
+        m_bDesktopEnvSet = true;
+    }
 
     initManagers(STAGE_BASICINIT);
 
@@ -422,9 +426,10 @@ void CCompositor::cleanEnvironment() {
     // in main
     unsetenv("HYPRLAND_CMD");
     unsetenv("XDG_BACKEND");
-    unsetenv("XDG_CURRENT_DESKTOP");
+    if (m_bDesktopEnvSet)
+        unsetenv("XDG_CURRENT_DESKTOP");
 
-    if (m_pAqBackend->hasSession()) {
+    if (m_pAqBackend->hasSession() && !envEnabled("HYPRLAND_NO_SD_VARS")) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -654,7 +659,11 @@ void CCompositor::prepareFallbackOutput() {
 void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
-    if (m_pAqBackend->hasSession() /* Session-less Hyprland usually means a nest, don't update the env in that case */) {
+    if (
+        /* Session-less Hyprland usually means a nest, don't update the env in that case */
+        m_pAqBackend->hasSession() &&
+        /* Activation environment management is not disabled */
+        !envEnabled("HYPRLAND_NO_SD_VARS")) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -2728,6 +2737,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     g_pCompositor->updateWorkspaceWindows(pWorkspace->m_iID);
     g_pCompositor->updateWorkspaceWindows(pWindow->workspaceID());
+    g_pCompositor->updateSuspendedStates();
 }
 
 PHLWINDOW CCompositor::getForceFocus() {
@@ -2925,7 +2935,7 @@ PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
 
 void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
-    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
+    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>(output));
     if (std::string("HEADLESS-1") == output->name) {
         g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
         output->name                   = "FALLBACK"; // we are allowed to do this :)
@@ -2934,7 +2944,6 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     Debug::log(LOG, "New output with name {}", output->name);
 
     PNEWMONITOR->szName           = output->name;
-    PNEWMONITOR->output           = output;
     PNEWMONITOR->self             = PNEWMONITOR;
     const bool FALLBACK           = g_pCompositor->m_pUnsafeOutput ? output == g_pCompositor->m_pUnsafeOutput->output : false;
     PNEWMONITOR->ID               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);

@@ -8,8 +8,6 @@
 #include <memory>
 #include <wayland-server.h>
 
-#define LOGM PROTO::focusGrab->protoLog
-
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
     listeners.destroy = surface->events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
 }

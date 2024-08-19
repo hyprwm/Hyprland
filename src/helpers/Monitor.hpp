@@ -59,7 +59,7 @@ class CMonitorState {
 
 class CMonitor {
   public:
-    CMonitor();
+    CMonitor(SP<Aquamarine::IOutput> output);
     ~CMonitor();
 
     Vector2D                    vecPosition         = Vector2D(-1, -1); // means unset
@@ -100,6 +100,7 @@ class CMonitor {
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;
+    uint32_t                    drmFormat = DRM_FORMAT_INVALID;
 
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

@@ -85,31 +85,6 @@ void Events::listener_monitorFrame(void* owner, void* data) {
     }
 }
 
-void Events::listener_monitorDestroy(void* owner, void* data) {
-    CMonitor* pMonitor = (CMonitor*)owner;
-
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
-        if (m->output == pMonitor->output) {
-            pMonitor = m.get();
-            break;
-        }
-    }
-
-    if (!pMonitor)
-        return;
-
-    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->szName);
-
-    pMonitor->onDisconnect(true);
-
-    pMonitor->output                 = nullptr;
-    pMonitor->m_bRenderingInitPassed = false;
-
-    Debug::log(LOG, "Removing monitor {} from realMonitors", pMonitor->szName);
-
-    std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == pMonitor; });
-}
-
 void Events::listener_monitorNeedsFrame(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
 

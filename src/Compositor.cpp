@@ -2935,7 +2935,7 @@ PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
 
 void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
-    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>());
+    auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>(output));
     if (std::string("HEADLESS-1") == output->name) {
         g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
         output->name                   = "FALLBACK"; // we are allowed to do this :)
@@ -2944,7 +2944,6 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     Debug::log(LOG, "New output with name {}", output->name);
 
     PNEWMONITOR->szName           = output->name;
-    PNEWMONITOR->output           = output;
     PNEWMONITOR->self             = PNEWMONITOR;
     const bool FALLBACK           = g_pCompositor->m_pUnsafeOutput ? output == g_pCompositor->m_pUnsafeOutput->output : false;
     PNEWMONITOR->ID               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);

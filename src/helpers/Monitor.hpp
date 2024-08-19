@@ -59,7 +59,7 @@ class CMonitorState {
 
 class CMonitor {
   public:
-    CMonitor();
+    CMonitor(SP<Aquamarine::IOutput> output);
     ~CMonitor();
 
     Vector2D                    vecPosition         = Vector2D(-1, -1); // means unset

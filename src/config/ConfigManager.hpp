@@ -6,6 +6,7 @@
 #include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
+#include <variant>
 #include <vector>
 #include <deque>
 #include <algorithm>

@@ -98,7 +98,7 @@ void Events::listener_monitorDestroy(void* owner, void* data) {
     if (!pMonitor)
         return;
 
-    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->output->name);
+    Debug::log(LOG, "Destroy called for monitor {}", pMonitor->szName);
 
     pMonitor->onDisconnect(true);
 

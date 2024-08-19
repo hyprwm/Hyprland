@@ -1,0 +1,14 @@
+[Unit]
+Description=Hyprland - Tiling compositor with the looks
+Documentation=man:Hyprland(1)
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/Hyprland
+ExecStop=/usr/bin/hyprctl dispatch exit
+Restart=on-failure
+Slice=session.slice

@@ -457,7 +457,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "input:focus_on_close",
         .description = "Controls the window focus behavior when a window is closed. When set to 0, focus will shift to the next window candidate. When set to 1, focus will shift to the window under the cursor.",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SRangeData{0, 0, 1},
+        .data        = SConfigOptionDescription::SChoiceData{0, "next,cursor"},
     },
     SConfigOptionDescription{
         .value       = "input:mouse_refocus",

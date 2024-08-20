@@ -87,8 +87,8 @@ asan:
 	#git reset --hard
 
 	@echo -en "If you want to apply a patch, input its path (leave empty for none):\n"
-	@read patchvar
-	@if [-n "$patchvar"]; then patch -p1 < $patchvar || echo ""; else echo "No patch specified"; fi
+	@read patchvar; \
+	 if [ -n "$$patchvar" ]; then patch -p1 < "$$patchvar" || echo ""; else echo "No patch specified"; fi
 
 	git clone --recursive https://gitlab.freedesktop.org/wayland/wayland
 	cd wayland && patch -p1 < ../scripts/waylandStatic.diff && meson setup build --buildtype=debug -Db_sanitize=address -Ddocumentation=false && ninja -C build && cd ..

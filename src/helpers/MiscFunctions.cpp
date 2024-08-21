@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
@@ -609,13 +611,21 @@ void logSystemInfo() {
 
     Debug::log(NONE, "\n");
 
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
-#elif defined(__arm__) || defined(__aarch64__)
-    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
-#else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
-#endif
+    int fd = open("/dev/dri/card0", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        throw std::runtime_error("Failed to open /dev/dri/card0");
+    }
+    drmVersion* version = drmGetVersion(fd);
+    if (!version) {
+        close(fd);
+        throw std::runtime_error("Failed to get DRM version");
+    }
+    const std::string name = version->name ? version->name : "Unknown";
+    const std::string description = version->desc ? version->desc : "Unknown";
+    std::string GPUINFO;
+    GPUINFO += "GPU Type: " + name + "\n";
+    GPUINFO += "Driver Description: " + description + "\n";
+
     Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {

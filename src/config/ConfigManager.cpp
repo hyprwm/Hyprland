@@ -724,7 +724,6 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("fade");
         INITANIMCFG("border");
         INITANIMCFG("borderangle");
-        INITANIMCFG("workspaces");
 
         // windows
         INITANIMCFG("windowsIn");
@@ -745,7 +744,12 @@ void CConfigManager::setDefaultAnimationVars() {
         // border
 
         // workspaces
+        INITANIMCFG("workspaces");
+        INITANIMCFG("workspacesIn");
+        INITANIMCFG("workspacesOut");
         INITANIMCFG("specialWorkspace");
+        INITANIMCFG("specialWorkspaceIn");
+        INITANIMCFG("specialWorkspaceOut");
     }
 
     // init the values
@@ -774,7 +778,11 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeLayersIn", "fadeLayers");
     CREATEANIMCFG("fadeLayersOut", "fadeLayers");
 
+    CREATEANIMCFG("workspacesIn", "workspaces");
+    CREATEANIMCFG("workspacesOut", "workspaces");
     CREATEANIMCFG("specialWorkspace", "workspaces");
+    CREATEANIMCFG("specialWorkspaceIn", "specialWorkspace");
+    CREATEANIMCFG("specialWorkspaceOut", "specialWorkspace");
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {

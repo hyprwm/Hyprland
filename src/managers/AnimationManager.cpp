@@ -471,7 +471,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
         }
 
         return "unknown style";
-    } else if (config == "workspaces" || config == "specialWorkspace") {
+    } else if (config.starts_with("workspaces") || config.starts_with("specialWorkspace")) {
         if (style == "slide" || style == "slidevert" || style == "fade")
             return "";
         else if (style.starts_with("slidefade")) {

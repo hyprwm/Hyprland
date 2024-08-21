@@ -55,7 +55,7 @@ void CWLOutputResource::updateState() {
     if (resource->version() >= 2)
         resource->sendScale(std::ceil(monitor->scale));
 
-    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT | WL_OUTPUT_MODE_PREFERRED), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
+    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
 
     if (resource->version() >= 2)
         resource->sendDone();

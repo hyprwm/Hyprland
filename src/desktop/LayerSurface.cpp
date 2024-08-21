@@ -107,6 +107,12 @@ void CLayerSurface::onDestroy() {
         g_pHyprRenderer->damageBox(&geomFixed);
     }
 
+    for (auto& mon : g_pCompositor->m_vRealMonitors) {
+        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
+            std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
+        }
+    }
+
     readyToDelete = true;
     layerSurface.reset();
     if (surface)

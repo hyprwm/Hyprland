@@ -22,10 +22,11 @@ CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_pSelf = self;
 
-    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
+    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") :
+                                                   g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
                            self, AVARDAMAGE_ENTIRE);
     m_fAlpha.create(AVARTYPE_FLOAT,
-                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), self,
+                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"), self,
                     AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(1.f);
 
@@ -81,6 +82,13 @@ CWorkspace::~CWorkspace() {
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
+    if (!instant) {
+        const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
+
+        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+    }
+
     const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 

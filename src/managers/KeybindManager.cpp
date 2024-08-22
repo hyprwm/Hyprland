@@ -872,12 +872,12 @@ SDispatchResult CKeybindManager::spawn(std::string args) {
         Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
     }
 
-    return {.success = PROC <= 0, .error = std::format("Failed to start process ({})", args)};
+    return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
 SDispatchResult CKeybindManager::spawnRaw(std::string args) {
     const uint64_t PROC = spawnRawProc(args);
-    return {.success = PROC <= 0, .error = std::format("Failed to start process ({})", args)};
+    return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
 uint64_t CKeybindManager::spawnRawProc(std::string args) {

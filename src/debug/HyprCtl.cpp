@@ -939,7 +939,8 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     GPUINFO += "Driver Description: " + description + "\n";
 
     result += GPUINFO;
-
+    drmFreeVersion(version);
+    close(fd);
 
     if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
         result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");

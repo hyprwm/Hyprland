@@ -627,6 +627,8 @@ void logSystemInfo() {
     GPUINFO += "Driver Description: " + description + "\n";
 
     Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
+    drmFreeVersion(version);
+    close(fd);
 
     if (GPUINFO.contains("NVIDIA")) {
         Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");

@@ -897,7 +897,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!surf) {
+    if (!surf || !activate) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

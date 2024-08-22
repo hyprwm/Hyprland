@@ -932,9 +932,9 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
         close(fd);
         throw std::runtime_error("Failed to get DRM version");
     }
-    const std::string name = version->name ? version->name : "Unknown";
+    const std::string name        = version->name ? version->name : "Unknown";
     const std::string description = version->desc ? version->desc : "Unknown";
-    std::string GPUINFO = "GPU information:\n";
+    std::string       GPUINFO     = "GPU information:\n";
     GPUINFO += "GPU Type: " + name + "\n";
     GPUINFO += "Driver Description: " + description + "\n";
 

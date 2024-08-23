@@ -1212,6 +1212,32 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                         continue;
                 }
 
+                if (!rule.szFullscreenState.empty()) {
+                    const auto ARGS = CVarList(rule.szFullscreenState, 2, ' ');
+                    //
+                    std::optional<eFullscreenMode> internalMode, clientMode;
+
+                    if (ARGS[0] == "*")
+                        internalMode = {};
+                    else if (isNumber(ARGS[0]))
+                        internalMode = (eFullscreenMode)std::stoi(ARGS[0]);
+                    else
+                        throw std::runtime_error("szFullscreenState internal mode not valid");
+
+                    if (ARGS[1] == "*")
+                        clientMode = {};
+                    else if (isNumber(ARGS[1]))
+                        clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
+                    else
+                        throw std::runtime_error("szFullscreenState client mode not valid");
+
+                    if (internalMode.has_value() && pWindow->m_sFullscreenState.internal != internalMode)
+                        continue;
+
+                    if (clientMode.has_value() && pWindow->m_sFullscreenState.client != clientMode)
+                        continue;
+                }
+
                 if (!rule.szOnWorkspace.empty()) {
                     const auto PWORKSPACE = pWindow->m_pWorkspace;
                     if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule.szOnWorkspace))
@@ -2219,17 +2245,18 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     rule.szRule  = RULE;
     rule.szValue = VALUE;
 
-    const auto TAGPOS          = VALUE.find("tag:");
-    const auto TITLEPOS        = VALUE.find("title:");
-    const auto CLASSPOS        = VALUE.find("class:");
-    const auto INITIALTITLEPOS = VALUE.find("initialTitle:");
-    const auto INITIALCLASSPOS = VALUE.find("initialClass:");
-    const auto X11POS          = VALUE.find("xwayland:");
-    const auto FLOATPOS        = VALUE.find("floating:");
-    const auto FULLSCREENPOS   = VALUE.find("fullscreen:");
-    const auto PINNEDPOS       = VALUE.find("pinned:");
-    const auto FOCUSPOS        = VALUE.find("focus:");
-    const auto ONWORKSPACEPOS  = VALUE.find("onworkspace:");
+    const auto TAGPOS             = VALUE.find("tag:");
+    const auto TITLEPOS           = VALUE.find("title:");
+    const auto CLASSPOS           = VALUE.find("class:");
+    const auto INITIALTITLEPOS    = VALUE.find("initialTitle:");
+    const auto INITIALCLASSPOS    = VALUE.find("initialClass:");
+    const auto X11POS             = VALUE.find("xwayland:");
+    const auto FLOATPOS           = VALUE.find("floating:");
+    const auto FULLSCREENPOS      = VALUE.find("fullscreen:");
+    const auto PINNEDPOS          = VALUE.find("pinned:");
+    const auto FOCUSPOS           = VALUE.find("focus:");
+    const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
+    const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2242,9 +2269,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{
-        TAGPOS, TITLEPOS, CLASSPOS, INITIALTITLEPOS, INITIALCLASSPOS, X11POS, FLOATPOS, FULLSCREENPOS, PINNEDPOS, WORKSPACEPOS, FOCUSPOS, ONWORKSPACEPOS,
-    };
+    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,        FLOATPOS,
+                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2273,6 +2299,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
+        if (FULLSCREENSTATEPOS > pos && FULLSCREENSTATEPOS < min)
+            min = FULLSCREENSTATEPOS;
         if (ONWORKSPACEPOS > pos && ONWORKSPACEPOS < min)
             min = ONWORKSPACEPOS;
         if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
@@ -2317,6 +2345,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (PINNEDPOS != std::string::npos)
         rule.bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
 
+    if (FULLSCREENSTATEPOS != std::string::npos)
+        rule.szFullscreenState = extract(FULLSCREENSTATEPOS + 16);
+
     if (WORKSPACEPOS != std::string::npos)
         rule.szWorkspace = extract(WORKSPACEPOS + 10);
 
@@ -2356,6 +2387,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                     return false;
 
                 if (rule.bPinned != -1 && rule.bPinned != other.bPinned)
+                    return false;
+
+                if (!rule.szFullscreenState.empty() && rule.szFullscreenState != other.szFullscreenState)
                     return false;
 
                 if (!rule.szWorkspace.empty() && rule.szWorkspace != other.szWorkspace)

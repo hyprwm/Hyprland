@@ -1215,8 +1215,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                 if (!rule.szFullscreenState.empty()) {
                     const auto ARGS = CVarList(rule.szFullscreenState, 2, ' ');
                     //
-                    std::optional<eFullscreenMode> internalMode;
-                    std::optional<eFullscreenMode> clientMode;
+                    std::optional<eFullscreenMode> internalMode, clientMode;
 
                     if (ARGS[0] == "*")
                         internalMode = {};
@@ -1230,7 +1229,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                     else if (isNumber(ARGS[1]))
                         clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
                     else
-                        throw std::runtime_error("szFullscreenState internal mode not valid");
+                        throw std::runtime_error("szFullscreenState client mode not valid");
 
                     if (internalMode.has_value() && pWindow->m_sFullscreenState.internal != internalMode)
                         continue;

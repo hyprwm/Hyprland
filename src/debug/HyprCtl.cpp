@@ -924,27 +924,24 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "\n\n";
 
     int fd = open("/dev/dri/card0", O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        throw std::runtime_error("Failed to open /dev/dri/card0");
-    }
-    drmVersion* version = drmGetVersion(fd);
-    if (!version) {
+    if (fd > 0) {
+        drmVersion* version = drmGetVersion(fd);
+
+        const std::string name        = version->name ? version->name : "Unknown";
+        const std::string description = version->desc ? version->desc : "Unknown";
+        std::string       GPUINFO     = "GPU information:\n";
+        GPUINFO += "GPU Type: " + name + "\n";
+        GPUINFO += "Driver Description: " + description + "\n";
+
+        result += GPUINFO;
+        drmFreeVersion(version);
         close(fd);
-        throw std::runtime_error("Failed to get DRM version");
+
+        if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
+            result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
+
+        result += "\n\n";
     }
-    const std::string name        = version->name ? version->name : "Unknown";
-    const std::string description = version->desc ? version->desc : "Unknown";
-    std::string       GPUINFO     = "GPU information:\n";
-    GPUINFO += "GPU Type: " + name + "\n";
-    GPUINFO += "Driver Description: " + description + "\n";
-
-    result += GPUINFO;
-    drmFreeVersion(version);
-    close(fd);
-
-    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
-        result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
-    result += "\n\n";
 
     result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
 

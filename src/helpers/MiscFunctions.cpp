@@ -612,26 +612,22 @@ void logSystemInfo() {
     Debug::log(NONE, "\n");
 
     int fd = open("/dev/dri/card0", O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        throw std::runtime_error("Failed to open /dev/dri/card0");
-    }
-    drmVersion* version = drmGetVersion(fd);
-    if (!version) {
+    if (fd > 0) {
+        drmVersion* version = drmGetVersion(fd);
+
+        const std::string name        = version->name ? version->name : "Unknown";
+        const std::string description = version->desc ? version->desc : "Unknown";
+        std::string       GPUINFO     = "GPU information:\n";
+        GPUINFO += "GPU Type: " + name + "\n";
+        GPUINFO += "Driver Description: " + description + "\n";
+
+        Debug::log(LOG, "{}\n", GPUINFO);
+        drmFreeVersion(version);
         close(fd);
-        throw std::runtime_error("Failed to get DRM version");
-    }
-    const std::string name        = version->name ? version->name : "Unknown";
-    const std::string description = version->desc ? version->desc : "Unknown";
-    std::string       GPUINFO;
-    GPUINFO += "GPU Type: " + name + "\n";
-    GPUINFO += "Driver Description: " + description + "\n";
 
-    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
-    drmFreeVersion(version);
-    close(fd);
-
-    if (GPUINFO.contains("NVIDIA")) {
-        Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        if (GPUINFO.contains("NVIDIA")) {
+            Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        }
     }
 
     // log etc

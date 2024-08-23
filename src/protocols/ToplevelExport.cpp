@@ -245,7 +245,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->output->state->state().drmFormat);
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
 
     if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());

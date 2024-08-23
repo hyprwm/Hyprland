@@ -238,7 +238,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(box.w, box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : pMonitor->output->state->state().drmFormat);
+    fb.alloc(box.w, box.h, pMonitor->output->state->state().drmFormat);
 
     if (!g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering");

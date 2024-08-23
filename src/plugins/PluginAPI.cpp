@@ -194,12 +194,10 @@ APICALL bool HyprlandAPI::addDispatcher(HANDLE handle, const std::string& name, 
 
     PLUGIN->registeredDispatchers.push_back(name);
 
-    std::function<SDispatchResult(std::string)> newHandler = [handler](std::string arg1) -> SDispatchResult {
+    g_pKeybindManager->m_mDispatchers[name] = [handler](std::string arg1) -> SDispatchResult {
         handler(arg1);
         return {};
     };
-
-    g_pKeybindManager->m_mDispatchers[name] = newHandler;
 
     return true;
 }

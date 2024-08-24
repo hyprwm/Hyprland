@@ -180,6 +180,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         // however, if surface buffer w / h < box, we need to adjust them
         const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
 
+        // center the surface if it's smaller than the viewport we assign it
         if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT = PSURFACE->correctSmallVec();
             const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
@@ -193,17 +194,6 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
                 windowBox.width  = SIZE.x;
                 windowBox.height = SIZE.y;
             }
-        }
-
-        if (!INTERACTIVERESIZEINPROGRESS && PSURFACE && PWINDOW && PWINDOW->m_vRealSize.goal().floor() > PWINDOW->m_vReportedSize && PWINDOW->m_vReportedSize > Vector2D{1, 1}) {
-            Vector2D size =
-                Vector2D{windowBox.w * (PWINDOW->m_vReportedSize.x / PWINDOW->m_vRealSize.value().x), windowBox.h * (PWINDOW->m_vReportedSize.y / PWINDOW->m_vRealSize.value().y)};
-            Vector2D correct = Vector2D{windowBox.w, windowBox.h} - size;
-
-            windowBox.translate(correct / 2.0);
-
-            windowBox.w = size.x;
-            windowBox.h = size.y;
         }
 
     } else { //  here we clamp to 2, these might be some tiny specks
@@ -1114,6 +1104,17 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
+
+        // if the surface is smaller than our viewport, extend its edges.
+        // this will break if later on xdg geometry is hit, but we really try
+        // to let the apps know to NOT add CSD.
+        // there is no way to fix this if that's the case
+        if (pSurface && pSurface->current.bufferSize < projSize) {
+            // this will not work with shm AFAIK, idk why.
+            // NOTE: this math is wrong if the above is hit, but it will never be hit so fuck it
+            const auto FIX = projSize / pSurface->current.bufferSize;
+            uvBR = uvBR * FIX;
+        }
 
         if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed

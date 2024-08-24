@@ -221,6 +221,8 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         return; // invisible
     }
 
+    const auto PROJSIZEUNSCALED = windowBox.size();
+
     windowBox.scale(RDATA->pMonitor->scale);
     windowBox.round();
 
@@ -229,7 +231,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         DELTALESSTHAN(windowBox.height, surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), MISALIGNEDFSV1);
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     // check for fractional scale surfaces misaligning the buffer size
     // in those cases it's better to just force nearest neighbor
@@ -1073,7 +1075,8 @@ void CHyprRenderer::renderSessionLockMissing(CMonitor* pMonitor) {
         g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
 }
 
-void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {
+void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool main, const Vector2D& projSize, const Vector2D& projSizeUnscaled,
+                                          bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
@@ -1102,19 +1105,19 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
                 uvBR -= MISALIGNMENT * PIXELASUV;
         }
 
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
-        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
-
         // if the surface is smaller than our viewport, extend its edges.
         // this will break if later on xdg geometry is hit, but we really try
         // to let the apps know to NOT add CSD.
         // there is no way to fix this if that's the case
-        if (pSurface && pSurface->current.bufferSize < projSize) {
+        if (pSurface && (pSurface->current.bufferSize.x < projSize.x || pSurface->current.bufferSize.y < projSize.y)) {
             // this will not work with shm AFAIK, idk why.
             // NOTE: this math is wrong if the above is hit, but it will never be hit so fuck it
             const auto FIX = projSize / pSurface->current.bufferSize;
-            uvBR = uvBR * FIX;
+            uvBR           = uvBR * FIX;
         }
+
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;
+        g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = uvBR;
 
         if (g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
@@ -1128,7 +1131,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
         // ignore X and Y, adjust uv
-        if (geom.x != 0 || geom.y != 0 || geom.width > pWindow->m_vRealSize.value().x || geom.height > pWindow->m_vRealSize.value().y) {
+        if (geom.x != 0 || geom.y != 0 || geom.width > projSizeUnscaled.x || geom.height > projSizeUnscaled.y) {
             const auto XPERC = (double)geom.x / (double)pSurface->current.size.x;
             const auto YPERC = (double)geom.y / (double)pSurface->current.size.y;
             const auto WPERC = (double)(geom.x + geom.width) / (double)pSurface->current.size.x;
@@ -1138,8 +1141,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             uvBR               = uvBR - Vector2D((1.0 - WPERC) * (uvBR.x - uvTL.x), (1.0 - HPERC) * (uvBR.y - uvTL.y));
             uvTL               = uvTL + TOADDTL;
 
-            // TODO: make this passed to the func. Might break in the future.
-            auto maxSize = pWindow->m_vRealSize.value();
+            auto maxSize = projSizeUnscaled;
 
             if (pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall)
                 maxSize = pWindow->m_pWLSurface->getViewporterCorrectedSize();

@@ -116,7 +116,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     // handle animation styles for the movement one
     if (ANIMSTYLE.starts_with("slide") && ANIMSTYLE.contains("%")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        float      movePerc = 100.f;
+        float      movePerc = 0.F;
 
         try {
             auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
@@ -143,7 +143,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     } else if (ANIMSTYLE.starts_with("popin")) {
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
 
-        float startPerc = 100.f;
+        float startPerc = 0.F;
 
         try {
             auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);

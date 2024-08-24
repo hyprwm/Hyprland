@@ -513,10 +513,10 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
 
     // firstly, render all workspaces in sync, but leave out main workspace
     for (auto& [k, v] : toRender) {
-        if (k == pWorkspace)
+        if (k == pWorkspace || !k)
             continue;
 
-        const bool SCALE = k && k->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(k->m_iID) > 0;
+        const bool SCALE = k->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(k->m_iID) > 0;
 
         if (SCALE)
             preWorkspaceScaleAnim();
@@ -535,8 +535,16 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         preWorkspaceScaleAnim();
 
     // lastly, render the current ws
-    for (auto& [window, mode] : toRender[pWorkspace]) {
-        renderWindow(window, pMonitor, time, true, mode);
+    if (toRender.contains(pWorkspace)) {
+        for (auto& [window, mode] : toRender[pWorkspace]) {
+            renderWindow(window, pMonitor, time, true, mode);
+        }
+    }
+    // and the null ws (windows fading out)
+    if (toRender.contains(nullptr)) {
+        for (auto& [window, mode] : toRender[nullptr]) {
+            renderWindow(window, pMonitor, time, true, mode);
+        }
     }
 
     if (SCALE)

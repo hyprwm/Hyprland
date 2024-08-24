@@ -1218,14 +1218,14 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                     std::optional<eFullscreenMode> internalMode, clientMode;
 
                     if (ARGS[0] == "*")
-                        internalMode = {};
+                        internalMode = std::nullopt;
                     else if (isNumber(ARGS[0]))
                         internalMode = (eFullscreenMode)std::stoi(ARGS[0]);
                     else
                         throw std::runtime_error("szFullscreenState internal mode not valid");
 
                     if (ARGS[1] == "*")
-                        clientMode = {};
+                        clientMode = std::nullopt;
                     else if (isNumber(ARGS[1]))
                         clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
                     else

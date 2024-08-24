@@ -71,6 +71,12 @@ CLayerSurface::~CLayerSurface() {
         surface->unassign();
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == self.lock(); });
+
+    for (auto& mon : g_pCompositor->m_vRealMonitors) {
+        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
+            std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
+        }
+    }
 }
 
 void CLayerSurface::onDestroy() {
@@ -105,12 +111,6 @@ void CLayerSurface::onDestroy() {
         // and damage
         CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
         g_pHyprRenderer->damageBox(&geomFixed);
-    }
-
-    for (auto& mon : g_pCompositor->m_vRealMonitors) {
-        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
-            std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
-        }
     }
 
     readyToDelete = true;

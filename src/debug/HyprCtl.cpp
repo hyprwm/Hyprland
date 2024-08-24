@@ -962,11 +962,11 @@ std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end())
         return "Invalid dispatcher";
 
-    DISPATCHER->second(DISPATCHARG);
+    SDispatchResult res = DISPATCHER->second(DISPATCHARG);
 
-    Debug::log(LOG, "Hyprctl: dispatcher {} : {}", DISPATCHSTR, DISPATCHARG);
+    Debug::log(LOG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
 
-    return "ok";
+    return res.success ? "ok" : res.error;
 }
 
 std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {

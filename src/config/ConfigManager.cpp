@@ -741,8 +741,6 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("fadeShadow");
         INITANIMCFG("fadeDim");
 
-        // border
-
         // workspaces
         INITANIMCFG("workspaces");
         INITANIMCFG("workspacesIn");
@@ -777,6 +775,12 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeLayers", "fade");
     CREATEANIMCFG("fadeLayersIn", "fadeLayers");
     CREATEANIMCFG("fadeLayersOut", "fadeLayers");
+    CREATEANIMCFG("fadeWorkspaces", "fade");
+    CREATEANIMCFG("fadeWorkspacesIn", "fadeWorkspaces");
+    CREATEANIMCFG("fadeWorkspacesOut", "fadeWorkspaces");
+    CREATEANIMCFG("fadeSpecialWorkspace", "fadeWorkspaces");
+    CREATEANIMCFG("fadeSpecialWorkspaceIn", "fadeSpecialWorkspace");
+    CREATEANIMCFG("fadeSpecialWorkspaceOut", "fadeSpecialWorkspace");
 
     CREATEANIMCFG("workspacesIn", "workspaces");
     CREATEANIMCFG("workspacesOut", "workspaces");

@@ -437,6 +437,17 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
 
+    // TODO: dedup this with renderallclients
+    auto preWorkspaceScaleAnim = []() { g_pHyprOpenGL->bindOffMain(); };
+
+    auto postWorkspaceScaleAnim = [pMonitor](PHLWORKSPACE workspace) {
+        g_pHyprOpenGL->bindBackOnMain();
+        CBox box = CBox{{}, pMonitor->vecPixelSize}.scaleFromCenter(workspace->m_fScaleClients.value());
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_RenderData.pCurrentMonData->offMainFB.m_cTex, &box, 1.F);
+    };
+
+    std::unordered_map<PHLWORKSPACE, std::vector<std::pair<PHLWINDOW, eRenderPassMode>>> toRender;
+
     // Non-floating main
     for (auto& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() || (!w->m_bIsMapped && !w->m_bFadingOut))
@@ -457,12 +468,11 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
             continue;
         }
 
-        // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_MAIN);
+        toRender[w->m_pWorkspace].emplace_back(w, RENDER_PASS_MAIN);
     }
 
     if (lastWindow)
-        renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
+        toRender[lastWindow->m_pWorkspace].emplace_back(lastWindow, RENDER_PASS_MAIN);
 
     // Non-floating popup
     for (auto& w : g_pCompositor->m_vWindows) {
@@ -478,8 +488,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
-        // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_POPUP);
+        toRender[w->m_pWorkspace].emplace_back(w, RENDER_PASS_POPUP);
     }
 
     // floating on top
@@ -499,9 +508,39 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (pWorkspace->m_bIsSpecialWorkspace && w->m_iMonitorID != pWorkspace->m_iMonitorID)
             continue; // special on another are rendered as a part of the base pass
 
-        // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        toRender[w->m_pWorkspace].emplace_back(w, RENDER_PASS_ALL);
     }
+
+    // firstly, render all workspaces in sync, but leave out main workspace
+    for (auto& [k, v] : toRender) {
+        if (k == pWorkspace)
+            continue;
+
+        const bool SCALE = k->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(k->m_iID) > 0;
+
+        if (SCALE)
+            preWorkspaceScaleAnim();
+
+        for (auto& [window, mode] : v) {
+            renderWindow(window, pMonitor, time, true, mode);
+        }
+
+        if (SCALE)
+            postWorkspaceScaleAnim(k);
+    }
+
+    const bool SCALE = pWorkspace->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID) > 0;
+
+    if (SCALE)
+        preWorkspaceScaleAnim();
+
+    // lastly, render the current ws
+    for (auto& [window, mode] : toRender[pWorkspace]) {
+        renderWindow(window, pMonitor, time, true, mode);
+    }
+
+    if (SCALE)
+        postWorkspaceScaleAnim(pWorkspace);
 }
 
 void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
@@ -813,11 +852,19 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
-    static auto      PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
-    static auto      PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
-    static auto      PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto      PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto      PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+    static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
+    static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
+    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+
+    auto        preWorkspaceScaleAnim = []() { g_pHyprOpenGL->bindOffMain(); };
+
+    auto        postWorkspaceScaleAnim = [pMonitor](PHLWORKSPACE workspace) {
+        g_pHyprOpenGL->bindBackOnMain();
+        CBox box = CBox{{}, pMonitor->vecPixelSize}.scaleFromCenter(workspace->m_fScaleClients.value());
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_RenderData.pCurrentMonData->offMainFB.m_cTex, &box, 1.F);
+    };
 
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
@@ -936,12 +983,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     // special
     for (auto& ws : g_pCompositor->m_vWorkspaces) {
-        if (ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
-            if (ws->m_bHasFullscreenWindow)
-                renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
-            else
-                renderWorkspaceWindows(pMonitor, ws, time);
-        }
+        if (ws->m_fAlpha.value() <= 0.F || !ws->m_bIsSpecialWorkspace)
+            continue;
+
+        const bool SCALE = ws->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(ws->m_iID) > 0;
+
+        if (SCALE)
+            preWorkspaceScaleAnim();
+
+        if (ws->m_bHasFullscreenWindow)
+            renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
+        else
+            renderWorkspaceWindows(pMonitor, ws, time);
+
+        if (SCALE)
+            postWorkspaceScaleAnim(ws);
     }
 
     // pinned always above
@@ -1316,7 +1372,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
                 EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
                 renderCursor = false;
             } else {
-                CBox renderBox = {0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
+                CBox renderBox = CBox{0, 0, (int)pMonitor->vecPixelSize.x, (int)pMonitor->vecPixelSize.y};
                 renderWorkspace(pMonitor, pMonitor->activeWorkspace, &now, renderBox);
 
                 renderLockscreen(pMonitor, &now, renderBox);

@@ -26,12 +26,18 @@ void CWorkspace::init(PHLWORKSPACE self) {
                                                    g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
                            self, AVARDAMAGE_ENTIRE);
     m_fAlpha.create(AVARTYPE_FLOAT,
-                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"), self,
-                    AVARDAMAGE_ENTIRE);
+                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("fadeSpecialWorkspaceIn") :
+                                            g_pConfigManager->getAnimationPropertyConfig("fadeWorkspacesIn"),
+                    self, AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(1.f);
+    m_fScaleClients.create(
+        AVARTYPE_FLOAT, m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
+        self, AVARDAMAGE_ENTIRE);
+    m_fScaleClients.setValueAndWarp(1.f);
 
     m_vRenderOffset.registerVar();
     m_fAlpha.registerVar();
+    m_fScaleClients.registerVar();
 
     const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
     if (RULEFORTHIS.defaultName.has_value())
@@ -83,13 +89,15 @@ CWorkspace::~CWorkspace() {
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
     if (!instant) {
-        const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
+        const std::string ANIMNAME  = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
+        const std::string ANIMNAME2 = std::format("fade{}{}", m_bIsSpecialWorkspace ? "SpecialWorkspace" : "Workspaces", in ? "In" : "Out");
 
-        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME2);
         m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_fScaleClients.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
     }
 
-    const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
+    const auto  ANIMSTYLE     = m_vRenderOffset.m_pConfig->pValues->internalStyle;
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks
@@ -102,95 +110,71 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         };
     });
 
-    if (ANIMSTYLE.starts_with("slidefade")) {
+    m_fAlpha.setValueAndWarp(in ? 0.F : 1.F);
+    m_fAlpha = in ? 1.F : 0.F;
+
+    // handle animation styles for the movement one
+    if (ANIMSTYLE.starts_with("slide") && ANIMSTYLE.contains("%")) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
         float      movePerc = 100.f;
 
-        if (ANIMSTYLE.find("%") != std::string::npos) {
-            try {
-                auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
-                movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
-            } catch (std::exception& e) { Debug::log(ERR, "Error in startAnim: invalid percentage"); }
-        }
+        try {
+            auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
+            movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
+        } catch (std::exception& e) { Debug::log(ERR, "Error in startAnim: invalid percentage"); }
 
-        m_fAlpha.setValueAndWarp(1.f);
+        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+        m_fScaleClients.setValueAndWarp(1.F);
+
+        if (ANIMSTYLE.starts_with("slidevert")) {
+            if (in) {
+                m_vRenderOffset.setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
+                m_vRenderOffset = Vector2D(0, 0);
+            } else
+                m_vRenderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
+
+        } else {
+            if (in) {
+                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
+                m_vRenderOffset = Vector2D(0, 0);
+            } else
+                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
+        }
+    } else if (ANIMSTYLE.starts_with("popin")) {
         m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
 
-        if (ANIMSTYLE.starts_with("slidefadevert")) {
-            if (in) {
-                m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
-                m_fAlpha        = 1.f;
-                m_vRenderOffset = Vector2D(0, 0);
-            } else {
-                m_fAlpha.setValueAndWarp(1.f);
-                m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
-            }
-        } else {
-            if (in) {
-                m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
-                m_fAlpha        = 1.f;
-                m_vRenderOffset = Vector2D(0, 0);
-            } else {
-                m_fAlpha.setValueAndWarp(1.f);
-                m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
-            }
-        }
-    } else if (ANIMSTYLE == "fade") {
-        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
+        float startPerc = 100.f;
+
+        try {
+            auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
+            startPerc    = std::stoi(percstr.substr(0, percstr.length() - 1));
+        } catch (std::exception& e) { Debug::log(ERR, "Error in startAnim: invalid percentage"); }
 
         if (in) {
-            m_fAlpha.setValueAndWarp(0.f);
-            m_fAlpha = 1.f;
+            m_fScaleClients.setValueAndWarp(startPerc / 100.F);
+            m_fScaleClients = 1.F;
         } else {
-            m_fAlpha.setValueAndWarp(1.f);
-            m_fAlpha = 0.f;
-        }
-    } else if (ANIMSTYLE == "slidevert") {
-        // fallback is slide
-        const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
-        const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
-
-        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
-
-        if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
-            m_vRenderOffset = Vector2D(0, 0);
-        } else {
-            m_vRenderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
+            m_fScaleClients.setValueAndWarp(1.F);
+            m_fScaleClients = startPerc / 100.F;
         }
     } else {
         // fallback is slide
         const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
         const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
 
-        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
+        m_fScaleClients.setValueAndWarp(1.F);
 
         if (in) {
             m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
             m_vRenderOffset = Vector2D(0, 0);
-        } else {
+        } else
             m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
-        }
-    }
-
-    if (m_bIsSpecialWorkspace) {
-        // required for open/close animations
-        if (in) {
-            m_fAlpha.setValueAndWarp(0.f);
-            m_fAlpha = 1.f;
-        } else {
-            m_fAlpha.setValueAndWarp(1.f);
-            m_fAlpha = 0.f;
-        }
     }
 
     if (instant) {
         m_vRenderOffset.warp();
         m_fAlpha.warp();
+        m_fScaleClients.warp();
     }
 }
 

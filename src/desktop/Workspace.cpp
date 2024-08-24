@@ -164,11 +164,14 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
         m_fScaleClients.setValueAndWarp(1.F);
 
-        if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
-            m_vRenderOffset = Vector2D(0, 0);
-        } else
-            m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
+        // special case: fade enabled but this anim is disabled, so don't change anything. Only do the anim otherwise.
+        if (m_vRenderOffset.m_pConfig->pValues->internalEnabled || !m_fAlpha.m_pConfig->pValues->internalEnabled) {
+            if (in) {
+                m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
+                m_vRenderOffset = Vector2D(0, 0);
+            } else
+                m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
+        }
     }
 
     if (instant) {

@@ -516,7 +516,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
         if (k == pWorkspace)
             continue;
 
-        const bool SCALE = k->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(k->m_iID) > 0;
+        const bool SCALE = k && k->m_fScaleClients.value() != 1.F && g_pCompositor->getWindowsOnWorkspace(k->m_iID) > 0;
 
         if (SCALE)
             preWorkspaceScaleAnim();

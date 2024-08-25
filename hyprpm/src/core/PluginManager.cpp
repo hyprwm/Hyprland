@@ -904,9 +904,9 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 }
 
 bool CPluginManager::hasDeps() {
-    std::vector<std::string> deps = {"meson", "cpio", "cmake"};
+    std::vector<std::string> deps = {"meson", "cpio", "cmake", "pkg-config"};
     for (auto& d : deps) {
-        if (!execAndGet("which " + d + " 2>&1").contains("/"))
+        if (!execAndGet("command -v " + d).contains("/"))
             return false;
     }
 

@@ -57,7 +57,7 @@ static std::string formatToString(uint32_t drmFormat) {
 static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
-    for (auto& m : pMonitor->output->modes) {
+    for (auto const& m : pMonitor->output->modes) {
         if (format == FORMAT_NORMAL)
             result += std::format("{}x{}@{:.2f}Hz ", m->pixelSize.x, m->pixelSize.y, m->refreshRate / 1000.0);
         else
@@ -445,13 +445,13 @@ std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
                 escapeJSONStrings(mon->szName));
 
             int layerLevel = 0;
-            for (auto& level : mon->m_aLayerSurfaceLayers) {
+            for (auto const& level : mon->m_aLayerSurfaceLayers) {
                 result += std::format(
                     R"#(
         "{}": [
 )#",
                     layerLevel);
-                for (auto& layer : level) {
+                for (auto const& layer : level) {
                     result += std::format(
                         R"#(                {{
                     "address": "0x{:x}",
@@ -484,14 +484,14 @@ std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "\n}\n";
 
     } else {
-        for (auto& mon : g_pCompositor->m_vMonitors) {
+        for (auto const& mon : g_pCompositor->m_vMonitors) {
             result += std::format("Monitor {}:\n", mon->szName);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
-            for (auto& level : mon->m_aLayerSurfaceLayers) {
+            for (auto const& level : mon->m_aLayerSurfaceLayers) {
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
-                for (auto& layer : level) {
+                for (auto const& layer : level) {
                     result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}\n", (uintptr_t)layer.get(), layer->geometry.x, layer->geometry.y, layer->geometry.width,
                                           layer->geometry.height, layer->szNamespace);
                 }
@@ -510,7 +510,7 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
+        for (auto const& m : g_pLayoutManager->getAllLayoutNames()) {
             result += std::format(
                 R"#(
     "{}",)#",
@@ -520,7 +520,7 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\n]\n";
     } else {
-        for (auto& m : g_pLayoutManager->getAllLayoutNames()) {
+        for (auto const& m : g_pLayoutManager->getAllLayoutNames()) {
             result += std::format("{}\n", m);
         }
     }
@@ -557,7 +557,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "{\n";
         result += "\"mice\": [\n";
 
-        for (auto& m : g_pInputManager->m_vPointers) {
+        for (auto const& m : g_pInputManager->m_vPointers) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -572,7 +572,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         result += "\n],\n";
 
         result += "\"keyboards\": [\n";
-        for (auto& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_vKeyboards) {
             const auto KM = k->getActiveLayout();
             result += std::format(
                 R"#(    {{
@@ -596,7 +596,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\"tablets\": [\n";
 
-        for (auto& d : g_pInputManager->m_vTabletPads) {
+        for (auto const& d : g_pInputManager->m_vTabletPads) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -609,7 +609,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
                 (uintptr_t)d.get(), (uintptr_t)d->parent.get(), escapeJSONStrings(d->parent ? d->parent->hlName : ""));
         }
 
-        for (auto& d : g_pInputManager->m_vTablets) {
+        for (auto const& d : g_pInputManager->m_vTablets) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -618,7 +618,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
                 (uintptr_t)d.get(), escapeJSONStrings(d->hlName));
         }
 
-        for (auto& d : g_pInputManager->m_vTabletTools) {
+        for (auto const& d : g_pInputManager->m_vTabletTools) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -632,7 +632,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\"touch\": [\n";
 
-        for (auto& d : g_pInputManager->m_vTouches) {
+        for (auto const& d : g_pInputManager->m_vTouches) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -646,7 +646,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\"switches\": [\n";
 
-        for (auto& d : g_pInputManager->m_lSwitches) {
+        for (auto const& d : g_pInputManager->m_lSwitches) {
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
@@ -663,14 +663,14 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     } else {
         result += "mice:\n";
 
-        for (auto& m : g_pInputManager->m_vPointers) {
+        for (auto const& m : g_pInputManager->m_vPointers) {
             result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tdefault speed: {:.5f}\n", (uintptr_t)m.get(), m->hlName,
                                   (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f));
         }
 
         result += "\n\nKeyboards:\n";
 
-        for (auto& k : g_pInputManager->m_vKeyboards) {
+        for (auto const& k : g_pInputManager->m_vKeyboards) {
             const auto KM = k->getActiveLayout();
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tmain: {}\n",
                                   (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant,
@@ -679,27 +679,27 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "\n\nTablets:\n";
 
-        for (auto& d : g_pInputManager->m_vTabletPads) {
+        for (auto const& d : g_pInputManager->m_vTabletPads) {
             result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n", (uintptr_t)d.get(), (uintptr_t)d->parent.get(), d->parent ? d->parent->hlName : "");
         }
 
-        for (auto& d : g_pInputManager->m_vTablets) {
+        for (auto const& d : g_pInputManager->m_vTablets) {
             result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsize: {}x{}mm\n", (uintptr_t)d.get(), d->hlName, d->aq()->physicalSize.x, d->aq()->physicalSize.y);
         }
 
-        for (auto& d : g_pInputManager->m_vTabletTools) {
+        for (auto const& d : g_pInputManager->m_vTabletTools) {
             result += std::format("\tTablet Tool at {:x}\n", (uintptr_t)d.get());
         }
 
         result += "\n\nTouch:\n";
 
-        for (auto& d : g_pInputManager->m_vTouches) {
+        for (auto const& d : g_pInputManager->m_vTouches) {
             result += std::format("\tTouch Device at {:x}:\n\t\t{}\n", (uintptr_t)d.get(), d->hlName);
         }
 
         result += "\n\nSwitches:\n";
 
-        for (auto& d : g_pInputManager->m_lSwitches) {
+        for (auto const& d : g_pInputManager->m_lSwitches) {
             result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n", (uintptr_t)&d, d.pDevice ? d.pDevice->getName() : "");
         }
     }
@@ -712,21 +712,21 @@ std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         ret += "animations:\n";
 
-        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+        for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
             ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, (int)ac.second.overridden,
                                ac.second.internalBezier, ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle);
         }
 
         ret += "beziers:\n";
 
-        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
             ret += std::format("\n\tname: {}\n", bz.first);
         }
     } else {
         // json
 
         ret += "[[";
-        for (auto& ac : g_pConfigManager->getAnimationConfig()) {
+        for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
             ret += std::format(R"#(
 {{
     "name": "{}",
@@ -778,7 +778,7 @@ std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string requ
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto& sh : SHORTCUTS)
+        for (auto const& sh : SHORTCUTS)
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
     } else {
         ret += "[";
@@ -800,7 +800,7 @@ std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string requ
 std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto& kb : g_pKeybindManager->m_lKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_lKeybinds) {
             ret += "bind";
             if (kb.locked)
                 ret += "l";
@@ -821,7 +821,7 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     } else {
         // json
         ret += "[";
-        for (auto& kb : g_pKeybindManager->m_lKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_lKeybinds) {
             ret += std::format(
                 R"#(
 {{
@@ -935,7 +935,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
 
     result += "plugins:\n";
-    for (auto& pl : g_pPluginSystem->getAllPlugins()) {
+    for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
         result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
     }
 
@@ -1006,7 +1006,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             g_pHyprRenderer->damageMonitor(m.get());
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
@@ -1359,7 +1359,7 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+        for (auto const& wd : PWINDOW->m_dWindowDecorations) {
             result += "{\n\"decorationName\": \"" + wd->getDisplayName() + "\",\n\"priority\": " + std::to_string(wd->getPositioningInfo().priority) + "\n},";
         }
 
@@ -1367,7 +1367,7 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
         result += "]";
     } else {
         result = +"Decoration\tPriority\n";
-        for (auto& wd : PWINDOW->m_dWindowDecorations) {
+        for (auto const& wd : PWINDOW->m_dWindowDecorations) {
             result += wd->getDisplayName() + "\t" + std::to_string(wd->getPositioningInfo().priority) + "\n";
         }
     }
@@ -1396,7 +1396,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
         if (g_pCompositor->getMonitorFromName(vars[3]))
             return "A real monitor already uses that name.";
 
-        for (auto& impl : g_pCompositor->m_pAqBackend->getImplementations() | std::views::reverse) {
+        for (auto const& impl : g_pCompositor->m_pAqBackend->getImplementations() | std::views::reverse) {
             auto type = impl->type();
 
             if (type == Aquamarine::AQ_BACKEND_HEADLESS && (vars[2] == "headless" || vars[2] == "auto")) {
@@ -1464,7 +1464,7 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
             return "no plugins loaded";
 
         std::string list = "";
-        for (auto& p : PLUGINS) {
+        for (auto const& p : PLUGINS) {
             list += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->name, p->author, (uintptr_t)p->m_pHandle, p->version, p->description);
         }
 
@@ -1673,7 +1673,7 @@ std::string CHyprCtl::getReply(std::string request) {
     std::string result = "";
 
     // parse exact cmds first, then non-exact.
-    for (auto& cmd : m_vCommands) {
+    for (auto const& cmd : m_vCommands) {
         if (!cmd->exact)
             continue;
 
@@ -1684,7 +1684,7 @@ std::string CHyprCtl::getReply(std::string request) {
     }
 
     if (result.empty())
-        for (auto& cmd : m_vCommands) {
+        for (auto const& cmd : m_vCommands) {
             if (cmd->exact)
                 continue;
 
@@ -1715,7 +1715,7 @@ std::string CHyprCtl::getReply(std::string request) {
             rd.blurFBDirty = true;
         }
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             g_pHyprRenderer->damageMonitor(m.get());
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }

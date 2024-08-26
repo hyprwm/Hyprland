@@ -38,7 +38,7 @@ void CTearingControlProtocol::onControllerDestroy(CTearingControl* control) {
 }
 
 void CTearingControlProtocol::onWindowDestroy(PHLWINDOW pWindow) {
-    for (auto& c : m_vTearingControllers) {
+    for (auto const& c : m_vTearingControllers) {
         if (c->pWindow.lock() == pWindow)
             c->pWindow.reset();
     }
@@ -52,7 +52,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfac
     resource->setDestroy([this](CWpTearingControlV1* res) { PROTO::tearing->onControllerDestroy(this); });
     resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pWLSurface->resource() == surf_) {
             pWindow = w;
             break;

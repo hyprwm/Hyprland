@@ -65,7 +65,7 @@ void CSubsurface::checkSiblingDamage() {
 
     const double SCALE = m_pWindowParent.lock() && m_pWindowParent->m_bIsX11 ? 1.0 / m_pWindowParent->m_fX11SurfaceScaledBy : 1.0;
 
-    for (auto& n : m_pParent->m_vChildren) {
+    for (auto const& n : m_pParent->m_vChildren) {
         if (n.get() == this)
             continue;
 
@@ -75,7 +75,7 @@ void CSubsurface::checkSiblingDamage() {
 }
 
 void CSubsurface::recheckDamageForSubsurfaces() {
-    for (auto& n : m_vChildren) {
+    for (auto const& n : m_vChildren) {
         const auto COORDS = n->coordsGlobal();
         g_pHyprRenderer->damageSurface(n->m_pWLSurface->resource(), COORDS.x, COORDS.y);
     }
@@ -183,7 +183,7 @@ Vector2D CSubsurface::coordsGlobal() {
 }
 
 void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {
-    for (auto& s : pSurface->subsurfaces) {
+    for (auto const& s : pSurface->subsurfaces) {
         if (!s || s->surface->hlSurface /* already assigned */)
             continue;
         onNewSubsurface(s.lock());

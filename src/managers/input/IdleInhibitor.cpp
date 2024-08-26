@@ -49,7 +49,7 @@ void CInputManager::recheckIdleInhibitorStatus() {
     }
 
     // check manual user-set inhibitors
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_eIdleInhibitMode == IDLEINHIBIT_NONE)
             continue;
 

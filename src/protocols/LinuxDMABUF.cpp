@@ -31,8 +31,8 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     size_t i = 0;
 
     rendererTranche.indicies.clear();
-    for (auto& fmt : rendererTranche.formats) {
-        for (auto& mod : fmt.modifiers) {
+    for (auto const& fmt : rendererTranche.formats) {
+        for (auto const& mod : fmt.modifiers) {
             auto format        = std::make_pair<>(fmt.drmFormat, mod);
             auto [_, inserted] = formats.insert(format);
             if (inserted) {
@@ -53,8 +53,8 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
 
     for (auto& [monitor, tranche] : monitorTranches) {
         tranche.indicies.clear();
-        for (auto& fmt : tranche.formats) {
-            for (auto& mod : fmt.modifiers) {
+        for (auto const& fmt : tranche.formats) {
+            for (auto const& mod : fmt.modifiers) {
                 // apparently these can implode on planes, so dont use them
                 if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                     continue;
@@ -270,7 +270,7 @@ bool CLinuxDMABBUFParamsResource::verify() {
     }
 
     bool empty = false;
-    for (auto& plane : attrs->fds) {
+    for (auto const& plane : attrs->fds) {
         if (empty && plane != -1) {
             resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "Gap in planes");
             return false;
@@ -402,8 +402,8 @@ bool CLinuxDMABUFResource::good() {
 }
 
 void CLinuxDMABUFResource::sendMods() {
-    for (auto& fmt : PROTO::linuxDma->formatTable->rendererTranche.formats) {
-        for (auto& mod : fmt.modifiers) {
+    for (auto const& fmt : PROTO::linuxDma->formatTable->rendererTranche.formats) {
+        for (auto const& mod : fmt.modifiers) {
             if (resource->version() < 3) {
                 if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                     resource->sendFormat(fmt.drmFormat);
@@ -442,7 +442,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             // this assumes there's only 1 device used for both scanout and rendering
             // also that each monitor never changes its primary plane
 
-            for (auto& mon : g_pCompositor->m_vMonitors) {
+            for (auto const& mon : g_pCompositor->m_vMonitors) {
                 auto tranche = SDMABUFTranche{
                     .device  = mainDevice,
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
@@ -505,7 +505,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     // this might be a big copy
     auto newFormatTable = std::make_unique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
 
-    for (auto& feedback : m_vFeedbacks) {
+    for (auto const& feedback : m_vFeedbacks) {
         feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
         if (feedback->lastFeedbackWasScanout) {
             SP<CMonitor> mon;
@@ -562,7 +562,7 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
 
 void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor) {
     SP<CLinuxDMABUFFeedbackResource> feedbackResource;
-    for (auto& f : m_vFeedbacks) {
+    for (auto const& f : m_vFeedbacks) {
         if (f->surface != surface)
             continue;
 

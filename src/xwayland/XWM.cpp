@@ -417,7 +417,7 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
 
     // send state to all toplevel surfaces, sometimes we might lose some
     // that could still stick with the focused atom
-    for (auto& s : mappedSurfaces) {
+    for (auto const& s : mappedSurfaces) {
         if (!s || s->overrideRedirect)
             continue;
 
@@ -1025,7 +1025,7 @@ void CXWM::updateClientList() {
     std::erase_if(mappedSurfacesStacking, [](const auto& e) { return e.expired() || !e->mapped; });
 
     std::vector<xcb_window_t> windows;
-    for (auto& m : mappedSurfaces) {
+    for (auto const& m : mappedSurfaces) {
         windows.push_back(m->xID);
     }
 
@@ -1033,7 +1033,7 @@ void CXWM::updateClientList() {
 
     windows.clear();
 
-    for (auto& m : mappedSurfacesStacking) {
+    for (auto const& m : mappedSurfacesStacking) {
         windows.push_back(m->xID);
     }
 

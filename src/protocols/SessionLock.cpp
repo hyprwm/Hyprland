@@ -187,7 +187,7 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
     auto             PMONITOR = CWLOutputResource::fromResource(output)->monitor.get();
 
     SP<CSessionLock> sessionLock;
-    for (auto& l : m_vLocks) {
+    for (auto const& l : m_vLocks) {
         if (l->resource.get() == lock) {
             sessionLock = l;
             break;

@@ -70,7 +70,7 @@ void CAnimationManager::tick() {
 
     std::vector<CBaseAnimatedVariable*> animationEndedVars;
 
-    for (auto& av : m_vActiveAnimatedVariables) {
+    for (auto const& av : m_vActiveAnimatedVariables) {
 
         if (av->m_eDamagePolicy == AVARDAMAGE_SHADOW && !*PSHADOWSENABLED) {
             av->warp(false);
@@ -113,7 +113,7 @@ void CAnimationManager::tick() {
                 g_pHyprRenderer->damageMonitor(PMONITOR);
 
             // TODO: just make this into a damn callback already vax...
-            for (auto& w : g_pCompositor->m_vWindows) {
+            for (auto const& w : g_pCompositor->m_vWindows) {
                 if (!w->m_bIsMapped || w->isHidden() || w->m_pWorkspace != PWORKSPACE)
                     continue;
 
@@ -214,7 +214,7 @@ void CAnimationManager::tick() {
                     PWINDOW->updateWindowDecos();
                     g_pHyprRenderer->damageWindow(PWINDOW);
                 } else if (PWORKSPACE) {
-                    for (auto& w : g_pCompositor->m_vWindows) {
+                    for (auto const& w : g_pCompositor->m_vWindows) {
                         if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE)
                             continue;
 
@@ -263,7 +263,7 @@ void CAnimationManager::tick() {
     }
 
     // do it here, because if this alters the animation vars deque we would be in trouble above.
-    for (auto& ave : animationEndedVars) {
+    for (auto const& ave : animationEndedVars) {
         ave->onAnimationEnd();
     }
 }
@@ -293,7 +293,7 @@ bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
 }
 
 bool CAnimationManager::bezierExists(const std::string& bezier) {
-    for (auto& [bc, bz] : m_mBezierCurves) {
+    for (auto const& [bc, bz] : m_mBezierCurves) {
         if (bc == bezier)
             return true;
     }

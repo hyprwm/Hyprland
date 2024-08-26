@@ -49,7 +49,7 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
             {"rev", repo.rev}
         }}
     };
-    for (auto& p : repo.plugins) {
+    for (auto const& p : repo.plugins) {
         // copy .so to the good place
         if (std::filesystem::exists(p.filename))
             std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");

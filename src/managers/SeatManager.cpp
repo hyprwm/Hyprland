@@ -483,7 +483,7 @@ void CSeatManager::refocusGrab() {
     if (seatGrab->surfs.size() > 0) {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
-        for (auto& s : seatGrab->surfs) {
+        for (auto const& s : seatGrab->surfs) {
             auto hlSurf = CWLSurface::fromResource(s.lock());
             if (!hlSurf)
                 continue;

@@ -94,7 +94,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
 
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
 
@@ -386,7 +386,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 bool wantsCountVisible = false;
 
                 int  flagCount = 0;
-                for (auto& flag : prop) {
+                for (auto const& flag : prop) {
                     if (flag == 't' && wantsOnlyTiled == -1) {
                         wantsOnlyTiled = 1;
                         flagCount++;

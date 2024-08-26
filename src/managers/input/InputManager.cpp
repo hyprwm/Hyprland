@@ -1033,7 +1033,7 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
 }
 
 void CInputManager::setPointerConfigs() {
-    for (auto& m : m_vPointers) {
+    for (auto const& m : m_vPointers) {
         auto       devname = m->hlName;
 
         const auto HASCONFIG = g_pConfigManager->deviceConfigExists(devname);
@@ -1268,7 +1268,7 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     if (!leds.has_value())
         return;
 
-    for (auto& k : m_vKeyboards) {
+    for (auto const& k : m_vKeyboards) {
         k->updateLEDs(leds.value());
     }
 }
@@ -1402,7 +1402,7 @@ void CInputManager::unconstrainMouse() {
     if (g_pSeatManager->mouse.expired())
         return;
 
-    for (auto& c : m_vConstraints) {
+    for (auto const& c : m_vConstraints) {
         const auto C = c.lock();
 
         if (!C)
@@ -1416,7 +1416,7 @@ void CInputManager::unconstrainMouse() {
 }
 
 bool CInputManager::isConstrained() {
-    for (auto& c : m_vConstraints) {
+    for (auto const& c : m_vConstraints) {
         const auto C = c.lock();
 
         if (!C)
@@ -1434,7 +1434,7 @@ bool CInputManager::isConstrained() {
 void CInputManager::updateCapabilities() {
     uint32_t caps = 0;
 
-    for (auto& h : m_vHIDs) {
+    for (auto const& h : m_vHIDs) {
         if (h.expired())
             continue;
 
@@ -1449,7 +1449,7 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
 
     uint32_t finalMask = 0;
 
-    for (auto& kb : m_vKeyboards) {
+    for (auto const& kb : m_vKeyboards) {
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
             continue;
 
@@ -1464,7 +1464,7 @@ uint32_t CInputManager::accumulateModsFromAllKBs() {
 
 void CInputManager::disableAllKeyboards(bool virt) {
 
-    for (auto& k : m_vKeyboards) {
+    for (auto const& k : m_vKeyboards) {
         if (k->isVirtual() != virt)
             continue;
 
@@ -1540,13 +1540,13 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
         return;
     }
 
-    for (auto& m : m_vTouches) {
+    for (auto const& m : m_vTouches) {
         setConfig(m);
     }
 }
 
 void CInputManager::setTabletConfigs() {
-    for (auto& t : m_vTablets) {
+    for (auto const& t : m_vTablets) {
         if (t->aq()->getLibinputHandle()) {
             const auto NAME        = t->hlName;
             const auto LIBINPUTDEV = t->aq()->getLibinputHandle();
@@ -1711,7 +1711,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
         bool onDeco = false;
 
-        for (auto& wd : w->m_dWindowDecorations) {
+        for (auto const& wd : w->m_dWindowDecorations) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 

@@ -12,7 +12,7 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
 
     m_dPoints.emplace_back(Vector2D(0, 0));
 
-    for (auto& p : *pVec) {
+    for (auto const& p : *pVec) {
         m_dPoints.push_back(p);
     }
 

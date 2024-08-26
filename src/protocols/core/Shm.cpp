@@ -171,7 +171,7 @@ CWLSHMResource::CWLSHMResource(SP<CWlShm> resource_) : resource(resource_) {
     });
 
     // send a few supported formats. No need for any other I think?
-    for (auto& s : PROTO::shm->shmFormats) {
+    for (auto const& s : PROTO::shm->shmFormats) {
         resource->sendFormat((wl_shm_format)s);
     }
 }
@@ -193,7 +193,7 @@ void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, ui
             DRM_FORMAT_XBGR8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_XRGB2101010, DRM_FORMAT_ARGB2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_ABGR2101010,
         };
 
-        for (auto& fmt : g_pHyprOpenGL->getDRMFormats()) {
+        for (auto const& fmt : g_pHyprOpenGL->getDRMFormats()) {
             if (std::find(supportedShmFourccFormats.begin(), supportedShmFourccFormats.end(), fmt.drmFormat) == supportedShmFourccFormats.end())
                 continue;
 

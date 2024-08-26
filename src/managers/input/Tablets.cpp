@@ -229,7 +229,7 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
 
 SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletTool> pTool) {
 
-    for (auto& t : m_vTabletTools) {
+    for (auto const& t : m_vTabletTools) {
         if (t->aq() == pTool)
             return t;
     }

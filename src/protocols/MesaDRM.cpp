@@ -60,11 +60,11 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
             uint64_t mod = DRM_FORMAT_MOD_INVALID;
 
             auto     fmts = g_pHyprOpenGL->getDRMFormats();
-            for (auto& f : fmts) {
+            for (auto const& f : fmts) {
                 if (f.drmFormat != fmt)
                     continue;
 
-                for (auto& m : f.modifiers) {
+                for (auto const& m : f.modifiers) {
                     if (m == DRM_FORMAT_MOD_LINEAR)
                         continue;
 
@@ -100,7 +100,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : resource(resource_) {
     resource->sendCapabilities(WL_DRM_CAPABILITY_PRIME);
 
     auto fmts = g_pHyprOpenGL->getDRMFormats();
-    for (auto& fmt : fmts) {
+    for (auto const& fmt : fmts) {
         resource->sendFormat(fmt.drmFormat);
     }
 }

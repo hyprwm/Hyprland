@@ -172,7 +172,7 @@ void CWLPointerResource::sendLeave() {
     if (!PROTO::data->dndActive()) {
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
-        for (auto& b : pressedButtons) {
+        for (auto const& b : pressedButtons) {
             sendButton(now.tv_sec * 1000 + now.tv_nsec / 1000000, b, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }

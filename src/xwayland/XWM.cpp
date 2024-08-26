@@ -24,7 +24,7 @@ static int onX11Event(int fd, uint32_t mask, void* data) {
 }
 
 SP<CXWaylandSurface> CXWM::windowForXID(xcb_window_t wid) {
-    for (auto& s : surfaces) {
+    for (auto const& s : surfaces) {
         if (s->xID == wid)
             return s;
     }
@@ -156,7 +156,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     std::string propName;
     if (Debug::trace) {
         propName = std::format("{}?", atom);
-        for (auto& ha : HYPRATOMS) {
+        for (auto const& ha : HYPRATOMS) {
             if (ha.second != atom)
                 continue;
 
@@ -285,7 +285,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         return;
 
     std::string propName = "?";
-    for (auto& ha : HYPRATOMS) {
+    for (auto const& ha : HYPRATOMS) {
         if (ha.second != e->type)
             continue;
 
@@ -317,7 +317,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
         Debug::log(LOG, "[xwm] surface {:x} requests serial {:x}", (uintptr_t)XSURF.get(), XSURF->wlSerial);
 
-        for (auto& res : shellResources) {
+        for (auto const& res : shellResources) {
             if (!res)
                 continue;
 
@@ -579,7 +579,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
         atoms.push_back(HYPRATOMS["TIMESTAMP"]);
         atoms.push_back(HYPRATOMS["TARGETS"]);
 
-        for (auto& m : mimes) {
+        for (auto const& m : mimes) {
             atoms.push_back(mimeToAtom(m));
         }
 
@@ -944,7 +944,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
 
     const auto WLID = surf->id();
 
-    for (auto& sr : surfaces) {
+    for (auto const& sr : surfaces) {
         if (sr->surface || sr->wlID != WLID)
             continue;
 
@@ -961,7 +961,7 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
     std::erase_if(shellResources, [](const auto& e) { return e.expired(); });
     shellResources.push_back(resource);
 
-    for (auto& surf : surfaces) {
+    for (auto const& surf : surfaces) {
         if (surf->resource || surf->wlSerial != resource->serial)
             continue;
 

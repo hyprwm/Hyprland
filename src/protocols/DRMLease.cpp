@@ -50,12 +50,12 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
 
     lease = aqlease;
 
-    for (auto& m : requested) {
+    for (auto const& m : requested) {
         m->monitor->isBeingLeased = true;
     }
 
     listeners.destroyLease = lease->events.destroy.registerListener([this](std::any d) {
-        for (auto& m : requested) {
+        for (auto const& m : requested) {
             if (m && m->monitor)
                 m->monitor->isBeingLeased = false;
         }

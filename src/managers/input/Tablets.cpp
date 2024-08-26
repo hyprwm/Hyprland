@@ -14,7 +14,7 @@ static void unfocusTool(SP<CTabletTool> tool) {
     tool->setSurface(nullptr);
     if (tool->isDown)
         PROTO::tablet->up(tool);
-    for (auto& b : tool->buttonsDown) {
+    for (auto const& b : tool->buttonsDown) {
         PROTO::tablet->buttonTool(tool, b, false);
     }
     PROTO::tablet->proximityOut(tool);
@@ -31,7 +31,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceRes
     PROTO::tablet->proximityIn(tool, tablet, surf);
     if (tool->isDown)
         PROTO::tablet->down(tool);
-    for (auto& b : tool->buttonsDown) {
+    for (auto const& b : tool->buttonsDown) {
         PROTO::tablet->buttonTool(tool, b, true);
     }
 }

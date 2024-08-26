@@ -151,8 +151,8 @@ bool CXWaylandSurface::wantsFocus() {
         HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"],
     };
 
-    for (auto& searched : search) {
-        for (auto& a : atoms) {
+    for (auto const& searched : search) {
+        for (auto const& a : atoms) {
             if (a == searched)
                 return false;
         }

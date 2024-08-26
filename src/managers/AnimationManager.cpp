@@ -131,7 +131,7 @@ void CAnimationManager::tick() {
             }
 
             // damage any workspace window that is on any monitor
-            for (auto& w : g_pCompositor->m_vWindows) {
+            for (auto const& w : g_pCompositor->m_vWindows) {
                 if (!validMapped(w) || w->m_pWorkspace != PWORKSPACE || w->m_bPinned)
                     continue;
 

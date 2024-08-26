@@ -49,7 +49,7 @@ void SDwindleNodeData::getAllChildrenRecursive(std::deque<SDwindleNodeData*>* pD
 
 int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
     int no = 0;
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto const& n : m_lDwindleNodesData) {
         if (n.workspaceID == id && n.valid)
             ++no;
     }

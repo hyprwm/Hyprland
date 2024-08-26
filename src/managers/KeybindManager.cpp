@@ -765,7 +765,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
             const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
-            for (auto& pk : m_dPressedKeys) {
+            for (auto const& pk : m_dPressedKeys) {
                 if ((pk.keysym != 0 && (pk.keysym == KBKEY || pk.keysym == KBKEYUPPER))) {
                     shadow = true;
 
@@ -864,7 +864,7 @@ SDispatchResult CKeybindManager::spawn(std::string args) {
     if (!RULES.empty()) {
         const auto RULESLIST = CVarList(RULES, 0, ';');
 
-        for (auto& r : RULESLIST) {
+        for (auto const& r : RULESLIST) {
             g_pConfigManager->addExecRule({r, (unsigned long)PROC});
         }
 
@@ -1708,7 +1708,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         PWORKSPACE->m_bDefaultPseudo = !PWORKSPACE->m_bDefaultPseudo;
 
         // apply
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!w->m_bIsMapped || w->m_pWorkspace != PWORKSPACE)
                 continue;
 
@@ -2129,7 +2129,7 @@ SDispatchResult CKeybindManager::setSubmap(std::string submap) {
         return {};
     }
 
-    for (auto& k : g_pKeybindManager->m_lKeybinds) {
+    for (auto const& k : g_pKeybindManager->m_lKeybinds) {
         if (k.submap == submap) {
             m_szCurrentSelectedSubmap = submap;
             Debug::log(LOG, "Changed keybind submap to {}", submap);

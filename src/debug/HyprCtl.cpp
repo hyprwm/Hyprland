@@ -146,7 +146,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+        for (auto const& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
             result += CHyprCtl::getMonitorData(m, format);
         }
 
@@ -154,7 +154,7 @@ std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "]";
     } else {
-        for (auto& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
+        for (auto const& m : allMonitors ? g_pCompositor->m_vRealMonitors : g_pCompositor->m_vMonitors) {
             if (!m->output || m->ID == -1)
                 continue;
 
@@ -272,7 +272,7 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
                 continue;
 
@@ -283,7 +283,7 @@ std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
 
         result += "]";
     } else {
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!w->m_bIsMapped && !g_pHyprCtl->m_sCurrentRequestParams.all)
                 continue;
 
@@ -381,7 +381,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             result += CHyprCtl::getWorkspaceData(w, format);
             result += ",";
         }
@@ -389,7 +389,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             result += CHyprCtl::getWorkspaceData(w, format);
         }
     }
@@ -401,7 +401,7 @@ std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::string reque
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+        for (auto const& r : g_pConfigManager->getAllWorkspaceRules()) {
             result += getWorkspaceRuleData(r, format);
             result += ",";
         }
@@ -409,7 +409,7 @@ std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::string reque
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto& r : g_pConfigManager->getAllWorkspaceRules()) {
+        for (auto const& r : g_pConfigManager->getAllWorkspaceRules()) {
             result += getWorkspaceRuleData(r, format);
         }
     }
@@ -437,7 +437,7 @@ std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
 
-        for (auto& mon : g_pCompositor->m_vMonitors) {
+        for (auto const& mon : g_pCompositor->m_vMonitors) {
             result += std::format(
                 R"#("{}": {{
     "levels": {{
@@ -744,7 +744,7 @@ std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) 
 
         ret += ",\n[";
 
-        for (auto& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
             ret += std::format(R"#(
 {{
     "name": "{}"
@@ -782,7 +782,7 @@ std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string requ
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
     } else {
         ret += "[";
-        for (auto& sh : SHORTCUTS) {
+        for (auto const& sh : SHORTCUTS) {
             ret += std::format(R"#(
 {{
     "name": "{}",
@@ -1286,7 +1286,7 @@ std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
         g_pCompositor->focusWindow(PLASTWINDOW);
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors)
+    for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     return "ok";
@@ -1386,7 +1386,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
     bool       added = false;
 
     if (!vars[3].empty()) {
-        for (auto& m : g_pCompositor->m_vRealMonitors) {
+        for (auto const& m : g_pCompositor->m_vRealMonitors) {
             if (m->szName == vars[3])
                 return "Name already taken";
         }

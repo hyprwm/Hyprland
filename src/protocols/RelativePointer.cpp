@@ -65,7 +65,7 @@ void CRelativePointerProtocol::sendRelativeMotion(uint64_t time, const Vector2D&
 
     const auto FOCUSED = g_pSeatManager->state.pointerFocusResource->client();
 
-    for (auto& rp : m_vRelativePointers) {
+    for (auto const& rp : m_vRelativePointers) {
         if (FOCUSED != rp->client())
             continue;
 

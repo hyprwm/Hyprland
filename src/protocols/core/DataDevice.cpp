@@ -80,7 +80,7 @@ void CWLDataOfferResource::sendData() {
         resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
     }
 
-    for (auto& m : source->mimes()) {
+    for (auto const& m : source->mimes()) {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
         resource->sendOffer(m.c_str());
     }

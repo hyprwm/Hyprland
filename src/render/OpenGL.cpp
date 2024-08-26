@@ -213,7 +213,7 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
         return EGL_NO_DEVICE_EXT;
     }
 
-    for (auto& d : devices) {
+    for (auto const& d : devices) {
         auto devName = m_sProc.eglQueryDeviceStringEXT(d, EGL_DRM_DEVICE_FILE_EXT);
         if (!devName)
             continue;
@@ -435,7 +435,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
 
     std::vector<SDRMFormat> dmaFormats;
 
-    for (auto& fmt : formats) {
+    for (auto const& fmt : formats) {
         std::vector<uint64_t> mods;
         if (!DISABLE_MODS) {
             auto ret = getModsForFormat(fmt);
@@ -460,7 +460,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
 
         auto                                          fmtName = drmGetFormatName(fmt);
         Debug::log(LOG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
-        for (auto& mod : mods) {
+        for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
             modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
             free(modName);
@@ -476,7 +476,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
             return true;
         });
 
-        for (auto& [m, name] : modifierData) {
+        for (auto const& [m, name] : modifierData) {
             Debug::log(LOG, "EGL: | with modifier {} (0x{:x})", name, m);
             mods.emplace_back(m);
         }
@@ -654,7 +654,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     if (!pMonitor->solitaryClient.expired())
         return false;
 
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
         if (ls->forceBlur && !XRAYMODE)
             return true;
@@ -663,7 +663,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
             return true;
     }
 
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         const auto XRAYMODE = ls->xray == -1 ? *PXRAY : ls->xray;
         if (ls->forceBlur && !XRAYMODE)
             return true;
@@ -673,7 +673,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     }
 
     // these two block optimization
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
         if (ls->forceBlur)
             return true;
 
@@ -681,7 +681,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
             return true;
     }
 
-    for (auto& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
         if (ls->forceBlur)
             return true;
 
@@ -704,7 +704,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     if (*PXRAY)
         return false;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->isHidden())
             continue;
 
@@ -1168,7 +1168,7 @@ void CHyprOpenGLImpl::clear(const CColor& color) {
     glClearColor(color.r, color.g, color.b, color.a);
 
     if (!m_RenderData.damage.empty()) {
-        for (auto& RECT : m_RenderData.damage.getRects()) {
+        for (auto const& RECT : m_RenderData.damage.getRects()) {
             scissor(&RECT);
             glClear(GL_COLOR_BUFFER_BIT);
         }
@@ -1327,13 +1327,13 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
         damageClip.intersect(*damage);
 
         if (!damageClip.empty()) {
-            for (auto& RECT : damageClip.getRects()) {
+            for (auto const& RECT : damageClip.getRects()) {
                 scissor(&RECT);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
         }
     } else {
-        for (auto& RECT : damage->getRects()) {
+        for (auto const& RECT : damage->getRects()) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -1523,13 +1523,13 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
         damageClip.intersect(*damage);
 
         if (!damageClip.empty()) {
-            for (auto& RECT : damageClip.getRects()) {
+            for (auto const& RECT : damageClip.getRects()) {
                 scissor(&RECT);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
         }
     } else {
-        for (auto& RECT : damage->getRects()) {
+        for (auto const& RECT : damage->getRects()) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -1582,7 +1582,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
-    for (auto& RECT : m_RenderData.damage.getRects()) {
+    for (auto const& RECT : m_RenderData.damage.getRects()) {
         scissor(&RECT);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
@@ -1640,7 +1640,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
     glEnableVertexAttribArray(shader->posAttrib);
     glEnableVertexAttribArray(shader->texAttrib);
 
-    for (auto& RECT : m_RenderData.damage.getRects()) {
+    for (auto const& RECT : m_RenderData.damage.getRects()) {
         scissor(&RECT);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
@@ -1725,7 +1725,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURPREPARE.texAttrib);
 
         if (!damage.empty()) {
-            for (auto& RECT : damage.getRects()) {
+            for (auto const& RECT : damage.getRects()) {
                 scissor(&RECT, false /* this region is already transformed */);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -1778,7 +1778,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glEnableVertexAttribArray(pShader->texAttrib);
 
         if (!pDamage->empty()) {
-            for (auto& RECT : pDamage->getRects()) {
+            for (auto const& RECT : pDamage->getRects()) {
                 scissor(&RECT, false /* this region is already transformed */);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -1848,7 +1848,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBLURFINISH.texAttrib);
 
         if (!damage.empty()) {
-            for (auto& RECT : damage.getRects()) {
+            for (auto const& RECT : damage.getRects()) {
                 scissor(&RECT, false /* this region is already transformed */);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
@@ -1924,7 +1924,7 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
     };
 
     bool hasWindows = false;
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pWorkspace == pMonitor->activeWorkspace && !w->isHidden() && w->m_bIsMapped && (!w->m_bIsFloating || *PBLURXRAY)) {
 
             // check if window is valid
@@ -2215,13 +2215,13 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
         damageClip.intersect(m_RenderData.damage);
 
         if (!damageClip.empty()) {
-            for (auto& RECT : damageClip.getRects()) {
+            for (auto const& RECT : damageClip.getRects()) {
                 scissor(&RECT);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
         }
     } else {
-        for (auto& RECT : m_RenderData.damage.getRects()) {
+        for (auto const& RECT : m_RenderData.damage.getRects()) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -2512,13 +2512,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
         damageClip.intersect(m_RenderData.damage);
 
         if (!damageClip.empty()) {
-            for (auto& RECT : damageClip.getRects()) {
+            for (auto const& RECT : damageClip.getRects()) {
                 scissor(&RECT);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
         }
     } else {
-        for (auto& RECT : m_RenderData.damage.getRects()) {
+        for (auto const& RECT : m_RenderData.damage.getRects()) {
             scissor(&RECT);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -2928,7 +2928,7 @@ void SRenderModifData::applyToBox(CBox& box) {
     if (!enabled)
         return;
 
-    for (auto& [type, val] : modifs) {
+    for (auto const& [type, val] : modifs) {
         try {
             switch (type) {
                 case RMOD_TYPE_SCALE: box.scale(std::any_cast<float>(val)); break;
@@ -2953,7 +2953,7 @@ void SRenderModifData::applyToRegion(CRegion& rg) {
     if (!enabled)
         return;
 
-    for (auto& [type, val] : modifs) {
+    for (auto const& [type, val] : modifs) {
         try {
             switch (type) {
                 case RMOD_TYPE_SCALE: rg.scale(std::any_cast<float>(val)); break;
@@ -2971,7 +2971,7 @@ float SRenderModifData::combinedScale() {
         return 1;
 
     float scale = 1.f;
-    for (auto& [type, val] : modifs) {
+    for (auto const& [type, val] : modifs) {
         try {
             switch (type) {
                 case RMOD_TYPE_SCALE: scale *= std::any_cast<float>(val); break;

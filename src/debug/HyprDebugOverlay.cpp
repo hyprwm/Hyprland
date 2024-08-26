@@ -217,7 +217,7 @@ void CHyprDebugOverlay::draw() {
 
     // draw the things
     int offsetY = 0;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         offsetY += m_mMonitorOverlays[m.get()].draw(offsetY);
         offsetY += 5; // for padding between mons
     }

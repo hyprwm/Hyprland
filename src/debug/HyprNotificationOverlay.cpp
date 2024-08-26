@@ -44,7 +44,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     PNOTIF->icon     = icon;
     PNOTIF->fontSize = fontSize;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         g_pCompositor->scheduleFrameForMonitor(m.get());
     }
 }
@@ -87,7 +87,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto iconBackendID = iconBackendFromLayout(layout);
     const auto PBEZIER       = g_pAnimationManager->getBezier("default");
 
-    for (auto& notif : m_dNotifications) {
+    for (auto const& notif : m_dNotifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
         const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 

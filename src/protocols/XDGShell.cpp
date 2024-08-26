@@ -388,7 +388,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         g_pCompositor->m_vWindows.emplace_back(CWindow::create(self.lock()));
 
-        for (auto& p : popups) {
+        for (auto const& p : popups) {
             if (!p)
                 continue;
             events.newPopup.emit(p);
@@ -714,7 +714,7 @@ CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, 
     grab->keyboard = true;
     grab->pointer  = true;
     grab->setCallback([this]() {
-        for (auto& g : grabbed) {
+        for (auto const& g : grabbed) {
             g->done();
         }
         grabbed.clear();
@@ -779,7 +779,7 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
 void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
     if (popup == grabOwner) {
         g_pSeatManager->setGrab(nullptr);
-        for (auto& g : grabbed) {
+        for (auto const& g : grabbed) {
             g->done();
         }
         grabbed.clear();

@@ -139,7 +139,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
 
-    for (auto& r : PWINDOW->m_vMatchedRules) {
+    for (auto const& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = trim(r.szRule.substr(r.szRule.find(' ')));
@@ -326,7 +326,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
-        for (auto& r : PWINDOW->m_vMatchedRules) {
+        for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);

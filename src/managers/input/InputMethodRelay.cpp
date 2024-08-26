@@ -57,7 +57,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     if (!g_pCompositor->m_pLastFocus)
         return;
 
-    for (auto& ti : m_vTextInputs) {
+    for (auto const& ti : m_vTextInputs) {
         if (ti->client() != g_pCompositor->m_pLastFocus->client())
             continue;
 
@@ -80,7 +80,7 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
     if (!g_pCompositor->m_pLastFocus)
         return nullptr;
 
-    for (auto& ti : m_vTextInputs) {
+    for (auto const& ti : m_vTextInputs) {
         if (ti->focusedSurface() == g_pCompositor->m_pLastFocus)
             return ti.get();
     }
@@ -101,7 +101,7 @@ void CInputMethodRelay::removeTextInput(CTextInput* pInput) {
 }
 
 void CInputMethodRelay::updateAllPopups() {
-    for (auto& p : m_vIMEPopups) {
+    for (auto const& p : m_vIMEPopups) {
         p->onCommit();
     }
 }
@@ -138,7 +138,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
 
     m_pLastKbFocus = pSurface;
 
-    for (auto& ti : m_vTextInputs) {
+    for (auto const& ti : m_vTextInputs) {
         if (!ti->focusedSurface())
             continue;
 
@@ -148,7 +148,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return;
 
-    for (auto& ti : m_vTextInputs) {
+    for (auto const& ti : m_vTextInputs) {
         if (!ti->isV3())
             continue;
 
@@ -160,7 +160,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
 }
 
 CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
-    for (auto& p : m_vIMEPopups) {
+    for (auto const& p : m_vIMEPopups) {
         if (p->isVecInPopup(point))
             return p.get();
     }
@@ -169,7 +169,7 @@ CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
 }
 
 CInputPopup* CInputMethodRelay::popupFromSurface(const SP<CWLSurfaceResource> surface) {
-    for (auto& p : m_vIMEPopups) {
+    for (auto const& p : m_vIMEPopups) {
         if (p->getSurface() == surface)
             return p.get();
     }

@@ -37,7 +37,7 @@ void CWLRDataOffer::sendData() {
     if (!source)
         return;
 
-    for (auto& m : source->mimes()) {
+    for (auto const& m : source->mimes()) {
         resource->sendOffer(m.c_str());
     }
 }
@@ -191,7 +191,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
         RESOURCE->self = RESOURCE;
         device         = RESOURCE;
 
-        for (auto& s : sources) {
+        for (auto const& s : sources) {
             if (!s)
                 continue;
             s->device = RESOURCE;

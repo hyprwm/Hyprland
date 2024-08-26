@@ -114,11 +114,11 @@ void CPresentationProtocol::onPresented(CMonitor* pMonitor, timespec* when, uint
         when = &now;
     }
 
-    for (auto& feedback : m_vFeedbacks) {
+    for (auto const& feedback : m_vFeedbacks) {
         if (!feedback->surface)
             continue;
 
-        for (auto& data : m_vQueue) {
+        for (auto const& data : m_vQueue) {
             if (!data->surface || data->surface != feedback->surface)
                 continue;
 

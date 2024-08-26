@@ -591,7 +591,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     if (pWindow->m_bIsFloating) {
 
         // find whether there is a floating window below this one
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
@@ -611,7 +611,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
             return PWINDOWCANDIDATE;
 
         // if not, floating window
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow)
                 return w;
@@ -660,7 +660,7 @@ void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
-        for (auto& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
+        for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);

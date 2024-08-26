@@ -45,7 +45,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
     std::string parseError = "";
 
-    for (auto& var : varlist) {
+    for (auto const& var : varlist) {
         if (var.find("deg") != std::string::npos) {
             // last arg
             try {
@@ -863,7 +863,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         refreshGroupBarGradients();
 
     // Updates dynamic window and workspace rules
-    for (auto& w : g_pCompositor->m_vWorkspaces) {
+    for (auto const& w : g_pCompositor->m_vWorkspaces) {
         if (w->inert())
             continue;
         g_pCompositor->updateWorkspaceWindows(w->m_iID);
@@ -891,7 +891,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
 
@@ -978,7 +978,7 @@ void CConfigManager::tick() {
 
     bool parse = false;
 
-    for (auto& cf : configPaths) {
+    for (auto const& cf : configPaths) {
         struct stat fileStat;
         int         err = stat(cf.c_str(), &fileStat);
         if (err != 0) {
@@ -1059,7 +1059,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
     SWorkspaceRule mergedRule{};
-    for (auto& rule : m_dWorkspaceRules) {
+    for (auto const& rule : m_dWorkspaceRules) {
         if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
             continue;
 
@@ -1132,7 +1132,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
 
-    for (auto& rule : m_dWindowRules) {
+    for (auto const& rule : m_dWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
@@ -1297,7 +1297,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     bool anyExecFound = false;
 
-    for (auto& er : execRequestedRules) {
+    for (auto const& er : execRequestedRules) {
         if (std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == er.iPid; })) {
             returns.push_back({er.szRule, "execRule"});
             anyExecFound = true;
@@ -1317,7 +1317,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
     if (!pLS->layerSurface || pLS->fadingOut)
         return returns;
 
-    for (auto& lr : m_dLayerRules) {
+    for (auto const& lr : m_dLayerRules) {
         if (lr.targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr.targetNamespace)
                 continue;
@@ -1391,7 +1391,7 @@ void CConfigManager::performMonitorReload() {
 
     bool overAgain = false;
 
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
+    for (auto const& m : g_pCompositor->m_vRealMonitors) {
         if (!m->output || m->isUnsafeFallback)
             continue;
 
@@ -1448,7 +1448,7 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 }
 
 void CConfigManager::ensureMonitorStatus() {
-    for (auto& rm : g_pCompositor->m_vRealMonitors) {
+    for (auto const& rm : g_pCompositor->m_vRealMonitors) {
         if (!rm->output || rm->isUnsafeFallback)
             continue;
 
@@ -1531,7 +1531,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
         return;
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         ensureVRRForDisplay(m.get());
     }
 }
@@ -1632,7 +1632,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
     }
 
     std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
-    for (auto& [h, n] : pluginVariables) {
+    for (auto const& [h, n] : pluginVariables) {
         if (h != handle)
             continue;
 
@@ -2534,7 +2534,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     };
 
     CVarList rulesList{rules, 0, ',', true};
-    for (auto& r : rulesList) {
+    for (auto const& r : rulesList) {
         const auto R = assignRule(r);
         if (R.has_value())
             return R;

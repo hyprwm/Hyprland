@@ -180,7 +180,7 @@ void handleNoop(struct wl_listener* listener, void* data) {
 
 std::string escapeJSONStrings(const std::string& str) {
     std::ostringstream oss;
-    for (auto& c : str) {
+    for (auto const& c : str) {
         switch (c) {
             case '"': oss << "\\\""; break;
             case '\\': oss << "\\\\"; break;
@@ -251,7 +251,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
-            for (auto& rule : g_pConfigManager->getAllWorkspaceRules()) {
+            for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
                 const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
                 if (PMONITOR && (PMONITOR->ID != g_pCompositor->m_pLastMonitor->ID))
                     invalidWSes.insert(rule.workspaceId);
@@ -301,13 +301,13 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             std::set<WORKSPACEID> invalidWSes;
 
             // Collect all the workspaces we can't jump to.
-            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+            for (auto const& ws : g_pCompositor->m_vWorkspaces) {
                 if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)) {
                     // Can't jump to this workspace
                     invalidWSes.insert(ws->m_iID);
                 }
             }
-            for (auto& rule : g_pConfigManager->getAllWorkspaceRules()) {
+            for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
                 const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
                 if (!PMONITOR || PMONITOR->ID == g_pCompositor->m_pLastMonitor->ID) {
                     // Can't be invalid
@@ -319,7 +319,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             // Prepare all named workspaces in case when we need them
             std::vector<WORKSPACEID> namedWSes;
-            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+            for (auto const& ws : g_pCompositor->m_vWorkspaces) {
                 if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID) || ws->m_iID >= 0)
                     continue;
 
@@ -463,7 +463,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             int                      remains = (int)result.id;
 
             std::vector<WORKSPACEID> validWSes;
-            for (auto& ws : g_pCompositor->m_vWorkspaces) {
+            for (auto const& ws : g_pCompositor->m_vWorkspaces) {
                 if (ws->m_bIsSpecialWorkspace || (ws->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID && !onAllMonitors))
                     continue;
 

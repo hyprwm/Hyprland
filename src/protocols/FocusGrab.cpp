@@ -103,7 +103,7 @@ void CFocusGrab::refocusKeyboard() {
         return;
 
     SP<CWLSurfaceResource> surface = nullptr;
-    for (auto& [surf, state] : m_mSurfaces) {
+    for (auto const& [surf, state] : m_mSurfaces) {
         if (state->state == CFocusGrabSurfaceState::Comitted) {
             surface = surf.lock();
             break;

@@ -296,7 +296,7 @@ void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
 }
 
 void CWindow::uncacheWindowDecos() {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         g_pDecorationPositioner->uncacheDecoration(wd.get());
     }
 }
@@ -305,7 +305,7 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
     if (type != INPUT_TYPE_DRAG_END && hasPopupAt(mouseCoords))
         return false;
 
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
             continue;
 
@@ -337,7 +337,7 @@ pid_t CWindow::getPID() {
 }
 
 IHyprWindowDecoration* CWindow::getDecorationByType(eDecorationType type) {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (wd->getDecorationType() == type)
             return wd.get();
     }
@@ -666,7 +666,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 return;
             }
 
-            for (auto& token : colorsAndAngles) {
+            for (auto const& token : colorsAndAngles) {
                 // The first angle, or an explicit "0deg", splits the two gradients
                 if (active && token.contains("deg")) {
                     activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
@@ -889,7 +889,7 @@ void CWindow::destroyGroup() {
 
     const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
     g_pKeybindManager->m_bGroupsLocked = true;
-    for (auto& w : members) {
+    for (auto const& w : members) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
         w->updateWindowDecos();
     }
@@ -1282,7 +1282,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 
     CVarList envs(std::string{buffer.data(), buffer.size() - 1}, 0, '\n', true);
 
-    for (auto& e : envs) {
+    for (auto const& e : envs) {
         if (!e.contains('='))
             continue;
 
@@ -1511,7 +1511,7 @@ PHLWINDOW CWindow::getSwallower() {
         if (!currentPid)
             break;
 
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!w->m_bIsMapped || w->isHidden())
                 continue;
 
@@ -1536,7 +1536,7 @@ PHLWINDOW CWindow::getSwallower() {
         return candidates.at(0);
 
     // walk up the focus history and find the last focused
-    for (auto& w : g_pCompositor->m_vWindowFocusHistory) {
+    for (auto const& w : g_pCompositor->m_vWindowFocusHistory) {
         if (!w)
             continue;
 

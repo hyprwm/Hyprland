@@ -690,7 +690,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     }
 
     if (*PBLURSPECIAL) {
-        for (auto& ws : g_pCompositor->m_vWorkspaces) {
+        for (auto const& ws : g_pCompositor->m_vWorkspaces) {
             if (!ws->m_bIsSpecialWorkspace || ws->m_iMonitorID != pMonitor->ID)
                 continue;
 
@@ -1936,9 +1936,9 @@ void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
         }
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        for (auto& lsl : m->m_aLayerSurfaceLayers) {
-            for (auto& ls : lsl) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto const& ls : lsl) {
                 if (!ls->layerSurface || ls->xray != 1)
                     continue;
 

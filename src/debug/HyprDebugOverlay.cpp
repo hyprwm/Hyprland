@@ -57,7 +57,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     float avgFrametime = 0;
     float maxFrametime = 0;
     float minFrametime = 9999;
-    for (auto& ft : m_dLastFrametimes) {
+    for (auto const& ft : m_dLastFrametimes) {
         if (ft > maxFrametime)
             maxFrametime = ft;
         if (ft < minFrametime)
@@ -70,7 +70,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     float avgRenderTime = 0;
     float maxRenderTime = 0;
     float minRenderTime = 9999;
-    for (auto& rt : m_dLastRenderTimes) {
+    for (auto const& rt : m_dLastRenderTimes) {
         if (rt > maxRenderTime)
             maxRenderTime = rt;
         if (rt < minRenderTime)
@@ -83,7 +83,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     float avgRenderTimeNoOverlay = 0;
     float maxRenderTimeNoOverlay = 0;
     float minRenderTimeNoOverlay = 9999;
-    for (auto& rt : m_dLastRenderTimesNoOverlay) {
+    for (auto const& rt : m_dLastRenderTimesNoOverlay) {
         if (rt > maxRenderTimeNoOverlay)
             maxRenderTimeNoOverlay = rt;
         if (rt < minRenderTimeNoOverlay)
@@ -96,7 +96,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
     float avgAnimMgrTick = 0;
     float maxAnimMgrTick = 0;
     float minAnimMgrTick = 9999;
-    for (auto& at : m_dLastAnimationTicks) {
+    for (auto const& at : m_dLastAnimationTicks) {
         if (at > maxAnimMgrTick)
             maxAnimMgrTick = at;
         if (at < minAnimMgrTick)

@@ -207,7 +207,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // verify last mon valid
     bool found = false;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m == g_pCompositor->m_pLastMonitor) {
             found = true;
             break;
@@ -272,7 +272,7 @@ void CMonitor::onDisconnect(bool destroy) {
     listeners.commit.reset();
 
     for (size_t i = 0; i < 4; ++i) {
-        for (auto& ls : m_aLayerSurfaceLayers[i]) {
+        for (auto const& ls : m_aLayerSurfaceLayers[i]) {
             if (ls->layerSurface && !ls->fadingOut)
                 ls->layerSurface->sendClosed();
         }

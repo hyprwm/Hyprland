@@ -16,7 +16,7 @@ SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(PHLWINDOW pWindow) {
 
 int CHyprMasterLayout::getNodesOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
-    for (auto& n : m_lMasterNodesData) {
+    for (auto const& n : m_lMasterNodesData) {
         if (n.workspaceID == ws)
             no++;
     }
@@ -26,7 +26,7 @@ int CHyprMasterLayout::getNodesOnWorkspace(const WORKSPACEID& ws) {
 
 int CHyprMasterLayout::getMastersOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
-    for (auto& n : m_lMasterNodesData) {
+    for (auto const& n : m_lMasterNodesData) {
         if (n.workspaceID == ws && n.isMaster)
             no++;
     }
@@ -381,7 +381,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     if (*PSMARTRESIZING) {
         // check the total width and height so that later
         // if larger/smaller than screen size them down/up
-        for (auto& nd : m_lMasterNodesData) {
+        for (auto const& nd : m_lMasterNodesData) {
             if (nd.workspaceID == pWorkspace->m_iID) {
                 if (nd.isMaster)
                     masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
@@ -552,7 +552,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         float       slaveAccumulatedHeightL = 0;
         float       slaveAccumulatedHeightR = 0;
         if (*PSMARTRESIZING) {
-            for (auto& nd : m_lMasterNodesData) {
+            for (auto const& nd : m_lMasterNodesData) {
                 if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                     continue;
 

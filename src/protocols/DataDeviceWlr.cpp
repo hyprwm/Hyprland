@@ -291,7 +291,7 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
 }
 
 void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
         if (o->primary != primary)
@@ -302,7 +302,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
     if (!source) {
         LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
 
-        for (auto& d : m_vDevices) {
+        for (auto const& d : m_vDevices) {
             sendSelectionToDevice(d, nullptr, primary);
         }
 
@@ -311,7 +311,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
 
     LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
-    for (auto& d : m_vDevices) {
+    for (auto const& d : m_vDevices) {
         sendSelectionToDevice(d, source, primary);
     }
 }

@@ -331,7 +331,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
         return true;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (PWORKSPACE && PWORKSPACE->m_iMonitorID == m->ID && (PWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWORKSPACE->m_fAlpha.isBeingAnimated()))
             return true;
 
@@ -915,7 +915,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     g_pHyprOpenGL->m_RenderData.damage = preOccludedDamage;
 
     // and then special
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
         if (ws->m_iMonitorID == pMonitor->ID && ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
             const auto SPECIALANIMPROGRS = ws->m_vRenderOffset.isBeingAnimated() ? ws->m_vRenderOffset.getCurveValue() : ws->m_fAlpha.getCurveValue();
             const bool ANIMOUT           = !pMonitor->activeSpecialWorkspace;
@@ -935,7 +935,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     }
 
     // special
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
         if (ws->m_fAlpha.value() > 0.f && ws->m_bIsSpecialWorkspace) {
             if (ws->m_bHasFullscreenWindow)
                 renderWorkspaceWindowsFullscreen(pMonitor, ws, time);
@@ -1489,7 +1489,7 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace,
 }
 
 void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface->resource())
             continue;
 
@@ -1499,8 +1499,8 @@ void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE 
         w->m_pWLSurface->resource()->breadthfirst([now](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { r->frame(now); }, nullptr);
     }
 
-    for (auto& lsl : pMonitor->m_aLayerSurfaceLayers) {
-        for (auto& ls : lsl) {
+    for (auto const& lsl : pMonitor->m_aLayerSurfaceLayers) {
+        for (auto const& ls : lsl) {
             if (ls->fadingOut || !ls->surface->resource())
                 continue;
 
@@ -1673,10 +1673,10 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     CBox usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-    for (auto& la : PMONITOR->m_aLayerSurfaceLayers)
+    for (auto const& la : PMONITOR->m_aLayerSurfaceLayers)
         arrangeLayerArray(PMONITOR, la, true, &usableArea);
 
-    for (auto& la : PMONITOR->m_aLayerSurfaceLayers)
+    for (auto const& la : PMONITOR->m_aLayerSurfaceLayers)
         arrangeLayerArray(PMONITOR, la, false, &usableArea);
 
     PMONITOR->vecReservedTopLeft     = Vector2D(usableArea.x, usableArea.y) - PMONITOR->vecPosition;
@@ -1808,7 +1808,7 @@ void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const in
 }
 
 void CHyprRenderer::damageRegion(const CRegion& rg) {
-    for (auto& RECT : rg.getRects()) {
+    for (auto const& RECT : rg.getRects()) {
         damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1);
     }
 }
@@ -2370,7 +2370,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(CMonitor* pMonitor
     float      avgRenderTime = 0;
     float      maxRenderTime = 0;
     float      minRenderTime = 9999;
-    for (auto& rt : POVERLAY->m_dLastRenderTimes) {
+    for (auto const& rt : POVERLAY->m_dLastRenderTimes) {
         if (rt > maxRenderTime)
             maxRenderTime = rt;
         if (rt < minRenderTime)
@@ -2528,12 +2528,12 @@ void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
     if (!pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty())
         return;
 
-    for (auto& topls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+    for (auto const& topls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         if (topls->alpha.value() != 0.f)
             return;
     }
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w == PCANDIDATE || (!w->m_bIsMapped && !w->m_bFadingOut) || w->isHidden())
             continue;
 

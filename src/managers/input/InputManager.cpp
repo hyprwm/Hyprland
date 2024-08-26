@@ -919,7 +919,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 }
 
 void CInputManager::setKeyboardLayout() {
-    for (auto& k : m_vKeyboards)
+    for (auto const& k : m_vKeyboards)
         applyConfigToKeyboard(k);
 
     g_pKeybindManager->updateXKBTranslationState();
@@ -1197,7 +1197,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 
     if (m_vKeyboards.size() > 0) {
         bool found = false;
-        for (auto& k : m_vKeyboards | std::views::reverse) {
+        for (auto const& k : m_vKeyboards | std::views::reverse) {
             if (!k)
                 continue;
 
@@ -1673,7 +1673,7 @@ void CInputManager::releaseAllMouseButtons() {
     if (PROTO::data->dndActive())
         return;
 
-    for (auto& mb : buttonsCopy) {
+    for (auto const& mb : buttonsCopy) {
         g_pSeatManager->sendPointerButton(0, mb, WL_POINTER_BUTTON_STATE_RELEASED);
     }
 

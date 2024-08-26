@@ -252,7 +252,7 @@ void CWindow::updateWindowDecos() {
     if (!m_bIsMapped || isHidden())
         return;
 
-    for (auto& wd : m_vDecosToRemove) {
+    for (auto const& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
                 g_pDecorationPositioner->uncacheDecoration(it->get());
@@ -270,11 +270,11 @@ void CWindow::updateWindowDecos() {
     // make a copy because updateWindow can remove decos.
     std::vector<IHyprWindowDecoration*> decos;
 
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         decos.push_back(wd.get());
     }
 
-    for (auto& wd : decos) {
+    for (auto const& wd : decos) {
         if (std::find_if(m_dWindowDecorations.begin(), m_dWindowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_dWindowDecorations.end())
             continue;
         wd->updateWindow(m_pSelf.lock());
@@ -454,7 +454,7 @@ PHLWINDOW CWindow::X11TransientFor() {
         s = s->parent;
     }
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pXWaylandSurface != s)
             continue;
         return w;
@@ -464,7 +464,7 @@ PHLWINDOW CWindow::X11TransientFor() {
 }
 
 void CWindow::removeDecorationByType(eDecorationType type) {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (wd->getDecorationType() == type)
             m_vDecosToRemove.push_back(wd.get());
     }
@@ -617,7 +617,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
             int      opacityIDX = 0;
 
-            for (auto& r : vars) {
+            for (auto const& r : vars) {
                 if (r == "opacity")
                     continue;
 
@@ -770,7 +770,7 @@ void CWindow::updateDynamicRules() {
     m_tags.removeDynamicTags();
 
     m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
-    for (auto& r : m_vMatchedRules) {
+    for (auto const& r : m_vMatchedRules) {
         applyDynamicRule(r);
     }
 
@@ -881,7 +881,7 @@ void CWindow::destroyGroup() {
         addresses += std::format("{:x},", (uintptr_t)curr.get());
     } while (curr.get() != this);
 
-    for (auto& w : members) {
+    for (auto const& w : members) {
         if (w->m_sGroupData.head)
             g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
         w->m_sGroupData.head = false;

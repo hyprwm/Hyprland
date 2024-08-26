@@ -90,7 +90,7 @@ void CPointerManager::unlockSoftwareAll() {
 }
 
 void CPointerManager::lockSoftwareForMonitor(CMonitor* Monitor) {
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m->ID == Monitor->ID) {
             lockSoftwareForMonitor(m);
             return;
@@ -107,7 +107,7 @@ void CPointerManager::lockSoftwareForMonitor(SP<CMonitor> mon) {
 }
 
 void CPointerManager::unlockSoftwareForMonitor(CMonitor* Monitor) {
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m->ID == Monitor->ID) {
             unlockSoftwareForMonitor(m);
             return;
@@ -225,7 +225,7 @@ void CPointerManager::recheckEnteredOutputs() {
 
     auto box = getCursorBoxGlobal();
 
-    for (auto& s : monitorStates) {
+    for (auto const& s : monitorStates) {
         if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_bEnabled)
             continue;
 
@@ -279,7 +279,7 @@ void CPointerManager::resetCursorImage(bool apply) {
     currentCursorImage.scale   = 1.F;
     currentCursorImage.hotspot = {0, 0};
 
-    for (auto& s : monitorStates) {
+    for (auto const& s : monitorStates) {
         if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_bEnabled)
             continue;
 
@@ -289,7 +289,7 @@ void CPointerManager::resetCursorImage(bool apply) {
     if (!apply)
         return;
 
-    for (auto& ms : monitorStates) {
+    for (auto const& ms : monitorStates) {
         if (!ms->monitor || !ms->monitor->m_bEnabled || !ms->monitor->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
@@ -334,7 +334,7 @@ void CPointerManager::onCursorMoved() {
     if (!hasCursor())
         return;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
 
         state->box = getCursorBoxLogicalForMonitor(state->monitor.lock());
@@ -1006,7 +1006,7 @@ void CPointerManager::detachTablet(SP<CTablet> tablet) {
 }
 
 void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
-    for (auto& mw : monitorStates) {
+    for (auto const& mw : monitorStates) {
         if (mw->monitor != pMonitor)
             continue;
 

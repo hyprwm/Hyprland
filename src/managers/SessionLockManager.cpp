@@ -137,7 +137,7 @@ bool CSessionLockManager::isSurfaceSessionLock(SP<CWLSurfaceResource> pSurface) 
     if (!m_pSessionLock)
         return false;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->surface->surface() == pSurface)
             return true;
     }
@@ -154,7 +154,7 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     if (g_pCompositor->m_pLastFocus)
         return;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (!sls->mapped)
             continue;
 

@@ -175,13 +175,6 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
         return;
     }
 
-    if (locked) {
-        LOGM(ERR, "Tried to lock a locked session");
-        RESOURCE->inert = true;
-        RESOURCE->resource->sendFinished();
-        return;
-    }
-
     events.newLock.emit(RESOURCE);
 
     locked = true;

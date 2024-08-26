@@ -38,7 +38,7 @@ void CPrimarySelectionOffer::sendData() {
     if (!source)
         return;
 
-    for (auto& m : source->mimes()) {
+    for (auto const& m : source->mimes()) {
         resource->sendOffer(m.c_str());
     }
 }
@@ -177,7 +177,7 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
         RESOURCE->self = RESOURCE;
         device         = RESOURCE;
 
-        for (auto& s : sources) {
+        for (auto const& s : sources) {
             if (!s)
                 continue;
             s->device = RESOURCE;
@@ -272,7 +272,7 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
 }
 
 void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
         o->dead = true;
@@ -321,7 +321,7 @@ void CPrimarySelectionProtocol::updateSelection() {
 }
 
 void CPrimarySelectionProtocol::onPointerFocus() {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         o->dead = true;
     }
 

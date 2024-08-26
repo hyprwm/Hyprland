@@ -287,12 +287,12 @@ void instancesRequest(bool json) {
     std::vector<SInstanceData> inst = instances();
 
     if (!json) {
-        for (auto& el : inst) {
+        for (auto const& el : inst) {
             result += std::format("instance {}:\n\ttime: {}\n\tpid: {}\n\twl socket: {}\n\n", el.id, el.time, el.pid, el.wlSocket);
         }
     } else {
         result += '[';
-        for (auto& el : inst) {
+        for (auto const& el : inst) {
             result += std::format(R"#(
 {{
     "instance": "{}",

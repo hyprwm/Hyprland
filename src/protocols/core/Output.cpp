@@ -65,7 +65,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
     IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
 
     listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
-        for (auto& o : m_vOutputs) {
+        for (auto const& o : m_vOutputs) {
             o->updateState();
         }
     });
@@ -95,7 +95,7 @@ void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
 }
 
 SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
-    for (auto& r : m_vOutputs) {
+    for (auto const& r : m_vOutputs) {
         if (r->client() != client)
             continue;
 

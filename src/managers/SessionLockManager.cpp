@@ -67,7 +67,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pInputManager->refocus();
 
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
@@ -75,7 +75,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pCompositor->focusSurface(nullptr);
 
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
@@ -90,7 +90,7 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
     if (!m_pSessionLock)
         return nullptr;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)
                 return sls.get();

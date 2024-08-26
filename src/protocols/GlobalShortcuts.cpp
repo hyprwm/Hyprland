@@ -54,8 +54,8 @@ void CGlobalShortcutsProtocol::destroyResource(CShortcutClient* client) {
 }
 
 bool CGlobalShortcutsProtocol::isTaken(std::string appid, std::string trigger) {
-    for (auto& c : m_vClients) {
-        for (auto& sh : c->shortcuts) {
+    for (auto const& c : m_vClients) {
+        for (auto const& sh : c->shortcuts) {
             if (sh->appid == appid && sh->id == trigger) {
                 return true;
             }
@@ -66,8 +66,8 @@ bool CGlobalShortcutsProtocol::isTaken(std::string appid, std::string trigger) {
 }
 
 void CGlobalShortcutsProtocol::sendGlobalShortcutEvent(std::string appid, std::string trigger, bool pressed) {
-    for (auto& c : m_vClients) {
-        for (auto& sh : c->shortcuts) {
+    for (auto const& c : m_vClients) {
+        for (auto const& sh : c->shortcuts) {
             if (sh->appid == appid && sh->id == trigger) {
                 timespec now;
                 clock_gettime(CLOCK_MONOTONIC, &now);
@@ -84,8 +84,8 @@ void CGlobalShortcutsProtocol::sendGlobalShortcutEvent(std::string appid, std::s
 
 std::vector<SShortcut> CGlobalShortcutsProtocol::getAllShortcuts() {
     std::vector<SShortcut> copy;
-    for (auto& c : m_vClients) {
-        for (auto& sh : c->shortcuts) {
+    for (auto const& c : m_vClients) {
+        for (auto const& sh : c->shortcuts) {
             copy.push_back(*sh);
         }
     }

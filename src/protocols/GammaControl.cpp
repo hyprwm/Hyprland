@@ -25,7 +25,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         return;
     }
 
-    for (auto& g : PROTO::gamma->m_vGammaControllers) {
+    for (auto const& g : PROTO::gamma->m_vGammaControllers) {
         if (g->pMonitor == pMonitor) {
             resource->sendFailed();
             return;
@@ -180,7 +180,7 @@ void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, 
 }
 
 void CGammaControlProtocol::applyGammaToState(CMonitor* pMonitor) {
-    for (auto& g : m_vGammaControllers) {
+    for (auto const& g : m_vGammaControllers) {
         if (g->getMonitor() != pMonitor)
             continue;
 

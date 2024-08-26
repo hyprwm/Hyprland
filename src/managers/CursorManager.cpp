@@ -193,7 +193,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
             // fallback to a default if available
             constexpr const std::array<const char*, 3> fallbackShapes = {"default", "left_ptr", "left-ptr"};
 
-            for (auto& s : fallbackShapes) {
+            for (auto const& s : fallbackShapes) {
                 m_sCurrentCursorShapeData = m_pHyprcursor->getShape(s, m_sCurrentStyleInfo);
 
                 if (m_sCurrentCursorShapeData.images.size() > 0)
@@ -288,7 +288,7 @@ void CCursorManager::updateTheme() {
     static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m->scale > highestScale)
             highestScale = m->scale;
     }
@@ -307,7 +307,7 @@ void CCursorManager::updateTheme() {
 
     setCursorFromName("left_ptr");
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         m->forceFullFrames = 5;
         g_pCompositor->scheduleFrameForMonitor(m.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }

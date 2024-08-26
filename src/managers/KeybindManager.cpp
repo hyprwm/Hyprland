@@ -908,7 +908,7 @@ uint64_t CKeybindManager::spawnRawProc(std::string args) {
         grandchild = fork();
         if (grandchild == 0) {
             // run in grandchild
-            for (auto& e : HLENV) {
+            for (auto const& e : HLENV) {
                 setenv(e.first.c_str(), e.second.c_str(), 1);
             }
             setenv("WAYLAND_DISPLAY", g_pCompositor->m_szWLDisplaySocket.c_str(), 1);
@@ -1720,10 +1720,10 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
         std::deque<PHLWINDOW> ptrs;
-        for (auto& w : g_pCompositor->m_vWindows)
+        for (auto const& w : g_pCompositor->m_vWindows)
             ptrs.push_back(w);
 
-        for (auto& w : ptrs) {
+        for (auto const& w : ptrs) {
             if (!w->m_bIsMapped || w->m_pWorkspace != PWORKSPACE || w->isHidden())
                 continue;
 
@@ -1895,7 +1895,7 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
     const auto PMONITOR                        = g_pCompositor->m_pLastMonitor;
     auto       specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m->activeSpecialWorkspaceID() == workspaceID) {
             requestedWorkspaceIsAlreadyOpen = true;
             break;
@@ -1922,7 +1922,7 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
 SDispatchResult CKeybindManager::forceRendererReload(std::string args) {
     bool overAgain = false;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (!m->output)
             continue;
 
@@ -2390,7 +2390,7 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
     if (arg.find_first_of(' ') != std::string::npos)
         port = arg.substr(arg.find_first_of(' ') + 1);
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
 
         if (!port.empty() && m->szName != port)
             continue;

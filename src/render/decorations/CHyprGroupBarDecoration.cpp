@@ -192,7 +192,7 @@ void CHyprGroupBarDecoration::draw(CMonitor* pMonitor, float a) {
 }
 
 CTitleTex* CHyprGroupBarDecoration::textureFromTitle(const std::string& title) {
-    for (auto& tex : m_sTitleTexs.titleTexs) {
+    for (auto const& tex : m_sTitleTexs.titleTexs) {
         if (tex->szContent == title)
             return tex.get();
     }

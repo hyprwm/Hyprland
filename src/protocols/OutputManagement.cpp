@@ -28,7 +28,7 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(re
     });
 
     // send all heads at start
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
+    for (auto const& m : g_pCompositor->m_vRealMonitors) {
         if (m.get() == g_pCompositor->m_pUnsafeOutput)
             continue;
 
@@ -67,7 +67,7 @@ void COutputManager::ensureMonitorSent(CMonitor* pMonitor) {
     if (pMonitor == g_pCompositor->m_pUnsafeOutput)
         return;
 
-    for (auto& hw : heads) {
+    for (auto const& hw : heads) {
         auto h = hw.lock();
 
         if (!h)
@@ -96,7 +96,7 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) :
     listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any d) {
         resource->sendFinished();
 
-        for (auto& mw : modes) {
+        for (auto const& mw : modes) {
             auto m = mw.lock();
 
             if (!m)
@@ -106,7 +106,7 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) :
         }
 
         pMonitor = nullptr;
-        for (auto& m : PROTO::outputManagement->m_vManagers) {
+        for (auto const& m : PROTO::outputManagement->m_vManagers) {
             m->sendDone();
         }
     });
@@ -147,7 +147,7 @@ void COutputHead::sendAllData() {
 
     if (modes.empty()) {
         if (!pMonitor->output->modes.empty()) {
-            for (auto& m : pMonitor->output->modes) {
+            for (auto const& m : pMonitor->output->modes) {
                 makeAndSendNewMode(m);
             }
         } else if (pMonitor->output->state->state().customMode) {
@@ -158,7 +158,7 @@ void COutputHead::sendAllData() {
 
     // send current mode
     if (pMonitor->m_bEnabled) {
-        for (auto& mw : modes) {
+        for (auto const& mw : modes) {
             auto m = mw.lock();
 
             if (!m)
@@ -189,7 +189,7 @@ void COutputHead::updateMode() {
         resource->sendAdaptiveSync(pMonitor->vrrActive ? ZWLR_OUTPUT_HEAD_V1_ADAPTIVE_SYNC_STATE_ENABLED : ZWLR_OUTPUT_HEAD_V1_ADAPTIVE_SYNC_STATE_DISABLED);
 
     if (pMonitor->m_bEnabled) {
-        for (auto& mw : modes) {
+        for (auto const& mw : modes) {
             auto m = mw.lock();
 
             if (!m)
@@ -346,7 +346,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
 
     LOGM(LOG, "Applying configuration");
 
-    for (auto& headw : heads) {
+    for (auto const& headw : heads) {
         auto head = headw.lock();
 
         if (!head)
@@ -577,15 +577,15 @@ void COutputManagementProtocol::destroyResource(COutputConfigurationHead* resour
 }
 
 void COutputManagementProtocol::updateAllOutputs() {
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
-        for (auto& mgr : m_vManagers) {
+    for (auto const& m : g_pCompositor->m_vRealMonitors) {
+        for (auto const& mgr : m_vManagers) {
             mgr->ensureMonitorSent(m.get());
         }
     }
 }
 
 SP<COutputHead> COutputManagementProtocol::headFromResource(wl_resource* r) {
-    for (auto& h : m_vHeads) {
+    for (auto const& h : m_vHeads) {
         if (h->resource->resource() == r)
             return h;
     }
@@ -594,7 +594,7 @@ SP<COutputHead> COutputManagementProtocol::headFromResource(wl_resource* r) {
 }
 
 SP<COutputMode> COutputManagementProtocol::modeFromResource(wl_resource* r) {
-    for (auto& h : m_vModes) {
+    for (auto const& h : m_vModes) {
         if (h->resource->resource() == r)
             return h;
     }

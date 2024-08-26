@@ -366,7 +366,7 @@ void CLayerSurface::applyRules() {
     xray             = -1;
     animationStyle.reset();
 
-    for (auto& rule : g_pConfigManager->getMatchingRules(self.lock())) {
+    for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
         if (rule.rule == "noanim")
             noAnimations = true;
         else if (rule.rule == "blur")

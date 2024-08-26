@@ -14,7 +14,7 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     parent    = request->parent;
     requested = request->requested;
 
-    for (auto& m : requested) {
+    for (auto const& m : requested) {
         if (!m->monitor || m->monitor->isBeingLeased) {
             LOGM(ERR, "Rejecting lease: no monitor or monitor is being leased for {}", (m->monitor ? m->monitor->szName : "null"));
             resource->sendFinished();
@@ -26,14 +26,14 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
 
     LOGM(LOG, "Leasing outputs: {}", [this]() {
         std::string roll;
-        for (auto& o : requested) {
+        for (auto const& o : requested) {
             roll += std::format("{} ", o->monitor->szName);
         }
         return roll;
     }());
 
     std::vector<SP<Aquamarine::IOutput>> outputs;
-    for (auto& m : requested) {
+    for (auto const& m : requested) {
         outputs.emplace_back(m->monitor->output);
     }
 
@@ -184,7 +184,7 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
     resource->sendDrmFd(fd);
     close(fd);
 
-    for (auto& m : PROTO::lease->primaryDevice->offeredOutputs) {
+    for (auto const& m : PROTO::lease->primaryDevice->offeredOutputs) {
         sendConnector(m.lock());
     }
 
@@ -234,7 +234,7 @@ CDRMLeaseDevice::CDRMLeaseDevice(SP<Aquamarine::CDRMBackend> drmBackend) : backe
 }
 
 CDRMLeaseProtocol::CDRMLeaseProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+    for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
@@ -292,7 +292,7 @@ void CDRMLeaseProtocol::offer(SP<CMonitor> monitor) {
 
     primaryDevice->offeredOutputs.emplace_back(monitor);
 
-    for (auto& m : m_vManagers) {
+    for (auto const& m : m_vManagers) {
         m->sendConnector(monitor);
         m->resource->sendDone();
     }

@@ -98,27 +98,27 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             exitFunc();
     }
 
-    for (auto& [k, v] : plugin->registeredCallbacks) {
+    for (auto const& [k, v] : plugin->registeredCallbacks) {
         if (const auto SHP = v.lock())
             g_pHookSystem->unhook(SHP);
     }
 
     const auto ls = plugin->registeredLayouts;
-    for (auto& l : ls)
+    for (auto const& l : ls)
         g_pLayoutManager->removeLayout(l);
 
     g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_pHandle);
 
     const auto rd = plugin->registeredDecorations;
-    for (auto& d : rd)
+    for (auto const& d : rd)
         HyprlandAPI::removeWindowDecoration(plugin->m_pHandle, d);
 
     const auto rdi = plugin->registeredDispatchers;
-    for (auto& d : rdi)
+    for (auto const& d : rdi)
         HyprlandAPI::removeDispatcher(plugin->m_pHandle, d);
 
     const auto rhc = plugin->registeredHyprctlCommands;
-    for (auto& c : rhc)
+    for (auto const& c : rhc)
         HyprlandAPI::unregisterHyprCtlCommand(plugin->m_pHandle, c);
 
     g_pConfigManager->removePluginConfig(plugin->m_pHandle);
@@ -139,7 +139,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 }
 
 void CPluginSystem::unloadAllPlugins() {
-    for (auto& p : m_vLoadedPlugins | std::views::reverse)
+    for (auto const& p : m_vLoadedPlugins | std::views::reverse)
         unloadPlugin(p.get(), false); // Unload remaining plugins gracefully
 }
 
@@ -147,7 +147,7 @@ std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<st
     std::vector<std::string> failures;
 
     // unload all plugins that are no longer present
-    for (auto& p : m_vLoadedPlugins | std::views::reverse) {
+    for (auto const& p : m_vLoadedPlugins | std::views::reverse) {
         if (p->m_bLoadedWithConfig && std::find(plugins.begin(), plugins.end(), p->path) == plugins.end()) {
             Debug::log(LOG, "Unloading plugin {} which is no longer present in config", p->path);
             unloadPlugin(p.get(), false);
@@ -156,7 +156,7 @@ std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<st
     }
 
     // load all new plugins
-    for (auto& path : plugins) {
+    for (auto const& path : plugins) {
         if (std::find_if(m_vLoadedPlugins.begin(), m_vLoadedPlugins.end(), [&](const auto& other) { return other->path == path; }) == m_vLoadedPlugins.end()) {
             Debug::log(LOG, "Loading plugin {} which is now present in config", path);
             const auto plugin = loadPlugin(path);
@@ -173,7 +173,7 @@ std::vector<std::string> CPluginSystem::updateConfigPlugins(const std::vector<st
 }
 
 CPlugin* CPluginSystem::getPluginByPath(const std::string& path) {
-    for (auto& p : m_vLoadedPlugins) {
+    for (auto const& p : m_vLoadedPlugins) {
         if (p->path == path)
             return p.get();
     }
@@ -182,7 +182,7 @@ CPlugin* CPluginSystem::getPluginByPath(const std::string& path) {
 }
 
 CPlugin* CPluginSystem::getPluginByHandle(HANDLE handle) {
-    for (auto& p : m_vLoadedPlugins) {
+    for (auto const& p : m_vLoadedPlugins) {
         if (p->m_pHandle == handle)
             return p.get();
     }

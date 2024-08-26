@@ -204,9 +204,9 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     progress.m_iSteps = 2;
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " parsed manifest, found " + std::to_string(pManifest->m_vPlugins.size()) + " plugins:");
-    for (auto& pl : pManifest->m_vPlugins) {
+    for (auto const& pl : pManifest->m_vPlugins) {
         std::string message = std::string{Colors::RESET} + " → " + pl.name + " by ";
-        for (auto& a : pl.authors) {
+        for (auto const& a : pl.authors) {
             message += a + ", ";
         }
         if (pl.authors.size() > 0) {
@@ -222,7 +222,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
         progress.printMessageAbove(std::string{Colors::RESET} + " → Manifest has " + std::to_string(pManifest->m_sRepository.commitPins.size()) + " pins, checking");
 
-        for (auto& [hl, plugin] : pManifest->m_sRepository.commitPins) {
+        for (auto const& [hl, plugin] : pManifest->m_sRepository.commitPins) {
             if (hl != HLVER.hash)
                 continue;
 
@@ -264,7 +264,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
         progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
-        for (auto& bs : p.buildSteps) {
+        for (auto const& bs : p.buildSteps) {
             std::string cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
@@ -299,7 +299,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     repo.url  = url;
     repo.rev  = rev;
     repo.hash = repohash;
-    for (auto& p : pManifest->m_vPlugins) {
+    for (auto const& p : pManifest->m_vPlugins) {
         repo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, false, p.failed});
     }
     DataState::addNewPluginRepo(repo);
@@ -579,7 +579,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     const std::string USERNAME = getpwuid(getuid())->pw_name;
     m_szWorkingPluginDirectory = "/tmp/hyprpm/" + USERNAME;
 
-    for (auto& repo : REPOS) {
+    for (auto const& repo : REPOS) {
         bool update = forceUpdateAll;
 
         progress.m_iSteps++;
@@ -658,7 +658,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
             progress.printMessageAbove(std::string{Colors::RESET} + " → Manifest has " + std::to_string(pManifest->m_sRepository.commitPins.size()) + " pins, checking");
 
-            for (auto& [hl, plugin] : pManifest->m_sRepository.commitPins) {
+            for (auto const& [hl, plugin] : pManifest->m_sRepository.commitPins) {
                 if (hl != HLVER.hash)
                     continue;
 
@@ -679,7 +679,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
             progress.printMessageAbove(std::string{Colors::RESET} + " → Building " + p.name);
 
-            for (auto& bs : p.buildSteps) {
+            for (auto const& bs : p.buildSteps) {
                 std::string cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
                 out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
@@ -709,7 +709,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         if (repohash.length() > 0)
             repohash.pop_back();
         newrepo.hash = repohash;
-        for (auto& p : pManifest->m_vPlugins) {
+        for (auto const& p : pManifest->m_vPlugins) {
             const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
             newrepo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }
@@ -794,8 +794,8 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     const auto REPOS = DataState::getAllRepositories();
 
     auto       enabled = [REPOS](const std::string& plugin) -> bool {
-        for (auto& r : REPOS) {
-            for (auto& p : r.plugins) {
+        for (auto const& r : REPOS) {
+            for (auto const& p : r.plugins) {
                 if (p.name == plugin && p.enabled)
                     return true;
             }
@@ -805,8 +805,8 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     };
 
     auto repoForName = [REPOS](const std::string& name) -> std::string {
-        for (auto& r : REPOS) {
-            for (auto& p : r.plugins) {
+        for (auto const& r : REPOS) {
+            for (auto const& p : r.plugins) {
                 if (p.name == name)
                     return r.name;
             }
@@ -816,7 +816,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     };
 
     // unload disabled plugins
-    for (auto& p : loadedPlugins) {
+    for (auto const& p : loadedPlugins) {
         if (!enabled(p)) {
             // unload
             loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false);
@@ -825,8 +825,8 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     }
 
     // load enabled plugins
-    for (auto& r : REPOS) {
-        for (auto& p : r.plugins) {
+    for (auto const& r : REPOS) {
+        for (auto const& p : r.plugins) {
             if (!p.enabled)
                 continue;
 
@@ -855,10 +855,10 @@ bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
 void CPluginManager::listAllPlugins() {
     const auto REPOS = DataState::getAllRepositories();
 
-    for (auto& r : REPOS) {
+    for (auto const& r : REPOS) {
         std::cout << std::string{Colors::RESET} + " → Repository " + r.name + ":\n";
 
-        for (auto& p : r.plugins) {
+        for (auto const& p : r.plugins) {
 
             std::cout << std::string{Colors::RESET} + "  │ Plugin " + p.name;
 
@@ -905,7 +905,7 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 
 bool CPluginManager::hasDeps() {
     std::vector<std::string> deps = {"meson", "cpio", "cmake", "pkg-config"};
-    for (auto& d : deps) {
+    for (auto const& d : deps) {
         if (!execAndGet("command -v " + d).contains("/"))
             return false;
     }

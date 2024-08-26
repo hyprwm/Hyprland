@@ -171,7 +171,7 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
         if (!valid(ws))
             continue;
 
@@ -242,7 +242,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m.get() != this) {
             BACKUPMON = m.get();
             break;
@@ -259,7 +259,7 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     if (!mirrors.empty()) {
-        for (auto& m : mirrors) {
+        for (auto const& m : mirrors) {
             m->setMirror("");
         }
 
@@ -298,13 +298,13 @@ void CMonitor::onDisconnect(bool destroy) {
 
         // move workspaces
         std::deque<PHLWORKSPACE> wspToMove;
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_iMonitorID == ID || !g_pCompositor->getMonitorFromID(w->m_iMonitorID)) {
                 wspToMove.push_back(w);
             }
         }
 
-        for (auto& w : wspToMove) {
+        for (auto const& w : wspToMove) {
             w->m_szLastMonitor = szName;
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
             w->startAnim(true, true, true);
@@ -332,7 +332,7 @@ void CMonitor::onDisconnect(bool destroy) {
         int       mostHz         = 0;
         CMonitor* pMonitorMostHz = nullptr;
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m->refreshRate > mostHz && m.get() != this) {
                 pMonitorMostHz = m.get();
                 mostHz         = m->refreshRate;
@@ -516,7 +516,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pHyprRenderer->applyMonitorRule(this, (SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
         CMonitor* BACKUPMON = nullptr;
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m.get() != this) {
                 BACKUPMON = m.get();
                 break;
@@ -525,13 +525,13 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // move all the WS
         std::deque<PHLWORKSPACE> wspToMove;
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_iMonitorID == ID) {
                 wspToMove.push_back(w);
             }
         }
 
-        for (auto& w : wspToMove) {
+        for (auto const& w : wspToMove) {
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
             w->startAnim(true, true, true);
         }
@@ -605,7 +605,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         pWorkspace->startAnim(true, ANIMTOLEFT);
 
         // move pinned windows
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (w->m_pWorkspace == POLDWORKSPACE && w->m_bPinned)
                 w->moveToWorkspace(pWorkspace);
         }
@@ -714,7 +714,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (animate)
         pWorkspace->startAnim(true, true);
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pWorkspace == pWorkspace) {
             w->m_iMonitorID = ID;
             w->updateSurfaceScaleTransformDetails();

@@ -39,7 +39,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
     static auto P2 = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
     static auto P3 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        for (auto& o : m_vXDGOutputs) {
+        for (auto const& o : m_vXDGOutputs) {
             if (o->monitor == PMONITOR)
                 o->monitor = nullptr;
         }
@@ -84,7 +84,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 }
 
 void CXDGOutputProtocol::updateAllOutputs() {
-    for (auto& o : m_vXDGOutputs) {
+    for (auto const& o : m_vXDGOutputs) {
 
         if (!o->monitor)
             continue;

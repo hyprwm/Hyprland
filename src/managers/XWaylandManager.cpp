@@ -255,7 +255,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     CMonitor*   pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
 
         double     distance =

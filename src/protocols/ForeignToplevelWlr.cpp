@@ -179,7 +179,7 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
         PROTO::foreignToplevelWlr->onManagerResourceDestroy(this);
     });
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_bFadingOut)
             continue;
 
@@ -313,42 +313,42 @@ bool CForeignToplevelWlrManager::good() {
 CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onMap(PWINDOW);
         }
     });
 
     static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onUnmap(PWINDOW);
         }
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("windowTitle", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onTitle(PWINDOW);
         }
     });
 
     static auto P3 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onNewFocus(PWINDOW);
         }
     });
 
     static auto P4 = g_pHookSystem->hookDynamic("moveWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(std::any_cast<std::vector<std::any>>(data).at(0));
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onMoveMonitor(PWINDOW);
         }
     });
 
     static auto P5 = g_pHookSystem->hookDynamic("fullscreen", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        for (auto& m : m_vManagers) {
+        for (auto const& m : m_vManagers) {
             m->onFullscreen(PWINDOW);
         }
     });
@@ -374,7 +374,7 @@ void CForeignToplevelWlrProtocol::destroyHandle(CForeignToplevelHandleWlr* handl
 }
 
 PHLWINDOW CForeignToplevelWlrProtocol::windowFromHandleResource(wl_resource* res) {
-    for (auto& h : m_vHandles) {
+    for (auto const& h : m_vHandles) {
         if (h->res() != res)
             continue;
 

@@ -22,7 +22,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             return;
 
         auto pushAboveIndex = [this](int idx) -> void {
-            for (auto& c : parent->subsurfaces) {
+            for (auto const& c : parent->subsurfaces) {
                 if (c->zIndex >= idx)
                     c->zIndex++;
             }
@@ -53,7 +53,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             return;
 
         auto pushBelowIndex = [this](int idx) -> void {
-            for (auto& c : parent->subsurfaces) {
+            for (auto const& c : parent->subsurfaces) {
                 if (c->zIndex <= idx)
                     c->zIndex--;
             }

@@ -96,7 +96,7 @@ bool CTabletPadV2Resource::good() {
 
 void CTabletPadV2Resource::sendData() {
     // this is dodgy as fuck. I hate wl_array. it's expanded wl_array_for_each because C++ would complain about the implicit casts
-    for (auto& p : pad->aq()->paths) {
+    for (auto const& p : pad->aq()->paths) {
         resource->sendPath(p.c_str());
     }
 
@@ -140,7 +140,7 @@ void CTabletV2Resource::sendData() {
     resource->sendName(tablet->deviceName.c_str());
     resource->sendId(tablet->aq()->usbVendorID, tablet->aq()->usbProductID);
 
-    for (auto& p : tablet->aq()->paths) {
+    for (auto const& p : tablet->aq()->paths) {
         resource->sendPath(p.c_str());
     }
 
@@ -287,21 +287,21 @@ void CTabletSeat::sendTablet(SP<CTablet> tablet) {
 }
 
 void CTabletSeat::sendData() {
-    for (auto& tw : PROTO::tablet->tablets) {
+    for (auto const& tw : PROTO::tablet->tablets) {
         if (tw.expired())
             continue;
 
         sendTablet(tw.lock());
     }
 
-    for (auto& tw : PROTO::tablet->tools) {
+    for (auto const& tw : PROTO::tablet->tools) {
         if (tw.expired())
             continue;
 
         sendTool(tw.lock());
     }
 
-    for (auto& tw : PROTO::tablet->pads) {
+    for (auto const& tw : PROTO::tablet->pads) {
         if (tw.expired())
             continue;
 
@@ -367,7 +367,7 @@ void CTabletV2Protocol::onGetSeat(CZwpTabletManagerV2* pMgr, uint32_t id, wl_res
 }
 
 void CTabletV2Protocol::registerDevice(SP<CTablet> tablet) {
-    for (auto& s : m_vSeats) {
+    for (auto const& s : m_vSeats) {
         s->sendTablet(tablet);
     }
 
@@ -375,7 +375,7 @@ void CTabletV2Protocol::registerDevice(SP<CTablet> tablet) {
 }
 
 void CTabletV2Protocol::registerDevice(SP<CTabletTool> tool) {
-    for (auto& s : m_vSeats) {
+    for (auto const& s : m_vSeats) {
         s->sendTool(tool);
     }
 
@@ -383,7 +383,7 @@ void CTabletV2Protocol::registerDevice(SP<CTabletTool> tool) {
 }
 
 void CTabletV2Protocol::registerDevice(SP<CTabletPad> pad) {
-    for (auto& s : m_vSeats) {
+    for (auto const& s : m_vSeats) {
         s->sendPad(pad);
     }
 
@@ -391,7 +391,7 @@ void CTabletV2Protocol::registerDevice(SP<CTabletPad> pad) {
 }
 
 void CTabletV2Protocol::unregisterDevice(SP<CTablet> tablet) {
-    for (auto& t : m_vTablets) {
+    for (auto const& t : m_vTablets) {
         if (t->tablet == tablet) {
             t->resource->sendRemoved();
             t->inert = true;
@@ -401,7 +401,7 @@ void CTabletV2Protocol::unregisterDevice(SP<CTablet> tablet) {
 }
 
 void CTabletV2Protocol::unregisterDevice(SP<CTabletTool> tool) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool == tool) {
             t->resource->sendRemoved();
             t->inert = true;
@@ -411,7 +411,7 @@ void CTabletV2Protocol::unregisterDevice(SP<CTabletTool> tool) {
 }
 
 void CTabletV2Protocol::unregisterDevice(SP<CTabletPad> pad) {
-    for (auto& t : m_vPads) {
+    for (auto const& t : m_vPads) {
         if (t->pad == pad) {
             t->resource->sendRemoved();
             t->inert = true;
@@ -426,7 +426,7 @@ void CTabletV2Protocol::recheckRegisteredDevices() {
     std::erase_if(pads, [](const auto& e) { return e.expired(); });
 
     // now we need to send removed events
-    for (auto& t : m_vTablets) {
+    for (auto const& t : m_vTablets) {
         if (!t->tablet.expired() || t->inert)
             continue;
 
@@ -434,7 +434,7 @@ void CTabletV2Protocol::recheckRegisteredDevices() {
         t->inert = true;
     }
 
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (!t->tool.expired() || t->inert)
             continue;
 
@@ -448,7 +448,7 @@ void CTabletV2Protocol::recheckRegisteredDevices() {
         t->inert = true;
     }
 
-    for (auto& t : m_vPads) {
+    for (auto const& t : m_vPads) {
         if (!t->pad.expired() || t->inert)
             continue;
 
@@ -458,7 +458,7 @@ void CTabletV2Protocol::recheckRegisteredDevices() {
 }
 
 void CTabletV2Protocol::pressure(SP<CTabletTool> tool, double value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -468,7 +468,7 @@ void CTabletV2Protocol::pressure(SP<CTabletTool> tool, double value) {
 }
 
 void CTabletV2Protocol::distance(SP<CTabletTool> tool, double value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -478,7 +478,7 @@ void CTabletV2Protocol::distance(SP<CTabletTool> tool, double value) {
 }
 
 void CTabletV2Protocol::rotation(SP<CTabletTool> tool, double value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -488,7 +488,7 @@ void CTabletV2Protocol::rotation(SP<CTabletTool> tool, double value) {
 }
 
 void CTabletV2Protocol::slider(SP<CTabletTool> tool, double value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -498,7 +498,7 @@ void CTabletV2Protocol::slider(SP<CTabletTool> tool, double value) {
 }
 
 void CTabletV2Protocol::wheel(SP<CTabletTool> tool, double value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -508,7 +508,7 @@ void CTabletV2Protocol::wheel(SP<CTabletTool> tool, double value) {
 }
 
 void CTabletV2Protocol::tilt(SP<CTabletTool> tool, const Vector2D& value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -518,7 +518,7 @@ void CTabletV2Protocol::tilt(SP<CTabletTool> tool, const Vector2D& value) {
 }
 
 void CTabletV2Protocol::up(SP<CTabletTool> tool) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -528,7 +528,7 @@ void CTabletV2Protocol::up(SP<CTabletTool> tool) {
 }
 
 void CTabletV2Protocol::down(SP<CTabletTool> tool) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -545,7 +545,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
     SP<CTabletToolV2Resource> toolResource;
     SP<CTabletV2Resource>     tabletResource;
 
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || t->resource->client() != CLIENT)
             continue;
 
@@ -559,7 +559,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
 
         toolResource = t;
 
-        for (auto& tab : m_vTablets) {
+        for (auto const& tab : m_vTablets) {
             if (tab->tablet != tablet)
                 continue;
 
@@ -587,7 +587,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
 }
 
 void CTabletV2Protocol::proximityOut(SP<CTabletTool> tool) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -599,7 +599,7 @@ void CTabletV2Protocol::proximityOut(SP<CTabletTool> tool) {
 }
 
 void CTabletV2Protocol::buttonTool(SP<CTabletTool> tool, uint32_t button, uint32_t state) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -610,7 +610,7 @@ void CTabletV2Protocol::buttonTool(SP<CTabletTool> tool, uint32_t button, uint32
 }
 
 void CTabletV2Protocol::motion(SP<CTabletTool> tool, const Vector2D& value) {
-    for (auto& t : m_vTools) {
+    for (auto const& t : m_vTools) {
         if (t->tool != tool || !t->current)
             continue;
 
@@ -620,7 +620,7 @@ void CTabletV2Protocol::motion(SP<CTabletTool> tool, const Vector2D& value) {
 }
 
 void CTabletV2Protocol::mode(SP<CTabletPad> pad, uint32_t group, uint32_t mode, uint32_t timeMs) {
-    for (auto& t : m_vPads) {
+    for (auto const& t : m_vPads) {
         if (t->pad != pad)
             continue;
         if (t->groups.size() <= group) {
@@ -633,7 +633,7 @@ void CTabletV2Protocol::mode(SP<CTabletPad> pad, uint32_t group, uint32_t mode, 
 }
 
 void CTabletV2Protocol::buttonPad(SP<CTabletPad> pad, uint32_t button, uint32_t timeMs, uint32_t state) {
-    for (auto& t : m_vPads) {
+    for (auto const& t : m_vPads) {
         if (t->pad != pad)
             continue;
         t->resource->sendButton(timeMs, button, zwpTabletToolV2ButtonState{state});

@@ -76,14 +76,14 @@ void CPointerManager::checkDefaultCursorWarp(SP<CMonitor> monitor, std::string m
 }
 
 void CPointerManager::lockSoftwareAll() {
-    for (auto& state : monitorStates)
+    for (auto const& state : monitorStates)
         state->softwareLocks++;
 
     updateCursorBackend();
 }
 
 void CPointerManager::unlockSoftwareAll() {
-    for (auto& state : monitorStates)
+    for (auto const& state : monitorStates)
         state->softwareLocks--;
 
     updateCursorBackend();
@@ -261,7 +261,7 @@ void CPointerManager::resetCursorImage(bool apply) {
     damageIfSoftware();
 
     if (currentCursorImage.surface) {
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             currentCursorImage.surface->resource()->leave(m);
         }
 
@@ -306,7 +306,7 @@ void CPointerManager::resetCursorImage(bool apply) {
 void CPointerManager::updateCursorBackend() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
 
         if (!m->m_bEnabled || !m->dpmsStatus) {
@@ -600,7 +600,7 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 
     //
     static auto INSIDE_LAYOUT = [this](const CBox& box) -> bool {
-        for (auto& b : currentMonitorLayout.monitorBoxes) {
+        for (auto const& b : currentMonitorLayout.monitorBoxes) {
             if (box.inside(b))
                 return true;
         }
@@ -608,7 +608,7 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     };
 
     static auto INSIDE_LAYOUT_COORD = [this](const Vector2D& vec) -> bool {
-        for (auto& b : currentMonitorLayout.monitorBoxes) {
+        for (auto const& b : currentMonitorLayout.monitorBoxes) {
             if (b.containsPoint(vec))
                 return true;
         }
@@ -619,7 +619,7 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
         Vector2D leader;
         float    distanceSq = __FLT_MAX__;
 
-        for (auto& b : currentMonitorLayout.monitorBoxes) {
+        for (auto const& b : currentMonitorLayout.monitorBoxes) {
             auto p      = b.closestPoint(vec);
             auto distSq = p.distanceSq(vec);
 
@@ -673,7 +673,7 @@ void CPointerManager::damageIfSoftware() {
 
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
-    for (auto& mw : monitorStates) {
+    for (auto const& mw : monitorStates) {
         if (mw->monitor.expired())
             continue;
 
@@ -748,7 +748,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
                 if (POINTER->boundOutput == "entire") {
                     // find x and y size of the entire space
                     Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
-                    for (auto& m : g_pCompositor->m_vMonitors) {
+                    for (auto const& m : g_pCompositor->m_vMonitors) {
                         const auto EXTENT = m->logicalBox().extent();
                         const auto POS    = m->logicalBox().pos();
                         if (EXTENT.x > bottomRight.x)
@@ -787,7 +787,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
 void CPointerManager::onMonitorLayoutChange() {
     currentMonitorLayout.monitorBoxes.clear();
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m->isMirror() || !m->m_bEnabled)
             continue;
 

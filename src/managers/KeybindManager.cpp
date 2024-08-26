@@ -2441,7 +2441,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
     // sometimes we may come back to ourselves.
     if (toSwap == PLASTWINDOW) {
         if (arg == "last" || arg == "l" || arg == "prev" || arg == "p")
-            toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW), true;
+            toSwap = g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true);
         else
             toSwap = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
     }

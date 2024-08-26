@@ -147,7 +147,7 @@ void CHyprXWaylandManager::setWindowSize(PHLWINDOW pWindow, Vector2D size, bool 
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
     if (pWindow->m_bIsX11) {
-        for (auto& a : pWindow->m_pXWaylandSurface->atoms)
+        for (auto const& a : pWindow->m_pXWaylandSurface->atoms)
             if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] ||
                 a == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
                 a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DOCK"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
@@ -193,7 +193,7 @@ void CHyprXWaylandManager::checkBorders(PHLWINDOW pWindow) {
     if (!pWindow->m_bIsX11)
         return;
 
-    for (auto& a : pWindow->m_pXWaylandSurface->atoms) {
+    for (auto const& a : pWindow->m_pXWaylandSurface->atoms) {
         if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"]) {

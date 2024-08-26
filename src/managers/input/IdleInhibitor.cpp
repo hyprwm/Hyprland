@@ -31,7 +31,7 @@ void CInputManager::newIdleInhibitor(std::any inhibitor) {
 
 void CInputManager::recheckIdleInhibitorStatus() {
 
-    for (auto& ii : m_vIdleInhibitors) {
+    for (auto const& ii : m_vIdleInhibitors) {
         if (ii->nonDesktop) {
             PROTO::idle->setInhibit(true);
             return;

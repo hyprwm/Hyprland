@@ -314,7 +314,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     initManagers(STAGE_LATE);
 
-    for (auto& o : pendingOutputs) {
+    for (auto const& o : pendingOutputs) {
         onNewMonitor(o);
     }
     pendingOutputs.clear();
@@ -403,7 +403,7 @@ void CCompositor::initAllSignals() {
 
                     m_bSessionActive = false;
 
-                    for (auto& m : m_vMonitors) {
+                    for (auto const& m : m_vMonitors) {
                         m->noFrameSchedule = true;
                         m->framesToSkip    = 1;
                     }
@@ -741,7 +741,7 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
         float        bestDistance = 0.f;
         SP<CMonitor> pBestMon;
 
-        for (auto& m : m_vMonitors) {
+        for (auto const& m : m_vMonitors) {
             float dist = vecToRectDistanceSquared(point, m->vecPosition, m->vecPosition + m->vecSize);
 
             if (dist < bestDistance || !pBestMon) {
@@ -1164,8 +1164,8 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
 }
 
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
-    for (auto& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
-        for (auto& ls : lsl | std::views::reverse) {
+    for (auto const& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
+        for (auto const& ls : lsl | std::views::reverse) {
             if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha.value() == 0.f)
                 continue;
 
@@ -1183,7 +1183,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
 }
 
 SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
-    for (auto& ls : *layerSurfaces | std::views::reverse) {
+    for (auto const& ls : *layerSurfaces | std::views::reverse) {
         if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
             continue;
 
@@ -1458,7 +1458,7 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
             g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
 
         if (ls->fadingOut && ls->readyToDelete && ls->isFadedOut()) {
-            for (auto& m : m_vMonitors) {
+            for (auto const& m : m_vMonitors) {
                 for (auto& lsl : m->m_aLayerSurfaceLayers) {
                     if (!lsl.empty() && std::find_if(lsl.begin(), lsl.end(), [&](auto& other) { return other == ls; }) != lsl.end()) {
                         std::erase_if(lsl, [&](auto& other) { return other == ls || !other; });
@@ -1718,7 +1718,7 @@ PHLWINDOW CCompositor::getPrevWindowOnWorkspace(PHLWINDOW pWindow, bool focusabl
 
 WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
     WORKSPACEID lowest = -1337 + 1;
-    for (auto& w : m_vWorkspaces) {
+    for (auto const& w : m_vWorkspaces) {
         if (w->m_iID < -1 && w->m_iID < lowest)
             lowest = w->m_iID;
     }
@@ -1748,7 +1748,7 @@ PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
 }
 
 bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
-    for (auto& m : m_vMonitors) {
+    for (auto const& m : m_vMonitors) {
         if (VECINRECT(point, m->vecPosition.x, m->vecPosition.y, m->vecSize.x + m->vecPosition.x, m->vecSize.y + m->vecPosition.y))
             return true;
     }
@@ -1834,7 +1834,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
 }
 
 void CCompositor::updateAllWindowsAnimatedDecorationValues() {
-    for (auto& w : m_vWindows) {
+    for (auto const& w : m_vWindows) {
         if (!w->m_bIsMapped)
             continue;
 
@@ -2139,7 +2139,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
     if (!SWITCHINGISACTIVE)
         nextWorkspaceOnMonitorID = pWorkspace->m_iID;
     else {
-        for (auto& w : m_vWorkspaces) {
+        for (auto const& w : m_vWorkspaces) {
             if (w->m_iMonitorID == POLDMON->ID && w->m_iID != pWorkspace->m_iID && !w->m_bIsSpecialWorkspace) {
                 nextWorkspaceOnMonitorID = w->m_iID;
                 break;
@@ -2237,7 +2237,7 @@ bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
 
-    for (auto& w : m_vWorkspaces) {
+    for (auto const& w : m_vWorkspaces) {
         if (w->m_bIsSpecialWorkspace)
             continue;
 
@@ -2271,7 +2271,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     const auto PMONITOR = getMonitorFromID(pWorkspace->m_iMonitorID);
 
     if (pWorkspace->m_iID == PMONITOR->activeWorkspaceID() || pWorkspace->m_iID == PMONITOR->activeSpecialWorkspaceID()) {
-        for (auto& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+        for (auto const& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->fadingOut)
                 ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
@@ -2376,7 +2376,7 @@ PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
     if (!pWindow->m_bIsX11)
         return nullptr;
 
-    for (auto& w : m_vWindows) {
+    for (auto const& w : m_vWindows) {
         if (!w->m_bIsX11)
             continue;
 
@@ -2543,7 +2543,7 @@ void CCompositor::closeWindow(PHLWINDOW pWindow) {
 PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
-    for (auto& ls : m_vLayers) {
+    for (auto const& ls : m_vLayers) {
         if (ls->layerSurface && ls->layerSurface->surface == pSurface)
             return ls;
 
@@ -2679,7 +2679,7 @@ bool CCompositor::isWorkspaceSpecial(const WORKSPACEID& id) {
 
 WORKSPACEID CCompositor::getNewSpecialID() {
     WORKSPACEID highest = SPECIAL_WORKSPACE_START;
-    for (auto& ws : m_vWorkspaces) {
+    for (auto const& ws : m_vWorkspaces) {
         if (ws->m_bIsSpecialWorkspace && ws->m_iID > highest) {
             highest = ws->m_iID;
         }

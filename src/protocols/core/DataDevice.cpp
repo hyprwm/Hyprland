@@ -306,7 +306,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
 
         RESOURCE->self = RESOURCE;
 
-        for (auto& s : sources) {
+        for (auto const& s : sources) {
             if (!s)
                 continue;
             s->device = RESOURCE;
@@ -390,7 +390,7 @@ void CWLDataDeviceProtocol::onDestroyDataSource(WP<CWLDataSourceResource> source
 }
 
 void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
         o->dead = true;
@@ -439,7 +439,7 @@ void CWLDataDeviceProtocol::updateSelection() {
 }
 
 void CWLDataDeviceProtocol::onKeyboardFocus() {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         o->dead = true;
     }
 
@@ -606,7 +606,7 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
     if (!dnd.focusedDevice || !dnd.currentSource)
         return false;
 
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->dead || !o->source || !o->source->hasDnd())
             continue;
 

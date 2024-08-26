@@ -813,11 +813,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors)
+    for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
@@ -901,7 +901,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         m->forceFullFrames = 2;
 
         // also force mirrors, as the aspect ratio could've changed
-        for (auto& mirror : m->mirrors)
+        for (auto const& mirror : m->mirrors)
             mirror->forceFullFrames = 3;
     }
 
@@ -940,7 +940,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
     }
 
@@ -1034,7 +1034,7 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
-    for (auto& r : m_dMonitorRules | std::views::reverse) {
+    for (auto const& r : m_dMonitorRules | std::views::reverse) {
         if (PMONITOR.matchesStaticSelector(r.name)) {
             return r;
         }
@@ -1042,7 +1042,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
 
     Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
 
-    for (auto& r : m_dMonitorRules) {
+    for (auto const& r : m_dMonitorRules) {
         if (r.name.empty()) {
             return r;
         }
@@ -1354,7 +1354,7 @@ void CConfigManager::dispatchExecOnce() {
     firstExecDispatched = true;
     isLaunchingExecOnce = true;
 
-    for (auto& c : firstExecRequests) {
+    for (auto const& c : firstExecRequests) {
         handleRawExec("", c);
     }
 
@@ -1438,7 +1438,7 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
 }
 
 bool CConfigManager::shouldBlurLS(const std::string& ns) {
-    for (auto& bls : m_dBlurLSNamespaces) {
+    for (auto const& bls : m_dBlurLSNamespaces) {
         if (bls == ns) {
             return true;
         }
@@ -1553,7 +1553,7 @@ CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
-    for (auto& wr : m_dWorkspaceRules) {
+    for (auto const& wr : m_dWorkspaceRules) {
         const auto WSNAME = wr.workspaceName.starts_with("name:") ? wr.workspaceName.substr(5) : wr.workspaceName;
 
         if (WSNAME == wsname)
@@ -1624,7 +1624,7 @@ void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, Hy
 }
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
-    for (auto& k : pluginKeywords) {
+    for (auto const& k : pluginKeywords) {
         if (k.handle != handle)
             continue;
 
@@ -1647,7 +1647,7 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
             if (other->monitor == name)
                 return other->workspaceString;
             if (other->monitor.substr(0, 5) == "desc:") {
-                auto monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
+                auto const monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
                 if (monitor && monitor->szName == name)
                     return other->workspaceString;
             }
@@ -2044,7 +2044,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       dontInhibit    = false;
     const auto BINDARGS       = command.substr(4);
 
-    for (auto& arg : BINDARGS) {
+    for (auto const& arg : BINDARGS) {
         if (arg == 'l') {
             locked = true;
         } else if (arg == 'r') {
@@ -2222,9 +2222,9 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 
     m_dLayerRules.push_back({VALUE, RULE});
 
-    for (auto& m : g_pCompositor->m_vMonitors)
-        for (auto& lsl : m->m_aLayerSurfaceLayers)
-            for (auto& ls : lsl)
+    for (auto const& m : g_pCompositor->m_vMonitors)
+        for (auto const& lsl : m->m_aLayerSurfaceLayers)
+            for (auto const& ls : lsl)
                 ls->applyRules();
 
     return {};
@@ -2423,9 +2423,9 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         matchName = matchName.substr(8);
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        for (auto& lsl : m->m_aLayerSurfaceLayers) {
-            for (auto& ls : lsl) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto const& ls : lsl) {
                 if (BYADDRESS) {
                     if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
                         ls->forceBlur = forceBlur;

@@ -5,18 +5,18 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
-PHLWORKSPACE CWorkspace::create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmtpy) {
-    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmtpy);
+PHLWORKSPACE CWorkspace::create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
+    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmpty);
     workspace->init(workspace);
     return workspace;
 }
 
-CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmtpy) {
+CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
     m_iMonitorID          = monitorID;
     m_iID                 = id;
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
-    m_bWasCreatedEmtpy    = isEmtpy;
+    m_bWasCreatedEmpty    = isEmpty;
 }
 
 void CWorkspace::init(PHLWORKSPACE self) {
@@ -49,7 +49,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
     m_bPersistent            = WORKSPACERULE.isPersistent;
 
-    if (self->m_bWasCreatedEmtpy)
+    if (self->m_bWasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
             g_pKeybindManager->spawn(*cmd);
 

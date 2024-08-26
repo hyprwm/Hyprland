@@ -17,7 +17,7 @@ class CWindow;
 
 class CWorkspace {
   public:
-    static PHLWORKSPACE create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmtpy = true);
+    static PHLWORKSPACE create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmpty = true);
     // use create() don't use this
     CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
@@ -57,7 +57,7 @@ class CWorkspace {
     // last monitor (used on reconnect)
     std::string m_szLastMonitor = "";
 
-    bool        m_bWasCreatedEmtpy = true;
+    bool        m_bWasCreatedEmpty = true;
 
     bool        m_bPersistent = false;
 

@@ -28,26 +28,28 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
     if (!pSurface)
         return;
 
-    // TODO:
-    // this cannot be nicely done until we rewrite wlr_surface
-    for (auto& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped)
-            continue;
+    auto HLSurface = CWLSurface::fromResource(pSurface);
+    if (!HLSurface) {
+        Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-desktop surface, ignoring");
+        return;
+    }
 
-        if (w->m_pWLSurface->resource() != pSurface)
-            continue;
+    const auto PWINDOW = HLSurface->getWindow();
+    if (!PWINDOW) {
+        Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-window surface, ignoring");
+        return;
+    }
 
-        if (w->m_bIsX11) {
-            if (activate) {
-                w->m_pXWaylandSurface->setMinimized(false);
-                w->m_pXWaylandSurface->restackToTop();
-            }
-            w->m_pXWaylandSurface->activate(activate);
-        } else {
-            w->m_pXDGSurface->toplevel->setActive(activate);
-            if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastWindow->m_bIsX11)
-                activateSurface(g_pCompositor->m_pLastFocus.lock(), false);
+    if (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface) {
+        if (activate) {
+            PWINDOW->m_pXWaylandSurface->setMinimized(false);
+            PWINDOW->m_pXWaylandSurface->restackToTop();
         }
+        PWINDOW->m_pXWaylandSurface->activate(activate);
+    } else if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface) {
+        PWINDOW->m_pXDGSurface->toplevel->setActive(activate);
+        if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsX11)
+            activateSurface(g_pCompositor->m_pLastFocus.lock(), false);
     }
 }
 

@@ -39,6 +39,7 @@ class CWorkspace {
     // for animations
     CAnimatedVariable<Vector2D> m_vRenderOffset;
     CAnimatedVariable<float>    m_fAlpha;
+    CAnimatedVariable<float>    m_fScaleClients;
     bool                        m_bForceRendering = false;
 
     // allows damage to propagate.

@@ -472,9 +472,9 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
 
         return "unknown style";
     } else if (config.starts_with("workspaces") || config.starts_with("specialWorkspace")) {
-        if (style == "slide" || style == "slidevert" || style == "fade")
+        if (style == "slide" || style == "slidevert")
             return "";
-        else if (style.starts_with("slidefade")) {
+        else if (style.starts_with("slide") || style.starts_with("popin")) {
             // try parsing
             float movePerc = 0.f;
             if (style.find("%") != std::string::npos) {

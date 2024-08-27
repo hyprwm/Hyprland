@@ -3,6 +3,7 @@
 #include <memory>
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/memory/Memory.hpp"
+#include "../macros.hpp"
 
 #include "XSurface.hpp"
 

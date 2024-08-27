@@ -970,12 +970,26 @@ std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
 }
 
 std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
-    // get rid of the keyword keyword
-    in = in.substr(in.find_first_of(' ') + 1);
+    // Find the first space to strip the keyword keyword
+    auto const firstSpacePos = in.find_first_of(' ');
+    if (firstSpacePos == std::string::npos) // Handle the case where there's no space found (invalid input)
+        return "Invalid input: no space found";
 
-    const auto  COMMAND = in.substr(0, in.find_first_of(' '));
+    // Strip the keyword
+    in = in.substr(firstSpacePos + 1);
 
-    const auto  VALUE = in.substr(in.find_first_of(' ') + 1);
+    // Find the next space for the COMMAND and VALUE
+    auto const secondSpacePos = in.find_first_of(' ');
+    if (secondSpacePos == std::string::npos) // Handle the case where there's no second space (invalid input)
+        return "Invalid input: command and value not properly formatted";
+
+    // Extract COMMAND and VALUE
+    const auto COMMAND = in.substr(0, secondSpacePos);
+    const auto VALUE   = in.substr(secondSpacePos + 1);
+
+    // If either COMMAND or VALUE is empty, handle accordingly
+    if (COMMAND.empty() || VALUE.empty())
+        return "Invalid input: command or value is empty";
 
     std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
 

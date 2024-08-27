@@ -55,8 +55,9 @@ namespace Debug {
         // print date and time to the ofs
         if (disableTime && !**disableTime) {
 #ifndef _LIBCPP_VERSION
-            const auto zt  = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now()};
-            const auto hms = std::chrono::hh_mm_ss{zt.get_local_time() - std::chrono::floor<std::chrono::days>(zt.get_local_time())};
+            static auto current_zone = std::chrono::current_zone();
+            const auto  zt           = std::chrono::zoned_time{current_zone, std::chrono::system_clock::now()};
+            const auto  hms          = std::chrono::hh_mm_ss{zt.get_local_time() - std::chrono::floor<std::chrono::days>(zt.get_local_time())};
 #else
             // TODO: current clang 17 does not support `zoned_time`, remove this once clang 19 is ready
             const auto hms = std::chrono::hh_mm_ss{std::chrono::system_clock::now() - std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now())};

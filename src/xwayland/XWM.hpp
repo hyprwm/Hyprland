@@ -119,6 +119,7 @@ class CXWM {
     std::string mimeFromAtom(xcb_atom_t atom);
     void        setClipboardToWayland(SXSelection& sel);
     void        getTransferData(SXSelection& sel);
+    std::string getAtomName(uint32_t atom);
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //

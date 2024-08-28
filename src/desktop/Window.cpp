@@ -31,6 +31,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     pWindow->m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     pWindow->m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fMovingToWorkspaceAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
@@ -52,6 +53,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     pWindow->m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     pWindow->m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fMovingToWorkspaceAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
@@ -407,6 +409,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_pWorkspace;
 
+    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->m_iMonitorID : -1;
+    m_fMovingToWorkspaceAlpha.setValueAndWarp(1.F);
+    m_fMovingToWorkspaceAlpha = 0.F;
+    m_fMovingToWorkspaceAlpha.setCallbackOnEnd([this](void* thisptr) { m_iMonitorMovedFrom = -1; });
+
     m_pWorkspace = pWorkspace;
 
     setAnimationsToMove();
@@ -502,6 +509,7 @@ void CWindow::onUnmap() {
     m_fAlpha.setCallbackOnEnd(unregisterVar);
     m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
     m_fDimPercent.setCallbackOnEnd(unregisterVar);
+    m_fMovingToWorkspaceAlpha.setCallbackOnEnd(unregisterVar);
 
     m_vRealSize.setCallbackOnBegin(nullptr);
 
@@ -542,6 +550,7 @@ void CWindow::onMap() {
     m_fAlpha.resetAllCallbacks();
     m_cRealShadowColor.resetAllCallbacks();
     m_fDimPercent.resetAllCallbacks();
+    m_fMovingToWorkspaceAlpha.resetAllCallbacks();
 
     m_vRealPosition.registerVar();
     m_vRealSize.registerVar();
@@ -551,6 +560,7 @@ void CWindow::onMap() {
     m_fAlpha.registerVar();
     m_cRealShadowColor.registerVar();
     m_fDimPercent.registerVar();
+    m_fMovingToWorkspaceAlpha.registerVar();
 
     m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
 

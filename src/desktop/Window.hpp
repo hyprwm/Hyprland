@@ -352,6 +352,10 @@ class CWindow {
     // animated tint
     CAnimatedVariable<float> m_fDimPercent;
 
+    // animate moving to an invisible workspace
+    int                      m_iMonitorMovedFrom = -1; // -1 means not moving
+    CAnimatedVariable<float> m_fMovingToWorkspaceAlpha;
+
     // swallowing
     PHLWINDOWREF m_pSwallowed;
 

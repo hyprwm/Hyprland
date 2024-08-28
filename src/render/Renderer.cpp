@@ -266,6 +266,11 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
     if (pWindow->m_bPinned)
         return true;
 
+    // if the window is being moved to a workspace that is not invisible, and the alpha is > 0.F, render it.
+    if (pWindow->m_iMonitorMovedFrom != -1 && pWindow->m_fMovingToWorkspaceAlpha.isBeingAnimated() && pWindow->m_fMovingToWorkspaceAlpha.value() > 0.F &&
+        !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+        return true;
+
     const auto PWINDOWWORKSPACE = pWindow->m_pWorkspace;
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_iMonitorID == pMonitor->ID) {
         if (PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() || PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() || PWINDOWWORKSPACE->m_bForceRendering)
@@ -540,14 +545,18 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     if (ignoreAllGeometry)
         decorate = false;
 
+    // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
+    const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_iMonitorMovedFrom != -1 && !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace);
+
     renderdata.surface   = pWindow->m_pWLSurface->resource();
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
-    renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned ? 1.f : PWORKSPACE->m_fAlpha.value());
-    renderdata.alpha     = pWindow->m_fActiveInactiveAlpha.value();
-    renderdata.decorate  = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-    renderdata.rounding  = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.blur      = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
-    renderdata.pWindow   = pWindow;
+    renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_fAlpha.value()) *
+        (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha.value() : 1.F);
+    renderdata.alpha    = pWindow->m_fActiveInactiveAlpha.value();
+    renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+    renderdata.rounding = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
+    renderdata.blur     = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
+    renderdata.pWindow  = pWindow;
 
     if (ignoreAllGeometry) {
         renderdata.alpha     = 1.f;

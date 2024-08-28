@@ -1136,45 +1136,76 @@ std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) 
 }
 
 std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string request) {
-    CVarList   vars(request, 0, ' ');
+    CVarList      vars(request, 0, ' ');
 
-    const auto KB  = vars[1];
-    const auto CMD = vars[2];
+    const auto    KB  = vars[1];
+    const auto    CMD = vars[2];
 
-    // get kb
-    const auto PKEYBOARD = std::find_if(g_pInputManager->m_vKeyboards.begin(), g_pInputManager->m_vKeyboards.end(),
-                                        [&](const auto& other) { return other->hlName == g_pInputManager->deviceNameToInternalString(KB); });
+    SP<IKeyboard> pKeyboard;
 
-    if (PKEYBOARD == g_pInputManager->m_vKeyboards.end())
-        return "device not found";
+    auto          updateKeyboard = [](const SP<IKeyboard> KEEB, const std::string& CMD) -> std::optional<std::string> {
+        const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->xkbKeymap);
+        xkb_layout_index_t activeLayout = 0;
+        while (activeLayout < LAYOUTS) {
+            if (xkb_state_layout_index_is_active(KEEB->xkbState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
+                break;
 
-    const auto         KEEB = *PKEYBOARD;
-
-    const auto         LAYOUTS      = xkb_keymap_num_layouts(KEEB->xkbKeymap);
-    xkb_layout_index_t activeLayout = 0;
-    while (activeLayout < LAYOUTS) {
-        if (xkb_state_layout_index_is_active(KEEB->xkbState, activeLayout, XKB_STATE_LAYOUT_EFFECTIVE) == 1)
-            break;
-
-        activeLayout++;
-    }
-
-    if (CMD == "next")
-        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
-    else if (CMD == "prev")
-        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
-    else {
-        int requestedLayout = 0;
-        try {
-            requestedLayout = std::stoi(CMD);
-        } catch (std::exception& e) { return "invalid arg 2"; }
-
-        if (requestedLayout < 0 || (uint64_t)requestedLayout > LAYOUTS - 1) {
-            return "layout idx out of range of " + std::to_string(LAYOUTS);
+            activeLayout++;
         }
 
-        KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, requestedLayout);
+        if (CMD == "next")
+            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout > LAYOUTS ? 0 : activeLayout + 1);
+        else if (CMD == "prev")
+            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, activeLayout == 0 ? LAYOUTS - 1 : activeLayout - 1);
+        else {
+            int requestedLayout = 0;
+            try {
+                requestedLayout = std::stoi(CMD);
+            } catch (std::exception& e) { return "invalid arg 2"; }
+
+            if (requestedLayout < 0 || (uint64_t)requestedLayout > LAYOUTS - 1) {
+                return "layout idx out of range of " + std::to_string(LAYOUTS);
+            }
+
+            KEEB->updateModifiers(KEEB->modifiersState.depressed, KEEB->modifiersState.latched, KEEB->modifiersState.locked, requestedLayout);
+        }
+
+        return std::nullopt;
+    };
+
+    if (KB == "main" || KB == "active" || KB == "current") {
+        for (auto const& k : g_pInputManager->m_vKeyboards) {
+            if (!k->active)
+                continue;
+
+            pKeyboard = k;
+            break;
+        }
+    } else if (KB == "all") {
+        std::string result = "";
+        for (auto const& k : g_pInputManager->m_vKeyboards) {
+            auto res = updateKeyboard(k, CMD);
+            if (res.has_value())
+                result += *res + "\n";
+        }
+        return result.empty() ? "ok" : result;
+    } else {
+        auto k = std::find_if(g_pInputManager->m_vKeyboards.begin(), g_pInputManager->m_vKeyboards.end(),
+                              [&](const auto& other) { return other->hlName == g_pInputManager->deviceNameToInternalString(KB); });
+
+        if (k == g_pInputManager->m_vKeyboards.end())
+            return "device not found";
+
+        pKeyboard = *k;
     }
+
+    if (!pKeyboard)
+        return "no device";
+
+    auto result = updateKeyboard(pKeyboard, CMD);
+
+    if (result.has_value())
+        return *result;
 
     return "ok";
 }

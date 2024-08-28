@@ -1307,6 +1307,11 @@ void CWindow::activate(bool force) {
     if (!force && (!m_sWindowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;
 
+    if (!m_bIsMapped) {
+        Debug::log(LOG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
+        return;
+    }
+
     if (m_bIsFloating)
         g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
 

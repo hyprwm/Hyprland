@@ -67,6 +67,13 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     });
 }
 
+CWLDataOfferResource::~CWLDataOfferResource() {
+    if (!source || !source->hasDnd() || dead)
+        return;
+
+    source->sendDndFinished();
+}
+
 bool CWLDataOfferResource::good() {
     return resource->resource();
 }
@@ -173,6 +180,7 @@ void CWLDataSourceResource::sendDndDropPerformed() {
     if (resource->version() < 3)
         return;
     resource->sendDndDropPerformed();
+    dropped = true;
 }
 
 void CWLDataSourceResource::sendDndFinished() {

@@ -21,6 +21,7 @@ class IDataSource {
     virtual void                     cancelled()                                = 0;
     virtual bool                     hasDnd();
     virtual bool                     dndDone();
+    virtual void                     sendDndFinished();
     virtual bool                     used();
     virtual void                     markUsed();
     virtual void                     error(uint32_t code, const std::string& msg) = 0;

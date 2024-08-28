@@ -1910,6 +1910,7 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
+    pMonitor->drmFormat = DRM_FORMAT_XRGB8888;
     pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;

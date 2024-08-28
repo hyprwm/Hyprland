@@ -539,7 +539,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 
     // Debug::log(ERR, "[xwm] FIXME: CXWM::handleSelectionPropertyNotify stub");
 
-    return true;
+    return false;
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {

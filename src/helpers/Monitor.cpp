@@ -915,17 +915,20 @@ CMonitorState::~CMonitorState() {
 }
 
 void CMonitorState::ensureBufferPresent() {
-    if (!m_pOwner->output->state->state().enabled) {
+    const auto STATE = m_pOwner->output->state->state();
+    if (!STATE.enabled) {
         Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
-    if (m_pOwner->output->state->state().buffer)
-        return;
+    if (STATE.buffer) {
+        if (const auto params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
+            return;
+    }
 
     // this is required for modesetting being possible and might be missing in case of first tests in the renderer
     // where we test modes and buffers
-    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer, attaching one from the swapchain for modeset being possible");
+    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
     m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
     m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }

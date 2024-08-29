@@ -1089,6 +1089,9 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const SP<CMonitor> PMONITOR) {
 
         Debug::log(LOG, "CConfigManager::getMonitorRuleFor: found a wlr_output_manager override for {}", PMONITOR->szName);
 
+        Debug::log(LOG, " > overriding enabled: {} -> {}", !rule.disabled, !CONFIG->enabled);
+        rule.disabled = !CONFIG->enabled;
+
         if ((CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_MODE) || (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_CUSTOM_MODE)) {
             Debug::log(LOG, " > overriding mode: {:.0f}x{:.0f}@{:.2f}Hz -> {:.0f}x{:.0f}@{:.2f}Hz", rule.resolution.x, rule.resolution.y, rule.refreshRate, CONFIG->resolution.x,
                        CONFIG->resolution.y, CONFIG->refresh / 1000.F);

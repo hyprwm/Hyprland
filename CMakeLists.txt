@@ -341,7 +341,9 @@ add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
 # installable assets
 file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
-install(FILES ${INSTALLABLE_ASSETS} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
+install(FILES ${INSTALLABLE_ASSETS}
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf

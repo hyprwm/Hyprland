@@ -307,10 +307,15 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
 
         LOGM(LOG, "disableHead on {}", PMONITOR->szName);
 
-        PMONITOR->activeMonitorRule.disabled = true;
-        if (!g_pConfigManager->replaceMonitorRule(PMONITOR->activeMonitorRule))
-            g_pConfigManager->appendMonitorRule(PMONITOR->activeMonitorRule);
-        g_pHyprRenderer->applyMonitorRule(PMONITOR, &PMONITOR->activeMonitorRule, false);
+        SWlrManagerSavedOutputState newState;
+        if (owner->monitorStates.contains(PMONITOR->szName))
+            newState = owner->monitorStates.at(PMONITOR->szName);
+
+        newState.enabled = false;
+
+        g_pConfigManager->m_bWantsMonitorReload = true;
+
+        owner->monitorStates[PMONITOR->szName] = newState;
     });
 
     resource->setTest([this](CZwlrOutputConfigurationV1* r) {
@@ -346,6 +351,11 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
 
     LOGM(LOG, "Applying configuration");
 
+    if (!owner) {
+        LOGM(ERR, "applyTestConfiguration: no owner?!");
+        return false;
+    }
+
     for (auto const& headw : heads) {
         auto head = headw.lock();
 
@@ -357,41 +367,59 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         if (!PMONITOR)
             continue;
 
-        LOGM(LOG, "Applying config for monitor {}", PMONITOR->szName);
+        LOGM(LOG, "Saving config for monitor {}", PMONITOR->szName);
 
-        SMonitorRule newRule = PMONITOR->activeMonitorRule;
-        newRule.name         = PMONITOR->szName;
-        newRule.disabled     = false;
+        SWlrManagerSavedOutputState newState;
+        if (owner->monitorStates.contains(PMONITOR->szName))
+            newState = owner->monitorStates.at(PMONITOR->szName);
 
-        if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE) {
-            newRule.resolution  = head->state.mode->getMode()->pixelSize;
-            newRule.refreshRate = head->state.mode->getMode()->refreshRate / 1000.F;
-        } else if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
-            newRule.resolution  = head->state.customMode.size;
-            newRule.refreshRate = head->state.customMode.refresh / 1000.F;
+        newState.enabled = true;
+
+        if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE) {
+            newState.resolution = head->state.mode->getMode()->pixelSize;
+            newState.refresh    = head->state.mode->getMode()->refreshRate;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE;
+            LOGM(LOG, " > Mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
+        } else if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
+            newState.resolution = head->state.customMode.size;
+            newState.refresh    = head->state.customMode.refresh;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
+            LOGM(LOG, " > Custom mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
         }
 
-        if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_POSITION)
-            newRule.offset = head->state.position;
+        if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_POSITION) {
+            newState.position = head->state.position;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_POSITION;
+            LOGM(LOG, " > Position: {:.0f}, {:.0f}", head->state.position.x, head->state.position.y);
+        }
 
-        if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC)
-            newRule.vrr = head->state.adaptiveSync;
+        if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
+            newState.adaptiveSync = head->state.adaptiveSync;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC;
+            LOGM(LOG, " > vrr: {}", newState.adaptiveSync);
+        }
 
-        if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_SCALE)
-            newRule.scale = head->state.scale;
+        if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_SCALE) {
+            newState.scale = head->state.scale;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_SCALE;
+            LOGM(LOG, " > scale: {:.2f}", newState.scale);
+        }
 
-        if (head->committedProperties & COutputConfigurationHead::eCommittedProperties::OUTPUT_HEAD_COMMITTED_TRANSFORM)
-            newRule.transform = head->state.transform;
+        if (head->state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_TRANSFORM) {
+            newState.transform = head->state.transform;
+            newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_TRANSFORM;
+            LOGM(LOG, " > transform: {}", (uint8_t)newState.transform);
+        }
 
         // reset properties for next set.
-        head->committedProperties = 0;
+        head->state.committedProperties = 0;
 
-        if (!g_pConfigManager->replaceMonitorRule(newRule))
-            g_pConfigManager->appendMonitorRule(newRule);
         g_pConfigManager->m_bWantsMonitorReload = true;
+
+        owner->monitorStates[PMONITOR->szName] = newState;
     }
 
-    LOGM(LOG, "Applied configuration");
+    LOGM(LOG, "Saved configuration");
 
     return true;
 }
@@ -417,12 +445,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_MODE) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_MODE) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_MODE;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_MODE;
         state.mode = MODE;
 
         LOGM(LOG, " | configHead for {}: set mode to {}x{}@{}", pMonitor->szName, MODE->getMode()->pixelSize.x, MODE->getMode()->pixelSize.y, MODE->getMode()->refreshRate);
@@ -434,7 +462,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
@@ -444,7 +472,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
         state.customMode = {{w, h}, (uint32_t)refresh};
 
         LOGM(LOG, " | configHead for {}: set custom mode to {}x{}@{}", pMonitor->szName, w, h, refresh);
@@ -456,12 +484,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_POSITION) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_POSITION) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_POSITION;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_POSITION;
         state.position = {x, y};
 
         LOGM(LOG, " | configHead for {}: set pos to {}, {}", pMonitor->szName, x, y);
@@ -473,7 +501,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
@@ -483,7 +511,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_TRANSFORM;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_TRANSFORM;
         state.transform = (wl_output_transform)transform;
 
         LOGM(LOG, " | configHead for {}: set transform to {}", pMonitor->szName, transform);
@@ -495,7 +523,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
@@ -507,7 +535,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_SCALE;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_SCALE;
         state.scale = scale;
 
         LOGM(LOG, " | configHead for {}: set scale to {:.2f}", pMonitor->szName, scale);
@@ -519,7 +547,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
+        if (state.committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_ALREADY_SET, "Property already set");
             return;
         }
@@ -529,7 +557,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        committedProperties |= OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC;
+        state.committedProperties |= OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC;
         state.adaptiveSync = as;
 
         LOGM(LOG, " | configHead for {}: set adaptiveSync to {}", pMonitor->szName, as);
@@ -597,6 +625,17 @@ SP<COutputMode> COutputManagementProtocol::modeFromResource(wl_resource* r) {
     for (auto const& h : m_vModes) {
         if (h->resource->resource() == r)
             return h;
+    }
+
+    return nullptr;
+}
+
+SP<SWlrManagerSavedOutputState> COutputManagementProtocol::getOutputStateFor(SP<CMonitor> pMonitor) {
+    for (auto const& m : m_vManagers) {
+        if (!m->monitorStates.contains(pMonitor->szName))
+            continue;
+
+        return makeShared<SWlrManagerSavedOutputState>(m->monitorStates.at(pMonitor->szName));
     }
 
     return nullptr;

@@ -1943,7 +1943,7 @@ SDispatchResult CKeybindManager::forceRendererReload(std::string args) {
         if (!m->output)
             continue;
 
-        auto rule = g_pConfigManager->getMonitorRuleFor(*m);
+        auto rule = g_pConfigManager->getMonitorRuleFor(m);
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule, true)) {
             overAgain = true;
             break;

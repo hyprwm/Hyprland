@@ -336,12 +336,14 @@ install(
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
-# allow Hyprland to find wallpapers
+# allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
-# wallpapers
-file(GLOB_RECURSE WALLPAPERS "assets/wall*")
-install(FILES ${WALLPAPERS} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+# installable assets
+file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
+list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
+install(FILES ${INSTALLABLE_ASSETS}
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf

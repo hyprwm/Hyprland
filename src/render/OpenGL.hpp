@@ -277,7 +277,7 @@ class CHyprOpenGLImpl {
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;
 
-    SP<CTexture>            m_pBackgroundTexture;
+    SP<CTexture>            m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture;
 
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
@@ -287,7 +287,8 @@ class CHyprOpenGLImpl {
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
-    void                    createBackgroundTexture(const std::string& path);
+    SP<CTexture>            loadAsset(const std::string& file);
+    void                    initAssets();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

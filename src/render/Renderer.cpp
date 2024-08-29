@@ -839,9 +839,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
 
     if (g_pSessionLockManager->isSessionLocked() && !g_pSessionLockManager->isSessionLockPresent()) {
         // locked with no exclusive, draw only red
-        CBox        boxe = {0, 0, INT16_MAX, INT16_MAX};
-        const float A    = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
-        g_pHyprOpenGL->renderRect(&boxe, CColor(1.0, 0.2, 0.2, A));
+        renderSessionLockMissing(pMonitor);
         return;
     }
 
@@ -1004,22 +1002,40 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
         float      scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
         const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
-        if (!PSLS) {
-            // locked with no surface, fill with red
-            const auto ALPHA = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
-
-            CBox       monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
-
-            if (ALPHA < 1.f) /* animate */
-                damageMonitor(pMonitor);
-            else
-                g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
-        } else {
+        if (!PSLS)
+            renderSessionLockMissing(pMonitor);
+        else {
             renderSessionLockSurface(PSLS, pMonitor, now);
             g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
         }
     }
+}
+
+void CHyprRenderer::renderSessionLockMissing(CMonitor* pMonitor) {
+    const auto ALPHA = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
+
+    CBox       monbox = {{}, pMonitor->vecPixelSize};
+
+    const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
+
+    if (ANY_PRESENT) {
+        // render image2, without instructions. Lock still "alive", unless texture dead
+        if (g_pHyprOpenGL->m_pLockDead2Texture)
+            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDead2Texture, &monbox, ALPHA);
+        else
+            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
+    } else {
+        // render image, with instructions. Lock is gone.
+        if (g_pHyprOpenGL->m_pLockDeadTexture)
+            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, &monbox, ALPHA);
+        else
+            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
+    }
+
+    if (ALPHA < 1.f) /* animate */
+        damageMonitor(pMonitor);
+    else
+        g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
 }
 
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool main, const Vector2D& projSize, bool fixMisalignedFSV1) {

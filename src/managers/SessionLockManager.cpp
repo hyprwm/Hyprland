@@ -4,6 +4,7 @@
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
 #include <algorithm>
+#include <ranges>
 
 SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
     pWlrSurface = surface->surface();
@@ -165,4 +166,8 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
 
 bool CSessionLockManager::isSessionLockPresent() {
     return m_pSessionLock && !m_pSessionLock->vSessionLockSurfaces.empty();
+}
+
+bool CSessionLockManager::anySessionLockSurfacesPresent() {
+    return m_pSessionLock && std::ranges::any_of(m_pSessionLock->vSessionLockSurfaces, [](const auto& surf) { return surf->mapped; });
 }

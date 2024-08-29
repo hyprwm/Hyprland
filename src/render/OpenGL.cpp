@@ -338,6 +338,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     initDRMFormats();
 
+    initAssets();
+
     static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<CMonitor*>(data)); });
 
     RASSERT(eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
@@ -2614,14 +2616,17 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-void CHyprOpenGLImpl::createBackgroundTexture(const std::string& texPath) {
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(texPath.c_str());
-    const auto CAIROFORMAT  = cairo_image_surface_get_format(CAIROSURFACE);
+SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& file) {
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(file.c_str());
 
-    m_pBackgroundTexture = makeShared<CTexture>();
+    if (!CAIROSURFACE)
+        return nullptr;
 
-    m_pBackgroundTexture->allocate();
-    m_pBackgroundTexture->m_vSize = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
+    const auto CAIROFORMAT = cairo_image_surface_get_format(CAIROSURFACE);
+    auto       tex         = makeShared<CTexture>();
+
+    tex->allocate();
+    tex->m_vSize = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
 
     const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ?
 #ifdef GLES2
@@ -2634,7 +2639,7 @@ void CHyprOpenGLImpl::createBackgroundTexture(const std::string& texPath) {
     const GLint glType   = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
     const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    glBindTexture(GL_TEXTURE_2D, m_pBackgroundTexture->m_iTexID);
+    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 #ifndef GLES2
@@ -2643,9 +2648,23 @@ void CHyprOpenGLImpl::createBackgroundTexture(const std::string& texPath) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
     }
 #endif
-    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, m_pBackgroundTexture->m_vSize.x, m_pBackgroundTexture->m_vSize.y, 0, glFormat, glType, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_vSize.x, tex->m_vSize.y, 0, glFormat, glType, DATA);
 
     cairo_surface_destroy(CAIROSURFACE);
+
+    return tex;
+}
+
+void CHyprOpenGLImpl::initAssets() {
+    std::string assetsPath = "";
+#ifndef DATAROOTDIR
+    assetsPath = "/usr/share/hypr/";
+#else
+    assetsPath = std::format("{}{}", DATAROOTDIR, "/hypr/");
+#endif
+
+    m_pLockDeadTexture  = loadAsset(assetsPath + "lockdead.png");
+    m_pLockDead2Texture = loadAsset(assetsPath + "lockdead2.png");
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
@@ -2694,7 +2713,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
             return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
         }
 
-        createBackgroundTexture(texPath);
+        m_pBackgroundTexture = loadAsset(texPath);
     }
 
     // create a new one with cairo

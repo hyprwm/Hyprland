@@ -999,7 +999,6 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
 
     if (g_pSessionLockManager->isSessionLocked()) {
         Vector2D   translate = {geometry.x, geometry.y};
-        float      scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
         const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
         if (!PSLS)
@@ -1026,9 +1025,15 @@ void CHyprRenderer::renderSessionLockMissing(CMonitor* pMonitor) {
             g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
     } else {
         // render image, with instructions. Lock is gone.
-        if (g_pHyprOpenGL->m_pLockDeadTexture)
+        if (g_pHyprOpenGL->m_pLockDeadTexture) {
             g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, &monbox, ALPHA);
-        else
+
+            // also render text for the tty number
+            if (g_pHyprOpenGL->m_pLockTtyTextTexture) {
+                CBox texbox = {{}, g_pHyprOpenGL->m_pLockTtyTextTexture->m_vSize};
+                g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockTtyTextTexture, &texbox, 1.F);
+            }
+        } else
             g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
     }
 

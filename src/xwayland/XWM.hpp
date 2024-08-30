@@ -82,6 +82,7 @@ class CXWM {
     void                 focusWindow(SP<CXWaylandSurface> surf);
     void                 activateSurface(SP<CXWaylandSurface> surf, bool activate);
     bool                 isWMWindow(xcb_window_t w);
+    void                 updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect);
 
     void                 sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask);
 

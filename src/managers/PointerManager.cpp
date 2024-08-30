@@ -633,6 +633,24 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     return hotBox.middle();
 }
 
+CBox CPointerManager::getEntireMappableArea() {
+    // find x and y size of the entire space
+    Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
+    for (auto const& m : g_pCompositor->m_vMonitors) {
+        const auto EXTENT = m->logicalBox().extent();
+        const auto POS    = m->logicalBox().pos();
+        if (EXTENT.x > bottomRight.x)
+            bottomRight.x = EXTENT.x;
+        if (EXTENT.y > bottomRight.y)
+            bottomRight.y = EXTENT.y;
+        if (POS.x < topLeft.x)
+            topLeft.x = POS.x;
+        if (POS.y < topLeft.y)
+            topLeft.y = POS.y;
+    }
+    return {topLeft, bottomRight - topLeft};
+}
+
 void CPointerManager::damageIfSoftware() {
     auto b = getCursorBoxGlobal().expand(4);
 
@@ -685,7 +703,9 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         case HID_TYPE_TABLET: {
             CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
             if (!TAB->boundOutput.empty()) {
-                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TAB->boundOutput); PMONITOR) {
+                if (TAB->boundOutput == "entire")
+                    mappedArea = getEntireMappableArea();
+                else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TAB->boundOutput); PMONITOR) {
                     currentMonitor = PMONITOR->self.lock();
                     mappedArea     = currentMonitor->logicalBox();
                 }
@@ -711,23 +731,9 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         case HID_TYPE_POINTER: {
             IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
             if (!POINTER->boundOutput.empty()) {
-                if (POINTER->boundOutput == "entire") {
-                    // find x and y size of the entire space
-                    Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
-                    for (auto const& m : g_pCompositor->m_vMonitors) {
-                        const auto EXTENT = m->logicalBox().extent();
-                        const auto POS    = m->logicalBox().pos();
-                        if (EXTENT.x > bottomRight.x)
-                            bottomRight.x = EXTENT.x;
-                        if (EXTENT.y > bottomRight.y)
-                            bottomRight.y = EXTENT.y;
-                        if (POS.x < topLeft.x)
-                            topLeft.x = POS.x;
-                        if (POS.y < topLeft.y)
-                            topLeft.y = POS.y;
-                    }
-                    mappedArea = {topLeft, bottomRight - topLeft};
-                } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
+                if (POINTER->boundOutput == "entire")
+                    mappedArea = getEntireMappableArea();
+                else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
                     currentMonitor = PMONITOR->self.lock();
                     mappedArea     = currentMonitor->logicalBox();
                 }

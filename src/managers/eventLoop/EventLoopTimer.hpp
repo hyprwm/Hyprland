@@ -16,6 +16,7 @@ class CEventLoopTimer {
 
     void  cancel();
     bool  passed();
+    bool  armed();
 
     float leftUs();
 

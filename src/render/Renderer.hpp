@@ -78,6 +78,7 @@ class CHyprRenderer {
     void                            makeEGLCurrent();
     void                            unsetEGL();
     SExplicitSyncSettings           getExplicitSyncSettings();
+    void                            addWindowToRenderUnfocused(PHLWINDOW window);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -143,6 +144,8 @@ class CHyprRenderer {
 
     SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
     std::vector<SP<CRenderbuffer>> m_vRenderbuffers;
+    std::vector<PHLWINDOWREF>      m_vRenderUnfocused;
+    SP<CEventLoopTimer>            m_tRenderUnfocusedTimer;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

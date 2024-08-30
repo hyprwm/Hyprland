@@ -13,6 +13,7 @@ class CWorkspace;
 class CWindow;
 class CInputPopup;
 class IHLBuffer;
+class CEventLoopTimer;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {

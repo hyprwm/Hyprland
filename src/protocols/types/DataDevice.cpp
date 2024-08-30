@@ -19,3 +19,7 @@ void IDataSource::markUsed() {
 eDataSourceType IDataSource::type() {
     return DATA_SOURCE_TYPE_WAYLAND;
 }
+
+void IDataSource::sendDndFinished() {
+    ;
+}

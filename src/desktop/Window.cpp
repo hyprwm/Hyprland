@@ -31,6 +31,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     pWindow->m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     pWindow->m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fMovingToWorkspaceAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
@@ -52,6 +53,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->m_fActiveInactiveAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     pWindow->m_cRealShadowColor.create(g_pConfigManager->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     pWindow->m_fDimPercent.create(g_pConfigManager->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    pWindow->m_fMovingToWorkspaceAlpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(std::make_unique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(std::make_unique<CHyprBorderDecoration>(pWindow));
@@ -252,7 +254,7 @@ void CWindow::updateWindowDecos() {
     if (!m_bIsMapped || isHidden())
         return;
 
-    for (auto& wd : m_vDecosToRemove) {
+    for (auto const& wd : m_vDecosToRemove) {
         for (auto it = m_dWindowDecorations.begin(); it != m_dWindowDecorations.end(); it++) {
             if (it->get() == wd) {
                 g_pDecorationPositioner->uncacheDecoration(it->get());
@@ -270,11 +272,11 @@ void CWindow::updateWindowDecos() {
     // make a copy because updateWindow can remove decos.
     std::vector<IHyprWindowDecoration*> decos;
 
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         decos.push_back(wd.get());
     }
 
-    for (auto& wd : decos) {
+    for (auto const& wd : decos) {
         if (std::find_if(m_dWindowDecorations.begin(), m_dWindowDecorations.end(), [wd](const auto& other) { return other.get() == wd; }) == m_dWindowDecorations.end())
             continue;
         wd->updateWindow(m_pSelf.lock());
@@ -296,7 +298,7 @@ void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
 }
 
 void CWindow::uncacheWindowDecos() {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         g_pDecorationPositioner->uncacheDecoration(wd.get());
     }
 }
@@ -305,7 +307,7 @@ bool CWindow::checkInputOnDecos(const eInputType type, const Vector2D& mouseCoor
     if (type != INPUT_TYPE_DRAG_END && hasPopupAt(mouseCoords))
         return false;
 
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
             continue;
 
@@ -337,7 +339,7 @@ pid_t CWindow::getPID() {
 }
 
 IHyprWindowDecoration* CWindow::getDecorationByType(eDecorationType type) {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (wd->getDecorationType() == type)
             return wd.get();
     }
@@ -407,6 +409,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_pWorkspace;
 
+    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->m_iMonitorID : -1;
+    m_fMovingToWorkspaceAlpha.setValueAndWarp(1.F);
+    m_fMovingToWorkspaceAlpha = 0.F;
+    m_fMovingToWorkspaceAlpha.setCallbackOnEnd([this](void* thisptr) { m_iMonitorMovedFrom = -1; });
+
     m_pWorkspace = pWorkspace;
 
     setAnimationsToMove();
@@ -454,7 +461,7 @@ PHLWINDOW CWindow::X11TransientFor() {
         s = s->parent;
     }
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pXWaylandSurface != s)
             continue;
         return w;
@@ -464,7 +471,7 @@ PHLWINDOW CWindow::X11TransientFor() {
 }
 
 void CWindow::removeDecorationByType(eDecorationType type) {
-    for (auto& wd : m_dWindowDecorations) {
+    for (auto const& wd : m_dWindowDecorations) {
         if (wd->getDecorationType() == type)
             m_vDecosToRemove.push_back(wd.get());
     }
@@ -502,6 +509,7 @@ void CWindow::onUnmap() {
     m_fAlpha.setCallbackOnEnd(unregisterVar);
     m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
     m_fDimPercent.setCallbackOnEnd(unregisterVar);
+    m_fMovingToWorkspaceAlpha.setCallbackOnEnd(unregisterVar);
 
     m_vRealSize.setCallbackOnBegin(nullptr);
 
@@ -542,6 +550,7 @@ void CWindow::onMap() {
     m_fAlpha.resetAllCallbacks();
     m_cRealShadowColor.resetAllCallbacks();
     m_fDimPercent.resetAllCallbacks();
+    m_fMovingToWorkspaceAlpha.resetAllCallbacks();
 
     m_vRealPosition.registerVar();
     m_vRealSize.registerVar();
@@ -551,6 +560,7 @@ void CWindow::onMap() {
     m_fAlpha.registerVar();
     m_cRealShadowColor.registerVar();
     m_fDimPercent.registerVar();
+    m_fMovingToWorkspaceAlpha.registerVar();
 
     m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
 
@@ -617,7 +627,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
             int      opacityIDX = 0;
 
-            for (auto& r : vars) {
+            for (auto const& r : vars) {
                 if (r == "opacity")
                     continue;
 
@@ -666,7 +676,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 return;
             }
 
-            for (auto& token : colorsAndAngles) {
+            for (auto const& token : colorsAndAngles) {
                 // The first angle, or an explicit "0deg", splits the two gradients
                 if (active && token.contains("deg")) {
                     activeBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
@@ -770,7 +780,7 @@ void CWindow::updateDynamicRules() {
     m_tags.removeDynamicTags();
 
     m_vMatchedRules = g_pConfigManager->getMatchingRules(m_pSelf.lock());
-    for (auto& r : m_vMatchedRules) {
+    for (auto const& r : m_vMatchedRules) {
         applyDynamicRule(r);
     }
 
@@ -881,7 +891,7 @@ void CWindow::destroyGroup() {
         addresses += std::format("{:x},", (uintptr_t)curr.get());
     } while (curr.get() != this);
 
-    for (auto& w : members) {
+    for (auto const& w : members) {
         if (w->m_sGroupData.head)
             g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
         w->m_sGroupData.head = false;
@@ -889,7 +899,7 @@ void CWindow::destroyGroup() {
 
     const bool GROUPSLOCKEDPREV        = g_pKeybindManager->m_bGroupsLocked;
     g_pKeybindManager->m_bGroupsLocked = true;
-    for (auto& w : members) {
+    for (auto const& w : members) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
         w->updateWindowDecos();
     }
@@ -1282,7 +1292,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 
     CVarList envs(std::string{buffer.data(), buffer.size() - 1}, 0, '\n', true);
 
-    for (auto& e : envs) {
+    for (auto const& e : envs) {
         if (!e.contains('='))
             continue;
 
@@ -1306,6 +1316,11 @@ void CWindow::activate(bool force) {
 
     if (!force && (!m_sWindowData.focusOnActivate.valueOr(*PFOCUSONACTIVATE) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_eSuppressedEvents & SUPPRESS_ACTIVATE)))
         return;
+
+    if (!m_bIsMapped) {
+        Debug::log(LOG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
+        return;
+    }
 
     if (m_bIsFloating)
         g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
@@ -1511,7 +1526,7 @@ PHLWINDOW CWindow::getSwallower() {
         if (!currentPid)
             break;
 
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!w->m_bIsMapped || w->isHidden())
                 continue;
 
@@ -1536,7 +1551,7 @@ PHLWINDOW CWindow::getSwallower() {
         return candidates.at(0);
 
     // walk up the focus history and find the last focused
-    for (auto& w : g_pCompositor->m_vWindowFocusHistory) {
+    for (auto const& w : g_pCompositor->m_vWindowFocusHistory) {
         if (!w)
             continue;
 

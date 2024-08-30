@@ -51,7 +51,9 @@ find_package(PkgConfig REQUIRED)
 
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
-pkg_get_variable(WAYLAND_SERVER_DIR wayland-server pkgdatadir)
+pkg_get_variable(WAYLAND_SCANNER_PKGDATA_DIR wayland-scanner pkgdatadir)
+message(
+  STATUS "Found wayland-scanner pkgdatadir at ${WAYLAND_SCANNER_PKGDATA_DIR}")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -87,11 +89,7 @@ else()
 endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
-pkg_check_modules(
-  hyprctl_deps
-  REQUIRED
-  IMPORTED_TARGET
-  hyprutils>=0.2.1)
+pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.1)
 
 pkg_check_modules(
   deps
@@ -258,8 +256,9 @@ function(protocolWayland)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
            ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp
-    COMMAND hyprwayland-scanner --wayland-enums
-            ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
+    COMMAND
+      hyprwayland-scanner --wayland-enums
+      ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers
@@ -337,12 +336,14 @@ install(
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
-# allow Hyprland to find wallpapers
+# allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
-# wallpapers
-file(GLOB_RECURSE WALLPAPERS "assets/wall*")
-install(FILES ${WALLPAPERS} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+# installable assets
+file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
+list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
+install(FILES ${INSTALLABLE_ASSETS}
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf

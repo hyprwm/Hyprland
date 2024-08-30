@@ -55,7 +55,7 @@ void CWLOutputResource::updateState() {
     if (resource->version() >= 2)
         resource->sendScale(std::ceil(monitor->scale));
 
-    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT | WL_OUTPUT_MODE_PREFERRED), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
+    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
 
     if (resource->version() >= 2)
         resource->sendDone();
@@ -65,7 +65,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
     IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
 
     listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
-        for (auto& o : m_vOutputs) {
+        for (auto const& o : m_vOutputs) {
             o->updateState();
         }
     });
@@ -95,7 +95,7 @@ void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
 }
 
 SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
-    for (auto& r : m_vOutputs) {
+    for (auto const& r : m_vOutputs) {
         if (r->client() != client)
             continue;
 
@@ -118,7 +118,7 @@ bool CWLOutputProtocol::isDefunct() {
 }
 
 void CWLOutputProtocol::sendDone() {
-    for (auto& r : m_vOutputs) {
+    for (auto const& r : m_vOutputs) {
         r->resource->sendDone();
     }
 }

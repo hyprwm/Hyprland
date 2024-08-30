@@ -49,7 +49,7 @@ void SDwindleNodeData::getAllChildrenRecursive(std::deque<SDwindleNodeData*>* pD
 
 int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
     int no = 0;
-    for (auto& n : m_lDwindleNodesData) {
+    for (auto const& n : m_lDwindleNodesData) {
         if (n.workspaceID == id && n.valid)
             ++no;
     }
@@ -104,7 +104,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     CMonitor* PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
                 PMONITOR = m.get();
                 break;
@@ -1075,7 +1075,7 @@ std::string CHyprDwindleLayout::getLayoutName() {
 }
 
 void CHyprDwindleLayout::onEnable() {
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())
             continue;
 

@@ -151,7 +151,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
     PROTO::globalShortcuts     = std::make_unique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
 
-    for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+    for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 

@@ -175,13 +175,6 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
         return;
     }
 
-    if (locked) {
-        LOGM(ERR, "Tried to lock a locked session");
-        RESOURCE->inert = true;
-        RESOURCE->resource->sendFinished();
-        return;
-    }
-
     events.newLock.emit(RESOURCE);
 
     locked = true;
@@ -194,7 +187,7 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
     auto             PMONITOR = CWLOutputResource::fromResource(output)->monitor.get();
 
     SP<CSessionLock> sessionLock;
-    for (auto& l : m_vLocks) {
+    for (auto const& l : m_vLocks) {
         if (l->resource.get() == lock) {
             sessionLock = l;
             break;

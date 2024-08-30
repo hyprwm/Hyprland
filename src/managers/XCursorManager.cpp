@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstring>
 #include <dirent.h>
 #include <filesystem>
@@ -304,7 +305,7 @@ std::unordered_set<std::string> CXCursorManager::themePaths(std::string const& t
         scanTheme(theme);
         while (!inherits.empty()) {
             auto oldInherits = inherits;
-            for (auto& i : oldInherits)
+            for (auto const& i : oldInherits)
                 scanTheme(i);
 
             if (oldInherits.size() == inherits.size())

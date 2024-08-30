@@ -6,7 +6,7 @@ CManifest::CManifest(const eManifestType type, const std::string& path) {
     auto manifest = toml::parse_file(path);
 
     if (type == MANIFEST_HYPRLOAD) {
-        for (auto& [key, val] : manifest) {
+        for (auto const& [key, val] : manifest) {
             if (key.str().ends_with(".build"))
                 continue;
 
@@ -63,7 +63,7 @@ CManifest::CManifest(const eManifestType type, const std::string& path) {
             }
         }
 
-        for (auto& [key, val] : manifest) {
+        for (auto const& [key, val] : manifest) {
             if (key.str() == "repository")
                 continue;
 

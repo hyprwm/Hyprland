@@ -139,7 +139,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
 
-    for (auto& r : PWINDOW->m_vMatchedRules) {
+    for (auto const& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = trim(r.szRule.substr(r.szRule.find(' ')));
@@ -326,7 +326,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
-        for (auto& r : PWINDOW->m_vMatchedRules) {
+        for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -648,7 +648,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        const auto PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
+        static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+        PHLWINDOW   PWINDOWCANDIDATE = nullptr;
+        if (*FOCUSONCLOSE)
+            PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING));
+        else
+            PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 

@@ -71,6 +71,12 @@ CLayerSurface::~CLayerSurface() {
         surface->unassign();
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == self.lock(); });
+
+    for (auto const& mon : g_pCompositor->m_vRealMonitors) {
+        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
+            std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
+        }
+    }
 }
 
 void CLayerSurface::onDestroy() {
@@ -360,7 +366,7 @@ void CLayerSurface::applyRules() {
     xray             = -1;
     animationStyle.reset();
 
-    for (auto& rule : g_pConfigManager->getMatchingRules(self.lock())) {
+    for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
         if (rule.rule == "noanim")
             noAnimations = true;
         else if (rule.rule == "blur")
@@ -432,8 +438,8 @@ void CLayerSurface::startAnimation(bool in, bool instant) {
             PMONITOR->vecPosition + Vector2D{PMONITOR->vecSize.x, PMONITOR->vecSize.y / 2},
         };
 
-        float  closest = std::numeric_limits<float>::max();
-        size_t leader  = force;
+        float closest = std::numeric_limits<float>::max();
+        int   leader  = force;
         if (leader == -1) {
             for (size_t i = 0; i < 4; ++i) {
                 float dist = MIDDLE.distance(edgePoints[i]);

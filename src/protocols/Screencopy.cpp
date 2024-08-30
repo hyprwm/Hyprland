@@ -155,7 +155,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         lockedSWCursors = true;
         // TODO: make it per-monitor
         if (!PROTO::screencopy->m_bTimerArmed) {
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_vMonitors) {
                 g_pPointerManager->lockSoftwareForMonitor(m);
             }
             PROTO::screencopy->m_bTimerArmed = true;
@@ -238,7 +238,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(box.w, box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : pMonitor->output->state->state().drmFormat);
+    fb.alloc(box.w, box.h, pMonitor->output->state->state().drmFormat);
 
     if (!g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering");
@@ -365,7 +365,7 @@ CScreencopyProtocol::CScreencopyProtocol(const wl_interface* iface, const int& v
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
             // TODO: make it per-monitor
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_vMonitors) {
                 g_pPointerManager->unlockSoftwareForMonitor(m);
             }
             m_bTimerArmed = false;
@@ -411,7 +411,7 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
     std::vector<WP<CScreencopyFrame>> framesToRemove;
 
     // share frame if correct output
-    for (auto& f : m_vFramesAwaitingWrite) {
+    for (auto const& f : m_vFramesAwaitingWrite) {
         if (!f->pMonitor || !f->buffer) {
             framesToRemove.push_back(f);
             continue;
@@ -428,7 +428,7 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
         framesToRemove.push_back(f);
     }
 
-    for (auto& f : framesToRemove) {
+    for (auto const& f : framesToRemove) {
         destroyResource(f.get());
     }
 }

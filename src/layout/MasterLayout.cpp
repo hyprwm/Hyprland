@@ -16,7 +16,7 @@ SMasterNodeData* CHyprMasterLayout::getNodeFromWindow(PHLWINDOW pWindow) {
 
 int CHyprMasterLayout::getNodesOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
-    for (auto& n : m_lMasterNodesData) {
+    for (auto const& n : m_lMasterNodesData) {
         if (n.workspaceID == ws)
             no++;
     }
@@ -26,7 +26,7 @@ int CHyprMasterLayout::getNodesOnWorkspace(const WORKSPACEID& ws) {
 
 int CHyprMasterLayout::getMastersOnWorkspace(const WORKSPACEID& ws) {
     int no = 0;
-    for (auto& n : m_lMasterNodesData) {
+    for (auto const& n : m_lMasterNodesData) {
         if (n.workspaceID == ws && n.isMaster)
             no++;
     }
@@ -172,7 +172,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         } else if (WINDOWSONWORKSPACE == 2) {
             // when dropping as the second tiled window in the workspace,
             // make it the master only if the cursor is on the master side of the screen
-            for (auto& nd : m_lMasterNodesData) {
+            for (auto const& nd : m_lMasterNodesData) {
                 if (nd.isMaster && nd.workspaceID == PNODE->workspaceID) {
                     switch (orientation) {
                         case ORIENTATION_LEFT:
@@ -381,7 +381,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     if (*PSMARTRESIZING) {
         // check the total width and height so that later
         // if larger/smaller than screen size them down/up
-        for (auto& nd : m_lMasterNodesData) {
+        for (auto const& nd : m_lMasterNodesData) {
             if (nd.workspaceID == pWorkspace->m_iID) {
                 if (nd.isMaster)
                     masterAccumulatedSize += totalSize / MASTERS * nd.percSize;
@@ -552,7 +552,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         float       slaveAccumulatedHeightL = 0;
         float       slaveAccumulatedHeightR = 0;
         if (*PSMARTRESIZING) {
-            for (auto& nd : m_lMasterNodesData) {
+            for (auto const& nd : m_lMasterNodesData) {
                 if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
                     continue;
 
@@ -619,7 +619,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     CMonitor* PMONITOR = nullptr;
 
     if (g_pCompositor->isWorkspaceSpecial(pNode->workspaceID)) {
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m->activeSpecialWorkspaceID() == pNode->workspaceID) {
                 PMONITOR = m.get();
                 break;
@@ -1106,7 +1106,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
             switchToWindow(NEWFOCUS);
         } else {
-            for (auto& n : m_lMasterNodesData) {
+            for (auto const& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     const auto NEWMASTER = n.pWindow.lock();
                     switchWindows(NEWMASTER, NEWCHILD);
@@ -1141,7 +1141,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
             return 0;
         } else {
             // if master is focused keep master focused (don't do anything)
-            for (auto& n : m_lMasterNodesData) {
+            for (auto const& n : m_lMasterNodesData) {
                 if (n.workspaceID == PMASTER->workspaceID && !n.isMaster) {
                     switchToWindow(n.pWindow.lock());
                     break;
@@ -1469,7 +1469,7 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
 }
 
 void CHyprMasterLayout::onEnable() {
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_bIsFloating || !w->m_bIsMapped || w->isHidden())
             continue;
 

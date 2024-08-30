@@ -251,7 +251,7 @@ void CPopup::recheckTree() {
 
 void CPopup::recheckChildrenRecursive() {
     auto cpy = m_vChildren;
-    for (auto& c : cpy) {
+    for (auto const& c : cpy) {
         c->onCommit(true);
         c->recheckChildrenRecursive();
     }
@@ -282,14 +282,14 @@ bool CPopup::visible() {
 }
 
 void CPopup::bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, void*)> fn, void* data) {
-    for (auto& n : nodes) {
+    for (auto const& n : nodes) {
         fn(n, data);
     }
 
     std::vector<CPopup*> nodes2;
 
-    for (auto& n : nodes) {
-        for (auto& c : n->m_vChildren) {
+    for (auto const& n : nodes) {
+        for (auto const& c : n->m_vChildren) {
             nodes2.push_back(c.get());
         }
     }
@@ -308,7 +308,7 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
     std::vector<CPopup*> popups;
     breadthfirst([](CPopup* popup, void* data) { ((std::vector<CPopup*>*)data)->push_back(popup); }, &popups);
 
-    for (auto& p : popups | std::views::reverse) {
+    for (auto const& p : popups | std::views::reverse) {
         if (!p->m_pResource)
             continue;
 

@@ -245,7 +245,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->output->state->state().drmFormat);
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
 
     if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
@@ -369,7 +369,7 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
     std::vector<WP<CToplevelExportFrame>> framesToRemove;
 
     // share frame if correct output
-    for (auto& f : m_vFramesAwaitingWrite) {
+    for (auto const& f : m_vFramesAwaitingWrite) {
         if (!f->pWindow || !validMapped(f->pWindow)) {
             framesToRemove.push_back(f);
             continue;
@@ -393,13 +393,13 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
         framesToRemove.push_back(f);
     }
 
-    for (auto& f : framesToRemove) {
+    for (auto const& f : framesToRemove) {
         destroyResource(f.get());
     }
 }
 
 void CToplevelExportProtocol::onWindowUnmap(PHLWINDOW pWindow) {
-    for (auto& f : m_vFrames) {
+    for (auto const& f : m_vFrames) {
         if (f->pWindow == pWindow)
             f->pWindow.reset();
     }

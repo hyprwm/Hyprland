@@ -97,7 +97,8 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       ninja
       pkg-config
       python3 # for udis86
-      wayland-scanner
+      # re-add after https://github.com/NixOS/nixpkgs/pull/214906 hits nixos-unstable
+      # wayland-scanner
     ];
 
     outputs = [
@@ -136,11 +137,11 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
         tomlplusplus
         wayland
         wayland-protocols
+        xorg.libXcursor
       ]
       (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
       (lib.optionals enableXWayland [
         xorg.libxcb
-        xorg.libXcursor
         xorg.libXdmcp
         xorg.xcbutil
         xorg.xcbutilerrors

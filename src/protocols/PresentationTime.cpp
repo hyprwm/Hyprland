@@ -58,8 +58,12 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
+    __time_t tv_sec = 0;
+    if (sizeof(__time_t) > 4)
+        tv_sec = when->tv_sec >> 32;
+
     if (data->wasPresented)
-        resource->sendPresented((uint32_t)(when->tv_sec >> 32), (uint32_t)(when->tv_sec & 0xFFFFFFFF), (uint32_t)(when->tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
+        resource->sendPresented((uint32_t)tv_sec, (uint32_t)(when->tv_sec & 0xFFFFFFFF), (uint32_t)(when->tv_nsec), untilRefreshNs, (uint32_t)(seq >> 32),
                                 (uint32_t)(seq & 0xFFFFFFFF), (wpPresentationFeedbackKind)flags);
     else
         resource->sendDiscarded();
@@ -110,11 +114,11 @@ void CPresentationProtocol::onPresented(CMonitor* pMonitor, timespec* when, uint
         when = &now;
     }
 
-    for (auto& feedback : m_vFeedbacks) {
+    for (auto const& feedback : m_vFeedbacks) {
         if (!feedback->surface)
             continue;
 
-        for (auto& data : m_vQueue) {
+        for (auto const& data : m_vQueue) {
             if (!data->surface || data->surface != feedback->surface)
                 continue;
 

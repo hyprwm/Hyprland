@@ -119,7 +119,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         if (IDX != XKB_MOD_INVALID)
             modifiersState.locked |= (uint32_t)1 << IDX;
 
-        updateModifiers(modifiersState.depressed, modifiersState.latched, modifiersState.locked, modifiersState.group);
+        // 0 to avoid mods getting stuck if depressed during reload
+        updateModifiers(0, 0, modifiersState.locked, modifiersState.group);
     }
 
     for (size_t i = 0; i < LEDNAMES.size(); ++i) {

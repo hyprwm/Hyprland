@@ -86,14 +86,14 @@ void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t i
 }
 
 void CIdleNotifyProtocol::onActivity() {
-    for (auto& n : m_vNotifications) {
+    for (auto const& n : m_vNotifications) {
         n->onActivity();
     }
 }
 
 void CIdleNotifyProtocol::setInhibit(bool inhibited) {
     isInhibited = inhibited;
-    for (auto& n : m_vNotifications) {
+    for (auto const& n : m_vNotifications) {
         n->onActivity();
     }
 }

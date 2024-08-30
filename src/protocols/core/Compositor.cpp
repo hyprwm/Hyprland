@@ -241,7 +241,7 @@ void CWLSurfaceResource::frame(timespec* now) {
     if (callbacks.empty())
         return;
 
-    for (auto& c : callbacks) {
+    for (auto const& c : callbacks) {
         c->send(now);
     }
 
@@ -257,10 +257,10 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     std::vector<SP<CWLSurfaceResource>> nodes2;
 
     // first, gather all nodes below
-    for (auto& n : nodes) {
+    for (auto const& n : nodes) {
         std::erase_if(n->subsurfaces, [](const auto& e) { return e.expired(); });
         // subsurfaces is sorted lowest -> highest
-        for (auto& c : n->subsurfaces) {
+        for (auto const& c : n->subsurfaces) {
             if (c->zIndex >= 0)
                 break;
             if (c->surface.expired())
@@ -274,7 +274,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
 
     nodes2.clear();
 
-    for (auto& n : nodes) {
+    for (auto const& n : nodes) {
         Vector2D offset = {};
         if (n->role->role() == SURFACE_ROLE_SUBSURFACE) {
             auto subsurface = ((CSubsurfaceRole*)n->role.get())->subsurface.lock();
@@ -284,8 +284,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
         fn(n, offset, data);
     }
 
-    for (auto& n : nodes) {
-        for (auto& c : n->subsurfaces) {
+    for (auto const& n : nodes) {
+        for (auto const& c : n->subsurfaces) {
             if (c->zIndex < 0)
                 continue;
             if (c->surface.expired())
@@ -310,7 +310,7 @@ std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2
                     void* data) { ((std::vector<std::pair<SP<CWLSurfaceResource>, Vector2D>>*)data)->emplace_back(std::make_pair<>(surf, offset)); },
                  &surfs);
 
-    for (auto& [surf, pos] : surfs | std::views::reverse) {
+    for (auto const& [surf, pos] : surfs | std::views::reverse) {
         if (!allowsInput) {
             const auto BOX = CBox{pos, surf->current.size};
             if (BOX.containsPoint(localCoords))

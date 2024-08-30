@@ -67,6 +67,13 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     });
 }
 
+CWLDataOfferResource::~CWLDataOfferResource() {
+    if (!source || !source->hasDnd() || dead)
+        return;
+
+    source->sendDndFinished();
+}
+
 bool CWLDataOfferResource::good() {
     return resource->resource();
 }
@@ -80,7 +87,7 @@ void CWLDataOfferResource::sendData() {
         resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
     }
 
-    for (auto& m : source->mimes()) {
+    for (auto const& m : source->mimes()) {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
         resource->sendOffer(m.c_str());
     }
@@ -173,6 +180,7 @@ void CWLDataSourceResource::sendDndDropPerformed() {
     if (resource->version() < 3)
         return;
     resource->sendDndDropPerformed();
+    dropped = true;
 }
 
 void CWLDataSourceResource::sendDndFinished() {
@@ -306,7 +314,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
 
         RESOURCE->self = RESOURCE;
 
-        for (auto& s : sources) {
+        for (auto const& s : sources) {
             if (!s)
                 continue;
             s->device = RESOURCE;
@@ -390,7 +398,7 @@ void CWLDataDeviceProtocol::onDestroyDataSource(WP<CWLDataSourceResource> source
 }
 
 void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
         o->dead = true;
@@ -439,7 +447,7 @@ void CWLDataDeviceProtocol::updateSelection() {
 }
 
 void CWLDataDeviceProtocol::onKeyboardFocus() {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         o->dead = true;
     }
 
@@ -606,7 +614,7 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
     if (!dnd.focusedDevice || !dnd.currentSource)
         return false;
 
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->dead || !o->source || !o->source->hasDnd())
             continue;
 

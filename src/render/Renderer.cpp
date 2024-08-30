@@ -97,6 +97,44 @@ CHyprRenderer::CHyprRenderer() {
 
     m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, cursorTicker, nullptr);
     wl_event_source_timer_update(m_pCursorTicker, 500);
+
+    m_tRenderUnfocusedTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
+            if (m_vRenderUnfocused.empty())
+                return;
+
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+
+            bool dirty = false;
+            for (auto& w : m_vRenderUnfocused) {
+                if (!w) {
+                    dirty = true;
+                    continue;
+                }
+
+                if (!w->m_pWLSurface || !w->m_pWLSurface->resource() || shouldRenderWindow(w.lock()))
+                    continue;
+
+                w->m_pWLSurface->resource()->frame(&now);
+                auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_pWLSurface->resource());
+                FEEDBACK->attachMonitor(g_pCompositor->m_pLastMonitor.lock());
+                FEEDBACK->discarded();
+                PROTO::presentation->queueData(FEEDBACK);
+            }
+
+            if (dirty)
+                std::erase_if(m_vRenderUnfocused, [](const auto& e) { return !e || !e->m_sWindowData.renderUnfocused.valueOr(false); });
+
+            if (!m_vRenderUnfocused.empty())
+                m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
+        },
+        nullptr);
+
+    g_pEventLoopManager->addTimer(m_tRenderUnfocusedTimer);
 }
 
 CHyprRenderer::~CHyprRenderer() {
@@ -2799,4 +2837,16 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
     }
 
     return settings;
+}
+
+void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
+    static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
+    if (std::find(m_vRenderUnfocused.begin(), m_vRenderUnfocused.end(), window) != m_vRenderUnfocused.end())
+        return;
+
+    m_vRenderUnfocused.emplace_back(window);
+
+    if (!m_tRenderUnfocusedTimer->armed())
+        m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }

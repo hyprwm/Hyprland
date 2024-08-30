@@ -757,6 +757,9 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             if (m_sGroupData.pNextWindow.expired())
                 setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (r.szRule == "renderunfocused") {
+        m_sWindowData.renderUnfocused = CWindowOverridableVar(true, priority);
+        g_pHyprRenderer->addWindowToRenderUnfocused(m_pSelf.lock());
     }
 }
 
@@ -773,6 +776,8 @@ void CWindow::updateDynamicRules() {
 
     m_sWindowData.activeBorderColor.unset(PRIORITY_WINDOW_RULE);
     m_sWindowData.inactiveBorderColor.unset(PRIORITY_WINDOW_RULE);
+
+    m_sWindowData.renderUnfocused.unset(PRIORITY_WINDOW_RULE);
 
     m_eIdleInhibitMode = IDLEINHIBIT_NONE;
 

@@ -174,6 +174,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               syncFullscreen     = true;
     CWindowOverridableVar<bool>               tearing            = false;
     CWindowOverridableVar<bool>               xray               = false;
+    CWindowOverridableVar<bool>               renderUnfocused    = false;
 
     CWindowOverridableVar<int>                rounding;
     CWindowOverridableVar<int>                borderSize;

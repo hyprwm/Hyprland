@@ -185,7 +185,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     if (windowBox.width <= 1 || windowBox.height <= 1) {
         if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
             Debug::log(TRACE, "presentFeedback for invisible surface");
-            surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+            surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
         }
 
         return; // invisible
@@ -240,7 +240,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+        surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
 
     g_pHyprOpenGL->blend(true);
 

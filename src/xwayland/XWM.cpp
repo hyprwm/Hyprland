@@ -81,6 +81,7 @@ void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
         return;
 
     XSURF->geometry = {e->x, e->y, e->width, e->height};
+    updateOverrideRedirect(XSURF, e->override_redirect);
     XSURF->events.setGeometry.emit();
 }
 
@@ -115,7 +116,12 @@ void CXWM::handleMapRequest(xcb_map_request_event_t* e) {
 void CXWM::handleMapNotify(xcb_map_notify_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
-    if (!XSURF || XSURF->overrideRedirect)
+    if (!XSURF)
+        return;
+
+    updateOverrideRedirect(XSURF, e->override_redirect);
+
+    if (XSURF->overrideRedirect)
         return;
 
     XSURF->setWithdrawn(false);
@@ -1042,6 +1048,13 @@ void CXWM::updateClientList() {
 
 bool CXWM::isWMWindow(xcb_window_t w) {
     return w == wmWindow || w == clipboard.window;
+}
+
+void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect) {
+    if (!surf || surf->overrideRedirect == overrideRedirect)
+        return;
+
+    surf->overrideRedirect = overrideRedirect;
 }
 
 void CXWM::initSelection() {

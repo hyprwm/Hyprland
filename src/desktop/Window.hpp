@@ -288,8 +288,6 @@ class CWindow {
     // XWayland stuff
     bool         m_bIsX11 = false;
     PHLWINDOWREF m_pX11Parent;
-    uint64_t     m_iX11Type              = 0;
-    bool         m_bIsModal              = false;
     bool         m_bX11DoesntWantBorders = false;
     bool         m_bX11ShouldntFocus     = false;
     float        m_fX11SurfaceScaledBy   = 1.f;
@@ -468,6 +466,8 @@ class CWindow {
     void                   warpCursor();
     PHLWINDOW              getSwallower();
     void                   unsetWindowData(eOverridePriority priority);
+    bool                   isX11OverrideRedirect();
+    bool                   isModal();
 
     // listeners
     void onAck(uint32_t serial);

@@ -104,7 +104,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vRealSize      = PWINDOWSURFACE->current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
-            pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
+            pWindow->isX11OverrideRedirect()) { // XDG windows should be fine. TODO: check for weird atoms?
             pWindow->setHidden(true);
             return;
         }
@@ -113,7 +113,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if (pWindow->m_vRealSize.goal().x <= 5 || pWindow->m_vRealSize.goal().y <= 5)
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
 
-        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
+        if (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect()) {
 
             if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
                 pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
@@ -163,12 +163,12 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
 
-    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2)) {
+    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect())) {
         pWindow->m_vRealPosition.warp();
         pWindow->m_vRealSize.warp();
     }
 
-    if (pWindow->m_iX11Type != 2) {
+    if (!pWindow->isX11OverrideRedirect()) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
@@ -592,7 +592,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 
         // find whether there is a floating window below this one
         for (auto const& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
@@ -612,7 +612,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 
         // if not, floating window
         for (auto const& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow)
                 return w;
         }
@@ -631,7 +631,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
-        pWindowCandidate->m_iX11Type == 2 || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         return nullptr;
 
     return pWindowCandidate;

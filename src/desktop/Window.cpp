@@ -19,9 +19,8 @@ using namespace Hyprutils::String;
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
-    pWindow->m_pSelf    = pWindow;
-    pWindow->m_bIsX11   = true;
-    pWindow->m_iX11Type = surface->overrideRedirect ? 2 : 1;
+    pWindow->m_pSelf  = pWindow;
+    pWindow->m_bIsX11 = true;
 
     pWindow->m_vRealPosition.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     pWindow->m_vRealSize.create(g_pConfigManager->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -1570,4 +1569,12 @@ void CWindow::unsetWindowData(eOverridePriority priority) {
     for (auto const& element : g_pConfigManager->miWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
+}
+
+bool CWindow::isX11OverrideRedirect() {
+    return m_pXWaylandSurface && m_pXWaylandSurface->overrideRedirect;
+}
+
+bool CWindow::isModal() {
+    return (m_pXWaylandSurface && m_pXWaylandSurface->modal);
 }

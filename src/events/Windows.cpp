@@ -120,7 +120,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bRequestsFloat = true;
     }
 
-    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->m_iX11Type == 2 && !PWINDOW->m_pXWaylandSurface->wantsFocus());
+    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->isX11OverrideRedirect() && !PWINDOW->m_pXWaylandSurface->wantsFocus());
 
     if (PWORKSPACE->m_bDefaultFloating)
         PWINDOW->m_bIsFloating = true;
@@ -477,7 +477,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (!PWINDOW->m_sWindowData.noFocus.valueOrDefault() && !PWINDOW->m_bNoInitialFocus &&
-        (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
+        (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
@@ -577,7 +577,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
 
-    if (PMONITOR && PWINDOW->m_iX11Type == 2)
+    if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 }
 
@@ -816,7 +816,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
-    if (PWINDOW->m_iX11Type == 2) {
+    if (PWINDOW->isX11OverrideRedirect()) {
 
         Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 

@@ -791,7 +791,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     if (properties & ALLOW_FLOATING) {
         for (auto const& w : m_vWindows | std::views::reverse) {
             const auto BB  = w->getWindowBoxUnified(properties);
-            CBox       box = BB.copy().expand(w->m_iX11Type != 2 ? BORDER_GRAB_AREA : 0);
+            CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
             if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() &&
                 w != pIgnoreWindow) {
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -821,16 +821,16 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x && BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
                     continue;
 
-                CBox box = BB.copy().expand(w->m_iX11Type != 2 ? BORDER_GRAB_AREA : 0);
+                CBox box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_pWorkspace) && !w->isHidden() && !w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() &&
                     w != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent
-                    if (w->m_bX11ShouldntFocus && w->m_iX11Type != 2)
+                    if (w->m_bX11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
 
                     if (box.containsPoint(g_pPointerManager->position())) {
 
-                        if (w->m_bIsX11 && w->m_iX11Type == 2 && !w->m_pXWaylandSurface->wantsFocus()) {
+                        if (w->m_bIsX11 && w->isX11OverrideRedirect() && !w->m_pXWaylandSurface->wantsFocus()) {
                             // Override Redirect
                             return g_pCompositor->m_pLastWindow.lock(); // we kinda trick everything here.
                                 // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
@@ -997,7 +997,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
     }
 
-    if (pWindow && pWindow->m_bIsX11 && pWindow->m_iX11Type == 2 && !pWindow->m_pXWaylandSurface->wantsFocus())
+    if (pWindow && pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_pXWaylandSurface->wantsFocus())
         return;
 
     g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
@@ -1071,7 +1071,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
         updateWindowAnimatedDecorationValues(PLASTWINDOW);
 
-        if (!pWindow->m_bIsX11 || pWindow->m_iX11Type == 1)
+        if (!pWindow->m_bIsX11 || !pWindow->isX11OverrideRedirect())
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
     }
 
@@ -1928,7 +1928,7 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     }
 
     // shadow
-    if (pWindow->m_iX11Type != 2 && !pWindow->m_bX11DoesntWantBorders) {
+    if (!pWindow->isX11OverrideRedirect() && !pWindow->m_bX11DoesntWantBorders) {
         if (pWindow == m_pLastWindow) {
             pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
         } else {

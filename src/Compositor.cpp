@@ -1888,6 +1888,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
         pWindow->m_fBorderFadeAnimationProgress = 1.f;
     };
 
+    const bool IS_SHADOWED_BY_MODAL = pWindow->m_pXDGSurface && pWindow->m_pXDGSurface->toplevel && pWindow->m_pXDGSurface->toplevel->anyChildModal();
+
     // border
     const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(pWindow);
     if (RENDERDATA.isBorderGradient)
@@ -1921,11 +1923,16 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     }
 
     // dim
-    if (pWindow == m_pLastWindow.lock() || pWindow->m_sWindowData.noDim.valueOrDefault() || !*PDIMENABLED) {
-        pWindow->m_fDimPercent = 0;
-    } else {
-        pWindow->m_fDimPercent = *PDIMSTRENGTH;
-    }
+    float goalDim = 1.F;
+    if (pWindow == m_pLastWindow.lock() || pWindow->m_sWindowData.noDim.valueOrDefault() || !*PDIMENABLED)
+        goalDim = 0;
+    else
+        goalDim = *PDIMSTRENGTH;
+
+    if (IS_SHADOWED_BY_MODAL)
+        goalDim += (1.F - goalDim) / 2.F;
+
+    pWindow->m_fDimPercent = goalDim;
 
     // shadow
     if (!pWindow->isX11OverrideRedirect() && !pWindow->m_bX11DoesntWantBorders) {

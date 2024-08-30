@@ -1037,6 +1037,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "misc:render_unfocused_fps",
+        .description = "the maximum limit for renderunfocused windows' fps in the background",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{15, 1, 120},
+    },
 
     /*
      * binds:

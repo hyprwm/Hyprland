@@ -101,6 +101,8 @@ CHyprRenderer::CHyprRenderer() {
     m_tRenderUnfocusedTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
+            static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
             if (m_vRenderUnfocused.empty())
                 return;
 
@@ -128,7 +130,7 @@ CHyprRenderer::CHyprRenderer() {
                 std::erase_if(m_vRenderUnfocused, [](const auto& e) { return !e || !e->m_sWindowData.renderUnfocused.valueOr(false); });
 
             if (!m_vRenderUnfocused.empty())
-                m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(75));
+                m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
         },
         nullptr);
 
@@ -2838,11 +2840,13 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
 }
 
 void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
+    static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
     if (std::find(m_vRenderUnfocused.begin(), m_vRenderUnfocused.end(), window) != m_vRenderUnfocused.end())
         return;
 
     m_vRenderUnfocused.emplace_back(window);
 
     if (!m_tRenderUnfocusedTimer->armed())
-        m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(75));
+        m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }

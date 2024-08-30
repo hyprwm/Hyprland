@@ -675,7 +675,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || w->m_iX11Type != 2)) {
+    if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
         if (w && !w->isFullscreen()) {
             const CBox real = {w->m_vRealPosition.value().x, w->m_vRealPosition.value().y, w->m_vRealSize.value().x, w->m_vRealSize.value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
@@ -1688,7 +1688,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     }
 
     // ignore X11 OR windows, they shouldn't be touched
-    if (w->m_bIsX11 && w->m_iX11Type == 2)
+    if (w->m_bIsX11 && w->isX11OverrideRedirect())
         return;
 
     static auto PEXTENDBORDERGRAB = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");

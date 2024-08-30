@@ -721,7 +721,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             w->setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && w->m_iX11Type != 2) {
+            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_vRealPosition.goal();

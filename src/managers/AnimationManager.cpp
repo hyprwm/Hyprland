@@ -194,7 +194,7 @@ void CAnimationManager::tick() {
             default: UNREACHABLE();
         }
         // set size and pos if valid, but only if damage policy entire (dont if border for example)
-        if (validMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && PWINDOW->m_iX11Type != 2)
+        if (validMapped(PWINDOW) && av->m_eDamagePolicy == AVARDAMAGE_ENTIRE && !PWINDOW->isX11OverrideRedirect())
             g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
 
         // check if we did not finish animating. If so, trigger onAnimationEnd.

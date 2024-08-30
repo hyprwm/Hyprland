@@ -47,7 +47,7 @@ void CMonitor::onConnect(bool noRule) {
 
     listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-        PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+        PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
     });
 
     listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
@@ -861,7 +861,7 @@ bool CMonitor::attemptDirectScanout() {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, this);
+    PSURFACE->presentFeedback(&now, self.lock());
 
     output->state->addDamage(CBox{{}, vecPixelSize});
     output->state->resetExplicitFences();

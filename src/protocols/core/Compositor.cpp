@@ -509,7 +509,7 @@ void CWLSurfaceResource::updateCursorShm() {
     memcpy(shmData.data(), pixelData, bufLen);
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor) {
+void CWLSurfaceResource::presentFeedback(timespec* when, SP<CMonitor> pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);

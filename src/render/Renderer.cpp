@@ -1277,7 +1277,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             pMonitor->lastScanout.reset();
 
             // reset DRM format, make sure it's the one we want.
-            pMonitor->output->state->setFormat(pMonitor->drmFormat);
+            pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+            pMonitor->drmFormat = pMonitor->prevDrmFormat;
         }
     }
 
@@ -1978,7 +1979,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
-    pMonitor->drmFormat = DRM_FORMAT_XRGB8888;
+    pMonitor->prevDrmFormat = pMonitor->drmFormat;
+    pMonitor->drmFormat     = DRM_FORMAT_XRGB8888;
     pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;
@@ -2219,7 +2221,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
-        pMonitor->drmFormat = fmt.second;
+        pMonitor->prevDrmFormat = pMonitor->drmFormat;
+        pMonitor->drmFormat     = fmt.second;
 
         if (!pMonitor->state.test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);

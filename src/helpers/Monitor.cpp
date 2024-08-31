@@ -832,6 +832,21 @@ bool CMonitor::attemptDirectScanout() {
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    // scanout buffer isn't dmabuf, so no scanout
+    if (!params.success)
+        return false;
+
+    // entering into scanout, so save monitor format
+    if (lastScanout.expired())
+        prevDrmFormat = drmFormat;
+
+    if (drmFormat != params.format) {
+        output->state->setFormat(params.format);
+        drmFormat = params.format;
+    }
+
     output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);

@@ -100,7 +100,8 @@ class CMonitor {
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;
-    uint32_t                    drmFormat = DRM_FORMAT_INVALID;
+    uint32_t                    drmFormat     = DRM_FORMAT_INVALID;
+    uint32_t                    prevDrmFormat = DRM_FORMAT_INVALID;
 
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

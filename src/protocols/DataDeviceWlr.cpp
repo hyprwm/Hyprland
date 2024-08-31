@@ -133,7 +133,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset primary selection received");
-            g_pSeatManager->setCurrentSelection(nullptr);
+            g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 

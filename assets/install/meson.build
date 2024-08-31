@@ -1,4 +1,4 @@
-globber = run_command('sh', '-c', 'find -type f -not -name "*.build"', check: true)
+globber = run_command('sh', '-c', 'find . -type f -not -name "*.build"', check: true)
 files = globber.stdout().strip().split('\n')
 
 foreach file : files

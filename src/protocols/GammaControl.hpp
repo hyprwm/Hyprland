@@ -20,7 +20,7 @@ class CGammaControl {
 
   private:
     SP<CZwlrGammaControlV1> resource;
-    CMonitor*               pMonitor      = nullptr;
+    WP<CMonitor>            pMonitor;
     size_t                  gammaSize     = 0;
     bool                    gammaTableSet = false;
     std::vector<uint16_t>   gammaTable; // [r,g,b]+

@@ -1,3 +1,5 @@
+name: Nix (Build)
+
 on:
   workflow_call:
     secrets:
@@ -25,6 +27,6 @@ jobs:
       - uses: cachix/cachix-action@v15
         with:
           name: hyprland
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - run: nix build '.?submodules=1#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"

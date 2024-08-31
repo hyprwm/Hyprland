@@ -26,7 +26,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     }
 
     for (auto const& g : PROTO::gamma->m_vGammaControllers) {
-        if (g->pMonitor.get() == pMonitor.get()) {
+        if (g->pMonitor == pMonitor) {
             resource->sendFailed();
             return;
         }

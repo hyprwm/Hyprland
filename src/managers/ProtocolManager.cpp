@@ -221,6 +221,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::screencopy.reset();
     PROTO::toplevelExport.reset();
     PROTO::globalShortcuts.reset();
+    PROTO::xdgDialog.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

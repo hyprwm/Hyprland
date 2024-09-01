@@ -23,8 +23,9 @@ void CTextInput::initCallbacks() {
         listeners.disable = INPUT->events.disable.registerListener([this](std::any p) { onDisabled(); });
         listeners.commit  = INPUT->events.onCommit.registerListener([this](std::any p) { onCommit(); });
         listeners.destroy = INPUT->events.destroy.registerListener([this](std::any p) {
-            g_pInputManager->m_sIMERelay.deactivateIME(this);
             g_pInputManager->m_sIMERelay.removeTextInput(this);
+            if (!g_pInputManager->m_sIMERelay.getFocusedTextInput())
+                g_pInputManager->m_sIMERelay.deactivateIME(this);
         });
     } else {
         const auto INPUT = pV1Input.lock();
@@ -38,8 +39,9 @@ void CTextInput::initCallbacks() {
         listeners.destroy = INPUT->events.destroy.registerListener([this](std::any p) {
             listeners.surfaceUnmap.reset();
             listeners.surfaceDestroy.reset();
-            g_pInputManager->m_sIMERelay.deactivateIME(this);
             g_pInputManager->m_sIMERelay.removeTextInput(this);
+            if (!g_pInputManager->m_sIMERelay.getFocusedTextInput())
+                g_pInputManager->m_sIMERelay.deactivateIME(this);
         });
     }
 }

@@ -6,6 +6,7 @@
 #include "config/ConfigValue.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../xwayland/XWayland.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -523,6 +524,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
 
+    m_pConfig->addConfigValue("xwayland:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});
 
@@ -813,6 +815,8 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
+    static const auto PENABLEXWAYLAND     = CConfigValue<Hyprlang::INT>("xwayland:enabled");
+    static int        prevEnabledXwayland = *PENABLEXWAYLAND;
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
@@ -859,6 +863,17 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         ensureMonitorStatus();
         ensureVRR();
     }
+
+    // Clean up XWayland if config changes
+    if (!(*PENABLEXWAYLAND) && prevEnabledXwayland) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsX11)
+                g_pCompositor->closeWindow(w);
+        }
+    }
+
+    g_pXWayland->m_bEnabled = *PENABLEXWAYLAND;
+
 
     if (!isFirstLaunch && !g_pCompositor->m_bUnsafeState)
         refreshGroupBarGradients();

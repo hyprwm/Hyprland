@@ -158,18 +158,32 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
     return false;
 }
 
+std::string CXWM::getAtomName(uint32_t atom) {
+    for (auto const& ha : HYPRATOMS) {
+        if (ha.second != atom)
+            continue;
+
+        return ha.first;
+    }
+
+    // Get the name of the atom
+    auto const atom_name_cookie = xcb_get_atom_name(connection, atom);
+    auto*      atom_name_reply  = xcb_get_atom_name_reply(connection, atom_name_cookie, NULL);
+
+    if (!atom_name_reply)
+        return "Unknown";
+
+    auto const name_len = xcb_get_atom_name_name_length(atom_name_reply);
+    auto*      name     = xcb_get_atom_name_name(atom_name_reply);
+    free(atom_name_reply);
+
+    return {name, name_len};
+}
+
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
     std::string propName;
-    if (Debug::trace) {
-        propName = std::format("{}?", atom);
-        for (auto const& ha : HYPRATOMS) {
-            if (ha.second != atom)
-                continue;
-
-            propName = ha.first;
-            break;
-        }
-    }
+    if (Debug::trace)
+        propName = getAtomName(atom);
 
     if (atom == XCB_ATOM_WM_CLASS) {
         size_t len         = xcb_get_property_value_length(reply);

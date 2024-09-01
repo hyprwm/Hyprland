@@ -23,9 +23,7 @@ void CTextInput::initCallbacks() {
         listeners.disable = INPUT->events.disable.registerListener([this](std::any p) { onDisabled(); });
         listeners.commit  = INPUT->events.onCommit.registerListener([this](std::any p) { onCommit(); });
         listeners.destroy = INPUT->events.destroy.registerListener([this](std::any p) {
-            const auto INPUT = pV3Input.lock();
-            if (INPUT && INPUT->current.enabled && focusedSurface())
-                g_pInputManager->m_sIMERelay.deactivateIME(this);
+            g_pInputManager->m_sIMERelay.deactivateIME(this);
             g_pInputManager->m_sIMERelay.removeTextInput(this);
         });
     } else {
@@ -40,6 +38,7 @@ void CTextInput::initCallbacks() {
         listeners.destroy = INPUT->events.destroy.registerListener([this](std::any p) {
             listeners.surfaceUnmap.reset();
             listeners.surfaceDestroy.reset();
+            g_pInputManager->m_sIMERelay.deactivateIME(this);
             g_pInputManager->m_sIMERelay.removeTextInput(this);
         });
     }
@@ -192,7 +191,7 @@ wl_client* CTextInput::client() {
 }
 
 void CTextInput::commitStateToIME(SP<CInputMethodV2> ime) {
-    if (isV3()) {
+    if (isV3() && !pV3Input.expired()) {
         const auto INPUT = pV3Input.lock();
 
         if (INPUT->current.surrounding.updated)
@@ -202,7 +201,7 @@ void CTextInput::commitStateToIME(SP<CInputMethodV2> ime) {
 
         if (INPUT->current.contentType.updated)
             ime->textContentType(INPUT->current.contentType.hint, INPUT->current.contentType.purpose);
-    } else {
+    } else if (!pV1Input.expired()) {
         const auto INPUT = pV1Input.lock();
 
         if (INPUT->pendingSurrounding.isPending)

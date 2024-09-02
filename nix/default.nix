@@ -89,6 +89,10 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     DIRTY = lib.optionalString (commit == "") "dirty";
     HASH = commit;
 
+    depsBuildBuild = [
+      pkg-config
+    ];
+
     nativeBuildInputs = [
       hyprwayland-scanner
       jq
@@ -97,8 +101,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       ninja
       pkg-config
       python3 # for udis86
-      # re-add after https://github.com/NixOS/nixpkgs/pull/214906 hits nixos-unstable
-      # wayland-scanner
+      wayland-scanner
     ];
 
     outputs = [

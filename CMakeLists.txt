@@ -266,7 +266,7 @@ function(protocolWayland)
 endfunction()
 
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
-                      libudis86 uuid)
+                      libudis86)
 
 protocolnew("subprojects/hyprland-protocols/protocols"
             "hyprland-global-shortcuts-v1" true)

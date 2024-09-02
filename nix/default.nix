@@ -9,33 +9,22 @@
   aquamarine,
   binutils,
   cairo,
-  expat,
-  fribidi,
   git,
-  hwdata,
   hyprcursor,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
   jq,
   libGL,
-  libdatrie,
-  libdisplay-info,
   libdrm,
   libexecinfo,
   libinput,
-  libliftoff,
-  libselinux,
-  libsepol,
-  libthai,
-  libuuid,
   libxkbcommon,
+  libuuid,
   mesa,
   pango,
   pciutils,
-  pcre2,
   python3,
-  seatd,
   systemd,
   tomlplusplus,
   wayland,
@@ -114,29 +103,25 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       [
         aquamarine
         cairo
-        expat
-        fribidi
+        # expat
+        # fribidi
         git
-        hwdata
         hyprcursor
         hyprlang
         hyprutils
-        libdatrie
-        libdisplay-info
+        # libdatrie
         libdrm
         libGL
         libinput
-        libliftoff
-        libselinux
-        libsepol
-        libthai
+        # libselinux
+        # libsepol
+        # libthai
         libuuid
         libxkbcommon
         mesa
         pango
         pciutils
-        pcre2
-        seatd
+        # pcre2
         tomlplusplus
         wayland
         wayland-protocols
@@ -146,7 +131,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       (lib.optionals enableXWayland [
         xorg.libxcb
         xorg.libXdmcp
-        xorg.xcbutil
         xorg.xcbutilerrors
         xorg.xcbutilrenderutil
         xorg.xcbutilwm

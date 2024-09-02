@@ -99,8 +99,6 @@ pkg_check_modules(
   xkbcommon
   uuid
   wayland-server
-  wayland-client
-  wayland-cursor
   wayland-protocols
   cairo
   pango
@@ -109,11 +107,6 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput
-  hwdata
-  libseat
-  libdisplay-info
-  libliftoff
-  libudev
   gbm
   gio-2.0
   hyprlang>=0.3.2
@@ -200,14 +193,11 @@ else()
     REQUIRED
     IMPORTED_TARGET
     xcb
-    xwayland
-    xcb-util
     xcb-render
     xcb-xfixes
     xcb-icccm
     xcb-composite
     xcb-res
-    xcb-ewmh
     xcb-errors)
   target_link_libraries(Hyprland PkgConfig::xdeps)
 endif()

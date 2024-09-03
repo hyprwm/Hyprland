@@ -58,8 +58,8 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
         if (!pending.acquireTimeline)
             return;
 
-        // wait for the buffer to be released by the gpu before sending a commit to avoid lagging the desktop
-        auto materialized = pending.acquireTimeline->timeline->check(pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE);
+        // wait for the acquire timeline to materialize
+        auto materialized = pending.acquireTimeline->timeline->check(pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
         if (!materialized.has_value()) {
             LOGM(ERR, "Failed to check the acquire timeline");
             resource->noMemory();
@@ -70,7 +70,7 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
 
         surface->lockPendingState();
-        pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_DEADLINE);
+        pending.acquireTimeline->timeline->addWaiter([this]() { surface->unlockPendingState(); }, pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);
     });
 
     listeners.surfaceCommit = surface->events.roleCommit.registerListener([this](std::any d) {

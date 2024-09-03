@@ -300,7 +300,7 @@ bool CXWaylandServer::create() {
 void CXWaylandServer::setDisplayEnv(void) {
     if (g_pCompositor->m_bEnableXwayland)
         setenv("DISPLAY", displayName.c_str(), true);
-    else 
+    else
         unsetenv("DISPLAY");
 }
 

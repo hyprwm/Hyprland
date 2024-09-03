@@ -815,8 +815,6 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
-    static const auto PENABLEXWAYLAND     = CConfigValue<Hyprlang::INT>("xwayland:enabled");
-    static int        prevEnabledXwayland = *PENABLEXWAYLAND;
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
@@ -864,16 +862,23 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         ensureVRR();
     }
 
-    // Clean up XWayland if config changes
-    if (!(*PENABLEXWAYLAND) && prevEnabledXwayland) {
-        for (auto const& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsX11)
-                g_pCompositor->closeWindow(w);
+#ifndef NO_XWAYLAND
+    const auto PENABLEXWAYLAND = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
+    // enable/disable xwayland usage
+    // TODO: Clean up xwayland when changing to false
+    if (!isFirstLaunch) {
+        bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
+        if (PENABLEXWAYLAND != prevEnabledXwayland) {
+            if (PENABLEXWAYLAND)
+                Debug::log(LOG, "xwayland has been enabled");
+            else
+                Debug::log(LOG, "xwayland has been disabled");
+            g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+            g_pXWayland->pServer->setDisplayEnv();
         }
-    }
-
-    g_pXWayland->m_bEnabled = *PENABLEXWAYLAND;
-
+    } else
+        g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+#endif
 
     if (!isFirstLaunch && !g_pCompositor->m_bUnsafeState)
         refreshGroupBarGradients();

@@ -153,7 +153,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D               surfacePos = Vector2D(-1337, -1337);
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
-    SSessionLockSurface*   pSessionLock = nullptr;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
@@ -261,14 +260,17 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
         g_pCompositor->setActiveMonitor(PMONITOR);
 
-    if (g_pSessionLockManager->isSessionLocked()) {
-        pSessionLock = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
+    if (PMONITOR && g_pSessionLockManager->isSessionLocked()) {
+        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        surfacePos                     = PMONITOR->vecPosition;
 
-        if (!pSessionLock)
-            return;
+        foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        g_pCompositor->focusSurface(foundSurface);
 
-        foundSurface = pSessionLock->surface->surface();
-        surfacePos   = PMONITOR->vecPosition;
+        const auto SURFACELOCAL = mouseCoords - surfacePos;
+        g_pSeatManager->setPointerFocus(foundSurface, SURFACELOCAL);
+        g_pSeatManager->sendPointerMotion(time, SURFACELOCAL);
+        return;
     }
 
     if (!foundSurface)
@@ -460,9 +462,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             restoreCursorIconToApp();
     }
 
-    if (pSessionLock != nullptr)
-        g_pCompositor->focusSurface(foundSurface);
-    else if (pFoundWindow) {
+    if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
             if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords)) {

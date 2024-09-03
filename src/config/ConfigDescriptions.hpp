@@ -1117,7 +1117,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
 
     SConfigOptionDescription{
         .value       = "xwayland:enabled",
-        .description = "enables xwayland applications to exist",
+        .description = "allow running applications using X11",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },

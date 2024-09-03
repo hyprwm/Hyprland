@@ -865,14 +865,18 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 #ifndef NO_XWAYLAND
     const auto PENABLEXWAYLAND = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
     // enable/disable xwayland usage
-    // TODO: Clean up xwayland when changing to false
     if (!isFirstLaunch) {
         bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
         if (PENABLEXWAYLAND != prevEnabledXwayland) {
             if (PENABLEXWAYLAND)
                 Debug::log(LOG, "xwayland has been enabled");
-            else
-                Debug::log(LOG, "xwayland has been disabled");
+            else {
+                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
+                for (const auto& w : g_pCompositor->m_vWindows) {
+                    if (w->m_bIsX11)
+                        g_pCompositor->closeWindow(w);
+                }
+            }
             g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
             g_pXWayland->pServer->setDisplayEnv();
         }

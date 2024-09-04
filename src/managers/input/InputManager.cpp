@@ -111,7 +111,7 @@ void CInputManager::simulateMouseMovement() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
-    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
+    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000, false, true);
 }
 
 void CInputManager::sendMotionEventsToFocused() {
@@ -132,7 +132,7 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_pLastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
     static auto PMOUSEDPMS        = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
@@ -171,7 +171,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
 
-    if (time)
+    if (time && !silent)
         PROTO::idle->onActivity();
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;

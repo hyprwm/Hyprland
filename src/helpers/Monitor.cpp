@@ -47,7 +47,7 @@ void CMonitor::onConnect(bool noRule) {
 
     listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-        PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+        PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
     });
 
     listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
@@ -721,7 +721,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             w->setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && w->m_iX11Type != 2) {
+            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_vRealPosition.goal();
@@ -832,6 +832,21 @@ bool CMonitor::attemptDirectScanout() {
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    // scanout buffer isn't dmabuf, so no scanout
+    if (!params.success)
+        return false;
+
+    // entering into scanout, so save monitor format
+    if (lastScanout.expired())
+        prevDrmFormat = drmFormat;
+
+    if (drmFormat != params.format) {
+        output->state->setFormat(params.format);
+        drmFormat = params.format;
+    }
+
     output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
@@ -861,7 +876,7 @@ bool CMonitor::attemptDirectScanout() {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, this);
+    PSURFACE->presentFeedback(&now, self.lock());
 
     output->state->addDamage(CBox{{}, vecPixelSize});
     output->state->resetExplicitFences();

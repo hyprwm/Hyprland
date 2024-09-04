@@ -30,6 +30,9 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
     listeners.commit = surface_->events.commit.registerListener([this](std::any data) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
 
+        if (mapped && pWlrSurface != g_pCompositor->m_pLastFocus)
+            g_pInputManager->simulateMouseMovement();
+
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
     });

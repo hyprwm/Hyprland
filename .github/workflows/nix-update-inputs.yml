@@ -1,4 +1,4 @@
-name: Nix
+name: Nix (Update Inputs)
 
 on:
   workflow_call:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   update:
+    if: github.repository == 'hyprwm/Hyprland'
     name: inputs
     runs-on: ubuntu-latest
     steps:

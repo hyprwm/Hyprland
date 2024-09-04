@@ -17,7 +17,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         return;
     }
 
-    pMonitor = OUTPUTRES->monitor.get();
+    pMonitor = OUTPUTRES->monitor;
 
     if (!pMonitor) {
         LOGM(ERR, "No CMonitor");
@@ -103,7 +103,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->sendGammaSize(gammaSize);
 
     listeners.monitorDestroy    = pMonitor->events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
-    listeners.monitorDisconnect = pMonitor->events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
+    listeners.monitorDisconnect = pMonitor->events.disconnect.registerListener([this](std::any) { this->onMonitorDestroy(); });
 }
 
 CGammaControl::~CGammaControl() {
@@ -119,7 +119,7 @@ bool CGammaControl::good() {
 }
 
 void CGammaControl::applyToMonitor() {
-    if (!pMonitor)
+    if (!pMonitor || !pMonitor->output)
         return; // ??
 
     LOGM(LOG, "setting to monitor {}", pMonitor->szName);
@@ -136,16 +136,16 @@ void CGammaControl::applyToMonitor() {
         pMonitor->output->state->setGammaLut({});
     }
 
-    g_pHyprRenderer->damageMonitor(pMonitor);
+    g_pHyprRenderer->damageMonitor(pMonitor.get());
 }
 
 CMonitor* CGammaControl::getMonitor() {
-    return pMonitor;
+    return pMonitor ? pMonitor.get() : nullptr;
 }
 
 void CGammaControl::onMonitorDestroy() {
+    LOGM(LOG, "Destroying gamma control for {}", pMonitor->szName);
     resource->sendFailed();
-    pMonitor = nullptr;
 }
 
 CGammaControlProtocol::CGammaControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

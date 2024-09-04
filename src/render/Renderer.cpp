@@ -97,6 +97,44 @@ CHyprRenderer::CHyprRenderer() {
 
     m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, cursorTicker, nullptr);
     wl_event_source_timer_update(m_pCursorTicker, 500);
+
+    m_tRenderUnfocusedTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
+            if (m_vRenderUnfocused.empty())
+                return;
+
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+
+            bool dirty = false;
+            for (auto& w : m_vRenderUnfocused) {
+                if (!w) {
+                    dirty = true;
+                    continue;
+                }
+
+                if (!w->m_pWLSurface || !w->m_pWLSurface->resource() || shouldRenderWindow(w.lock()))
+                    continue;
+
+                w->m_pWLSurface->resource()->frame(&now);
+                auto FEEDBACK = makeShared<CQueuedPresentationData>(w->m_pWLSurface->resource());
+                FEEDBACK->attachMonitor(g_pCompositor->m_pLastMonitor.lock());
+                FEEDBACK->discarded();
+                PROTO::presentation->queueData(FEEDBACK);
+            }
+
+            if (dirty)
+                std::erase_if(m_vRenderUnfocused, [](const auto& e) { return !e || !e->m_sWindowData.renderUnfocused.valueOr(false); });
+
+            if (!m_vRenderUnfocused.empty())
+                m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
+        },
+        nullptr);
+
+    g_pEventLoopManager->addTimer(m_tRenderUnfocusedTimer);
 }
 
 CHyprRenderer::~CHyprRenderer() {
@@ -185,7 +223,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     if (windowBox.width <= 1 || windowBox.height <= 1) {
         if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
             Debug::log(TRACE, "presentFeedback for invisible surface");
-            surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+            surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
         }
 
         return; // invisible
@@ -240,7 +278,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        surface->presentFeedback(RDATA->when, RDATA->pMonitor);
+        surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
 
     g_pHyprOpenGL->blend(true);
 
@@ -1239,7 +1277,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             pMonitor->lastScanout.reset();
 
             // reset DRM format, make sure it's the one we want.
-            pMonitor->output->state->setFormat(pMonitor->drmFormat);
+            pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+            pMonitor->drmFormat = pMonitor->prevDrmFormat;
         }
     }
 
@@ -1940,7 +1979,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
     pMonitor->currentMode   = nullptr;
 
     pMonitor->output->state->setFormat(DRM_FORMAT_XRGB8888);
-    pMonitor->drmFormat = DRM_FORMAT_XRGB8888;
+    pMonitor->prevDrmFormat = pMonitor->drmFormat;
+    pMonitor->drmFormat     = DRM_FORMAT_XRGB8888;
     pMonitor->output->state->resetExplicitFences();
 
     bool autoScale = false;
@@ -2181,7 +2221,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
         pMonitor->output->state->setFormat(fmt.second);
-        pMonitor->drmFormat = fmt.second;
+        pMonitor->prevDrmFormat = pMonitor->drmFormat;
+        pMonitor->drmFormat     = fmt.second;
 
         if (!pMonitor->state.test()) {
             Debug::log(ERR, "output {} failed basic test on format {}", pMonitor->szName, fmt.first);
@@ -2799,4 +2840,16 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
     }
 
     return settings;
+}
+
+void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
+    static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+
+    if (std::find(m_vRenderUnfocused.begin(), m_vRenderUnfocused.end(), window) != m_vRenderUnfocused.end())
+        return;
+
+    m_vRenderUnfocused.emplace_back(window);
+
+    if (!m_tRenderUnfocusedTimer->armed())
+        m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }

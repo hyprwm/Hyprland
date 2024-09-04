@@ -82,6 +82,7 @@ class CXWM {
     void                 focusWindow(SP<CXWaylandSurface> surf);
     void                 activateSurface(SP<CXWaylandSurface> surf, bool activate);
     bool                 isWMWindow(xcb_window_t w);
+    void                 updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect);
 
     void                 sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask);
 
@@ -118,6 +119,7 @@ class CXWM {
     std::string mimeFromAtom(xcb_atom_t atom);
     void        setClipboardToWayland(SXSelection& sel);
     void        getTransferData(SXSelection& sel);
+    std::string getAtomName(uint32_t atom);
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //

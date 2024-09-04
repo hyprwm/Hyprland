@@ -874,7 +874,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
             } else {
                 Debug::log(LOG, "xwayland has been disabled, cleaning up...");
                 for (auto& w : g_pCompositor->m_vWindows) {
-                    if (!w->m_bIsX11)
+                    if (w->m_pXDGSurface || !w->m_bIsX11)
                         continue;
                     g_pCompositor->closeWindow(w);
                 }

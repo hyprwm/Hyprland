@@ -868,17 +868,21 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (!isFirstLaunch) {
         bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
         if (PENABLEXWAYLAND != prevEnabledXwayland) {
-            if (PENABLEXWAYLAND)
-                Debug::log(LOG, "xwayland has been enabled");
-            else {
-                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
-                for (const auto& w : g_pCompositor->m_vWindows) {
-                    if (w->m_bIsX11)
-                        g_pCompositor->closeWindow(w);
-                }
-            }
             g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
-            g_pXWayland->pServer->setDisplayEnv();
+            if (PENABLEXWAYLAND) {
+                Debug::log(LOG, "xwayland has been enabled");
+                g_pXWayland = std::make_unique<CXWayland>();
+            } else {
+                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
+                for (auto& w : g_pCompositor->m_vWindows) {
+                    if (!w->m_bIsX11)
+                        continue;
+                    g_pCompositor->closeWindow(w);
+                }
+                g_pXWayland->pServer = std::make_unique<CXWaylandServer>();
+                g_pXWayland->pWM     = std::make_unique<CXWM>();
+                g_pXWayland->pServer->setDisplayEnv();
+            }
         }
     } else
         g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;

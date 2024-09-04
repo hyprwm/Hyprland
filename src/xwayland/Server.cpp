@@ -297,7 +297,7 @@ bool CXWaylandServer::create() {
     return true;
 }
 
-void CXWaylandServer::setDisplayEnv(void) {
+void CXWaylandServer::setDisplayEnv() {
     if (g_pCompositor->m_bEnableXwayland)
         setenv("DISPLAY", displayName.c_str(), true);
     else
@@ -439,7 +439,8 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
     pipeSource = nullptr;
 
     // start the wm
-    g_pXWayland->pWM = std::make_unique<CXWM>();
+    if (!g_pXWayland->pWM)
+        g_pXWayland->pWM = std::make_unique<CXWM>();
 
     g_pCursorManager->setXWaylandCursor();
 

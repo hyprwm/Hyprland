@@ -7,6 +7,11 @@ CXWayland::CXWayland() {
 
     pServer = std::make_unique<CXWaylandServer>();
 
+    if (!g_pCompositor->m_bEnableXwayland) {
+        pServer->setDisplayEnv();
+        return;
+    }
+
     if (!pServer->create()) {
         Debug::log(ERR, "XWayland failed to start: it will not work.");
         return;

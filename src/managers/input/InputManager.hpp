@@ -237,7 +237,7 @@ class CInputManager {
 
     uint32_t           m_uiCapabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false);
+    void               mouseMoveUnified(uint32_t, bool refocus = false, bool silent = false);
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
 

@@ -1,14 +1,14 @@
 #include "XWayland.hpp"
 #include "../debug/Log.hpp"
 
-CXWayland::CXWayland() {
+CXWayland::CXWayland(const bool enabled) {
 #ifndef NO_XWAYLAND
     Debug::log(LOG, "Starting up the XWayland server");
 
     pServer = std::make_unique<CXWaylandServer>();
 
-    if (!g_pCompositor->m_bEnableXwayland) {
-        pServer->setDisplayEnv();
+    if (!enabled) {
+        unsetenv("DISPLAY");
         return;
     }
 

@@ -15,8 +15,6 @@ class CXWaylandServer {
     // create the server.
     bool create();
 
-    void setDisplayEnv(void);
-
     // starts the server, meant to be called by CXWaylandServer.
     bool start();
 

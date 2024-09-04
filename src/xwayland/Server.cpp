@@ -288,20 +288,13 @@ bool CXWaylandServer::create() {
     if (!tryOpenSockets())
         return false;
 
-    setDisplayEnv();
+    setenv("DISPLAY", displayName.c_str(), true);
 
     // TODO: lazy mode
 
     idleSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::startServer, nullptr);
 
     return true;
-}
-
-void CXWaylandServer::setDisplayEnv() {
-    if (g_pCompositor->m_bEnableXwayland)
-        setenv("DISPLAY", displayName.c_str(), true);
-    else
-        unsetenv("DISPLAY");
 }
 
 void CXWaylandServer::runXWayland(int notifyFD) {

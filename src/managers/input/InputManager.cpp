@@ -189,17 +189,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
-    PHLWINDOW forcedFocus = m_pForcedFocus.lock();
-
-    if (!forcedFocus)
-        forcedFocus = g_pCompositor->getForceFocus();
-
-    if (forcedFocus) {
-        pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_vRealPosition.value();
-        foundSurface = pFoundWindow->m_pWLSurface->resource();
-    }
-
     // constraints
     if (!g_pSeatManager->mouse.expired() && isConstrained()) {
         const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
@@ -224,6 +213,33 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
         } else
             Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF.get(), (uintptr_t)CONSTRAINT.get());
+    }
+
+    if (PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
+        g_pCompositor->setActiveMonitor(PMONITOR);
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        surfacePos                     = PMONITOR->vecPosition;
+
+        foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        g_pCompositor->focusSurface(foundSurface);
+
+        const auto SURFACELOCAL = mouseCoords - surfacePos;
+        g_pSeatManager->setPointerFocus(foundSurface, SURFACELOCAL);
+        g_pSeatManager->sendPointerMotion(time, SURFACELOCAL);
+        return;
+    }
+
+    PHLWINDOW forcedFocus = m_pForcedFocus.lock();
+
+    if (!forcedFocus)
+        forcedFocus = g_pCompositor->getForceFocus();
+
+    if (forcedFocus) {
+        pFoundWindow = forcedFocus;
+        surfacePos   = pFoundWindow->m_vRealPosition.value();
+        foundSurface = pFoundWindow->m_pWLSurface->resource();
     }
 
     // if we are holding a pointer button,
@@ -256,22 +272,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     }
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
-    if (PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
-        g_pCompositor->setActiveMonitor(PMONITOR);
-
-    if (g_pSessionLockManager->isSessionLocked()) {
-        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
-        surfacePos                     = PMONITOR->vecPosition;
-
-        foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
-        g_pCompositor->focusSurface(foundSurface);
-
-        const auto SURFACELOCAL = mouseCoords - surfacePos;
-        g_pSeatManager->setPointerFocus(foundSurface, SURFACELOCAL);
-        g_pSeatManager->sendPointerMotion(time, SURFACELOCAL);
-        return;
-    }
 
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerPopupSurface(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);

@@ -153,7 +153,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
     Vector2D               surfacePos = Vector2D(-1337, -1337);
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
-    SSessionLockSurface*   pSessionLock = nullptr;
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
@@ -190,17 +189,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
     if (!PMONITOR->solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
-    PHLWINDOW forcedFocus = m_pForcedFocus.lock();
-
-    if (!forcedFocus)
-        forcedFocus = g_pCompositor->getForceFocus();
-
-    if (forcedFocus) {
-        pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_vRealPosition.value();
-        foundSurface = pFoundWindow->m_pWLSurface->resource();
-    }
-
     // constraints
     if (!g_pSeatManager->mouse.expired() && isConstrained()) {
         const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
@@ -225,6 +213,33 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
 
         } else
             Debug::log(ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", (uintptr_t)SURF.get(), (uintptr_t)CONSTRAINT.get());
+    }
+
+    if (PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
+        g_pCompositor->setActiveMonitor(PMONITOR);
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        const auto PSESSIONLOCKSURFACE = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        surfacePos                     = PMONITOR->vecPosition;
+
+        foundSurface = PSESSIONLOCKSURFACE ? PSESSIONLOCKSURFACE->surface->surface() : nullptr;
+        g_pCompositor->focusSurface(foundSurface);
+
+        const auto SURFACELOCAL = mouseCoords - surfacePos;
+        g_pSeatManager->setPointerFocus(foundSurface, SURFACELOCAL);
+        g_pSeatManager->sendPointerMotion(time, SURFACELOCAL);
+        return;
+    }
+
+    PHLWINDOW forcedFocus = m_pForcedFocus.lock();
+
+    if (!forcedFocus)
+        forcedFocus = g_pCompositor->getForceFocus();
+
+    if (forcedFocus) {
+        pFoundWindow = forcedFocus;
+        surfacePos   = pFoundWindow->m_vRealPosition.value();
+        foundSurface = pFoundWindow->m_pWLSurface->resource();
     }
 
     // if we are holding a pointer button,
@@ -257,19 +272,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
     }
 
     g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
-
-    if (PMONITOR && PMONITOR != g_pCompositor->m_pLastMonitor.get() && (*PMOUSEFOCUSMON || refocus) && m_pForcedFocus.expired())
-        g_pCompositor->setActiveMonitor(PMONITOR);
-
-    if (g_pSessionLockManager->isSessionLocked()) {
-        pSessionLock = PMONITOR ? g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID) : nullptr;
-
-        if (!pSessionLock)
-            return;
-
-        foundSurface = pSessionLock->surface->surface();
-        surfacePos   = PMONITOR->vecPosition;
-    }
 
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerPopupSurface(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
@@ -460,9 +462,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
             restoreCursorIconToApp();
     }
 
-    if (pSessionLock != nullptr)
-        g_pCompositor->focusSurface(foundSurface);
-    else if (pFoundWindow) {
+    if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
             if (!pFoundWindow->isFullscreen() && !pFoundWindow->hasPopupAt(mouseCoords)) {

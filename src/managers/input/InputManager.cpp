@@ -877,7 +877,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
             onKeyboardKey(data, PKEEB);
 
-            PROTO::idle->onActivity();
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
         },
         keeb.get());
 
@@ -887,7 +888,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
             onKeyboardMod(PKEEB);
 
-            PROTO::idle->onActivity();
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
         },
         keeb.get());
 

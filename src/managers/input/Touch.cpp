@@ -1,7 +1,6 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../protocols/IdleNotify.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
 
@@ -78,8 +77,6 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         return; // oops, nothing found.
 
     g_pSeatManager->sendTouchDown(m_sTouchData.touchFocusSurface.lock(), e.timeMs, e.touchID, local);
-
-    PROTO::idle->onActivity();
 }
 
 void CInputManager::onTouchUp(ITouch::SUpEvent e) {

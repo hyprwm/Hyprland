@@ -111,7 +111,7 @@ void CInputManager::simulateMouseMovement() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
-    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000, false, true);
+    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
 }
 
 void CInputManager::sendMotionEventsToFocused() {
@@ -132,7 +132,7 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_pLastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
     static auto PMOUSEDPMS        = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
@@ -169,9 +169,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
         return;
 
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
-
-    if (time && !silent)
-        PROTO::idle->onActivity();
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -531,8 +528,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
 void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
 
-    PROTO::idle->onActivity();
-
     m_tmrLastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -767,8 +762,6 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
 
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
-    PROTO::idle->onActivity();
-
     if (!passEvent)
         return;
 
@@ -883,6 +876,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
 
             onKeyboardKey(data, PKEEB);
+
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
         },
         keeb.get());
 
@@ -891,6 +887,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
 
             onKeyboardMod(PKEEB);
+
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
         },
         keeb.get());
 
@@ -1291,8 +1290,6 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
     bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
     auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
-
-    PROTO::idle->onActivity();
 
     if (passEvent) {
         const auto IME = m_sIMERelay.m_pIME.lock();

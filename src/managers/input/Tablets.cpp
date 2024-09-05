@@ -1,6 +1,5 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
-#include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../managers/PointerManager.hpp"
@@ -155,8 +154,6 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
     if (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_TILT_Y))
         PROTO::tablet->tilt(PTOOL, PTOOL->tilt);
-
-    PROTO::idle->onActivity();
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
@@ -171,8 +168,6 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
         PROTO::tablet->up(PTOOL);
 
     PTOOL->isDown = e.in;
-
-    PROTO::idle->onActivity();
 }
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
@@ -184,8 +179,6 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
         PTOOL->buttonsDown.push_back(e.button);
     else
         std::erase(PTOOL->buttonsDown, e.button);
-
-    PROTO::idle->onActivity();
 }
 
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
@@ -201,8 +194,6 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL);
     }
-
-    PROTO::idle->onActivity();
 }
 
 void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {

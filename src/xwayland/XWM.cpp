@@ -891,8 +891,9 @@ CXWM::~CXWM() {
     if (eventSource)
         wl_event_source_remove(eventSource);
 
-    for (auto const& sr : surfaces)
+    for (auto const& sr : surfaces) {
         sr->events.destroy.emit();
+    }
 }
 
 void CXWM::setActiveWindow(xcb_window_t window) {

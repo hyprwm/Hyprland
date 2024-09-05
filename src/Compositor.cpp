@@ -615,7 +615,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pCursorManager = std::make_unique<CCursorManager>();
 
             Debug::log(LOG, "Starting XWayland");
-            g_pXWayland = std::make_unique<CXWayland>();
+            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
         } break;
         default: UNREACHABLE();
     }

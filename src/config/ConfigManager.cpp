@@ -6,6 +6,7 @@
 #include "config/ConfigValue.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../xwayland/XWayland.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -523,6 +524,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
 
+    m_pConfig->addConfigValue("xwayland:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});
 
@@ -859,6 +861,29 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         ensureMonitorStatus();
         ensureVRR();
     }
+
+#ifndef NO_XWAYLAND
+    const auto PENABLEXWAYLAND = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
+    // enable/disable xwayland usage
+    if (!isFirstLaunch) {
+        bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
+        if (PENABLEXWAYLAND != prevEnabledXwayland) {
+            g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+            if (PENABLEXWAYLAND) {
+                Debug::log(LOG, "xwayland has been enabled");
+            } else {
+                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
+                for (auto& w : g_pCompositor->m_vWindows) {
+                    if (w->m_pXDGSurface || !w->m_bIsX11)
+                        continue;
+                    g_pCompositor->closeWindow(w);
+                }
+            }
+            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
+        }
+    } else
+        g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+#endif
 
     if (!isFirstLaunch && !g_pCompositor->m_bUnsafeState)
         refreshGroupBarGradients();

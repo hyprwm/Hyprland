@@ -17,7 +17,7 @@ class CXWM;
 
 class CXWayland {
   public:
-    CXWayland();
+    CXWayland(const bool enabled);
 
 #ifndef NO_XWAYLAND
     std::unique_ptr<CXWaylandServer> pServer;

@@ -1116,6 +1116,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
+        .value       = "xwayland:enabled",
+        .description = "allow running applications using X11",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "xwayland:use_nearest_neighbor",
         .description = "uses the nearest neighbor filtering for xwayland apps, making them pixelated rather than blurry",
         .type        = CONFIG_OPTION_BOOL,

@@ -51,7 +51,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     if (self->m_bWasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            g_pKeybindManager->spawn(*cmd);
+            g_pKeybindManager->spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({"createworkspace", m_szName});
     g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});

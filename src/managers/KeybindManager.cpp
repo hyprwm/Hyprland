@@ -34,7 +34,7 @@ using namespace Hyprutils::String;
 #include <sys/consio.h>
 #endif
 
-static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
+static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
     if (!*PINITIALWSTRACKING || g_pConfigManager->isLaunchingExecOnce)
@@ -46,11 +46,15 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv() {
 
     std::vector<std::pair<std::string, std::string>> result;
 
-    result.push_back(std::make_pair<>(
-        "HL_INITIAL_WORKSPACE_TOKEN",
-        g_pTokenManager->registerNewToken(
-            SInitialWorkspaceToken{{}, PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace->getConfigName() : PMONITOR->activeWorkspace->getConfigName()},
-            std::chrono::months(1337))));
+    if (!pInitialWorkspace) {
+        if (PMONITOR->activeSpecialWorkspace)
+            pInitialWorkspace = PMONITOR->activeSpecialWorkspace;
+        else
+            pInitialWorkspace = PMONITOR->activeWorkspace;
+    }
+
+    result.push_back(std::make_pair<>("HL_INITIAL_WORKSPACE_TOKEN",
+                                      g_pTokenManager->registerNewToken(SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337))));
 
     return result;
 }
@@ -846,8 +850,12 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 }
 
 // Dispatchers
-
 SDispatchResult CKeybindManager::spawn(std::string args) {
+    const uint64_t PROC = spawnWithRules(args, nullptr);
+    return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
+}
+
+uint64_t CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWorkspace) {
 
     args = trim(args);
 
@@ -859,7 +867,7 @@ SDispatchResult CKeybindManager::spawn(std::string args) {
         args  = args.substr(args.find_first_of(']') + 1);
     }
 
-    const uint64_t PROC = spawnRawProc(args);
+    const uint64_t PROC = spawnRawProc(args, pInitialWorkspace);
 
     if (!RULES.empty()) {
         const auto RULESLIST = CVarList(RULES, 0, ';');
@@ -871,18 +879,18 @@ SDispatchResult CKeybindManager::spawn(std::string args) {
         Debug::log(LOG, "Applied {} rule arguments for exec.", RULESLIST.size());
     }
 
-    return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
+    return PROC;
 }
 
 SDispatchResult CKeybindManager::spawnRaw(std::string args) {
-    const uint64_t PROC = spawnRawProc(args);
+    const uint64_t PROC = spawnRawProc(args, nullptr);
     return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
-uint64_t CKeybindManager::spawnRawProc(std::string args) {
+uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace) {
     Debug::log(LOG, "Executing {}", args);
 
-    const auto HLENV = getHyprlandLaunchEnv();
+    const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
     int        socket[2];
     if (pipe(socket) != 0) {

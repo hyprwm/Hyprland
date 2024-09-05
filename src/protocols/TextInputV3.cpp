@@ -24,10 +24,9 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) 
         current = pending;
         serial++;
 
-        if (wasEnabled && !current.enabled) {
-            current.reset();
+        if (wasEnabled && !current.enabled)
             events.disable.emit();
-        } else if (!wasEnabled && current.enabled)
+        else if (!wasEnabled && current.enabled)
             events.enable.emit();
         else
             events.onCommit.emit();
@@ -53,12 +52,12 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : resource(resource_) 
         pending.box.cursorBox = {x, y, w, h};
     });
 
-    resource->setEnable([this](CZwpTextInputV3* r) { pending.enabled = true; });
-
-    resource->setDisable([this](CZwpTextInputV3* r) {
-        pending.enabled = false;
+    resource->setEnable([this](CZwpTextInputV3* r) {
         pending.reset();
+        pending.enabled = true;
     });
+
+    resource->setDisable([this](CZwpTextInputV3* r) { pending.enabled = false; });
 }
 
 CTextInputV3::~CTextInputV3() {

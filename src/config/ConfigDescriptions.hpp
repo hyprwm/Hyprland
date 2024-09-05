@@ -743,6 +743,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "group:merge_groups_on_drag",
+        .description = "whether window groups can be dragged into other groups",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "general:col.border_active",
         .description = "border color for inactive windows",
         .type        = CONFIG_OPTION_GRADIENT,
@@ -1115,6 +1121,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      * xwayland:
      */
 
+    SConfigOptionDescription{
+        .value       = "xwayland:enabled",
+        .description = "allow running applications using X11",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
     SConfigOptionDescription{
         .value       = "xwayland:use_nearest_neighbor",
         .description = "uses the nearest neighbor filtering for xwayland apps, making them pixelated rather than blurry",

@@ -432,7 +432,8 @@ int CXWaylandServer::ready(int fd, uint32_t mask) {
     pipeSource = nullptr;
 
     // start the wm
-    g_pXWayland->pWM = std::make_unique<CXWM>();
+    if (!g_pXWayland->pWM)
+        g_pXWayland->pWM = std::make_unique<CXWM>();
 
     g_pCursorManager->setXWaylandCursor();
 

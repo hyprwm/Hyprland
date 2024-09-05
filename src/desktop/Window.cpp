@@ -951,12 +951,16 @@ int CWindow::getGroupSize() {
 }
 
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
+    static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
+    bool        isGroup               = m_sGroupData.pNextWindow;
+    bool        disallowDragIntoGroup = g_pInputManager->m_bWasDraggingWindow && isGroup && !bool(*ALLOWGROUPMERGE);
     return !g_pKeybindManager->m_bGroupsLocked                                                 // global group lock disengaged
         && ((m_eGroupRules & GROUP_INVADE && m_bFirstMap)                                      // window ignore local group locks, or
             || (!pWindow->getGroupHead()->m_sGroupData.locked                                  //      target unlocked
                 && !(m_sGroupData.pNextWindow.lock() && getGroupHead()->m_sGroupData.locked))) //      source unlocked or isn't group
         && !m_sGroupData.deny                                                                  // source is not denied entry
-        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap);                                     // group rule doesn't prevent adding window
+        && !(m_eGroupRules & GROUP_BARRED && m_bFirstMap)                                      // group rule doesn't prevent adding window
+        && !disallowDragIntoGroup;                                                             // config allows groups to be merged
 }
 
 PHLWINDOW CWindow::getGroupWindowByIndex(int index) {

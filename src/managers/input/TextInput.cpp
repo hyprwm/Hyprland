@@ -29,6 +29,9 @@ void CTextInput::initCallbacks() {
             if (!g_pInputManager->m_sIMERelay.getFocusedTextInput())
                 g_pInputManager->m_sIMERelay.deactivateIME(this);
         });
+
+        if (!g_pCompositor->m_pLastFocus.expired() && g_pCompositor->m_pLastFocus->client() == INPUT->client())
+            enter(g_pCompositor->m_pLastFocus.lock());
     } else {
         const auto INPUT = pV1Input.lock();
 

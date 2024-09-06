@@ -241,6 +241,13 @@ bind = $mainMod, mouse_up, workspace, e-1
 bindm = $mainMod, mouse:272, movewindow
 bindm = $mainMod, mouse:273, resizewindow
 
+# Laptop multimedia keys for volume and LCD brightness
+bindel = ,XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+bindel = ,XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindel = ,XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bindel = ,XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+bindel = ,XF86MonBrightnessUp, exec, brightnessctl s 10%+
+bindel = ,XF86MonBrightnessDown, exec, brightnessctl s 10%-
 
 ##############################
 ### WINDOWS AND WORKSPACES ###

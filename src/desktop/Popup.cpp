@@ -202,6 +202,13 @@ void CPopup::reposition() {
     m_pResource->applyPositioning(box, COORDS);
 }
 
+SP<CWLSurface> CPopup::getT1Owner() {
+    if (m_pWindowOwner)
+        return m_pWindowOwner->m_pWLSurface;
+    else
+        return m_pLayerOwner->surface;
+}
+
 Vector2D CPopup::coordsRelativeToParent() {
     Vector2D offset;
 

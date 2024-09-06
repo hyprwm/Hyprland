@@ -505,6 +505,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
             }
         }
 
+        if (g_pSeatManager->state.keyboardFocus == nullptr)
+            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+
         m_bLastFocusOnLS = false;
     } else {
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_eBorderIconDirection != BORDERICON_NONE) {

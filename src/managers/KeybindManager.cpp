@@ -1781,6 +1781,11 @@ SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
 }
 
 SDispatchResult CKeybindManager::exitHyprland(std::string argz) {
+    g_pConfigManager->dispatchExecShutdown();
+
+    if (g_pCompositor->m_bFinalRequests)
+        return {}; // Exiting deferred until requests complete
+
     g_pCompositor->stopCompositor();
     return {};
 }

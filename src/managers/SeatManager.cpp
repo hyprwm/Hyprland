@@ -6,6 +6,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
+#include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -584,6 +585,36 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         auto oldGrab = seatGrab;
         seatGrab.reset();
         g_pInputManager->refocus();
+
+        auto           currentFocus = state.keyboardFocus.lock();
+        auto           refocus      = !currentFocus;
+
+        SP<CWLSurface> surf;
+        PHLLS          layer;
+
+        if (!refocus) {
+            surf  = CWLSurface::fromResource(currentFocus);
+            layer = surf->getLayer();
+        }
+
+        if (!refocus && !layer) {
+            auto popup = surf->getPopup();
+            if (popup) {
+                auto parent = popup->getT1Owner();
+                layer       = parent->getLayer();
+            }
+        }
+
+        if (!refocus && layer)
+            refocus = layer->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+
+        if (refocus) {
+            auto candidate = g_pCompositor->m_pLastWindow.lock();
+
+            if (candidate)
+                g_pCompositor->focusWindow(candidate);
+        }
+
         if (oldGrab->onEnd)
             oldGrab->onEnd();
     }

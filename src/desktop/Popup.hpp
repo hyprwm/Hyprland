@@ -18,21 +18,22 @@ class CPopup {
 
     ~CPopup();
 
-    Vector2D coordsRelativeToParent();
-    Vector2D coordsGlobal();
+    SP<CWLSurface> getT1Owner();
+    Vector2D       coordsRelativeToParent();
+    Vector2D       coordsGlobal();
 
-    Vector2D size();
+    Vector2D       size();
 
-    void     onNewPopup(SP<CXDGPopupResource> popup);
-    void     onDestroy();
-    void     onMap();
-    void     onUnmap();
-    void     onCommit(bool ignoreSiblings = false);
-    void     onReposition();
+    void           onNewPopup(SP<CXDGPopupResource> popup);
+    void           onDestroy();
+    void           onMap();
+    void           onUnmap();
+    void           onCommit(bool ignoreSiblings = false);
+    void           onReposition();
 
-    void     recheckTree();
+    void           recheckTree();
 
-    bool     visible();
+    bool           visible();
 
     // will also loop over this node
     void    breadthfirst(std::function<void(CPopup*, void*)> fn, void* data);

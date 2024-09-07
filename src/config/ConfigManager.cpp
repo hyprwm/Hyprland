@@ -1413,12 +1413,21 @@ void CConfigManager::dispatchExecOnce() {
 }
 
 void CConfigManager::dispatchExecShutdown() {
-    if (!g_pCompositor->m_bIsShuttingDown)
+    if (finalExecRequests.empty()) {
+        g_pCompositor->m_bFinalRequests = false;
         return;
+    }
+
+    g_pCompositor->m_bFinalRequests = true;
 
     for (auto const& c : finalExecRequests) {
         handleExecShutdown("", c);
     }
+
+    finalExecRequests.clear();
+
+    // Actually exit now
+    handleExecShutdown("", "hyprctl dispatch exit");
 }
 
 void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
@@ -1724,7 +1733,7 @@ std::optional<std::string> CConfigManager::handleExecOnce(const std::string& com
 }
 
 std::optional<std::string> CConfigManager::handleExecShutdown(const std::string& command, const std::string& args) {
-    if (g_pCompositor->m_bIsShuttingDown) {
+    if (g_pCompositor->m_bFinalRequests) {
         g_pKeybindManager->spawn(args);
         return {};
     }

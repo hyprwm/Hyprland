@@ -91,6 +91,7 @@ class CCompositor {
     bool                                       m_bNextIsUnsafe   = false;
     CMonitor*                                  m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                       m_bIsShuttingDown = false;
+    bool                                       m_bFinalRequests  = false;
     bool                                       m_bDesktopEnvSet  = false;
     bool                                       m_bEnableXwayland = true;
 

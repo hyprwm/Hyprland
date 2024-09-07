@@ -141,6 +141,18 @@ static Hyprlang::CParseResult handleExecOnce(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleExecShutdown(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleExecShutdown(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 static Hyprlang::CParseResult handleMonitor(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -609,6 +621,7 @@ CConfigManager::CConfigManager() {
     // keywords
     m_pConfig->registerHandler(&::handleRawExec, "exec", {false});
     m_pConfig->registerHandler(&::handleExecOnce, "exec-once", {false});
+    m_pConfig->registerHandler(&::handleExecShutdown, "exec-shutdown", {false});
     m_pConfig->registerHandler(&::handleMonitor, "monitor", {false});
     m_pConfig->registerHandler(&::handleBind, "bind", {true});
     m_pConfig->registerHandler(&::handleUnbind, "unbind", {false});
@@ -801,6 +814,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vDeclaredPlugins.clear();
     m_dLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
+    finalExecRequests.clear();
 
     // paths
     configPaths.clear();
@@ -1398,6 +1412,24 @@ void CConfigManager::dispatchExecOnce() {
     g_pCompositor->performUserChecks();
 }
 
+void CConfigManager::dispatchExecShutdown() {
+    if (finalExecRequests.empty()) {
+        g_pCompositor->m_bFinalRequests = false;
+        return;
+    }
+
+    g_pCompositor->m_bFinalRequests = true;
+
+    for (auto const& c : finalExecRequests) {
+        handleExecShutdown("", c);
+    }
+
+    finalExecRequests.clear();
+
+    // Actually exit now
+    handleExecShutdown("", "hyprctl dispatch exit");
+}
+
 void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
     m_dMonitorRules.emplace_back(r);
 }
@@ -1697,6 +1729,16 @@ std::optional<std::string> CConfigManager::handleExecOnce(const std::string& com
     if (isFirstLaunch)
         firstExecRequests.push_back(args);
 
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleExecShutdown(const std::string& command, const std::string& args) {
+    if (g_pCompositor->m_bFinalRequests) {
+        g_pKeybindManager->spawn(args);
+        return {};
+    }
+
+    finalExecRequests.push_back(args);
     return {};
 }
 

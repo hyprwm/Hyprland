@@ -344,7 +344,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
-                    PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
+                    PWINDOW->m_vRealSize   = Vector2D(SIZEX, SIZEY);
+                    PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal();
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
 
                     PWINDOW->setHidden(false);
@@ -449,8 +450,36 @@ void Events::listener_mapWindow(void* owner, void* data) {
     } else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
-        // Set the pseudo size here too so that it doesnt end up being 0x0
-        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
+        bool setPseudo = false;
+
+        for (auto const& r : PWINDOW->m_vMatchedRules) {
+            if (r.szRule.starts_with("size")) {
+                try {
+                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+
+                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+
+                    const auto SIZEX = SIZEXSTR == "max" ?
+                        std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
+                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                    const auto SIZEY = SIZEYSTR == "max" ?
+                        std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
+                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+
+                    Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
+
+                    setPseudo              = true;
+                    PWINDOW->m_vPseudoSize = Vector2D(SIZEX, SIZEY);
+
+                    PWINDOW->setHidden(false);
+                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
+            }
+        }
+
+        if (!setPseudo)
+            PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
     }
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();

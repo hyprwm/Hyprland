@@ -460,6 +460,8 @@ void CCompositor::cleanup() {
     m_bIsShuttingDown   = true;
     Debug::shuttingDown = true;
 
+    g_pConfigManager->dispatchExecShutdown();
+
 #ifdef USES_SYSTEMD
     if (Systemd::SdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
         Systemd::SdNotify(0, "STOPPING=1");

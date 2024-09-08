@@ -9,6 +9,8 @@ body:
       options:
       - label: I have searched the existing open and closed issues.
         required: true
+      validations:
+        required: true
 
   - type: dropdown
     id: type

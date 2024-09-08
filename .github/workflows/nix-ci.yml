@@ -9,7 +9,6 @@ jobs:
     secrets: inherit
 
   build:
-    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork) && !contains(needs.*.result, 'failure')
-    needs: update-inputs
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     uses: ./.github/workflows/nix-build.yml
     secrets: inherit

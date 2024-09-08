@@ -2,12 +2,13 @@ name: Bug Report
 description: Something is not working right
 labels: ["bug"]
 body:
-  - type: markdown
+  - type: checkboxes
     attributes:
-      value: |
-        ## Before opening a new issue, please take a moment to search through the current open and closed issues to check if it already exists.
-
-        ---
+      label: Already reported ? *
+      description: Before opening a new bug report, please take a moment to search through the current open and closed issues to check if it already exists.
+      options:
+      - label: I have searched the existing open and closed issues.
+        required: true
 
   - type: dropdown
     id: type

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.30)
 
 # Get version
 file(READ "${CMAKE_SOURCE_DIR}/VERSION" VER_RAW)

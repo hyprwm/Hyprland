@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.ref }}
           submodules: recursive
 
-      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: cachix/cachix-action@v15
         with:

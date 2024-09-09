@@ -821,6 +821,9 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     if (!pointer)
         return;
 
+    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+
+    //
     auto listener = pointerListeners.emplace_back(makeShared<SPointerListener>());
 
     listener->pointer = pointer;
@@ -836,6 +839,9 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         g_pInputManager->onMouseMoved(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->motionAbsolute = pointer->pointerEvents.motionAbsolute.registerListener([this] (std::any e) {
@@ -844,6 +850,9 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         g_pInputManager->onMouseWarp(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->button = pointer->pointerEvents.button.registerListener([this] (std::any e) {
@@ -872,6 +881,9 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         g_pInputManager->onSwipeBegin(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->swipeEnd = pointer->pointerEvents.swipeEnd.registerListener([this] (std::any e) {
@@ -896,6 +908,9 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::pointerGestures->pinchBegin(E.timeMs, E.fingers);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->pinchEnd = pointer->pointerEvents.pinchEnd.registerListener([this] (std::any e) {
@@ -938,6 +953,9 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     if (!touch)
         return;
 
+    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+
+    //
     auto listener = touchListeners.emplace_back(makeShared<STouchListener>());
 
     listener->touch = touch;
@@ -953,6 +971,9 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
         g_pInputManager->onTouchDown(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->up = touch->touchEvents.up.registerListener([this] (std::any e) {
@@ -987,6 +1008,9 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     if (!tablet)
         return;
 
+    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+
+    //
     auto listener = tabletListeners.emplace_back(makeShared<STabletListener>());
 
     listener->tablet = tablet;
@@ -1002,6 +1026,9 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         g_pInputManager->onTabletAxis(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->proximity = tablet->tabletEvents.proximity.registerListener([this] (std::any e) {
@@ -1018,6 +1045,9 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
         g_pInputManager->onTabletTip(E);
 
         PROTO::idle->onActivity();
+
+        if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS)
+            g_pKeybindManager->dpms("on");
     });
 
     listener->button = tablet->tabletEvents.button.registerListener([this] (std::any e) {

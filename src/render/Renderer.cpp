@@ -1742,6 +1742,10 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     CBox usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
+    for (auto& la : PMONITOR->m_aLayerSurfaceLayers) {
+        std::stable_sort(la.begin(), la.end(), [](const PHLLSREF& a, const PHLLSREF& b) { return a->order > b->order; });
+    }
+
     for (auto const& la : PMONITOR->m_aLayerSurfaceLayers)
         arrangeLayerArray(PMONITOR, la, true, &usableArea);
 

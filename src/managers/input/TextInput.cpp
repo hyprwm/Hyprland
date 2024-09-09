@@ -264,7 +264,7 @@ void CTextInput::updateIMEState(SP<CInputMethodV2> ime) {
             INPUT->preeditStyling(0, std::string(ime->current.preeditString.string).length(), ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
             INPUT->preeditString(pV1Input->serial, ime->current.preeditString.string.c_str(), "");
         } else {
-            INPUT->preeditCursor(ime->current.preeditString.begin);
+            INPUT->preeditCursor(0);
             INPUT->preeditStyling(0, 0, ZWP_TEXT_INPUT_V1_PREEDIT_STYLE_HIGHLIGHT);
             INPUT->preeditString(pV1Input->serial, "", "");
         }

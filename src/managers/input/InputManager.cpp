@@ -28,6 +28,7 @@
 
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
+#include "../../managers/KeybindManager.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
@@ -135,7 +136,6 @@ void CInputManager::sendMotionEventsToFocused() {
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
-    static auto PMOUSEDPMS        = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
     static auto PFOLLOWONDND      = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR    = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON    = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
@@ -156,11 +156,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
-
-    if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
-        // enable dpms
-        g_pKeybindManager->dpms("on");
-    }
 
     Vector2D   mouseCoords        = getMouseCoordsInternal();
     const auto MOUSECOORDSFLOORED = mouseCoords.floor();
@@ -854,6 +849,8 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
+    static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
+
     m_vHIDs.push_back(keeb);
 
     try {
@@ -882,6 +879,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
             if (PKEEB->enabled)
                 PROTO::idle->onActivity();
+
+            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_bDPMSStateON)
+                g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
@@ -893,6 +893,9 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
             if (PKEEB->enabled)
                 PROTO::idle->onActivity();
+
+            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_bDPMSStateON)
+                g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
@@ -1283,12 +1286,6 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
-
-    static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
-    if (*PDPMS && !g_pCompositor->m_bDPMSStateON) {
-        // enable dpms
-        g_pKeybindManager->dpms("on");
-    }
 
     bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
 

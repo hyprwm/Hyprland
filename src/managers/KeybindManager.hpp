@@ -221,6 +221,7 @@ class CKeybindManager {
     friend class CInputManager;
     friend class CConfigManager;
     friend class CWorkspace;
+    friend class CPointerManager;
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

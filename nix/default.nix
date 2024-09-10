@@ -64,6 +64,8 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
     patches = [
       # forces GCC to use -std=c++26
       ./stdcxx.patch
+      # Nix does not have CMake 3.30 yet, so override the minimum version
+      ./cmake-version.patch
     ];
 
     postPatch = ''

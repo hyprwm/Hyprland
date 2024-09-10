@@ -37,6 +37,7 @@ class CTextInputV1 {
         CSignal onCommit;
         CSignal enable;
         CSignal disable;
+        CSignal reset;
         CSignal destroy;
     } events;
 

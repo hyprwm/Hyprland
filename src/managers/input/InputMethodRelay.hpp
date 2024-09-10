@@ -21,8 +21,8 @@ class CInputMethodRelay {
     void               onNewTextInput(WP<CTextInputV3> tiv3);
     void               onNewTextInput(WP<CTextInputV1> pTIV1);
 
-    void               activateIME(CTextInput* pInput);
-    void               deactivateIME(CTextInput* pInput);
+    void               activateIME(CTextInput* pInput, bool shouldCommit = true);
+    void               deactivateIME(CTextInput* pInput, bool shouldCommit = true);
     void               commitIMEState(CTextInput* pInput);
     void               removeTextInput(CTextInput* pInput);
 

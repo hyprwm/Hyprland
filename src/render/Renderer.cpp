@@ -2809,7 +2809,7 @@ SExplicitSyncSettings CHyprRenderer::getExplicitSyncSettings() {
 
             // check nvidia version. Explicit KMS is supported in >=560
             // in the case of an error, driverMajor will stay 0 and explicit KMS will be disabled
-            int driverMajor = 0;
+            int  driverMajor = 0;
 
             static bool once = true;
             if (once) {

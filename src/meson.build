@@ -1,7 +1,9 @@
 globber = run_command('sh', '-c', 'find . -name "*.cpp" | sort', check: true)
 src = globber.stdout().strip().split('\n')
 
-executable('Hyprland', src,
+executable(
+  'Hyprland',
+  src,
   link_args: '-rdynamic',
   cpp_pch: 'pch/pch.hpp',
   dependencies: [
@@ -38,5 +40,5 @@ executable('Hyprland', src,
     dependency('pangocairo'),
     dependency('uuid'),
   ],
-  install : true
+  install: true,
 )

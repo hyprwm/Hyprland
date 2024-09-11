@@ -675,7 +675,7 @@ void CPointerManager::damageIfSoftware() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
     for (auto const& mw : monitorStates) {
-        if (mw->monitor.expired())
+        if (mw->monitor.expired() || !mw->monitor->output)
             continue;
 
         if ((mw->softwareLocks > 0 || mw->hardwareFailed || *PNOHW) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
@@ -789,7 +789,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 void CPointerManager::onMonitorLayoutChange() {
     currentMonitorLayout.monitorBoxes.clear();
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (m->isMirror() || !m->m_bEnabled)
+        if (m->isMirror() || !m->m_bEnabled || !m->output)
             continue;
 
         currentMonitorLayout.monitorBoxes.emplace_back(CBox{m->vecPosition, m->vecSize});

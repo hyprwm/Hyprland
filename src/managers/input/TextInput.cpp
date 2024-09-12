@@ -138,8 +138,12 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
         listeners.surfaceUnmap.reset();
         listeners.surfaceDestroy.reset();
 
-        if (isV3() && !pV3Input.expired() && pV3Input->current.enabled.value)
-            pV3Input->current.enabled.value = false;
+        if (isV3() && !pV3Input.expired() && pV3Input->current.enabled.value) {
+            pV3Input->pending.enabled.value            = false;
+            pV3Input->pending.enabled.isDisablePending = false;
+            pV3Input->pending.enabled.isEnablePending  = false;
+            pV3Input->current.enabled.value            = false;
+        }
 
         if (!g_pInputManager->m_sIMERelay.getFocusedTextInput())
             g_pInputManager->m_sIMERelay.deactivateIME(this);
@@ -154,8 +158,12 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
         listeners.surfaceUnmap.reset();
         listeners.surfaceDestroy.reset();
 
-        if (isV3() && !pV3Input.expired() && pV3Input->current.enabled.value)
-            pV3Input->current.enabled.value = false;
+        if (isV3() && !pV3Input.expired() && pV3Input->current.enabled.value) {
+            pV3Input->pending.enabled.value            = false;
+            pV3Input->pending.enabled.isDisablePending = false;
+            pV3Input->pending.enabled.isEnablePending  = false;
+            pV3Input->current.enabled.value            = false;
+        }
 
         if (!g_pInputManager->m_sIMERelay.getFocusedTextInput())
             g_pInputManager->m_sIMERelay.deactivateIME(this);
@@ -202,13 +210,9 @@ void CTextInput::leave() {
         enterLocks = 0;
     }
 
-    if (isV3()) {
+    if (isV3())
         pV3Input->leave(focusedSurface());
-        if (pV3Input->current.enabled.value) {
-            pV3Input->current.enabled.value = false;
-            onDisabled();
-        }
-    } else
+    else
         pV1Input->leave();
 
     setFocusedSurface(nullptr);

@@ -25,7 +25,7 @@ using namespace Hyprutils::String;
 static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
     std::array<char, 128> buffer;
-    std::string result;
+    std::string           result;
     using PcloseType = int (*)(FILE*);
     const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd.c_str(), "r"), static_cast<PcloseType>(pclose));
     if (!pipe)
@@ -39,12 +39,12 @@ static std::string execAndGet(std::string cmd) {
 
 SHyprlandVersion CPluginManager::getHyprlandVersion() {
     static SHyprlandVersion ver;
-    static bool once = false;
+    static bool             once = false;
 
     if (once)
         return ver;
 
-    once = true;
+    once                 = true;
     const auto HLVERCALL = execAndGet("hyprctl version");
     if (m_bVerbose)
         std::cout << Colors::BLUE << "[v] " << Colors::RESET << "version returned: " << HLVERCALL << "\n";
@@ -55,13 +55,13 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     }
 
     std::string hlcommit = HLVERCALL.substr(HLVERCALL.find("at commit") + 10);
-    hlcommit = hlcommit.substr(0, hlcommit.find_first_of(' '));
+    hlcommit             = hlcommit.substr(0, hlcommit.find_first_of(' '));
 
     std::string hlbranch = HLVERCALL.substr(HLVERCALL.find("from branch") + 12);
-    hlbranch = hlbranch.substr(0, hlbranch.find(" at commit "));
+    hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
 
     std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
-    hldate = hldate.substr(0, hldate.find("\n"));
+    hldate             = hldate.substr(0, hldate.find("\n"));
 
     std::string hlcommits;
 
@@ -73,9 +73,7 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     int commits = 0;
     try {
         commits = std::stoi(hlcommits);
-    } catch (...) {
-        ;
-    }
+    } catch (...) { ; }
 
     if (m_bVerbose)
         std::cout << Colors::BLUE << "[v] " << Colors::RESET << "parsed commit " << hlcommit << " at branch " << hlbranch << " on " << hldate << ", commits " << commits << "\n";
@@ -136,8 +134,8 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     }
 
     CProgressBar progress;
-    progress.m_iMaxSteps = 5;
-    progress.m_iSteps = 0;
+    progress.m_iMaxSteps        = 5;
+    progress.m_iSteps           = 0;
     progress.m_szCurrentMessage = "Cloning the plugin repository";
 
     progress.print();
@@ -288,18 +286,18 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     }
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " all plugins built");
-    progress.m_iSteps = 4;
+    progress.m_iSteps           = 4;
     progress.m_szCurrentMessage = "Installing repository";
     progress.print();
 
     // add repo toml to DataState
     SPluginRepository repo;
-    std::string repohash = execAndGet("cd " + m_szWorkingPluginDirectory + " && git rev-parse HEAD");
+    std::string       repohash = execAndGet("cd " + m_szWorkingPluginDirectory + " && git rev-parse HEAD");
     if (repohash.length() > 0)
         repohash.pop_back();
     repo.name = pManifest->m_sRepository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_sRepository.name;
-    repo.url = url;
-    repo.rev = rev;
+    repo.url  = url;
+    repo.rev  = rev;
     repo.hash = repohash;
     for (auto const& p : pManifest->m_vPlugins) {
         repo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, false, p.failed});
@@ -308,7 +306,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " installed repository");
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " you can now enable the plugin(s) with hyprpm enable");
-    progress.m_iSteps = 5;
+    progress.m_iSteps           = 5;
     progress.m_szCurrentMessage = "Done!";
     progress.print();
 
@@ -349,8 +347,8 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_MISSING;
 
     // find headers commit
-    std::string cmd = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
-    auto headers = execAndGet(cmd.c_str());
+    std::string cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    auto        headers = execAndGet(cmd.c_str());
 
     if (!headers.contains("-I/"))
         return HEADERS_MISSING;
@@ -391,9 +389,9 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_CORRUPTED;
 
     std::string hash = verHeaderContent.substr(HASHPOS + 23);
-    hash = hash.substr(0, hash.find_first_of('\n'));
-    hash = hash.substr(hash.find_first_of('"') + 1);
-    hash = hash.substr(0, hash.find_first_of('"'));
+    hash             = hash.substr(0, hash.find_first_of('\n'));
+    hash             = hash.substr(hash.find_first_of('"') + 1);
+    hash             = hash.substr(0, hash.find_first_of('"'));
 
     if (hash != HLVER.hash)
         return HEADERS_MISMATCHED;
@@ -423,13 +421,13 @@ bool CPluginManager::updateHeaders(bool force) {
     }
 
     CProgressBar progress;
-    progress.m_iMaxSteps = 5;
-    progress.m_iSteps = 0;
+    progress.m_iMaxSteps        = 5;
+    progress.m_iSteps           = 0;
     progress.m_szCurrentMessage = "Cloning the hyprland repository";
     progress.print();
 
-    const std::string USERNAME = getpwuid(getuid())->pw_name;
-    const auto WORKINGDIR = "/tmp/hyprpm/hyprland-" + USERNAME;
+    const std::string USERNAME   = getpwuid(getuid())->pw_name;
+    const auto        WORKINGDIR = "/tmp/hyprpm/hyprland-" + USERNAME;
 
     if (!createSafeDirectory(WORKINGDIR)) {
         std::cerr << "\n" << Colors::RED << "✖" << Colors::RESET << " Could not prepare working dir for hl\n";
@@ -462,7 +460,7 @@ bool CPluginManager::updateHeaders(bool force) {
     }
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " cloned");
-    progress.m_iSteps = 2;
+    progress.m_iSteps           = 2;
     progress.m_szCurrentMessage = "Checking out sources";
     progress.print();
 
@@ -487,7 +485,7 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "git returned (rs): " + ret);
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " checked out to running ver");
-    progress.m_iSteps = 3;
+    progress.m_iSteps           = 3;
     progress.m_szCurrentMessage = "Building Hyprland";
     progress.print();
 
@@ -504,9 +502,9 @@ bool CPluginManager::updateHeaders(bool force) {
     if (ret.contains("CMake Error at")) {
         // missing deps, let the user know.
         std::string missing = ret.substr(ret.find("CMake Error at"));
-        missing = ret.substr(ret.find_first_of('\n') + 1);
-        missing = missing.substr(0, missing.find("-- Configuring incomplete"));
-        missing = missing.substr(0, missing.find_last_of('\n'));
+        missing             = ret.substr(ret.find_first_of('\n') + 1);
+        missing             = missing.substr(0, missing.find("-- Configuring incomplete"));
+        missing             = missing.substr(0, missing.find_last_of('\n'));
 
         std::cerr << "\n"
                   << Colors::RED << "✖" << Colors::RESET << " Could not configure the hyprland source, cmake complained:\n"
@@ -515,7 +513,7 @@ bool CPluginManager::updateHeaders(bool force) {
     }
 
     progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " configured Hyprland");
-    progress.m_iSteps = 4;
+    progress.m_iSteps           = 4;
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
 
@@ -535,7 +533,7 @@ bool CPluginManager::updateHeaders(bool force) {
     auto HEADERSVALID = headersValid();
     if (HEADERSVALID == HEADERS_OK) {
         progress.printMessageAbove(std::string{Colors::GREEN} + "✔" + Colors::RESET + " installed headers");
-        progress.m_iSteps = 5;
+        progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Done!";
         progress.print();
 
@@ -543,7 +541,7 @@ bool CPluginManager::updateHeaders(bool force) {
     } else {
         progress.printMessageAbove(std::string{Colors::RED} + "✖" + Colors::RESET + " failed to install headers with error code " + std::to_string((int)HEADERSVALID) + " (" +
                                    headerErrorShort(HEADERSVALID) + ")");
-        progress.m_iSteps = 5;
+        progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Failed";
         progress.print();
 
@@ -570,11 +568,11 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return true;
     }
 
-    const auto HLVER = getHyprlandVersion();
+    const auto   HLVER = getHyprlandVersion();
 
     CProgressBar progress;
-    progress.m_iMaxSteps = REPOS.size() * 2 + 2;
-    progress.m_iSteps = 0;
+    progress.m_iMaxSteps        = REPOS.size() * 2 + 2;
+    progress.m_iSteps           = 0;
     progress.m_szCurrentMessage = "Updating repositories";
     progress.print();
 
@@ -727,7 +725,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    auto GLOBALSTATE = DataState::getGlobalState();
+    auto GLOBALSTATE                = DataState::getGlobalState();
     GLOBALSTATE.headersHashCompiled = HLVER.hash;
     DataState::updateGlobalState(GLOBALSTATE);
 
@@ -761,14 +759,14 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     }
 
     const auto HOME = getenv("HOME");
-    const auto HIS = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    const auto HIS  = getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!HOME || !HIS) {
         std::cerr << "PluginManager: no $HOME or HIS\n";
         return LOADSTATE_FAIL;
     }
-    const auto HYPRPMPATH = DataState::getDataStatePath() + "/";
+    const auto               HYPRPMPATH = DataState::getDataStatePath() + "/";
 
-    auto pluginLines = execAndGet("hyprctl plugins list | grep Plugin");
+    auto                     pluginLines = execAndGet("hyprctl plugins list | grep Plugin");
 
     std::vector<std::string> loadedPlugins;
 
@@ -795,7 +793,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     // get state
     const auto REPOS = DataState::getAllRepositories();
 
-    auto enabled = [REPOS](const std::string& plugin) -> bool {
+    auto       enabled = [REPOS](const std::string& plugin) -> bool {
         for (auto const& r : REPOS) {
             for (auto const& p : r.plugins) {
                 if (p.name == plugin && p.enabled)
@@ -878,21 +876,16 @@ void CPluginManager::notify(const eNotifyIcons icon, uint32_t color, int duratio
 
 std::string CPluginManager::headerError(const eHeadersErrors err) {
     switch (err) {
-    case HEADERS_CORRUPTED:
-        return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers corrupted. Please run hyprpm update to fix those.\n";
-    case HEADERS_MISMATCHED:
-        return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers version mismatch. Please run hyprpm update to fix those.\n";
-    case HEADERS_NOT_HYPRLAND:
-        return std::string{Colors::RED} + "✖" + Colors::RESET + " It doesn't seem you are running on hyprland.\n";
-    case HEADERS_MISSING:
-        return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers missing. Please run hyprpm update to fix those.\n";
-    case HEADERS_DUPLICATED: {
-        return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers duplicated!!! This is a very bad sign.\n" +
-               " This could be due to e.g. installing hyprland manually while a system package of hyprland is also installed.\n" +
-               " If the above doesn't apply, check your /usr/include and /usr/local/include directories\n and remove all the hyprland headers.\n";
-    }
-    default:
-        break;
+        case HEADERS_CORRUPTED: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers corrupted. Please run hyprpm update to fix those.\n";
+        case HEADERS_MISMATCHED: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers version mismatch. Please run hyprpm update to fix those.\n";
+        case HEADERS_NOT_HYPRLAND: return std::string{Colors::RED} + "✖" + Colors::RESET + " It doesn't seem you are running on hyprland.\n";
+        case HEADERS_MISSING: return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers missing. Please run hyprpm update to fix those.\n";
+        case HEADERS_DUPLICATED: {
+            return std::string{Colors::RED} + "✖" + Colors::RESET + " Headers duplicated!!! This is a very bad sign.\n" +
+                " This could be due to e.g. installing hyprland manually while a system package of hyprland is also installed.\n" +
+                " If the above doesn't apply, check your /usr/include and /usr/local/include directories\n and remove all the hyprland headers.\n";
+        }
+        default: break;
     }
 
     return std::string{Colors::RED} + "✖" + Colors::RESET + " Unknown header error. Please run hyprpm update to fix those.\n";
@@ -900,18 +893,12 @@ std::string CPluginManager::headerError(const eHeadersErrors err) {
 
 std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
     switch (err) {
-    case HEADERS_CORRUPTED:
-        return "Headers corrupted";
-    case HEADERS_MISMATCHED:
-        return "Headers version mismatched";
-    case HEADERS_NOT_HYPRLAND:
-        return "Not running on Hyprland";
-    case HEADERS_MISSING:
-        return "Headers missing";
-    case HEADERS_DUPLICATED:
-        return "Headers duplicated";
-    default:
-        break;
+        case HEADERS_CORRUPTED: return "Headers corrupted";
+        case HEADERS_MISMATCHED: return "Headers version mismatched";
+        case HEADERS_NOT_HYPRLAND: return "Not running on Hyprland";
+        case HEADERS_MISSING: return "Headers missing";
+        case HEADERS_DUPLICATED: return "Headers duplicated";
+        default: break;
     }
     return "?";
 }

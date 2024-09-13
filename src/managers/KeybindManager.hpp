@@ -149,7 +149,8 @@ class CKeybindManager {
     static void                     moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
     static void                     moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
     static void                     switchToWindow(PHLWINDOW PWINDOWTOCHANGETO);
-    static uint64_t                 spawnRawProc(std::string);
+    static uint64_t                 spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
+    static uint64_t                 spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
     static SDispatchResult killActive(std::string);
@@ -220,6 +221,7 @@ class CKeybindManager {
     friend class CInputManager;
     friend class CConfigManager;
     friend class CWorkspace;
+    friend class CPointerManager;
 };
 
 inline std::unique_ptr<CKeybindManager> g_pKeybindManager;

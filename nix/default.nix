@@ -4,6 +4,7 @@
   pkg-config,
   pkgconf,
   makeWrapper,
+  meson,
   cmake,
   ninja,
   aquamarine,
@@ -39,6 +40,7 @@
   wrapRuntimeDeps ? true,
   version ? "git",
   commit,
+  revCount,
   date,
   # deprecated flags
   enableNvidiaPatches ? false,
@@ -60,11 +62,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       src = lib.cleanSource ../.;
     };
 
-    patches = [
-      # forces GCC to use -std=c++26
-      ./stdcxx.patch
-    ];
-
     postPatch = ''
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp
@@ -73,7 +70,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       sed -i "s#@PREFIX@/##g" hyprland.pc.in
     '';
 
-    COMMITS = commit;
+    COMMITS = revCount;
     DATE = date;
     DIRTY = lib.optionalString (commit == "") "dirty";
     HASH = commit;
@@ -86,6 +83,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       hyprwayland-scanner
       jq
       makeWrapper
+      meson
       cmake
       ninja
       pkg-config
@@ -139,18 +137,18 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       (lib.optionals withSystemd [systemd])
     ];
 
-    cmakeBuildType =
+    mesonBuildType =
       if debug
-      then "Debug"
-      else "RelWithDebInfo";
+      then "debug"
+      else "release";
 
     # we want as much debug info as possible
     dontStrip = debug;
 
-    cmakeFlags = [
-      (lib.cmakeBool "NO_XWAYLAND" (!enableXWayland))
-      (lib.cmakeBool "LEGACY_RENDERER" legacyRenderer)
-      (lib.cmakeBool "NO_SYSTEMD" (!withSystemd))
+    mesonFlags = [
+      (lib.mesonEnable "xwayland" enableXWayland)
+      (lib.mesonEnable "legacy_renderer" legacyRenderer)
+      (lib.mesonEnable "systemd" withSystemd)
     ];
 
     postInstall = ''

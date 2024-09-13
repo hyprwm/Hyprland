@@ -106,20 +106,22 @@ void CInputMethodRelay::updateAllPopups() {
     }
 }
 
-void CInputMethodRelay::activateIME(CTextInput* pInput) {
+void CInputMethodRelay::activateIME(CTextInput* pInput, bool shouldCommit) {
     if (m_pIME.expired())
         return;
 
     m_pIME->activate();
-    commitIMEState(pInput);
+    if (shouldCommit)
+        commitIMEState(pInput);
 }
 
-void CInputMethodRelay::deactivateIME(CTextInput* pInput) {
+void CInputMethodRelay::deactivateIME(CTextInput* pInput, bool shouldCommit) {
     if (m_pIME.expired())
         return;
 
     m_pIME->deactivate();
-    commitIMEState(pInput);
+    if (shouldCommit)
+        commitIMEState(pInput);
 }
 
 void CInputMethodRelay::commitIMEState(CTextInput* pInput) {

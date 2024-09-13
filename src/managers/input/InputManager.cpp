@@ -28,6 +28,7 @@
 
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
+#include "../../managers/KeybindManager.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
@@ -111,7 +112,7 @@ void CInputManager::simulateMouseMovement() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     m_vLastCursorPosFloored = m_vLastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
-    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000, false, true);
+    mouseMoveUnified(now.tv_sec * 1000 + now.tv_nsec / 10000000);
 }
 
 void CInputManager::sendMotionEventsToFocused() {
@@ -132,10 +133,9 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_pLastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
-    static auto PMOUSEDPMS        = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
     static auto PFOLLOWONDND      = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR    = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON    = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
@@ -157,11 +157,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
 
-    if (!g_pCompositor->m_bDPMSStateON && *PMOUSEDPMS) {
-        // enable dpms
-        g_pKeybindManager->dpms("on");
-    }
-
     Vector2D   mouseCoords        = getMouseCoordsInternal();
     const auto MOUSECOORDSFLOORED = mouseCoords.floor();
 
@@ -169,9 +164,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
         return;
 
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
-
-    if (time && !silent)
-        PROTO::idle->onActivity();
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -508,6 +500,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
             }
         }
 
+        if (g_pSeatManager->state.keyboardFocus == nullptr)
+            g_pCompositor->focusWindow(pFoundWindow, foundSurface);
+
         m_bLastFocusOnLS = false;
     } else {
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_eBorderIconDirection != BORDERICON_NONE) {
@@ -530,8 +525,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool silent) {
 
 void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
-
-    PROTO::idle->onActivity();
 
     m_tmrLastCursorMovement.reset();
 
@@ -767,8 +760,6 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
 
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
-    PROTO::idle->onActivity();
-
     if (!passEvent)
         return;
 
@@ -858,6 +849,8 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
+    static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
+
     m_vHIDs.push_back(keeb);
 
     try {
@@ -883,6 +876,12 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
 
             onKeyboardKey(data, PKEEB);
+
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
+
+            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_bDPMSStateON)
+                g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
@@ -891,6 +890,12 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             auto PKEEB = ((IKeyboard*)owner)->self.lock();
 
             onKeyboardMod(PKEEB);
+
+            if (PKEEB->enabled)
+                PROTO::idle->onActivity();
+
+            if (PKEEB->enabled && *PDPMS && !g_pCompositor->m_bDPMSStateON)
+                g_pKeybindManager->dpms("on");
         },
         keeb.get());
 
@@ -1282,17 +1287,9 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
-    static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
-    if (*PDPMS && !g_pCompositor->m_bDPMSStateON) {
-        // enable dpms
-        g_pKeybindManager->dpms("on");
-    }
-
     bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
     auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
-
-    PROTO::idle->onActivity();
 
     if (passEvent) {
         const auto IME = m_sIMERelay.m_pIME.lock();

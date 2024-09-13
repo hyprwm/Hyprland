@@ -1,13 +1,17 @@
-project('Hyprland', 'cpp', 'c',
-  version : run_command('cat', join_paths(meson.source_root(), 'VERSION'), check: true).stdout().strip(),
-  default_options : [
+project(
+  'Hyprland',
+  'cpp',
+  'c',
+  version: run_command('cat', join_paths(meson.project_source_root(), 'VERSION'), check: true).stdout().strip(),
+  default_options: [
     'warning_level=2',
     'default_library=static',
     'optimization=3',
     'buildtype=release',
     'debug=false',
     'cpp_std=c++26',
-  ])
+  ],
+)
 
 datarootdir = '-DDATAROOTDIR="' + get_option('prefix') / get_option('datadir') + '"'
 add_project_arguments(
@@ -16,10 +20,10 @@ add_project_arguments(
     '-Wno-unused-value',
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
-    '-Wno-pointer-arith',
-    datarootdir,
+    '-Wno-pointer-arith', datarootdir,
   ],
-  language: 'cpp')
+  language: 'cpp',
+)
 
 cpp_compiler = meson.get_compiler('cpp')
 if cpp_compiler.check_header('execinfo.h')
@@ -34,7 +38,7 @@ xcb_render_dep = dependency('xcb-render', required: get_option('xwayland'))
 xcb_res_dep = dependency('xcb-res', required: get_option('xwayland'))
 xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
 
-gio_dep = dependency('gio-2.0', required:true)
+gio_dep = dependency('gio-2.0', required: true)
 
 cmake = import('cmake')
 udis = cmake.subproject('udis86')
@@ -47,6 +51,7 @@ endif
 backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
 
+# Handle options
 if get_option('systemd').enabled()
   add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
 endif
@@ -59,8 +64,10 @@ if get_option('buildtype') == 'debug'
   add_project_arguments('-DHYPRLAND_DEBUG', language: 'cpp')
 endif
 
-version_h = run_command('sh', '-c', 'scripts/generateVersion.sh', check: true)
+# Generate hyprland version and populate version.h
+run_command('sh', '-c', 'scripts/generateVersion.sh', check: true)
 
+# Install headers
 globber = run_command('find', 'src', '-name', '*.h*', check: true)
 headers = globber.stdout().strip().split('\n')
 foreach file : headers
@@ -75,6 +82,7 @@ subdir('assets')
 subdir('example')
 subdir('docs')
 
+# Generate hyprland.pc
 pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')
 
 import('pkgconfig').generate(

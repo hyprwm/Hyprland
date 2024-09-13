@@ -394,6 +394,11 @@ void CLayerSurface::applyRules() {
         } else if (rule.rule.starts_with("animation")) {
             CVarList vars{rule.rule, 2, 's'};
             animationStyle = vars[1];
+        } else if (rule.rule.starts_with("order")) {
+            CVarList vars{rule.rule, 2, 's'};
+            try {
+                order = std::stoi(vars[1]);
+            } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
         }
     }
 }

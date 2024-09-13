@@ -46,11 +46,8 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
             PWINDOW->m_pXWaylandSurface->restackToTop();
         }
         PWINDOW->m_pXWaylandSurface->activate(activate);
-    } else if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface) {
+    } else if (!PWINDOW->m_bIsX11 && PWINDOW->m_pXDGSurface)
         PWINDOW->m_pXDGSurface->toplevel->setActive(activate);
-        if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_bIsX11)
-            activateSurface(g_pCompositor->m_pLastFocus.lock(), false);
-    }
 }
 
 void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {

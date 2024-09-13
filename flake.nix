@@ -95,13 +95,9 @@
     devShells = eachSystem (system: {
       default =
         pkgsFor.${system}.mkShell.override {
-          stdenv = pkgsFor.${system}.gcc14Stdenv;
+          inherit (self.packages.${system}.default) stdenv;
         } {
           name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [
-            expat
-            libxml2
-          ];
           hardeningDisable = ["fortify"];
           inputsFrom = [pkgsFor.${system}.hyprland];
           packages = [pkgsFor.${system}.clang-tools];

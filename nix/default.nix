@@ -4,6 +4,7 @@
   pkg-config,
   pkgconf,
   makeWrapper,
+  meson,
   cmake,
   ninja,
   aquamarine,
@@ -89,6 +90,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       hyprwayland-scanner
       jq
       makeWrapper
+      meson
       cmake
       ninja
       pkg-config

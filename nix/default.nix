@@ -62,13 +62,6 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       src = lib.cleanSource ../.;
     };
 
-    patches = [
-      # forces GCC to use -std=c++26
-      ./stdcxx.patch
-      # Nix does not have CMake 3.30 yet, so override the minimum version
-      ./cmake-version.patch
-    ];
-
     postPatch = ''
       # Fix hardcoded paths to /usr installation
       sed -i "s#/usr#$out#" src/render/OpenGL.cpp
@@ -144,18 +137,18 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       (lib.optionals withSystemd [systemd])
     ];
 
-    cmakeBuildType =
+    mesonBuildType =
       if debug
-      then "Debug"
-      else "RelWithDebInfo";
+      then "debug"
+      else "release";
 
     # we want as much debug info as possible
     dontStrip = debug;
 
-    cmakeFlags = [
-      (lib.cmakeBool "NO_XWAYLAND" (!enableXWayland))
-      (lib.cmakeBool "LEGACY_RENDERER" legacyRenderer)
-      (lib.cmakeBool "NO_SYSTEMD" (!withSystemd))
+    mesonFlags = [
+      (lib.mesonEnable "xwayland" enableXWayland)
+      (lib.mesonEnable "legacy_renderer" legacyRenderer)
+      (lib.mesonEnable "systemd" withSystemd)
     ];
 
     postInstall = ''

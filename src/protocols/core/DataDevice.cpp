@@ -513,7 +513,10 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             if (!box.has_value())
                 return;
 
-            dnd.focusedDevice->sendMotion(0 /* this is a hack */, V - box->pos());
+            timespec timeNow;
+            clock_gettime(CLOCK_MONOTONIC, &timeNow);
+
+            dnd.focusedDevice->sendMotion(timeNow.tv_sec * 1000 + timeNow.tv_nsec / 1000000, V - box->pos());
             LOGM(LOG, "Drag motion {}", V - box->pos());
         }
     });

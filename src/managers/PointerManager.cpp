@@ -18,13 +18,7 @@ CPointerManager::CPointerManager() {
         onMonitorLayoutChange();
 
         PMONITOR->events.modeChanged.registerStaticListener(
-            [this, PMONITOR](void* owner, std::any data) {
-                g_pEventLoopManager->doLater([this, PMONITOR]() {
-                    onMonitorLayoutChange();
-                    checkDefaultCursorWarp(PMONITOR, PMONITOR->output->name);
-                });
-            },
-            nullptr);
+            [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.disconnect.registerStaticListener(
             [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
@@ -42,38 +36,6 @@ CPointerManager::CPointerManager() {
 
         state->cursorRendered = false;
     });
-}
-
-void CPointerManager::checkDefaultCursorWarp(SP<CMonitor> monitor, std::string monitorName) {
-    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
-    static bool cursorDefaultDone = false;
-    static bool firstLaunch       = true;
-
-    const auto  POS = monitor->middle();
-
-    // by default, cursor should be set to first monitor detected
-    // this is needed as a default if the monitor given in config above doesn't exist
-    if (firstLaunch) {
-        firstLaunch = false;
-        g_pCompositor->warpCursorTo(POS, true);
-        g_pInputManager->refocus();
-        return;
-    }
-
-    if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
-        if (*PCURSORMONITOR == monitorName) {
-            cursorDefaultDone = true;
-            g_pCompositor->warpCursorTo(POS, true);
-            g_pInputManager->refocus();
-            return;
-        }
-    }
-
-    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
-    if (g_pCompositor->getMonitorFromCursor() == monitor.get()) {
-        g_pCompositor->warpCursorTo(POS, true);
-        g_pInputManager->refocus();
-    }
 }
 
 void CPointerManager::lockSoftwareAll() {

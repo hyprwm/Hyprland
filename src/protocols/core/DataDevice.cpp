@@ -82,10 +82,8 @@ void CWLDataOfferResource::sendData() {
     if (!source)
         return;
 
-    if (resource->version() >= 3) {
+    if (resource->version() >= 3)
         resource->sendSourceActions(7);
-        resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
-    }
 
     for (auto const& m : source->mimes()) {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);

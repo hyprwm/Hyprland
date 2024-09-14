@@ -2943,6 +2943,38 @@ PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
     return {};
 }
 
+static void checkDefaultCursorWarp(SP<CMonitor> monitor) {
+    static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
+    static bool cursorDefaultDone = false;
+    static bool firstLaunch       = true;
+
+    const auto  POS = monitor->middle();
+
+    // by default, cursor should be set to first monitor detected
+    // this is needed as a default if the monitor given in config above doesn't exist
+    if (firstLaunch) {
+        firstLaunch = false;
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+        return;
+    }
+
+    if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
+        if (*PCURSORMONITOR == monitor->szName) {
+            cursorDefaultDone = true;
+            g_pCompositor->warpCursorTo(POS, true);
+            g_pInputManager->refocus();
+            return;
+        }
+    }
+
+    // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
+    if (g_pCompositor->getMonitorFromCursor() == monitor.get()) {
+        g_pCompositor->warpCursorTo(POS, true);
+        g_pInputManager->refocus();
+    }
+}
+
 void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>(output));
@@ -2976,6 +3008,8 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     g_pConfigManager->m_bWantsMonitorReload = true;
     g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get(), IOutput::AQ_SCHEDULE_NEW_MONITOR);
+
+    checkDefaultCursorWarp(PNEWMONITOR);
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_iMonitorID == PNEWMONITOR->ID) {

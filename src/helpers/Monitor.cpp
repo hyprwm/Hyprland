@@ -192,7 +192,6 @@ void CMonitor::onConnect(bool noRule) {
     if (!activeMonitorRule.mirrorOf.empty())
         setMirror(activeMonitorRule.mirrorOf);
 
-
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
 
@@ -281,7 +280,6 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     Debug::log(LOG, "Removed monitor {}!", szName);
-
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");

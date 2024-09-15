@@ -192,10 +192,6 @@ void CMonitor::onConnect(bool noRule) {
     if (!activeMonitorRule.mirrorOf.empty())
         setMirror(activeMonitorRule.mirrorOf);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
-    EMIT_HOOK_EVENT("monitorAdded", this);
-
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
 
@@ -224,6 +220,10 @@ void CMonitor::onConnect(bool noRule) {
     PROTO::gamma->applyGammaToState(this);
 
     events.connect.emit();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
+    EMIT_HOOK_EVENT("monitorAdded", this);
 }
 
 void CMonitor::onDisconnect(bool destroy) {
@@ -280,9 +280,6 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     Debug::log(LOG, "Removed monitor {}!", szName);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
-    EMIT_HOOK_EVENT("monitorRemoved", this);
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
@@ -342,6 +339,9 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
     std::erase_if(g_pCompositor->m_vMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+    EMIT_HOOK_EVENT("monitorRemoved", this);
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {

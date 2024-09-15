@@ -991,7 +991,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto PCURRENT   = getGroupCurrent();
     const bool FULLSCREEN = PCURRENT->isFullscreen();
     const auto WORKSPACE  = PCURRENT->m_pWorkspace;
-    const auto MODE       = PCURRENT->m_sFullscreenState.client;
+    const auto MODE       = PCURRENT->m_sFullscreenState.internal;
 
     const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
     const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();

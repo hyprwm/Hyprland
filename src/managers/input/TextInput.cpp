@@ -99,6 +99,13 @@ void CTextInput::onReset() {
     if (g_pInputManager->m_sIMERelay.m_pIME.expired())
         return;
 
+    if (!focusedSurface())
+        return;
+
+    const auto PFOCUSEDTI = g_pInputManager->m_sIMERelay.getFocusedTextInput();
+    if (!PFOCUSEDTI || PFOCUSEDTI != this)
+        return;
+
     g_pInputManager->m_sIMERelay.deactivateIME(this, false);
     g_pInputManager->m_sIMERelay.activateIME(this);
 }

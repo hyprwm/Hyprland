@@ -1,40 +1,37 @@
 #ifndef NO_XWAYLAND
-// System inlcudes
-#include <exception>
+
 #include <format>
 #include <string>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <cstring>
 #include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <exception>
 #include <filesystem>
-#include <cstring>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
-// Project includes
 #include "Server.hpp"
+#include "XWayland.hpp"
+#include "debug/Log.hpp"
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 #include "../managers/CursorManager.hpp"
-#include "XWayland.hpp"
-#include "debug/Log.hpp"
-
 
 // Constants
 constexpr int SOCKET_DIR_PERMISSIONS = 0755;
-constexpr int SOCKET_BACKLOG = 1;
-constexpr int MAX_SOCKET_RETRIES = 32;
-constexpr int LOCK_FILE_MODE = 044;
+constexpr int SOCKET_BACKLOG         = 1;
+constexpr int MAX_SOCKET_RETRIES     = 32;
+constexpr int LOCK_FILE_MODE         = 044;
 
-
-static bool setCloseOnExec(int fd, bool cloexec) {
+static bool   setCloseOnExec(int fd, bool cloexec) {
     int flags = fcntl(fd, F_GETFD);
     if (flags == -1) {
         Debug::log(ERR, "fcntl failed");
@@ -57,14 +54,13 @@ static bool setCloseOnExec(int fd, bool cloexec) {
 
 void cleanUpSocket(int fd, const char* path) {
     close(fd);
-    if (path[0]) {
+    if (path[0])
         unlink(path);
-    }
 }
 
 static int createSocket(struct sockaddr_un* addr, size_t path_size) {
     socklen_t size = offsetof(struct sockaddr_un, sun_path) + path_size + 1;
-    int       fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    int       fd   = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
         Debug::log(ERR, "Failed to create socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
         return -1;
@@ -122,30 +118,29 @@ static bool checkPermissionsForSocketDir(void) {
     return true;
 }
 
-static bool ensureSocketDirExists(){
-    if(mkdir("/tmp/.X11-unix", SOCKET_DIR_PERMISSIONS)!=0){
-        if(errno == EEXIST){
+static bool ensureSocketDirExists() {
+    if (mkdir("/tmp/.X11-unix", SOCKET_DIR_PERMISSIONS) != 0) {
+        if (errno == EEXIST) {
             return checkPermissionsForSocketDir();
         } else {
             Debug::log(ERR, "XWayland: Couldn't create socket dir");
             return false;
         }
     }
+
     return true;
 }
 
-static std::string getSocketPath(int display, bool isLinux){
-    if(isLinux){
+static std::string getSocketPath(int display, bool isLinux) {
+    if (isLinux)
         return std::format("/tmp/.X11-unix{}", display);
-    }
+
     return std::format("/tmp/.X11-unix{}_", display);
 }
 
-
 static bool openSockets(std::array<int, 2>& sockets, int display) {
-    if (!ensureSocketDirExists()) {
-            return false;
-    }
+    if (!ensureSocketDirExists())
+        return false;
 
     sockaddr_un addr = {.sun_family = AF_UNIX};
     std::string path;
@@ -153,7 +148,7 @@ static bool openSockets(std::array<int, 2>& sockets, int display) {
 #ifdef __linux__
     // cursed...
     addr.sun_path[0] = 0;
-    path = getSocketPath(display, true);
+    path             = getSocketPath(display, true);
     strncpy(addr.sun_path + 1, path.c_str(), path.length() + 1);
 #else
     path = getSocketPath(display, false);
@@ -186,12 +181,10 @@ static int xwaylandReady(int fd, uint32_t mask, void* data) {
     return g_pXWayland->pServer->ready(fd, mask);
 }
 
-static bool safeRemove(const std::string& path){
-    try{
+static bool safeRemove(const std::string& path) {
+    try {
         return std::filesystem::remove(path);
-    }catch(const std::exception& e){
-        Debug::log(ERR, "[XWayland] Failed to remove {}", path);
-    }
+    } catch (const std::exception& e) { Debug::log(ERR, "[XWayland] Failed to remove {}", path); }
     return false;
 }
 
@@ -199,7 +192,7 @@ bool CXWaylandServer::tryOpenSockets() {
     for (size_t i = 0; i <= MAX_SOCKET_RETRIES; ++i) {
         std::string lockPath = std::format("/tmp/.X{}-lock", i);
 
-        int fd = open(lockPath.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, LOCK_FILE_MODE);
+        int         fd = open(lockPath.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, LOCK_FILE_MODE);
         if (fd >= 0) {
             // we managed to open the lock
             if (!openSockets(xFDs, i)) {
@@ -223,7 +216,7 @@ bool CXWaylandServer::tryOpenSockets() {
 
         fd = open(lockPath.c_str(), O_RDONLY | O_CLOEXEC);
 
-        if(fd < 0)
+        if (fd < 0)
             continue;
 
         char pidstr[12] = {0};

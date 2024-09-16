@@ -307,11 +307,22 @@ void CPointerManager::resetCursorImage(bool apply) {
 void CPointerManager::updateCursorBackend() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
+    const auto  CURSORBOX = getCursorBoxGlobal();
+
     for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
 
         if (!m->m_bEnabled || !m->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
+
+        auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+
+        if (!CROSSES) {
+            if (state->cursorFrontBuffer)
+                setHWCursorBuffer(state, nullptr);
+
             continue;
         }
 

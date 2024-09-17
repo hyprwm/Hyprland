@@ -65,6 +65,7 @@ class CWLDataSourceResource : public IDataSource {
     virtual bool                     dndDone();
     virtual void                     error(uint32_t code, const std::string& msg);
     virtual void                     sendDndFinished();
+    virtual uint32_t                 actions(); // wl_data_device_manager.dnd_action
 
     void                             sendDndDropPerformed();
     void                             sendDndAction(wl_data_device_manager_dnd_action a);
@@ -78,7 +79,7 @@ class CWLDataSourceResource : public IDataSource {
     WP<CWLDataSourceResource>        self;
 
     std::vector<std::string>         mimeTypes;
-    uint32_t                         actions = 0;
+    uint32_t                         supportedActions = 0;
 
   private:
     SP<CWlDataSource> resource;

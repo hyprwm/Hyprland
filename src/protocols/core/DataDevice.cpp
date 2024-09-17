@@ -82,8 +82,19 @@ void CWLDataOfferResource::sendData() {
     if (!source)
         return;
 
-    if (resource->version() >= 3)
-        resource->sendSourceActions(7);
+    const auto SOURCEACTIONS = source->actions();
+
+    if (resource->version() >= 3 && SOURCEACTIONS > 0) {
+        resource->sendSourceActions(SOURCEACTIONS);
+        if (SOURCEACTIONS & WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE)
+            resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+        else if (SOURCEACTIONS & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
+            resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+        else {
+            LOGM(ERR, "Client bug? dnd source has no action move or copy. Sending move, f this.");
+            resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+        }
+    }
 
     for (auto const& m : source->mimes()) {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
@@ -111,7 +122,7 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
     resource->setOffer([this](CWlDataSource* r, const char* mime) { mimeTypes.push_back(mime); });
     resource->setSetActions([this](CWlDataSource* r, uint32_t a) {
         LOGM(LOG, "DataSource {:x} actions {}", (uintptr_t)this, a);
-        actions = (wl_data_device_manager_dnd_action)a;
+        supportedActions = a;
     });
 }
 
@@ -191,6 +202,10 @@ void CWLDataSourceResource::sendDndAction(wl_data_device_manager_dnd_action a) {
     if (resource->version() < 3)
         return;
     resource->sendAction(a);
+}
+
+uint32_t CWLDataSourceResource::actions() {
+    return supportedActions;
 }
 
 CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : resource(resource_) {

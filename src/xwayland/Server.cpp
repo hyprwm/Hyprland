@@ -120,9 +120,9 @@ static bool checkPermissionsForSocketDir(void) {
 
 static bool ensureSocketDirExists() {
     if (mkdir("/tmp/.X11-unix", SOCKET_DIR_PERMISSIONS) != 0) {
-        if (errno == EEXIST) {
+        if (errno == EEXIST) 
             return checkPermissionsForSocketDir();
-        } else {
+        else {
             Debug::log(ERR, "XWayland: Couldn't create socket dir");
             return false;
         }

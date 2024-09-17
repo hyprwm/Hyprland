@@ -1,3 +1,4 @@
+#include <cstdint>
 #ifndef NO_XWAYLAND
 
 #include <format>
@@ -38,11 +39,11 @@ static bool   setCloseOnExec(int fd, bool cloexec) {
         return false;
     }
 
-    if (cloexec) {
+    if (cloexec) 
         flags = flags | FD_CLOEXEC;
-    } else {
+    else 
         flags = flags & ~FD_CLOEXEC;
-    }
+    
 
     if (fcntl(fd, F_SETFD, flags) == -1) {
         Debug::log(ERR, "fcntl failed");
@@ -71,9 +72,8 @@ static int createSocket(struct sockaddr_un* addr, size_t path_size) {
         return -1;
     }
 
-    if (addr->sun_path[0]) {
+    if (addr->sun_path[0])
         unlink(addr->sun_path);
-    }
 
     if (bind(fd, (struct sockaddr*)addr, size) < 0) {
         Debug::log(ERR, "Failed to bind socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
@@ -120,7 +120,7 @@ static bool checkPermissionsForSocketDir(void) {
 
 static bool ensureSocketDirExists() {
     if (mkdir("/tmp/.X11-unix", SOCKET_DIR_PERMISSIONS) != 0) {
-        if (errno == EEXIST) 
+        if (errno == EEXIST)
             return checkPermissionsForSocketDir();
         else {
             Debug::log(ERR, "XWayland: Couldn't create socket dir");
@@ -225,7 +225,7 @@ bool CXWaylandServer::tryOpenSockets() {
 
         uint64_t pid = 0;
         try {
-            pid = std::stoul(pidstr);
+            pid = std::stoi(std::string{pidstr, 11});
         } catch (...) { continue; }
 
         if (kill(pid, 0) != 0 && errno == ESRCH) {
@@ -400,9 +400,9 @@ bool CXWaylandServer::start() {
         if (pid < 0) {
             Debug::log(ERR, "second fork failed");
             _exit(1);
-        } else if (pid == 0) {
+        } else if (pid == 0) 
             runXWayland(notify[1]);
-        }
+        
 
         _exit(0);
     }

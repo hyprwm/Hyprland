@@ -987,9 +987,9 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     const auto COMMAND = in.substr(0, secondSpacePos);
     const auto VALUE   = in.substr(secondSpacePos + 1);
 
-    // If either COMMAND or VALUE is empty, handle accordingly
-    if (COMMAND.empty() || VALUE.empty())
-        return "Invalid input: command or value is empty";
+    // If COMMAND is empty, handle accordingly
+    if (COMMAND.empty())
+        return "Invalid input: command is empty";
 
     std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
 

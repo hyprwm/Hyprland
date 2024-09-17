@@ -223,7 +223,7 @@ bool CXWaylandServer::tryOpenSockets() {
         read(fd, pidstr, sizeof(pidstr) - 1);
         close(fd);
 
-        uint64_t pid = 0;
+        int32_t pid = 0;
         try {
             pid = std::stoi(std::string{pidstr, 11});
         } catch (...) { continue; }

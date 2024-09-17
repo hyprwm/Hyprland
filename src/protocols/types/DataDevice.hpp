@@ -26,6 +26,7 @@ class IDataSource {
     virtual void                     markUsed();
     virtual void                     error(uint32_t code, const std::string& msg) = 0;
     virtual eDataSourceType          type();
+    virtual uint32_t                 actions(); // wl_data_device_manager.dnd_action
 
     struct {
         CSignal destroy;

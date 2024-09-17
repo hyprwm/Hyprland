@@ -19,7 +19,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
     pMonitor = OUTPUTRES->monitor;
 
-    if (!pMonitor) {
+    if (!pMonitor || !pMonitor->output) {
         LOGM(ERR, "No CMonitor");
         resource->sendFailed();
         return;

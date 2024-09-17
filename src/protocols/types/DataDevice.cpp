@@ -23,3 +23,7 @@ eDataSourceType IDataSource::type() {
 void IDataSource::sendDndFinished() {
     ;
 }
+
+uint32_t IDataSource::actions() {
+    return 7; // all
+}

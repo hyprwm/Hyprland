@@ -208,9 +208,8 @@ void CPointerManager::recheckEnteredOutputs() {
 
             // if we are using hw cursors, prevent
             // the cursor from being stuck at the last point.
-            // if we are leaving it, move it to narnia.
             if (!s->hardwareFailed && (s->monitor->output->getBackend()->capabilities() & Aquamarine::IBackendImplementation::eBackendCapabilities::AQ_BACKEND_CAPABILITY_POINTER))
-                s->monitor->output->moveCursor({-1337, -420});
+                setHWCursorBuffer(s, nullptr);
 
             if (!currentCursorImage.surface)
                 continue;
@@ -269,11 +268,22 @@ void CPointerManager::resetCursorImage(bool apply) {
 void CPointerManager::updateCursorBackend() {
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 
+    const auto  CURSORBOX = getCursorBoxGlobal();
+
     for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
 
         if (!m->m_bEnabled || !m->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
+            continue;
+        }
+
+        auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+
+        if (!CROSSES) {
+            if (state->cursorFrontBuffer)
+                setHWCursorBuffer(state, nullptr);
+
             continue;
         }
 
@@ -297,10 +307,24 @@ void CPointerManager::onCursorMoved() {
     if (!hasCursor())
         return;
 
+    const auto CURSORBOX = getCursorBoxGlobal();
+    bool       recalc    = false;
+
     for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
 
         state->box = getCursorBoxLogicalForMonitor(state->monitor.lock());
+
+        auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+
+        if (!CROSSES && state->cursorFrontBuffer) {
+            Debug::log(TRACE, "onCursorMoved for output {}: cursor left the viewport, removing it from the backend", m->szName);
+            setHWCursorBuffer(state, nullptr);
+            continue;
+        } else if (CROSSES && !state->cursorFrontBuffer) {
+            Debug::log(TRACE, "onCursorMoved for output {}: cursor entered the output, but no front buffer, forcing recalc", m->szName);
+            recalc = true;
+        }
 
         if (state->hardwareFailed || !state->entered)
             continue;
@@ -308,6 +332,9 @@ void CPointerManager::onCursorMoved() {
         const auto CURSORPOS = getCursorPosForMonitor(m);
         m->output->moveCursor(CURSORPOS);
     }
+
+    if (recalc)
+        updateCursorBackend();
 }
 
 bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerState> state) {

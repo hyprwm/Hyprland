@@ -2696,7 +2696,17 @@ WORKSPACEID CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    ; // intentional
+    static auto PNOCHECKXDG = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
+
+    if (!*PNOCHECKXDG) {
+        const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
+        if (!CURRENT_DESKTOP_ENV || std::string{CURRENT_DESKTOP_ENV} != "Hyprland") {
+            g_pHyprNotificationOverlay->addNotification(
+                std::format("Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {}.\nThis might cause issues unless it's intentional.",
+                            CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
+                CColor{}, 15000, ICON_WARNING);
+        }
+    }
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace) {

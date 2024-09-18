@@ -149,7 +149,7 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
       (lib.mesonEnable "xwayland" enableXWayland)
       (lib.mesonEnable "legacy_renderer" legacyRenderer)
       (lib.mesonEnable "systemd" withSystemd)
-      (lib.mesonEnable "b_pch" false)
+      "-Db_pch=false"
     ];
 
     postInstall = ''

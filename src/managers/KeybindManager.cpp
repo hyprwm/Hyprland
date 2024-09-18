@@ -2730,7 +2730,7 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 
     const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
 
-    if (!PWINDOW || PWINDOW->m_bIsFloating || PWINDOW->m_sGroupData.deny)
+    if (!PWINDOW || PWINDOW->m_sGroupData.deny)
         return {};
 
     auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);

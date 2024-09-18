@@ -39,11 +39,10 @@ static bool   setCloseOnExec(int fd, bool cloexec) {
         return false;
     }
 
-    if (cloexec) 
+    if (cloexec)
         flags = flags | FD_CLOEXEC;
-    else 
+    else
         flags = flags & ~FD_CLOEXEC;
-    
 
     if (fcntl(fd, F_SETFD, flags) == -1) {
         Debug::log(ERR, "fcntl failed");
@@ -400,9 +399,8 @@ bool CXWaylandServer::start() {
         if (pid < 0) {
             Debug::log(ERR, "second fork failed");
             _exit(1);
-        } else if (pid == 0) 
+        } else if (pid == 0)
             runXWayland(notify[1]);
-        
 
         _exit(0);
     }

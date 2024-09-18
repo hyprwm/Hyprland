@@ -1049,6 +1049,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{15, 1, 120},
     },
+    SConfigOptionDescription{
+        .value       = "misc:disable_xdg_env_checks",
+        .description = "disable the warning if XDG environment is externally managed",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * binds:

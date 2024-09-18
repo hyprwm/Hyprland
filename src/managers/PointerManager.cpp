@@ -246,9 +246,8 @@ void CPointerManager::recheckEnteredOutputs() {
 
             // if we are using hw cursors, prevent
             // the cursor from being stuck at the last point.
-            // if we are leaving it, move it to narnia.
             if (!s->hardwareFailed && (s->monitor->output->getBackend()->capabilities() & Aquamarine::IBackendImplementation::eBackendCapabilities::AQ_BACKEND_CAPABILITY_POINTER))
-                s->monitor->output->moveCursor({-1337, -420});
+                setHWCursorBuffer(s, nullptr);
 
             if (!currentCursorImage.surface)
                 continue;

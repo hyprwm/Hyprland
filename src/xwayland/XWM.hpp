@@ -6,7 +6,6 @@
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-
 #include <xcb/xcb.h>
 #include <xcb/res.h>
 #include <xcb/xfixes.h>
@@ -59,7 +58,7 @@ struct SXSelection {
 };
 
 class XCBConnection {
-public:
+  public:
     XCBConnection(int fd) {
         connection = xcb_connect_to_fd(fd, nullptr);
     }
@@ -78,12 +77,12 @@ public:
         return connection;
     }
 
-private:
+  private:
     xcb_connection_t* connection = nullptr;
 };
 
 class XCBErrorContext {
-public:
+  public:
     explicit XCBErrorContext(xcb_connection_t* connection) {
         if (xcb_errors_context_new(connection, &errors) != 0) {
             errors = nullptr;
@@ -100,7 +99,7 @@ public:
         return errors != nullptr;
     }
 
-private:
+  private:
     xcb_errors_context_t* errors = nullptr;
 };
 
@@ -169,9 +168,9 @@ class CXWM {
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //
-    XCBConnection                             connection; 
-    xcb_errors_context_t*                     errors     = nullptr;
-    xcb_screen_t*                             screen     = nullptr;
+    XCBConnection                             connection;
+    xcb_errors_context_t*                     errors = nullptr;
+    xcb_screen_t*                             screen = nullptr;
 
     xcb_window_t                              wmWindow;
 

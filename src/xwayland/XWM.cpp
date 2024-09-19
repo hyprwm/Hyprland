@@ -17,7 +17,6 @@
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 
-
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
 #define INCR_CHUNK_SIZE              (64 * 1024)
 
@@ -832,7 +831,7 @@ void CXWM::getRenderFormat() {
     free(reply);
 }
 
-CXWM::CXWM():connection(g_pXWayland->pServer->xwmFDs[0]) {
+CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
 
     if (connection.hasError()) {
         Debug::log(ERR, "[xwm] Couldn't start, error {}", connection.hasError());
@@ -881,7 +880,7 @@ CXWM::CXWM():connection(g_pXWayland->pServer->xwmFDs[0]) {
 }
 
 CXWM::~CXWM() {
-    
+
     if (eventSource)
         wl_event_source_remove(eventSource);
 
@@ -1072,8 +1071,8 @@ void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedire
 void CXWM::initSelection() {
     clipboard.window = xcb_generate_id(connection.get());
     uint32_t mask[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE};
-    xcb_create_window(connection.get(), XCB_COPY_FROM_PARENT, clipboard.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, XCB_CW_EVENT_MASK,
-                      mask);
+    xcb_create_window(connection.get(), XCB_COPY_FROM_PARENT, clipboard.window, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual,
+                      XCB_CW_EVENT_MASK, mask);
     xcb_set_selection_owner(connection.get(), clipboard.window, HYPRATOMS["CLIPBOARD_MANAGER"], XCB_TIME_CURRENT_TIME);
 
     uint32_t mask2 =
@@ -1263,7 +1262,8 @@ SXTransfer::~SXTransfer() {
 }
 
 bool SXTransfer::getIncomingSelectionProp(bool erase) {
-    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection.get(), erase, incomingWindow, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 0x1fffffff);
+    xcb_get_property_cookie_t cookie =
+        xcb_get_property(g_pXWayland->pWM->connection.get(), erase, incomingWindow, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 0x1fffffff);
 
     propertyStart = 0;
     propertyReply = xcb_get_property_reply(g_pXWayland->pWM->connection.get(), cookie, nullptr);

@@ -197,12 +197,12 @@ void CXWaylandSurface::restackToTop() {
     xcb_configure_window(g_pXWayland->pWM->connection.get(), xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
     auto& stack = g_pXWayland->pWM->mappedSurfacesStacking;
-    auto it = std::find(stack.begin(), stack.end(),self);
+    auto  it    = std::find(stack.begin(), stack.end(), self);
 
     if (it != stack.end()) {
         std::rotate(it, it + 1, stack.end());
     }
-    
+
     g_pXWayland->pWM->updateClientList();
 
     xcb_flush(g_pXWayland->pWM->connection.get());

@@ -5,22 +5,22 @@
 
 #ifndef NO_XWAYLAND
 
-#include "../Compositor.hpp"
 #include <ranges>
+#include "../Compositor.hpp"
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};
     if (g_pXWayland->pWM->xres) {
         xcb_res_client_id_spec_t spec = {.client = xID, .mask = XCB_RES_CLIENT_ID_MASK_LOCAL_CLIENT_PID};
-        client_id_cookie              = xcb_res_query_client_ids(g_pXWayland->pWM->connection, 1, &spec);
+        client_id_cookie              = xcb_res_query_client_ids(g_pXWayland->pWM->connection.get(), 1, &spec);
     }
 
     uint32_t values[1];
     values[0] = XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_change_window_attributes(g_pXWayland->pWM->connection, xID, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(g_pXWayland->pWM->connection.get(), xID, XCB_CW_EVENT_MASK, values);
 
     if (g_pXWayland->pWM->xres) {
-        xcb_res_query_client_ids_reply_t* reply = xcb_res_query_client_ids_reply(g_pXWayland->pWM->connection, client_id_cookie, nullptr);
+        xcb_res_query_client_ids_reply_t* reply = xcb_res_query_client_ids_reply(g_pXWayland->pWM->connection.get(), client_id_cookie, nullptr);
         if (!reply)
             return;
 
@@ -168,11 +168,11 @@ void CXWaylandSurface::configure(const CBox& box) {
 
     uint32_t mask     = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
     uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
-    xcb_configure_window(g_pXWayland->pWM->connection, xID, mask, values);
+    xcb_configure_window(g_pXWayland->pWM->connection.get(), xID, mask, values);
 
     g_pXWayland->pWM->updateClientList();
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->pWM->connection.get());
 }
 
 void CXWaylandSurface::activate(bool activate) {
@@ -194,18 +194,18 @@ void CXWaylandSurface::setMinimized(bool mz) {
 void CXWaylandSurface::restackToTop() {
     uint32_t values[1] = {XCB_STACK_MODE_ABOVE};
 
-    xcb_configure_window(g_pXWayland->pWM->connection, xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_configure_window(g_pXWayland->pWM->connection.get(), xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
-    for (auto it = g_pXWayland->pWM->mappedSurfacesStacking.begin(); it != g_pXWayland->pWM->mappedSurfacesStacking.end(); ++it) {
-        if (*it == self) {
-            std::rotate(it, it + 1, g_pXWayland->pWM->mappedSurfacesStacking.end());
-            break;
-        }
+    auto& stack = g_pXWayland->pWM->mappedSurfacesStacking;
+    auto it = std::find(stack.begin(), stack.end(),self);
+
+    if (it != stack.end()) {
+        std::rotate(it, it + 1, stack.end());
     }
-
+    
     g_pXWayland->pWM->updateClientList();
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->pWM->connection.get());
 }
 
 void CXWaylandSurface::close() {
@@ -226,7 +226,7 @@ void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
     else
         props[0] = XCB_ICCCM_WM_STATE_NORMAL;
 
-    xcb_change_property(g_pXWayland->pWM->connection, XCB_PROP_MODE_REPLACE, xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
+    xcb_change_property(g_pXWayland->pWM->connection.get(), XCB_PROP_MODE_REPLACE, xID, HYPRATOMS["WM_STATE"], HYPRATOMS["WM_STATE"], 32, props.size(), props.data());
 }
 
 #else

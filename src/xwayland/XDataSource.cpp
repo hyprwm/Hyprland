@@ -1,17 +1,17 @@
 #ifndef NO_XWAYLAND
 
-#include "XDataSource.hpp"
 #include "XWayland.hpp"
 #include "../defines.hpp"
+#include "XDataSource.hpp"
 
 #include <fcntl.h>
 
 CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
-    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection,
+    xcb_get_property_cookie_t cookie = xcb_get_property(g_pXWayland->pWM->connection.get(),
                                                         1, // delete
                                                         selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
 
-    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection, cookie, NULL);
+    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection.get(), cookie, NULL);
     if (!reply)
         return;
 
@@ -71,14 +71,14 @@ void CXDataSource::send(const std::string& mime, uint32_t fd) {
     Debug::log(LOG, "[XDataSource] send with mime {} to fd {}", mime, fd);
 
     selection.transfer                 = std::make_unique<SXTransfer>(selection);
-    selection.transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection);
+    selection.transfer->incomingWindow = xcb_generate_id(g_pXWayland->pWM->connection.get());
     const uint32_t MASK                = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE;
-    xcb_create_window(g_pXWayland->pWM->connection, XCB_COPY_FROM_PARENT, selection.transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0,
+    xcb_create_window(g_pXWayland->pWM->connection.get(), XCB_COPY_FROM_PARENT, selection.transfer->incomingWindow, g_pXWayland->pWM->screen->root, 0, 0, 10, 10, 0,
                       XCB_WINDOW_CLASS_INPUT_OUTPUT, g_pXWayland->pWM->screen->root_visual, XCB_CW_EVENT_MASK, &MASK);
 
-    xcb_convert_selection(g_pXWayland->pWM->connection, selection.transfer->incomingWindow, HYPRATOMS["CLIPBOARD"], mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
+    xcb_convert_selection(g_pXWayland->pWM->connection.get(), selection.transfer->incomingWindow, HYPRATOMS["CLIPBOARD"], mimeAtom, HYPRATOMS["_WL_SELECTION"], XCB_TIME_CURRENT_TIME);
 
-    xcb_flush(g_pXWayland->pWM->connection);
+    xcb_flush(g_pXWayland->pWM->connection.get());
 
     fcntl(fd, F_SETFL, O_WRONLY | O_NONBLOCK);
     selection.transfer->wlFD = fd;

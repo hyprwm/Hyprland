@@ -118,7 +118,8 @@ int main(int argc, char** argv) {
             auto commitMsg = trim(GIT_COMMIT_MESSAGE);
             std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
             std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
-                ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + "\n\nflags: (if any)\n";
+                ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + std::string{"\nbuilt against aquamarine "} + AQUAMARINE_VERSION + "\n" +
+                "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
             result += "legacyrenderer\n";

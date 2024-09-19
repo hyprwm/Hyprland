@@ -91,11 +91,14 @@ find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.1)
 
+pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine)
+
+add_compile_definitions(AQUAMARINE_VERSION="${aquamarine_dep_VERSION}")
+
 pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  aquamarine
   xkbcommon
   uuid
   wayland-server
@@ -220,7 +223,7 @@ target_precompile_headers(Hyprland PRIVATE
 
 message(STATUS "Setting link libraries")
 
-target_link_libraries(Hyprland rt PkgConfig::deps)
+target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::deps)
 
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)

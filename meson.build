@@ -30,6 +30,9 @@ if cpp_compiler.check_header('execinfo.h')
   add_project_arguments('-DHAS_EXECINFO', language: 'cpp')
 endif
 
+aquamarine = dependency('aquamarine')
+add_project_arguments(['-DAQUAMARINE_VERSION="@0@"'.format(aquamarine.version())], language: 'cpp')
+
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 xcb_composite_dep = dependency('xcb-composite', required: get_option('xwayland'))
 xcb_errors_dep = dependency('xcb-errors', required: get_option('xwayland'))

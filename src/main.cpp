@@ -4,6 +4,9 @@
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
+
 #include <fcntl.h>
 #include <iostream>
 #include <iterator>
@@ -20,6 +23,7 @@ void help() {
     std::cout << "  --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)\n";
     std::cout << "  --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)\n";
     std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
+    std::cout << "  --version           -v       - Print this binary's version\n";
 }
 
 int main(int argc, char** argv) {
@@ -109,6 +113,24 @@ int main(int argc, char** argv) {
         } else if (it->compare("-h") == 0 || it->compare("--help") == 0) {
             help();
 
+            return 0;
+        } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
+            auto commitMsg = trim(GIT_COMMIT_MESSAGE);
+            std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+            std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
+                ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + "\n\nflags: (if any)\n";
+
+#ifdef LEGACY_RENDERER
+            result += "legacyrenderer\n";
+#endif
+#ifndef ISDEBUG
+            result += "debug\n";
+#endif
+#ifdef NO_XWAYLAND
+            result += "no xwayland\n";
+#endif
+
+            std::cout << result;
             return 0;
         } else {
             std::cerr << "[ ERROR ] Unknown option '" << it->c_str() << "'!\n";

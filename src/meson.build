@@ -8,7 +8,7 @@ executable(
   cpp_pch: 'pch/pch.hpp',
   dependencies: [
     server_protos,
-    dependency('aquamarine'),
+    aquamarine,
     dependency('gbm'),
     dependency('xcursor'),
     dependency('wayland-server'),

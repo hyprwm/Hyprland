@@ -132,9 +132,9 @@ static bool ensureSocketDirExists() {
 
 static std::string getSocketPath(int display, bool isLinux) {
     if (isLinux)
-        return std::format("/tmp/.X11-unix{}", display);
+        return std::format("/tmp/.X11-unix/X{}", display);
 
-    return std::format("/tmp/.X11-unix{}_", display);
+    return std::format("/tmp/.X11-unix/X{}_", display);
 }
 
 static bool openSockets(std::array<int, 2>& sockets, int display) {

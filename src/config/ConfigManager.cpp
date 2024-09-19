@@ -683,11 +683,9 @@ std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
 
-    if (const char *cfg = getenv("HYPRLAND_CONFIG"); cfg != NULL) {
-        return cfg;
-    }
+    if (const char *CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV);
 
-    Debug::log(INFO, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
+    Debug::log(DEBUG, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
 
     static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
     if (paths.first.has_value()) {

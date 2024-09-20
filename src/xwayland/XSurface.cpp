@@ -199,9 +199,9 @@ void CXWaylandSurface::restackToTop() {
     auto& stack = g_pXWayland->pWM->mappedSurfacesStacking;
     auto  it    = std::find(stack.begin(), stack.end(), self);
 
-    if (it != stack.end()) {
+    if (it != stack.end()) 
         std::rotate(it, it + 1, stack.end());
-    }
+    
 
     g_pXWayland->pWM->updateClientList();
 

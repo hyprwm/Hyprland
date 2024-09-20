@@ -1,20 +1,21 @@
 #include "helpers/math/Math.hpp"
+#include <cstdint>
 #ifndef NO_XWAYLAND
+
+#include <ranges>
+#include <fcntl.h>
+#include <cstring>
+#include <algorithm>
+#include <unordered_map>
+#include <xcb/xcb_icccm.h>
 
 #include "XWayland.hpp"
 #include "../defines.hpp"
-#include <unordered_map>
 #include "../Compositor.hpp"
+#include "../protocols/core/Seat.hpp"
+#include "../managers/SeatManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "../managers/SeatManager.hpp"
-#include "../protocols/core/Seat.hpp"
-#include <ranges>
-#include <algorithm>
-#include <fcntl.h>
-#include <cstring>
-
-#include <xcb/xcb_icccm.h>
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
 #define INCR_CHUNK_SIZE              (64 * 1024)
@@ -830,15 +831,15 @@ void CXWM::getRenderFormat() {
     free(reply);
 }
 
-CXWM::CXWM() {
-    connection = xcb_connect_to_fd(g_pXWayland->pServer->xwmFDs[0], nullptr);
+CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
 
-    if (int ret = xcb_connection_has_error(connection); ret) {
-        Debug::log(ERR, "[xwm] Couldn't start, error {}", ret);
+    if (connection.hasError()) {
+        Debug::log(ERR, "[xwm] Couldn't start, error {}", connection.hasError());
         return;
     }
 
-    if (xcb_errors_context_new(connection, &errors)) {
+    CXCBErrorContext xcbErrCtx(connection);
+    if (!xcbErrCtx.isValid()) {
         Debug::log(ERR, "[xwm] Couldn't allocate errors context");
         return;
     }
@@ -867,10 +868,7 @@ CXWM::CXWM() {
     };
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
 
-    xcb_flush(connection);
-
     setActiveWindow(XCB_WINDOW_NONE);
-
     initSelection();
 
     listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
@@ -882,11 +880,6 @@ CXWM::CXWM() {
 }
 
 CXWM::~CXWM() {
-    if (errors)
-        xcb_errors_context_free(errors);
-
-    if (connection)
-        xcb_disconnect(connection);
 
     if (eventSource)
         wl_event_source_remove(eventSource);

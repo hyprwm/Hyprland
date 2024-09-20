@@ -57,23 +57,23 @@ struct SXSelection {
     std::unique_ptr<SXTransfer> transfer;
 };
 
-class XCBConnection {
+class CXCBConnection {
   public:
-    XCBConnection(int fd) {
+    CXCBConnection(int fd) {
         connection = xcb_connect_to_fd(fd, nullptr);
     }
 
-    ~XCBConnection() {
-        if (connection) {
+    ~CXCBConnection() {
+        if (connection) 
             xcb_disconnect(connection);
-        }
+        
     }
 
     bool hasError() const {
         return xcb_connection_has_error(connection);
     }
 
-    xcb_connection_t* get() const {
+    operator xcb_connection_t*() const {
         return connection;
     }
 
@@ -81,18 +81,18 @@ class XCBConnection {
     xcb_connection_t* connection = nullptr;
 };
 
-class XCBErrorContext {
+class CXCBErrorContext {
   public:
-    explicit XCBErrorContext(xcb_connection_t* connection) {
-        if (xcb_errors_context_new(connection, &errors) != 0) {
+    explicit CXCBErrorContext(xcb_connection_t* connection) {
+        if (xcb_errors_context_new(connection, &errors) != 0) 
             errors = nullptr;
-        }
+        
     }
 
-    ~XCBErrorContext() {
-        if (errors) {
+    ~CXCBErrorContext() {
+        if (errors) 
             xcb_errors_context_free(errors);
-        }
+        
     }
 
     bool isValid() const {
@@ -168,7 +168,7 @@ class CXWM {
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //
-    XCBConnection                             connection;
+    CXCBConnection                             connection;
     xcb_errors_context_t*                     errors = nullptr;
     xcb_screen_t*                             screen = nullptr;
 

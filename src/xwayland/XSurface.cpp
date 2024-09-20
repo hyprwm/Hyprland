@@ -5,8 +5,8 @@
 
 #ifndef NO_XWAYLAND
 
-#include "../Compositor.hpp"
 #include <ranges>
+#include "../Compositor.hpp"
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};
@@ -196,12 +196,11 @@ void CXWaylandSurface::restackToTop() {
 
     xcb_configure_window(g_pXWayland->pWM->connection, xID, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
-    for (auto it = g_pXWayland->pWM->mappedSurfacesStacking.begin(); it != g_pXWayland->pWM->mappedSurfacesStacking.end(); ++it) {
-        if (*it == self) {
-            std::rotate(it, it + 1, g_pXWayland->pWM->mappedSurfacesStacking.end());
-            break;
-        }
-    }
+    auto& stack = g_pXWayland->pWM->mappedSurfacesStacking;
+    auto  it    = std::find(stack.begin(), stack.end(), self);
+
+    if (it != stack.end())
+        std::rotate(it, it + 1, stack.end());
 
     g_pXWayland->pWM->updateClientList();
 

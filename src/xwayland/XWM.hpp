@@ -1,17 +1,16 @@
 #pragma once
 
-#include "../helpers/signal/Signal.hpp"
-#include "../helpers/memory/Memory.hpp"
-#include "../helpers/WLListener.hpp"
 #include "../macros.hpp"
-
 #include "XDataSource.hpp"
+#include "../helpers/WLListener.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_errors.h>
-#include <xcb/composite.h>
-#include <xcb/xfixes.h>
 #include <xcb/res.h>
+#include <xcb/xfixes.h>
+#include <xcb/composite.h>
+#include <xcb/xcb_errors.h>
 
 struct wl_event_source;
 class CXWaylandSurfaceResource;
@@ -56,6 +55,49 @@ struct SXSelection {
     } listeners;
 
     std::unique_ptr<SXTransfer> transfer;
+};
+
+class CXCBConnection {
+  public:
+    CXCBConnection(int fd) {
+        connection = xcb_connect_to_fd(fd, nullptr);
+    }
+
+    ~CXCBConnection() {
+        if (connection)
+            xcb_disconnect(connection);
+    }
+
+    bool hasError() const {
+        return xcb_connection_has_error(connection);
+    }
+
+    operator xcb_connection_t*() const {
+        return connection;
+    }
+
+  private:
+    xcb_connection_t* connection = nullptr;
+};
+
+class CXCBErrorContext {
+  public:
+    explicit CXCBErrorContext(xcb_connection_t* connection) {
+        if (xcb_errors_context_new(connection, &errors) != 0)
+            errors = nullptr;
+    }
+
+    ~CXCBErrorContext() {
+        if (errors)
+            xcb_errors_context_free(errors);
+    }
+
+    bool isValid() const {
+        return errors != nullptr;
+    }
+
+  private:
+    xcb_errors_context_t* errors = nullptr;
 };
 
 class CXWM {
@@ -123,9 +165,9 @@ class CXWM {
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //
-    xcb_connection_t*                         connection = nullptr;
-    xcb_errors_context_t*                     errors     = nullptr;
-    xcb_screen_t*                             screen     = nullptr;
+    CXCBConnection                            connection;
+    xcb_errors_context_t*                     errors = nullptr;
+    xcb_screen_t*                             screen = nullptr;
 
     xcb_window_t                              wmWindow;
 

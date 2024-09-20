@@ -193,11 +193,8 @@ void CWLSHMProtocol::bindManager(wl_client* client, void* data, uint32_t ver, ui
             DRM_FORMAT_XBGR8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_XRGB2101010, DRM_FORMAT_ARGB2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_ABGR2101010,
         };
 
-        for (auto const& fmt : g_pHyprOpenGL->getDRMFormats()) {
-            if (std::find(supportedShmFourccFormats.begin(), supportedShmFourccFormats.end(), fmt.drmFormat) == supportedShmFourccFormats.end())
-                continue;
-
-            shmFormats.push_back(fmt.drmFormat);
+        for (auto const& fmt : supportedShmFourccFormats) {
+            shmFormats.push_back(fmt);
         }
     }
 

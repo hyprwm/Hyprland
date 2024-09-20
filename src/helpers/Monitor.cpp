@@ -2,7 +2,6 @@
 #include "MiscFunctions.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
-#include "ScopeGuard.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -17,7 +16,9 @@
 #include "sync/SyncTimeline.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Utils;
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);

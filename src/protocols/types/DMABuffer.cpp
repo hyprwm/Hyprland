@@ -16,8 +16,15 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
 
     auto eglImage = g_pHyprOpenGL->createEGLImage(attrs);
 
-    if (!eglImage)
-        return;
+    if (!eglImage) {
+        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
+        attrs.modifier = DRM_FORMAT_MOD_INVALID;
+        eglImage       = g_pHyprOpenGL->createEGLImage(attrs);
+        if (!eglImage) {
+            Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
+            return;
+        }
+    }
 
     texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
     opaque  = FormatUtils::isFormatOpaque(attrs.format);

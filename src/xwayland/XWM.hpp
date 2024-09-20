@@ -64,9 +64,8 @@ class CXCBConnection {
     }
 
     ~CXCBConnection() {
-        if (connection) 
+        if (connection)
             xcb_disconnect(connection);
-        
     }
 
     bool hasError() const {
@@ -84,15 +83,13 @@ class CXCBConnection {
 class CXCBErrorContext {
   public:
     explicit CXCBErrorContext(xcb_connection_t* connection) {
-        if (xcb_errors_context_new(connection, &errors) != 0) 
+        if (xcb_errors_context_new(connection, &errors) != 0)
             errors = nullptr;
-        
     }
 
     ~CXCBErrorContext() {
-        if (errors) 
+        if (errors)
             xcb_errors_context_free(errors);
-        
     }
 
     bool isValid() const {
@@ -168,7 +165,7 @@ class CXWM {
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
     //
-    CXCBConnection                             connection;
+    CXCBConnection                            connection;
     xcb_errors_context_t*                     errors = nullptr;
     xcb_screen_t*                             screen = nullptr;
 

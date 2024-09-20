@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../helpers/ScopeGuard.hpp"
 #include "../helpers/sync/SyncReleaser.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -22,6 +21,9 @@
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "debug/Log.hpp"
+
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
 
 extern "C" {
 #include <xf86drm.h>

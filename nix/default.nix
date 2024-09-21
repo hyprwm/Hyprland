@@ -48,25 +48,32 @@
   nvidiaPatches ? false,
   hidpiXWayland ? false,
 }: let
-  adapters = lib.flatten [
+  inherit (builtins) baseNameOf foldl';
+  inherit (lib.asserts) assertMsg;
+  inherit (lib.attrsets) mapAttrsToList;
+  inherit (lib.lists) flatten concatLists optional optionals;
+  inherit (lib.sources) cleanSourceWith cleanSource;
+  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable;
+
+  adapters = flatten [
     stdenvAdapters.useMoldLinker
   ];
 
-  customStdenv = builtins.foldl' (acc: adapter: adapter acc) stdenv adapters;
+  customStdenv = foldl' (acc: adapter: adapter acc) stdenv adapters;
 in
-  assert lib.assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
-  assert lib.assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
-  assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
+  assert assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
+  assert assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
+  assert assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
     customStdenv.mkDerivation {
-      pname = "hyprland${lib.optionalString debug "-debug"}";
+      pname = "hyprland${optionalString debug "-debug"}";
       inherit version;
 
-      src = lib.cleanSourceWith {
+      src = cleanSourceWith {
         filter = name: type: let
           baseName = baseNameOf (toString name);
         in
-          ! (lib.hasSuffix ".nix" baseName);
-        src = lib.cleanSource ../.;
+          ! (hasSuffix ".nix" baseName);
+        src = cleanSource ../.;
       };
 
       postPatch = ''
@@ -79,7 +86,7 @@ in
 
       COMMITS = revCount;
       DATE = date;
-      DIRTY = lib.optionalString (commit == "") "dirty";
+      DIRTY = optionalString (commit == "") "dirty";
       HASH = commit;
 
       depsBuildBuild = [
@@ -104,36 +111,29 @@ in
         "dev"
       ];
 
-      buildInputs = lib.concatLists [
+      buildInputs = concatLists [
         [
           aquamarine
           cairo
-          # expat
-          # fribidi
           git
           hyprcursor
           hyprlang
           hyprutils
-          # libdatrie
           libdrm
           libGL
           libinput
-          # libselinux
-          # libsepol
-          # libthai
           libuuid
           libxkbcommon
           mesa
           pango
           pciutils
-          # pcre2
           tomlplusplus
           wayland
           wayland-protocols
           xorg.libXcursor
         ]
-        (lib.optionals stdenv.hostPlatform.isMusl [libexecinfo])
-        (lib.optionals enableXWayland [
+        (optionals customStdenv.hostPlatform.isMusl [libexecinfo])
+        (optionals enableXWayland [
           xorg.libxcb
           xorg.libXdmcp
           xorg.xcbutilerrors
@@ -141,7 +141,7 @@ in
           xorg.xcbutilwm
           xwayland
         ])
-        (lib.optionals withSystemd [systemd])
+        (optional withSystemd systemd)
       ];
 
       mesonBuildType =
@@ -152,17 +152,19 @@ in
       # we want as much debug info as possible
       dontStrip = debug;
 
-      mesonFlags = [
-        (lib.mesonEnable "xwayland" enableXWayland)
-        (lib.mesonEnable "legacy_renderer" legacyRenderer)
-        (lib.mesonEnable "systemd" withSystemd)
-        "-Db_pch=false"
+      mesonFlags = flatten [
+        (mapAttrsToList mesonEnable {
+          "xwayland" = enableXWayland;
+          "legacy_renderer" = legacyRenderer;
+          "systemd" = withSystemd;
+        })
+        (mesonBool "b_pch" false)
       ];
 
       postInstall = ''
-        ${lib.optionalString wrapRuntimeDeps ''
+        ${optionalString wrapRuntimeDeps ''
           wrapProgram $out/bin/Hyprland \
-            --suffix PATH : ${lib.makeBinPath [
+            --suffix PATH : ${makeBinPath [
             binutils
             pciutils
             pkgconf

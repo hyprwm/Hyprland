@@ -144,7 +144,7 @@ in
 
       mesonBuildType =
         if debug
-        then "debug"
+        then "debugoptimized"
         else "release";
 
       # we want as much debug info as possible
@@ -156,7 +156,10 @@ in
           "legacy_renderer" = legacyRenderer;
           "systemd" = withSystemd;
         })
-        (mesonBool "b_pch" false)
+        (mapAttrsToList mesonBool {
+          "b_pch" = false;
+          "tracy_enable" = false;
+        })
       ];
 
       postInstall = ''

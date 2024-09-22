@@ -31,6 +31,7 @@ executable(
     backtrace_dep,
     epoll_dep,
     gio_dep,
+    tracy,
 
     # Try to find canihavesomecoffee's udis86 using pkgconfig
     # vmt/udis86 does not provide a .pc file and won't be detected this way

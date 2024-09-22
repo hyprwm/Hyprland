@@ -73,6 +73,12 @@ foreach file : headers
   install_headers(file, subdir: 'hyprland', preserve_path: true)
 endforeach
 
+tracy = dependency('tracy', static: true, required: get_option('tracy_enable'))
+
+if get_option('tracy_enable') and get_option('buildtype') != 'debugoptimized'
+  warning('Profiling builds should set -- buildtype = debugoptimized')
+endif
+
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')

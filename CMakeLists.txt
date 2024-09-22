@@ -230,7 +230,7 @@ add_custom_target(generate-protocol-headers)
 
 function(protocolnew protoPath protoName external)
   if(external)
-    set(path ${CMAKE_SOURCE_DIR}/${protoPath})
+    set(path ${protoPath})
   else()
     set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
   endif()
@@ -261,11 +261,20 @@ endfunction()
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
                       libudis86)
 
-protocolnew("subprojects/hyprland-protocols/protocols"
-            "hyprland-global-shortcuts-v1" true)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.2.0)
+if(hyprland_protocols_dep_FOUND)
+  pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
+  message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
+else()
+  set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
+  message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
+endif()
+
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1"
+            true)
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
-protocolnew("subprojects/hyprland-protocols/protocols"
-            "hyprland-toplevel-export-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-export-v1"
+            true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)
 protocolnew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
@@ -276,8 +285,7 @@ protocolnew("protocols" "input-method-unstable-v2" true)
 protocolnew("protocols" "wlr-output-management-unstable-v1" true)
 protocolnew("protocols" "kde-server-decoration" true)
 protocolnew("protocols" "wlr-data-control-unstable-v1" true)
-protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-focus-grab-v1"
-            true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-focus-grab-v1" true)
 protocolnew("protocols" "wlr-layer-shell-unstable-v1" true)
 protocolnew("protocols" "wayland-drm" true)
 protocolnew("staging/tearing-control" "tearing-control-v1" false)

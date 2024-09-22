@@ -5,7 +5,6 @@
   pkg-config,
   pkgconf,
   makeWrapper,
-  meson,
   cmake,
   ninja,
   aquamarine,
@@ -105,7 +104,6 @@ in
         hyprwayland-scanner
         jq
         makeWrapper
-        meson
         cmake
         ninja
         pkg-config

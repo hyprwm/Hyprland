@@ -43,10 +43,6 @@ xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
 
 gio_dep = dependency('gio-2.0', required: true)
 
-cmake = import('cmake')
-udis = cmake.subproject('udis86')
-udis86 = udis.dependency('libudis86')
-
 if not xcb_dep.found()
   add_project_arguments('-DNO_XWAYLAND', language: 'cpp')
 endif

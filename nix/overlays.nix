@@ -26,6 +26,7 @@ in {
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
+    self.overlays.udis86
 
     # Hyprland packages themselves
     (final: prev: let
@@ -64,4 +65,20 @@ in {
   hyprland-extras = lib.composeManyExtensions [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
   ];
+
+  # udis86 from nixpkgs is too old, and also does not provide a .pc file
+  # this version is the one used in the git submodule, and allows us to
+  # fetch the source without '?submodules=1'
+  udis86 = final: prev: {
+    udis86-hyprland = prev.udis86.overrideAttrs (self: super: {
+      src = final.fetchFromGitHub {
+        owner = "canihavesomecoffee";
+        repo = "udis86";
+        rev = "5336633af70f3917760a6d441ff02d93477b0c86";
+        hash = "sha256-HifdUQPGsKQKQprByeIznvRLONdOXeolOsU5nkwIv3g=";
+      };
+
+      patches = [];
+    });
+  };
 }

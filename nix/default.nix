@@ -53,7 +53,7 @@
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
   inherit (lib.sources) cleanSourceWith cleanSource;
-  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable;
+  inherit (lib.strings) cmakeBool hasSuffix makeBinPath optionalString;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -75,6 +75,14 @@ in
           ! (hasSuffix ".nix" baseName);
         src = cleanSource ../.;
       };
+
+      patches = [
+        # forces GCC to use -std=c++26
+        ./stdcxx.patch
+
+        # Nix does not have CMake 3.30 yet, so override the minimum version
+        ./cmake-version.patch
+      ];
 
       postPatch = ''
         # Fix hardcoded paths to /usr installation
@@ -144,22 +152,20 @@ in
         (optional withSystemd systemd)
       ];
 
-      mesonBuildType =
+      cmakeBuildType =
         if debug
-        then "debug"
-        else "release";
+        then "Debug"
+        else "RelWithDebInfo";
 
       # we want as much debug info as possible
       dontStrip = debug;
 
-      mesonFlags = flatten [
-        (mapAttrsToList mesonEnable {
-          "xwayland" = enableXWayland;
-          "legacy_renderer" = legacyRenderer;
-          "systemd" = withSystemd;
-        })
-        (mesonBool "b_pch" false)
-      ];
+      cmakeFlags = mapAttrsToList cmakeBool {
+        "NO_XWAYLAND" = !enableXWayland;
+        "LEGACY_RENDERER" = legacyRenderer;
+        "NO_SYSTEMD" = !withSystemd;
+        "CMAKE_DISABLE_PRECOMPILE_HEADERS" = true;
+      };
 
       postInstall = ''
         ${optionalString wrapRuntimeDeps ''

@@ -6,7 +6,6 @@
   pkgconf,
   makeWrapper,
   meson,
-  cmake,
   ninja,
   aquamarine,
   binutils,
@@ -17,7 +16,6 @@
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
-  jq,
   libGL,
   libdrm,
   libexecinfo,
@@ -27,9 +25,9 @@
   mesa,
   pango,
   pciutils,
-  python3,
   systemd,
   tomlplusplus,
+  udis86-hyprland,
   wayland,
   wayland-protocols,
   wayland-scanner,
@@ -96,13 +94,10 @@ in
 
       nativeBuildInputs = [
         hyprwayland-scanner
-        jq
         makeWrapper
         meson
-        cmake
         ninja
         pkg-config
-        python3 # for udis86
       ];
 
       outputs = [
@@ -129,6 +124,7 @@ in
           pango
           pciutils
           tomlplusplus
+          udis86-hyprland
           wayland
           wayland-protocols
           wayland-scanner

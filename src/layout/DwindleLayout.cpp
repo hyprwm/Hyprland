@@ -340,8 +340,9 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             return;
     }
 
-    // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow.lock()                                  // target is group
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    // auto group the window if OPENINGON is a tiled group
+    if (*AUTOGROUP && OPENINGON->pWindow->m_sGroupData.pNextWindow.lock()                    // target is a tiled group
         && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
         m_lDwindleNodesData.remove(*PNODE);
 
@@ -349,6 +350,24 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->pWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return;
+    }
+    // auto group the window if the last window is a floating group
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
+        && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+
+        PLASTWINDOW->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);

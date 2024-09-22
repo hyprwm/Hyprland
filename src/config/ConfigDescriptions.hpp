@@ -772,6 +772,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_GRADIENT,
         .data        = SConfigOptionDescription::SGradientData{"0x66775500"},
     },
+    SConfigOptionDescription{
+        .value       = "group:auto_group",
+        .description = "automatically group new windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * group:groupbar:

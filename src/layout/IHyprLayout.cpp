@@ -81,6 +81,26 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
+    // auto group the window if the last window is a floating group
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
+        && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+
+        PLASTWINDOW->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return;
+    }
+
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
     const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);

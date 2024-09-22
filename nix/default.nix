@@ -6,8 +6,6 @@
   pkgconf,
   makeWrapper,
   cmake,
-  meson,
-  ninja,
   aquamarine,
   binutils,
   cairo,
@@ -57,7 +55,7 @@
   inherit (lib.asserts) assertMsg;
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
-  inherit (lib.strings) makeBinPath optionalString mesonBool mesonEnable trim;
+  inherit (lib.strings) makeBinPath optionalString cmakeBool trim;
   fs = lib.fileset;
 
   adapters = flatten [
@@ -87,7 +85,6 @@ in
             ../hyprctl
             ../hyprland.pc.in
             ../LICENSE
-            ../meson_options.txt
             ../protocols
             ../src
             ../systemd
@@ -95,7 +92,7 @@ in
             (fs.fileFilter (file: file.hasExt "1") ../docs)
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
-            (fs.fileFilter (file: file.name == "meson.build") ../.)
+            (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
           ]);
       };
 
@@ -121,8 +118,6 @@ in
         hyprwayland-scanner
         makeWrapper
         cmake
-        ninja
-        cmake # needed for glaze
         pkg-config
       ];
 
@@ -174,23 +169,23 @@ in
 
       strictDeps = true;
 
-      mesonBuildType =
+      cmakeBuildType =
         if debug
-        then "debug"
-        else "release";
+        then "Debug"
+        else "RelWithDebInfo";
 
-      mesonFlags = flatten [
-        (mapAttrsToList mesonEnable {
-          "xwayland" = enableXWayland;
-          "systemd" = withSystemd;
-          "uwsm" = false;
-          "hyprpm" = false;
-        })
-        (mapAttrsToList mesonBool {
-          "b_pch" = false;
-          "tracy_enable" = false;
-        })
-      ];
+      # we want as much debug info as possible
+      dontStrip = debug;
+
+      cmakeFlags = mapAttrsToList cmakeBool {
+        "NO_XWAYLAND" = !enableXWayland;
+        "LEGACY_RENDERER" = legacyRenderer;
+        "NO_SYSTEMD" = !withSystemd;
+        "CMAKE_DISABLE_PRECOMPILE_HEADERS" = true;
+        "NO_UWSM" = true;
+        "NO_HYPRPM" = true;
+        "TRACY_ENABLE" = false;
+      };
 
       postInstall = ''
         ${optionalString wrapRuntimeDeps ''

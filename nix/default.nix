@@ -13,6 +13,7 @@
   cairo,
   git,
   hyprcursor,
+  hyprland-protocols,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
@@ -116,6 +117,7 @@ in
           cairo
           git
           hyprcursor
+          hyprland-protocols
           hyprlang
           hyprutils
           libdrm

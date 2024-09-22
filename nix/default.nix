@@ -6,7 +6,6 @@
   pkgconf,
   makeWrapper,
   cmake,
-  ninja,
   aquamarine,
   binutils,
   cairo,
@@ -105,7 +104,6 @@ in
         jq
         makeWrapper
         cmake
-        ninja
         pkg-config
         python3 # for udis86
         wayland-scanner

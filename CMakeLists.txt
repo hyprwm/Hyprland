@@ -247,8 +247,7 @@ set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.90)
 set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
 set(LIBINPUT_MINIMUM_VERSION 1.28)
 
-pkg_check_modules(
-  deps
+pkg_check_modules(deps
   REQUIRED
   IMPORTED_TARGET GLOBAL
   xkbcommon>=${XKBCOMMON_MINIMUM_VERSION}
@@ -262,6 +261,7 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput>=${LIBINPUT_MINIMUM_VERSION}
+  libeis-1.0
   gbm
   gio-2.0
   re2
@@ -476,7 +476,7 @@ endfunction()
 
 target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.7.0)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
@@ -552,6 +552,8 @@ protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fifo" "fifo-v1" false)
 protocolnew("staging/commit-timing" "commit-timing-v1" false)
 
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-input-capture-v1"
+            true)
 protocolwayland()
 
 # tools

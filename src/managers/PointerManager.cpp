@@ -17,6 +17,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
+#include "protocols/InputCapture.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -769,6 +770,12 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = m_pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
+    if (!g_pInputManager->isLocked())
+        PROTO::inputCapture->motion(newPos, deltaLogical);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     warpTo(newPos);
 }
 
@@ -925,19 +932,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->frame = pointer->m_pointerEvents.frame.listen([] {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = Desktop::focusState()->monitor().get();
-            if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
-                auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
-                shouldSkip    = fsWindow && fsWindow->m_isX11;
-            }
-        }
-        g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->m_isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
-    });
+    listener->frame = pointer->m_pointerEvents.frame.registerListener([](std::any e) { g_pInputManager->onMouseFrame(); });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.listen([](const IPointer::SSwipeBeginEvent& event) {
         g_pInputManager->onSwipeBegin(event);

@@ -24,6 +24,7 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
+#include "../../protocols/InputCapture.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -141,6 +142,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
         recheckMouseWarpOnMouseInput();
 
     g_pPointerManager->move(DELTA);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -651,6 +655,11 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::inputCapture->button(e.button, e.state);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -870,7 +879,13 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    bool passEvent = g_pKeybindManager->onAxisEvent(e);
+    PROTO::inputCapture->axis(e.axis, e.delta);
+    if (e.source == 0)
+        PROTO::inputCapture->axisValue120(e.axis, e.delta);
+    else if (e.delta == 0)
+        PROTO::inputCapture->axisStop(e.axis);
+
+    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e);
 
     if (!passEvent)
         return;
@@ -952,6 +967,25 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+}
+
+void CInputManager::onMouseFrame() {
+    PROTO::inputCapture->frame();
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
+    bool shouldSkip = false;
+    if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
+        auto PMONITOR = g_pCompositor->m_lastMonitor.get();
+		if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
+			auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
+			shouldSkip    = fsWindow && fsWindow->m_isX11;
+		}
+    }
+    g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
+    if (!g_pSeatManager->m_isPointerFrameSkipped)
+        g_pSeatManager->sendPointerFrame();
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -1460,10 +1494,12 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
+    PROTO::inputCapture->key(event.keycode, event.state);
     bool passEvent = DISALLOWACTION;
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
+        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
+    ;
 
     if (passEvent) {
         auto state   = event.state;
@@ -1519,6 +1555,10 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const bool HASIME = IME && IME->hasGrab();
     const bool USEIME = HASIME && !DISALLOWACTION;
 
+    PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
     auto       MODS = pKeyboard->m_modifiersState;
 
     // use merged mods states when sending to ime or when sending to seat with no ime

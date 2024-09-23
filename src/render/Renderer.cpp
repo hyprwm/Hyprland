@@ -24,6 +24,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
@@ -2131,7 +2132,8 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     m_cursorHiddenByCondition =
         m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnTablet || m_cursorHiddenConditions.hiddenOnKeyboard;
 
-    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0);
+    const bool HIDE =  m_cursorHiddenByCondition || (*PINVISIBLE != 0) ||
+        PROTO::inputCapture->isCaptured();
 
     if (HIDE == m_cursorHidden)
         return;

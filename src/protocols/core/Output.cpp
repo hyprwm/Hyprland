@@ -21,8 +21,6 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMoni
             PROTO::outputs.at(monitor->szName)->destroyResource(this);
     });
 
-    resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
-                           monitor->output->model.c_str(), monitor->transform);
     if (resource->version() >= 4) {
         resource->sendName(monitor->szName.c_str());
         resource->sendDescription(monitor->szDescription.c_str());
@@ -55,6 +53,8 @@ void CWLOutputResource::updateState() {
     if (resource->version() >= 2)
         resource->sendScale(std::ceil(monitor->scale));
 
+    resource->sendGeometry(monitor->vecPosition.x, monitor->vecPosition.y, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
+                           monitor->output->model.c_str(), monitor->transform);
     resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
 
     if (resource->version() >= 2)

@@ -50,6 +50,10 @@ void CEventLoopManager::enterLoop() {
         m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get()));
     }
 
+    // if we have a session, dispatch it to get the pending input devices
+    if (g_pCompositor->m_pAqBackend->hasSession())
+        g_pCompositor->m_pAqBackend->session->dispatchPendingEventsAsync();
+
     wl_display_run(m_sWayland.display);
 
     Debug::log(LOG, "Kicked off the event loop! :(");

@@ -23,6 +23,7 @@
   hyprwayland-scanner,
   libGL,
   libdrm,
+  libei,
   libexecinfo,
   libinput,
   libxkbcommon,
@@ -145,6 +146,7 @@ in
           hyprutils
           libdrm
           libGL
+          libei
           libinput
           libuuid
           libxkbcommon

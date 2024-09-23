@@ -10,6 +10,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "SeatManager.hpp"
+#include "protocols/InputCapture.hpp"
 #include <cstring>
 #include <gbm.h>
 
@@ -698,6 +699,9 @@ void CPointerManager::warpTo(const Vector2D& logical) {
 void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
+
+
+    PROTO::inputCapture->sendAbsoluteMotion(newPos, deltaLogical);
 
     warpTo(newPos);
 }

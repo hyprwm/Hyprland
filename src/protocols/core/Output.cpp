@@ -74,6 +74,8 @@ void CWLOutputResource::updateState() {
     if (resource->version() >= 2)
         resource->sendScale(std::ceil(monitor->scale));
 
+    resource->sendGeometry(monitor->vecPosition.x, monitor->vecPosition.y, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
+                           monitor->output->model.c_str(), monitor->transform);
     resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
 
     resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),

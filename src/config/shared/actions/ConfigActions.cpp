@@ -22,6 +22,7 @@
 #include "../../../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../../../protocols/IdleNotify.hpp"
 #include "../../../protocols/GlobalShortcuts.hpp"
+#include "../../../protocols/InputCapture.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
@@ -1759,5 +1760,10 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
 
     moveWindowIntoGroupHelper(PWINDOW, PWINDOWINDIR);
 
+    return {};
+}
+
+ActionResult Actions::releaseInputCapture() {
+    PROTO::inputCapture->forceRelease();
     return {};
 }

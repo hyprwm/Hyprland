@@ -8,6 +8,7 @@
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "debug/log/Logger.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../render/pass/ClearPassElement.hpp"
@@ -830,6 +831,12 @@ void CPointerManager::warpTo(const Vector2D& logical) {
 void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = m_pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
+
+    if (!g_pInputManager->isLocked())
+        PROTO::inputCapture->motion(newPos, deltaLogical);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
 
     warpTo(newPos);
 }

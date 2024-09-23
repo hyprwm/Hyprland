@@ -246,6 +246,7 @@ static int hlBind(lua_State* L) {
             }
             lua_pop(L, 1);
         }
+        kb.allowInputCapture = getBool("allow_input_capture");
         lua_pop(L, 1);
     }
 

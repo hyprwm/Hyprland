@@ -19,6 +19,7 @@ enum eDynamicPermissionType : uint8_t {
     PERMISSION_TYPE_PLUGIN,
     PERMISSION_TYPE_KEYBOARD,
     PERMISSION_TYPE_CURSOR_POS,
+    PERMISSION_TYPE_INPUT_CAPTURE,
 };
 
 enum eDynamicPermissionRuleSource : uint8_t {

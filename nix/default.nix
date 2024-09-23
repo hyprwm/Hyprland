@@ -23,6 +23,7 @@
   hyprwire,
   libGL,
   libdrm,
+  libei,
   libexecinfo,
   libinput,
   libxcb,
@@ -161,6 +162,7 @@ in
           libdrm
           libgbm
           libGL
+          libei
           libinput
           libuuid
           libxcursor

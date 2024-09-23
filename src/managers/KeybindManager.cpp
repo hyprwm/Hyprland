@@ -16,6 +16,7 @@
 #include "TokenManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/log/Logger.hpp"
+#include "protocols/InputCapture.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/EventManager.hpp"
@@ -786,6 +787,11 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Log::logger->log(Log::DEBUG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             m_passPressed = sc<int>(pressed);
+
+            // We only process the releaseinputcapture dispatcher when input capture is active
+            if (PROTO::inputCapture->isCaptured() && k->handler != "releaseinputcapture") {
+                break;
+            }
 
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
@@ -3190,4 +3196,9 @@ SDispatchResult CKeybindManager::sendkeystate(std::string args) {
     }
 
     return result;
+}
+
+SDispatchResult CKeybindManager::releaseInputCapture(std::string args) {
+    PROTO::inputCapture->forceRelease();
+    return {};
 }

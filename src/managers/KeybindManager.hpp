@@ -240,6 +240,7 @@ class CKeybindManager {
     static SDispatchResult event(std::string);
     static SDispatchResult setProp(std::string);
     static SDispatchResult forceIdle(std::string);
+    static SDispatchResult releaseInputCapture(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

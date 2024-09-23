@@ -1491,23 +1491,24 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked          = false;
-    bool       release         = false;
-    bool       repeat          = false;
-    bool       mouse           = false;
-    bool       nonConsuming    = false;
-    bool       autoConsuming   = false;
-    bool       transparent     = false;
-    bool       ignoreMods      = false;
-    bool       multiKey        = false;
-    bool       longPress       = false;
-    bool       hasDescription  = false;
-    bool       dontInhibit     = false;
-    bool       click           = false;
-    bool       drag            = false;
-    bool       submapUniversal = false;
-    bool       isPerDevice     = false;
-    const auto BINDARGS        = command.substr(4);
+    bool       locked            = false;
+    bool       release           = false;
+    bool       repeat            = false;
+    bool       mouse             = false;
+    bool       nonConsuming      = false;
+    bool       autoConsuming     = false;
+    bool       transparent       = false;
+    bool       ignoreMods        = false;
+    bool       multiKey          = false;
+    bool       longPress         = false;
+    bool       hasDescription    = false;
+    bool       dontInhibit       = false;
+    bool       click             = false;
+    bool       drag              = false;
+    bool       submapUniversal   = false;
+    bool       isPerDevice       = false;
+    bool       allowInputCapture = false;
+    const auto BINDARGS          = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
         switch (arg) {
@@ -1533,6 +1534,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
                 break;
             case 'u': submapUniversal = true; break;
             case 'k': isPerDevice = true; break;
+            case 'x': allowInputCapture = true; break;
             default: return "bind: invalid flag";
         }
     }
@@ -1642,7 +1644,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
                                                drag,
                                                submapUniversal,
                                                deviceInclusive,
-                                               devices});
+                                               devices,
+                                               allowInputCapture});
     }
 
     return {};
@@ -1901,6 +1904,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "input-capture")
+        type = PERMISSION_TYPE_INPUT_CAPTURE;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

@@ -221,6 +221,8 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "An application <b>{app}</b> is trying to capture your cursor position.\n\nDo you want to allow it to?");
     registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "An application <b>{app}</b> is trying to load a plugin: <b>{plugin}</b>.\n\nDo you want to allow it to?");
     registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A new keyboard has been detected: <b>{keyboard}</b>.\n\nDo you want to allow it to operate?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_INPUT_CAPTURE,
+                            "An application <b>{app}</b> is trying to capture your inputs.\n\nDo you want to allow it to do so?");
     registerEntry("en_US", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(unknown)");
     registerEntry("en_US", TXT_KEY_PERMISSION_TITLE, "Permission request");
     registerEntry("en_US", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Hint: you can set persistent rules for these in the Hyprland config file.");

@@ -203,6 +203,7 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput>=1.28
+  libeis-1.0
   gbm
   gio-2.0
   re2)
@@ -377,7 +378,7 @@ endfunction()
 
 target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.7.0)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
@@ -453,6 +454,8 @@ protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fifo" "fifo-v1" false)
 protocolnew("staging/commit-timing" "commit-timing-v1" false)
 
+protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-input-capture-v1"
+            true)
 protocolwayland()
 
 # tools

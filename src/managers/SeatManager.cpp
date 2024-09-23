@@ -5,6 +5,7 @@
 #include "../protocols/ExtDataDevice.hpp"
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/LayerSurface.hpp"
@@ -106,6 +107,7 @@ void CSeatManager::updateActiveKeyboardData() {
     if (m_keyboard)
         PROTO::seat->updateRepeatInfo(m_keyboard->m_repeatRate, m_keyboard->m_repeatDelay);
     PROTO::seat->updateKeymap();
+    PROTO::inputCapture->updateKeymap();
 }
 
 void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {

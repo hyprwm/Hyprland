@@ -26,48 +26,52 @@
 #include "../../devices/VirtualKeyboard.hpp"
 #include "../../devices/TouchDevice.hpp"
 
-#include "../../managers/PointerManager.hpp"
-#include "../../managers/SeatManager.hpp"
-#include "../../managers/KeybindManager.hpp"
+#include "../PointerManager.hpp"
+#include "../SeatManager.hpp"
+#include "../KeybindManager.hpp"
+#include "../eventLoop/EventLoopManager.hpp"
 
 #include <aquamarine/input/Input.hpp>
 
 CInputManager::CInputManager() {
-    m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
-        if (!cursorImageUnlocked())
-            return;
+    // Do this later because protocol mgr isn't ready at this point
+    g_pEventLoopManager->doLater([this]() {
+        m_sListeners.setCursorShape = PROTO::cursorShape->events.setShape.registerListener([this](std::any data) {
+            if (!cursorImageUnlocked())
+                return;
 
-        auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
+            auto event = std::any_cast<CCursorShapeProtocol::SSetShapeEvent>(data);
 
-        if (!g_pSeatManager->state.pointerFocusResource)
-            return;
+            if (!g_pSeatManager->state.pointerFocusResource)
+                return;
 
-        if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->state.pointerFocusResource->client())
-            return;
+            if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->state.pointerFocusResource->client())
+                return;
 
-        Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
+            Debug::log(LOG, "cursorImage request: shape {} -> {}", (uint32_t)event.shape, event.shapeName);
 
-        m_sCursorSurfaceInfo.wlSurface->unassign();
-        m_sCursorSurfaceInfo.vHotspot = {};
-        m_sCursorSurfaceInfo.name     = event.shapeName;
-        m_sCursorSurfaceInfo.hidden   = false;
+            m_sCursorSurfaceInfo.wlSurface->unassign();
+            m_sCursorSurfaceInfo.vHotspot = {};
+            m_sCursorSurfaceInfo.name     = event.shapeName;
+            m_sCursorSurfaceInfo.hidden   = false;
 
-        m_sCursorSurfaceInfo.inUse = true;
-        g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+            m_sCursorSurfaceInfo.inUse = true;
+            g_pHyprRenderer->setCursorFromName(m_sCursorSurfaceInfo.name);
+        });
+
+        m_sListeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
+        m_sListeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
+            this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
+            updateCapabilities();
+        });
+        m_sListeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
+            this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
+            updateCapabilities();
+        });
+        m_sListeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
+
+        m_sCursorSurfaceInfo.wlSurface = CWLSurface::create();
     });
-
-    m_sListeners.newIdleInhibitor   = PROTO::idleInhibit->events.newIdleInhibitor.registerListener([this](std::any data) { this->newIdleInhibitor(data); });
-    m_sListeners.newVirtualKeyboard = PROTO::virtualKeyboard->events.newKeyboard.registerListener([this](std::any data) {
-        this->newVirtualKeyboard(std::any_cast<SP<CVirtualKeyboardV1Resource>>(data));
-        updateCapabilities();
-    });
-    m_sListeners.newVirtualMouse    = PROTO::virtualPointer->events.newPointer.registerListener([this](std::any data) {
-        this->newVirtualMouse(std::any_cast<SP<CVirtualPointerV1Resource>>(data));
-        updateCapabilities();
-    });
-    m_sListeners.setCursor          = g_pSeatManager->events.setCursor.registerListener([this](std::any d) { this->processMouseRequest(d); });
-
-    m_sCursorSurfaceInfo.wlSurface = CWLSurface::create();
 }
 
 CInputManager::~CInputManager() {

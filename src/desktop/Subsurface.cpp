@@ -30,13 +30,7 @@ CSubsurface::CSubsurface(SP<CWLSubsurfaceResource> pSubsurface, CPopup* pOwner) 
 }
 
 CSubsurface::~CSubsurface() {
-    hyprListener_newSubsurface.removeCallback();
-
-    if (!m_pSubsurface)
-        return;
-
-    hyprListener_commitSubsurface.removeCallback();
-    hyprListener_destroySubsurface.removeCallback();
+    ;
 }
 
 void CSubsurface::initSignals() {

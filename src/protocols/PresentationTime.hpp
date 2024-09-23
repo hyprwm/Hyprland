@@ -27,8 +27,6 @@ class CQueuedPresentationData {
     WP<CMonitor>           pMonitor;
     WP<CWLSurfaceResource> surface;
 
-    DYNLISTENER(destroySurface);
-
     friend class CPresentationFeedback;
     friend class CPresentationProtocol;
 };

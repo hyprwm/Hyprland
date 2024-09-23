@@ -24,6 +24,7 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
+#include "../../protocols/InputCapture.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -141,6 +142,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     g_pPointerManager->move(DELTA);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -663,6 +667,11 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::inputCapture->button(e.button, e.state);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -979,12 +988,22 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
         m_pointerAxisFramePending = true;
         return;
     }
+    
+    PROTO::inputCapture->frame();
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
 
     m_pointerAxisFramePending = false;
     g_pSeatManager->sendPointerFrame();
 }
 
 void CInputManager::onPointerFrame() {
+    PROTO::inputCapture->frame();
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     if (!m_pointerAxisFramePending)
         return;
 
@@ -1504,10 +1523,12 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     if (info.cancelled)
         return;
 
+    PROTO::inputCapture->key(event.keycode, event.state);
     bool passEvent = DISALLOWACTION;
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
+        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
+    ;
 
     if (passEvent) {
         auto state   = event.state;
@@ -1563,6 +1584,10 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const bool HASIME = IME && IME->hasGrab();
     const bool USEIME = HASIME && !DISALLOWACTION;
 
+    PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
     auto       MODS = pKeyboard->m_modifiersState;
 
     // use merged mods states when sending to ime or when sending to seat with no ime

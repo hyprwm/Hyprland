@@ -11,6 +11,7 @@
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -107,6 +108,7 @@ void CSeatManager::updateActiveKeyboardData() {
     if (m_keyboard)
         PROTO::seat->updateRepeatInfo(m_keyboard->m_repeatRate, m_keyboard->m_repeatDelay);
     PROTO::seat->updateKeymap();
+    PROTO::inputCapture->updateKeymap();
 }
 
 void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {

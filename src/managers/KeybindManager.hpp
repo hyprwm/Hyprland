@@ -171,6 +171,7 @@ class CKeybindManager {
 
     void                             updateXKBTranslationState();
     bool                             ensureMouseBindState();
+    static SDispatchResult releaseInputCapture(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

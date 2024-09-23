@@ -1,6 +1,7 @@
 [submodule "subprojects/hyprland-protocols"]
 	path = subprojects/hyprland-protocols
-	url = https://github.com/hyprwm/hyprland-protocols
+	url = https://github.com/3l0w/hyprland-protocols
+	branch = feat/input-capture-impl
 [submodule "subprojects/udis86"]
 	path = subprojects/udis86
 	url = https://github.com/canihavesomecoffee/udis86

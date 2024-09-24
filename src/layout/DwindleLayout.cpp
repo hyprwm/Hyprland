@@ -325,26 +325,25 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     }
 
     // If the active window is a group and auto_group = true:
-    static auto AUTOGROUP   = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
     // Auto group the new tiling window if the focused window is a group
-    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_sGroupData.pNextWindow            // target: active group
-        && pWindow->canBeGroupedInto(PLASTWINDOW.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
+    if (*AUTOGROUP && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) && !m_vOverrideFocalPoint) {       // we are not moving window
 
         m_lDwindleNodesData.remove(*PNODE);
 
-        if (!PLASTWINDOW->m_bIsFloating) { // target: focused tiled group
+        if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
             static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-            (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+            (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
 
-        if (PLASTWINDOW->m_bIsFloating) { // target: focused floating group
+        if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group
             // make the new tiling window to float before merging it into the focused floating group
             pWindow->m_bIsFloating = true;
             g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
         }
 
-        PLASTWINDOW->setGroupCurrent(pWindow);
+        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);

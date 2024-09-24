@@ -82,23 +82,22 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
     // Auto group the new floating window if the focused window is a group
-    static auto AUTOGROUP   = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow;
-    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_sGroupData.pNextWindow // target: active group
-        && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    if (*AUTOGROUP && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock())) {
 
-        if (!PLASTWINDOW->m_bIsFloating) { // target: focused tiled group
+        if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
             // make the new floating window to tile before merging it into the focused tiled group
             pWindow->m_bIsFloating = false;
             g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
         }
 
-        if (PLASTWINDOW->m_bIsFloating) { // target: focused floating group
+        if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group
             static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-            (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+            (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
         }
 
-        PLASTWINDOW->setGroupCurrent(pWindow);
+        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);

@@ -1627,6 +1627,14 @@ std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
     return json;
 }
 
+std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
+    std::string submap = g_pKeybindManager->getCurrentSubmap();
+    if (submap.empty())
+        submap = "default";
+
+    return format == FORMAT_JSON ? std::format("{{\"{}\"}}\n", escapeJSONStrings(submap)) : (submap + "\n");
+}
+
 CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
     registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
@@ -1648,6 +1656,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
+    registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
 
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});

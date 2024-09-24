@@ -96,6 +96,7 @@ class CKeybindManager {
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
     void                                                                         clearKeybinds();
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
+    std::string                                                                  getCurrentSubmap();
 
     std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_mDispatchers;
 

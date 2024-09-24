@@ -992,6 +992,13 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         toggleSplit(header.pWindow);
     } else if (ARGS[0] == "swapsplit") {
         swapSplit(header.pWindow);
+    } else if (ARGS[0] == "movetoroot") {
+        std::string stable = ARGS[1];
+        if (stable.empty() || std::stoi(ARGS[1]) != 0) {
+            moveToRoot(header.pWindow);
+        } else {
+            moveToRoot(header.pWindow, false);
+        }
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
@@ -1057,6 +1064,43 @@ void CHyprDwindleLayout::swapSplit(PHLWINDOW pWindow) {
     std::swap(PNODE->pParent->children[0], PNODE->pParent->children[1]);
 
     PNODE->pParent->recalcSizePosRecursive();
+}
+
+// goal: maximize the chosen window within current dwindle layout
+// impl: swap the selected window with the other sub-tree below root
+void CHyprDwindleLayout::moveToRoot(PHLWINDOW pWindow, bool stable) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    if (pWindow->isFullscreen())
+        return;
+
+    // already at root
+    if (!PNODE->pParent->pParent)
+        return;
+
+    auto& pNode = PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[0] : PNODE->pParent->children[1];
+
+    // instead of [getMasterNodeOnWorkspace], we walk back to root since we need
+    // to know which children of root is our ancester
+    auto pAncester = PNODE, pRoot = PNODE->pParent;
+    while (pRoot->pParent) {
+        pAncester = pRoot;
+        pRoot     = pRoot->pParent;
+    }
+
+    auto& pSwap = pRoot->children[0] == pAncester ? pRoot->children[1] : pRoot->children[0];
+    std::swap(pNode, pSwap);
+    std::swap(pNode->pParent, pSwap->pParent);
+
+    // [stable] in that the focused window occupies same side of screen
+    if (stable) {
+        std::swap(pRoot->children[0], pRoot->children[1]);
+    }
+
+    pRoot->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {

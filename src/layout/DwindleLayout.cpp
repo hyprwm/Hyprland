@@ -324,22 +324,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         }
     }
 
-    // if it's the first, it's easy. Make it fullscreen.
-    if (!OPENINGON || OPENINGON->pWindow.lock() == pWindow) {
-        PNODE->box = CBox{PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
-
-        applyNodeDataToWindow(PNODE);
-
-        pWindow->applyGroupRules();
-
-        return;
-    }
-
-    if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
-        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
-            return;
-    }
-
     // If the active window is a group and auto_group = true:
     static auto AUTOGROUP   = CConfigValue<Hyprlang::INT>("group:auto_group");
     const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow;
@@ -371,7 +355,23 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         return;
     }
 
-    // If it's not, get the node under our cursor
+    // if it's the first, it's easy. Make it fullscreen.
+    if (!OPENINGON || OPENINGON->pWindow.lock() == pWindow) {
+        PNODE->box = CBox{PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft, PMONITOR->vecSize - PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight};
+
+        applyNodeDataToWindow(PNODE);
+
+        pWindow->applyGroupRules();
+
+        return;
+    }
+
+    if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
+        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
+            return;
+    }
+
+    // get the node under our cursor
 
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto NEWPARENT = &m_lDwindleNodesData.back();

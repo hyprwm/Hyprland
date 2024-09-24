@@ -772,12 +772,9 @@ Vector2D CMonitor::middle() {
 }
 
 void CMonitor::updateMatrix() {
-    matrixIdentity(projMatrix.data());
-    if (transform != WL_OUTPUT_TRANSFORM_NORMAL) {
-        matrixTranslate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
-        matrixTransform(projMatrix.data(), wlTransformToHyprutils(transform));
-        matrixTranslate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
-    }
+    projMatrix = Mat3x3::identity();
+    if (transform != WL_OUTPUT_TRANSFORM_NORMAL)
+        projMatrix.translate(vecPixelSize / 2.0).transform(wlTransformToHyprutils(transform)).translate(-vecTransformedSize / 2.0);
 }
 
 WORKSPACEID CMonitor::activeWorkspaceID() {

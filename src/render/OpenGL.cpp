@@ -755,14 +755,12 @@ void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, SP<
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
-    matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
+    m_RenderData.projection = Mat3x3::outputProjection(pMonitor->vecPixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 
-    matrixIdentity(m_RenderData.monitorProjection.data());
+    m_RenderData.monitorProjection = Mat3x3::identity();
     if (pMonitor->transform != WL_OUTPUT_TRANSFORM_NORMAL) {
         const Vector2D tfmd = pMonitor->transform % 2 == 1 ? Vector2D{FBO->m_vSize.y, FBO->m_vSize.x} : FBO->m_vSize;
-        matrixTranslate(m_RenderData.monitorProjection.data(), FBO->m_vSize.x / 2.0, FBO->m_vSize.y / 2.0);
-        matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(pMonitor->transform));
-        matrixTranslate(m_RenderData.monitorProjection.data(), -tfmd.x / 2.0, -tfmd.y / 2.0);
+        m_RenderData.monitorProjection.translate(FBO->m_vSize / 2.0).transform(wlTransformToHyprutils(pMonitor->transform)).translate(-tfmd / 2.0);
     }
 
     m_RenderData.pCurrentMonData = &m_mMonitorRenderResources[pMonitor];
@@ -809,7 +807,7 @@ void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebu
 
     glViewport(0, 0, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y);
 
-    matrixProjection(m_RenderData.projection, pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, WL_OUTPUT_TRANSFORM_NORMAL);
+    m_RenderData.projection = Mat3x3::outputProjection(pMonitor->vecPixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 
     m_RenderData.monitorProjection = pMonitor->projMatrix;
 
@@ -1289,20 +1287,17 @@ void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion
 
     box = &newBox;
 
-    float matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data());
-
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+    Mat3x3 matrix = m_RenderData.monitorProjection.projectBox(
+        newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
+    Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shQUAD.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shQUAD.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
     // premultiply the color as well as we don't work with straight alpha
@@ -1386,11 +1381,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     if (m_bEndFrame || TRANSFORMS_MATCH)
         TRANSFORM = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
 
-    float matrix[9];
-    projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
+    Mat3x3 matrix   = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+    Debug::log(LOG, "internal:\nmat: {},\nglmat: {}", matrix.toString(), glMatrix.toString());
 
     if (waitTimeline != nullptr) {
         if (!waitForTimelinePoint(waitTimeline, waitPoint)) {
@@ -1442,10 +1436,10 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     glUseProgram(shader->program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform1i(shader->tex, 0);
 
@@ -1556,13 +1550,10 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
 
     // get transform
     const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
-    float      matrix[9];
-    projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
+    Mat3x3     matrix    = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3     glMatrix  = m_RenderData.projection.copy().multiply(matrix);
 
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
-
-    CShader* shader = &m_RenderData.pCurrentMonData->m_shPASSTHRURGBA;
+    CShader*   shader = &m_RenderData.pCurrentMonData->m_shPASSTHRURGBA;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_iTarget, tex->m_iTexID);
@@ -1570,10 +1561,10 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
     glUseProgram(shader->program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform1i(shader->tex, 0);
 
@@ -1610,21 +1601,18 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
 
     // get transform
     const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform));
-    float      matrix[9];
-    projectBox(matrix, newBox, TRANSFORM, newBox.rot, m_RenderData.monitorProjection.data());
+    Mat3x3     matrix    = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3     glMatrix  = m_RenderData.projection.copy().multiply(matrix);
 
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
-
-    CShader* shader = &m_RenderData.pCurrentMonData->m_shMATTE;
+    CShader*   shader = &m_RenderData.pCurrentMonData->m_shMATTE;
 
     glUseProgram(shader->program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(shader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(shader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform1i(shader->tex, 0);
     glUniform1i(shader->alphaMatte, 1);
@@ -1667,13 +1655,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     glDisable(GL_STENCIL_TEST);
 
     // get transforms for the full monitor
-    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
-    float      matrix[9];
+    const auto TRANSFORM  = wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform));
     CBox       MONITORBOX = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    projectBox(matrix, MONITORBOX, TRANSFORM, 0, m_RenderData.monitorProjection.data());
-
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+    Mat3x3     matrix     = m_RenderData.monitorProjection.projectBox(MONITORBOX, TRANSFORM);
+    Mat3x3     glMatrix   = m_RenderData.projection.copy().multiply(matrix);
 
     // get the config settings
     static auto PBLURSIZE             = CConfigValue<Hyprlang::INT>("decoration:blur:size");
@@ -1710,10 +1695,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glUseProgram(m_RenderData.pCurrentMonData->m_shBLURPREPARE.program);
 
 #ifndef GLES2
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix);
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-        matrixTranspose(glMatrix, glMatrix);
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix);
+        glMatrix.transpose();
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURPREPARE.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.contrast, *PBLURCONTRAST);
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURPREPARE.brightness, *PBLURBRIGHTNESS);
@@ -1755,10 +1740,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         // prep two shaders
 #ifndef GLES2
-        glUniformMatrix3fv(pShader->proj, 1, GL_TRUE, glMatrix);
+        glUniformMatrix3fv(pShader->proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-        matrixTranspose(glMatrix, glMatrix);
-        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix);
+        glMatrix.transpose();
+        glUniformMatrix3fv(pShader->proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
         glUniform1f(pShader->radius, *PBLURSIZE * a); // this makes the blursize change with a
         if (pShader == &m_RenderData.pCurrentMonData->m_shBLUR1) {
@@ -1832,10 +1817,10 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
         glUseProgram(m_RenderData.pCurrentMonData->m_shBLURFINISH.program);
 
 #ifndef GLES2
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix);
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-        matrixTranspose(glMatrix, glMatrix);
-        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix);
+        glMatrix.transpose();
+        glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBLURFINISH.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.noise, *PBLURNOISE);
         glUniform1f(m_RenderData.pCurrentMonData->m_shBLURFINISH.brightness, *PBLURBRIGHTNESS);
@@ -2165,12 +2150,9 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 
     round += round == 0 ? 0 : scaledBorderSize;
 
-    float matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data());
-
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+    Mat3x3 matrix = m_RenderData.monitorProjection.projectBox(
+        newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
+    Mat3x3     glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
     const auto BLEND = m_bBlend;
     blend(true);
@@ -2178,10 +2160,10 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     glUseProgram(m_RenderData.pCurrentMonData->m_shBORDER1.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
     static_assert(sizeof(CColor) == 4 * sizeof(float)); // otherwise the line below this will fail
@@ -2471,22 +2453,19 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
     const auto  col = color;
 
-    float       matrix[9];
-    projectBox(matrix, newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot,
-               m_RenderData.monitorProjection.data());
-
-    float glMatrix[9];
-    matrixMultiply(glMatrix, m_RenderData.projection, matrix);
+    Mat3x3      matrix = m_RenderData.monitorProjection.projectBox(
+        newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
+    Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
     glEnable(GL_BLEND);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shSHADOW.program);
 
 #ifndef GLES2
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_TRUE, glMatrix);
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
 #else
-    matrixTranspose(glMatrix, glMatrix);
-    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix);
+    glMatrix.transpose();
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
     glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
 
@@ -2565,11 +2544,11 @@ void CHyprOpenGLImpl::renderMirrored() {
         return;
 
     // replace monitor projection to undo the mirrored monitor's projection
-    matrixIdentity(m_RenderData.monitorProjection.data());
-    matrixTranslate(m_RenderData.monitorProjection.data(), monitor->vecPixelSize.x / 2.0, monitor->vecPixelSize.y / 2.0);
-    matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(monitor->transform));
-    matrixTransform(m_RenderData.monitorProjection.data(), wlTransformToHyprutils(invertTransform(mirrored->transform)));
-    matrixTranslate(m_RenderData.monitorProjection.data(), -monitor->vecTransformedSize.x / 2.0, -monitor->vecTransformedSize.y / 2.0);
+    m_RenderData.monitorProjection = Mat3x3::identity()
+                                         .translate(monitor->vecPixelSize / 2.0)
+                                         .transform(wlTransformToHyprutils(monitor->transform))
+                                         .transform(wlTransformToHyprutils(invertTransform(mirrored->transform)))
+                                         .translate(-monitor->vecTransformedSize / 2.0);
 
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
     clear(CColor(0, 0, 0, 0));
@@ -2920,16 +2899,15 @@ void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
 }
 
 void CHyprOpenGLImpl::saveMatrix() {
-    memcpy(m_RenderData.savedProjection, m_RenderData.projection, 9 * sizeof(float));
+    m_RenderData.savedProjection = m_RenderData.projection;
 }
 
 void CHyprOpenGLImpl::setMatrixScaleTranslate(const Vector2D& translate, const float& scale) {
-    matrixScale(m_RenderData.projection, scale, scale);
-    matrixTranslate(m_RenderData.projection, translate.x, translate.y);
+    m_RenderData.projection.scale(scale).translate(translate);
 }
 
 void CHyprOpenGLImpl::restoreMatrix() {
-    memcpy(m_RenderData.projection, m_RenderData.savedProjection, 9 * sizeof(float));
+    m_RenderData.projection = m_RenderData.savedProjection;
 }
 
 void CHyprOpenGLImpl::bindOffMain() {

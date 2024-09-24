@@ -594,6 +594,10 @@ eMultiKeyCase CKeybindManager::mkBindMatches(const SKeybind keybind) {
     return mkKeysymSetMatches(keybind.sMkKeys, m_sMkKeys);
 }
 
+std::string CKeybindManager::getCurrentSubmap() {
+    return m_szCurrentSelectedSubmap;
+}
+
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed) {
     static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
     bool            found           = false;

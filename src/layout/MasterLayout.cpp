@@ -140,10 +140,11 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
     if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
         && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
-        m_lMasterNodesData.remove(*PNODE);
 
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+        // make the new window floating before merging into the focused floating group
+        pWindow->m_bIsFloating = true;
+        m_lMasterNodesData.remove(*PNODE);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
 
         PLASTWINDOW->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();

@@ -364,8 +364,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
         && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
 
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? PLASTWINDOW : PLASTWINDOW->getGroupTail())->insertWindowToGroup(pWindow);
+        // make the new window floating before merging into the focused floating group
+        pWindow->m_bIsFloating = true;
+        m_lDwindleNodesData.remove(*PNODE);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
 
         PLASTWINDOW->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();

@@ -81,10 +81,10 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
-    // auto group the window if the last window is a floating group
-    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
-    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
+    // auto group the new floating window if the focused window is a floating group
+    static auto AUTOGROUP   = CConfigValue<Hyprlang::INT>("group:auto_group");
+    const auto  PLASTWINDOW = g_pCompositor->m_pLastWindow;
+    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is the focused floating group
         && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
 
         static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");

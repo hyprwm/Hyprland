@@ -340,8 +340,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             return;
     }
 
+    // If the active window is a group and auto_group = true:
     static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    // auto group the window if OPENINGON is a tiled group
+
+    // auto group the new tiling window if OPENINGON is a tiled group
     if (*AUTOGROUP && OPENINGON->pWindow->m_sGroupData.pNextWindow.lock()                    // target is a tiled group
         && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
         m_lDwindleNodesData.remove(*PNODE);
@@ -362,10 +364,10 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     // auto group the new tiling window if the focused window is a floating group
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
-    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
+    if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is the focused floating group
         && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {
 
-        // make the new window floating before merging into the focused floating group
+        // make the new tiling window to float before merging it into the focused floating group
         pWindow->m_bIsFloating = true;
         m_lDwindleNodesData.remove(*PNODE);
         g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);

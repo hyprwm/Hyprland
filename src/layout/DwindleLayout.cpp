@@ -359,7 +359,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
         return;
     }
-    // auto group the window if the last window is a floating group
+
+    // auto group the new tiling window if the focused window is a floating group
     const auto PLASTWINDOW = g_pCompositor->m_pLastWindow;
     if (*AUTOGROUP && PLASTWINDOW && PLASTWINDOW->m_bIsFloating && PLASTWINDOW->m_sGroupData.pNextWindow // target is a floating group
         && pWindow->canBeGroupedInto(PLASTWINDOW.lock())) {

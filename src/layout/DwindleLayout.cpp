@@ -994,11 +994,10 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         swapSplit(header.pWindow);
     } else if (ARGS[0] == "movetoroot") {
         std::string stable = ARGS[1];
-        if (stable.empty() || std::stoi(ARGS[1]) != 0) {
+        if (stable.empty() || std::stoi(ARGS[1]) != 0)
             moveToRoot(header.pWindow);
-        } else {
+        else
             moveToRoot(header.pWindow, false);
-        }
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
@@ -1084,21 +1083,20 @@ void CHyprDwindleLayout::moveToRoot(PHLWINDOW pWindow, bool stable) {
     auto& pNode = PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[0] : PNODE->pParent->children[1];
 
     // instead of [getMasterNodeOnWorkspace], we walk back to root since we need
-    // to know which children of root is our ancester
-    auto pAncester = PNODE, pRoot = PNODE->pParent;
+    // to know which children of root is our ancestor
+    auto pAncestor = PNODE, pRoot = PNODE->pParent;
     while (pRoot->pParent) {
-        pAncester = pRoot;
+        pAncestor = pRoot;
         pRoot     = pRoot->pParent;
     }
 
-    auto& pSwap = pRoot->children[0] == pAncester ? pRoot->children[1] : pRoot->children[0];
+    auto& pSwap = pRoot->children[0] == pAncestor ? pRoot->children[1] : pRoot->children[0];
     std::swap(pNode, pSwap);
     std::swap(pNode->pParent, pSwap->pParent);
 
     // [stable] in that the focused window occupies same side of screen
-    if (stable) {
+    if (stable)
         std::swap(pRoot->children[0], pRoot->children[1]);
-    }
 
     pRoot->recalcSizePosRecursive();
 }

@@ -114,7 +114,7 @@ pkg_check_modules(
   gio-2.0
   hyprlang>=0.3.2
   hyprcursor>=0.1.7
-  hyprutils>=0.2.2)
+  hyprutils>=0.2.3)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

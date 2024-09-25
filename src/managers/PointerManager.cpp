@@ -703,6 +703,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
 
     PROTO::inputCapture->sendAbsoluteMotion(newPos, deltaLogical);
 
+    //TODO: Inhibit inputs
     warpTo(newPos);
 }
 

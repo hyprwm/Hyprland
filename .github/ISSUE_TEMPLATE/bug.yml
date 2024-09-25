@@ -29,10 +29,10 @@ body:
     attributes:
       label: System Info and Version
       description: |
-        Paste the output of `hyprctl systeminfo -c` here (If you are on a 
-        version that shows you help menu, omit the `-c` and attach config files
-        to the issue). If you have configs outside of the main config shown 
-        here, please attach.
+        Paste the output of `hyprctl systeminfo -c` here. If you can't
+        launch Hyprland, paste the output of `Hyprland --systeminfo`.
+        If `Hyprland --systeminfo` errors out (added in 0.44.0), find
+        and paste the Hyprland version manually.
       value: "<details>
         <summary>System/Version info</summary>
 

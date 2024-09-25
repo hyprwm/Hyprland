@@ -31,3 +31,39 @@ void CInputCaptureProtocol::sendAbsoluteMotion(const Vector2D& absolutePosition,
                                     wl_fixed_from_double(delta.y));
     }
 }
+
+void CInputCaptureProtocol::sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state) {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendKey(keyCode, state);
+    }
+}
+
+void CInputCaptureProtocol::sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state) {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendButton(button, state);
+    }
+}
+
+void CInputCaptureProtocol::sendAxis(hyprlandInputCaptureManagerV1Axis axis, double value) {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendAxis(axis, value);
+    }
+}
+
+void CInputCaptureProtocol::sendAxisValue120(hyprlandInputCaptureManagerV1Axis axis, int32_t value120) {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendAxisValue120(axis, value120);
+    }
+}
+
+void CInputCaptureProtocol::sendAxisStop(hyprlandInputCaptureManagerV1Axis axis) {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendAxisStop(axis);
+    }
+}
+
+void CInputCaptureProtocol::sendFrame() {
+    for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
+        manager->sendFrame();
+    }
+}

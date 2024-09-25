@@ -119,7 +119,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     // If the active window is a group and auto_group = true:
     static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
     // Auto group the new tiling window if the focused window is a group
-    if (*AUTOGROUP && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
+    if (*AUTOGROUP && OPENINGON != PNODE && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
         && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock())) {
 
         m_lMasterNodesData.remove(*PNODE);

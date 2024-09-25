@@ -16,7 +16,7 @@ executable(
     dependency('cairo'),
     dependency('hyprcursor', version: '>=0.1.7'),
     dependency('hyprlang', version: '>= 0.3.2'),
-    dependency('hyprutils', version: '>= 0.2.1'),
+    dependency('hyprutils', version: '>= 0.2.3'),
     dependency('libdrm'),
     dependency('egl'),
     dependency('xkbcommon'),

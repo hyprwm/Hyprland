@@ -2403,9 +2403,7 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
     bool            enable = arg.starts_with("on");
     std::string     port   = "";
 
-    if (arg.starts_with("toggle"))
-        enable = !std::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](const auto& other) { return !other->dpmsStatus; }); // enable if any is off
-
+    bool            isToggle = arg.starts_with("toggle");
     if (arg.find_first_of(' ') != std::string::npos)
         port = arg.substr(arg.find_first_of(' ') + 1);
 
@@ -2413,6 +2411,9 @@ SDispatchResult CKeybindManager::dpms(std::string arg) {
 
         if (!port.empty() && m->szName != port)
             continue;
+
+        if (isToggle)
+            enable = !m->dpmsStatus;
 
         m->output->state->resetExplicitFences();
         m->output->state->setEnabled(enable);

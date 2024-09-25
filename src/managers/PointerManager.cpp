@@ -17,10 +17,8 @@ CPointerManager::CPointerManager() {
 
         onMonitorLayoutChange();
 
-        PMONITOR->events.modeChanged.registerStaticListener(
-            [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
-        PMONITOR->events.disconnect.registerStaticListener(
-            [this, PMONITOR](void* owner, std::any data) { g_pEventLoopManager->doLater([this, PMONITOR]() { onMonitorLayoutChange(); }); }, nullptr);
+        PMONITOR->events.modeChanged.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
+        PMONITOR->events.disconnect.registerStaticListener([this](void* owner, std::any data) { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); }, nullptr);
         PMONITOR->events.destroy.registerStaticListener(
             [this](void* owner, std::any data) {
                 if (g_pCompositor && !g_pCompositor->m_bIsShuttingDown)

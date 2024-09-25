@@ -127,6 +127,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     g_pPointerManager->move(DELTA);
 
+    //TODO: Inhibit inputs
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
     m_lastCursorMovement.reset();
@@ -616,6 +617,9 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::inputCapture->sendButton(e.button, (hyprlandInputCaptureManagerV1ButtonState)e.state);
+
+    //TODO: Inhibit inputs
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -854,6 +858,13 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::inputCapture->sendAxis((hyprlandInputCaptureManagerV1Axis)e.axis, e.delta);
+    if (e.source == 0)
+        PROTO::inputCapture->sendAxisValue120((hyprlandInputCaptureManagerV1Axis)e.axis, e.delta);
+    else if (e.delta == 0)
+        PROTO::inputCapture->sendAxisStop((hyprlandInputCaptureManagerV1Axis)e.axis);
+
+    //TODO: Inhibit inputs
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
     if (!passEvent)
@@ -936,6 +947,13 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+}
+
+void CInputManager::onMouseFrame() {
+    PROTO::inputCapture->sendFrame();
+
+    //TODO: Inhibit inputs
+    g_pSeatManager->sendPointerFrame();
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
@@ -1443,6 +1461,9 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 
     if (!DISALLOWACTION)
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
+
+    //TODO: Inhibit inputs
+    PROTO::inputCapture->sendKey(event.keycode, (hyprlandInputCaptureManagerV1KeyState)event.state);
 
     if (passEvent) {
         if (USEIME) {

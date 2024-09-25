@@ -81,9 +81,9 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
-    // Auto group the new floating window if the focused window is a group
+    // Auto group the new floating window if the focused window is a open group
     static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    if (*AUTOGROUP && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
+    if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) && g_pCompositor->m_pLastWindow && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
         && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock())) {
 
         if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group

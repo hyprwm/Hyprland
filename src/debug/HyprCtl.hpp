@@ -5,6 +5,9 @@
 #include "../helpers/MiscFunctions.hpp"
 #include <functional>
 
+// exposed for main.cpp
+std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request);
+
 class CHyprCtl {
   public:
     CHyprCtl();

@@ -3,6 +3,7 @@
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
+#include "debug/HyprCtl.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -132,6 +133,10 @@ int main(int argc, char** argv) {
 #endif
 
             std::cout << result;
+            return 0;
+        } else if (it->compare("--systeminfo") == 0) {
+            const auto SYSINFO = systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "");
+            std::cout << SYSINFO << "\n";
             return 0;
         } else {
             std::cerr << "[ ERROR ] Unknown option '" << it->c_str() << "'!\n";

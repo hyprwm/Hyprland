@@ -943,11 +943,14 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
 
     result += "plugins:\n";
-    for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
-        result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
-    }
+    if (g_pPluginSystem) {
+        for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
+            result += std::format("  {} by {} ver {}\n", pl->name, pl->author, pl->version);
+        }
+    } else
+        result += "\tunknown: not runtime\n";
 
-    if (g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
+    if (g_pHyprCtl && g_pHyprCtl->m_sCurrentRequestParams.sysInfoConfig) {
         result += "\n======Config-Start======\n";
         result += g_pConfigManager->getConfigString();
         result += "\n======Config-End========\n";

@@ -687,9 +687,9 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
-
     PROTO::inputCapture->sendAbsoluteMotion(newPos, deltaLogical);
 
+    //TODO: Inhibit inputs
     warpTo(newPos);
 }
 
@@ -863,7 +863,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        g_pSeatManager->sendPointerFrame();
+        g_pInputManager->onMouseFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {

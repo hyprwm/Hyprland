@@ -96,7 +96,7 @@ class CMonitor {
     bool                        scheduledRecalc = false;
     wl_output_transform         transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       xwaylandScale   = 1.f;
-    std::array<float, 9>        projMatrix      = {0};
+    Mat3x3                      projMatrix;
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;

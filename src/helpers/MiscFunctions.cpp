@@ -628,27 +628,6 @@ void logSystemInfo() {
     Debug::log(NONE, "{}", execAndGet("cat /etc/os-release"));
 }
 
-void matrixProjection(float mat[9], int w, int h, wl_output_transform tr) {
-    memset(mat, 0, sizeof(*mat) * 9);
-
-    const float* t = transforms[tr];
-    float        x = 2.0f / w;
-    float        y = 2.0f / h;
-
-    // Rotation + reflection
-    mat[0] = x * t[0];
-    mat[1] = x * t[1];
-    mat[3] = y * t[3];
-    mat[4] = y * t[4];
-
-    // Translation
-    mat[2] = -copysign(1.0f, mat[0] + mat[1]);
-    mat[5] = -copysign(1.0f, mat[3] + mat[4]);
-
-    // Identity
-    mat[8] = 1.0f;
-}
-
 int64_t getPPIDof(int64_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {

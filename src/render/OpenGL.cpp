@@ -1384,8 +1384,6 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     Mat3x3 matrix   = m_RenderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
-    Debug::log(LOG, "internal:\nmat: {},\nglmat: {}", matrix.toString(), glMatrix.toString());
-
     if (waitTimeline != nullptr) {
         if (!waitForTimelinePoint(waitTimeline, waitPoint)) {
             Debug::log(ERR, "renderTextureInternalWithDamage: failed to wait for explicit sync point {}", waitPoint);

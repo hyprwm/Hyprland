@@ -126,7 +126,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     g_pPointerManager->move(DELTA);
 
-    //TODO: Inhibit inputs
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
     m_lastCursorMovement.reset();
@@ -619,8 +621,10 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
 
     PROTO::inputCapture->sendButton(e.button, (hyprlandInputCaptureManagerV1ButtonState)e.state);
 
-    //TODO: Inhibit inputs
-    m_lastCursorMovement.reset();
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
+    m_tmrLastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
         m_currentlyHeldButtons.push_back(e.button);
@@ -863,8 +867,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     else if (e.delta == 0)
         PROTO::inputCapture->sendAxisStop((hyprlandInputCaptureManagerV1Axis)e.axis);
 
-    //TODO: Inhibit inputs
-    bool passEvent = g_pKeybindManager->onAxisEvent(e);
+    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e);
 
     if (!passEvent)
         return;
@@ -947,7 +950,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
 void CInputManager::onMouseFrame() {
     PROTO::inputCapture->sendFrame();
 
-    //TODO: Inhibit inputs
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     g_pSeatManager->sendPointerFrame();
 }
 
@@ -1442,11 +1447,10 @@ void CInputManager::onKeyboardKey(std::any event, SP<IKeyboard> pKeyboard) {
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
-    bool passEvent = DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard);
+    bool passEvent = !PROTO::inputCapture->isCaptured() && (DISALLOWACTION || g_pKeybindManager->onKeyEvent(event, pKeyboard));
 
     auto e = std::any_cast<IKeyboard::SKeyEvent>(event);
 
-    //TODO: Inhibit inputs
     PROTO::inputCapture->sendKey(e.keycode, (hyprlandInputCaptureManagerV1KeyState)e.state);
 
     if (passEvent) {

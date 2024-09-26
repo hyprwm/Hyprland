@@ -327,8 +327,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
     // Auto group the new tiling window if the focused window is a open group
     if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace &&
-        getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) != PNODE && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow // target: active group
-        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) && !m_vOverrideFocalPoint) {                            // we are not moving window
+        getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) != PNODE && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock() // target: active group
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) && !m_vOverrideFocalPoint) {                                   // we are not moving window
 
         m_lDwindleNodesData.remove(*PNODE);
 

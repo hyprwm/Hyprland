@@ -7,6 +7,7 @@
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
+#include "../protocols/OutputManagement.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -1079,28 +1080,69 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     return VAL;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
+SMonitorRule CConfigManager::getMonitorRuleFor(const SP<CMonitor> PMONITOR) {
+    auto applyWlrOutputConfig = [PMONITOR](SMonitorRule rule) -> SMonitorRule {
+        const auto CONFIG = PROTO::outputManagement->getOutputStateFor(PMONITOR);
+
+        if (!CONFIG)
+            return rule;
+
+        Debug::log(LOG, "CConfigManager::getMonitorRuleFor: found a wlr_output_manager override for {}", PMONITOR->szName);
+
+        Debug::log(LOG, " > overriding enabled: {} -> {}", !rule.disabled, !CONFIG->enabled);
+        rule.disabled = !CONFIG->enabled;
+
+        if ((CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_MODE) || (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_CUSTOM_MODE)) {
+            Debug::log(LOG, " > overriding mode: {:.0f}x{:.0f}@{:.2f}Hz -> {:.0f}x{:.0f}@{:.2f}Hz", rule.resolution.x, rule.resolution.y, rule.refreshRate, CONFIG->resolution.x,
+                       CONFIG->resolution.y, CONFIG->refresh / 1000.F);
+            rule.resolution  = CONFIG->resolution;
+            rule.refreshRate = CONFIG->refresh / 1000.F;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_POSITION) {
+            Debug::log(LOG, " > overriding offset: {:.0f}, {:.0f} -> {:.0f}, {:.0f}", rule.offset.x, rule.offset.y, CONFIG->position.x, CONFIG->position.y);
+            rule.offset = CONFIG->position;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
+            Debug::log(LOG, " > overriding transform: {} -> {}", (uint8_t)rule.transform, (uint8_t)CONFIG->transform);
+            rule.transform = CONFIG->transform;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
+            Debug::log(LOG, " > overriding scale: {} -> {}", (uint8_t)rule.scale, (uint8_t)CONFIG->scale);
+            rule.scale = CONFIG->scale;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
+            Debug::log(LOG, " > overriding vrr: {} -> {}", rule.vrr.value_or(0), CONFIG->adaptiveSync);
+            rule.vrr = (int)CONFIG->adaptiveSync;
+        }
+
+        return rule;
+    };
+
     for (auto const& r : m_dMonitorRules | std::views::reverse) {
-        if (PMONITOR.matchesStaticSelector(r.name)) {
-            return r;
+        if (PMONITOR->matchesStaticSelector(r.name)) {
+            return applyWlrOutputConfig(r);
         }
     }
 
-    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
+    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR->szName);
 
     for (auto const& r : m_dMonitorRules) {
         if (r.name.empty()) {
-            return r;
+            return applyWlrOutputConfig(r);
         }
     }
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
-                        .name       = "",
-                        .resolution = Vector2D(0, 0),
-                        .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
-                        .scale      = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return applyWlrOutputConfig(SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
+                                             .name       = "",
+                                             .resolution = Vector2D(0, 0),
+                                             .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
+                                             .scale      = -1}); // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
@@ -1459,7 +1501,7 @@ void CConfigManager::performMonitorReload() {
         if (!m->output || m->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(*m);
+        auto rule = getMonitorRuleFor(m);
 
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
@@ -1516,7 +1558,7 @@ void CConfigManager::ensureMonitorStatus() {
         if (!rm->output || rm->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(*rm);
+        auto rule = getMonitorRuleFor(rm);
 
         if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);

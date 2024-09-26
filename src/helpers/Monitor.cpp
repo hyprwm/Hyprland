@@ -114,7 +114,7 @@ void CMonitor::onConnect(bool noRule) {
         createdByUser = true; // should be true. WL and Headless backends should be addable / removable
 
     // get monitor rule that matches
-    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(*this);
+    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(self.lock());
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
@@ -489,7 +489,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf = nullptr;
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(*this);
+        const auto RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
 
         vecPosition = RULE.offset;
 

@@ -1,7 +1,7 @@
 #include "DwindleLayout.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -458,6 +458,12 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             NEWPARENT->children[1] = PNODE;
         }
     }
+
+    // split in favor of a specific window
+    const auto  first      = NEWPARENT->children[0];
+    static auto PSPLITBIAS = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
+    if ((*PSPLITBIAS == 1 && first == PNODE) || (*PSPLITBIAS == 2 && first == OPENINGON))
+        NEWPARENT->splitRatio = 2.f - NEWPARENT->splitRatio;
 
     // and update the previous parent if it exists
     if (OPENINGON->pParent) {

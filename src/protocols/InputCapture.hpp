@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hyprland-input-capture-v1.hpp"
+#include "../protocols/WaylandProtocol.hpp"
 #include <hyprutils/math/Vector2D.hpp>
 
 class CInputCaptureProtocol : public IWaylandProtocol {

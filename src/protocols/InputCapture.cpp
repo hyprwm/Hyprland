@@ -5,7 +5,7 @@
 #include <wayland-util.h>
 
 CInputCaptureProtocol::CInputCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    ;
+    active = false;
 }
 
 void CInputCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -21,9 +21,19 @@ void CInputCaptureProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_vManagers, [&](const auto& other) { return other->resource() == res; });
 }
 
-void CInputCaptureProtocol::onCapture(CHyprlandInputCaptureManagerV1* pMgr) {}
+void CInputCaptureProtocol::onCapture(CHyprlandInputCaptureManagerV1* pMgr) {
+    Debug::log(LOG, "[input-capture] Input captured");
+    active = true;
+}
 
-void CInputCaptureProtocol::onRelease(CHyprlandInputCaptureManagerV1* pMgr) {}
+void CInputCaptureProtocol::onRelease(CHyprlandInputCaptureManagerV1* pMgr) {
+    Debug::log(LOG, "[input-capture] Input released");
+    active = false;
+}
+
+bool CInputCaptureProtocol::isCaptured() {
+    return active;
+}
 
 void CInputCaptureProtocol::sendAbsoluteMotion(const Vector2D& absolutePosition, const Vector2D& delta) {
     for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {

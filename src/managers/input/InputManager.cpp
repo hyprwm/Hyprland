@@ -23,6 +23,7 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
+#include "../../protocols/InputCapture.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -127,7 +128,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     g_pPointerManager->move(DELTA);
 
-    //TODO: Inhibit inputs
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
     m_lastCursorMovement.reset();
@@ -619,7 +622,9 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
 
     PROTO::inputCapture->sendButton(e.button, (hyprlandInputCaptureManagerV1ButtonState)e.state);
 
-    //TODO: Inhibit inputs
+ if (PROTO::inputCapture->isCaptured())
+        return;
+
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -864,8 +869,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     else if (e.delta == 0)
         PROTO::inputCapture->sendAxisStop((hyprlandInputCaptureManagerV1Axis)e.axis);
 
-    //TODO: Inhibit inputs
-    bool passEvent = g_pKeybindManager->onAxisEvent(e);
+    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e);
 
     if (!passEvent)
         return;
@@ -952,7 +956,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 void CInputManager::onMouseFrame() {
     PROTO::inputCapture->sendFrame();
 
-    //TODO: Inhibit inputs
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     g_pSeatManager->sendPointerFrame();
 }
 
@@ -1457,13 +1463,15 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
     EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
 
+    PROTO::inputCapture->sendKey(event.keycode, (hyprlandInputCaptureManagerV1KeyState)event.state);
+    if (PROTO::inputCapture->isCaptured())
+	return;
+
     bool passEvent = DISALLOWACTION;
 
     if (!DISALLOWACTION)
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
 
-    //TODO: Inhibit inputs
-    PROTO::inputCapture->sendKey(event.keycode, (hyprlandInputCaptureManagerV1KeyState)event.state);
 
     if (passEvent) {
         if (USEIME) {

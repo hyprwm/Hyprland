@@ -993,11 +993,9 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
     } else if (ARGS[0] == "swapsplit") {
         swapSplit(header.pWindow);
     } else if (ARGS[0] == "movetoroot") {
-        std::string stable = ARGS[1];
-        if (stable.empty() || std::stoi(ARGS[1]) != 0)
-            moveToRoot(header.pWindow);
-        else
-            moveToRoot(header.pWindow, false);
+        const auto WINDOW = ARGS[1].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[1]);
+        const auto STABLE = ARGS[2].empty() || std::stoi(ARGS[2]) != 0;
+        moveToRoot(WINDOW, STABLE);
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
@@ -1098,7 +1096,9 @@ void CHyprDwindleLayout::moveToRoot(PHLWINDOW pWindow, bool stable) {
     if (stable)
         std::swap(pRoot->children[0], pRoot->children[1]);
 
-    pRoot->recalcSizePosRecursive();
+    // if the workspace is visible, recalculate layout
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+        pRoot->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {

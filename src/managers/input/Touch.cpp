@@ -1,4 +1,6 @@
 #include "InputManager.hpp"
+#include "../SessionLockManager.hpp"
+#include "../../protocols/SessionLock.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/LayerSurface.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -6,6 +8,7 @@
 #include "../SeatManager.hpp"
 #include "managers/AnimationManager.hpp"
 #include "../HookSystemManager.hpp"
+#include "debug/Log.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     m_bLastInputTouch = true;
@@ -57,13 +60,25 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         }
     }
 
-    m_sTouchData.touchFocusWindow  = m_pFoundWindowToFocus;
-    m_sTouchData.touchFocusSurface = m_pFoundSurfaceToFocus;
-    m_sTouchData.touchFocusLS      = m_pFoundLSToFocus;
+    if (g_pSessionLockManager->isSessionLocked()) {
+        m_sTouchData.touchFocusLockSurface = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->ID);
+        if (!m_sTouchData.touchFocusLockSurface)
+            Debug::log(WARN, "The session is locked but can't find a lock surface");
+        else
+            m_sTouchData.touchFocusSurface = m_sTouchData.touchFocusLockSurface->surface->surface();
+    } else {
+        m_sTouchData.touchFocusLockSurface.reset();
+        m_sTouchData.touchFocusWindow  = m_pFoundWindowToFocus;
+        m_sTouchData.touchFocusSurface = m_pFoundSurfaceToFocus;
+        m_sTouchData.touchFocusLS      = m_pFoundLSToFocus;
+    }
 
     Vector2D local;
 
-    if (!m_sTouchData.touchFocusWindow.expired()) {
+    if (m_sTouchData.touchFocusLockSurface) {
+        local                           = g_pInputManager->getMouseCoordsInternal() - PMONITOR->vecPosition;
+        m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
+    } else if (!m_sTouchData.touchFocusWindow.expired()) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
             local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition->goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
             m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition->goal();
@@ -126,7 +141,12 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
             updateWorkspaceSwipe(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
         return;
     }
-    if (validMapped(m_sTouchData.touchFocusWindow)) {
+    if (m_sTouchData.touchFocusLockSurface) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLockSurface->iMonitorID);
+        g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
+        auto local = g_pInputManager->getMouseCoordsInternal() - PMONITOR->vecPosition;
+        g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
+    } else if (validMapped(m_sTouchData.touchFocusWindow)) {
         const auto PMONITOR = m_sTouchData.touchFocusWindow->m_pMonitor.lock();
 
         g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);

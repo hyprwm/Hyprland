@@ -10,6 +10,7 @@
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../devices/Tablet.hpp"
+#include "../SessionLockManager.hpp"
 
 class CPointerConstraint;
 class CWindow;
@@ -52,10 +53,11 @@ enum eBorderIconDirection : uint8_t {
 };
 
 struct STouchData {
-    PHLWINDOWREF           touchFocusWindow;
-    PHLLSREF               touchFocusLS;
-    WP<CWLSurfaceResource> touchFocusSurface;
-    Vector2D               touchSurfaceOrigin;
+    WP<SSessionLockSurface> touchFocusLockSurface;
+    PHLWINDOWREF            touchFocusWindow;
+    PHLLSREF                touchFocusLS;
+    WP<CWLSurfaceResource>  touchFocusSurface;
+    Vector2D                touchSurfaceOrigin;
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`

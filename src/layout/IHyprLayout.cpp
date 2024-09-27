@@ -90,7 +90,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
             // make the new floating window to tile before merging it into the focused tiled group
             pWindow->m_bIsFloating = false;
-            g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+            g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
         }
 
         if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group

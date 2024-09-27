@@ -132,7 +132,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group
             // make the new tiling window to float before merging it into the focused floating group
             pWindow->m_bIsFloating = true;
-            g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(pWindow);
+            g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
         }
 
         g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);

@@ -446,6 +446,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("dwindle:no_gaps_when_only", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:use_active_for_splits", Hyprlang::INT{1});
     m_pConfig->addConfigValue("dwindle:default_split_ratio", {1.f});
+    m_pConfig->addConfigValue("dwindle:split_bias", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:smart_split", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:smart_resizing", Hyprlang::INT{1});
 

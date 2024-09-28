@@ -85,7 +85,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
     if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace &&
         g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock() // target: active group
-        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock())) {
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) && !g_pXWaylandManager->shouldBeFloated(pWindow)) {
 
         if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
             // make the new floating window to tile before merging it into the focused tiled group

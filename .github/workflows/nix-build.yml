@@ -25,4 +25,4 @@ jobs:
           name: hyprland
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - run: nix build 'git+https://github.com/hyprwm/Hyprland?ref=${{ github.ref }}#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"
+      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"

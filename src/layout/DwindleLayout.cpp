@@ -994,7 +994,7 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         swapSplit(header.pWindow);
     } else if (ARGS[0] == "movetoroot") {
         const auto WINDOW = ARGS[1].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[1]);
-        const auto STABLE = ARGS[2].empty() || std::stoi(ARGS[2]) != 0;
+        const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
         moveToRoot(WINDOW, STABLE);
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];

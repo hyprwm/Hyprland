@@ -58,8 +58,8 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
     if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    __time_t tv_sec = 0;
-    if (sizeof(__time_t) > 4)
+    time_t tv_sec = 0;
+    if (sizeof(time_t) > 4)
         tv_sec = when->tv_sec >> 32;
 
     if (data->wasPresented)

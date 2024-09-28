@@ -150,7 +150,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
 
     const auto& TEXTURE                     = surface->current.texture;
     const auto  RDATA                       = (SRenderData*)data;
-    const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow.lock() == RDATA->pWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    const auto  INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
 
     // this is bad, probably has been logged elsewhere. Means the texture failed
     // uploading to the GPU.
@@ -231,7 +231,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
         DELTALESSTHAN(windowBox.height, surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->surface == surface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->pMonitor->self.lock(), RDATA->surface == surface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     // check for fractional scale surfaces misaligning the buffer size
     // in those cases it's better to just force nearest neighbor
@@ -1075,8 +1075,8 @@ void CHyprRenderer::renderSessionLockMissing(CMonitor* pMonitor) {
         g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
 }
 
-void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, bool main, const Vector2D& projSize, const Vector2D& projSizeUnscaled,
-                                          bool fixMisalignedFSV1) {
+void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, SP<CMonitor> pMonitor, bool main, const Vector2D& projSize,
+                                          const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
         Vector2D uvBR = Vector2D(1, 1);
@@ -1107,12 +1107,17 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
         // if the surface is smaller than our viewport, extend its edges.
         // this will break if later on xdg geometry is hit, but we really try
-        // to let the apps know to NOT add CSD.
+        // to let the apps know to NOT add CSD. Also if source is there.
         // there is no way to fix this if that's the case
-        if (pSurface && (pSurface->current.bufferSize.x < projSize.x || pSurface->current.bufferSize.y < projSize.y)) {
+        const auto MONITOR_WL_SCALE = std::ceil(pMonitor->scale);
+        const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
+        const auto EXPECTED_SIZE =
+            ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale)
+                .round();
+        if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
             // this will not work with shm AFAIK, idk why.
-            // NOTE: this math is wrong if the above is hit, but it will never be hit so fuck it
-            const auto FIX = projSize / pSurface->current.bufferSize;
+            // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
+            const auto FIX = projSize / EXPECTED_SIZE;
             uvBR           = uvBR * FIX;
         }
 

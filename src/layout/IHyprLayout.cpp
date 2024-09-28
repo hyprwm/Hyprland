@@ -81,33 +81,9 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
-    // Auto group the new floating window if the focused window is a open group
-    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace &&
-        g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock() // target: active group
-        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) && !g_pXWaylandManager->shouldBeFloated(pWindow)) {
-
-        if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
-            // make the new floating window to tile before merging it into the focused tiled group
-            pWindow->m_bIsFloating = false;
-            g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-        }
-
-        if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group
-            static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-            (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
-        }
-
-        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
-
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
+    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    if (autoGrouped)
         return;
-    }
 
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
@@ -204,6 +180,60 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goal();
         pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
+}
+
+bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) // check if auto_group is enabled, or, if the user is manually dragging the window into the group.
+        && g_pCompositor->m_pLastWindow.lock()                // check if a focused window exists.
+        && g_pCompositor->m_pLastWindow != pWindow            // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
+        && g_pCompositor->m_pLastWindow->m_pWorkspace ==
+            pWindow
+                ->m_pWorkspace // fix for multimonitor: when there is a focused group in monitor 1 and monitor 2 is empty, this enables adding the first window of monitor 2 when using the mouse to focus it.
+        && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock()  // check if the focused window is a group
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) // check if the new window can be grouped into the focused group
+        && !g_pXWaylandManager->shouldBeFloated(pWindow)) {               // don't group XWayland windows that should be floated.
+
+        switch (pWindow->m_bIsFloating) { // checks in what mode is the new window being created: float (case true) or tile (case false).
+            case (false): // In the first iteration of this function, this would be the case if allfloat=false on the workspace, or a window rule is making the new window to tile.
+                if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
+                    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+                    (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
+                }
+
+                if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floated group
+                    // create the new tiled window again but this time floated for being able to merge it into the focused floated group. This will recurse a second time into this function at case:true for finally merging the new floated window into the focused floated group.
+                    pWindow->m_bIsFloating = true;
+                    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+                }
+                break;
+
+            case (true): // In the first iteration of this function, this would be the case if allfloat=true on the workspace, or a window rule is making the new window to float.
+                if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
+                    // create the new floated window again but this time tiled for being able to merge it into the focused tiled group. This will recurse a second time into this function at case:false for finally merging the new tiled window into the focused tiled group.
+                    pWindow->m_bIsFloating = false;
+                    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+                }
+
+                if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floated group
+                    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+                    (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
+                }
+                break;
+        }
+
+        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return true;
+    }
+
+    return false;
 }
 
 void IHyprLayout::onBeginDragWindow() {

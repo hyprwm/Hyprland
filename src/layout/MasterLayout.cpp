@@ -76,6 +76,10 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     if (pWindow->m_bIsFloating)
         return;
 
+    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    if (autoGrouped)
+        return;
+
     static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
     static auto PNEWONTOP    = CConfigValue<Hyprlang::INT>("master:new_on_top");
     static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");
@@ -114,36 +118,6 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
         if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
             return;
-    }
-
-    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    // Auto group the new tiling window if the focused window is a open group
-    if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace &&
-        getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) != PNODE && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock() // target: active group
-        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock())) {
-
-        m_lMasterNodesData.remove(*PNODE);
-
-        if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
-            static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-            (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
-        }
-
-        if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floating group
-            // make the new tiling window to float before merging it into the focused floating group
-            pWindow->m_bIsFloating = true;
-            g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-        }
-
-        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
-
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
-        return;
     }
 
     pWindow->applyGroupRules();

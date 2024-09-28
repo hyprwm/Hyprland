@@ -47,6 +47,7 @@ class IHyprLayout {
     virtual void onWindowCreated(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT) = 0;
     virtual void onWindowCreatedFloating(PHLWINDOW);
+    virtual bool onWindowCreatedAutoGroup(PHLWINDOW);
 
     /*
         Return tiled status

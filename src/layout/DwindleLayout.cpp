@@ -998,6 +998,10 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         toggleSplit(header.pWindow);
     } else if (ARGS[0] == "swapsplit") {
         swapSplit(header.pWindow);
+    } else if (ARGS[0] == "movetoroot") {
+        const auto WINDOW = ARGS[1].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[1]);
+        const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
+        moveToRoot(WINDOW, STABLE);
     } else if (ARGS[0] == "preselect") {
         std::string direction = ARGS[1];
 
@@ -1063,6 +1067,44 @@ void CHyprDwindleLayout::swapSplit(PHLWINDOW pWindow) {
     std::swap(PNODE->pParent->children[0], PNODE->pParent->children[1]);
 
     PNODE->pParent->recalcSizePosRecursive();
+}
+
+// goal: maximize the chosen window within current dwindle layout
+// impl: swap the selected window with the other sub-tree below root
+void CHyprDwindleLayout::moveToRoot(PHLWINDOW pWindow, bool stable) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    if (pWindow->isFullscreen())
+        return;
+
+    // already at root
+    if (!PNODE->pParent->pParent)
+        return;
+
+    auto& pNode = PNODE->pParent->children[0] == PNODE ? PNODE->pParent->children[0] : PNODE->pParent->children[1];
+
+    // instead of [getMasterNodeOnWorkspace], we walk back to root since we need
+    // to know which children of root is our ancestor
+    auto pAncestor = PNODE, pRoot = PNODE->pParent;
+    while (pRoot->pParent) {
+        pAncestor = pRoot;
+        pRoot     = pRoot->pParent;
+    }
+
+    auto& pSwap = pRoot->children[0] == pAncestor ? pRoot->children[1] : pRoot->children[0];
+    std::swap(pNode, pSwap);
+    std::swap(pNode->pParent, pSwap->pParent);
+
+    // [stable] in that the focused window occupies same side of screen
+    if (stable)
+        std::swap(pRoot->children[0], pRoot->children[1]);
+
+    // if the workspace is visible, recalculate layout
+    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+        pRoot->recalcSizePosRecursive();
 }
 
 void CHyprDwindleLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {

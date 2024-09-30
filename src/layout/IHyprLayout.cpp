@@ -9,29 +9,26 @@
 #include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
+    CBox desiredGeometry = {};
+    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
+
+    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+        const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
+    } else {
+        pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+    }
+
+    pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
     bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
     if (autoGrouped)
         return;
 
-    if (pWindow->m_bIsFloating) {
+    if (pWindow->m_bIsFloating)
         onWindowCreatedFloating(pWindow);
-
-    } else {
-        CBox desiredGeometry = {};
-        g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-
-        if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-            const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-            pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
-        } else {
-            pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
-        }
-
-        pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
-
+    else
         onWindowCreatedTiling(pWindow, direction);
-    }
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {

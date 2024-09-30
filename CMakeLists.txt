@@ -110,7 +110,7 @@ pkg_check_modules(
   IMPORTED_TARGET
   xkbcommon
   uuid
-  wayland-server
+  wayland-server>=1.22.90
   wayland-protocols
   cairo
   pango

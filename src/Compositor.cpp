@@ -28,6 +28,7 @@
 #include "desktop/LayerSurface.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
+#include "helpers/ByteOperations.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -228,6 +229,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     if (envEnabled("HYPRLAND_TRACE"))
         Debug::trace = true;
+
+    // set the buffer size to 1MB to avoid disconnects due to an app hanging for a short while
+    wl_display_set_default_max_buffer_size(m_sWLDisplay, 1_MB);
 
     Aquamarine::SBackendOptions options;
     options.logFunction = aqLog;

@@ -700,8 +700,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
-
-    PROTO::inputCapture->sendAbsoluteMotion(newPos, deltaLogical);
+    PROTO::inputCapture->sendMotion(newPos, deltaLogical);
 
     if (PROTO::inputCapture->isCaptured())
         return;

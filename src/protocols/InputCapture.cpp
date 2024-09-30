@@ -1,7 +1,7 @@
 #include "InputCapture.hpp"
 
 CInputCaptureProtocol::CInputCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    active = false;
+    ;
 }
 
 void CInputCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -31,9 +31,9 @@ bool CInputCaptureProtocol::isCaptured() {
     return active;
 }
 
-void CInputCaptureProtocol::sendAbsoluteMotion(const Vector2D& absolutePosition, const Vector2D& delta) {
+void CInputCaptureProtocol::sendMotion(const Vector2D& absolutePosition, const Vector2D& delta) {
     for (const UP<CHyprlandInputCaptureManagerV1>& manager : m_vManagers) {
-        manager->sendAbsoluteMotion(wl_fixed_from_double(absolutePosition.x), wl_fixed_from_double(absolutePosition.y), wl_fixed_from_double(delta.x),
+        manager->sendMotion(wl_fixed_from_double(absolutePosition.x), wl_fixed_from_double(absolutePosition.y), wl_fixed_from_double(delta.x),
                                     wl_fixed_from_double(delta.y));
     }
 }

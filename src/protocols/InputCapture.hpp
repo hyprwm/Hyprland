@@ -12,7 +12,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     bool isCaptured();
 
     //
-    void sendAbsoluteMotion(const Vector2D& absolutePosition, const Vector2D& delta);
+    void sendMotion(const Vector2D& absolutePosition, const Vector2D& delta);
     void sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state);
     void sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state);
     void sendAxis(hyprlandInputCaptureManagerV1Axis axis, double value);
@@ -22,7 +22,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     void sendFrame();
 
   private:
-    bool active;
+    bool active = false;
 
     void onManagerResourceDestroy(wl_resource* res);
     void onCapture(CHyprlandInputCaptureManagerV1* pMgr);

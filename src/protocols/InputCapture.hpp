@@ -9,7 +9,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     CInputCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name);
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    bool isCaptured();
+    bool         isCaptured();
 
     //
     void sendMotion(const Vector2D& absolutePosition, const Vector2D& delta);
@@ -23,11 +23,6 @@ class CInputCaptureProtocol : public IWaylandProtocol {
 
   private:
     bool active = false;
-
-    void onManagerResourceDestroy(wl_resource* res);
-    void onCapture(CHyprlandInputCaptureManagerV1* pMgr);
-    void onRelease(CHyprlandInputCaptureManagerV1* pMgr);
-
     //
     std::vector<UP<CHyprlandInputCaptureManagerV1>> m_vManagers;
 };

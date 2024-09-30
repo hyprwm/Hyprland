@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #define ULL unsigned long long
 #define LD  long double
 

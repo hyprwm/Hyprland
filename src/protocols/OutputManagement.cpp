@@ -467,9 +467,14 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
             return;
         }
 
-        if (w <= 0 || h <= 0 || refresh <= 100) {
+        if (w <= 0 || h <= 0 || refresh < 0) {
             resource->error(ZWLR_OUTPUT_CONFIGURATION_HEAD_V1_ERROR_INVALID_CUSTOM_MODE, "Invalid mode");
             return;
+        }
+
+        if (refresh == 0) {
+            LOGM(LOG, " | configHead for {}: refreshRate 0, using old refresh rate of {:.2f}Hz", pMonitor->szName, pMonitor->refreshRate);
+            refresh = std::round(pMonitor->refreshRate * 1000.F);
         }
 
         state.committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;

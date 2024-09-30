@@ -1,5 +1,6 @@
 #include "SinglePixel.hpp"
 #include <limits>
+#include "render/Renderer.hpp"
 
 CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CColor col_) {
     LOGM(LOG, "New single-pixel buffer with color 0x{:x}", col_.getAsHex());

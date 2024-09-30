@@ -76,10 +76,6 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     if (pWindow->m_bIsFloating)
         return;
 
-    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
-    if (autoGrouped)
-        return;
-
     static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
     static auto PNEWONTOP    = CConfigValue<Hyprlang::INT>("master:new_on_top");
     static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");

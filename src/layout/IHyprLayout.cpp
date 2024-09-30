@@ -9,8 +9,14 @@
 #include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
+
+    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    if (autoGrouped)
+        return;
+
     if (pWindow->m_bIsFloating) {
         onWindowCreatedFloating(pWindow);
+
     } else {
         CBox desiredGeometry = {};
         g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
@@ -80,10 +86,6 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
-
-    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
-    if (autoGrouped)
-        return;
 
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
@@ -194,33 +196,20 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) // check if the new window can be grouped into the focused group
         && !g_pXWaylandManager->shouldBeFloated(pWindow)) {               // don't group XWayland windows that should be floated.
 
-        switch (pWindow->m_bIsFloating) { // checks in what mode is the new window being created: float (case true) or tile (case false).
-            case (false): // In the first iteration of this function, this would be the case if allfloat=false on the workspace, or a window rule is making the new window to tile.
-                if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
-                    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-                    (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
-                }
-
-                if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floated group
-                    // create the new tiled window again but this time floated for being able to merge it into the focused floated group. This will recurse a second time into this function at case:true for finally merging the new floated window into the focused floated group.
+        switch (pWindow->m_bIsFloating) {
+            case false:
+                if (g_pCompositor->m_pLastWindow->m_bIsFloating)
                     pWindow->m_bIsFloating = true;
-                    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-                }
                 break;
 
-            case (true): // In the first iteration of this function, this would be the case if allfloat=true on the workspace, or a window rule is making the new window to float.
-                if (!g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused tiled group
-                    // create the new floated window again but this time tiled for being able to merge it into the focused tiled group. This will recurse a second time into this function at case:false for finally merging the new tiled window into the focused tiled group.
+            case true:
+                if (!g_pCompositor->m_pLastWindow->m_bIsFloating)
                     pWindow->m_bIsFloating = false;
-                    g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-                }
-
-                if (g_pCompositor->m_pLastWindow->m_bIsFloating) { // target: focused floated group
-                    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-                    (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
-                }
                 break;
         }
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
 
         g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
         pWindow->applyGroupRules();

@@ -254,10 +254,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     if (pWindow->m_bIsFloating)
         return;
 
-    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
-    if (autoGrouped)
-        return;
-
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto  PNODE = &m_lDwindleNodesData.back();
 

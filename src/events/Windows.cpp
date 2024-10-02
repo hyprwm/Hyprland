@@ -322,7 +322,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->updateWindowData();
 
     if (PWINDOW->m_bIsFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules

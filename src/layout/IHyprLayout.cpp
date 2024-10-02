@@ -9,23 +9,25 @@
 #include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
-    if (pWindow->m_bIsFloating) {
+    CBox desiredGeometry = {};
+    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
+
+    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+        const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
+    } else
+        pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+
+    pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
+
+    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    if (autoGrouped)
+        return;
+
+    if (pWindow->m_bIsFloating)
         onWindowCreatedFloating(pWindow);
-    } else {
-        CBox desiredGeometry = {};
-        g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-
-        if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-            const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-            pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
-        } else {
-            pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
-        }
-
-        pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
-
+    else
         onWindowCreatedTiling(pWindow, direction);
-    }
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
@@ -176,6 +178,47 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goal();
         pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
+}
+
+bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
+    static auto AUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    if ((*AUTOGROUP || g_pInputManager->m_bWasDraggingWindow) // check if auto_group is enabled, or, if the user is manually dragging the window into the group.
+        && g_pCompositor->m_pLastWindow.lock()                // check if a focused window exists.
+        && g_pCompositor->m_pLastWindow != pWindow            // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
+        && g_pCompositor->m_pLastWindow->m_pWorkspace ==
+            pWindow
+                ->m_pWorkspace // fix for multimonitor: when there is a focused group in monitor 1 and monitor 2 is empty, this enables adding the first window of monitor 2 when using the mouse to focus it.
+        && g_pCompositor->m_pLastWindow->m_sGroupData.pNextWindow.lock()  // check if the focused window is a group
+        && pWindow->canBeGroupedInto(g_pCompositor->m_pLastWindow.lock()) // check if the new window can be grouped into the focused group
+        && !g_pXWaylandManager->shouldBeFloated(pWindow)) {               // don't group XWayland windows that should be floated.
+
+        switch (pWindow->m_bIsFloating) {
+            case false:
+                if (g_pCompositor->m_pLastWindow->m_bIsFloating)
+                    pWindow->m_bIsFloating = true;
+                break;
+
+            case true:
+                if (!g_pCompositor->m_pLastWindow->m_bIsFloating)
+                    pWindow->m_bIsFloating = false;
+                break;
+        }
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? g_pCompositor->m_pLastWindow : g_pCompositor->m_pLastWindow->getGroupTail())->insertWindowToGroup(pWindow);
+
+        g_pCompositor->m_pLastWindow->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return true;
+    }
+
+    return false;
 }
 
 void IHyprLayout::onBeginDragWindow() {

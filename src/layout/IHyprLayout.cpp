@@ -552,10 +552,10 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 
-        // move to narnia because we don't wanna find our own node. onWindowCreatedTiling should apply the coords back.
+        // move to narnia because we don't wanna find our own node. onWindowCreated should apply the coords back.
         pWindow->m_vPosition = Vector2D(-999999, -999999);
 
-        onWindowCreatedTiling(pWindow);
+        onWindowCreated(pWindow);
 
         pWindow->m_vRealPosition.setValue(PSAVEDPOS);
         pWindow->m_vRealSize.setValue(PSAVEDSIZE);

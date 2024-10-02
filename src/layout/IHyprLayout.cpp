@@ -15,9 +15,8 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
         pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
-    } else {
+    } else
         pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
-    }
 
     pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 

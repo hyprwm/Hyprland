@@ -116,26 +116,6 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             return;
     }
 
-    // if it's a group, add the window
-    if (OPENINGON && OPENINGON != PNODE && OPENINGON->pWindow->m_sGroupData.pNextWindow.lock() // target is group
-        && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock())) {
-
-        m_lMasterNodesData.remove(*PNODE);
-
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-
-        OPENINGON->pWindow->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
-
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
-        return;
-    }
-
     pWindow->applyGroupRules();
 
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");

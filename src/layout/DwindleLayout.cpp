@@ -340,26 +340,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             return;
     }
 
-    // if it's a group, add the window
-    if (OPENINGON->pWindow->m_sGroupData.pNextWindow.lock()                                  // target is group
-        && pWindow->canBeGroupedInto(OPENINGON->pWindow.lock()) && !m_vOverrideFocalPoint) { // we are not moving window
-        m_lDwindleNodesData.remove(*PNODE);
-
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? OPENINGON->pWindow.lock() : OPENINGON->pWindow->getGroupTail())->insertWindowToGroup(pWindow);
-
-        OPENINGON->pWindow->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
-        pWindow->updateWindowDecos();
-        recalculateWindow(pWindow);
-
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
-
-        return;
-    }
-
-    // If it's not, get the node under our cursor
+    // get the node under our cursor
 
     m_lDwindleNodesData.push_back(SDwindleNodeData());
     const auto NEWPARENT = &m_lDwindleNodesData.back();

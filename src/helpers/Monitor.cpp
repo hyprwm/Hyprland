@@ -12,6 +12,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "sync/SyncTimeline.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -789,20 +790,22 @@ CBox CMonitor::logicalBox() {
     return {vecPosition, vecSize};
 }
 
-static void onDoneSource(void* data) {
-    auto pMonitor = (CMonitor*)data;
-
-    if (!PROTO::outputs.contains(pMonitor->szName))
-        return;
-
-    PROTO::outputs.at(pMonitor->szName)->sendDone();
-}
-
 void CMonitor::scheduleDone() {
-    if (doneSource)
+    if (doneScheduled)
         return;
 
-    doneSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::onDoneSource, this);
+    doneScheduled = true;
+
+    g_pEventLoopManager->doLater([M = self] {
+        if (!M) // if M is gone, we got destroyed, doesn't matter.
+            return;
+
+        if (!PROTO::outputs.contains(M->szName))
+            return;
+
+        PROTO::outputs.at(M->szName)->sendDone();
+        M->doneScheduled = false;
+    });
 }
 
 bool CMonitor::attemptDirectScanout() {

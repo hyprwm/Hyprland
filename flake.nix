@@ -55,6 +55,11 @@
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
+
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -82,6 +87,7 @@
           hyprland-extras
         ];
       });
+    treefmtEval = eachSystem (system: inputs.treefmt-nix.lib.evalModule pkgsFor.${system} ./nix/treefmt.nix);
   in {
     overlays = import ./nix/overlays.nix {inherit self lib inputs;};
 
@@ -122,7 +128,7 @@
         };
     });
 
-    formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);
+    formatter = eachSystem (system: treefmtEval.${system}.config.build.wrapper);
 
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;

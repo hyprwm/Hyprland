@@ -49,22 +49,23 @@ class CHyprRenderer {
     CHyprRenderer();
     ~CHyprRenderer();
 
-    void                            renderMonitor(CMonitor* pMonitor);
-    void                            arrangeLayersForMonitor(const MONITORID&);
-    void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
-    void                            damageWindow(PHLWINDOW, bool forceFull = false);
-    void                            damageBox(CBox*, bool skipFrameSchedule = false);
-    void                            damageBox(const int& x, const int& y, const int& w, const int& h);
-    void                            damageRegion(const CRegion&);
-    void                            damageMonitor(CMonitor*);
-    void                            damageMirrorsWith(CMonitor*, const CRegion&);
-    bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
-    bool                            shouldRenderWindow(PHLWINDOW, CMonitor*);
-    bool                            shouldRenderWindow(PHLWINDOW);
-    void                            ensureCursorRenderingMode();
-    bool                            shouldRenderCursor();
-    void                            setCursorHidden(bool hide);
-    void                            calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
+    void renderMonitor(CMonitor* pMonitor);
+    void arrangeLayersForMonitor(const MONITORID&);
+    void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
+    void damageWindow(PHLWINDOW, bool forceFull = false);
+    void damageBox(CBox*, bool skipFrameSchedule = false);
+    void damageBox(const int& x, const int& y, const int& w, const int& h);
+    void damageRegion(const CRegion&);
+    void damageMonitor(CMonitor*);
+    void damageMirrorsWith(CMonitor*, const CRegion&);
+    bool applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
+    bool shouldRenderWindow(PHLWINDOW, CMonitor*);
+    bool shouldRenderWindow(PHLWINDOW);
+    void ensureCursorRenderingMode();
+    bool shouldRenderCursor();
+    void setCursorHidden(bool hide);
+    void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, SP<CMonitor> pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
+                               bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry);
     void                            setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace);

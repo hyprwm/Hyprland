@@ -23,6 +23,7 @@
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
 #include "protocols/XDGShell.hpp"
+#include "protocols/XDGOutput.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
@@ -2869,6 +2870,8 @@ void CCompositor::arrangeMonitors() {
         else
             m->xwaylandScale = 1.f;
     }
+
+    PROTO::xdgOutput->updateAllOutputs();
 }
 
 void CCompositor::enterUnsafeState() {

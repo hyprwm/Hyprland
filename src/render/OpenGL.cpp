@@ -1423,6 +1423,9 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(tex->m_iTarget, tex->m_iTexID);
 
+    glTexParameteri(tex->m_iTarget, GL_TEXTURE_WRAP_S, 0x2900 /* GL_CLAMP */);
+    glTexParameteri(tex->m_iTarget, GL_TEXTURE_WRAP_T, 0x2900);
+
     if (m_RenderData.useNearestNeighbor) {
         glTexParameteri(tex->m_iTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(tex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

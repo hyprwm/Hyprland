@@ -29,29 +29,20 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
         return;
     }
 
-    RESOURCE->setDestroy([this](CZxdgOutputManagerV1* res) { this->onManagerResourceDestroy(res->resource()); });
-    RESOURCE->setOnDestroy([this](CZxdgOutputManagerV1* res) { this->onManagerResourceDestroy(res->resource()); });
-    RESOURCE->setGetXdgOutput([this](CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* output) { this->onManagerGetXDGOutput(mgr, id, output); });
+    RESOURCE->setDestroy([this](CZxdgOutputManagerV1* res) { onManagerResourceDestroy(res->resource()); });
+    RESOURCE->setOnDestroy([this](CZxdgOutputManagerV1* res) { onManagerResourceDestroy(res->resource()); });
+    RESOURCE->setGetXdgOutput([this](CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* output) { onManagerGetXDGOutput(mgr, id, output); });
 }
 
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P  = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
     static auto P2 = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
-    static auto P3 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        for (auto const& o : m_vXDGOutputs) {
-            if (o->monitor == PMONITOR)
-                o->monitor = nullptr;
-        }
-    });
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
-    const auto  OUTPUT = CWLOutputResource::fromResource(outputResource);
-
-    const auto  PMONITOR = OUTPUT->monitor.get();
-
-    const auto  CLIENT = mgr->client();
+    const auto  OUTPUT   = CWLOutputResource::fromResource(outputResource);
+    const auto  PMONITOR = OUTPUT->monitor.lock();
+    const auto  CLIENT   = mgr->client();
 
     CXDGOutput* pXDGOutput = m_vXDGOutputs.emplace_back(std::make_unique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
 #ifndef NO_XWAYLAND
@@ -66,8 +57,12 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
         return;
     }
 
-    if (!PMONITOR)
+    if (!PMONITOR) {
+        LOGM(ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
         return;
+    }
+
+    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->szName, (uintptr_t)CLIENT, pXDGOutput->isXWayland ? "xwayland" : "not xwayland");
 
     const auto XDGVER = pXDGOutput->resource->version();
 
@@ -84,8 +79,9 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 }
 
 void CXDGOutputProtocol::updateAllOutputs() {
-    for (auto const& o : m_vXDGOutputs) {
+    LOGM(LOG, "updating all xdg_output heads");
 
+    for (auto const& o : m_vXDGOutputs) {
         if (!o->monitor)
             continue;
 
@@ -97,7 +93,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
 
 //
 
-CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, CMonitor* monitor_) : monitor(monitor_), resource(resource_) {
+CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, SP<CMonitor> monitor_) : monitor(monitor_), resource(resource_) {
     if (!resource->resource())
         return;
 

@@ -190,10 +190,10 @@ class CMonitor {
     }
 
   private:
-    void             setupDefaultWS(const SMonitorRule&);
-    WORKSPACEID      findAvailableDefaultWS();
+    void        setupDefaultWS(const SMonitorRule&);
+    WORKSPACEID findAvailableDefaultWS();
 
-    wl_event_source* doneSource = nullptr;
+    bool        doneScheduled = false;
 
     struct {
         CHyprSignalListener frame;

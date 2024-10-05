@@ -96,10 +96,12 @@
         pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
-            alejandra.enable = true;
-            statix.enable = true;
-            deadnix.enable = true;
-            clang-format.enable = true;
+            hyprland-treewide-formatter = {
+              enable = true;
+              entry = "${self.formatter.${system}}/bin/hyprland-treewide-formatter .";
+              pass_filenames = false;
+              always_run = true;
+            };
           };
         };
       });
@@ -130,6 +132,7 @@
           hardeningDisable = ["fortify"];
           inputsFrom = [pkgsFor.${system}.hyprland];
           packages = [pkgsFor.${system}.clang-tools];
+          inherit (self.checks.${system}.pre-commit-check) shellHook;
         };
     });
 

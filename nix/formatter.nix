@@ -7,7 +7,7 @@
   fd,
   lib,
 }:
-writers.writeDashBin "fmt" {
+writers.writeDashBin "hyprland-treewide-formatter" {
   makeWrapperArgs = [
     "--prefix"
     "PATH"

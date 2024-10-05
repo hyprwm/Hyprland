@@ -17,7 +17,7 @@ writers.writeDashBin "hyprland-treewide-formatter" {
 } ''
   # thanks NotAShelf for the nix formatting script :)
   nix_format() {
-    if [ -z "''${1:-""}" ] || [ "$1" = "." ]; then
+    if [ $@ = 0 ] || [ "$1" = "." ]; then
       fd '.*\.nix' . -x statix fix -- {} \;
       fd '.*\.nix' . -X deadnix -e -- {} \; -X alejandra {} \;
     elif [ -d "$1" ]; then
@@ -31,7 +31,7 @@ writers.writeDashBin "hyprland-treewide-formatter" {
   }
 
   cpp_format() {
-    if [ -z "''${1:-""}" ] || [ "$1" = "." ]; then
+    if [ $@ = 0 ] || [ "$1" = "." ]; then
       fd '.*\.cpp' . -x clang-format --verbose -i {} \;
     elif [ -d "$1" ]; then
       fd '.*\.cpp' $1 -x clang-format --verbose -i {} \;

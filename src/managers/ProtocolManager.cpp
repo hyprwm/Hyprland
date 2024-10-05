@@ -86,7 +86,8 @@ CProtocolManager::CProtocolManager() {
 
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
-        if (M->isMirror())
+        // also ignore the fallback
+        if (M->isMirror() || M == g_pCompositor->m_pUnsafeOutput)
             return;
 
         if (PROTO::outputs.contains(M->szName))

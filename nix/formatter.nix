@@ -18,11 +18,11 @@ writers.writeDashBin "hyprland-treewide-formatter" {
   # thanks NotAShelf for the nix formatting script :)
   nix_format() {
     if [ $@ = 0 ]; then
-      fd '.*\.nix' . -x statix fix -- {} \;
-      fd '.*\.nix' . -X deadnix -e -- {} \; -X alejandra {} \;
+      fd '.*\.nix' . -E "subprojects/*\.*" -x statix fix -- {} \;
+      fd '.*\.nix' . -E "" -X deadnix -e -- {} \; -X alejandra {} \;
     elif [ -d "$1" ]; then
-      fd '.*\.nix' $1 -x statix fix -- {} \;
-      fd '.*\.nix' $1 -X deadnix -e -- {} \; -X alejandra {} \;
+      fd '.*\.nix' $1 -E "subprojects/*\.*" -i -x statix fix -- {} \;
+      fd '.*\.nix' $1 -E "subprojects/*\.*" -i -X deadnix -e -- {} \; -X alejandra {} \;
     else
       statix fix -- "$1"
       deadnix -e "$1"
@@ -32,9 +32,9 @@ writers.writeDashBin "hyprland-treewide-formatter" {
 
   cpp_format() {
     if [ $@ = 0 ] || [ "$1" = "." ]; then
-      fd '.*\.cpp' . -x clang-format --verbose -i {} \;
+      fd '.*\.cpp' . -E "subprojects/*\.*"  | xargs clang-format --verbose -i
     elif [ -d "$1" ]; then
-      fd '.*\.cpp' $1 -x clang-format --verbose -i {} \;
+      fd '.*\.cpp' $1 -E "subprojects/*\.*" | xargs clang-format --verbose -i
     else
       clang-format --verbose -i "$1"
     fi

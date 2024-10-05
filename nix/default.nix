@@ -68,7 +68,7 @@ in
       inherit version;
 
       src = cleanSourceWith {
-        filter = name: type: let
+        filter = name: _type: let
           baseName = baseNameOf (toString name);
         in
           ! (hasSuffix ".nix" baseName);

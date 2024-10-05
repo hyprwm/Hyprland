@@ -229,6 +229,12 @@ void CMonitor::onConnect(bool noRule) {
 }
 
 void CMonitor::onDisconnect(bool destroy) {
+    CScopeGuard x = {[this]() {
+        if (g_pCompositor->m_bIsShuttingDown)
+            return;
+        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+        EMIT_HOOK_EVENT("monitorRemoved", this);
+    }};
 
     if (renderTimer) {
         wl_event_source_remove(renderTimer);
@@ -341,9 +347,6 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
     std::erase_if(g_pCompositor->m_vMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
-    EMIT_HOOK_EVENT("monitorRemoved", this);
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {

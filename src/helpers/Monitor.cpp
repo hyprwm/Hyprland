@@ -36,6 +36,7 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
+    CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     if (output->supportsExplicit) {
         inTimeline  = CSyncTimeline::create(output->getBackend()->drmFD());
@@ -234,6 +235,7 @@ void CMonitor::onDisconnect(bool destroy) {
             return;
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
         EMIT_HOOK_EVENT("monitorRemoved", this);
+        g_pCompositor->arrangeMonitors();
     }};
 
     if (renderTimer) {

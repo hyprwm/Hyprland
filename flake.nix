@@ -55,6 +55,8 @@
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
+
+    pre-commit-hooks.url = "github:cachix/git-hooks.nix";
   };
 
   outputs = inputs @ {
@@ -91,6 +93,15 @@
         self.packages.${system})
       // {
         inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
+        pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            alejandra.enable = true;
+            statix.enable = true;
+            deadnix.enable = true;
+            clang-format.enable = true;
+          };
+        };
       });
 
     packages = eachSystem (system: {

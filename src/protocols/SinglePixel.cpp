@@ -17,6 +17,8 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CColor co
 
     success = texture->m_iTexID;
 
+    size = {1, 1};
+
     if (!success)
         Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
 }

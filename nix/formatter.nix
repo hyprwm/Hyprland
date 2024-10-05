@@ -19,7 +19,7 @@ writers.writeDashBin "hyprland-treewide-formatter" {
   nix_format() {
     if [ $@ = 0 ]; then
       fd '.*\.nix' . -E "subprojects/*\.*" -x statix fix -- {} \;
-      fd '.*\.nix' . -E "" -X deadnix -e -- {} \; -X alejandra {} \;
+      fd '.*\.nix' . -E "subprojects/*\.*" -X deadnix -e -- {} \; -X alejandra {} \;
     elif [ -d "$1" ]; then
       fd '.*\.nix' $1 -E "subprojects/*\.*" -i -x statix fix -- {} \;
       fd '.*\.nix' $1 -E "subprojects/*\.*" -i -X deadnix -e -- {} \; -X alejandra {} \;

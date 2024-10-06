@@ -47,9 +47,10 @@ class CSecurityContextSandboxedClient {
     wl_listener destroyListener;
 
   private:
-    CSecurityContextSandboxedClient(int clientFD);
+    CSecurityContextSandboxedClient(int clientFD_);
 
-    wl_client* client = nullptr;
+    wl_client* client   = nullptr;
+    int        clientFD = -1;
 
     friend class CSecurityContextProtocol;
     friend class CSecurityContext;

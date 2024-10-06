@@ -5,6 +5,7 @@
   alejandra,
   llvmPackages_19,
   fd,
+  dash,
 }:
 writeShellApplication {
   name = "hyprland-treewide-formatter";
@@ -14,9 +15,10 @@ writeShellApplication {
     alejandra
     llvmPackages_19.clang-tools
     fd
+    dash
   ];
   text = ''
-    # shellcheck disable=SC2148
+    #!/usr/bin/env dash
 
     # common excludes
     excludes="subprojects"

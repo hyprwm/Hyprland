@@ -64,6 +64,7 @@ protocols = [
 	wayland_protocol_dir / 'staging/linux-drm-syncobj/linux-drm-syncobj-v1.xml',
 	wayland_protocol_dir / 'staging/xdg-dialog/xdg-dialog-v1.xml',
 	wayland_protocol_dir / 'staging/single-pixel-buffer/single-pixel-buffer-v1.xml',
+	wayland_protocol_dir / 'staging/security-context/security-context-v1.xml',
 ]
 
 wl_protocols = []

@@ -40,3 +40,7 @@ IWaylandProtocol::~IWaylandProtocol() {
 void IWaylandProtocol::removeGlobal() {
     wl_global_remove(m_pGlobal);
 }
+
+wl_global* IWaylandProtocol::getGlobal() {
+    return m_pGlobal;
+}

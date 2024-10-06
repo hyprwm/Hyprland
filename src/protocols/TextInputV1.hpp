@@ -60,7 +60,7 @@ class CTextInputV1 {
     friend class CTextInputV1Protocol;
 };
 
-class CTextInputV1Protocol : IWaylandProtocol {
+class CTextInputV1Protocol : public IWaylandProtocol {
   public:
     CTextInputV1Protocol(const wl_interface* iface, const int& ver, const std::string& name);
 

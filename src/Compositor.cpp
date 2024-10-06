@@ -24,6 +24,7 @@
 #include "protocols/LayerShell.hpp"
 #include "protocols/XDGShell.hpp"
 #include "protocols/XDGOutput.hpp"
+#include "protocols/SecurityContext.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
@@ -211,9 +212,20 @@ void CCompositor::setRandomSplash() {
 static std::vector<SP<Aquamarine::IOutput>> pendingOutputs;
 
 //
+
+static bool filterGlobals(const wl_client* client, const wl_global* global, void* data) {
+    if (!PROTO::securityContext->isClientSandboxed(client))
+        return true;
+
+    return !g_pProtocolManager || !g_pProtocolManager->isGlobalPrivileged(global);
+}
+
+//
 void CCompositor::initServer(std::string socketName, int socketFd) {
 
     m_sWLDisplay = wl_display_create();
+
+    wl_display_set_global_filter(m_sWLDisplay, ::filterGlobals, nullptr);
 
     m_sWLEventLoop = wl_display_get_event_loop(m_sWLDisplay);
 

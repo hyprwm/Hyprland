@@ -331,6 +331,7 @@ protocolnew("staging/drm-lease" "drm-lease-v1" false)
 protocolnew("staging/linux-drm-syncobj" "linux-drm-syncobj-v1" false)
 protocolnew("staging/xdg-dialog" "xdg-dialog-v1" false)
 protocolnew("staging/single-pixel-buffer" "single-pixel-buffer-v1" false)
+protocolnew("staging/security-context" "security-context-v1" false)
 
 protocolwayland()
 

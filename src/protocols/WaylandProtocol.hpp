@@ -53,6 +53,7 @@ class IWaylandProtocol {
 
     virtual void                   onDisplayDestroy();
     virtual void                   removeGlobal();
+    virtual wl_global*             getGlobal();
 
     virtual void                   bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
 

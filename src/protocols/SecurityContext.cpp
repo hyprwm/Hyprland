@@ -14,8 +14,8 @@ static int onCloseFdEvent(int fd, uint32_t mask, void* data) {
     return 0;
 }
 
-SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(int clientFD) {
-    auto p = SP<CSecurityContextSandboxedClient>(new CSecurityContextSandboxedClient(clientFD));
+SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(int clientFD_) {
+    auto p = SP<CSecurityContextSandboxedClient>(new CSecurityContextSandboxedClient(clientFD_));
     if (!p->client)
         return nullptr;
     return p;
@@ -26,7 +26,7 @@ static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
     client->onDestroy();
 }
 
-CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD) {
+CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD_) : clientFD(clientFD_) {
     client = wl_client_create(g_pCompositor->m_sWLDisplay, clientFD);
     if (!client)
         return;
@@ -37,6 +37,7 @@ CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD) {
 
 CSecurityContextSandboxedClient::~CSecurityContextSandboxedClient() {
     wl_list_remove(&destroyListener.link);
+    close(clientFD);
 }
 
 void CSecurityContextSandboxedClient::onDestroy() {

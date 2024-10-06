@@ -98,8 +98,9 @@
           hooks = {
             hyprland-treewide-formatter = {
               enable = true;
-              entry = "${self.formatter.${system}}/bin/hyprland-treewide-formatter .";
+              entry = "${self.formatter.${system}}/bin/hyprland-treewide-formatter";
               pass_filenames = false;
+              excludes = ["subprojects"];
               always_run = true;
             };
           };

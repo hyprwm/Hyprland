@@ -5,37 +5,62 @@
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 
+#include <cstdlib>
 #include <hyprutils/string/String.hpp>
+#include <print>
 using namespace Hyprutils::String;
 
 #include <fcntl.h>
+#include <getopt.h>
 #include <iostream>
 #include <iterator>
-#include <vector>
 #include <stdexcept>
 #include <string>
 #include <filesystem>
 
 void help() {
-    std::cout << "usage: Hyprland [arg [...]].\n";
-    std::cout << "\nArguments:\n";
-    std::cout << "  --help              -h       - Show this message again\n";
-    std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
-    std::cout << "  --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)\n";
-    std::cout << "  --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)\n";
-    std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
-    std::cout << "  --version           -v       - Print this binary's version\n";
+    std::print("usage: Hyprland [arg [...]].\n\n");
+    std::print(R"(Arguments:
+    --help              -h       - Show this message again
+    --config FILE       -c FILE  - Specify config file to use
+    --socket NAME       -s NAME  - Sets the Wayland socket name (for Wayland socket handover)
+    --wayland-fd FD     -F FD    - Sets the Wayland socket fd (for Wayland socket handover)
+    --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
+    --systeminfo        -i       - Prints system infos
+    --version           -v       - Print this binary's version)");
 }
 
-int main(int argc, char** argv) {
+void version()
+{
+    auto commitMsg = trim(GIT_COMMIT_MESSAGE);
+    std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
+    std::print("Hyprland, built from branch {} at commit {} {} ({}).\n"
+               "Date: {}\n"
+               "Tag: {}, commits: {}\n"
+               "built against aquamarine {}\n\n\n"
+               "flags: (if any)\n",
+               GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg,
+               GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION);
+#ifdef LEGACY_RENDERER
+    std::print("legacyrenderer\n");
+#endif
+#ifndef ISDEBUG
+    std::print("debug\n");
+#endif
+#ifdef NO_XWAYLAND
+    std::print("no xwayland\n");
+#endif
+}
+
+int main(int argc, char *argv[]) {
 
     if (!getenv("XDG_RUNTIME_DIR"))
         throwError("XDG_RUNTIME_DIR is not set!");
 
     // export HYPRLAND_CMD
-    std::string cmd = "";
-    for (auto i = 0; i < argc; ++i)
-        cmd += std::string(i == 0 ? "" : " ") + argv[i];
+    std::string cmd = argv[0];
+    for (int i = 1; i < argc; ++i)
+        cmd += std::string(" ") + argv[i];
 
     setenv("HYPRLAND_CMD", cmd.c_str(), 1);
     setenv("XDG_BACKEND", "wayland", 1);
@@ -43,106 +68,92 @@ int main(int argc, char** argv) {
     setenv("MOZ_ENABLE_WAYLAND", "1", 1);
 
     // parse some args
-    std::string              configPath;
-    std::string              socketName;
-    int                      socketFd   = -1;
-    bool                     ignoreSudo = false;
+    std::string  configPath;
+    std::string  socketName;
+    int          socketFd   = -1;
+    bool         ignoreSudo = false;
 
-    std::vector<std::string> args{argv + 1, argv + argc};
+    int opt = 0;
+    int option_index = 0;
+    const char *optstring = "-hvic:s:F:";
+    static const struct option opts[] = {
+        {"version",            no_argument,       0, 'v'},
+        {"help",               no_argument,       0, 'h'},
+        {"systeminfo",         no_argument,       0, 'i'},
+        {"i-am-really-stupid", no_argument,       0, 6969},
+        {"config",             required_argument, 0, 'c'},
+        {"socket",             required_argument, 0, 's'},
+        {"wayland-fd",         required_argument, 0, 'F'},
+        {0,0,0,0}
+    };
 
-    for (auto it = args.begin(); it != args.end(); it++) {
-        if (it->compare("--i-am-really-stupid") == 0 && !ignoreSudo) {
-            std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
-
-            ignoreSudo = true;
-        } else if (it->compare("--socket") == 0) {
-            if (std::next(it) == args.end()) {
+    while ((opt = getopt_long(argc, argv, optstring, opts, &option_index)) != -1)
+    {
+        switch (opt)
+        {
+            case 0:
+                break;
+            case '?':
                 help();
+                return EXIT_FAILURE;
 
-                return 1;
-            }
+            case 'v':
+                version();
+                return EXIT_SUCCESS;
 
-            socketName = *std::next(it);
-            it++;
-        } else if (it->compare("--wayland-fd") == 0) {
-            if (std::next(it) == args.end()) {
+            case 'h':
                 help();
+                return EXIT_SUCCESS;
 
-                return 1;
-            }
+            case 'c':
+            {
+                configPath = optarg;
 
-            try {
-                socketFd = std::stoi(std::next(it)->c_str());
+                try {
+                    configPath = std::filesystem::canonical(configPath);
 
-                // check if socketFd is a valid file descriptor
-                if (fcntl(socketFd, F_GETFD) == -1)
-                    throw std::exception();
-            } catch (...) {
-                std::cerr << "[ ERROR ] Invalid Wayland FD!\n";
-                help();
+                    if (!std::filesystem::is_regular_file(configPath)) {
+                        throw std::exception();
+                    }
+                } catch (...) {
+                    std::cerr << "[ ERROR ] Config file '" << configPath << "' doesn't exist!\n";
+                    help();
 
-                return 1;
-            }
-
-            it++;
-        } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
-            if (std::next(it) == args.end()) {
-                help();
-
-                return 1;
-            }
-            configPath = std::next(it)->c_str();
-
-            try {
-                configPath = std::filesystem::canonical(configPath);
-
-                if (!std::filesystem::is_regular_file(configPath)) {
-                    throw std::exception();
+                    return EXIT_FAILURE;
                 }
-            } catch (...) {
-                std::cerr << "[ ERROR ] Config file '" << configPath << "' doesn't exist!\n";
-                help();
 
-                return 1;
+                Debug::log(LOG, "User-specified config location: '{}'", configPath);
             }
+                break;
 
-            Debug::log(LOG, "User-specified config location: '{}'", configPath);
+            case 'i':
+                std::cout << systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "") << std::endl;
+                return EXIT_SUCCESS;
 
-            it++;
+            case 'F':
+                try {
+                    socketFd = std::stoi(optarg);
 
-            continue;
-        } else if (it->compare("-h") == 0 || it->compare("--help") == 0) {
-            help();
+                    // check if socketFd is a valid file descriptor
+                    if (fcntl(socketFd, F_GETFD) == -1)
+                        throw std::exception();
+                } catch (...) {
+                    std::cerr << "[ ERROR ] Invalid Wayland FD!\n";
+                    help();
 
-            return 0;
-        } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
-            auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-            std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
-            std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
-                ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + std::string{"\nbuilt against aquamarine "} + AQUAMARINE_VERSION + "\n" +
-                "\n\nflags: (if any)\n";
+                    return EXIT_FAILURE;
+                }
+                break;
 
-#ifdef LEGACY_RENDERER
-            result += "legacyrenderer\n";
-#endif
-#ifndef ISDEBUG
-            result += "debug\n";
-#endif
-#ifdef NO_XWAYLAND
-            result += "no xwayland\n";
-#endif
+            case 6969:
+                if (!ignoreSudo) {
+                    std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
+                    ignoreSudo = true;
+                }
+                break;
 
-            std::cout << result;
-            return 0;
-        } else if (it->compare("--systeminfo") == 0) {
-            const auto SYSINFO = systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "");
-            std::cout << SYSINFO << "\n";
-            return 0;
-        } else {
-            std::cerr << "[ ERROR ] Unknown option '" << it->c_str() << "'!\n";
-            help();
-
-            return 1;
+            default:
+                return EXIT_FAILURE;
         }
     }
 

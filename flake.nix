@@ -51,6 +51,7 @@
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
+      inputs.hyprland-protocols.follows = "hyprland-protocols";
       inputs.hyprlang.follows = "hyprlang";
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
@@ -98,13 +99,13 @@
       inherit
         (pkgsFor.${system})
         # hyprland-packages
-        
+
         hyprland
         hyprland-debug
         hyprland-legacy-renderer
         hyprland-unwrapped
         # hyprland-extras
-        
+
         xdg-desktop-portal-hyprland
         ;
       hyprland-cross = (pkgsCrossFor.${system} "aarch64-linux").hyprland;

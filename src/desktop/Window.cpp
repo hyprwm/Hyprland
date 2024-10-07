@@ -736,9 +736,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             }
 
             m_sWindowData.maxSize = CWindowOverridableVar(VEC, priority);
-            m_vRealSize =
-                Vector2D(std::min((double)m_sWindowData.maxSize.value().x, m_vRealSize.goal().x), std::min((double)m_sWindowData.maxSize.value().y, m_vRealSize.goal().y));
-            g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
+            clampWindowSize(std::nullopt, m_sWindowData.maxSize.value());
+
         } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("minsize")) {
         try {
@@ -751,9 +750,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             }
 
             m_sWindowData.minSize = CWindowOverridableVar(VEC, priority);
-            m_vRealSize =
-                Vector2D(std::max((double)m_sWindowData.minSize.value().x, m_vRealSize.goal().x), std::max((double)m_sWindowData.minSize.value().y, m_vRealSize.goal().y));
-            g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal());
+            clampWindowSize(m_sWindowData.minSize.value(), std::nullopt);
+
             if (m_sGroupData.pNextWindow.expired())
                 setHidden(false);
         } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", r.szRule, e.what()); }
@@ -1251,6 +1249,16 @@ int CWindow::surfacesCount() {
     int no = 0;
     m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> r, const Vector2D& offset, void* d) { *((int*)d) += 1; }, &no);
     return no;
+}
+
+void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
+    const Vector2D REALSIZE = m_vRealSize.goal();
+    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{0.f, 0.f}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
+    const Vector2D DELTA    = REALSIZE - NEWSIZE;
+
+    m_vRealPosition = m_vRealPosition.goal() + DELTA / 2.0;
+    m_vRealSize     = NEWSIZE;
+    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), NEWSIZE);
 }
 
 bool CWindow::isFullscreen() {

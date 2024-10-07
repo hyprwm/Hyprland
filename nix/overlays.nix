@@ -29,7 +29,7 @@ in {
     self.overlays.udis86
 
     # Hyprland packages themselves
-    (final: prev: let
+    (final: _prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
     in {
       hyprland = final.callPackage ./default.nix {
@@ -70,7 +70,7 @@ in {
   # this version is the one used in the git submodule, and allows us to
   # fetch the source without '?submodules=1'
   udis86 = final: prev: {
-    udis86-hyprland = prev.udis86.overrideAttrs (self: super: {
+    udis86-hyprland = prev.udis86.overrideAttrs (_self: _super: {
       src = final.fetchFromGitHub {
         owner = "canihavesomecoffee";
         repo = "udis86";

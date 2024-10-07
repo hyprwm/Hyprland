@@ -56,6 +56,11 @@
       inputs.hyprutils.follows = "hyprutils";
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
+
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -77,7 +82,7 @@
     pkgsCrossFor = eachSystem (system: crossSystem:
       import nixpkgs {
         localSystem = system;
-        crossSystem = crossSystem;
+        inherit crossSystem;
         overlays = with self.overlays; [
           hyprland-packages
           hyprland-extras
@@ -92,6 +97,18 @@
         self.packages.${system})
       // {
         inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
+        pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            hyprland-treewide-formatter = {
+              enable = true;
+              entry = "${self.formatter.${system}}/bin/hyprland-treewide-formatter";
+              pass_filenames = false;
+              excludes = ["subprojects"];
+              always_run = true;
+            };
+          };
+        };
       });
 
     packages = eachSystem (system: {
@@ -120,10 +137,11 @@
           hardeningDisable = ["fortify"];
           inputsFrom = [pkgsFor.${system}.hyprland];
           packages = [pkgsFor.${system}.clang-tools];
+          inherit (self.checks.${system}.pre-commit-check) shellHook;
         };
     });
 
-    formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.alejandra);
+    formatter = eachSystem (system: pkgsFor.${system}.callPackage ./nix/formatter.nix {});
 
     nixosModules.default = import ./nix/module.nix inputs;
     homeManagerModules.default = import ./nix/hm-module.nix self;

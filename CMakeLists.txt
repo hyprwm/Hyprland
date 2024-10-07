@@ -100,7 +100,7 @@ find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
 pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.1)
 
-pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine)
+pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.4.2)
 
 add_compile_definitions(AQUAMARINE_VERSION="${aquamarine_dep_VERSION}")
 
@@ -301,6 +301,8 @@ protocolnew("protocols" "wlr-data-control-unstable-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-focus-grab-v1" true)
 protocolnew("protocols" "wlr-layer-shell-unstable-v1" true)
 protocolnew("protocols" "wayland-drm" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-ctm-control-v1" true)
+
 protocolnew("staging/tearing-control" "tearing-control-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
 protocolnew("unstable/xdg-output" "xdg-output-unstable-v1" false)

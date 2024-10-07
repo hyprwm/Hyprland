@@ -813,6 +813,12 @@ void CMonitor::scheduleDone() {
     });
 }
 
+void CMonitor::setCTM(const Mat3x3& ctm_) {
+    ctm        = ctm_;
+    ctmUpdated = true;
+    g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
+}
+
 bool CMonitor::attemptDirectScanout() {
     if (!mirrors.empty() || isMirror() || g_pHyprRenderer->m_bDirectScanoutBlocked)
         return false; // do not DS if this monitor is being mirrored. Will break the functionality.

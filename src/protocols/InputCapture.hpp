@@ -9,9 +9,10 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     CInputCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name);
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    bool         isCaptured();
-
     //
+    bool isCaptured();
+
+    void updateKeymap();
     void sendMotion(const Vector2D& absolutePosition, const Vector2D& delta);
     void sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state);
     void sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state);
@@ -22,6 +23,8 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     void sendFrame();
 
   private:
+    void sendKeymap(SP<IKeyboard> keyboard, const std::unique_ptr<CHyprlandInputCaptureManagerV1>& manager);
+
     bool active = false;
     //
     std::vector<UP<CHyprlandInputCaptureManagerV1>> m_vManagers;

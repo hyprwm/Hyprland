@@ -329,24 +329,23 @@ void Events::listener_mapWindow(void* owner, void* data) {
         for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
-                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
 
-                    const auto SIZEX = SIZEXSTR == "max" ?
-                        std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
-                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
-                    const auto SIZEY = SIZEYSTR == "max" ?
-                        std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
-                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
+                                                            (std::stof(SIZEXSTR.substr(SIZEXSTR.starts_with("<") ? 1 : 0, SIZEXSTR.length() + SIZEXSTR.ends_with('%') ? -1 : 0)) *
+                                                             (SIZEXSTR.ends_with('%') ? 0.01 * PMONITOR->vecSize.x : 1));
+
+                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
+                                                            (std::stof(SIZEYSTR.substr(SIZEYSTR.starts_with("<") ? 1 : 0, SIZEYSTR.length() + SIZEYSTR.ends_with('%') ? -1 : 0)) *
+                                                             (SIZEYSTR.ends_with('%') ? 0.01 * PMONITOR->vecSize.y : 1));
 
                     Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
-                    PWINDOW->m_vRealSize   = Vector2D(SIZEX, SIZEY);
-                    PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal();
-                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                    PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }

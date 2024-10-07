@@ -429,6 +429,7 @@ class CWindow {
     bool                   onSpecialWorkspace();
     void                   activate(bool force = false);
     int                    surfacesCount();
+    void                   clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
 
     bool                   isFullscreen();
     bool                   isEffectiveInternalFSMode(const eFullscreenMode);

@@ -148,7 +148,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
 
     buffer = PBUFFER->buffer;
 
-    PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
+    PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self.lock());
 
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
     if (overlayCursor && !lockedSWCursors) {
@@ -408,12 +408,10 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
         return; // nothing to share
     }
 
-    std::vector<WP<CScreencopyFrame>> framesToRemove;
-
     // share frame if correct output
     for (auto const& f : m_vFramesAwaitingWrite) {
         if (!f->pMonitor || !f->buffer) {
-            framesToRemove.push_back(f);
+            destroyResource(f.get());
             continue;
         }
 
@@ -424,11 +422,5 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
 
         f->client->lastFrame.reset();
         ++f->client->frameCounter;
-
-        framesToRemove.push_back(f);
-    }
-
-    for (auto const& f : framesToRemove) {
-        destroyResource(f.get());
     }
 }

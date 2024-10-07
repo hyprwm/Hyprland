@@ -54,7 +54,7 @@ class CScreencopyFrame {
 
     bool                  good();
 
-    SP<CScreencopyFrame>  self;
+    WP<CScreencopyFrame>  self;
     WP<CScreencopyClient> client;
 
   private:

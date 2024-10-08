@@ -402,8 +402,9 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
 }
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWINDOW pDraggedWindow) {
-    static auto PSTACKED = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    if (!pDraggedWindow->canBeGroupedInto(m_pWindow.lock()))
+    static auto PSTACKED       = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto PDRAGINTOGROUP = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+    if (!pDraggedWindow->canBeGroupedInto(m_pWindow.lock()) || (*PDRAGINTOGROUP != 1 && *PDRAGINTOGROUP != 2))
         return false;
 
     const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_fBarHeight + BAR_PADDING_OUTER_VERT) / 2 : pos.x - assignedBoxGlobal().x - m_fBarWidth / 2;
@@ -435,6 +436,9 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
         // restores the group
         for (auto it = members.begin(); it != members.end(); ++it) {
+            (*it)->m_bIsFloating = pWindowInsertAfter->m_bIsFloating; // match the floating state of group members
+            if (pWindowInsertAfter->m_bIsFloating)
+                (*it)->m_vRealSize = pWindowInsertAfter->m_vRealSize.goal(); // match the size of group members
             if (std::next(it) != members.end())
                 (*it)->m_sGroupData.pNextWindow = *std::next(it);
             else
@@ -442,9 +446,13 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
         }
         members[0]->m_sGroupData.head   = true;
         members[0]->m_sGroupData.locked = WASLOCKED;
-    } else {
+    } else
         g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
-    }
+
+    pDraggedWindow->m_bIsFloating = pWindowInsertAfter->m_bIsFloating; // match the floating state of the window
+
+    if (pWindowInsertAfter->m_bIsFloating)
+        g_pXWaylandManager->setWindowSize(pDraggedWindow, pWindowInsertAfter->m_vRealSize.goal()); // match the size of the window
 
     pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 

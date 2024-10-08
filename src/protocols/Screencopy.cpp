@@ -394,12 +394,12 @@ void CScreencopyProtocol::bindManager(wl_client* client, void* data, uint32_t ve
 void CScreencopyProtocol::destroyResource(CScreencopyClient* client) {
     std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
     std::erase_if(m_vFrames, [&](const auto& other) { return other->client.get() == client; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other->client.get() == client; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other->client.get() == client; });
 }
 
 void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
     std::erase_if(m_vFrames, [&](const auto& other) { return other.get() == frame; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other.get() == frame; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
 void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
@@ -412,8 +412,11 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
 
     // share frame if correct output
     for (auto const& f : m_vFramesAwaitingWrite) {
+        if (!f)
+            continue;
+
         if (!f->pMonitor || !f->buffer) {
-            framesToRemove.push_back(f);
+            framesToRemove.emplace_back(f);
             continue;
         }
 
@@ -425,10 +428,10 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
         f->client->lastFrame.reset();
         ++f->client->frameCounter;
 
-        framesToRemove.push_back(f);
+        framesToRemove.emplace_back(f);
     }
 
     for (auto const& f : framesToRemove) {
-        destroyResource(f.get());
+        std::erase(m_vFramesAwaitingWrite, f);
     }
 }

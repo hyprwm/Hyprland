@@ -45,7 +45,7 @@ class CToplevelExportFrame {
 
     bool                      good();
 
-    SP<CToplevelExportFrame>  self;
+    WP<CToplevelExportFrame>  self;
     WP<CToplevelExportClient> client;
 
   private:
@@ -85,7 +85,7 @@ class CToplevelExportProtocol : IWaylandProtocol {
   private:
     std::vector<SP<CToplevelExportClient>> m_vClients;
     std::vector<SP<CToplevelExportFrame>>  m_vFrames;
-    std::vector<SP<CToplevelExportFrame>>  m_vFramesAwaitingWrite;
+    std::vector<WP<CToplevelExportFrame>>  m_vFramesAwaitingWrite;
 
     void                                   shareFrame(CToplevelExportFrame* frame);
     bool                                   copyFrameDmabuf(CToplevelExportFrame* frame, timespec* now);

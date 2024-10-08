@@ -116,11 +116,20 @@ int main(int argc, char** argv) {
 
             return 0;
         } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
+            auto result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH;
+            auto dirty  = std::string(GIT_DIRTY);
+            if (!dirty.empty())
+                result += " " + dirty;
+
             auto commitMsg = trim(GIT_COMMIT_MESSAGE);
             std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
-            std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
-                ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + std::string{"\nbuilt against aquamarine "} + AQUAMARINE_VERSION + "\n" +
-                "\n\nflags: (if any)\n";
+            result += " (" + commitMsg + ").";
+
+            result += "\nDate: " + std::string(GIT_COMMIT_DATE);
+            result += "\nTag: " + std::string(GIT_TAG) + ", commits: " + std::string(GIT_COMMITS);
+            result += "\nbuilt against aquamarine " + std::string(AQUAMARINE_VERSION);
+
+            result += "\n\nflags: (if any)\n";
 
 #ifdef LEGACY_RENDERER
             result += "legacyrenderer\n";

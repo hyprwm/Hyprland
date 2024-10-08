@@ -1498,6 +1498,11 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     if (inFD >= 0)
         pMonitor->output->state->setExplicitInFence(inFD);
 
+    if (pMonitor->ctmUpdated) {
+        pMonitor->ctmUpdated = false;
+        pMonitor->output->state->setCTM(pMonitor->ctm);
+    }
+
     bool ok = pMonitor->state.commit();
     if (!ok) {
         if (inFD >= 0) {

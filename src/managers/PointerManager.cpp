@@ -657,7 +657,7 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
-    auto        b = getCursorBoxGlobal();
+    auto        b = getCursorBoxGlobal().expand(4);
 
     static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
 

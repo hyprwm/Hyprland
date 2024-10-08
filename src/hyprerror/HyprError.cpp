@@ -3,6 +3,9 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
+
 CHyprError::CHyprError() {
     m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
     m_fFadeOpacity.registerVar();
@@ -130,6 +133,8 @@ void CHyprError::createQueued() {
     }
     m_szQueued = "";
 
+    m_fLastHeight = yoffset + PAD + 1;
+
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
 
@@ -158,6 +163,8 @@ void CHyprError::createQueued() {
     m_cQueued    = CColor();
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
+
+    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 }
 
 void CHyprError::draw() {
@@ -174,6 +181,11 @@ void CHyprError::draw() {
                 m_pTexture->destroyTexture();
                 m_bIsCreated = false;
                 m_szQueued   = "";
+
+                for (auto& m : g_pCompositor->m_vMonitors) {
+                    g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
+                }
+
                 return;
             } else {
                 m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
@@ -202,4 +214,12 @@ void CHyprError::destroy() {
         m_bQueuedDestroy = true;
     else
         m_szQueued = "";
+}
+
+bool CHyprError::active() {
+    return m_bIsCreated;
+}
+
+float CHyprError::height() {
+    return m_fLastHeight;
 }

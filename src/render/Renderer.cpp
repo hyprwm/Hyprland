@@ -97,6 +97,16 @@ CHyprRenderer::CHyprRenderer() {
         ensureCursorRenderingMode();
     });
 
+    static auto P3 = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
+        g_pEventLoopManager->doLater([this]() {
+            if (!g_pHyprError->active())
+                return;
+            for (auto& m : g_pCompositor->m_vMonitors) {
+                arrangeLayersForMonitor(m->ID);
+            }
+        });
+    });
+
     m_pCursorTicker = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, cursorTicker, nullptr);
     wl_event_source_timer_update(m_pCursorTicker, 500);
 
@@ -1756,6 +1766,13 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     PMONITOR->vecReservedTopLeft     = Vector2D();
 
     CBox usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
+
+    if (g_pHyprError->active() && g_pCompositor->m_pLastMonitor == PMONITOR->self) {
+        const auto HEIGHT              = g_pHyprError->height();
+        PMONITOR->vecReservedTopLeft.y = HEIGHT;
+        usableArea.y += HEIGHT;
+        usableArea.h -= HEIGHT;
+    }
 
     for (auto& la : PMONITOR->m_aLayerSurfaceLayers) {
         std::stable_sort(la.begin(), la.end(), [](const PHLLSREF& a, const PHLLSREF& b) { return a->order > b->order; });

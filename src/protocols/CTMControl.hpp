@@ -7,6 +7,8 @@
 #include "hyprland-ctm-control-v1.hpp"
 #include <unordered_map>
 
+class CMonitor;
+
 class CHyprlandCTMControlResource {
   public:
     CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_);

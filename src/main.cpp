@@ -116,32 +116,7 @@ int main(int argc, char** argv) {
 
             return 0;
         } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
-            auto result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH;
-            auto dirty  = std::string(GIT_DIRTY);
-            if (!dirty.empty())
-                result += " " + dirty;
-
-            auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-            std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
-            result += " (" + commitMsg + ").";
-
-            result += "\nDate: " + std::string(GIT_COMMIT_DATE);
-            result += "\nTag: " + std::string(GIT_TAG) + ", commits: " + std::string(GIT_COMMITS);
-            result += "\nbuilt against aquamarine " + std::string(AQUAMARINE_VERSION);
-
-            result += "\n\nflags: (if any)\n";
-
-#ifdef LEGACY_RENDERER
-            result += "legacyrenderer\n";
-#endif
-#ifndef ISDEBUG
-            result += "debug\n";
-#endif
-#ifdef NO_XWAYLAND
-            result += "no xwayland\n";
-#endif
-
-            std::cout << result;
+            std::cout << versionRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "") << std::endl;
             return 0;
         } else if (it->compare("--systeminfo") == 0) {
             const auto SYSINFO = systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "");

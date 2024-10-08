@@ -148,7 +148,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
 
     buffer = PBUFFER->buffer;
 
-    PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self.lock());
+    PROTO::screencopy->m_vFramesAwaitingWrite.emplace_back(self);
 
     g_pHyprRenderer->m_bDirectScanoutBlocked = true;
     if (overlayCursor && !lockedSWCursors) {

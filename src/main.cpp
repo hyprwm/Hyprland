@@ -5,6 +5,7 @@
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <hyprutils/string/String.hpp>
 #include <print>
@@ -97,9 +98,6 @@ int main(int argc, char *argv[]) {
         {
             case 0:
                 break;
-            case '?':
-                help();
-                return EXIT_FAILURE;
 
             case 'v':
                 version();
@@ -120,7 +118,7 @@ int main(int argc, char *argv[]) {
                         throw std::exception();
                     }
                 } catch (...) {
-                    std::cerr << "[ ERROR ] Config file '" << configPath << "' doesn't exist!\n";
+                    std::print(stderr, "[ ERROR ] Config file '{}' doesn't exist!\n", configPath);
                     help();
 
                     return EXIT_FAILURE;
@@ -131,7 +129,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'i':
-                std::cout << systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "") << std::endl;
+                std::print("{}", systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));
                 return EXIT_SUCCESS;
 
             case 'F':
@@ -142,7 +140,7 @@ int main(int argc, char *argv[]) {
                     if (fcntl(socketFd, F_GETFD) == -1)
                         throw std::exception();
                 } catch (...) {
-                    std::cerr << "[ ERROR ] Invalid Wayland FD!\n";
+                    std::print(stderr, "[ ERROR ] Invalid Wayland FD!\n");
                     help();
 
                     return EXIT_FAILURE;
@@ -151,41 +149,42 @@ int main(int argc, char *argv[]) {
 
             case 6969:
                 if (!ignoreSudo) {
-                    std::cout << "[ WARNING ] Running Hyprland with superuser privileges might damage your system\n";
+                    std::print("[ WARNING ] Running Hyprland with superuser privileges might damage your system\n");
                     ignoreSudo = true;
                 }
                 break;
 
             default:
+                help();
                 return EXIT_FAILURE;
         }
     }
 
     if (!ignoreSudo && Init::isSudo()) {
-        std::cerr << "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n";
-        std::cerr << "          Hint: Use the --i-am-really-stupid flag to omit that check.\n";
+        std::print(stderr, "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n"
+                           "          Hint: Use the --i-am-really-stupid flag to omit that check.\n");
 
         return 1;
     } else if (ignoreSudo && Init::isSudo()) {
-        std::cout << "Superuser privileges check is omitted. I hope you know what you're doing.\n";
+        std::print("Superuser privileges check is omitted. I hope you know what you're doing.\n");
     }
 
     if (socketName.empty() ^ (socketFd == -1)) {
-        std::cerr << "[ ERROR ] Hyprland was launched with only one of --socket and --wayland-fd.\n";
-        std::cerr << "          Hint: Pass both --socket and --wayland-fd to perform Wayland socket handover.\n";
+        std::print(stderr, "[ ERROR ] Hyprland was launched with only one of --socket and --wayland-fd.\n"
+                           "          Hint: Pass both --socket and --wayland-fd to perform Wayland socket handover.\n");
 
         return 1;
     }
 
-    std::cout << "Welcome to Hyprland!\n";
+    std::print("Welcome to Hyprland!\n");
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     try {
         g_pCompositor                     = std::make_unique<CCompositor>();
         g_pCompositor->explicitConfigPath = configPath;
-    } catch (std::exception& e) {
-        std::cout << "Hyprland threw in ctor: " << e.what() << "\nCannot continue.\n";
+    } catch (const std::exception& e) {
+        std::print("Hyprland threw in ctor: {}\nCannot continue.\n", e.what());
         return 1;
     }
 

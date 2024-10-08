@@ -186,12 +186,12 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
            g_pCompositor->m_pLastWindow.lock() :
            g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
 
-    if ((*PAUTOGROUP || g_pInputManager->m_bWasDraggingWindow) // check if auto_group is enabled, or, if the user is manually dragging the window into the group.
-        && OPENINGON                                           // check if OPENINGON exists.
-        && OPENINGON != pWindow                                // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
-        && OPENINGON->m_sGroupData.pNextWindow.lock()          // check if OPENINGON is a group
-        && pWindow->canBeGroupedInto(OPENINGON)                // check if the new window can be grouped into OPENINGON
-        && !g_pXWaylandManager->shouldBeFloated(pWindow)) {    // don't group XWayland windows that should be floated.
+    if (*PAUTOGROUP                                         // check if auto_group is enabled.
+        && OPENINGON                                        // check if OPENINGON exists.
+        && OPENINGON != pWindow                             // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
+        && OPENINGON->m_sGroupData.pNextWindow.lock()       // check if OPENINGON is a group
+        && pWindow->canBeGroupedInto(OPENINGON)             // check if the new window can be grouped into OPENINGON
+        && !g_pXWaylandManager->shouldBeFloated(pWindow)) { // don't group XWayland windows that should be floated.
 
         pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state
 

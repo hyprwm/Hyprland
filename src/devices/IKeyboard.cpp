@@ -392,6 +392,9 @@ void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
     xkb_state_update_key(xkbState, xkbKey, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 
     if (updateModifiersState()) {
+        if (xkbSymState)
+            xkb_state_update_mask(xkbSymState, 0, 0, 0, 0, 0, modifiersState.group);
+
         keyboardEvents.modifiers.emit(SModifiersEvent{
             .depressed = modifiersState.depressed,
             .latched   = modifiersState.latched,

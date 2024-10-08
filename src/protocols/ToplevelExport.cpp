@@ -354,12 +354,12 @@ void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_
 void CToplevelExportProtocol::destroyResource(CToplevelExportClient* client) {
     std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
     std::erase_if(m_vFrames, [&](const auto& other) { return other->client.get() == client; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other->client.get() == client; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other->client.get() == client; });
 }
 
 void CToplevelExportProtocol::destroyResource(CToplevelExportFrame* frame) {
     std::erase_if(m_vFrames, [&](const auto& other) { return other.get() == frame; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other.get() == frame; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
 void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
@@ -370,10 +370,16 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
 
     // share frame if correct output
     for (auto const& f : m_vFramesAwaitingWrite) {
-        if (!f->pWindow || !validMapped(f->pWindow)) {
-            framesToRemove.push_back(f);
+        if (!f)
+            continue;
+
+        if (!validMapped(f->pWindow)) {
+            framesToRemove.emplace_back(f);
             continue;
         }
+
+        if (!f->pWindow)
+            continue;
 
         const auto PWINDOW = f->pWindow;
 
@@ -394,7 +400,7 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
     }
 
     for (auto const& f : framesToRemove) {
-        destroyResource(f.get());
+        std::erase(m_vFramesAwaitingWrite, f);
     }
 }
 

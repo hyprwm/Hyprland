@@ -751,26 +751,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
         const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;
         const auto MAXSIZE = PWINDOW->m_pXDGSurface->toplevel->current.maxSize;
 
-        if (MAXSIZE > Vector2D{1, 1}) {
-            const auto REALSIZE = PWINDOW->m_vRealSize.goal();
-            Vector2D   newSize  = REALSIZE;
-
-            if (MAXSIZE.x < newSize.x)
-                newSize.x = MAXSIZE.x;
-            if (MAXSIZE.y < newSize.y)
-                newSize.y = MAXSIZE.y;
-            if (MINSIZE.x > newSize.x)
-                newSize.x = MINSIZE.x;
-            if (MINSIZE.y > newSize.y)
-                newSize.y = MINSIZE.y;
-
-            const Vector2D DELTA = REALSIZE - newSize;
-
-            PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + DELTA / 2.0;
-            PWINDOW->m_vRealSize     = newSize;
-            g_pXWaylandManager->setWindowSize(PWINDOW, newSize);
-            g_pHyprRenderer->damageWindow(PWINDOW);
-        }
+        PWINDOW->clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
+        g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
     if (!PWINDOW->m_pWorkspace->m_bVisible)

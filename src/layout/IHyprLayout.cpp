@@ -193,17 +193,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         && pWindow->canBeGroupedInto(OPENINGON)                // check if the new window can be grouped into OPENINGON
         && !g_pXWaylandManager->shouldBeFloated(pWindow)) {    // don't group XWayland windows that should be floated.
 
-        switch (pWindow->m_bIsFloating) {
-            case false:
-                if (OPENINGON->m_bIsFloating)
-                    pWindow->m_bIsFloating = true;
-                break;
-
-            case true:
-                if (!OPENINGON->m_bIsFloating)
-                    pWindow->m_bIsFloating = false;
-                break;
-        }
+        pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state
 
         static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
         (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);
@@ -335,21 +325,47 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->currentlyDraggedWindow.reset();
     g_pInputManager->m_bWasDraggingWindow = true;
 
-    if (DRAGGINGWINDOW->m_bDraggingTiled) {
-        DRAGGINGWINDOW->m_bIsFloating = false;
-        g_pInputManager->refocus();
-        changeWindowFloatingMode(DRAGGINGWINDOW);
-        DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
-    } else if (g_pInputManager->dragMode == MBIND_MOVE) {
+    if (g_pInputManager->dragMode == MBIND_MOVE) {
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING | FLOATING_ONLY, DRAGGINGWINDOW);
+        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
 
         if (pWindow) {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
                 return;
 
-            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
+            bool denied = false;
+            if (!pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled)
+                denied = true;
+
+            static auto PDRAGINTOGROUP = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !denied) {
+                if (DRAGGINGWINDOW->m_bDraggingTiled) {
+                    changeWindowFloatingMode(DRAGGINGWINDOW);
+                    DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
+                    DRAGGINGWINDOW->m_bDraggingTiled    = false;
+                }
+
+                if (DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock()) {
+                    std::vector<PHLWINDOW> members;
+                    PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
+                    do {
+                        members.push_back(curr);
+                        curr = curr->m_sGroupData.pNextWindow.lock();
+                    } while (curr != members[0]);
+
+                    for (auto it = members.begin(); it != members.end(); ++it) {
+                        (*it)->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of group members
+                        if (pWindow->m_bIsFloating)
+                            (*it)->m_vRealSize = pWindow->m_vRealSize.goal(); // match the size of group members
+                    }
+                }
+
+                DRAGGINGWINDOW->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of the window
+
+                if (pWindow->m_bIsFloating)
+                    g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize.goal()); // match the size of the window
+
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
@@ -359,6 +375,13 @@ void IHyprLayout::onEndDragWindow() {
                     DRAGGINGWINDOW->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
             }
         }
+    }
+
+    if (DRAGGINGWINDOW->m_bDraggingTiled) {
+        DRAGGINGWINDOW->m_bIsFloating = false;
+        g_pInputManager->refocus();
+        changeWindowFloatingMode(DRAGGINGWINDOW);
+        DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -553,10 +576,10 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 
-        // move to narnia because we don't wanna find our own node. onWindowCreated should apply the coords back.
+        // move to narnia because we don't wanna find our own node. onWindowCreatedTiling should apply the coords back.
         pWindow->m_vPosition = Vector2D(-999999, -999999);
 
-        onWindowCreated(pWindow);
+        onWindowCreatedTiling(pWindow);
 
         pWindow->m_vRealPosition.setValue(PSAVEDPOS);
         pWindow->m_vRealSize.setValue(PSAVEDSIZE);

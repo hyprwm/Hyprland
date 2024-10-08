@@ -82,8 +82,9 @@ class IKeyboard : public IHID {
     bool               keymapOverridden = false;
 
     xkb_layout_index_t activeLayout = 0;
-    xkb_state *        xkbState = nullptr, *xkbStaticState /* Static state: never gets modifiers or layout changes sent, used for keybinds. */ = nullptr;
-    xkb_keymap*        xkbKeymap = nullptr;
+    xkb_state *        xkbState = nullptr, *xkbStaticState /* Static state: never gets modifiers or layout changes sent, used for keybinds. */ = nullptr,
+              *xkbSymState = nullptr /* Same as static but gets layouts */;
+    xkb_keymap* xkbKeymap  = nullptr;
 
     struct {
         uint32_t depressed = 0, latched = 0, locked = 0, group = 0;

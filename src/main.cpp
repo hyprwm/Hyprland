@@ -34,21 +34,25 @@ void version()
 {
     auto commitMsg = trim(GIT_COMMIT_MESSAGE);
     std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
-    std::print("Hyprland, built from branch {} at commit {} {} ({}).\n"
+    std::print("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                "Date: {}\n"
                "Tag: {}, commits: {}\n"
-               "built against aquamarine {}\n\n\n"
-               "flags: (if any)\n",
-               GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg,
+               "built against aquamarine {}\n\n\n",
+               HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg,
                GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION);
-#ifdef LEGACY_RENDERER
+#if (!defined(LEGACY_RENDERER) && !defined(ISDEBUG) && !defined(NO_XWAYLAND))
+    std::print("no flags were set\n");
+#else
+    std::print("flags set:\n");
+# ifdef LEGACY_RENDERER
     std::print("legacyrenderer\n");
-#endif
-#ifndef ISDEBUG
+# endif
+# ifdef ISDEBUG
     std::print("debug\n");
-#endif
-#ifdef NO_XWAYLAND
+# endif
+# ifdef NO_XWAYLAND
     std::print("no xwayland\n");
+# endif
 #endif
 }
 

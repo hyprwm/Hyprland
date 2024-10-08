@@ -1,4 +1,5 @@
 #pragma once
+#define HYPRLAND_VERSION   "@HYPRLAND_VERSION@"
 #define GIT_COMMIT_HASH    "@HASH@"
 #define GIT_BRANCH         "@BRANCH@"
 #define GIT_COMMIT_MESSAGE "@MESSAGE@"

@@ -1,6 +1,7 @@
 #!/bin/sh
 cp -fr ./src/version.h.in ./src/version.h
 
+HYPRLAND_VERSION=${HYPRLAND_VERSION-$(cat VERSION)}
 HASH=${HASH-$(git rev-parse HEAD)}
 BRANCH=${BRANCH-$(git branch --show-current)}
 MESSAGE=${MESSAGE-$(git show | head -n 5 | tail -n 1 | sed -e 's/#//g' -e 's/\"//g')}
@@ -9,6 +10,7 @@ DIRTY=${DIRTY-$(git diff-index --quiet HEAD -- || echo dirty)}
 TAG=${TAG-$(git describe --tags)}
 COMMITS=${COMMITS-$(git rev-list --count HEAD)}
 
+sed -i -e "s#@HYPRLAND_VERSION@#${HYPRLAND_VERSION}#" ./src/version.h
 sed -i -e "s#@HASH@#${HASH}#" ./src/version.h
 sed -i -e "s#@BRANCH@#${BRANCH}#" ./src/version.h
 sed -i -e "s#@MESSAGE@#${MESSAGE}#" ./src/version.h

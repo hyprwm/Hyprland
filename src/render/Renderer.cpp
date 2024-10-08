@@ -1756,7 +1756,9 @@ void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLL
 }
 
 void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
+    const auto  PMONITOR = g_pCompositor->getMonitorFromID(monitor);
+
+    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
 
     if (!PMONITOR)
         return;
@@ -1768,10 +1770,15 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     CBox usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
     if (g_pHyprError->active() && g_pCompositor->m_pLastMonitor == PMONITOR->self) {
-        const auto HEIGHT              = g_pHyprError->height();
-        PMONITOR->vecReservedTopLeft.y = HEIGHT;
-        usableArea.y += HEIGHT;
-        usableArea.h -= HEIGHT;
+        const auto HEIGHT = g_pHyprError->height();
+        if (*BAR_POSITION == 0) {
+            PMONITOR->vecReservedTopLeft.y = HEIGHT;
+            usableArea.y += HEIGHT;
+            usableArea.h -= HEIGHT;
+        } else {
+            PMONITOR->vecReservedBottomRight.y = HEIGHT;
+            usableArea.h -= HEIGHT;
+        }
     }
 
     for (auto& la : PMONITOR->m_aLayerSurfaceLayers) {

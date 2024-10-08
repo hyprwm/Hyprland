@@ -51,6 +51,8 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 #endif
     pXDGOutput->client = CLIENT;
 
+    pXDGOutput->outputProto = OUTPUT->owner;
+
     if (!pXDGOutput->resource->resource()) {
         m_vXDGOutputs.pop_back();
         mgr->noMemory();
@@ -104,7 +106,7 @@ CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, SP<CMonitor> monitor_) : mon
 void CXDGOutput::sendDetails() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    if (!monitor)
+    if (!monitor || !outputProto || outputProto->isDefunct())
         return;
 
     const auto POS = isXWayland ? monitor->vecXWaylandPosition : monitor->vecPosition;

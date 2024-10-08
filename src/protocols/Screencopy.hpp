@@ -92,7 +92,7 @@ class CScreencopyProtocol : public IWaylandProtocol {
 
   private:
     std::vector<SP<CScreencopyFrame>>  m_vFrames;
-    std::vector<SP<CScreencopyFrame>>  m_vFramesAwaitingWrite;
+    std::vector<WP<CScreencopyFrame>>  m_vFramesAwaitingWrite;
     std::vector<SP<CScreencopyClient>> m_vClients;
 
     SP<CEventLoopTimer>                m_pSoftwareCursorTimer;

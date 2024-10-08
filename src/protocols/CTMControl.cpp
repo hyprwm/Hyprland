@@ -11,7 +11,6 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
 
     resource->setSetCtmForOutput([this](CHyprlandCtmControlManagerV1* r, wl_resource* output, wl_fixed_t mat0, wl_fixed_t mat1, wl_fixed_t mat2, wl_fixed_t mat3, wl_fixed_t mat4,
                                         wl_fixed_t mat5, wl_fixed_t mat6, wl_fixed_t mat7, wl_fixed_t mat8) {
-
         const auto OUTPUTRESOURCE = CWLOutputResource::fromResource(output);
 
         if (!OUTPUTRESOURCE)
@@ -37,7 +36,7 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlM
         LOGM(LOG, "CTM set for output {}: {}", PMONITOR->szName, ctms.at(PMONITOR->szName).toString());
     });
 
-    resource->setCommit([this] (CHyprlandCtmControlManagerV1 *r) {
+    resource->setCommit([this](CHyprlandCtmControlManagerV1* r) {
         LOGM(LOG, "Committing ctms to outputs");
 
         for (auto& m : g_pCompositor->m_vMonitors) {

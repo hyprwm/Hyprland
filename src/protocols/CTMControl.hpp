@@ -17,7 +17,7 @@ class CHyprlandCTMControlResource {
     bool good();
 
   private:
-    SP<CHyprlandCtmControlManagerV1> resource;
+    SP<CHyprlandCtmControlManagerV1>        resource;
 
     std::unordered_map<std::string, Mat3x3> ctms;
 };

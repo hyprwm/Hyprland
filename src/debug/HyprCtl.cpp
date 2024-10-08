@@ -853,28 +853,18 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-        std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
-        std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
-                    "Date: {}\n"
-                    "Tag: {}, commits: {}\n"
-                    "built against aquamarine {}\n\n\n",
-                    HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg,
-                    GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION);
+        std::string result = "Hyprland, built from branch " + std::string(GIT_BRANCH) + " at commit " + GIT_COMMIT_HASH + " " + GIT_DIRTY + " (" + commitMsg +
+            ").\nDate: " + GIT_COMMIT_DATE + "\nTag: " + GIT_TAG + ", commits: " + GIT_COMMITS + std::string{"\nbuilt against aquamarine "} + AQUAMARINE_VERSION + "\n" +
+            "\n\nflags: (if any)\n";
 
-#if (!defined(LEGACY_RENDERER) && !defined(ISDEBUG) && !defined(NO_XWAYLAND))
-        result += "no flags were set\n";
-#else
-        result += "flags set:\n";
-# ifdef LEGACY_RENDERER
+#ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
-# endif
-# ifdef ISDEBUG
+#endif
+#ifndef ISDEBUG
         result += "debug\n";
-# endif
-# ifdef NO_XWAYLAND
+#endif
+#ifdef NO_XWAYLAND
         result += "no xwayland\n";
-# endif
 #endif
 
         return result;

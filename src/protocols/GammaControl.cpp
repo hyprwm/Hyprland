@@ -46,6 +46,13 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->setOnDestroy([this](CZwlrGammaControlV1* gamma) { PROTO::gamma->destroyGammaControl(this); });
 
     resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
+        if (!pMonitor) {
+            LOGM(ERR, "setGamma for a dead monitor");
+            resource->sendFailed();
+            close(fd);
+            return;
+        }
+
         LOGM(LOG, "setGamma for {}", pMonitor->szName);
 
         int fdFlags = fcntl(fd, F_GETFL, 0);

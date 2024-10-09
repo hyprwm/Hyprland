@@ -26,6 +26,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
@@ -82,6 +83,8 @@ void CMonitor::onConnect(bool noRule) {
             m_frameScheduler->onFrame();
     });
     m_listeners.commit     = m_output->events.commit.listen([this] {
+        m_events.commit.emit();
+
         if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
             PROTO::screencopy->onOutputCommit(m_self.lock());
             PROTO::toplevelExport->onOutputCommit(m_self.lock());

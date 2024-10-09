@@ -141,6 +141,10 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
         sendEnter(g_pSeatManager->m_state.pointerFocus.lock(), {-1, -1} /* Coords don't really matter that much, they will be updated next move */);
 }
 
+CWLPointerResource::~CWLPointerResource() {
+    m_events.destroyed.emit();
+}
+
 int CWLPointerResource::version() {
     return m_resource->version();
 }

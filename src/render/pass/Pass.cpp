@@ -171,7 +171,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     } else
         g_pHyprOpenGL->m_renderData.finalDamage = m_damage;
 
-    if (std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->disableSimplification(); })) {
+    if (g_pHyprOpenGL->m_renderData.noSimplify || std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->disableSimplification(); })) {
         for (auto& el : m_passElements) {
             el->elementDamage = m_damage;
         }

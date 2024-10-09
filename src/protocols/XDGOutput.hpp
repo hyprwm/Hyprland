@@ -6,6 +6,7 @@
 
 class CMonitor;
 class CXDGOutputProtocol;
+class CWLOutputProtocol;
 
 class CXDGOutput {
   public:
@@ -16,6 +17,7 @@ class CXDGOutput {
   private:
     WP<CMonitor>            monitor;
     SP<CZxdgOutputV1>       resource;
+    WP<CWLOutputProtocol>   outputProto;
 
     std::optional<Vector2D> overridePosition;
 

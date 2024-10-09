@@ -119,6 +119,9 @@ bool CWLOutputProtocol::isDefunct() {
 }
 
 void CWLOutputProtocol::sendDone() {
+    if (defunct)
+        return;
+
     for (auto const& r : m_vOutputs) {
         r->resource->sendDone();
     }

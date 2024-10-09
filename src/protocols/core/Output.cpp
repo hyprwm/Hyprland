@@ -47,7 +47,7 @@ SP<CWlOutput> CWLOutputResource::getResource() {
 }
 
 void CWLOutputResource::updateState() {
-    if (!monitor || !owner || owner->defunct)
+    if (!monitor || (owner && owner->defunct))
         return;
 
     if (resource->version() >= 2)

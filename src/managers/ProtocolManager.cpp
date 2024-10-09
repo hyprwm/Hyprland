@@ -65,6 +65,7 @@
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
 #include "../protocols/CommitTiming.hpp"
+#include "HookSystemManager.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"

@@ -42,7 +42,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock()).drmFormat;
     if (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");
         m_resource->sendFailed();
@@ -60,7 +60,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock()).drmFormat;
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};

@@ -65,6 +65,7 @@
 #include "../protocols/ExtWorkspace.hpp"
 #include "../protocols/ExtDataDevice.hpp"
 #include "../protocols/PointerWarp.hpp"
+#include "HookSystemManager.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"

@@ -92,6 +92,9 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
+    // reset window on window unmap
+    m_listeners.windowUnmap = m_window->m_events.unmap.registerListener([this](std::any data) { m_window.reset(); });
+
     m_resource->setOnDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { this->copy(pFrame, res, ignoreDamage); });
@@ -100,7 +103,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR).drmFormat;
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture toplevel");
         m_resource->sendFailed();
@@ -114,7 +117,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR).drmFormat;
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 
@@ -458,12 +461,5 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
 
     for (auto const& f : framesToRemove) {
         std::erase(m_framesAwaitingWrite, f);
-    }
-}
-
-void CToplevelExportProtocol::onWindowUnmap(PHLWINDOW pWindow) {
-    for (auto const& f : m_frames) {
-        if (f->m_window == pWindow)
-            f->m_window.reset();
     }
 }

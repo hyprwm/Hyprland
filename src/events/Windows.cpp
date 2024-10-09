@@ -636,7 +636,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", PWINDOW)});
     EMIT_HOOK_EVENT("closeWindow", PWINDOW);
 
-    PROTO::toplevelExport->onWindowUnmap(PWINDOW);
+    PWINDOW->events.unmap.emit();
 
     if (PWINDOW->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);

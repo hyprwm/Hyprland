@@ -93,6 +93,9 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
+    // reset window on window unmap
+    listeners.windowUnmap = pWindow->events.unmap.registerListener([this](std::any data) { pWindow.reset(); });
+
     resource->setOnDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { this->copy(pFrame, res, ignoreDamage); });
@@ -401,12 +404,5 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
 
     for (auto const& f : framesToRemove) {
         std::erase(m_vFramesAwaitingWrite, f);
-    }
-}
-
-void CToplevelExportProtocol::onWindowUnmap(PHLWINDOW pWindow) {
-    for (auto const& f : m_vFrames) {
-        if (f->pWindow == pWindow)
-            f->pWindow.reset();
     }
 }

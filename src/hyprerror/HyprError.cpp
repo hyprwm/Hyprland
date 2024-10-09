@@ -133,7 +133,7 @@ void CHyprError::createQueued() {
     }
     m_szQueued = "";
 
-    m_fLastHeight = yoffset + PAD + 1;
+    m_fLastHeight = yoffset + PAD + 1 - (TOPBAR ? 0 : Y - PAD);
 
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);

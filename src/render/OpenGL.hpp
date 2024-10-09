@@ -268,7 +268,7 @@ class CHyprOpenGLImpl {
 
     void         ensureBackgroundTexturePresence();
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    SDRMFormat   getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 

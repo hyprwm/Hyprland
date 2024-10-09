@@ -207,6 +207,7 @@ class CMonitor {
     } m_tearingState;
 
     struct {
+        CSignalT<> commit;
         CSignalT<> destroy;
         CSignalT<> connect;
         CSignalT<> disconnect;

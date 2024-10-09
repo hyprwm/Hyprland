@@ -377,6 +377,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:merge_groups_on_drag", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:merge_floated_into_tiled_on_groupbar", Hyprlang::INT{0});
     m_pConfig->addConfigValue("group:auto_group", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:drag_into_group", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});

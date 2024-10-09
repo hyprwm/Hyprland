@@ -3329,18 +3329,30 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
     }
 }
 
-uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
+DRMFormat CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
     static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
 
-    if (!*PFORCE8BIT)
-        return pMonitor->m_output->state->state().drmFormat;
+    auto              monFmt = pMonitor->m_output->state->state().drmFormat;
 
-    auto fmt = pMonitor->m_output->state->state().drmFormat;
+    if (*PFORCE8BIT)
+        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
+            monFmt == DRM_FORMAT_XBGR2101010)
+            monFmt = DRM_FORMAT_XRGB8888;
 
-    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
-        return DRM_FORMAT_XRGB8888;
+    return monFmt;
+}
 
-    return fmt;
+std::vector<uint64_t> CHyprOpenGLImpl::getDRMFormatModifiers(DRMFormat drmFormat) {
+    SDRMFormat format;
+
+    for (const auto& fmt : m_drmFormats) {
+        if (fmt.drmFormat == drmFormat) {
+            format = fmt;
+            break;
+        }
+    }
+
+    return format.modifiers;
 }
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {

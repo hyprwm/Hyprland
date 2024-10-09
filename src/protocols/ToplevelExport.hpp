@@ -4,6 +4,8 @@
 #include "hyprland-toplevel-export-v1.hpp"
 #include "WaylandProtocol.hpp"
 #include "Screencopy.hpp"
+#include <hyprutils/signal/Listener.hpp>
+using namespace Hyprutils::Signal;
 
 #include <list>
 #include <vector>

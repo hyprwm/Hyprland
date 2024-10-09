@@ -1,6 +1,8 @@
 #include "ImageCaptureSource.hpp"
-#include "core/Output.hpp"
 #include "ForeignToplevel.hpp"
+#include "desktop/Window.hpp"
+#include "helpers/Monitor.hpp"
+#include "core/Output.hpp"
 
 CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CMonitor> pMonitor) : resource(resource_) {
     listeners.destroy1 = pMonitor->events.disconnect.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });

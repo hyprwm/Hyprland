@@ -1,10 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
-#include <memory>
+#include "../defines.hpp"
 #include "WaylandProtocol.hpp"
 #include "ext-image-capture-source-v1.hpp"
+
+#include <hyprutils/signal/Signal.hpp>
+#include <hyprutils/signal/Listener.hpp>
+using namespace Hyprutils::Signal;
+
+class CMonitor;
+class CWindow;
 
 class CImageCaptureSource {
   public:

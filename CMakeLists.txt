@@ -71,7 +71,7 @@ else()
   message(STATUS "Configuring Hyprland in Release with CMake")
 endif()
 
-add_compile_definitions(HYPRLAND_VERSION=${VER})
+add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
 
 include_directories(. "src/" "protocols/")
 

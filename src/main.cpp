@@ -23,6 +23,7 @@ void help() {
     std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
     std::cout << "  --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)\n";
     std::cout << "  --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)\n";
+    std::cout << "  --systeminfo                 - Prints system infos\n";
     std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
     std::cout << "  --version           -v       - Print this binary's version\n";
 }

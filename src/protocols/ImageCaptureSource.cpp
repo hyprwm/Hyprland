@@ -4,12 +4,12 @@
 #include "helpers/Monitor.hpp"
 #include "core/Output.hpp"
 
-CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CMonitor> pMonitor) : resource(resource_) {
+CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CMonitor> pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     listeners.destroy1 = pMonitor->events.disconnect.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });
     listeners.destroy2 = pMonitor->events.destroy.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });
 }
 
-CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CWindow> pWindow) : resource(resource_) {
+CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CWindow> pWindow_) : resource(resource_), pWindow(pWindow_) {
     listeners.destroy1 = pWindow->events.destroy.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });
     listeners.destroy2 = pWindow->events.unmap.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });
     listeners.destroy3 = pWindow->events.hide.registerListener([this](std::any data) { PROTO::imageCaptureSource->destroyResource(this); });
@@ -30,6 +30,12 @@ COutputImageCaptureSourceProtocol::COutputImageCaptureSourceProtocol(const wl_in
 void COutputImageCaptureSourceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = PROTO::imageCaptureSource->m_vOutputManagers.emplace_back(makeShared<CExtOutputImageCaptureSourceManagerV1>(client, ver, id));
 
+    if (!RESOURCE->resource()) {
+        wl_client_post_no_memory(client);
+        PROTO::imageCaptureSource->m_vOutputManagers.pop_back();
+        return;
+    }
+
     RESOURCE->setDestroy([](CExtOutputImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setOnDestroy([](CExtOutputImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setCreateSource([](CExtOutputImageCaptureSourceManagerV1* pMgr, uint32_t id, wl_resource* output) {
@@ -43,12 +49,6 @@ void COutputImageCaptureSourceProtocol::bindManager(wl_client* client, void* dat
         PROTO::imageCaptureSource->m_vSources.emplace_back(makeShared<CImageCaptureSource>(makeShared<CExtImageCaptureSourceV1>(pMgr->client(), pMgr->version(), id), pMonitor));
         LOGM(LOG, "New capture source for monitor: {}", pMonitor->szName);
     });
-
-    if (!RESOURCE->resource()) {
-        wl_client_post_no_memory(client);
-        PROTO::imageCaptureSource->m_vOutputManagers.pop_back();
-        return;
-    }
 }
 
 CToplevelImageCaptureSourceProtocol::CToplevelImageCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -57,6 +57,12 @@ CToplevelImageCaptureSourceProtocol::CToplevelImageCaptureSourceProtocol(const w
 
 void CToplevelImageCaptureSourceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = PROTO::imageCaptureSource->m_vToplevelManagers.emplace_back(makeShared<CExtForeignToplevelImageCaptureSourceManagerV1>(client, ver, id));
+
+    if (!RESOURCE->resource()) {
+        RESOURCE->noMemory();
+        PROTO::imageCaptureSource->m_vToplevelManagers.pop_back();
+        return;
+    }
 
     RESOURCE->setDestroy([](CExtForeignToplevelImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setOnDestroy([](CExtForeignToplevelImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
@@ -71,12 +77,6 @@ void CToplevelImageCaptureSourceProtocol::bindManager(wl_client* client, void* d
         PROTO::imageCaptureSource->m_vSources.emplace_back(makeShared<CImageCaptureSource>(makeShared<CExtImageCaptureSourceV1>(pMgr->client(), pMgr->version(), id), window));
         LOGM(LOG, "New capture source for foreign toplevel: {}", window->m_szTitle);
     });
-
-    if (!RESOURCE->resource()) {
-        RESOURCE->noMemory();
-        PROTO::imageCaptureSource->m_vToplevelManagers.pop_back();
-        return;
-    }
 }
 
 CImageCaptureSourceProtocol::CImageCaptureSourceProtocol() {

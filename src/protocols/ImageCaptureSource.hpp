@@ -13,8 +13,8 @@ class CWindow;
 
 class CImageCaptureSource {
   public:
-    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CMonitor> monitor);
-    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CWindow> window);
+    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CMonitor> pMonitor_);
+    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource_, SP<CWindow> pWindow_);
     ~CImageCaptureSource();
 
     wl_resource* res();
@@ -33,8 +33,8 @@ class CImageCaptureSource {
         CHyprSignalListener destroy3;
     } listeners;
 
-    SP<CMonitor> monitor;
-    SP<CWindow>  window;
+    SP<CMonitor> pMonitor = nullptr;
+    SP<CWindow>  pWindow  = nullptr;
 };
 
 class COutputImageCaptureSourceProtocol : public IWaylandProtocol {

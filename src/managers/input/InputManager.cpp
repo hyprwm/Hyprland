@@ -910,6 +910,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             }
 
             g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->hlName + "," + LAYOUT});
+            g_pEventManager->postEvent(SHyprIPCEvent{"activelayoutv2", PKEEB->hlName + "\\," + LAYOUT});
             EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
         },
         keeb.get());
@@ -977,6 +978,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUTSTR});
+    g_pEventManager->postEvent(SHyprIPCEvent{"activelayoutv2", pKeyboard->hlName + "\\," + LAYOUTSTR});
     EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUTSTR}));
 
     Debug::log(LOG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->currentRules.layout, pKeyboard->currentRules.variant, pKeyboard->hlName);
@@ -1337,6 +1339,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
         Debug::log(LOG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->hlName + "," + LAYOUT});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activelayoutv2", pKeyboard->hlName + "\\," + LAYOUT});
         EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUT}));
     }
 }

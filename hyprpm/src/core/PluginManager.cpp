@@ -436,7 +436,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     progress.printMessageAbove(std::string{Colors::YELLOW} + "!" + Colors::RESET + " Cloning https://github.com/hyprwm/hyprland, this might take a moment.");
 
-    const bool bShallow = (HLVER.branch == "main" || HLVER.branch == "") && !m_bNoShallow;
+    const bool bShallow = (HLVER.branch == "main") && !m_bNoShallow;
 
     // let us give a bit of leg-room for shallowing
     // due to timezones, etc.

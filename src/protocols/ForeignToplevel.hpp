@@ -10,8 +10,9 @@ class CForeignToplevelHandle {
   public:
     CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow);
 
-    bool      good();
-    PHLWINDOW window();
+    bool         good();
+    PHLWINDOW    window();
+    wl_resource* res();
 
   private:
     SP<CExtForeignToplevelHandleV1> resource;
@@ -46,6 +47,7 @@ class CForeignToplevelProtocol : public IWaylandProtocol {
     CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    PHLWINDOW    windowFromHandleResource(wl_resource* resource);
 
   private:
     void onManagerResourceDestroy(CForeignToplevelList* mgr);

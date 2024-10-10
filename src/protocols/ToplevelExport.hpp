@@ -4,6 +4,8 @@
 #include "hyprland-toplevel-export-v1.hpp"
 #include "WaylandProtocol.hpp"
 #include "Screencopy.hpp"
+#include <hyprutils/signal/Listener.hpp>
+using namespace Hyprutils::Signal;
 
 #include <list>
 #include <vector>
@@ -63,10 +65,14 @@ class CToplevelExportFrame {
     int                                shmStride    = 0;
     CBox                               box          = {};
 
-    void                               copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
-    bool                               copyDmabuf(timespec* now);
-    bool                               copyShm(timespec* now);
-    void                               share();
+    struct {
+        CHyprSignalListener windowUnmap;
+    } listeners;
+
+    void copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer, int32_t ignoreDamage);
+    bool copyDmabuf(timespec* now);
+    bool copyShm(timespec* now);
+    void share();
 
     friend class CToplevelExportProtocol;
 };
@@ -79,7 +85,6 @@ class CToplevelExportProtocol : IWaylandProtocol {
     void destroyResource(CToplevelExportClient* client);
     void destroyResource(CToplevelExportFrame* frame);
 
-    void onWindowUnmap(PHLWINDOW pWindow);
     void onOutputCommit(CMonitor* pMonitor);
 
   private:

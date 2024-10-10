@@ -47,6 +47,7 @@
 #include "../protocols/SinglePixel.hpp"
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
+#include "../protocols/ImageCaptureSource.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -160,6 +161,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
 
+    PROTO::imageCaptureSource = std::make_unique<CImageCaptureSourceProtocol>();
+
     for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
@@ -232,6 +235,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::singlePixel.reset();
     PROTO::securityContext.reset();
     PROTO::ctm.reset();
+    PROTO::imageCaptureSource.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();

@@ -599,6 +599,9 @@ void CWindow::onBorderAngleAnimEnd(void* ptr) {
 void CWindow::setHidden(bool hidden) {
     m_bHidden = hidden;
 
+    if (m_bHidden)
+        events.hide.emit();
+
     if (hidden && g_pCompositor->m_pLastWindow.lock().get() == this) {
         g_pCompositor->m_pLastWindow.reset();
     }

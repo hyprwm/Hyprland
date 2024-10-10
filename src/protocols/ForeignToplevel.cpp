@@ -17,6 +17,10 @@ PHLWINDOW CForeignToplevelHandle::window() {
     return pWindow.lock();
 }
 
+wl_resource* CForeignToplevelHandle::res() {
+    return resource->resource();
+}
+
 CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resource_) : resource(resource_) {
     if (!resource_->resource())
         return;
@@ -147,4 +151,15 @@ void CForeignToplevelProtocol::onManagerResourceDestroy(CForeignToplevelList* mg
 
 void CForeignToplevelProtocol::destroyHandle(CForeignToplevelHandle* handle) {
     std::erase_if(m_vHandles, [&](const auto& other) { return other.get() == handle; });
+}
+
+PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* resource) {
+    for (auto const& h : m_vHandles) {
+        if (h->res() != resource)
+            continue;
+
+        return h->window();
+    }
+
+    return nullptr;
 }

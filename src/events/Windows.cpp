@@ -12,6 +12,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "managers/PointerManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -758,8 +759,21 @@ void Events::listener_commitWindow(void* owner, void* data) {
     if (!PWINDOW->m_pWorkspace->m_bVisible)
         return;
 
-    g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
-                                   PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
+    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+
+    PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
+    if (g_pSeatManager->isPointerFrameCommit) {
+        g_pSeatManager->isPointerFrameSkipped = false;
+        g_pSeatManager->isPointerFrameCommit  = false;
+    } else
+        g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
+                                       PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
+
+    if (g_pSeatManager->isPointerFrameSkipped) {
+        g_pPointerManager->sendStoredMovement();
+        g_pSeatManager->sendPointerFrame();
+        g_pSeatManager->isPointerFrameCommit = true;
+    }
 
     if (!PWINDOW->m_bIsX11) {
         PWINDOW->m_pSubsurfaceHead->recheckDamageForSubsurfaces();
@@ -767,7 +781,6 @@ void Events::listener_commitWindow(void* owner, void* data) {
     }
 
     // tearing: if solitary, redraw it. This still might be a single surface window
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
     if (PMONITOR && PMONITOR->solitaryClient.lock() == PWINDOW && PWINDOW->canBeTorn() && PMONITOR->tearingState.canTear && PWINDOW->m_pWLSurface->resource()->current.texture) {
         CRegion damageBox{PWINDOW->m_pWLSurface->resource()->accumulateCurrentBufferDamage()};
 

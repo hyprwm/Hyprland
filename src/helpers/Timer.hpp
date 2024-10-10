@@ -6,7 +6,7 @@ class CTimer {
   public:
     void                                         reset();
     float                                        getSeconds();
-    long                                         getMillis();
+    float                                        getMillis();
     const std::chrono::steady_clock::time_point& chrono() const;
 
   private:

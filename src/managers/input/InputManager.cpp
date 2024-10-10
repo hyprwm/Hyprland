@@ -87,6 +87,11 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto  DELTA = *PNOACCEL == 1 ? e.unaccel : e.delta;
 
+    if (g_pSeatManager->isPointerFrameSkipped)
+        g_pPointerManager->storeMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
+    else
+        g_pPointerManager->setStoredMovement((uint64_t)e.timeMs, DELTA, e.unaccel);
+
     PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
 
     g_pPointerManager->move(DELTA);
@@ -167,7 +172,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
     m_vLastCursorPosFloored = MOUSECOORDSFLOORED;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = isLocked() && g_pCompositor->m_pLastMonitor ? g_pCompositor->m_pLastMonitor.get() : g_pCompositor->getMonitorFromCursor();
 
     // this can happen if there are no displays hooked up to Hyprland
     if (PMONITOR == nullptr)
@@ -184,9 +189,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     // constraints
     if (!g_pSeatManager->mouse.expired() && isConstrained()) {
         const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
-        const auto CONSTRAINT = SURF->constraint();
+        const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
-        if (SURF && CONSTRAINT) {
+        if (CONSTRAINT) {
             if (CONSTRAINT->isLocked()) {
                 const auto HINT = CONSTRAINT->logicPositionHint();
                 g_pCompositor->warpCursorTo(HINT, true);
@@ -1426,6 +1431,16 @@ bool CInputManager::isConstrained() {
     }
 
     return false;
+}
+
+bool CInputManager::isLocked() {
+    if (!isConstrained())
+        return false;
+
+    const auto SURF       = CWLSurface::fromResource(g_pCompositor->m_pLastFocus.lock());
+    const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+
+    return CONSTRAINT && CONSTRAINT->isLocked();
 }
 
 void CInputManager::updateCapabilities() {

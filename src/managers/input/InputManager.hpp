@@ -108,6 +108,7 @@ class CInputManager {
 
     void               unconstrainMouse();
     bool               isConstrained();
+    bool               isLocked();
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();

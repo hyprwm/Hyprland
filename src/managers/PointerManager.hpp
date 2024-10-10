@@ -61,6 +61,9 @@ class CPointerManager {
     //
     Vector2D position();
     Vector2D cursorSizeLogical();
+    void     storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
+    void     setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
+    void     sendStoredMovement();
 
     void     recheckEnteredOutputs();
 
@@ -153,6 +156,10 @@ class CPointerManager {
     } currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
     Vector2D pointerPos = {0, 0};
+
+    uint64_t storedTime    = 0;
+    Vector2D storedDelta   = {0, 0};
+    Vector2D storedUnaccel = {0, 0};
 
     struct SMonitorPointerState {
         SMonitorPointerState(SP<CMonitor> m) : monitor(m) {}

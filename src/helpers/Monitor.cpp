@@ -16,6 +16,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "sync/SyncTimeline.hpp"
 #include <aquamarine/output/Output.hpp>
+#include "debug/Log.hpp"
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::String;
@@ -384,7 +385,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
         *PNOBREAK && output->state->state().adaptiveSync && activeWorkspace && activeWorkspace->m_bHasFullscreenWindow && activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN;
 
     // keep requested minimum refresh rate
-    if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000 / *PMINRR) {
+    if (shouldSkip && *PMINRR && lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
         // damage whole screen because some previous cursor box damages were skipped
         damage.damageEntire();
         return false;
@@ -931,6 +932,11 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     return true;
+}
+
+void CMonitor::debugLastPresentation(const std::string& message) {
+    Debug::log(TRACE, "{} (last presentation {} - {} fps)", message, lastPresentationTimer.getMillis(),
+               lastPresentationTimer.getMillis() > 0 ? 1000.0f / lastPresentationTimer.getMillis() : 0.0f);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

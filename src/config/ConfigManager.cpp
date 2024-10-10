@@ -1924,8 +1924,13 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             newrule.resolution.x = stoi(ARGS[1].substr(0, ARGS[1].find_first_of('x')));
             newrule.resolution.y = stoi(ARGS[1].substr(ARGS[1].find_first_of('x') + 1, ARGS[1].find_first_of('@')));
 
-            if (ARGS[1].contains("@"))
-                newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+            if (ARGS[1].contains("@")) {
+                try {
+                    newrule.refreshRate = stof(ARGS[1].substr(ARGS[1].find_first_of('@') + 1));
+                } catch (...) {
+                    return "invalid argument for framerate";
+                }
+            }
         }
     }
 
@@ -2039,25 +2044,20 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
 
     std::string bezierName = ARGS[0];
 
-    if (ARGS[1] == "")
+    if (ARGS.size() < 5)
         return "too few arguments";
-    float p1x = std::stof(ARGS[1]);
-
-    if (ARGS[2] == "")
-        return "too few arguments";
-    float p1y = std::stof(ARGS[2]);
-
-    if (ARGS[3] == "")
-        return "too few arguments";
-    float p2x = std::stof(ARGS[3]);
-
-    if (ARGS[4] == "")
-        return "too few arguments";
-    float p2y = std::stof(ARGS[4]);
-
-    if (ARGS[5] != "")
+    if (ARGS[5]!= "")
         return "too many arguments";
 
+    float p1x = 0, p1y = 0, p2x = 0, p2y = 0;
+    try {
+        p1x = std::stof(ARGS[1]);
+        p1y = std::stof(ARGS[2]);
+        p2x = std::stof(ARGS[3]);
+        p2y = std::stof(ARGS[4]);
+    } catch (const std::invalid_argument&) {
+        return "invalid argument";
+    }
     g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 
     return {};

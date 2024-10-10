@@ -14,6 +14,9 @@
 #include <sys/poll.h>
 #include <filesystem>
 #include <ranges>
+#include <fcntl.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 
 #include <sstream>
 #include <string>
@@ -919,17 +922,25 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 
     result += "\n\n";
 
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
-#elif defined(__arm__) || defined(__aarch64__)
-    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
-#else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
-#endif
-    result += "GPU information: \n" + GPUINFO;
-    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
-        result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
-    result += "\n\n";
+    int fd = open("/dev/dri/card0", O_RDONLY | O_CLOEXEC);
+    if (fd > 0) {
+        drmVersion* version = drmGetVersion(fd);
+
+        const std::string name        = version->name ? version->name : "Unknown";
+        const std::string description = version->desc ? version->desc : "Unknown";
+        std::string       GPUINFO     = "GPU information:\n";
+        GPUINFO += "GPU Type: " + name + "\n";
+        GPUINFO += "Driver Description: " + description + "\n";
+
+        result += GPUINFO;
+        drmFreeVersion(version);
+        close(fd);
+
+        if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
+            result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
+
+        result += "\n\n";
+    }
 
     result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
 

@@ -163,12 +163,16 @@ class CXWM {
     std::string getAtomName(uint32_t atom);
     void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
 
+    double      applyScale(double val);
+    double      applyUnScale(double val);
+
     //
     CXCBConnection                            connection;
     xcb_errors_context_t*                     errors = nullptr;
     xcb_screen_t*                             screen = nullptr;
 
     xcb_window_t                              wmWindow;
+    double                                    scale = 1.0;
 
     wl_event_source*                          eventSource = nullptr;
 

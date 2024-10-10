@@ -853,8 +853,6 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        auto commitMsg = trim(GIT_COMMIT_MESSAGE);
-        std::replace(commitMsg.begin(), commitMsg.end(), '#', ' ');
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
                                          "Tag: {}, commits: {}\n"
@@ -881,7 +879,7 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
             R"#({{
     "branch": "{}",
     "commit": "{}",
-    "version: "{}",
+    "version": "{}",
     "dirty": {},
     "commit_message": "{}",
     "commit_date": "{}",

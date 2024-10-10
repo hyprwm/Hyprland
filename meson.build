@@ -21,6 +21,7 @@ add_project_arguments(
     '-Wno-missing-field-initializers',
     '-Wno-narrowing',
     '-Wno-pointer-arith', datarootdir,
+    '-DHYPRLAND_VERSION="' + meson.project_version() + '"',
   ],
   language: 'cpp',
 )

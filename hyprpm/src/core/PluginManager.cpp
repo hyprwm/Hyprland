@@ -1,20 +1,20 @@
-#include "PluginManager.hpp"
 #include "../helpers/Colors.hpp"
 #include "../progress/CProgressBar.hpp"
-#include "Manifest.hpp"
 #include "DataState.hpp"
+#include "Manifest.hpp"
+#include "PluginManager.hpp"
 
-#include <iostream>
+#include <algorithm>
 #include <array>
 #include <filesystem>
-#include <thread>
-#include <fstream>
-#include <algorithm>
 #include <format>
+#include <fstream>
+#include <iostream>
+#include <thread>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <pwd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <toml++/toml.hpp>

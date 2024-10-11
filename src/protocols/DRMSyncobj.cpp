@@ -55,8 +55,13 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
-        if (!pending.acquireTimeline)
-            return;
+        if (pending.acquireTimeline && pending.releaseTimeline && pending.acquireTimeline == pending.releaseTimeline) {
+            if (pending.acquirePoint >= pending.releasePoint) {
+                resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");
+                surface->pending.rejected = true;
+                return;
+            }
+        }
 
         // wait for the acquire timeline to materialize
         auto materialized = pending.acquireTimeline->timeline->check(pending.acquirePoint, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE);

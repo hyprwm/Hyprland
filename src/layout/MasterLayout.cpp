@@ -631,12 +631,11 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
 
-    static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("master:no_gaps_when_only");
-    static auto PANIMATE        = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
-    static auto PGAPSINDATA     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    static auto PGAPSOUTDATA    = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto*       PGAPSIN         = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto*       PGAPSOUT        = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    static auto PANIMATE     = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
+    static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    auto*       PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
+    auto*       PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -648,25 +647,6 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
 
     PWINDOW->m_vSize     = pNode->size;
     PWINDOW->m_vPosition = pNode->position;
-
-    if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() && (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 || PWINDOW->isEffectiveInternalFSMode(FSMODE_MAXIMIZED))) {
-
-        PWINDOW->m_sWindowData.decorate   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noBorder   = CWindowOverridableVar(*PNOGAPSWHENONLY != 2, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noRounding = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noShadow   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-
-        PWINDOW->updateWindowDecos();
-
-        const auto RESERVED = PWINDOW->getFullWindowReservedArea();
-
-        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
-        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (RESERVED.topLeft + RESERVED.bottomRight);
-
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-
-        return;
-    }
 
     PWINDOW->updateWindowDecos();
 

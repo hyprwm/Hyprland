@@ -396,6 +396,10 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->m_bWasDraggingWindow = false;
 }
 
+inline bool isInSnappingDistance(const double sideA, const double sideB, const int gap) {
+    return sideB - gap < sideA && sideA < sideB + gap;
+}
+
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->currentlyDraggedWindow.expired())
         return;
@@ -417,6 +421,10 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
     static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
+
+    static auto SNAPENABLED    = CConfigValue<Hyprlang::INT>("general:snap:enabled");
+    static auto SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
+    static auto SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
@@ -449,6 +457,67 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->dragMode == MBIND_MOVE) {
 
         CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goal()};
+        if (*SNAPENABLED && !DRAGGINGWINDOW->m_bDraggingTiled) {
+            if (*SNAPWINDOWGAP) {
+                const int  gap  = *SNAPWINDOWGAP;
+                const auto PID  = DRAGGINGWINDOW->getPID();
+                const auto WSID = DRAGGINGWINDOW->workspaceID();
+
+                for (auto& other : g_pCompositor->m_vWindows) {
+                    if (other->workspaceID() == WSID && other->getPID() != PID) {
+                        const CBox     ob = other->getWindowMainSurfaceBox();
+                        const Vector2D ov = ob.extent();
+                        Vector2D       wv = wb.extent();
+
+                        // only snap windows if their ranges intersect in the opposite axis
+                        if (wb.y <= ov.y && ob.y <= wv.y) {
+                            if (isInSnappingDistance(wb.x, ov.x, gap))
+                                wb.x = ov.x;
+                            else if (isInSnappingDistance(wv.x, ob.x, gap))
+                                wb.x = ob.x - wb.w;
+                        }
+
+                        if (wb.x <= ov.x && ob.x <= wv.x) {
+                            if (isInSnappingDistance(wb.y, ov.y, gap))
+                                wb.y = ov.y;
+                            else if (isInSnappingDistance(wv.y, ob.y, gap))
+                                wb.y = ob.y - wb.h;
+                        }
+
+                        // corner snapping
+                        wv = wb.extent(); // refresh offset coordinates
+                        if (wb.x == ov.x || wv.x == ob.x) {
+                            if (isInSnappingDistance(wb.y, ob.y, gap))
+                                wb.y = ob.y;
+                            else if (isInSnappingDistance(wv.y, ov.y, gap))
+                                wb.y = ov.y - wb.h;
+                        }
+
+                        if (wb.y == ov.y || wv.y == ob.y) {
+                            if (isInSnappingDistance(wb.x, ob.x, gap))
+                                wb.x = ob.x;
+                            else if (isInSnappingDistance(wv.x, ov.x, gap))
+                                wb.x = ov.x - wb.w;
+                        }
+                    }
+                }
+            }
+
+            if (*SNAPMONITORGAP) {
+                const int  gap     = *SNAPMONITORGAP;
+                const auto MONITOR = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+
+                if (isInSnappingDistance(wb.x, MONITOR->vecPosition.x, gap))
+                    wb.x = MONITOR->vecPosition.x;
+                else if (isInSnappingDistance(wb.x + wb.w, MONITOR->vecSize.x, gap))
+                    wb.x = MONITOR->vecSize.x - wb.w;
+
+                if (isInSnappingDistance(wb.y, MONITOR->vecPosition.y, gap))
+                    wb.y = MONITOR->vecPosition.y;
+                else if (isInSnappingDistance(wb.y + wb.h, MONITOR->vecSize.y, gap))
+                    wb.y = MONITOR->vecSize.y - wb.h;
+            }
+        }
         wb.round();
 
         if (*PANIMATEMOUSE)
@@ -511,6 +580,75 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0);
 
             CBox wb = {newPos, newSize};
+            if (*SNAPENABLED) {
+                if (*SNAPWINDOWGAP) {
+                    const int  gap  = *SNAPWINDOWGAP;
+                    const auto PID  = DRAGGINGWINDOW->getPID();
+                    const auto WSID = DRAGGINGWINDOW->workspaceID();
+
+                    for (auto& other : g_pCompositor->m_vWindows) {
+                        if (other->workspaceID() == WSID && other->getPID() != PID) {
+                            const CBox     ob = other->getWindowMainSurfaceBox();
+                            const Vector2D ov = ob.extent();
+                            Vector2D       wv = wb.extent();
+
+                            // only snap windows if their ranges intersect in the opposite axis
+                            if (wb.y <= ov.y && ob.y <= wv.y) {
+                                if (isInSnappingDistance(wb.x, ov.x, gap)) {
+                                    wb.w += wb.x - ov.x;
+                                    wb.x = ov.x;
+                                } else if (isInSnappingDistance(wv.x, ob.x, gap))
+                                    wb.w = ob.x - wb.x;
+                            }
+
+                            if (wb.x <= ov.x && ob.x <= wv.x) {
+                                if (isInSnappingDistance(wb.y, ov.y, gap)) {
+                                    wb.h += wb.y - ov.y;
+                                    wb.y = ov.y;
+                                } else if (isInSnappingDistance(wv.y, ob.y, gap))
+                                    wb.h = ob.y - wb.y;
+                            }
+
+                            // corner snapping
+                            wv = wb.extent(); // refresh offset coordinates
+                            if (wb.x == ov.x || wv.x == ob.x) {
+                                if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_TOPRIGHT) && isInSnappingDistance(wb.y, ob.y, gap)) {
+                                    wb.h += wb.y - ob.y;
+                                    wb.y = ob.y;
+                                } else if ((m_eGrabbedCorner == CORNER_BOTTOMLEFT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.y, ov.y, gap))
+                                    wb.h = ov.y - wb.y;
+                            }
+
+                            if (wb.y == ov.y || wv.y == ob.y) {
+                                if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_BOTTOMLEFT) && isInSnappingDistance(wb.x, ob.x, gap)) {
+                                    wb.w += wb.x - ob.x;
+                                    wb.x = ob.x;
+                                } else if ((m_eGrabbedCorner == CORNER_TOPRIGHT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.x, ov.x, gap))
+                                    wb.w = ov.x - wb.x;
+                            }
+                        }
+                    }
+                }
+
+                if (*SNAPMONITORGAP) {
+                    const int  gap     = *SNAPMONITORGAP;
+                    const auto MONITOR = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+
+                    if (isInSnappingDistance(wb.x, MONITOR->vecPosition.x, gap)) {
+                        wb.w += wb.x - MONITOR->vecPosition.x;
+                        wb.x = MONITOR->vecPosition.x;
+                    }
+                    if (isInSnappingDistance(wb.x + wb.w, MONITOR->vecSize.x, gap))
+                        wb.w = MONITOR->vecSize.x - wb.x;
+
+                    if (isInSnappingDistance(wb.y, MONITOR->vecPosition.y, gap)) {
+                        wb.h += wb.y - MONITOR->vecPosition.y;
+                        wb.y = MONITOR->vecPosition.y;
+                    }
+                    if (isInSnappingDistance(wb.y + wb.h, MONITOR->vecSize.y, gap))
+                        wb.h = MONITOR->vecSize.y - wb.y;
+                }
+            }
             wb.round();
 
             if (*PANIMATE) {

@@ -440,8 +440,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     // let us give a bit of leg-room for shallowing
     // due to timezones, etc.
-    const std::string SHALLOW_DATE =
-        trim(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+\%a \%b \%d \%H:\%M:\%S \%Y'");
+    const std::string SHALLOW_DATE = trim(HLVER.date).empty() ? "" : execAndGet("LC_TIME=\"en_US.UTF-8\" date --date='" + HLVER.date + " - 1 weeks' '+%a %b %d %H:%M:%S %Y'");
 
     if (m_bVerbose && bShallow)
         progress.printMessageAbove(std::string{Colors::BLUE} + "[v] " + Colors::RESET + "will shallow since: " + SHALLOW_DATE);

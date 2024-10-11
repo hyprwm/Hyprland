@@ -1,10 +1,12 @@
 #include "XDGShell.hpp"
+#include "XDGDialog.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <cstring>
+#include <ranges>
 
 void SXDGPositionerState::setAnchor(xdgPositionerAnchor edges) {
     anchor.setTop(edges == XDG_POSITIONER_ANCHOR_TOP || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_RIGHT);
@@ -207,15 +209,25 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     });
 
     resource->setSetParent([this](CXdgToplevel* r, wl_resource* parentR) {
+        auto oldParent = parent;
+
+        if (parent)
+            std::erase(parent->children, self);
+
         auto newp = parentR ? CXDGToplevelResource::fromResource(parentR) : nullptr;
         parent    = newp;
 
-        LOGM(LOG, "Toplevel {:x} sets parent to {:x}", (uintptr_t)this, (uintptr_t)newp.get());
+        if (parent)
+            parent->children.emplace_back(self);
+
+        LOGM(LOG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
     });
 }
 
 CXDGToplevelResource::~CXDGToplevelResource() {
     events.destroy.emit();
+    if (parent)
+        std::erase_if(parent->children, [this](const auto& other) { return !other || other.get() == this; });
 }
 
 SP<CXDGToplevelResource> CXDGToplevelResource::fromResource(wl_resource* res) {
@@ -225,6 +237,10 @@ SP<CXDGToplevelResource> CXDGToplevelResource::fromResource(wl_resource* res) {
 
 bool CXDGToplevelResource::good() {
     return resource->resource();
+}
+
+bool CXDGToplevelResource::anyChildModal() {
+    return std::ranges::any_of(children, [](const auto& child) { return child && child->dialog && child->dialog->modal; });
 }
 
 uint32_t CXDGToplevelResource::setSize(const Vector2D& size) {
@@ -388,7 +404,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         g_pCompositor->m_vWindows.emplace_back(CWindow::create(self.lock()));
 
-        for (auto& p : popups) {
+        for (auto const& p : popups) {
             if (!p)
                 continue;
             events.newPopup.emit(p);
@@ -714,7 +730,7 @@ CXDGShellProtocol::CXDGShellProtocol(const wl_interface* iface, const int& ver, 
     grab->keyboard = true;
     grab->pointer  = true;
     grab->setCallback([this]() {
-        for (auto& g : grabbed) {
+        for (auto const& g : grabbed) {
             g->done();
         }
         grabbed.clear();
@@ -779,7 +795,7 @@ void CXDGShellProtocol::addOrStartGrab(SP<CXDGPopupResource> popup) {
 void CXDGShellProtocol::onPopupDestroy(WP<CXDGPopupResource> popup) {
     if (popup == grabOwner) {
         g_pSeatManager->setGrab(nullptr);
-        for (auto& g : grabbed) {
+        for (auto const& g : grabbed) {
             g->done();
         }
         grabbed.clear();

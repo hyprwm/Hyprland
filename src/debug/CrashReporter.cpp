@@ -86,7 +86,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
             stderr.flush();
         }
 
-        reportFd = open(reportPath.get_str(), O_WRONLY | O_CREAT, S_IRWXU);
+        reportFd = open(reportPath.get_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
         if (reportFd < 0) {
             exit_with_error("Failed to open crash report path for writing");
         }

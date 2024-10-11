@@ -38,17 +38,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    if (g_pHyprOpenGL->m_mMonitorRenderResources.contains(pMonitor)) {
-        const auto& RDATA = g_pHyprOpenGL->m_mMonitorRenderResources.at(pMonitor);
-        // bind the fb for its format. Suppress gl errors.
-#ifndef GLES2
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#else
-        glBindFramebuffer(GL_FRAMEBUFFER, RDATA.offloadFB.m_iFb);
-#endif
-    } else
-        LOGM(ERR, "No RDATA in screencopy???");
-
     shmFormat = g_pHyprOpenGL->getPreferredReadFormat(pMonitor);
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");
@@ -56,6 +45,10 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         PROTO::screencopy->destroyResource(this);
         return;
     }
+
+    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT wont work here
+    if (shmFormat == DRM_FORMAT_XRGB2101010 || shmFormat == DRM_FORMAT_ARGB2101010)
+        shmFormat = DRM_FORMAT_XBGR2101010;
 
     const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {
@@ -162,7 +155,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         lockedSWCursors = true;
         // TODO: make it per-monitor
         if (!PROTO::screencopy->m_bTimerArmed) {
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_vMonitors) {
                 g_pPointerManager->lockSoftwareForMonitor(m);
             }
             PROTO::screencopy->m_bTimerArmed = true;
@@ -245,7 +238,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer fb;
-    fb.alloc(box.w, box.h, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : pMonitor->output->state->state().drmFormat);
+    fb.alloc(box.w, box.h, pMonitor->output->state->state().drmFormat);
 
     if (!g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering");
@@ -372,7 +365,7 @@ CScreencopyProtocol::CScreencopyProtocol(const wl_interface* iface, const int& v
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
             // TODO: make it per-monitor
-            for (auto& m : g_pCompositor->m_vMonitors) {
+            for (auto const& m : g_pCompositor->m_vMonitors) {
                 g_pPointerManager->unlockSoftwareForMonitor(m);
             }
             m_bTimerArmed = false;
@@ -401,12 +394,12 @@ void CScreencopyProtocol::bindManager(wl_client* client, void* data, uint32_t ve
 void CScreencopyProtocol::destroyResource(CScreencopyClient* client) {
     std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
     std::erase_if(m_vFrames, [&](const auto& other) { return other->client.get() == client; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other->client.get() == client; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other->client.get() == client; });
 }
 
 void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
     std::erase_if(m_vFrames, [&](const auto& other) { return other.get() == frame; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other.get() == frame; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
 void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
@@ -418,9 +411,12 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
     std::vector<WP<CScreencopyFrame>> framesToRemove;
 
     // share frame if correct output
-    for (auto& f : m_vFramesAwaitingWrite) {
+    for (auto const& f : m_vFramesAwaitingWrite) {
+        if (!f)
+            continue;
+
         if (!f->pMonitor || !f->buffer) {
-            framesToRemove.push_back(f);
+            framesToRemove.emplace_back(f);
             continue;
         }
 
@@ -432,10 +428,10 @@ void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
         f->client->lastFrame.reset();
         ++f->client->frameCounter;
 
-        framesToRemove.push_back(f);
+        framesToRemove.emplace_back(f);
     }
 
-    for (auto& f : framesToRemove) {
-        destroyResource(f.get());
+    for (auto const& f : framesToRemove) {
+        std::erase(m_vFramesAwaitingWrite, f);
     }
 }

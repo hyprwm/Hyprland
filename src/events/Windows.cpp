@@ -121,7 +121,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_bRequestsFloat = true;
     }
 
-    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->m_iX11Type == 2 && !PWINDOW->m_pXWaylandSurface->wantsFocus());
+    PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->isX11OverrideRedirect() && !PWINDOW->m_pXWaylandSurface->wantsFocus());
 
     if (PWORKSPACE->m_bDefaultFloating)
         PWINDOW->m_bIsFloating = true;
@@ -140,7 +140,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
 
-    for (auto& r : PWINDOW->m_vMatchedRules) {
+    for (auto const& r : PWINDOW->m_vMatchedRules) {
         if (r.szRule.starts_with("monitor")) {
             try {
                 const auto MONITORSTR = trim(r.szRule.substr(r.szRule.find(' ')));
@@ -323,11 +323,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->updateWindowData();
 
     if (PWINDOW->m_bIsFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedFloating(PWINDOW);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
         PWINDOW->m_bCreatedOverFullscreen = true;
 
         // size and move rules
-        for (auto& r : PWINDOW->m_vMatchedRules) {
+        for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -345,7 +345,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                     Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
-                    PWINDOW->m_vRealSize = Vector2D(SIZEX, SIZEY);
+                    PWINDOW->m_vRealSize   = Vector2D(SIZEX, SIZEY);
+                    PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal();
                     g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
 
                     PWINDOW->setHidden(false);
@@ -450,8 +451,36 @@ void Events::listener_mapWindow(void* owner, void* data) {
     } else {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
 
-        // Set the pseudo size here too so that it doesnt end up being 0x0
-        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
+        bool setPseudo = false;
+
+        for (auto const& r : PWINDOW->m_vMatchedRules) {
+            if (r.szRule.starts_with("size")) {
+                try {
+                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+
+                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+
+                    const auto SIZEX = SIZEXSTR == "max" ?
+                        std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
+                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+                    const auto SIZEY = SIZEYSTR == "max" ?
+                        std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
+                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+
+                    Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
+
+                    setPseudo              = true;
+                    PWINDOW->m_vPseudoSize = Vector2D(SIZEX, SIZEY);
+
+                    PWINDOW->setHidden(false);
+                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
+            }
+        }
+
+        if (!setPseudo)
+            PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
     }
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
@@ -478,7 +507,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     }
 
     if (!PWINDOW->m_sWindowData.noFocus.valueOrDefault() && !PWINDOW->m_bNoInitialFocus &&
-        (PWINDOW->m_iX11Type != 2 || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
+        (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
         PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
@@ -578,7 +607,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
 
-    if (PMONITOR && PWINDOW->m_iX11Type == 2)
+    if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
 }
 
@@ -649,7 +678,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        const auto PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
+        static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+        PHLWINDOW   PWINDOWCANDIDATE = nullptr;
+        if (*FOCUSONCLOSE)
+            PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING));
+        else
+            PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
         Debug::log(LOG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
 
@@ -718,26 +752,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
         const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;
         const auto MAXSIZE = PWINDOW->m_pXDGSurface->toplevel->current.maxSize;
 
-        if (MAXSIZE > Vector2D{1, 1}) {
-            const auto REALSIZE = PWINDOW->m_vRealSize.goal();
-            Vector2D   newSize  = REALSIZE;
-
-            if (MAXSIZE.x < newSize.x)
-                newSize.x = MAXSIZE.x;
-            if (MAXSIZE.y < newSize.y)
-                newSize.y = MAXSIZE.y;
-            if (MINSIZE.x > newSize.x)
-                newSize.x = MINSIZE.x;
-            if (MINSIZE.y > newSize.y)
-                newSize.y = MINSIZE.y;
-
-            const Vector2D DELTA = REALSIZE - newSize;
-
-            PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + DELTA / 2.0;
-            PWINDOW->m_vRealSize     = newSize;
-            g_pXWaylandManager->setWindowSize(PWINDOW, newSize);
-            g_pHyprRenderer->damageWindow(PWINDOW);
-        }
+        PWINDOW->clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
+        g_pHyprRenderer->damageWindow(PWINDOW);
     }
 
     if (!PWINDOW->m_pWorkspace->m_bVisible)
@@ -824,7 +840,7 @@ void Events::listener_activateX11(void* owner, void* data) {
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
-    if (PWINDOW->m_iX11Type == 2) {
+    if (PWINDOW->isX11OverrideRedirect()) {
 
         Debug::log(LOG, "Unmanaged X11 {} requests activate", PWINDOW);
 

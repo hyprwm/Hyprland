@@ -49,3 +49,7 @@ float CEventLoopTimer::leftUs() {
 
     return std::chrono::duration_cast<std::chrono::microseconds>(*expires - std::chrono::steady_clock::now()).count();
 }
+
+bool CEventLoopTimer::armed() {
+    return expires.has_value();
+}

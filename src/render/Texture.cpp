@@ -120,7 +120,7 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     }
 #endif
 
-    for (auto& rect : rects) {
+    for (auto const& rect : rects) {
         GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));

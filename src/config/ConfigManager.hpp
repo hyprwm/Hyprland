@@ -6,6 +6,7 @@
 #include "../debug/Log.hpp"
 #include <unordered_map>
 #include "../defines.hpp"
+#include <variant>
 #include <vector>
 #include <deque>
 #include <algorithm>
@@ -168,7 +169,7 @@ class CConfigManager {
     static std::string                                              getMainConfigPath();
     const std::string                                               getConfigString();
 
-    SMonitorRule                                                    getMonitorRuleFor(const CMonitor&);
+    SMonitorRule                                                    getMonitorRuleFor(const SP<CMonitor>);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
     std::string                                                     getDefaultWorkspaceFor(const std::string&);
 
@@ -191,6 +192,7 @@ class CConfigManager {
 
     // no-op when done.
     void                      dispatchExecOnce();
+    void                      dispatchExecShutdown();
 
     void                      performMonitorReload();
     void                      appendMonitorRule(const SMonitorRule&);
@@ -212,6 +214,7 @@ class CConfigManager {
     // keywords
     std::optional<std::string>                                                              handleRawExec(const std::string&, const std::string&);
     std::optional<std::string>                                                              handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string>                                                              handleExecShutdown(const std::string&, const std::string&);
     std::optional<std::string>                                                              handleMonitor(const std::string&, const std::string&);
     std::optional<std::string>                                                              handleBind(const std::string&, const std::string&);
     std::optional<std::string>                                                              handleUnbind(const std::string&, const std::string&);
@@ -288,6 +291,7 @@ class CConfigManager {
     bool                                                      firstExecDispatched     = false;
     bool                                                      m_bManualCrashInitiated = false;
     std::deque<std::string>                                   firstExecRequests;
+    std::deque<std::string>                                   finalExecRequests;
 
     std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
     std::string                                               m_szConfigErrors = "";

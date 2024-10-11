@@ -6,6 +6,8 @@
 #include "config/ConfigValue.hpp"
 #include "helpers/varlist/VarList.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../xwayland/XWayland.hpp"
+#include "../protocols/OutputManagement.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -45,7 +47,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
     std::string parseError = "";
 
-    for (auto& var : varlist) {
+    for (auto const& var : varlist) {
         if (var.find("deg") != std::string::npos) {
             // last arg
             try {
@@ -133,6 +135,18 @@ static Hyprlang::CParseResult handleExecOnce(const char* c, const char* v) {
     const std::string      COMMAND = c;
 
     const auto             RESULT = g_pConfigManager->handleExecOnce(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
+static Hyprlang::CParseResult handleExecShutdown(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleExecShutdown(COMMAND, VALUE);
 
     Hyprlang::CParseResult result;
     if (RESULT.has_value())
@@ -357,9 +371,15 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:exit_window_retains_fullscreen", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:initial_workspace_tracking", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("misc:render_unfocused_fps", Hyprlang::INT{15});
+    m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:merge_groups_on_drag", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:merge_floated_into_tiled_on_groupbar", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("group:auto_group", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:drag_into_group", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});
@@ -426,9 +446,9 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("dwindle:preserve_split", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:special_scale_factor", {1.f});
     m_pConfig->addConfigValue("dwindle:split_width_multiplier", {1.0f});
-    m_pConfig->addConfigValue("dwindle:no_gaps_when_only", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:use_active_for_splits", Hyprlang::INT{1});
     m_pConfig->addConfigValue("dwindle:default_split_ratio", {1.f});
+    m_pConfig->addConfigValue("dwindle:split_bias", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:smart_split", Hyprlang::INT{0});
     m_pConfig->addConfigValue("dwindle:smart_resizing", Hyprlang::INT{1});
 
@@ -438,7 +458,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("master:always_center_master", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:new_on_active", {"none"});
     m_pConfig->addConfigValue("master:new_on_top", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("master:no_gaps_when_only", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:orientation", {"left"});
     m_pConfig->addConfigValue("master:inherit_fullscreen", Hyprlang::INT{1});
     m_pConfig->addConfigValue("master:allow_small_split", Hyprlang::INT{0});
@@ -449,6 +468,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("animations:first_launch_animation", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("input:follow_mouse", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("input:focus_on_close", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:mouse_refocus", Hyprlang::INT{1});
     m_pConfig->addConfigValue("input:special_fallthrough", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:off_window_axis_events", Hyprlang::INT{1});
@@ -521,6 +541,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_touch_invert", Hyprlang::INT{0});
 
+    m_pConfig->addConfigValue("xwayland:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:use_nearest_neighbor", Hyprlang::INT{1});
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});
 
@@ -604,6 +625,7 @@ CConfigManager::CConfigManager() {
     // keywords
     m_pConfig->registerHandler(&::handleRawExec, "exec", {false});
     m_pConfig->registerHandler(&::handleExecOnce, "exec-once", {false});
+    m_pConfig->registerHandler(&::handleExecShutdown, "exec-shutdown", {false});
     m_pConfig->registerHandler(&::handleMonitor, "monitor", {false});
     m_pConfig->registerHandler(&::handleBind, "bind", {true});
     m_pConfig->registerHandler(&::handleUnbind, "unbind", {false});
@@ -664,6 +686,10 @@ std::string CConfigManager::getMainConfigPath() {
     if (!g_pCompositor->explicitConfigPath.empty())
         return g_pCompositor->explicitConfigPath;
 
+    if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
+        return CFG_ENV;
+    Debug::log(TRACE, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
+
     static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
     if (paths.first.has_value()) {
         return paths.first.value();
@@ -723,7 +749,6 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("fade");
         INITANIMCFG("border");
         INITANIMCFG("borderangle");
-        INITANIMCFG("workspaces");
 
         // windows
         INITANIMCFG("windowsIn");
@@ -744,7 +769,12 @@ void CConfigManager::setDefaultAnimationVars() {
         // border
 
         // workspaces
+        INITANIMCFG("workspaces");
+        INITANIMCFG("workspacesIn");
+        INITANIMCFG("workspacesOut");
         INITANIMCFG("specialWorkspace");
+        INITANIMCFG("specialWorkspaceIn");
+        INITANIMCFG("specialWorkspaceOut");
     }
 
     // init the values
@@ -773,7 +803,11 @@ void CConfigManager::setDefaultAnimationVars() {
     CREATEANIMCFG("fadeLayersIn", "fadeLayers");
     CREATEANIMCFG("fadeLayersOut", "fadeLayers");
 
+    CREATEANIMCFG("workspacesIn", "workspaces");
+    CREATEANIMCFG("workspacesOut", "workspaces");
     CREATEANIMCFG("specialWorkspace", "workspaces");
+    CREATEANIMCFG("specialWorkspaceIn", "specialWorkspace");
+    CREATEANIMCFG("specialWorkspaceOut", "specialWorkspace");
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {
@@ -788,6 +822,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vDeclaredPlugins.clear();
     m_dLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
+    finalExecRequests.clear();
 
     // paths
     configPaths.clear();
@@ -804,11 +839,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static const auto PENABLEEXPLICIT     = CConfigValue<Hyprlang::INT>("render:explicit_sync");
     static int        prevEnabledExplicit = *PENABLEEXPLICIT;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         w->uncacheWindowDecos();
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors)
+    for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
@@ -832,8 +867,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (result.error && !std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("debug:suppress_errors")))
         g_pHyprError->queueCreate(result.getError(), CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
     else if (std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("autogenerated")) == 1)
-        g_pHyprError->queueCreate("Warning: You're using an autogenerated config! (config file: " + getMainConfigPath() + " )\nSUPER+Q -> kitty\nSUPER+M -> exit Hyprland",
-                                  CColor(1.0, 1.0, 70.0 / 255.0, 1.0));
+        g_pHyprError->queueCreate(
+            "Warning: You're using an autogenerated config! (config file: " + getMainConfigPath() +
+                " )\nSUPER+Q -> kitty (if it doesn't launch, make sure it's installed or choose a different terminal in the config)\nSUPER+M -> exit Hyprland",
+            CColor(1.0, 1.0, 70.0 / 255.0, 1.0));
     else if (*PENABLEEXPLICIT != prevEnabledExplicit)
         g_pHyprError->queueCreate("Warning: You changed the render:explicit_sync option, this requires you to restart Hyprland.", CColor(0.9, 0.76, 0.221, 1.0));
     else
@@ -850,11 +887,34 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         ensureVRR();
     }
 
+#ifndef NO_XWAYLAND
+    const auto PENABLEXWAYLAND = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
+    // enable/disable xwayland usage
+    if (!isFirstLaunch) {
+        bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
+        if (PENABLEXWAYLAND != prevEnabledXwayland) {
+            g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+            if (PENABLEXWAYLAND) {
+                Debug::log(LOG, "xwayland has been enabled");
+            } else {
+                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
+                for (auto& w : g_pCompositor->m_vWindows) {
+                    if (w->m_pXDGSurface || !w->m_bIsX11)
+                        continue;
+                    g_pCompositor->closeWindow(w);
+                }
+            }
+            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
+        }
+    } else
+        g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+#endif
+
     if (!isFirstLaunch && !g_pCompositor->m_bUnsafeState)
         refreshGroupBarGradients();
 
     // Updates dynamic window and workspace rules
-    for (auto& w : g_pCompositor->m_vWorkspaces) {
+    for (auto const& w : g_pCompositor->m_vWorkspaces) {
         if (w->inert())
             continue;
         g_pCompositor->updateWorkspaceWindows(w->m_iID);
@@ -882,7 +942,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     Debug::coloredLogs = reinterpret_cast<int64_t* const*>(m_pConfig->getConfigValuePtr("debug:colored_stdout_logs")->getDataStaticPtr());
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
         g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
 
@@ -892,7 +952,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         m->forceFullFrames = 2;
 
         // also force mirrors, as the aspect ratio could've changed
-        for (auto& mirror : m->mirrors)
+        for (auto const& mirror : m->mirrors)
             mirror->forceFullFrames = 3;
     }
 
@@ -931,7 +991,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
     }
 
@@ -969,7 +1029,7 @@ void CConfigManager::tick() {
 
     bool parse = false;
 
-    for (auto& cf : configPaths) {
+    for (auto const& cf : configPaths) {
         struct stat fileStat;
         int         err = stat(cf.c_str(), &fileStat);
         if (err != 0) {
@@ -1024,33 +1084,74 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     return VAL;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(const CMonitor& PMONITOR) {
-    for (auto& r : m_dMonitorRules | std::views::reverse) {
-        if (PMONITOR.matchesStaticSelector(r.name)) {
-            return r;
+SMonitorRule CConfigManager::getMonitorRuleFor(const SP<CMonitor> PMONITOR) {
+    auto applyWlrOutputConfig = [PMONITOR](SMonitorRule rule) -> SMonitorRule {
+        const auto CONFIG = PROTO::outputManagement->getOutputStateFor(PMONITOR);
+
+        if (!CONFIG)
+            return rule;
+
+        Debug::log(LOG, "CConfigManager::getMonitorRuleFor: found a wlr_output_manager override for {}", PMONITOR->szName);
+
+        Debug::log(LOG, " > overriding enabled: {} -> {}", !rule.disabled, !CONFIG->enabled);
+        rule.disabled = !CONFIG->enabled;
+
+        if ((CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_MODE) || (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_CUSTOM_MODE)) {
+            Debug::log(LOG, " > overriding mode: {:.0f}x{:.0f}@{:.2f}Hz -> {:.0f}x{:.0f}@{:.2f}Hz", rule.resolution.x, rule.resolution.y, rule.refreshRate, CONFIG->resolution.x,
+                       CONFIG->resolution.y, CONFIG->refresh / 1000.F);
+            rule.resolution  = CONFIG->resolution;
+            rule.refreshRate = CONFIG->refresh / 1000.F;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_POSITION) {
+            Debug::log(LOG, " > overriding offset: {:.0f}, {:.0f} -> {:.0f}, {:.0f}", rule.offset.x, rule.offset.y, CONFIG->position.x, CONFIG->position.y);
+            rule.offset = CONFIG->position;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_TRANSFORM) {
+            Debug::log(LOG, " > overriding transform: {} -> {}", (uint8_t)rule.transform, (uint8_t)CONFIG->transform);
+            rule.transform = CONFIG->transform;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_SCALE) {
+            Debug::log(LOG, " > overriding scale: {} -> {}", (uint8_t)rule.scale, (uint8_t)CONFIG->scale);
+            rule.scale = CONFIG->scale;
+        }
+
+        if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
+            Debug::log(LOG, " > overriding vrr: {} -> {}", rule.vrr.value_or(0), CONFIG->adaptiveSync);
+            rule.vrr = (int)CONFIG->adaptiveSync;
+        }
+
+        return rule;
+    };
+
+    for (auto const& r : m_dMonitorRules | std::views::reverse) {
+        if (PMONITOR->matchesStaticSelector(r.name)) {
+            return applyWlrOutputConfig(r);
         }
     }
 
-    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR.szName);
+    Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR->szName);
 
-    for (auto& r : m_dMonitorRules) {
+    for (auto const& r : m_dMonitorRules) {
         if (r.name.empty()) {
-            return r;
+            return applyWlrOutputConfig(r);
         }
     }
 
     Debug::log(WARN, "No rules configured. Using the default hardcoded one.");
 
-    return SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
-                        .name       = "",
-                        .resolution = Vector2D(0, 0),
-                        .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
-                        .scale      = -1}; // 0, 0 is preferred and -1, -1 is auto
+    return applyWlrOutputConfig(SMonitorRule{.autoDir    = eAutoDirs::DIR_AUTO_RIGHT,
+                                             .name       = "",
+                                             .resolution = Vector2D(0, 0),
+                                             .offset     = Vector2D(-INT32_MAX, -INT32_MAX),
+                                             .scale      = -1}); // 0, 0 is preferred and -1, -1 is auto
 }
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
     SWorkspaceRule mergedRule{};
-    for (auto& rule : m_dWorkspaceRules) {
+    for (auto const& rule : m_dWorkspaceRules) {
         if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
             continue;
 
@@ -1123,7 +1224,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
 
-    for (auto& rule : m_dWindowRules) {
+    for (auto const& rule : m_dWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
@@ -1203,6 +1304,32 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                         continue;
                 }
 
+                if (!rule.szFullscreenState.empty()) {
+                    const auto ARGS = CVarList(rule.szFullscreenState, 2, ' ');
+                    //
+                    std::optional<eFullscreenMode> internalMode, clientMode;
+
+                    if (ARGS[0] == "*")
+                        internalMode = std::nullopt;
+                    else if (isNumber(ARGS[0]))
+                        internalMode = (eFullscreenMode)std::stoi(ARGS[0]);
+                    else
+                        throw std::runtime_error("szFullscreenState internal mode not valid");
+
+                    if (ARGS[1] == "*")
+                        clientMode = std::nullopt;
+                    else if (isNumber(ARGS[1]))
+                        clientMode = (eFullscreenMode)std::stoi(ARGS[1]);
+                    else
+                        throw std::runtime_error("szFullscreenState client mode not valid");
+
+                    if (internalMode.has_value() && pWindow->m_sFullscreenState.internal != internalMode)
+                        continue;
+
+                    if (clientMode.has_value() && pWindow->m_sFullscreenState.client != clientMode)
+                        continue;
+                }
+
                 if (!rule.szOnWorkspace.empty()) {
                     const auto PWORKSPACE = pWindow->m_pWorkspace;
                     if (!PWORKSPACE || !PWORKSPACE->matchesStaticSelector(rule.szOnWorkspace))
@@ -1262,7 +1389,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     bool anyExecFound = false;
 
-    for (auto& er : execRequestedRules) {
+    for (auto const& er : execRequestedRules) {
         if (std::ranges::any_of(PIDs, [&](const auto& pid) { return pid == er.iPid; })) {
             returns.push_back({er.szRule, "execRule"});
             anyExecFound = true;
@@ -1282,7 +1409,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
     if (!pLS->layerSurface || pLS->fadingOut)
         return returns;
 
-    for (auto& lr : m_dLayerRules) {
+    for (auto const& lr : m_dLayerRules) {
         if (lr.targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr.targetNamespace)
                 continue;
@@ -1319,7 +1446,7 @@ void CConfigManager::dispatchExecOnce() {
     firstExecDispatched = true;
     isLaunchingExecOnce = true;
 
-    for (auto& c : firstExecRequests) {
+    for (auto const& c : firstExecRequests) {
         handleRawExec("", c);
     }
 
@@ -1334,6 +1461,24 @@ void CConfigManager::dispatchExecOnce() {
 
     // check for user's possible errors with their setup and notify them if needed
     g_pCompositor->performUserChecks();
+}
+
+void CConfigManager::dispatchExecShutdown() {
+    if (finalExecRequests.empty()) {
+        g_pCompositor->m_bFinalRequests = false;
+        return;
+    }
+
+    g_pCompositor->m_bFinalRequests = true;
+
+    for (auto const& c : finalExecRequests) {
+        handleExecShutdown("", c);
+    }
+
+    finalExecRequests.clear();
+
+    // Actually exit now
+    handleExecShutdown("", "hyprctl dispatch exit");
 }
 
 void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
@@ -1356,11 +1501,11 @@ void CConfigManager::performMonitorReload() {
 
     bool overAgain = false;
 
-    for (auto& m : g_pCompositor->m_vRealMonitors) {
+    for (auto const& m : g_pCompositor->m_vRealMonitors) {
         if (!m->output || m->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(*m);
+        auto rule = getMonitorRuleFor(m);
 
         if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
             overAgain = true;
@@ -1403,7 +1548,7 @@ bool CConfigManager::deviceConfigExists(const std::string& dev) {
 }
 
 bool CConfigManager::shouldBlurLS(const std::string& ns) {
-    for (auto& bls : m_dBlurLSNamespaces) {
+    for (auto const& bls : m_dBlurLSNamespaces) {
         if (bls == ns) {
             return true;
         }
@@ -1413,11 +1558,11 @@ bool CConfigManager::shouldBlurLS(const std::string& ns) {
 }
 
 void CConfigManager::ensureMonitorStatus() {
-    for (auto& rm : g_pCompositor->m_vRealMonitors) {
+    for (auto const& rm : g_pCompositor->m_vRealMonitors) {
         if (!rm->output || rm->isUnsafeFallback)
             continue;
 
-        auto rule = getMonitorRuleFor(*rm);
+        auto rule = getMonitorRuleFor(rm);
 
         if (rule.disabled == rm->m_bEnabled)
             g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
@@ -1496,7 +1641,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
         return;
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         ensureVRRForDisplay(m.get());
     }
 }
@@ -1518,7 +1663,7 @@ CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
-    for (auto& wr : m_dWorkspaceRules) {
+    for (auto const& wr : m_dWorkspaceRules) {
         const auto WSNAME = wr.workspaceName.starts_with("name:") ? wr.workspaceName.substr(5) : wr.workspaceName;
 
         if (WSNAME == wsname)
@@ -1589,7 +1734,7 @@ void CConfigManager::addPluginKeyword(HANDLE handle, const std::string& name, Hy
 }
 
 void CConfigManager::removePluginConfig(HANDLE handle) {
-    for (auto& k : pluginKeywords) {
+    for (auto const& k : pluginKeywords) {
         if (k.handle != handle)
             continue;
 
@@ -1597,7 +1742,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
     }
 
     std::erase_if(pluginKeywords, [&](const auto& other) { return other.handle == handle; });
-    for (auto& [h, n] : pluginVariables) {
+    for (auto const& [h, n] : pluginVariables) {
         if (h != handle)
             continue;
 
@@ -1612,7 +1757,7 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
             if (other->monitor == name)
                 return other->workspaceString;
             if (other->monitor.substr(0, 5) == "desc:") {
-                auto monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
+                auto const monitor = g_pCompositor->getMonitorFromDesc(other->monitor.substr(5));
                 if (monitor && monitor->szName == name)
                     return other->workspaceString;
             }
@@ -1635,6 +1780,16 @@ std::optional<std::string> CConfigManager::handleExecOnce(const std::string& com
     if (isFirstLaunch)
         firstExecRequests.push_back(args);
 
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleExecShutdown(const std::string& command, const std::string& args) {
+    if (g_pCompositor->m_bFinalRequests) {
+        g_pKeybindManager->spawn(args);
+        return {};
+    }
+
+    finalExecRequests.push_back(args);
     return {};
 }
 
@@ -1685,7 +1840,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         if (it != flagsmap.end())
             mode.flags |= it->second;
         else
-            Debug::log(ERR, "invalid flag {} in modeline", it->first);
+            Debug::log(ERR, "invalid flag {} in modeline", key);
     }
 
     snprintf(mode.name, sizeof(mode.name), "%dx%d@%d", mode.hdisplay, mode.vdisplay, mode.vrefresh / 1000);
@@ -2009,7 +2164,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       dontInhibit    = false;
     const auto BINDARGS       = command.substr(4);
 
-    for (auto& arg : BINDARGS) {
+    for (auto const& arg : BINDARGS) {
         if (arg == 'l') {
             locked = true;
         } else if (arg == 'r') {
@@ -2120,7 +2275,7 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
 
 bool windowRuleValid(const std::string& RULE) {
     static const auto rules = std::unordered_set<std::string>{
-        "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile",
+        "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused",
     };
     static const auto rulesPrefix = std::vector<std::string>{
         "animation", "bordercolor", "bordersize", "center", "fullscreenstate", "group", "idleinhibit",   "maxsize", "minsize",   "monitor",
@@ -2135,7 +2290,7 @@ bool windowRuleValid(const std::string& RULE) {
 
 bool layerRuleValid(const std::string& RULE) {
     static const auto rules       = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};
-    static const auto rulesPrefix = std::vector<std::string>{"ignorealpha", "ignorezero", "xray", "animation"};
+    static const auto rulesPrefix = std::vector<std::string>{"ignorealpha", "ignorezero", "xray", "animation", "order"};
 
     return rules.contains(RULE) || std::any_of(rulesPrefix.begin(), rulesPrefix.end(), [&RULE](auto prefix) { return RULE.starts_with(prefix); });
 }
@@ -2187,9 +2342,9 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
 
     m_dLayerRules.push_back({VALUE, RULE});
 
-    for (auto& m : g_pCompositor->m_vMonitors)
-        for (auto& lsl : m->m_aLayerSurfaceLayers)
-            for (auto& ls : lsl)
+    for (auto const& m : g_pCompositor->m_vMonitors)
+        for (auto const& lsl : m->m_aLayerSurfaceLayers)
+            for (auto const& ls : lsl)
                 ls->applyRules();
 
     return {};
@@ -2210,17 +2365,18 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     rule.szRule  = RULE;
     rule.szValue = VALUE;
 
-    const auto TAGPOS          = VALUE.find("tag:");
-    const auto TITLEPOS        = VALUE.find("title:");
-    const auto CLASSPOS        = VALUE.find("class:");
-    const auto INITIALTITLEPOS = VALUE.find("initialTitle:");
-    const auto INITIALCLASSPOS = VALUE.find("initialClass:");
-    const auto X11POS          = VALUE.find("xwayland:");
-    const auto FLOATPOS        = VALUE.find("floating:");
-    const auto FULLSCREENPOS   = VALUE.find("fullscreen:");
-    const auto PINNEDPOS       = VALUE.find("pinned:");
-    const auto FOCUSPOS        = VALUE.find("focus:");
-    const auto ONWORKSPACEPOS  = VALUE.find("onworkspace:");
+    const auto TAGPOS             = VALUE.find("tag:");
+    const auto TITLEPOS           = VALUE.find("title:");
+    const auto CLASSPOS           = VALUE.find("class:");
+    const auto INITIALTITLEPOS    = VALUE.find("initialTitle:");
+    const auto INITIALCLASSPOS    = VALUE.find("initialClass:");
+    const auto X11POS             = VALUE.find("xwayland:");
+    const auto FLOATPOS           = VALUE.find("floating:");
+    const auto FULLSCREENPOS      = VALUE.find("fullscreen:");
+    const auto PINNEDPOS          = VALUE.find("pinned:");
+    const auto FOCUSPOS           = VALUE.find("focus:");
+    const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
+    const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2233,9 +2389,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{
-        TAGPOS, TITLEPOS, CLASSPOS, INITIALTITLEPOS, INITIALCLASSPOS, X11POS, FLOATPOS, FULLSCREENPOS, PINNEDPOS, WORKSPACEPOS, FOCUSPOS, ONWORKSPACEPOS,
-    };
+    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,        FLOATPOS,
+                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2264,6 +2419,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
             min = PINNEDPOS;
+        if (FULLSCREENSTATEPOS > pos && FULLSCREENSTATEPOS < min)
+            min = FULLSCREENSTATEPOS;
         if (ONWORKSPACEPOS > pos && ONWORKSPACEPOS < min)
             min = ONWORKSPACEPOS;
         if (WORKSPACEPOS > pos && WORKSPACEPOS < min)
@@ -2308,6 +2465,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (PINNEDPOS != std::string::npos)
         rule.bPinned = extract(PINNEDPOS + 7) == "1" ? 1 : 0;
 
+    if (FULLSCREENSTATEPOS != std::string::npos)
+        rule.szFullscreenState = extract(FULLSCREENSTATEPOS + 16);
+
     if (WORKSPACEPOS != std::string::npos)
         rule.szWorkspace = extract(WORKSPACEPOS + 10);
 
@@ -2349,6 +2509,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                 if (rule.bPinned != -1 && rule.bPinned != other.bPinned)
                     return false;
 
+                if (!rule.szFullscreenState.empty() && rule.szFullscreenState != other.szFullscreenState)
+                    return false;
+
                 if (!rule.szWorkspace.empty() && rule.szWorkspace != other.szWorkspace)
                     return false;
 
@@ -2380,9 +2543,9 @@ void CConfigManager::updateBlurredLS(const std::string& name, const bool forceBl
         matchName = matchName.substr(8);
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
-        for (auto& lsl : m->m_aLayerSurfaceLayers) {
-            for (auto& ls : lsl) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
+        for (auto const& lsl : m->m_aLayerSurfaceLayers) {
+            for (auto const& ls : lsl) {
                 if (BYADDRESS) {
                     if (std::format("0x{:x}", (uintptr_t)ls.get()) == matchName)
                         ls->forceBlur = forceBlur;
@@ -2491,7 +2654,7 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     };
 
     CVarList rulesList{rules, 0, ',', true};
-    for (auto& r : rulesList) {
+    for (auto const& r : rulesList) {
         const auto R = assignRule(r);
         if (R.has_value())
             return R;

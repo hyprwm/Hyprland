@@ -55,6 +55,7 @@ class CLayerSurface {
     bool                       ignoreAlpha      = false;
     float                      ignoreAlphaValue = 0.f;
     bool                       dimAround        = false;
+    int64_t                    order            = 0;
 
     std::optional<std::string> animationStyle;
 

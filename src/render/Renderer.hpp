@@ -13,6 +13,7 @@ class CWorkspace;
 class CWindow;
 class CInputPopup;
 class IHLBuffer;
+class CEventLoopTimer;
 
 // TODO: add fuller damage tracking for updating only parts of a window
 enum DAMAGETRACKINGMODES {
@@ -48,22 +49,23 @@ class CHyprRenderer {
     CHyprRenderer();
     ~CHyprRenderer();
 
-    void                            renderMonitor(CMonitor* pMonitor);
-    void                            arrangeLayersForMonitor(const MONITORID&);
-    void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
-    void                            damageWindow(PHLWINDOW, bool forceFull = false);
-    void                            damageBox(CBox*, bool skipFrameSchedule = false);
-    void                            damageBox(const int& x, const int& y, const int& w, const int& h);
-    void                            damageRegion(const CRegion&);
-    void                            damageMonitor(CMonitor*);
-    void                            damageMirrorsWith(CMonitor*, const CRegion&);
-    bool                            applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
-    bool                            shouldRenderWindow(PHLWINDOW, CMonitor*);
-    bool                            shouldRenderWindow(PHLWINDOW);
-    void                            ensureCursorRenderingMode();
-    bool                            shouldRenderCursor();
-    void                            setCursorHidden(bool hide);
-    void                            calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, bool main = false, const Vector2D& projSize = {}, bool fixMisalignedFSV1 = false);
+    void renderMonitor(CMonitor* pMonitor);
+    void arrangeLayersForMonitor(const MONITORID&);
+    void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
+    void damageWindow(PHLWINDOW, bool forceFull = false);
+    void damageBox(CBox*, bool skipFrameSchedule = false);
+    void damageBox(const int& x, const int& y, const int& w, const int& h);
+    void damageRegion(const CRegion&);
+    void damageMonitor(CMonitor*);
+    void damageMirrorsWith(CMonitor*, const CRegion&);
+    bool applyMonitorRule(CMonitor*, SMonitorRule*, bool force = false);
+    bool shouldRenderWindow(PHLWINDOW, CMonitor*);
+    bool shouldRenderWindow(PHLWINDOW);
+    void ensureCursorRenderingMode();
+    bool shouldRenderCursor();
+    void setCursorHidden(bool hide);
+    void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, SP<CMonitor> pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
+                               bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(CMonitor* pMonitor); // avg max min
     void                            renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry);
     void                            setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace);
@@ -78,6 +80,7 @@ class CHyprRenderer {
     void                            makeEGLCurrent();
     void                            unsetEGL();
     SExplicitSyncSettings           getExplicitSyncSettings();
+    void                            addWindowToRenderUnfocused(PHLWINDOW window);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -123,6 +126,7 @@ class CHyprRenderer {
     void              renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry);
     void              sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now); // sends frame displayed events but doesn't actually render anything
     void              renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void              renderSessionLockMissing(CMonitor* pMonitor);
 
     bool              commitPendingAndDoExplicitSync(CMonitor* pMonitor);
 
@@ -142,6 +146,8 @@ class CHyprRenderer {
 
     SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
     std::vector<SP<CRenderbuffer>> m_vRenderbuffers;
+    std::vector<PHLWINDOWREF>      m_vRenderUnfocused;
+    SP<CEventLoopTimer>            m_tRenderUnfocusedTimer;
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;

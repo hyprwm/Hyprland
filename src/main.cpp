@@ -3,6 +3,10 @@
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
+#include "debug/HyprCtl.hpp"
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #include <fcntl.h>
 #include <iostream>
@@ -19,7 +23,9 @@ void help() {
     std::cout << "  --config FILE       -c FILE  - Specify config file to use\n";
     std::cout << "  --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)\n";
     std::cout << "  --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)\n";
+    std::cout << "  --systeminfo                 - Prints system infos\n";
     std::cout << "  --i-am-really-stupid         - Omits root user privileges check (why would you do that?)\n";
+    std::cout << "  --version           -v       - Print this binary's version\n";
 }
 
 int main(int argc, char** argv) {
@@ -28,9 +34,9 @@ int main(int argc, char** argv) {
         throwError("XDG_RUNTIME_DIR is not set!");
 
     // export HYPRLAND_CMD
-    std::string cmd = "";
-    for (auto i = 0; i < argc; ++i)
-        cmd += std::string(i == 0 ? "" : " ") + argv[i];
+    std::string cmd = argv[0];
+    for (int i = 1; i < argc; ++i)
+        cmd += std::string(" ") + argv[i];
 
     setenv("HYPRLAND_CMD", cmd.c_str(), 1);
     setenv("XDG_BACKEND", "wayland", 1);
@@ -109,6 +115,13 @@ int main(int argc, char** argv) {
         } else if (it->compare("-h") == 0 || it->compare("--help") == 0) {
             help();
 
+            return 0;
+        } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
+            std::cout << versionRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "") << std::endl;
+            return 0;
+        } else if (it->compare("--systeminfo") == 0) {
+            const auto SYSINFO = systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, "");
+            std::cout << SYSINFO << "\n";
             return 0;
         } else {
             std::cerr << "[ ERROR ] Unknown option '" << it->c_str() << "'!\n";

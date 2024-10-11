@@ -2,7 +2,6 @@
 #include "MiscFunctions.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
-#include "ScopeGuard.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/GammaControl.hpp"
@@ -13,12 +12,15 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "sync/SyncTimeline.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Utils;
 
 int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor((CMonitor*)data);
@@ -26,7 +28,7 @@ int ratHandler(void* data) {
     return 1;
 }
 
-CMonitor::CMonitor() : state(this) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : state(this), output(output_) {
     ;
 }
 
@@ -35,20 +37,34 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
+    CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     if (output->supportsExplicit) {
         inTimeline  = CSyncTimeline::create(output->getBackend()->drmFD());
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame   = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
-    listeners.destroy = output->events.destroy.registerListener([this](std::any d) { Events::listener_monitorDestroy(this, nullptr); });
-    listeners.commit  = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
+    listeners.frame  = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
+    listeners.commit = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
     listeners.needsFrame =
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+
     listeners.presented = output->events.present.registerListener([this](std::any d) {
         auto E = std::any_cast<Aquamarine::IOutput::SPresentEvent>(d);
-        PROTO::presentation->onPresented(this, E.when, E.refresh, E.seq, E.flags);
+        PROTO::presentation->onPresented(self.lock(), E.when, E.refresh, E.seq, E.flags);
+    });
+
+    listeners.destroy = output->events.destroy.registerListener([this](std::any d) {
+        Debug::log(LOG, "Destroy called for monitor {}", szName);
+
+        onDisconnect(true);
+
+        output                 = nullptr;
+        m_bRenderingInitPassed = false;
+
+        Debug::log(LOG, "Removing monitor {} from realMonitors", szName);
+
+        std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
     });
 
     listeners.state = output->events.state.registerListener([this](std::any d) {
@@ -101,7 +117,7 @@ void CMonitor::onConnect(bool noRule) {
         createdByUser = true; // should be true. WL and Headless backends should be addable / removable
 
     // get monitor rule that matches
-    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(*this);
+    SMonitorRule monitorRule = g_pConfigManager->getMonitorRuleFor(self.lock());
 
     // if it's disabled, disable and ignore
     if (monitorRule.disabled) {
@@ -159,7 +175,7 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto& ws : g_pCompositor->m_vWorkspaces) {
+    for (auto const& ws : g_pCompositor->m_vWorkspaces) {
         if (!valid(ws))
             continue;
 
@@ -180,10 +196,6 @@ void CMonitor::onConnect(bool noRule) {
     if (!activeMonitorRule.mirrorOf.empty())
         setMirror(activeMonitorRule.mirrorOf);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
-    EMIT_HOOK_EVENT("monitorAdded", this);
-
     if (!g_pCompositor->m_pLastMonitor) // set the last monitor if it isnt set yet
         g_pCompositor->setActiveMonitor(this);
 
@@ -195,7 +207,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // verify last mon valid
     bool found = false;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m == g_pCompositor->m_pLastMonitor) {
             found = true;
             break;
@@ -212,9 +224,20 @@ void CMonitor::onConnect(bool noRule) {
     PROTO::gamma->applyGammaToState(this);
 
     events.connect.emit();
+
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", szName});
+    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", ID, szName, szShortDescription)});
+    EMIT_HOOK_EVENT("monitorAdded", this);
 }
 
 void CMonitor::onDisconnect(bool destroy) {
+    CScopeGuard x = {[this]() {
+        if (g_pCompositor->m_bIsShuttingDown)
+            return;
+        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
+        EMIT_HOOK_EVENT("monitorRemoved", this);
+        g_pCompositor->arrangeMonitors();
+    }};
 
     if (renderTimer) {
         wl_event_source_remove(renderTimer);
@@ -230,7 +253,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     CMonitor* BACKUPMON = nullptr;
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (m.get() != this) {
             BACKUPMON = m.get();
             break;
@@ -247,7 +270,7 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     if (!mirrors.empty()) {
-        for (auto& m : mirrors) {
+        for (auto const& m : mirrors) {
             m->setMirror("");
         }
 
@@ -260,7 +283,7 @@ void CMonitor::onDisconnect(bool destroy) {
     listeners.commit.reset();
 
     for (size_t i = 0; i < 4; ++i) {
-        for (auto& ls : m_aLayerSurfaceLayers[i]) {
+        for (auto const& ls : m_aLayerSurfaceLayers[i]) {
             if (ls->layerSurface && !ls->fadingOut)
                 ls->layerSurface->sendClosed();
         }
@@ -268,9 +291,6 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     Debug::log(LOG, "Removed monitor {}!", szName);
-
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", szName});
-    EMIT_HOOK_EVENT("monitorRemoved", this);
 
     if (!BACKUPMON) {
         Debug::log(WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
@@ -286,13 +306,13 @@ void CMonitor::onDisconnect(bool destroy) {
 
         // move workspaces
         std::deque<PHLWORKSPACE> wspToMove;
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_iMonitorID == ID || !g_pCompositor->getMonitorFromID(w->m_iMonitorID)) {
                 wspToMove.push_back(w);
             }
         }
 
-        for (auto& w : wspToMove) {
+        for (auto const& w : wspToMove) {
             w->m_szLastMonitor = szName;
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
             w->startAnim(true, true, true);
@@ -320,7 +340,7 @@ void CMonitor::onDisconnect(bool destroy) {
         int       mostHz         = 0;
         CMonitor* pMonitorMostHz = nullptr;
 
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m->refreshRate > mostHz && m.get() != this) {
                 pMonitorMostHz = m.get();
                 mostHz         = m->refreshRate;
@@ -476,7 +496,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         pMirrorOf = nullptr;
 
         // set rule
-        const auto RULE = g_pConfigManager->getMonitorRuleFor(*this);
+        const auto RULE = g_pConfigManager->getMonitorRuleFor(self.lock());
 
         vecPosition = RULE.offset;
 
@@ -504,7 +524,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         g_pHyprRenderer->applyMonitorRule(this, (SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
         CMonitor* BACKUPMON = nullptr;
-        for (auto& m : g_pCompositor->m_vMonitors) {
+        for (auto const& m : g_pCompositor->m_vMonitors) {
             if (m.get() != this) {
                 BACKUPMON = m.get();
                 break;
@@ -513,13 +533,13 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // move all the WS
         std::deque<PHLWORKSPACE> wspToMove;
-        for (auto& w : g_pCompositor->m_vWorkspaces) {
+        for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_iMonitorID == ID) {
                 wspToMove.push_back(w);
             }
         }
 
-        for (auto& w : wspToMove) {
+        for (auto const& w : wspToMove) {
             g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
             w->startAnim(true, true, true);
         }
@@ -593,7 +613,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         pWorkspace->startAnim(true, ANIMTOLEFT);
 
         // move pinned windows
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (w->m_pWorkspace == POLDWORKSPACE && w->m_bPinned)
                 w->moveToWorkspace(pWorkspace);
         }
@@ -702,14 +722,14 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (animate)
         pWorkspace->startAnim(true, true);
 
-    for (auto& w : g_pCompositor->m_vWindows) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pWorkspace == pWorkspace) {
             w->m_iMonitorID = ID;
             w->updateSurfaceScaleTransformDetails();
             w->setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && w->m_iX11Type != 2) {
+            if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
                 Vector2D   pos            = w->m_vRealPosition.goal();
@@ -759,12 +779,9 @@ Vector2D CMonitor::middle() {
 }
 
 void CMonitor::updateMatrix() {
-    matrixIdentity(projMatrix.data());
-    if (transform != WL_OUTPUT_TRANSFORM_NORMAL) {
-        matrixTranslate(projMatrix.data(), vecPixelSize.x / 2.0, vecPixelSize.y / 2.0);
-        matrixTransform(projMatrix.data(), wlTransformToHyprutils(transform));
-        matrixTranslate(projMatrix.data(), -vecTransformedSize.x / 2.0, -vecTransformedSize.y / 2.0);
-    }
+    projMatrix = Mat3x3::identity();
+    if (transform != WL_OUTPUT_TRANSFORM_NORMAL)
+        projMatrix.translate(vecPixelSize / 2.0).transform(wlTransformToHyprutils(transform)).translate(-vecTransformedSize / 2.0);
 }
 
 WORKSPACEID CMonitor::activeWorkspaceID() {
@@ -779,20 +796,28 @@ CBox CMonitor::logicalBox() {
     return {vecPosition, vecSize};
 }
 
-static void onDoneSource(void* data) {
-    auto pMonitor = (CMonitor*)data;
-
-    if (!PROTO::outputs.contains(pMonitor->szName))
+void CMonitor::scheduleDone() {
+    if (doneScheduled)
         return;
 
-    PROTO::outputs.at(pMonitor->szName)->sendDone();
+    doneScheduled = true;
+
+    g_pEventLoopManager->doLater([M = self] {
+        if (!M) // if M is gone, we got destroyed, doesn't matter.
+            return;
+
+        if (!PROTO::outputs.contains(M->szName))
+            return;
+
+        PROTO::outputs.at(M->szName)->sendDone();
+        M->doneScheduled = false;
+    });
 }
 
-void CMonitor::scheduleDone() {
-    if (doneSource)
-        return;
-
-    doneSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::onDoneSource, this);
+void CMonitor::setCTM(const Mat3x3& ctm_) {
+    ctm        = ctm_;
+    ctmUpdated = true;
+    g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
 bool CMonitor::attemptDirectScanout() {
@@ -820,6 +845,21 @@ bool CMonitor::attemptDirectScanout() {
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
+
+    const auto params = PSURFACE->current.buffer->buffer->dmabuf();
+    // scanout buffer isn't dmabuf, so no scanout
+    if (!params.success)
+        return false;
+
+    // entering into scanout, so save monitor format
+    if (lastScanout.expired())
+        prevDrmFormat = drmFormat;
+
+    if (drmFormat != params.format) {
+        output->state->setFormat(params.format);
+        drmFormat = params.format;
+    }
+
     output->state->setBuffer(PSURFACE->current.buffer->buffer.lock());
     output->state->setPresentationMode(tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                       Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
@@ -849,7 +889,7 @@ bool CMonitor::attemptDirectScanout() {
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    PSURFACE->presentFeedback(&now, this);
+    PSURFACE->presentFeedback(&now, self.lock());
 
     output->state->addDamage(CBox{{}, vecPixelSize});
     output->state->resetExplicitFences();
@@ -908,17 +948,20 @@ CMonitorState::~CMonitorState() {
 }
 
 void CMonitorState::ensureBufferPresent() {
-    if (!m_pOwner->output->state->state().enabled) {
+    const auto STATE = m_pOwner->output->state->state();
+    if (!STATE.enabled) {
         Debug::log(TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
-    if (m_pOwner->output->state->state().buffer)
-        return;
+    if (STATE.buffer) {
+        if (const auto params = STATE.buffer->dmabuf(); params.success && params.format == m_pOwner->drmFormat)
+            return;
+    }
 
     // this is required for modesetting being possible and might be missing in case of first tests in the renderer
     // where we test modes and buffers
-    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer, attaching one from the swapchain for modeset being possible");
+    Debug::log(LOG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
     m_pOwner->output->state->setBuffer(m_pOwner->output->swapchain->next(nullptr));
     m_pOwner->output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }

@@ -55,6 +55,7 @@ class CSessionLockManager {
     bool                 isSessionLocked();
     bool                 isSessionLockPresent();
     bool                 isSurfaceSessionLock(SP<CWLSurfaceResource>);
+    bool                 anySessionLockSurfacesPresent();
 
     void                 removeSessionLockSurface(SSessionLockSurface*);
 

@@ -1,3 +1,5 @@
+name: Nix (Build)
+
 on:
   workflow_call:
     secrets:
@@ -10,21 +12,17 @@ jobs:
       matrix:
         package:
           - hyprland
+          - hyprland-cross
           - xdg-desktop-portal-hyprland
 
     runs-on: ubuntu-latest
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-          submodules: recursive
-
-      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
+
       - uses: cachix/cachix-action@v15
         with:
           name: hyprland
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - run: nix build '.?submodules=1#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"
+      - run: nix build 'github:hyprwm/Hyprland?ref=${{ github.ref }}#${{ matrix.package }}' -L --extra-substituters "https://hyprland.cachix.org"

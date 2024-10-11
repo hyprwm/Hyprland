@@ -1,20 +1,21 @@
 #include "helpers/math/Math.hpp"
+#include <cstdint>
 #ifndef NO_XWAYLAND
+
+#include <ranges>
+#include <fcntl.h>
+#include <cstring>
+#include <algorithm>
+#include <unordered_map>
+#include <xcb/xcb_icccm.h>
 
 #include "XWayland.hpp"
 #include "../defines.hpp"
-#include <unordered_map>
 #include "../Compositor.hpp"
+#include "../protocols/core/Seat.hpp"
+#include "../managers/SeatManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "../managers/SeatManager.hpp"
-#include "../protocols/core/Seat.hpp"
-#include <ranges>
-#include <algorithm>
-#include <fcntl.h>
-#include <cstring>
-
-#include <xcb/xcb_icccm.h>
 
 #define XCB_EVENT_RESPONSE_TYPE_MASK 0x7f
 #define INCR_CHUNK_SIZE              (64 * 1024)
@@ -24,7 +25,7 @@ static int onX11Event(int fd, uint32_t mask, void* data) {
 }
 
 SP<CXWaylandSurface> CXWM::windowForXID(xcb_window_t wid) {
-    for (auto& s : surfaces) {
+    for (auto const& s : surfaces) {
         if (s->xID == wid)
             return s;
     }
@@ -81,6 +82,7 @@ void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
         return;
 
     XSURF->geometry = {e->x, e->y, e->width, e->height};
+    updateOverrideRedirect(XSURF, e->override_redirect);
     XSURF->events.setGeometry.emit();
 }
 
@@ -115,7 +117,12 @@ void CXWM::handleMapRequest(xcb_map_request_event_t* e) {
 void CXWM::handleMapNotify(xcb_map_notify_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
-    if (!XSURF || XSURF->overrideRedirect)
+    if (!XSURF)
+        return;
+
+    updateOverrideRedirect(XSURF, e->override_redirect);
+
+    if (XSURF->overrideRedirect)
         return;
 
     XSURF->setWithdrawn(false);
@@ -152,18 +159,32 @@ static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> 
     return false;
 }
 
+std::string CXWM::getAtomName(uint32_t atom) {
+    for (auto const& ha : HYPRATOMS) {
+        if (ha.second != atom)
+            continue;
+
+        return ha.first;
+    }
+
+    // Get the name of the atom
+    auto const atom_name_cookie = xcb_get_atom_name(connection, atom);
+    auto*      atom_name_reply  = xcb_get_atom_name_reply(connection, atom_name_cookie, NULL);
+
+    if (!atom_name_reply)
+        return "Unknown";
+
+    auto const name_len = xcb_get_atom_name_name_length(atom_name_reply);
+    auto*      name     = xcb_get_atom_name_name(atom_name_reply);
+    free(atom_name_reply);
+
+    return {name, name_len};
+}
+
 void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply) {
     std::string propName;
-    if (Debug::trace) {
-        propName = std::format("{}?", atom);
-        for (auto& ha : HYPRATOMS) {
-            if (ha.second != atom)
-                continue;
-
-            propName = ha.first;
-            break;
-        }
-    }
+    if (Debug::trace)
+        propName = getAtomName(atom);
 
     if (atom == XCB_ATOM_WM_CLASS) {
         size_t len         = xcb_get_property_value_length(reply);
@@ -285,7 +306,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         return;
 
     std::string propName = "?";
-    for (auto& ha : HYPRATOMS) {
+    for (auto const& ha : HYPRATOMS) {
         if (ha.second != e->type)
             continue;
 
@@ -317,7 +338,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
         Debug::log(LOG, "[xwm] surface {:x} requests serial {:x}", (uintptr_t)XSURF.get(), XSURF->wlSerial);
 
-        for (auto& res : shellResources) {
+        for (auto const& res : shellResources) {
             if (!res)
                 continue;
 
@@ -417,7 +438,7 @@ void CXWM::focusWindow(SP<CXWaylandSurface> surf) {
 
     // send state to all toplevel surfaces, sometimes we might lose some
     // that could still stick with the focused atom
-    for (auto& s : mappedSurfaces) {
+    for (auto const& s : mappedSurfaces) {
         if (!s || s->overrideRedirect)
             continue;
 
@@ -539,7 +560,7 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
 
     // Debug::log(ERR, "[xwm] FIXME: CXWM::handleSelectionPropertyNotify stub");
 
-    return true;
+    return false;
 }
 
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
@@ -579,7 +600,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
         atoms.push_back(HYPRATOMS["TIMESTAMP"]);
         atoms.push_back(HYPRATOMS["TARGETS"]);
 
-        for (auto& m : mimes) {
+        for (auto const& m : mimes) {
             atoms.push_back(mimeToAtom(m));
         }
 
@@ -810,15 +831,15 @@ void CXWM::getRenderFormat() {
     free(reply);
 }
 
-CXWM::CXWM() {
-    connection = xcb_connect_to_fd(g_pXWayland->pServer->xwmFDs[0], nullptr);
+CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
 
-    if (int ret = xcb_connection_has_error(connection); ret) {
-        Debug::log(ERR, "[xwm] Couldn't start, error {}", ret);
+    if (connection.hasError()) {
+        Debug::log(ERR, "[xwm] Couldn't start, error {}", connection.hasError());
         return;
     }
 
-    if (xcb_errors_context_new(connection, &errors)) {
+    CXCBErrorContext xcbErrCtx(connection);
+    if (!xcbErrCtx.isValid()) {
         Debug::log(ERR, "[xwm] Couldn't allocate errors context");
         return;
     }
@@ -847,10 +868,7 @@ CXWM::CXWM() {
     };
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
 
-    xcb_flush(connection);
-
     setActiveWindow(XCB_WINDOW_NONE);
-
     initSelection();
 
     listeners.newWLSurface     = PROTO::compositor->events.newSurface.registerListener([this](std::any d) { onNewSurface(std::any_cast<SP<CWLSurfaceResource>>(d)); });
@@ -862,14 +880,13 @@ CXWM::CXWM() {
 }
 
 CXWM::~CXWM() {
-    if (errors)
-        xcb_errors_context_free(errors);
-
-    if (connection)
-        xcb_disconnect(connection);
 
     if (eventSource)
         wl_event_source_remove(eventSource);
+
+    for (auto const& sr : surfaces) {
+        sr->events.destroy.emit();
+    }
 }
 
 void CXWM::setActiveWindow(xcb_window_t window) {
@@ -897,7 +914,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
 
-    if (!surf) {
+    if (!surf || (!activate && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsX11)) {
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {
@@ -944,7 +961,7 @@ void CXWM::onNewSurface(SP<CWLSurfaceResource> surf) {
 
     const auto WLID = surf->id();
 
-    for (auto& sr : surfaces) {
+    for (auto const& sr : surfaces) {
         if (sr->surface || sr->wlID != WLID)
             continue;
 
@@ -961,7 +978,7 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
     std::erase_if(shellResources, [](const auto& e) { return e.expired(); });
     shellResources.push_back(resource);
 
-    for (auto& surf : surfaces) {
+    for (auto const& surf : surfaces) {
         if (surf->resource || surf->wlSerial != resource->serial)
             continue;
 
@@ -1025,7 +1042,7 @@ void CXWM::updateClientList() {
     std::erase_if(mappedSurfacesStacking, [](const auto& e) { return e.expired() || !e->mapped; });
 
     std::vector<xcb_window_t> windows;
-    for (auto& m : mappedSurfaces) {
+    for (auto const& m : mappedSurfaces) {
         windows.push_back(m->xID);
     }
 
@@ -1033,7 +1050,7 @@ void CXWM::updateClientList() {
 
     windows.clear();
 
-    for (auto& m : mappedSurfacesStacking) {
+    for (auto const& m : mappedSurfacesStacking) {
         windows.push_back(m->xID);
     }
 
@@ -1042,6 +1059,13 @@ void CXWM::updateClientList() {
 
 bool CXWM::isWMWindow(xcb_window_t w) {
     return w == wmWindow || w == clipboard.window;
+}
+
+void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect) {
+    if (!surf || surf->overrideRedirect == overrideRedirect)
+        return;
+
+    surf->overrideRedirect = overrideRedirect;
 }
 
 void CXWM::initSelection() {

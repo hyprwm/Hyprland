@@ -29,6 +29,7 @@ class CMonitor;
 class CWLDataOfferResource {
   public:
     CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_);
+    ~CWLDataOfferResource();
 
     bool            good();
     void            sendData();
@@ -63,20 +64,22 @@ class CWLDataSourceResource : public IDataSource {
     virtual bool                     hasDnd();
     virtual bool                     dndDone();
     virtual void                     error(uint32_t code, const std::string& msg);
+    virtual void                     sendDndFinished();
+    virtual uint32_t                 actions(); // wl_data_device_manager.dnd_action
 
     void                             sendDndDropPerformed();
-    void                             sendDndFinished();
     void                             sendDndAction(wl_data_device_manager_dnd_action a);
 
     bool                             used       = false;
     bool                             dnd        = false;
     bool                             dndSuccess = false;
+    bool                             dropped    = false;
 
     WP<CWLDataDeviceResource>        device;
     WP<CWLDataSourceResource>        self;
 
     std::vector<std::string>         mimeTypes;
-    uint32_t                         actions = 0;
+    uint32_t                         supportedActions = 0;
 
   private:
     SP<CWlDataSource> resource;

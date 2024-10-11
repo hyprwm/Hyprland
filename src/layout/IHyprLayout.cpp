@@ -9,23 +9,25 @@
 #include "../xwayland/XSurface.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
-    if (pWindow->m_bIsFloating) {
+    CBox desiredGeometry = {};
+    g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
+
+    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+        const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
+    } else
+        pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+
+    pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
+
+    bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
+    if (autoGrouped)
+        return;
+
+    if (pWindow->m_bIsFloating)
         onWindowCreatedFloating(pWindow);
-    } else {
-        CBox desiredGeometry = {};
-        g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-
-        if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-            const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-            pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
-        } else {
-            pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
-        }
-
-        pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
-
+    else
         onWindowCreatedTiling(pWindow, direction);
-    }
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
@@ -104,7 +106,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vRealSize      = PWINDOWSURFACE->current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
-            pWindow->m_iX11Type == 2) { // XDG windows should be fine. TODO: check for weird atoms?
+            pWindow->isX11OverrideRedirect()) { // XDG windows should be fine. TODO: check for weird atoms?
             pWindow->setHidden(true);
             return;
         }
@@ -113,7 +115,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if (pWindow->m_vRealSize.goal().x <= 5 || pWindow->m_vRealSize.goal().y <= 5)
             pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
 
-        if (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2) {
+        if (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect()) {
 
             if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
                 pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
@@ -163,12 +165,12 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
     if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
         pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
 
-    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->m_iX11Type == 2)) {
+    if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect())) {
         pWindow->m_vRealPosition.warp();
         pWindow->m_vRealSize.warp();
     }
 
-    if (pWindow->m_iX11Type != 2) {
+    if (!pWindow->isX11OverrideRedirect()) {
         g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
@@ -176,6 +178,38 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goal();
         pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
+}
+
+bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
+    static auto PAUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
+    PHLWINDOW   OPENINGON  = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
+           g_pCompositor->m_pLastWindow.lock() :
+           g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
+
+    if (*PAUTOGROUP                                         // check if auto_group is enabled.
+        && OPENINGON                                        // check if OPENINGON exists.
+        && OPENINGON != pWindow                             // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
+        && OPENINGON->m_sGroupData.pNextWindow.lock()       // check if OPENINGON is a group
+        && pWindow->canBeGroupedInto(OPENINGON)             // check if the new window can be grouped into OPENINGON
+        && !g_pXWaylandManager->shouldBeFloated(pWindow)) { // don't group XWayland windows that should be floated.
+
+        pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);
+
+        OPENINGON->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
+        pWindow->updateWindowDecos();
+        recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
+        return true;
+    }
+
+    return false;
 }
 
 void IHyprLayout::onBeginDragWindow() {
@@ -291,21 +325,47 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->currentlyDraggedWindow.reset();
     g_pInputManager->m_bWasDraggingWindow = true;
 
-    if (DRAGGINGWINDOW->m_bDraggingTiled) {
-        DRAGGINGWINDOW->m_bIsFloating = false;
-        g_pInputManager->refocus();
-        changeWindowFloatingMode(DRAGGINGWINDOW);
-        DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
-    } else if (g_pInputManager->dragMode == MBIND_MOVE) {
+    if (g_pInputManager->dragMode == MBIND_MOVE) {
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING | FLOATING_ONLY, DRAGGINGWINDOW);
+        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
 
         if (pWindow) {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
                 return;
 
-            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow)) {
+            bool denied = false;
+            if (!pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled)
+                denied = true;
+
+            static auto PDRAGINTOGROUP = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !denied) {
+                if (DRAGGINGWINDOW->m_bDraggingTiled) {
+                    changeWindowFloatingMode(DRAGGINGWINDOW);
+                    DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
+                    DRAGGINGWINDOW->m_bDraggingTiled    = false;
+                }
+
+                if (DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock()) {
+                    std::vector<PHLWINDOW> members;
+                    PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
+                    do {
+                        members.push_back(curr);
+                        curr = curr->m_sGroupData.pNextWindow.lock();
+                    } while (curr != members[0]);
+
+                    for (auto it = members.begin(); it != members.end(); ++it) {
+                        (*it)->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of group members
+                        if (pWindow->m_bIsFloating)
+                            (*it)->m_vRealSize = pWindow->m_vRealSize.goal(); // match the size of group members
+                    }
+                }
+
+                DRAGGINGWINDOW->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of the window
+
+                if (pWindow->m_bIsFloating)
+                    g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize.goal()); // match the size of the window
+
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
@@ -315,6 +375,13 @@ void IHyprLayout::onEndDragWindow() {
                     DRAGGINGWINDOW->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(DRAGGINGWINDOW));
             }
         }
+    }
+
+    if (DRAGGINGWINDOW->m_bDraggingTiled) {
+        DRAGGINGWINDOW->m_bIsFloating = false;
+        g_pInputManager->refocus();
+        changeWindowFloatingMode(DRAGGINGWINDOW);
+        DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
     }
 
     g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
@@ -591,8 +658,8 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     if (pWindow->m_bIsFloating) {
 
         // find whether there is a floating window below this one
-        for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
+        for (auto const& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow) {
                 if (VECINRECT((pWindow->m_vSize / 2.f + pWindow->m_vPosition), w->m_vPosition.x, w->m_vPosition.y, w->m_vPosition.x + w->m_vSize.x,
                               w->m_vPosition.y + w->m_vSize.y)) {
@@ -611,8 +678,8 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
             return PWINDOWCANDIDATE;
 
         // if not, floating window
-        for (auto& w : g_pCompositor->m_vWindows) {
-            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && w->m_iX11Type != 2 && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
+        for (auto const& w : g_pCompositor->m_vWindows) {
+            if (w->m_bIsMapped && !w->isHidden() && w->m_bIsFloating && !w->isX11OverrideRedirect() && w->m_pWorkspace == pWindow->m_pWorkspace && !w->m_bX11ShouldntFocus &&
                 !w->m_sWindowData.noFocus.valueOrDefault() && w != pWindow)
                 return w;
         }
@@ -631,7 +698,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
-        pWindowCandidate->m_iX11Type == 2 || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
         return nullptr;
 
     return pWindowCandidate;
@@ -660,7 +727,7 @@ void IHyprLayout::requestFocusForWindow(PHLWINDOW pWindow) {
 Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // get all rules, see if we have any size overrides.
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
-        for (auto& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
+        for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r.szRule.starts_with("size")) {
                 try {
                     const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
@@ -691,7 +758,7 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     bool shouldBeFloated = g_pXWaylandManager->shouldBeFloated(pWindow, true);
 
     if (!shouldBeFloated) {
-        for (auto& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
+        for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r.szRule.starts_with("float")) {
                 shouldBeFloated = true;
                 break;

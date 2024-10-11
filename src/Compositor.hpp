@@ -91,7 +91,9 @@ class CCompositor {
     bool                                       m_bNextIsUnsafe   = false;
     CMonitor*                                  m_pUnsafeOutput   = nullptr; // fallback output for the unsafe state
     bool                                       m_bIsShuttingDown = false;
+    bool                                       m_bFinalRequests  = false;
     bool                                       m_bDesktopEnvSet  = false;
+    bool                                       m_bEnableXwayland = true;
 
     // ------------------------------------------------- //
 
@@ -165,7 +167,7 @@ class CCompositor {
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void                   forceReportSizesToWindowsOnWorkspace(const WORKSPACEID&);
     PHLWORKSPACE           createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
-                                              bool isEmtpy = true); // will be deleted next frame if left empty and unfocused!
+                                              bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
     void                   renameWorkspace(const WORKSPACEID&, const std::string& name = "");
     void                   setActiveMonitor(CMonitor*);
     bool                   isWorkspaceSpecial(const WORKSPACEID&);

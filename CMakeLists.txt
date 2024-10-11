@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.30)
 
 # Get version
 file(READ "${CMAKE_SOURCE_DIR}/VERSION" VER_RAW)
@@ -25,8 +25,18 @@ message(STATUS "Gathering git info")
 execute_process(COMMAND ./scripts/generateVersion.sh
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-# udis
-add_subdirectory("subprojects/udis86")
+find_package(PkgConfig REQUIRED)
+
+# Try to find canihavesomecoffee's udis86 using pkgconfig vmd/udis86 does not
+# provide a .pc file and won't be detected this way
+pkg_check_modules(udis_dep IMPORTED_TARGET udis86>=1.7.2)
+
+# Fallback to subproject
+if(NOT udis_dep_FOUND)
+  add_subdirectory("subprojects/udis86")
+  include_directories("subprojects/udis86")
+  message(STATUS "udis86 dependency not found, falling back to subproject")
+endif()
 
 if(CMAKE_BUILD_TYPE)
   string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
@@ -47,11 +57,11 @@ else()
   set(BUILDTYPE_LOWER "release")
 endif()
 
-find_package(PkgConfig REQUIRED)
-
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 message(STATUS "Found wayland-protocols at ${WAYLAND_PROTOCOLS_DIR}")
-pkg_get_variable(WAYLAND_SERVER_DIR wayland-server pkgdatadir)
+pkg_get_variable(WAYLAND_SCANNER_PKGDATA_DIR wayland-scanner pkgdatadir)
+message(
+  STATUS "Found wayland-scanner pkgdatadir at ${WAYLAND_SCANNER_PKGDATA_DIR}")
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   message(STATUS "Configuring Hyprland in Debug with CMake")
@@ -61,7 +71,10 @@ else()
   message(STATUS "Configuring Hyprland in Release with CMake")
 endif()
 
-include_directories(. "src/" "subprojects/udis86/" "protocols/")
+add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
+
+include_directories(. "src/" "protocols/")
+
 set(CMAKE_CXX_STANDARD 26)
 add_compile_options(
   -Wall
@@ -87,22 +100,19 @@ else()
 endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
-pkg_check_modules(
-  hyprctl_deps
-  REQUIRED
-  IMPORTED_TARGET
-  hyprutils>=0.2.1)
+pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.1)
+
+pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.4.2)
+
+add_compile_definitions(AQUAMARINE_VERSION="${aquamarine_dep_VERSION}")
 
 pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET
-  aquamarine
   xkbcommon
   uuid
-  wayland-server
-  wayland-client
-  wayland-cursor
+  wayland-server>=1.22.90
   wayland-protocols
   cairo
   pango
@@ -111,16 +121,11 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput
-  hwdata
-  libseat
-  libdisplay-info
-  libliftoff
-  libudev
   gbm
   gio-2.0
   hyprlang>=0.3.2
   hyprcursor>=0.1.7
-  hyprutils>=0.2.1)
+  hyprutils>=0.2.3)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -202,14 +207,11 @@ else()
     REQUIRED
     IMPORTED_TARGET
     xcb
-    xwayland
-    xcb-util
     xcb-render
     xcb-xfixes
     xcb-icccm
     xcb-composite
     xcb-res
-    xcb-ewmh
     xcb-errors)
   target_link_libraries(Hyprland PkgConfig::xdeps)
 endif()
@@ -232,14 +234,19 @@ target_precompile_headers(Hyprland PRIVATE
 
 message(STATUS "Setting link libraries")
 
-target_link_libraries(Hyprland rt PkgConfig::deps)
+target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::deps)
+if(udis_dep_FOUND)
+  target_link_libraries(Hyprland PkgConfig::udis_dep)
+else()
+  target_link_libraries(Hyprland libudis86)
+endif()
 
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)
 
 function(protocolnew protoPath protoName external)
   if(external)
-    set(path ${CMAKE_SOURCE_DIR}/${protoPath})
+    set(path ${protoPath})
   else()
     set(path ${WAYLAND_PROTOCOLS_DIR}/${protoPath})
   endif()
@@ -258,22 +265,31 @@ function(protocolWayland)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
            ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp
-    COMMAND hyprwayland-scanner --wayland-enums
-            ${WAYLAND_SERVER_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
+    COMMAND
+      hyprwayland-scanner --wayland-enums
+      ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(Hyprland PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers
                  PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
 endfunction()
 
-target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads
-                      libudis86 uuid)
+target_link_libraries(Hyprland OpenGL::EGL OpenGL::GL Threads::Threads)
 
-protocolnew("subprojects/hyprland-protocols/protocols"
-            "hyprland-global-shortcuts-v1" true)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.4.0)
+if(hyprland_protocols_dep_FOUND)
+  pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
+  message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
+else()
+  set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
+  message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
+endif()
+
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1"
+            true)
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
-protocolnew("subprojects/hyprland-protocols/protocols"
-            "hyprland-toplevel-export-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-export-v1"
+            true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)
 protocolnew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
@@ -284,10 +300,11 @@ protocolnew("protocols" "input-method-unstable-v2" true)
 protocolnew("protocols" "wlr-output-management-unstable-v1" true)
 protocolnew("protocols" "kde-server-decoration" true)
 protocolnew("protocols" "wlr-data-control-unstable-v1" true)
-protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-focus-grab-v1"
-            true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-focus-grab-v1" true)
 protocolnew("protocols" "wlr-layer-shell-unstable-v1" true)
 protocolnew("protocols" "wayland-drm" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-ctm-control-v1" true)
+
 protocolnew("staging/tearing-control" "tearing-control-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
 protocolnew("unstable/xdg-output" "xdg-output-unstable-v1" false)
@@ -316,6 +333,9 @@ protocolnew("stable/viewporter" "viewporter" false)
 protocolnew("stable/linux-dmabuf" "linux-dmabuf-v1" false)
 protocolnew("staging/drm-lease" "drm-lease-v1" false)
 protocolnew("staging/linux-drm-syncobj" "linux-drm-syncobj-v1" false)
+protocolnew("staging/xdg-dialog" "xdg-dialog-v1" false)
+protocolnew("staging/single-pixel-buffer" "single-pixel-buffer-v1" false)
+protocolnew("staging/security-context" "security-context-v1" false)
 
 protocolwayland()
 
@@ -337,12 +357,14 @@ install(
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
-# allow Hyprland to find wallpapers
+# allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
-# wallpapers
-file(GLOB_RECURSE WALLPAPERS "assets/wall*")
-install(FILES ${WALLPAPERS} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+# installable assets
+file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
+list(FILTER INSTALLABLE_ASSETS EXCLUDE REGEX "meson.build")
+install(FILES ${INSTALLABLE_ASSETS}
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf

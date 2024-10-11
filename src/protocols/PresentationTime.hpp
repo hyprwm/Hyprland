@@ -14,18 +14,18 @@ class CQueuedPresentationData {
     CQueuedPresentationData(SP<CWLSurfaceResource> surf);
 
     void setPresentationType(bool zeroCopy);
-    void attachMonitor(CMonitor* pMonitor);
+    void attachMonitor(SP<CMonitor> pMonitor);
 
     void presented();
     void discarded();
 
+    bool done = false;
+
   private:
     bool                   wasPresented = false;
     bool                   zeroCopy     = false;
-    CMonitor*              pMonitor     = nullptr;
+    WP<CMonitor>           pMonitor;
     WP<CWLSurfaceResource> surface;
-
-    DYNLISTENER(destroySurface);
 
     friend class CPresentationFeedback;
     friend class CPresentationProtocol;
@@ -53,7 +53,7 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onPresented(CMonitor* pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void         onPresented(SP<CMonitor> pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
     void         queueData(SP<CQueuedPresentationData> data);
 
   private:

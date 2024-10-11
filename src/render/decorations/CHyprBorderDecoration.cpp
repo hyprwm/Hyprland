@@ -118,7 +118,7 @@ void CHyprBorderDecoration::damageEntire() {
     CRegion borderRegion(surfaceBoxExpandedBorder);
     borderRegion.subtract(surfaceBoxShrunkRounding);
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow.lock(), m.get())) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             borderRegion.subtract(monitorRegion);

@@ -1,8 +1,8 @@
 #ifndef NO_XWAYLAND
 
-#include "XDataSource.hpp"
 #include "XWayland.hpp"
 #include "../defines.hpp"
+#include "XDataSource.hpp"
 
 #include <fcntl.h>
 

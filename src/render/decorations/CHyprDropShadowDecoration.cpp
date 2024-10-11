@@ -66,7 +66,7 @@ void CHyprDropShadowDecoration::damageEntire() {
         shadowRegion.subtract(CRegion(surfaceBox));
     }
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m.get())) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             shadowRegion.subtract(monitorRegion);

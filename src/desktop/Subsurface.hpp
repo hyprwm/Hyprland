@@ -35,10 +35,6 @@ class CSubsurface {
     void     recheckDamageForSubsurfaces();
 
   private:
-    DYNLISTENER(destroySubsurface);
-    DYNLISTENER(commitSubsurface);
-    DYNLISTENER(newSubsurface);
-
     struct {
         CHyprSignalListener destroySubsurface;
         CHyprSignalListener commitSubsurface;

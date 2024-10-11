@@ -18,6 +18,7 @@ class CXDGToplevelResource;
 class CXDGPopupResource;
 class CSeatGrab;
 class CWLSurfaceResource;
+class CXDGDialogV1Resource;
 
 struct SXDGPositionerState {
     Vector2D requestedSize;
@@ -134,7 +135,12 @@ class CXDGToplevelResource {
         Vector2D maxSize = {1337420, 694200};
     } pending, current;
 
-    WP<CXDGToplevelResource> parent;
+    WP<CXDGToplevelResource>              parent;
+    WP<CXDGDialogV1Resource>              dialog;
+
+    bool                                  anyChildModal();
+
+    std::vector<WP<CXDGToplevelResource>> children;
 
   private:
     SP<CXdgToplevel> resource;

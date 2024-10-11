@@ -21,10 +21,12 @@ class IDataSource {
     virtual void                     cancelled()                                = 0;
     virtual bool                     hasDnd();
     virtual bool                     dndDone();
+    virtual void                     sendDndFinished();
     virtual bool                     used();
     virtual void                     markUsed();
     virtual void                     error(uint32_t code, const std::string& msg) = 0;
     virtual eDataSourceType          type();
+    virtual uint32_t                 actions(); // wl_data_device_manager.dnd_action
 
     struct {
         CSignal destroy;

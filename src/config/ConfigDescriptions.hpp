@@ -454,6 +454,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 3},
     },
     SConfigOptionDescription{
+        .value       = "input:focus_on_close",
+        .description = "Controls the window focus behavior when a window is closed. When set to 0, focus will shift to the next window candidate. When set to 1, focus will shift "
+                       "to the window under the cursor.",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "next,cursor"},
+    },
+    SConfigOptionDescription{
         .value       = "input:mouse_refocus",
         .description = "if disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.",
         .type        = CONFIG_OPTION_BOOL,
@@ -736,6 +743,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "group:merge_groups_on_drag",
+        .description = "whether window groups can be dragged into other groups",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "general:col.border_active",
         .description = "border color for inactive windows",
         .type        = CONFIG_OPTION_GRADIENT,
@@ -758,6 +771,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "active border color for window that cannot be added to a group",
         .type        = CONFIG_OPTION_GRADIENT,
         .data        = SConfigOptionDescription::SGradientData{"0x66775500"},
+    },
+    SConfigOptionDescription{
+        .value       = "group:auto_group",
+        .description = "automatically group new windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "group:drag_into_group",
+        .description = "whether dragging a window into a unlocked group will merge them. Options: 0 (disabled), 1 (enabled), 2 (only when dragging into the groupbar)",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "disabled,enabled,only when dragging into the groupbar"},
+    },
+    SConfigOptionDescription{
+        .value       = "group:merge_floated_into_tiled_on_groupbar",
+        .description = "whether dragging a floating window into a tiled window groupbar will merge them",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -1030,6 +1061,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "misc:render_unfocused_fps",
+        .description = "the maximum limit for renderunfocused windows' fps in the background",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{15, 1, 120},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_xdg_env_checks",
+        .description = "disable the warning if XDG environment is externally managed",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * binds:
@@ -1102,6 +1145,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      * xwayland:
      */
 
+    SConfigOptionDescription{
+        .value       = "xwayland:enabled",
+        .description = "allow running applications using X11",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
     SConfigOptionDescription{
         .value       = "xwayland:use_nearest_neighbor",
         .description = "uses the nearest neighbor filtering for xwayland apps, making them pixelated rather than blurry",
@@ -1338,6 +1387,154 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "debug:colored_stdout_logs",
         .description = "enables colors in the stdout logs.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+
+    /*
+     * dwindle:
+     */
+
+    SConfigOptionDescription{
+        .value       = "dwindle:pseudotile",
+        .description = "enable pseudotiling. Pseudotiled windows retain their floating size when tiled.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:force_split",
+        .description = "0 -> split follows mouse, 1 -> always split to the left (new = left or top) 2 -> always split to the right (new = right or bottom)",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "follow mouse,left or top,right or bottom"},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:preserve_split",
+        .description = "if enabled, the split (side/top) will not change regardless of what happens to the container.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:smart_split",
+        .description = "if enabled, allows a more precise control over the window split direction based on the cursor's position. The window is conceptually divided into four "
+                       "triangles, and cursor's triangle determines the split direction. This feature also turns on preserve_split.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value = "dwindle:smart_resizing",
+        .description =
+            "if enabled, resizing direction will be determined by the mouse's position on the window (nearest to which corner). Else, it is based on the window's tiling position.",
+        .type = CONFIG_OPTION_BOOL,
+        .data = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:permanent_direction_override",
+        .description = "if enabled, makes the preselect direction persist until either this mode is turned off, another direction is specified, or a non-direction is specified "
+                       "(anything other than l,r,u/t,d/b)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:special_scale_factor",
+        .description = "specifies the scale factor of windows on the special workspace [0 - 1]",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:split_width_multiplier",
+        .description = "specifies the auto-split width multiplier",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{1, 0.1, 3},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:use_active_for_splits",
+        .description = "whether to prefer the active window or the mouse position for splits",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:default_split_ratio",
+        .description = "the default split ratio on window open. 1 means even 50/50 split. [0.1 - 1.9]",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{1, 0.1, 1.9},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:split_bias",
+        .description = "specifies which window will receive the larger half of a split. positional - 0, current window - 1, opening window - 2 [0/1/2]",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "positional,current,opening"},
+    },
+
+    /*
+     * master:
+     */
+
+    SConfigOptionDescription{
+        .value       = "master:allow_small_split",
+        .description = "enable adding additional master windows in a horizontal split style",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "master:special_scale_factor",
+        .description = "the scale of the special workspace windows. [0.0 - 1.0]",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
+    },
+    SConfigOptionDescription{
+        .value = "master:mfact",
+        .description =
+            "the size as a percentage of the master window, for example `mfact = 0.70` would mean 70% of the screen will be the master window, and 30% the slave [0.0 - 1.0]",
+        .type = CONFIG_OPTION_FLOAT,
+        .data = SConfigOptionDescription::SFloatData{0.55, 0, 1},
+    },
+    SConfigOptionDescription{
+        .value       = "master:new_status",
+        .description = "`master`: new window becomes master; `slave`: new windows are added to slave stack; `inherit`: inherit from focused window",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"slave"},
+    },
+    SConfigOptionDescription{
+        .value       = "master:new_on_top",
+        .description = "whether a newly open window should be on the top of the stack",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "master:new_on_active",
+        .description = "`before`, `after`: place new window relative to the focused window; `none`: place new window according to the value of `new_on_top`. ",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"none"},
+    },
+    SConfigOptionDescription{
+        .value       = "master:orientation",
+        .description = "default placement of the master area, can be left, right, top, bottom or center",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"left"},
+    },
+    SConfigOptionDescription{
+        .value       = "master:inherit_fullscreen",
+        .description = "inherit fullscreen status when cycling/swapping to another window (e.g. monocle layout)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "master:always_center_master",
+        .description = "when using orientation=center, keep the master window centered, even when it is the only window in the workspace.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value = "master:smart_resizing",
+        .description =
+            "if enabled, resizing direction will be determined by the mouse's position on the window (nearest to which corner). Else, it is based on the window's tiling position.",
+        .type = CONFIG_OPTION_BOOL,
+        .data = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "master:drop_at_cursor",
+        .description = "when enabled, dragging and dropping windows will put them at the cursor position. Otherwise, when dropped at the stack side, they will go to the "
+                       "top/bottom of the stack depending on new_on_top.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },

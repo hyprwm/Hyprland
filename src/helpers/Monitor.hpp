@@ -59,7 +59,7 @@ class CMonitorState {
 
 class CMonitor {
   public:
-    CMonitor();
+    CMonitor(SP<Aquamarine::IOutput> output);
     ~CMonitor();
 
     Vector2D                    vecPosition         = Vector2D(-1, -1); // means unset
@@ -96,11 +96,12 @@ class CMonitor {
     bool                        scheduledRecalc = false;
     wl_output_transform         transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       xwaylandScale   = 1.f;
-    std::array<float, 9>        projMatrix      = {0};
+    Mat3x3                      projMatrix;
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;
-    uint32_t                    drmFormat = DRM_FORMAT_INVALID;
+    uint32_t                    drmFormat     = DRM_FORMAT_INVALID;
+    uint32_t                    prevDrmFormat = DRM_FORMAT_INVALID;
 
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
@@ -129,6 +130,10 @@ class CMonitor {
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
+
+    // ctm
+    Mat3x3 ctm        = Mat3x3::identity();
+    bool   ctmUpdated = false;
 
     // for tearing
     PHLWINDOWREF solitaryClient;
@@ -178,6 +183,7 @@ class CMonitor {
     CBox        logicalBox();
     void        scheduleDone();
     bool        attemptDirectScanout();
+    void        setCTM(const Mat3x3& ctm);
 
     void        debugLastPresentation(const std::string& message);
 
@@ -191,10 +197,10 @@ class CMonitor {
     }
 
   private:
-    void             setupDefaultWS(const SMonitorRule&);
-    WORKSPACEID      findAvailableDefaultWS();
+    void        setupDefaultWS(const SMonitorRule&);
+    WORKSPACEID findAvailableDefaultWS();
 
-    wl_event_source* doneSource = nullptr;
+    bool        doneScheduled = false;
 
     struct {
         CHyprSignalListener frame;

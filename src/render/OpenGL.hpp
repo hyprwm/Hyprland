@@ -94,35 +94,35 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    CMonitor*            pMonitor   = nullptr;
-    PHLWORKSPACE         pWorkspace = nullptr;
-    float                projection[9];
-    float                savedProjection[9];
-    std::array<float, 9> monitorProjection;
+    CMonitor*           pMonitor   = nullptr;
+    PHLWORKSPACE        pWorkspace = nullptr;
+    Mat3x3              projection;
+    Mat3x3              savedProjection;
+    Mat3x3              monitorProjection;
 
-    SMonitorRenderData*  pCurrentMonData = nullptr;
-    CFramebuffer*        currentFB       = nullptr; // current rendering to
-    CFramebuffer*        mainFB          = nullptr; // main to render to
-    CFramebuffer*        outFB           = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData* pCurrentMonData = nullptr;
+    CFramebuffer*       currentFB       = nullptr; // current rendering to
+    CFramebuffer*       mainFB          = nullptr; // main to render to
+    CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    CRegion              damage;
-    CRegion              finalDamage; // damage used for funal off -> main
+    CRegion             damage;
+    CRegion             finalDamage; // damage used for funal off -> main
 
-    SRenderModifData     renderModif;
-    float                mouseZoomFactor    = 1.f;
-    bool                 mouseZoomUseMouse  = true; // true by default
-    bool                 useNearestNeighbor = false;
-    bool                 forceIntrospection = false; // cleaned in ::end()
-    bool                 blockScreenShader  = false;
-    bool                 simplePass         = false;
+    SRenderModifData    renderModif;
+    float               mouseZoomFactor    = 1.f;
+    bool                mouseZoomUseMouse  = true; // true by default
+    bool                useNearestNeighbor = false;
+    bool                forceIntrospection = false; // cleaned in ::end()
+    bool                blockScreenShader  = false;
+    bool                simplePass         = false;
 
-    Vector2D             primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D             primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D            primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D            primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    CBox                 clipBox = {}; // scaled coordinates
+    CBox                clipBox = {}; // scaled coordinates
 
-    uint32_t             discardMode    = DISCARD_OPAQUE;
-    float                discardOpacity = 0.f;
+    uint32_t            discardMode    = DISCARD_OPAQUE;
+    float               discardOpacity = 0.f;
 };
 
 class CEGLSync {
@@ -277,7 +277,7 @@ class CHyprOpenGLImpl {
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;
 
-    SP<CTexture>            m_pBackgroundTexture;
+    SP<CTexture>            m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture;
 
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
@@ -287,7 +287,9 @@ class CHyprOpenGLImpl {
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
-    void                    createBackgroundTexture(const std::string& path);
+    SP<CTexture>            loadAsset(const std::string& file);
+    SP<CTexture>            renderText(const std::string& text, CColor col, int pt, bool italic = false);
+    void                    initAssets();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

@@ -245,7 +245,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     g_pHyprRenderer->makeEGLCurrent();
 
     CFramebuffer outFB;
-    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, g_pHyprRenderer->isNvidia() ? DRM_FORMAT_XBGR8888 : PMONITOR->output->state->state().drmFormat);
+    outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
 
     if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
@@ -354,12 +354,12 @@ void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_
 void CToplevelExportProtocol::destroyResource(CToplevelExportClient* client) {
     std::erase_if(m_vClients, [&](const auto& other) { return other.get() == client; });
     std::erase_if(m_vFrames, [&](const auto& other) { return other->client.get() == client; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other->client.get() == client; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other->client.get() == client; });
 }
 
 void CToplevelExportProtocol::destroyResource(CToplevelExportFrame* frame) {
     std::erase_if(m_vFrames, [&](const auto& other) { return other.get() == frame; });
-    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return other.get() == frame; });
+    std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
 void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
@@ -369,11 +369,17 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
     std::vector<WP<CToplevelExportFrame>> framesToRemove;
 
     // share frame if correct output
-    for (auto& f : m_vFramesAwaitingWrite) {
-        if (!f->pWindow || !validMapped(f->pWindow)) {
-            framesToRemove.push_back(f);
+    for (auto const& f : m_vFramesAwaitingWrite) {
+        if (!f)
+            continue;
+
+        if (!validMapped(f->pWindow)) {
+            framesToRemove.emplace_back(f);
             continue;
         }
+
+        if (!f->pWindow)
+            continue;
 
         const auto PWINDOW = f->pWindow;
 
@@ -393,13 +399,13 @@ void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
         framesToRemove.push_back(f);
     }
 
-    for (auto& f : framesToRemove) {
-        destroyResource(f.get());
+    for (auto const& f : framesToRemove) {
+        std::erase(m_vFramesAwaitingWrite, f);
     }
 }
 
 void CToplevelExportProtocol::onWindowUnmap(PHLWINDOW pWindow) {
-    for (auto& f : m_vFrames) {
+    for (auto const& f : m_vFrames) {
         if (f->pWindow == pWindow)
             f->pWindow.reset();
     }

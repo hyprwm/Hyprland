@@ -8,8 +8,9 @@ class CColor {
     CColor(float r, float g, float b, float a);
     CColor(uint64_t);
 
-    float    r = 0, g = 0, b = 0, a = 1.f;
+    float r = 0, g = 0, b = 0, a = 1.f;
 
+    // AR32
     uint32_t getAsHex() const;
 
     CColor   operator-(const CColor& c2) const {

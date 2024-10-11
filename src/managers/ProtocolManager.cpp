@@ -43,6 +43,10 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
+#include "../protocols/XDGDialog.hpp"
+#include "../protocols/SinglePixel.hpp"
+#include "../protocols/SecurityContext.hpp"
+#include "../protocols/CTMControl.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -84,7 +88,8 @@ CProtocolManager::CProtocolManager() {
 
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
-        if (M->isMirror())
+        // also ignore the fallback
+        if (M->isMirror() || M == g_pCompositor->m_pUnsafeOutput)
             return;
 
         if (PROTO::outputs.contains(M->szName))
@@ -150,8 +155,12 @@ CProtocolManager::CProtocolManager() {
     PROTO::screencopy          = std::make_unique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport      = std::make_unique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
     PROTO::globalShortcuts     = std::make_unique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
+    PROTO::xdgDialog           = std::make_unique<CXDGDialogProtocol>(&xdg_dialog_v1_interface, 1, "XDGDialog");
+    PROTO::singlePixel         = std::make_unique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
+    PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
+    PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
 
-    for (auto& b : g_pCompositor->m_pAqBackend->getImplementations()) {
+    for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
@@ -219,9 +228,64 @@ CProtocolManager::~CProtocolManager() {
     PROTO::screencopy.reset();
     PROTO::toplevelExport.reset();
     PROTO::globalShortcuts.reset();
+    PROTO::xdgDialog.reset();
+    PROTO::singlePixel.reset();
+    PROTO::securityContext.reset();
+    PROTO::ctm.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();
     PROTO::linuxDma.reset();
+}
+
+bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
+    if (!global)
+        return false;
+
+    for (auto& [k, v] : PROTO::outputs) {
+        if (global == v->getGlobal())
+            return false;
+    }
+
+    // this is a static whitelist of allowed protocols,
+    // outputs are dynamic so we checked them above
+    // clang-format off
+    static const std::vector<wl_global*> ALLOWED_WHITELIST = {
+        PROTO::seat->getGlobal(),
+        PROTO::data->getGlobal(),
+        PROTO::compositor->getGlobal(),
+        PROTO::subcompositor->getGlobal(),
+        PROTO::shm->getGlobal(),
+        PROTO::viewport->getGlobal(),
+        PROTO::tearing->getGlobal(),
+        PROTO::fractional->getGlobal(),
+        PROTO::cursorShape->getGlobal(),
+        PROTO::idleInhibit->getGlobal(),
+        PROTO::relativePointer->getGlobal(),
+        PROTO::xdgDecoration->getGlobal(),
+        PROTO::alphaModifier->getGlobal(),
+        PROTO::pointerGestures->getGlobal(),
+        PROTO::shortcutsInhibit->getGlobal(),
+        PROTO::textInputV1->getGlobal(),
+        PROTO::textInputV3->getGlobal(),
+        PROTO::constraints->getGlobal(),
+        PROTO::activation->getGlobal(),
+        PROTO::idle->getGlobal(),
+        PROTO::ime->getGlobal(),
+        PROTO::virtualKeyboard->getGlobal(),
+        PROTO::virtualPointer->getGlobal(),
+        PROTO::serverDecorationKDE->getGlobal(),
+        PROTO::tablet->getGlobal(),
+        PROTO::presentation->getGlobal(),
+        PROTO::xdgShell->getGlobal(),
+        PROTO::xdgDialog->getGlobal(),
+        PROTO::singlePixel->getGlobal(),
+        PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
+        PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
+        PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
+    };
+    // clang-format on
+
+    return std::find(ALLOWED_WHITELIST.begin(), ALLOWED_WHITELIST.end(), global) == ALLOWED_WHITELIST.end();
 }

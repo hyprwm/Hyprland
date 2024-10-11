@@ -252,7 +252,7 @@ DRMFormat FormatUtils::shmToDRM(SHMFormat shm) {
 }
 
 const SPixelFormat* FormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
-    for (auto& fmt : GLES3_FORMATS) {
+    for (auto const& fmt : GLES3_FORMATS) {
         if (fmt.drmFormat == drm)
             return &fmt;
     }
@@ -261,7 +261,7 @@ const SPixelFormat* FormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
 }
 
 const SPixelFormat* FormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha) {
-    for (auto& fmt : GLES3_FORMATS) {
+    for (auto const& fmt : GLES3_FORMATS) {
         if (fmt.glFormat == (int)glFormat && fmt.glType == (int)glType && fmt.withAlpha == alpha)
             return &fmt;
     }

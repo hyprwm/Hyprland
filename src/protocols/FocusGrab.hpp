@@ -53,9 +53,6 @@ class CFocusGrab {
 
     bool                                                                   m_bGrabActive = false;
 
-    DYNLISTENER(pointerGrabStarted);
-    DYNLISTENER(keyboardGrabStarted);
-    DYNLISTENER(touchGrabStarted);
     friend class CFocusGrabSurfaceState;
 };
 

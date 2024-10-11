@@ -31,6 +31,7 @@ CTextInputV1::CTextInputV1(SP<CZwpTextInputV1> resource_) : resource(resource_) 
     resource->setReset([this](CZwpTextInputV1* pMgr) {
         pendingSurrounding.isPending = false;
         pendingContentType.isPending = false;
+        events.reset.emit();
     });
 
     resource->setSetSurroundingText(

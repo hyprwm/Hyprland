@@ -26,7 +26,6 @@ class CPointerManager {
   public:
     CPointerManager();
 
-    void checkDefaultCursorWarp(SP<CMonitor> monitor, std::string monitorName);
     void attachPointer(SP<IPointer> pointer);
     void attachTouch(SP<ITouch> touch);
     void attachTablet(SP<CTablet> tablet);

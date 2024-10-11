@@ -119,7 +119,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         if (IDX != XKB_MOD_INVALID)
             modifiersState.locked |= (uint32_t)1 << IDX;
 
-        updateModifiers(modifiersState.depressed, modifiersState.latched, modifiersState.locked, modifiersState.group);
+        // 0 to avoid mods getting stuck if depressed during reload
+        updateModifiers(0, 0, modifiersState.locked, modifiersState.group);
     }
 
     for (size_t i = 0; i < LEDNAMES.size(); ++i) {
@@ -177,13 +178,18 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     if (xkbState)
         xkb_state_unref(xkbState);
 
+    if (xkbSymState)
+        xkb_state_unref(xkbSymState);
+
     xkbState       = nullptr;
     xkbStaticState = nullptr;
+    xkbSymState    = nullptr;
 
     if (keymap) {
         Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", (uintptr_t)this);
         xkbStaticState = xkb_state_new(keymap);
         xkbState       = xkb_state_new(keymap);
+        xkbSymState    = xkb_state_new(keymap);
         return;
     }
 
@@ -229,6 +235,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
             xkbState       = xkb_state_new(KEYMAP);
             xkbStaticState = xkb_state_new(KEYMAP);
+            xkbSymState    = xkb_state_new(KEYMAP);
 
             xkb_keymap_unref(KEYMAP);
             xkb_context_unref(PCONTEXT);
@@ -251,6 +258,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
     xkbState       = xkb_state_new(NEWKEYMAP);
     xkbStaticState = xkb_state_new(NEWKEYMAP);
+    xkbSymState    = xkb_state_new(NEWKEYMAP);
 
     xkb_keymap_unref(NEWKEYMAP);
     xkb_context_unref(PCONTEXT);
@@ -331,6 +339,9 @@ void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t l
 
     xkb_state_update_mask(xkbState, depressed, latched, locked, 0, 0, group);
 
+    if (xkbSymState)
+        xkb_state_update_mask(xkbSymState, 0, 0, 0, 0, 0, group);
+
     if (!updateModifiersState())
         return;
 
@@ -381,6 +392,9 @@ void IKeyboard::updateXkbStateWithKey(uint32_t xkbKey, bool pressed) {
     xkb_state_update_key(xkbState, xkbKey, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 
     if (updateModifiersState()) {
+        if (xkbSymState)
+            xkb_state_update_mask(xkbSymState, 0, 0, 0, 0, 0, modifiersState.group);
+
         keyboardEvents.modifiers.emit(SModifiersEvent{
             .depressed = modifiersState.depressed,
             .latched   = modifiersState.latched,

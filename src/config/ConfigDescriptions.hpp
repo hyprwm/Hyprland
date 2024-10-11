@@ -1447,12 +1447,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SFloatData{1, 0.1, 3},
     },
     SConfigOptionDescription{
-        .value       = "dwindle:no_gaps_when_only",
-        .description = "whether to apply gaps when there is only one window on a workspace, aka. smart gaps. (default: disabled - 0) no border - 1, with border - 2 [0/1/2]",
-        .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "disabled,no border,with border"},
-    },
-    SConfigOptionDescription{
         .value       = "dwindle:use_active_for_splits",
         .description = "whether to prefer the active window or the mouse position for splits",
         .type        = CONFIG_OPTION_BOOL,
@@ -1511,12 +1505,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "`before`, `after`: place new window relative to the focused window; `none`: place new window according to the value of `new_on_top`. ",
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{"none"},
-    },
-    SConfigOptionDescription{
-        .value       = "master:no_gaps_when_only",
-        .description = "whether to apply gaps when there is only one window on a workspace, aka. smart gaps. (default: disabled - 0) no border - 1, with border - 2 [0/1/2]",
-        .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "disabled,no border,with border"},
     },
     SConfigOptionDescription{
         .value       = "master:orientation",

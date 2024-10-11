@@ -142,11 +142,10 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     PWINDOW->unsetWindowData(PRIORITY_LAYOUT);
     PWINDOW->updateWindowData();
 
-    static auto PNOGAPSWHENONLY = CConfigValue<Hyprlang::INT>("dwindle:no_gaps_when_only");
-    static auto PGAPSINDATA     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    static auto PGAPSOUTDATA    = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSIN         = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
-    auto* const PGAPSOUT        = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
+    static auto PGAPSINDATA  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    auto* const PGAPSIN      = (CCssGapData*)(PGAPSINDATA.ptr())->getData();
+    auto* const PGAPSOUT     = (CCssGapData*)(PGAPSOUTDATA.ptr())->getData();
 
     auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
     auto        gapsOut = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
@@ -155,27 +154,6 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
 
     PWINDOW->m_vSize     = nodeBox.size();
     PWINDOW->m_vPosition = nodeBox.pos();
-
-    const auto NODESONWORKSPACE = getNodesOnWorkspace(PWINDOW->workspaceID());
-
-    if (*PNOGAPSWHENONLY && !PWINDOW->onSpecialWorkspace() && (NODESONWORKSPACE == 1 || PWINDOW->isEffectiveInternalFSMode(FSMODE_MAXIMIZED))) {
-
-        PWINDOW->m_sWindowData.decorate   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noBorder   = CWindowOverridableVar(*PNOGAPSWHENONLY != 2, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noRounding = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-        PWINDOW->m_sWindowData.noShadow   = CWindowOverridableVar(true, PRIORITY_LAYOUT);
-
-        PWINDOW->updateWindowDecos();
-
-        const auto RESERVED = PWINDOW->getFullWindowReservedArea();
-
-        PWINDOW->m_vRealPosition = PWINDOW->m_vPosition + RESERVED.topLeft;
-        PWINDOW->m_vRealSize     = PWINDOW->m_vSize - (RESERVED.topLeft + RESERVED.bottomRight);
-
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
-
-        return;
-    }
 
     PWINDOW->updateWindowDecos();
 

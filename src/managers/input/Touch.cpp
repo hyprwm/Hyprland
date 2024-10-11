@@ -39,7 +39,6 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         const auto PWORKSPACE = PMONITOR->activeWorkspace;
         const bool VERTANIMS  = PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
             PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
-        // TODO: support no_gaps_when_only?
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.top : gapsOut.left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.bottom : gapsOut.right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x));
         const double POSITION    = (VERTANIMS ? e.pos.y : e.pos.x);

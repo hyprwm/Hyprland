@@ -185,6 +185,8 @@ class CMonitor {
     bool        attemptDirectScanout();
     void        setCTM(const Mat3x3& ctm);
 
+    void        debugLastPresentation(const std::string& message);
+
     bool        m_bEnabled             = false;
     bool        m_bRenderingInitPassed = false;
 

@@ -55,6 +55,9 @@ CDRMSyncobjSurfaceResource::CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurf
             return;
         }
 
+        if (!pending.acquireTimeline)
+            return;
+
         if (pending.acquireTimeline && pending.releaseTimeline && pending.acquireTimeline == pending.releaseTimeline) {
             if (pending.acquirePoint >= pending.releasePoint) {
                 resource->error(WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_CONFLICTING_POINTS, "Acquire and release points are on the same timeline, and acquire >= release");

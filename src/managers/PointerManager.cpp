@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/PointerGestures.hpp"
+#include "../protocols/RelativePointer.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -328,7 +329,7 @@ void CPointerManager::onCursorMoved() {
             continue;
 
         const auto CURSORPOS = getCursorPosForMonitor(m);
-        m->output->moveCursor(CURSORPOS);
+        m->output->moveCursor(CURSORPOS, m->shouldSkipScheduleFrameOnMouseEvent());
     }
 
     if (recalc)
@@ -342,7 +343,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
         return false;
 
     const auto CURSORPOS = getCursorPosForMonitor(state->monitor.lock());
-    state->monitor->output->moveCursor(CURSORPOS);
+    state->monitor->output->moveCursor(CURSORPOS, state->monitor->shouldSkipScheduleFrameOnMouseEvent());
 
     auto texture = getCurrentCursorTexture();
 
@@ -385,7 +386,8 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
     state->cursorFrontBuffer = buf;
 
-    g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+    if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
+        g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
     return true;
 }
@@ -676,8 +678,11 @@ void CPointerManager::warpTo(const Vector2D& logical) {
     damageIfSoftware();
 
     pointerPos = closestValid(logical);
-    recheckEnteredOutputs();
-    onCursorMoved();
+
+    if (!g_pInputManager->isLocked()) {
+        recheckEnteredOutputs();
+        onCursorMoved();
+    }
 
     damageIfSoftware();
 }
@@ -859,7 +864,14 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([this] (std::any e) {
-        g_pSeatManager->sendPointerFrame();
+        bool shouldSkip = false;
+        if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
+            auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
+            shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+        }
+        g_pSeatManager->isPointerFrameSkipped = shouldSkip;
+        if (!g_pSeatManager->isPointerFrameSkipped)
+            g_pSeatManager->sendPointerFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([this] (std::any e) {
@@ -1079,4 +1091,23 @@ void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return currentCursorImage.size / currentCursorImage.scale;
+}
+
+void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
+    storedTime = time;
+    storedDelta += delta;
+    storedUnaccel += deltaUnaccel;
+}
+
+void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
+    storedTime    = time;
+    storedDelta   = delta;
+    storedUnaccel = deltaUnaccel;
+}
+
+void CPointerManager::sendStoredMovement() {
+    PROTO::relativePointer->sendRelativeMotion((uint64_t)storedTime * 1000, storedDelta, storedUnaccel);
+    storedTime    = 0;
+    storedDelta   = Vector2D{};
+    storedUnaccel = Vector2D{};
 }

@@ -117,9 +117,11 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
         cursors = loadStandardCursors(themeName, lastLoadSize);
     } else {
         for (auto const& p : paths) {
-            auto dirCursors = loadAllFromDir(p, lastLoadSize);
-            std::copy_if(dirCursors.begin(), dirCursors.end(), std::back_inserter(cursors),
-                         [this](auto const& p) { return std::none_of(cursors.begin(), cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
+            try {
+                auto dirCursors = loadAllFromDir(p, lastLoadSize);
+                std::copy_if(dirCursors.begin(), dirCursors.end(), std::back_inserter(cursors),
+                             [this](auto const& p) { return std::none_of(cursors.begin(), cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
+            } catch (std::exception& e) { Debug::log(ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
         }
     }
 

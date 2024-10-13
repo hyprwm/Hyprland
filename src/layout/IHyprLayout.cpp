@@ -419,15 +419,12 @@ typedef void (*SnapFn)(double& pos, double& len, const double p);
 
 void snapWindows(CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double oldGap, const eMouseBindMode mode, const eRectCorner c) {
     SnapFn snapUp, snapDown, snapLeft, snapRight;
-    switch (mode) {
-        case MBIND_RESIZE:
-            snapUp = snapLeft = snapResizeLeft;
-            snapDown = snapRight = snapResizeRight;
-            break;
-        default:
-            snapUp = snapLeft = snapMoveLeft;
-            snapDown = snapRight = snapMoveRight;
-            break;
+    if (mode == MBIND_RESIZE) {
+        snapUp = snapLeft = snapResizeLeft;
+        snapDown = snapRight = snapResizeRight;
+    } else {
+        snapUp = snapLeft = snapMoveLeft;
+        snapDown = snapRight = snapMoveRight;
     }
 
     static auto  BORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -447,51 +444,42 @@ void snapWindows(CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double oldGap, const 
 
         // only snap windows if their ranges intersect in the opposite axis
         if (wb.y <= bb.h && bb.y <= wv.y) {
-            if (c & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(wb.x, bb.w, gap)) {
+            if (c & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(wb.x, bb.w, gap))
                 snapLeft(wb.x, wb.w, bb.w);
-                // now check corners
-                if (c & CORNER_TOPLEFT && canSnap(wb.y, ob.y, gap))
-                    snapUp(wb.y, wb.h, ob.y);
-                else if (c & CORNER_BOTTOMLEFT && canSnap(wv.y, ob.h, gap))
-                    snapDown(wb.y, wb.h, ob.h);
-            } else if (c & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(wv.x, bb.x, gap)) {
+            else if (c & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(wv.x, bb.x, gap))
                 snapRight(wb.x, wb.w, bb.x);
-                if (c & CORNER_TOPRIGHT && canSnap(wb.y, ob.y, gap))
-                    snapUp(wb.y, wb.h, ob.y);
-                else if (c & CORNER_BOTTOMRIGHT && canSnap(wv.y, ob.h, gap))
-                    snapDown(wb.y, wb.h, ob.h);
-            }
+        }
+        if (wb.x <= bb.w && bb.x <= wv.x) {
+            if (c & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(wb.y, bb.h, gap))
+                snapUp(wb.y, wb.h, bb.h);
+            else if (c & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(wv.y, bb.y, gap))
+                snapDown(wb.y, wb.h, bb.y);
         }
 
-        if (wb.x <= bb.w && bb.x <= wv.x) {
-            if (c & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(wb.y, bb.h, gap)) {
-                snapUp(wb.y, wb.h, bb.h);
-                if (c & CORNER_TOPLEFT && canSnap(wb.x, ob.x, gap))
-                    snapLeft(wb.x, wb.w, ob.x);
-                else if (c & CORNER_TOPRIGHT && canSnap(wv.x, ob.w, gap))
-                    snapRight(wb.x, wb.w, ob.w);
-            } else if (c & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(wv.y, bb.y, gap)) {
-                snapDown(wb.y, wb.h, bb.y);
-                if (c & CORNER_BOTTOMLEFT && canSnap(wb.x, ob.x, gap))
-                    snapLeft(wb.x, wb.w, ob.x);
-                else if (c & CORNER_BOTTOMRIGHT && canSnap(wv.x, ob.w, gap))
-                    snapRight(wb.x, wb.w, ob.w);
-            }
+        // corner snapping
+        if (wb.x == bb.w || bb.x == wb.x + wb.w) {
+            if (c & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(wb.y, ob.y, gap))
+                snapUp(wb.y, wb.h, ob.y);
+            else if (c & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(wv.y, ob.h, gap))
+                snapDown(wb.y, wb.h, ob.h);
+        }
+        if (wb.y == bb.h || bb.y == wb.y + wb.h) {
+            if (c & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(wb.x, ob.x, gap))
+                snapLeft(wb.x, wb.w, ob.x);
+            else if (c & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(wv.x, ob.w, gap))
+                snapRight(wb.x, wb.w, ob.w);
         }
     }
 }
 
 void snapMonitor(CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double gap, const eMouseBindMode mode) {
     SnapFn snapUp, snapDown, snapLeft, snapRight;
-    switch (mode) {
-        case MBIND_RESIZE:
-            snapUp = snapLeft = snapResizeLeft;
-            snapDown = snapRight = snapResizeRight;
-            break;
-        default:
-            snapUp = snapLeft = snapMoveLeft;
-            snapDown = snapRight = snapMoveRight;
-            break;
+    if (mode == MBIND_RESIZE) {
+        snapUp = snapLeft = snapResizeLeft;
+        snapDown = snapRight = snapResizeRight;
+    } else {
+        snapUp = snapLeft = snapMoveLeft;
+        snapDown = snapRight = snapMoveRight;
     }
 
     const auto MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);

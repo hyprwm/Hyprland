@@ -9,7 +9,9 @@
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <bit>
+#include <ctime>
 #include <random>
+#include <print>
 #include <cstring>
 #include <filesystem>
 #include <unordered_set>
@@ -138,37 +140,37 @@ CCompositor::CCompositor() {
     m_szHyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
 
     if (m_szHyprTempDataRoot.starts_with("/hypr")) {
-        std::cout << "Bailing out, XDG_RUNTIME_DIR is invalid\n";
+        std::println("Bailing out, $XDG_RUNTIME_DIR is invalid");
         throw std::runtime_error("CCompositor() failed");
     }
 
     if (!m_szHyprTempDataRoot.starts_with("/run/user"))
-        std::cout << "[!!WARNING!!] XDG_RUNTIME_DIR looks non-standard. Proceeding anyways...\n";
+        std::println("[!!WARNING!!] XDG_RUNTIME_DIR looks non-standard. Proceeding anyways...");
 
     std::random_device              dev;
     std::mt19937                    engine(dev());
     std::uniform_int_distribution<> distribution(0, INT32_MAX);
 
-    m_szInstanceSignature = GIT_COMMIT_HASH + std::string("_") + std::to_string(time(NULL)) + "_" + std::to_string(distribution(engine));
+    m_szInstanceSignature = std::format("{}_{}_{}", GIT_COMMIT_HASH, std::time(NULL), distribution(engine));
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
     if (!std::filesystem::exists(m_szHyprTempDataRoot))
         mkdir(m_szHyprTempDataRoot.c_str(), S_IRWXU);
     else if (!std::filesystem::is_directory(m_szHyprTempDataRoot)) {
-        std::cout << "Bailing out, " << m_szHyprTempDataRoot << " is not a directory\n";
+        std::println("Bailing out, {} is not a directory", m_szHyprTempDataRoot);
         throw std::runtime_error("CCompositor() failed");
     }
 
     m_szInstancePath = m_szHyprTempDataRoot + "/" + m_szInstanceSignature;
 
     if (std::filesystem::exists(m_szInstancePath)) {
-        std::cout << "Bailing out, " << m_szInstancePath << " exists??\n";
+        std::println("Bailing out, {} exists??", m_szInstancePath);
         throw std::runtime_error("CCompositor() failed");
     }
 
     if (mkdir(m_szInstancePath.c_str(), S_IRWXU) < 0) {
-        std::cout << "Bailing out, couldn't create " << m_szInstancePath << "\n";
+        std::println("Bailing out, couldn't create {}", m_szInstancePath);
         throw std::runtime_error("CCompositor() failed");
     }
 

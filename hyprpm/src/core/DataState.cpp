@@ -1,6 +1,6 @@
 #include "DataState.hpp"
 #include <toml++/toml.hpp>
-#include <iostream>
+#include <print>
 #include <filesystem>
 #include <fstream>
 #include "PluginManager.hpp"
@@ -8,7 +8,7 @@
 std::string DataState::getDataStatePath() {
     const auto HOME = getenv("HOME");
     if (!HOME) {
-        std::cerr << "DataState: no $HOME\n";
+        std::println(stderr, "DataState: no $HOME");
         throw std::runtime_error("no $HOME");
         return "";
     }

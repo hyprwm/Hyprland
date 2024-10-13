@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 enum eHeadersErrors {
     HEADERS_OK = 0,
@@ -68,7 +69,7 @@ class CPluginManager {
     std::string headerError(const eHeadersErrors err);
     std::string headerErrorShort(const eHeadersErrors err);
 
-    std::string m_szWorkingPluginDirectory = "";
+    std::string m_szWorkingPluginDirectory;
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

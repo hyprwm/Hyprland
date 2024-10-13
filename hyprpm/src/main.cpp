@@ -1,15 +1,16 @@
-#include "progress/CProgressBar.hpp"
 #include "helpers/Colors.hpp"
+#include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
 
-#include <iostream>
+#include <cstdio>
 #include <vector>
 #include <string>
+#include <print>
 #include <chrono>
 #include <thread>
 
-const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
+constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
 ┃                          is optional, when set, commit locks are ignored.
@@ -30,14 +31,14 @@ const std::string HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┗
 )#";
 
-int               main(int argc, char** argv, char** envp) {
+int                        main(int argc, char** argv, char** envp) {
     std::vector<std::string> ARGS{argc};
     for (int i = 0; i < argc; ++i) {
         ARGS[i] = std::string{argv[i]};
     }
 
     if (ARGS.size() < 2) {
-        std::cout << HELP;
+        std::println(stderr, "{}", HELP);
         return 1;
     }
 
@@ -47,7 +48,7 @@ int               main(int argc, char** argv, char** envp) {
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
             if (ARGS[i] == "--help" || ARGS[i] == "-h") {
-                std::cout << HELP;
+                std::println("{}", HELP);
                 return 0;
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
@@ -57,9 +58,9 @@ int               main(int argc, char** argv, char** envp) {
                 noShallow = true;
             } else if (ARGS[i] == "--force" || ARGS[i] == "-f") {
                 force = true;
-                std::cout << Colors::RED << "!" << Colors::RESET << " Using --force, I hope you know what you are doing.\n";
+                std::println("{}", statusString("!", Colors::RED, "Using --force, I hope you know what you are doing."));
             } else {
-                std::cerr << "Unrecognized option " << ARGS[i] << "\n";
+                std::println(stderr, "Unrecognized option {}", ARGS[i]);
                 return 1;
             }
         } else {
@@ -68,7 +69,7 @@ int               main(int argc, char** argv, char** envp) {
     }
 
     if (command.empty()) {
-        std::cout << HELP;
+        std::println(stderr, "{}", HELP);
         return 0;
     }
 
@@ -78,7 +79,7 @@ int               main(int argc, char** argv, char** envp) {
 
     if (command[0] == "add") {
         if (command.size() < 2) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for add.\n";
+            std::println(stderr, "{}", failureString("Not enough args for add."));
             return 1;
         }
 
@@ -90,7 +91,7 @@ int               main(int argc, char** argv, char** envp) {
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
         if (ARGS.size() < 2) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for remove.\n";
+            std::println(stderr, "{}", failureString("Not enough args for remove."));
             return 1;
         }
 
@@ -116,12 +117,12 @@ int               main(int argc, char** argv, char** envp) {
             g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");
     } else if (command[0] == "enable") {
         if (ARGS.size() < 2) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for enable.\n";
+            std::println(stderr, "{}", failureString("Not enough args for enable."));
             return 1;
         }
 
         if (!g_pPluginManager->enablePlugin(command[1])) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Couldn't enable plugin (missing?)\n";
+            std::println(stderr, "{}", failureString("Couldn't enable plugin (missing?)"));
             return 1;
         }
 
@@ -130,12 +131,12 @@ int               main(int argc, char** argv, char** envp) {
             return 1;
     } else if (command[0] == "disable") {
         if (command.size() < 2) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Not enough args for disable.\n";
+            std::println(stderr, "{}", failureString("Not enough args for disable."));
             return 1;
         }
 
         if (!g_pPluginManager->disablePlugin(command[1])) {
-            std::cerr << Colors::RED << "✖" << Colors::RESET << " Couldn't disable plugin (missing?)\n";
+            std::println(stderr, "{}", failureString("Couldn't disable plugin (missing?)"));
             return 1;
         }
 
@@ -160,7 +161,7 @@ int               main(int argc, char** argv, char** envp) {
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {
-        std::cout << HELP;
+        std::println(stderr, "{}", HELP);
         return 1;
     }
 

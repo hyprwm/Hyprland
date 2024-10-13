@@ -150,10 +150,17 @@ void CXWM::handleUnmapNotify(xcb_unmap_notify_event_t* e) {
 }
 
 static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> prospectiveChild) {
+    std::vector<SP<CXWaylandSurface>> visited;
+
     while (XSURF->parent) {
         if (XSURF->parent == prospectiveChild)
             return true;
+        visited.emplace_back(XSURF);
+
         XSURF = XSURF->parent.lock();
+
+        if (std::find(visited.begin(), visited.end(), XSURF) != visited.end())
+            return false;
     }
 
     return false;

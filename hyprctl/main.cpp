@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <string>
+#include <print>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -44,11 +45,11 @@ struct SInstanceData {
     bool        valid = true;
 };
 
-void log(std::string str) {
+void log(const std::string& str) {
     if (quiet)
         return;
 
-    std::cout << str << "\n";
+    std::println("{}", str);
 }
 
 std::string getRuntimeDir() {
@@ -105,7 +106,7 @@ std::vector<SInstanceData> instances() {
 static volatile bool sigintReceived = false;
 void                 intHandler(int sig) {
     sigintReceived = true;
-    std::cout << "[hyprctl] SIGINT received, closing connection" << std::endl;
+    std::println("[hyprctl] SIGINT received, closing connection");
 }
 
 int rollingRead(const int socket) {
@@ -115,12 +116,12 @@ int rollingRead(const int socket) {
     constexpr size_t              BUFFER_SIZE = 8192;
     std::array<char, BUFFER_SIZE> buffer      = {0};
     long                          sizeWritten = 0;
-    std::cout << "[hyprctl] reading from socket following up log:" << std::endl;
+    std::println("[hyprctl] reading from socket following up log:");
     while (!sigintReceived) {
         sizeWritten = read(socket, buffer.data(), BUFFER_SIZE);
         if (sizeWritten < 0 && errno != EAGAIN) {
             if (errno != EINTR)
-                std::cout << "Couldn't read (5) " << strerror(errno) << ":" << errno << std::endl;
+                std::println("Couldn't read (5): {}: {}", strerror(errno), errno);
             close(socket);
             return 5;
         }
@@ -129,7 +130,7 @@ int rollingRead(const int socket) {
             break;
 
         if (sizeWritten > 0) {
-            std::cout << std::string(buffer.data(), sizeWritten);
+            std::println("{}", std::string(buffer.data(), sizeWritten));
             buffer.fill('\0');
         }
 
@@ -323,7 +324,7 @@ int main(int argc, char** argv) {
     bool parseArgs = true;
 
     if (argc < 2) {
-        std::cout << USAGE << std::endl;
+        std::println("{}", USAGE);
         return 1;
     }
 
@@ -360,7 +361,7 @@ int main(int argc, char** argv) {
                 ++i;
 
                 if (i >= ARGS.size()) {
-                    std::cout << USAGE << std::endl;
+                    std::println("{}", USAGE);
                     return 1;
                 }
 
@@ -371,24 +372,24 @@ int main(int argc, char** argv) {
                 const std::string& cmd = ARGS[0];
 
                 if (cmd == "hyprpaper") {
-                    std::cout << HYPRPAPER_HELP << std::endl;
+                    std::println("{}", HYPRPAPER_HELP);
                 } else if (cmd == "notify") {
-                    std::cout << NOTIFY_HELP << std::endl;
+                    std::println("{}", NOTIFY_HELP);
                 } else if (cmd == "output") {
-                    std::cout << OUTPUT_HELP << std::endl;
+                    std::println("{}", OUTPUT_HELP);
                 } else if (cmd == "plugin") {
-                    std::cout << PLUGIN_HELP << std::endl;
+                    std::println("{}", PLUGIN_HELP);
                 } else if (cmd == "setprop") {
-                    std::cout << SETPROP_HELP << std::endl;
+                    std::println("{}", SETPROP_HELP);
                 } else if (cmd == "switchxkblayout") {
-                    std::cout << SWITCHXKBLAYOUT_HELP << std::endl;
+                    std::println("{}", SWITCHXKBLAYOUT_HELP);
                 } else {
-                    std::cout << USAGE << std::endl;
+                    std::println("{}", USAGE);
                 }
 
                 return 1;
             } else {
-                std::cout << USAGE << std::endl;
+                std::println("{}", USAGE);
                 return 1;
             }
 
@@ -399,7 +400,7 @@ int main(int argc, char** argv) {
     }
 
     if (fullRequest.empty()) {
-        std::cout << USAGE << std::endl;
+        std::println("{}", USAGE);
         return 1;
     }
 
@@ -476,7 +477,7 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/decorations"))
         exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
-        std::cout << USAGE << std::endl;
+        std::println("{}", USAGE);
     else if (fullRequest.contains("/rollinglog") && needRoll)
         exitStatus = request(fullRequest, 0, true);
     else {

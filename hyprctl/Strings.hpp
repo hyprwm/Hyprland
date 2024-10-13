@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 const std::string_view USAGE = R"#(usage: hyprctl [flags] <command> [args...|--help]
 
 commands:

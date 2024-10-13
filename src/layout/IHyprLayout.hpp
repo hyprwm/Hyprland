@@ -18,11 +18,12 @@ struct SLayoutMessageHeader {
 enum eFullscreenMode : int8_t;
 
 enum eRectCorner {
-    CORNER_NONE = 0,
-    CORNER_TOPLEFT,
-    CORNER_TOPRIGHT,
-    CORNER_BOTTOMRIGHT,
-    CORNER_BOTTOMLEFT
+    CORNER_ANY         = -1,
+    CORNER_NONE        = 0,
+    CORNER_TOPLEFT     = 1,
+    CORNER_TOPRIGHT    = 2,
+    CORNER_BOTTOMRIGHT = 4,
+    CORNER_BOTTOMLEFT  = 8,
 };
 
 enum eDirection {

@@ -1,11 +1,11 @@
 #include "CProgressBar.hpp"
 
-#include <iostream>
+#include <sys/ioctl.h>
 #include <algorithm>
 #include <cmath>
 #include <format>
 
-#include <sys/ioctl.h>
+#include <print>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -16,11 +16,12 @@ void CProgressBar::printMessageAbove(const std::string& msg) {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
     std::string spaces;
+    spaces.reserve(w.ws_col);
     for (size_t i = 0; i < w.ws_col; ++i) {
         spaces += ' ';
     }
 
-    std::cout << "\r" << spaces << "\r" << msg << "\n";
+    std::println("\r{}\r{}", spaces, msg);
     print();
 }
 
@@ -29,15 +30,16 @@ void CProgressBar::print() {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
     if (m_bFirstPrint)
-        std::cout << "\n";
+        std::print("\n");
     m_bFirstPrint = false;
 
     std::string spaces;
+    spaces.reserve(w.ws_col);
     for (size_t i = 0; i < w.ws_col; ++i) {
         spaces += ' ';
     }
 
-    std::cout << "\r" << spaces << "\r";
+    std::print("\r{}\r", spaces);
 
     std::string message = "";
 
@@ -74,7 +76,7 @@ void CProgressBar::print() {
         message += "  " + std::format("{} / {}", m_iSteps, m_iMaxSteps) + " ";
 
     // draw message
-    std::cout << message + " " + m_szCurrentMessage;
+    std::print("{} {}", message, m_szCurrentMessage);
 
     std::fflush(stdout);
 }

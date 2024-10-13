@@ -464,41 +464,42 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                 const auto WSID = DRAGGINGWINDOW->workspaceID();
 
                 for (auto& other : g_pCompositor->m_vWindows) {
-                    if (other->workspaceID() == WSID && other->getPID() != PID) {
-                        const CBox     ob = other->getWindowMainSurfaceBox();
-                        const Vector2D ov = ob.extent();
-                        Vector2D       wv = wb.extent();
+                    if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
+                        continue;
 
-                        // only snap windows if their ranges intersect in the opposite axis
-                        if (wb.y <= ov.y && ob.y <= wv.y) {
-                            if (isInSnappingDistance(wb.x, ov.x, gap))
-                                wb.x = ov.x;
-                            else if (isInSnappingDistance(wv.x, ob.x, gap))
-                                wb.x = ob.x - wb.w;
-                        }
+                    const CBox     ob = other->getWindowMainSurfaceBox();
+                    const Vector2D ov = ob.extent();
+                    Vector2D       wv = wb.extent();
 
-                        if (wb.x <= ov.x && ob.x <= wv.x) {
-                            if (isInSnappingDistance(wb.y, ov.y, gap))
-                                wb.y = ov.y;
-                            else if (isInSnappingDistance(wv.y, ob.y, gap))
-                                wb.y = ob.y - wb.h;
-                        }
+                    // only snap windows if their ranges intersect in the opposite axis
+                    if (wb.y <= ov.y && ob.y <= wv.y) {
+                        if (isInSnappingDistance(wb.x, ov.x, gap))
+                            wb.x = ov.x;
+                        else if (isInSnappingDistance(wv.x, ob.x, gap))
+                            wb.x = ob.x - wb.w;
+                    }
 
-                        // corner snapping
-                        wv = wb.extent(); // refresh offset coordinates
-                        if (wb.x == ov.x || wv.x == ob.x) {
-                            if (isInSnappingDistance(wb.y, ob.y, gap))
-                                wb.y = ob.y;
-                            else if (isInSnappingDistance(wv.y, ov.y, gap))
-                                wb.y = ov.y - wb.h;
-                        }
+                    if (wb.x <= ov.x && ob.x <= wv.x) {
+                        if (isInSnappingDistance(wb.y, ov.y, gap))
+                            wb.y = ov.y;
+                        else if (isInSnappingDistance(wv.y, ob.y, gap))
+                            wb.y = ob.y - wb.h;
+                    }
 
-                        if (wb.y == ov.y || wv.y == ob.y) {
-                            if (isInSnappingDistance(wb.x, ob.x, gap))
-                                wb.x = ob.x;
-                            else if (isInSnappingDistance(wv.x, ov.x, gap))
-                                wb.x = ov.x - wb.w;
-                        }
+                    // corner snapping
+                    wv = wb.extent(); // refresh offset coordinates
+                    if (wb.x == ov.x || wv.x == ob.x) {
+                        if (isInSnappingDistance(wb.y, ob.y, gap))
+                            wb.y = ob.y;
+                        else if (isInSnappingDistance(wv.y, ov.y, gap))
+                            wb.y = ov.y - wb.h;
+                    }
+
+                    if (wb.y == ov.y || wv.y == ob.y) {
+                        if (isInSnappingDistance(wb.x, ob.x, gap))
+                            wb.x = ob.x;
+                        else if (isInSnappingDistance(wv.x, ov.x, gap))
+                            wb.x = ov.x - wb.w;
                     }
                 }
             }
@@ -587,45 +588,46 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
                     const auto WSID = DRAGGINGWINDOW->workspaceID();
 
                     for (auto& other : g_pCompositor->m_vWindows) {
-                        if (other->workspaceID() == WSID && other->getPID() != PID) {
-                            const CBox     ob = other->getWindowMainSurfaceBox();
-                            const Vector2D ov = ob.extent();
-                            Vector2D       wv = wb.extent();
+                        if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
+                            continue;
 
-                            // only snap windows if their ranges intersect in the opposite axis
-                            if (wb.y <= ov.y && ob.y <= wv.y) {
-                                if (isInSnappingDistance(wb.x, ov.x, gap)) {
-                                    wb.w += wb.x - ov.x;
-                                    wb.x = ov.x;
-                                } else if (isInSnappingDistance(wv.x, ob.x, gap))
-                                    wb.w = ob.x - wb.x;
-                            }
+                        const CBox     ob = other->getWindowMainSurfaceBox();
+                        const Vector2D ov = ob.extent();
+                        Vector2D       wv = wb.extent();
 
-                            if (wb.x <= ov.x && ob.x <= wv.x) {
-                                if (isInSnappingDistance(wb.y, ov.y, gap)) {
-                                    wb.h += wb.y - ov.y;
-                                    wb.y = ov.y;
-                                } else if (isInSnappingDistance(wv.y, ob.y, gap))
-                                    wb.h = ob.y - wb.y;
-                            }
+                        // only snap windows if their ranges intersect in the opposite axis
+                        if (wb.y <= ov.y && ob.y <= wv.y) {
+                            if (isInSnappingDistance(wb.x, ov.x, gap)) {
+                                wb.w += wb.x - ov.x;
+                                wb.x = ov.x;
+                            } else if (isInSnappingDistance(wv.x, ob.x, gap))
+                                wb.w = ob.x - wb.x;
+                        }
 
-                            // corner snapping
-                            wv = wb.extent(); // refresh offset coordinates
-                            if (wb.x == ov.x || wv.x == ob.x) {
-                                if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_TOPRIGHT) && isInSnappingDistance(wb.y, ob.y, gap)) {
-                                    wb.h += wb.y - ob.y;
-                                    wb.y = ob.y;
-                                } else if ((m_eGrabbedCorner == CORNER_BOTTOMLEFT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.y, ov.y, gap))
-                                    wb.h = ov.y - wb.y;
-                            }
+                        if (wb.x <= ov.x && ob.x <= wv.x) {
+                            if (isInSnappingDistance(wb.y, ov.y, gap)) {
+                                wb.h += wb.y - ov.y;
+                                wb.y = ov.y;
+                            } else if (isInSnappingDistance(wv.y, ob.y, gap))
+                                wb.h = ob.y - wb.y;
+                        }
 
-                            if (wb.y == ov.y || wv.y == ob.y) {
-                                if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_BOTTOMLEFT) && isInSnappingDistance(wb.x, ob.x, gap)) {
-                                    wb.w += wb.x - ob.x;
-                                    wb.x = ob.x;
-                                } else if ((m_eGrabbedCorner == CORNER_TOPRIGHT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.x, ov.x, gap))
-                                    wb.w = ov.x - wb.x;
-                            }
+                        // corner snapping
+                        wv = wb.extent(); // refresh offset coordinates
+                        if (wb.x == ov.x || wv.x == ob.x) {
+                            if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_TOPRIGHT) && isInSnappingDistance(wb.y, ob.y, gap)) {
+                                wb.h += wb.y - ob.y;
+                                wb.y = ob.y;
+                            } else if ((m_eGrabbedCorner == CORNER_BOTTOMLEFT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.y, ov.y, gap))
+                                wb.h = ov.y - wb.y;
+                        }
+
+                        if (wb.y == ov.y || wv.y == ob.y) {
+                            if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_BOTTOMLEFT) && isInSnappingDistance(wb.x, ob.x, gap)) {
+                                wb.w += wb.x - ob.x;
+                                wb.x = ob.x;
+                            } else if ((m_eGrabbedCorner == CORNER_TOPRIGHT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.x, ov.x, gap))
+                                wb.w = ov.x - wb.x;
                         }
                     }
                 }

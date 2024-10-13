@@ -396,8 +396,71 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->m_bWasDraggingWindow = false;
 }
 
-inline bool isInSnappingDistance(const double sideA, const double sideB, const int gap) {
+inline bool isInSnappingDistance(const double sideA, const double sideB, const double gap) {
     return sideB - gap < sideA && sideA < sideB + gap;
+}
+
+// Inner-snap oriented. For outer-snap, swap p1 and p2.
+void snapMove(double& pos, double& len, const double p1, const double p2, const double gap) {
+    if (isInSnappingDistance(pos, p1, gap))
+        pos = p1;
+    else if (isInSnappingDistance(pos + len, p2, gap))
+        pos = p2 - len;
+}
+
+// Inner-snap oriented. For outer-snap, swap p1 and p2.
+void snapResize(double& pos, double& len, const double p1, const double p2, const double gap) {
+    if (isInSnappingDistance(pos, p1, gap)) {
+        len += pos - p1;
+        pos = p1;
+    }
+    if (isInSnappingDistance(pos + len, p2, gap))
+        len = p2 - pos;
+}
+
+typedef void (*SnapFn)(double& pos, double& len, const double p1, const double p2, const double gap);
+
+void snapWindows(SnapFn snap, CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double gap, const eRectCorner c) {
+    const auto PID  = DRAGGINGWINDOW->getPID();
+    const auto WSID = DRAGGINGWINDOW->workspaceID();
+
+    for (auto& other : g_pCompositor->m_vWindows) {
+        if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
+            continue;
+
+        const CBox     ob = other->getWindowMainSurfaceBox();
+        const Vector2D ov = ob.extent();
+        Vector2D       wv = wb.extent();
+
+        // only snap windows if their ranges intersect in the opposite axis
+        if (wb.y <= ov.y && ob.y <= wv.y) {
+            snap(wb.x, wb.w, ov.x, ob.x, gap);
+            if (wb.x == ov.x || ob.x == wb.x + wb.w) {
+                if (c) {
+                    if ((c == CORNER_TOPLEFT || c == CORNER_TOPRIGHT) && isInSnappingDistance(wb.y, ob.y, gap)) {
+                        wb.h += wb.y - ob.y;
+                        wb.y = ob.y;
+                    } else if ((c == CORNER_BOTTOMLEFT || c == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.y, ov.y, gap))
+                        wb.h = ov.y - wb.y;
+                } else
+                    snap(wb.y, wb.h, ob.y, ov.y, gap);
+            }
+        }
+
+        if (wb.x <= ov.x && ob.x <= wv.x) {
+            snap(wb.y, wb.h, ov.y, ob.y, gap);
+            if (wb.y == ov.y || ob.y == wb.y + wb.h) {
+                if (c) {
+                    if ((c == CORNER_TOPLEFT || c == CORNER_BOTTOMLEFT) && isInSnappingDistance(wb.x, ob.x, gap)) {
+                        wb.w += wb.x - ob.x;
+                        wb.x = ob.x;
+                    } else if ((c == CORNER_TOPRIGHT || c == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.x, ov.x, gap))
+                        wb.w = ov.x - wb.x;
+                } else
+                    snap(wb.x, wb.w, ob.x, ov.x, gap);
+            }
+        }
+    }
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -458,65 +521,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
         CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goal()};
         if (*SNAPENABLED && !DRAGGINGWINDOW->m_bDraggingTiled) {
-            if (*SNAPWINDOWGAP) {
-                const int  gap  = *SNAPWINDOWGAP;
-                const auto PID  = DRAGGINGWINDOW->getPID();
-                const auto WSID = DRAGGINGWINDOW->workspaceID();
-
-                for (auto& other : g_pCompositor->m_vWindows) {
-                    if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
-                        continue;
-
-                    const CBox     ob = other->getWindowMainSurfaceBox();
-                    const Vector2D ov = ob.extent();
-                    Vector2D       wv = wb.extent();
-
-                    // only snap windows if their ranges intersect in the opposite axis
-                    if (wb.y <= ov.y && ob.y <= wv.y) {
-                        if (isInSnappingDistance(wb.x, ov.x, gap))
-                            wb.x = ov.x;
-                        else if (isInSnappingDistance(wv.x, ob.x, gap))
-                            wb.x = ob.x - wb.w;
-                    }
-
-                    if (wb.x <= ov.x && ob.x <= wv.x) {
-                        if (isInSnappingDistance(wb.y, ov.y, gap))
-                            wb.y = ov.y;
-                        else if (isInSnappingDistance(wv.y, ob.y, gap))
-                            wb.y = ob.y - wb.h;
-                    }
-
-                    // corner snapping
-                    wv = wb.extent(); // refresh offset coordinates
-                    if (wb.x == ov.x || wv.x == ob.x) {
-                        if (isInSnappingDistance(wb.y, ob.y, gap))
-                            wb.y = ob.y;
-                        else if (isInSnappingDistance(wv.y, ov.y, gap))
-                            wb.y = ov.y - wb.h;
-                    }
-
-                    if (wb.y == ov.y || wv.y == ob.y) {
-                        if (isInSnappingDistance(wb.x, ob.x, gap))
-                            wb.x = ob.x;
-                        else if (isInSnappingDistance(wv.x, ov.x, gap))
-                            wb.x = ov.x - wb.w;
-                    }
-                }
-            }
+            if (*SNAPWINDOWGAP)
+                snapWindows(snapMove, wb, DRAGGINGWINDOW, *SNAPWINDOWGAP, eRectCorner::CORNER_NONE);
 
             if (*SNAPMONITORGAP) {
-                const int  gap     = *SNAPMONITORGAP;
-                const auto MONITOR = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
-
-                if (isInSnappingDistance(wb.x, MONITOR->vecPosition.x, gap))
-                    wb.x = MONITOR->vecPosition.x;
-                else if (isInSnappingDistance(wb.x + wb.w, MONITOR->vecSize.x, gap))
-                    wb.x = MONITOR->vecSize.x - wb.w;
-
-                if (isInSnappingDistance(wb.y, MONITOR->vecPosition.y, gap))
-                    wb.y = MONITOR->vecPosition.y;
-                else if (isInSnappingDistance(wb.y + wb.h, MONITOR->vecSize.y, gap))
-                    wb.y = MONITOR->vecSize.y - wb.h;
+                const auto MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+                snapMove(wb.x, wb.w, MON->vecPosition.x, MON->vecSize.x, *SNAPMONITORGAP);
+                snapMove(wb.y, wb.h, MON->vecPosition.y, MON->vecSize.y, *SNAPMONITORGAP);
             }
         }
         wb.round();
@@ -582,73 +593,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
             CBox wb = {newPos, newSize};
             if (*SNAPENABLED) {
-                if (*SNAPWINDOWGAP) {
-                    const int  gap  = *SNAPWINDOWGAP;
-                    const auto PID  = DRAGGINGWINDOW->getPID();
-                    const auto WSID = DRAGGINGWINDOW->workspaceID();
-
-                    for (auto& other : g_pCompositor->m_vWindows) {
-                        if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
-                            continue;
-
-                        const CBox     ob = other->getWindowMainSurfaceBox();
-                        const Vector2D ov = ob.extent();
-                        Vector2D       wv = wb.extent();
-
-                        // only snap windows if their ranges intersect in the opposite axis
-                        if (wb.y <= ov.y && ob.y <= wv.y) {
-                            if (isInSnappingDistance(wb.x, ov.x, gap)) {
-                                wb.w += wb.x - ov.x;
-                                wb.x = ov.x;
-                            } else if (isInSnappingDistance(wv.x, ob.x, gap))
-                                wb.w = ob.x - wb.x;
-                        }
-
-                        if (wb.x <= ov.x && ob.x <= wv.x) {
-                            if (isInSnappingDistance(wb.y, ov.y, gap)) {
-                                wb.h += wb.y - ov.y;
-                                wb.y = ov.y;
-                            } else if (isInSnappingDistance(wv.y, ob.y, gap))
-                                wb.h = ob.y - wb.y;
-                        }
-
-                        // corner snapping
-                        wv = wb.extent(); // refresh offset coordinates
-                        if (wb.x == ov.x || wv.x == ob.x) {
-                            if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_TOPRIGHT) && isInSnappingDistance(wb.y, ob.y, gap)) {
-                                wb.h += wb.y - ob.y;
-                                wb.y = ob.y;
-                            } else if ((m_eGrabbedCorner == CORNER_BOTTOMLEFT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.y, ov.y, gap))
-                                wb.h = ov.y - wb.y;
-                        }
-
-                        if (wb.y == ov.y || wv.y == ob.y) {
-                            if ((m_eGrabbedCorner == CORNER_TOPLEFT || m_eGrabbedCorner == CORNER_BOTTOMLEFT) && isInSnappingDistance(wb.x, ob.x, gap)) {
-                                wb.w += wb.x - ob.x;
-                                wb.x = ob.x;
-                            } else if ((m_eGrabbedCorner == CORNER_TOPRIGHT || m_eGrabbedCorner == CORNER_BOTTOMRIGHT) && isInSnappingDistance(wv.x, ov.x, gap))
-                                wb.w = ov.x - wb.x;
-                        }
-                    }
-                }
+                if (*SNAPWINDOWGAP)
+                    snapWindows(snapResize, wb, DRAGGINGWINDOW, *SNAPWINDOWGAP, m_eGrabbedCorner);
 
                 if (*SNAPMONITORGAP) {
-                    const int  gap     = *SNAPMONITORGAP;
-                    const auto MONITOR = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
-
-                    if (isInSnappingDistance(wb.x, MONITOR->vecPosition.x, gap)) {
-                        wb.w += wb.x - MONITOR->vecPosition.x;
-                        wb.x = MONITOR->vecPosition.x;
-                    }
-                    if (isInSnappingDistance(wb.x + wb.w, MONITOR->vecSize.x, gap))
-                        wb.w = MONITOR->vecSize.x - wb.x;
-
-                    if (isInSnappingDistance(wb.y, MONITOR->vecPosition.y, gap)) {
-                        wb.h += wb.y - MONITOR->vecPosition.y;
-                        wb.y = MONITOR->vecPosition.y;
-                    }
-                    if (isInSnappingDistance(wb.y + wb.h, MONITOR->vecSize.y, gap))
-                        wb.h = MONITOR->vecSize.y - wb.y;
+                    const auto MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+                    snapResize(wb.x, wb.w, MON->vecPosition.x, MON->vecSize.x, *SNAPMONITORGAP);
+                    snapResize(wb.y, wb.h, MON->vecPosition.y, MON->vecSize.y, *SNAPMONITORGAP);
                 }
             }
             wb.round();

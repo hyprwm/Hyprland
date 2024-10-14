@@ -329,19 +329,34 @@ void Events::listener_mapWindow(void* owner, void* data) {
         for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
+
+                    auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
+                        auto stringToPercentage = [](const std::string& VALUE, const float REL) {
+                            if (VALUE.ends_with('%'))
+                                return (std::stof(VALUE.substr(0, VALUE.length() - 1)) * REL) / 100;
+                            else
+                                return std::stof(VALUE);
+                        };
+
+                        if (VALUE.starts_with('<'))
+                            return std::min(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+                        else if (VALUE.starts_with('>'))
+                            return std::max(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+
+                        return stringToPercentage(VALUE, REL);
+                    };
+
                     const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
                     const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
                     const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
                     const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
 
-                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
-                                                            (std::stof(SIZEXSTR.substr(SIZEXSTR.starts_with("<") ? 1 : 0, SIZEXSTR.length() + SIZEXSTR.ends_with('%') ? -1 : 0)) *
-                                                             (SIZEXSTR.ends_with('%') ? 0.01 * PMONITOR->vecSize.x : 1));
+                    const float SIZEX =
+                        SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) : stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
 
-                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
-                                                            (std::stof(SIZEYSTR.substr(SIZEYSTR.starts_with("<") ? 1 : 0, SIZEYSTR.length() + SIZEYSTR.ends_with('%') ? -1 : 0)) *
-                                                             (SIZEYSTR.ends_with('%') ? 0.01 * PMONITOR->vecSize.y : 1));
+                    const float SIZEY =
+                        SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) : stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize.goal().y, PMONITOR->vecSize.y);
 
                     Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 

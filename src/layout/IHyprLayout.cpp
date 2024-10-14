@@ -191,14 +191,12 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         denied = true;
 
     if (*PAUTOGROUP                                      // check if auto_group is enabled.
-        && OPENINGON                                     // check if OPENINGON exists.
-        && OPENINGON != pWindow                          // fixes a freeze when activating togglefloat to transform a floating group into a tiled group.
         && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.
         && pWindow->canBeGroupedInto(OPENINGON)          // check if the new window can be grouped into OPENINGON.
-        && !g_pXWaylandManager->shouldBeFloated(pWindow) // don't group a new window that should be floated.
-        && !denied) {                                    // don't group a new floated window into a tiled group.
+        && !g_pXWaylandManager->shouldBeFloated(pWindow) // fixes the popups of XWayland programs running in a floating group.
+        && !denied) {                                    // don't group a new floated window into a tiled group (for convenience).
 
-        pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state
+        pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state. Needed to autogroup a new tiled window into a floated group.
 
         static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
         (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);

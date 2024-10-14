@@ -44,10 +44,6 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
         return;
     }
 
-    LOGM(LOG, "Granting lease, sending fd {}", aqlease->leaseFD);
-
-    resource->sendLeaseFd(aqlease->leaseFD);
-
     lease = aqlease;
 
     for (auto const& m : requested) {
@@ -61,13 +57,24 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
         }
 
         resource->sendFinished();
+        LOGM(LOG, "Revoking lease for fd {}", lease->leaseFD);
     });
+
+    LOGM(LOG, "Granting lease, sending fd {}", lease->leaseFD);
+
+    resource->sendLeaseFd(lease->leaseFD);
 
     close(lease->leaseFD);
 }
 
 bool CDRMLeaseResource::good() {
     return resource->resource();
+}
+
+CDRMLeaseResource::~CDRMLeaseResource() {
+    // destroy in this order to ensure listener gets called
+    lease.reset();
+    listeners.destroyLease.reset();
 }
 
 CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> resource_) : resource(resource_) {
@@ -100,7 +107,7 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(SP<CWpDrmLeaseRequestV1> reso
             return;
         }
 
-        auto RESOURCE = makeShared<CDRMLeaseResource>(makeShared<CWpDrmLeaseV1>(resource->client(), resource->version(), -1), self.lock());
+        auto RESOURCE = makeShared<CDRMLeaseResource>(makeShared<CWpDrmLeaseV1>(resource->client(), resource->version(), id), self.lock());
         if (!RESOURCE) {
             resource->noMemory();
             return;
@@ -185,7 +192,8 @@ CDRMLeaseDeviceResource::CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resourc
     close(fd);
 
     for (auto const& m : PROTO::lease->primaryDevice->offeredOutputs) {
-        sendConnector(m.lock());
+        if (m)
+            sendConnector(m.lock());
     }
 
     resource->sendDone();
@@ -196,10 +204,10 @@ bool CDRMLeaseDeviceResource::good() {
 }
 
 void CDRMLeaseDeviceResource::sendConnector(SP<CMonitor> monitor) {
-    if (std::find_if(connectorsSent.begin(), connectorsSent.end(), [monitor](const auto& e) { return e->monitor == monitor; }) != connectorsSent.end())
+    if (std::find_if(connectorsSent.begin(), connectorsSent.end(), [monitor](const auto& e) { return e && !e->dead && e->monitor == monitor; }) != connectorsSent.end())
         return;
 
-    auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(makeShared<CWpDrmLeaseConnectorV1>(resource->client(), resource->version(), -1), monitor);
+    auto RESOURCE = makeShared<CDRMLeaseConnectorResource>(makeShared<CWpDrmLeaseConnectorV1>(resource->client(), resource->version(), 0), monitor);
     if (!RESOURCE) {
         resource->noMemory();
         return;
@@ -267,6 +275,9 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseDeviceResource* resource) {
 }
 
 void CDRMLeaseProtocol::destroyResource(CDRMLeaseConnectorResource* resource) {
+    for (const auto& m : m_vManagers) {
+        std::erase_if(m->connectorsSent, [resource](const auto& e) { return e.expired() || e->dead || e.get() == resource; });
+    }
     std::erase_if(m_vConnectors, [resource](const auto& e) { return e.get() == resource; });
 }
 
@@ -279,6 +290,7 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
 }
 
 void CDRMLeaseProtocol::offer(SP<CMonitor> monitor) {
+    std::erase_if(primaryDevice->offeredOutputs, [](const auto& e) { return e.expired(); });
     if (std::find(primaryDevice->offeredOutputs.begin(), primaryDevice->offeredOutputs.end(), monitor) != primaryDevice->offeredOutputs.end())
         return;
 

@@ -397,7 +397,7 @@ void IHyprLayout::onEndDragWindow() {
 }
 
 inline bool canSnap(const double sideA, const double sideB, const double gap) {
-    return sideB - gap < sideA && sideA < sideB + gap;
+    return std::abs(sideA - sideB) < gap;
 }
 
 void snapMoveLeft(double& pos, double& len, const double p) {
@@ -417,83 +417,82 @@ void snapResizeRight(double& pos, double& len, const double p) {
 
 typedef void (*SnapFn)(double& pos, double& len, const double p);
 
-void snapWindows(CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double oldGap, const eMouseBindMode mode, const eRectCorner c) {
-    SnapFn snapUp, snapDown, snapLeft, snapRight;
-    if (mode == MBIND_RESIZE) {
-        snapUp = snapLeft = snapResizeLeft;
-        snapDown = snapRight = snapResizeRight;
-    } else {
+void IHyprLayout::performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW, const int mode) {
+    static auto BORDERSIZE     = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
+    static auto SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
+
+    int         corner;
+    SnapFn      snapUp, snapDown, snapLeft, snapRight;
+    if (mode == MBIND_MOVE) {
+        corner = -1; // any corner
         snapUp = snapLeft = snapMoveLeft;
         snapDown = snapRight = snapMoveRight;
-    }
-
-    static auto  BORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
-    const int    bord       = *BORDERSIZE;
-    const double gap        = oldGap + bord;
-
-    const auto   PID  = DRAGGINGWINDOW->getPID();
-    const auto   WSID = DRAGGINGWINDOW->workspaceID();
-
-    for (auto& other : g_pCompositor->m_vWindows) {
-        if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
-            continue;
-        const Vector2D wv  = wb.extent();
-        const CBox     box = other->getWindowMainSurfaceBox();
-        const CBox     ob  = {box.x, box.y, box.x + box.w, box.y + box.h};
-        const CBox     bb  = {ob.x - bord, ob.y - bord, ob.w + bord, ob.h + bord};
-
-        // only snap windows if their ranges intersect in the opposite axis
-        if (wb.y <= bb.h && bb.y <= wv.y) {
-            if (c & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(wb.x, bb.w, gap))
-                snapLeft(wb.x, wb.w, bb.w);
-            else if (c & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(wv.x, bb.x, gap))
-                snapRight(wb.x, wb.w, bb.x);
-        }
-        if (wb.x <= bb.w && bb.x <= wv.x) {
-            if (c & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(wb.y, bb.h, gap))
-                snapUp(wb.y, wb.h, bb.h);
-            else if (c & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(wv.y, bb.y, gap))
-                snapDown(wb.y, wb.h, bb.y);
-        }
-
-        // corner snapping
-        if (wb.x == bb.w || bb.x == wb.x + wb.w) {
-            if (c & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(wb.y, ob.y, gap))
-                snapUp(wb.y, wb.h, ob.y);
-            else if (c & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(wv.y, ob.h, gap))
-                snapDown(wb.y, wb.h, ob.h);
-        }
-        if (wb.y == bb.h || bb.y == wb.y + wb.h) {
-            if (c & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(wb.x, ob.x, gap))
-                snapLeft(wb.x, wb.w, ob.x);
-            else if (c & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(wv.x, ob.w, gap))
-                snapRight(wb.x, wb.w, ob.w);
-        }
-    }
-}
-
-void snapMonitor(CBox& wb, PHLWINDOW DRAGGINGWINDOW, const double gap, const eMouseBindMode mode) {
-    SnapFn snapUp, snapDown, snapLeft, snapRight;
-    if (mode == MBIND_RESIZE) {
+    } else {
+        corner = m_eGrabbedCorner;
         snapUp = snapLeft = snapResizeLeft;
         snapDown = snapRight = snapResizeRight;
-    } else {
-        snapUp = snapLeft = snapMoveLeft;
-        snapDown = snapRight = snapMoveRight;
     }
 
-    const auto MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
-    const CBox mon = {MON->vecPosition.x, MON->vecPosition.y, MON->vecPosition.x + MON->vecSize.x, MON->vecPosition.y + MON->vecSize.y};
+    if (*SNAPWINDOWGAP) {
+        const int    bord = *BORDERSIZE;
+        const double gap  = *SNAPWINDOWGAP + bord;
+        const auto   PID  = DRAGGINGWINDOW->getPID();
+        const auto   WSID = DRAGGINGWINDOW->workspaceID();
 
-    if (canSnap(wb.x, mon.x, gap))
-        snapLeft(wb.x, wb.w, mon.x);
-    if (canSnap(wb.x + wb.w, mon.w, gap))
-        snapRight(wb.x, wb.w, mon.w);
+        for (auto& other : g_pCompositor->m_vWindows) {
+            if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
+                continue;
+            const Vector2D end = {pos.x + size.x, pos.y + size.y};
+            const CBox     box = other->getWindowMainSurfaceBox();
+            const CBox     ob  = {box.x, box.y, box.x + box.w, box.y + box.h};
+            const CBox     bb  = {ob.x - bord, ob.y - bord, ob.w + bord, ob.h + bord};
 
-    if (canSnap(wb.y, mon.y, gap))
-        snapUp(wb.y, wb.h, mon.y);
-    if (canSnap(wb.y + wb.h, mon.h, gap))
-        snapDown(wb.y, wb.h, mon.h);
+            // only snap windows if their ranges intersect in the opposite axis
+            if (pos.y <= bb.h && bb.y <= end.y) {
+                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, bb.w, gap))
+                    snapLeft(pos.x, size.x, bb.w);
+                else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, bb.x, gap))
+                    snapRight(pos.x, size.x, bb.x);
+            }
+            if (pos.x <= bb.w && bb.x <= end.x) {
+                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, bb.h, gap))
+                    snapUp(pos.y, size.y, bb.h);
+                else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, bb.y, gap))
+                    snapDown(pos.y, size.y, bb.y);
+            }
+
+            // corner snapping
+            if (pos.x == bb.w || bb.x == pos.x + size.x) {
+                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, ob.y, gap))
+                    snapUp(pos.y, size.y, ob.y);
+                else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, ob.h, gap))
+                    snapDown(pos.y, size.y, ob.h);
+            }
+            if (pos.y == bb.h || bb.y == pos.y + size.y) {
+                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, ob.x, gap))
+                    snapLeft(pos.x, size.x, ob.x);
+                else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, ob.w, gap))
+                    snapRight(pos.x, size.x, ob.w);
+            }
+        }
+    }
+
+    if (*SNAPMONITORGAP) {
+        const auto   MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+        const CBox   mon = {MON->vecPosition.x, MON->vecPosition.y, MON->vecPosition.x + MON->vecSize.x, MON->vecPosition.y + MON->vecSize.y};
+        const double gap = *SNAPMONITORGAP;
+
+        if (canSnap(pos.x, mon.x, gap))
+            snapLeft(pos.x, size.x, mon.x);
+        if (canSnap(pos.x + size.x, mon.w, gap))
+            snapRight(pos.x, size.x, mon.w);
+
+        if (canSnap(pos.y, mon.y, gap))
+            snapUp(pos.y, size.y, mon.y);
+        if (canSnap(pos.y + size.y, mon.h, gap))
+            snapDown(pos.y, size.y, mon.h);
+    }
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -518,9 +517,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     static auto PANIMATEMOUSE = CConfigValue<Hyprlang::INT>("misc:animate_mouse_windowdragging");
     static auto PANIMATE      = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
 
-    static auto SNAPENABLED    = CConfigValue<Hyprlang::INT>("general:snap:enabled");
-    static auto SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
-    static auto SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
+    static auto SNAPENABLED = CConfigValue<Hyprlang::INT>("general:snap:enabled");
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();
@@ -552,13 +549,13 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
     if (g_pInputManager->dragMode == MBIND_MOVE) {
 
-        CBox wb = {m_vBeginDragPositionXY + DELTA, DRAGGINGWINDOW->m_vRealSize.goal()};
-        if (*SNAPENABLED && !DRAGGINGWINDOW->m_bDraggingTiled) {
-            if (*SNAPWINDOWGAP)
-                snapWindows(wb, DRAGGINGWINDOW, *SNAPWINDOWGAP, MBIND_MOVE, CORNER_ANY);
-            if (*SNAPMONITORGAP)
-                snapMonitor(wb, DRAGGINGWINDOW, *SNAPMONITORGAP, MBIND_MOVE);
-        }
+        Vector2D newPos  = m_vBeginDragPositionXY + DELTA;
+        Vector2D newSize = DRAGGINGWINDOW->m_vRealSize.goal();
+
+        if (*SNAPENABLED && !DRAGGINGWINDOW->m_bDraggingTiled)
+            performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE);
+
+        CBox wb = {newPos, newSize};
         wb.round();
 
         if (*PANIMATEMOUSE)
@@ -620,13 +617,10 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             else if (m_eGrabbedCorner == CORNER_BOTTOMLEFT)
                 newPos = newPos + Vector2D((m_vBeginDragSizeXY - newSize).x, 0.0);
 
+            if (*SNAPENABLED)
+                performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_RESIZE);
+
             CBox wb = {newPos, newSize};
-            if (*SNAPENABLED) {
-                if (*SNAPWINDOWGAP)
-                    snapWindows(wb, DRAGGINGWINDOW, *SNAPWINDOWGAP, MBIND_RESIZE, m_eGrabbedCorner);
-                if (*SNAPMONITORGAP)
-                    snapMonitor(wb, DRAGGINGWINDOW, *SNAPMONITORGAP, MBIND_RESIZE);
-            }
             wb.round();
 
             if (*PANIMATE) {

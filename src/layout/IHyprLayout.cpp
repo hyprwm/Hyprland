@@ -82,7 +82,8 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
-    pWindow->applyGroupRules();
+    if (!g_pXWaylandManager->shouldBeFloated(pWindow))
+        pWindow->applyGroupRules();
 
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);

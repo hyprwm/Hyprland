@@ -697,7 +697,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                              "  This likely means that the plugin is either outdated, not yet available for your version, or broken.\n"
                              "If you are on -git, update first.\n"
                              "Try re-running with -v to see more verbose output.",
-                             failureString("Plugin {} failed to build."));
+                             failureString("Plugin {} failed to build.", p.name));
                 p.failed = true;
                 continue;
             }
@@ -839,7 +839,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
                 continue;
 
             loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true);
-            std::println("{}", successString("Loaded {}"), p.name);
+            std::println("{}", successString("Loaded {}", p.name));
         }
     }
 

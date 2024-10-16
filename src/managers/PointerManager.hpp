@@ -84,8 +84,11 @@ class CPointerManager {
     // returns the thing in logical coordinates of the monitor
     CBox getCursorBoxLogicalForMonitor(SP<CMonitor> pMonitor);
     // returns the thing in global coords
-    CBox         getCursorBoxGlobal();
+    CBox getCursorBoxGlobal();
+    // returns the area covered by all monitors
+    CBox getEntireMappableArea();
 
+    //
     Vector2D     transformedHotspot(SP<CMonitor> pMonitor);
 
     SP<CTexture> getCurrentCursorTexture();

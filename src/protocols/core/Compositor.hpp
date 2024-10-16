@@ -169,6 +169,8 @@ class CWLCompositorProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
+    void         forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn);
+
     struct {
         CSignal newSurface; // SP<CWLSurfaceResource>
     } events;

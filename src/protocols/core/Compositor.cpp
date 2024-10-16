@@ -589,3 +589,9 @@ void CWLCompositorProtocol::destroyResource(CWLSurfaceResource* resource) {
 void CWLCompositorProtocol::destroyResource(CWLRegionResource* resource) {
     std::erase_if(m_vRegions, [&](const auto& other) { return other.get() == resource; });
 }
+
+void CWLCompositorProtocol::forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn) {
+    for (auto& surf : m_vSurfaces) {
+        fn(surf);
+    }
+}

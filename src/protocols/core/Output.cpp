@@ -1,4 +1,6 @@
 #include "Output.hpp"
+#include "Compositor.hpp"
+#include "../../Compositor.hpp"
 #include "../../helpers/Monitor.hpp"
 
 CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMonitor) : monitor(pMonitor), resource(resource_) {
@@ -27,6 +29,25 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMoni
     }
 
     updateState();
+
+    PROTO::compositor->forEachSurface([](SP<CWLSurfaceResource> surf) {
+        auto HLSurf = CWLSurface::fromResource(surf);
+
+        if (!HLSurf)
+            return;
+
+        const auto GEOMETRY = HLSurf->getSurfaceBoxGlobal();
+
+        if (!GEOMETRY.has_value())
+            return;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->logicalBox().overlaps(*GEOMETRY))
+                continue;
+
+            surf->enter(m);
+        }
+    });
 }
 
 SP<CWLOutputResource> CWLOutputResource::fromResource(wl_resource* res) {

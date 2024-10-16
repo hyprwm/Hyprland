@@ -451,14 +451,20 @@ PHLWINDOW CWindow::X11TransientFor() {
     if (!m_pXWaylandSurface || !m_pXWaylandSurface->parent)
         return nullptr;
 
-    auto s         = m_pXWaylandSurface->parent;
-    auto oldParent = s;
+    auto                              s = m_pXWaylandSurface->parent;
+    std::vector<SP<CXWaylandSurface>> visited;
     while (s) {
-        // break cyclic loop of m_pXWaylandSurface being parent of itself, #TODO reject this from even being created?
-        if (!s->parent || s->parent == oldParent)
+        // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
+        // TODO: we should reject loops being created in the first place.
+        if (std::find(visited.begin(), visited.end(), s) != visited.end())
             break;
+
+        visited.emplace_back(s.lock());
         s = s->parent;
     }
+
+    if (s == m_pXWaylandSurface)
+        return nullptr; // dead-ass circle
 
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->m_pXWaylandSurface != s)

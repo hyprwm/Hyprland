@@ -116,8 +116,6 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
             return;
     }
 
-    pWindow->applyGroupRules();
-
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
     eOrientation orientation   = getDynamicOrientation(pWindow->m_pWorkspace);
     const auto   NODEIT        = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);

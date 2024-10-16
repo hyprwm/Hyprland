@@ -20,6 +20,9 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
 
     pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
+    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
+        pWindow->applyGroupRules();
+
     bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
     if (autoGrouped)
         return;
@@ -82,8 +85,6 @@ void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
-    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
-        pWindow->applyGroupRules();
 
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
@@ -194,6 +195,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
 
     if (*PAUTOGROUP                                      // check if auto_group is enabled.
         && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.
+        && OPENINGON != pWindow                          // prevent freeze when the "group set" window rule makes the new window to be already a group.
         && pWindow->canBeGroupedInto(OPENINGON)          // check if the new window can be grouped into OPENINGON.
         && !g_pXWaylandManager->shouldBeFloated(pWindow) // don't group child windows. Fix for floated groups. Tiled groups don't need this because we check if !denied.
         && !denied) {                                    // don't group a new floated window into a tiled group (for convenience).
@@ -204,7 +206,6 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->setGroupCurrent(pWindow);
-        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 

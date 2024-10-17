@@ -580,10 +580,13 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "variant": "{}",
         "options": "{}",
         "active_keymap": "{}",
+        "capsLock: {}",
+        "numLock: {}",
         "main": {}
     }},)#",
                 (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
                 escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
+                ((k->getLEDs().value_or(0) & (1 << 1)) == 2 ? "On" : "Off"), ((k->getLEDs().value_or(0) & (1 << 0)) ? "On" : "Off"),
                 (k->active ? "true" : "false"));
         }
 

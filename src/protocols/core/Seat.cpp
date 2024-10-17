@@ -9,8 +9,6 @@
 
 #include <fcntl.h>
 
-#define LOGM PROTO::seat->protoLog
-
 CWLTouchResource::CWLTouchResource(SP<CWlTouch> resource_, SP<CWLSeatResource> owner_) : owner(owner_), resource(resource_) {
     if (!good())
         return;
@@ -174,7 +172,7 @@ void CWLPointerResource::sendLeave() {
     if (!PROTO::data->dndActive()) {
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
-        for (auto& b : pressedButtons) {
+        for (auto const& b : pressedButtons) {
             sendButton(now.tv_sec * 1000 + now.tv_nsec / 1000000, b, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
@@ -527,7 +525,7 @@ void CWLSeatProtocol::updateCapabilities(uint32_t caps) {
 
     currentCaps = caps;
 
-    for (auto& s : m_vSeatResources) {
+    for (auto const& s : m_vSeatResources) {
         s->sendCapabilities(caps);
     }
 }
@@ -536,7 +534,7 @@ void CWLSeatProtocol::updateKeymap() {
     if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    for (auto& k : m_vKeyboards) {
+    for (auto const& k : m_vKeyboards) {
         k->sendKeymap(g_pSeatManager->keyboard.lock());
     }
 }
@@ -545,13 +543,13 @@ void CWLSeatProtocol::updateRepeatInfo(uint32_t rate, uint32_t delayMs) {
     if (!(currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    for (auto& k : m_vKeyboards) {
+    for (auto const& k : m_vKeyboards) {
         k->repeatInfo(rate, delayMs);
     }
 }
 
 SP<CWLSeatResource> CWLSeatProtocol::seatResourceForClient(wl_client* client) {
-    for (auto& r : m_vSeatResources) {
+    for (auto const& r : m_vSeatResources) {
         if (r->client() == client)
             return r;
     }

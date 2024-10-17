@@ -174,6 +174,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               syncFullscreen     = true;
     CWindowOverridableVar<bool>               tearing            = false;
     CWindowOverridableVar<bool>               xray               = false;
+    CWindowOverridableVar<bool>               renderUnfocused    = false;
 
     CWindowOverridableVar<int>                rounding;
     CWindowOverridableVar<int>                borderSize;
@@ -196,13 +197,14 @@ struct SWindowRule {
     std::string szInitialTitle;
     std::string szInitialClass;
     std::string szTag;
-    int         bX11          = -1; // -1 means "ANY"
-    int         bFloating     = -1;
-    int         bFullscreen   = -1;
-    int         bPinned       = -1;
-    int         bFocus        = -1;
-    std::string szOnWorkspace = ""; // empty means any
-    std::string szWorkspace   = ""; // empty means any
+    int         bX11              = -1; // -1 means "ANY"
+    int         bFloating         = -1;
+    int         bFullscreen       = -1;
+    int         bPinned           = -1;
+    int         bFocus            = -1;
+    std::string szFullscreenState = ""; // empty means any
+    std::string szOnWorkspace     = ""; // empty means any
+    std::string szWorkspace       = ""; // empty means any
 };
 
 struct SInitialWorkspaceToken {
@@ -270,7 +272,7 @@ class CWindow {
     bool             m_bDraggingTiled   = false; // for dragging around tiled windows
     bool             m_bWasMaximized    = false;
     sFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-    uint64_t         m_iMonitorID       = -1;
+    MONITORID        m_iMonitorID       = -1;
     std::string      m_szTitle          = "";
     std::string      m_szClass          = "";
     std::string      m_szInitialTitle   = "";
@@ -287,8 +289,6 @@ class CWindow {
     // XWayland stuff
     bool         m_bIsX11 = false;
     PHLWINDOWREF m_pX11Parent;
-    uint64_t     m_iX11Type              = 0;
-    bool         m_bIsModal              = false;
     bool         m_bX11DoesntWantBorders = false;
     bool         m_bX11ShouldntFocus     = false;
     float        m_fX11SurfaceScaledBy   = 1.f;
@@ -351,6 +351,10 @@ class CWindow {
     // animated tint
     CAnimatedVariable<float> m_fDimPercent;
 
+    // animate moving to an invisible workspace
+    int                      m_iMonitorMovedFrom = -1; // -1 means not moving
+    CAnimatedVariable<float> m_fMovingToWorkspaceAlpha;
+
     // swallowing
     PHLWINDOWREF m_pSwallowed;
 
@@ -358,8 +362,8 @@ class CWindow {
     bool m_bStayFocused = false;
 
     // for toplevel monitor events
-    uint64_t m_iLastToplevelMonitorID = -1;
-    uint64_t m_iLastSurfaceMonitorID  = -1;
+    MONITORID m_iLastToplevelMonitorID = -1;
+    MONITORID m_iLastSurfaceMonitorID  = -1;
 
     // for idle inhibiting windows
     eIdleInhibitMode m_eIdleInhibitMode = IDLEINHIBIT_NONE;
@@ -421,10 +425,11 @@ class CWindow {
     bool                   canBeTorn();
     void                   setSuspended(bool suspend);
     bool                   visibleOnMonitor(CMonitor* pMonitor);
-    int                    workspaceID();
+    WORKSPACEID            workspaceID();
     bool                   onSpecialWorkspace();
     void                   activate(bool force = false);
     int                    surfacesCount();
+    void                   clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
 
     bool                   isFullscreen();
     bool                   isEffectiveInternalFSMode(const eFullscreenMode);
@@ -463,6 +468,8 @@ class CWindow {
     void                   warpCursor();
     PHLWINDOW              getSwallower();
     void                   unsetWindowData(eOverridePriority priority);
+    bool                   isX11OverrideRedirect();
+    bool                   isModal();
 
     // listeners
     void onAck(uint32_t serial);
@@ -490,9 +497,9 @@ class CWindow {
 
   private:
     // For hidden windows and stuff
-    bool m_bHidden        = false;
-    bool m_bSuspended     = false;
-    int  m_iLastWorkspace = WORKSPACE_INVALID;
+    bool        m_bHidden        = false;
+    bool        m_bSuspended     = false;
+    WORKSPACEID m_iLastWorkspace = WORKSPACE_INVALID;
 };
 
 inline bool valid(PHLWINDOW w) {

@@ -52,4 +52,8 @@ struct SHyprCtlCommand {
     std::function<std::string(eHyprCtlOutputFormat, std::string)> fn;
 };
 
+typedef int64_t                                              WINDOWID;
+typedef int64_t                                              MONITORID;
+typedef int64_t                                              WORKSPACEID;
+
 typedef std::function<void(void*, SCallbackInfo&, std::any)> HOOK_CALLBACK_FN;

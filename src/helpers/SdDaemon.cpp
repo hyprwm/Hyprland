@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <string.h>
+#include <stdlib.h>
+#include <cstring>
 
 namespace Systemd {
     int SdBooted(void) {

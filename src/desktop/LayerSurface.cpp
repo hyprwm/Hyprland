@@ -71,6 +71,12 @@ CLayerSurface::~CLayerSurface() {
         surface->unassign();
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_mLayerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == self.lock(); });
+
+    for (auto const& mon : g_pCompositor->m_vRealMonitors) {
+        for (auto& lsl : mon->m_aLayerSurfaceLayers) {
+            std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
+        }
+    }
 }
 
 void CLayerSurface::onDestroy() {
@@ -360,7 +366,7 @@ void CLayerSurface::applyRules() {
     xray             = -1;
     animationStyle.reset();
 
-    for (auto& rule : g_pConfigManager->getMatchingRules(self.lock())) {
+    for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
         if (rule.rule == "noanim")
             noAnimations = true;
         else if (rule.rule == "blur")
@@ -388,6 +394,11 @@ void CLayerSurface::applyRules() {
         } else if (rule.rule.starts_with("animation")) {
             CVarList vars{rule.rule, 2, 's'};
             animationStyle = vars[1];
+        } else if (rule.rule.starts_with("order")) {
+            CVarList vars{rule.rule, 2, 's'};
+            try {
+                order = std::stoi(vars[1]);
+            } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
         }
     }
 }

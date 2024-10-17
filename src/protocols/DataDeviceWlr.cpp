@@ -3,8 +3,6 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 
-#define LOGM PROTO::dataWlr->protoLog
-
 CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())
         return;
@@ -39,7 +37,7 @@ void CWLRDataOffer::sendData() {
     if (!source)
         return;
 
-    for (auto& m : source->mimes()) {
+    for (auto const& m : source->mimes()) {
         resource->sendOffer(m.c_str());
     }
 }
@@ -135,7 +133,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset primary selection received");
-            g_pSeatManager->setCurrentSelection(nullptr);
+            g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 
@@ -193,7 +191,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
         RESOURCE->self = RESOURCE;
         device         = RESOURCE;
 
-        for (auto& s : sources) {
+        for (auto const& s : sources) {
             if (!s)
                 continue;
             s->device = RESOURCE;
@@ -293,7 +291,7 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
 }
 
 void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) {
-    for (auto& o : m_vOffers) {
+    for (auto const& o : m_vOffers) {
         if (o->source && o->source->hasDnd())
             continue;
         if (o->primary != primary)
@@ -304,7 +302,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
     if (!source) {
         LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
 
-        for (auto& d : m_vDevices) {
+        for (auto const& d : m_vDevices) {
             sendSelectionToDevice(d, nullptr, primary);
         }
 
@@ -313,7 +311,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
 
     LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
-    for (auto& d : m_vDevices) {
+    for (auto const& d : m_vDevices) {
         sendSelectionToDevice(d, source, primary);
     }
 }

@@ -125,7 +125,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     //
     std::vector<CDecorationPositioner::SWindowPositioningData*> datas;
-    for (auto& wd : pWindow->m_dWindowDecorations) {
+    for (auto const& wd : pWindow->m_dWindowDecorations) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }
 
@@ -296,7 +296,7 @@ SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOW pWindow
 SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly) {
     CBox accum = pWindow->getWindowMainSurfaceBox();
 
-    for (auto& data : m_vWindowPositioningDatas) {
+    for (auto const& data : m_vWindowPositioningDatas) {
         if (data->pWindow.lock() != pWindow)
             continue;
 
@@ -337,7 +337,7 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow,
 CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {
     CBox accum = pWindow->getWindowMainSurfaceBox();
 
-    for (auto& data : m_vWindowPositioningDatas) {
+    for (auto const& data : m_vWindowPositioningDatas) {
         if (data->pWindow.lock() != pWindow)
             continue;
 

@@ -4,8 +4,6 @@
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::pointerGestures->protoLog
-
 CPointerGestureSwipe::CPointerGestureSwipe(SP<CZwpPointerGestureSwipeV1> resource_) : resource(resource_) {
     if (!resource->resource())
         return;
@@ -113,7 +111,7 @@ void CPointerGesturesProtocol::swipeBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vSwipes) {
+    for (auto const& sw : m_vSwipes) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -127,7 +125,7 @@ void CPointerGesturesProtocol::swipeUpdate(uint32_t timeMs, const Vector2D& delt
 
     const auto FOCUSEDCLIENT = g_pSeatManager->state.pointerFocusResource->client();
 
-    for (auto& sw : m_vSwipes) {
+    for (auto const& sw : m_vSwipes) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -143,7 +141,7 @@ void CPointerGesturesProtocol::swipeEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vSwipes) {
+    for (auto const& sw : m_vSwipes) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -159,7 +157,7 @@ void CPointerGesturesProtocol::pinchBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vPinches) {
+    for (auto const& sw : m_vPinches) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -173,7 +171,7 @@ void CPointerGesturesProtocol::pinchUpdate(uint32_t timeMs, const Vector2D& delt
 
     const auto FOCUSEDCLIENT = g_pSeatManager->state.pointerFocusResource->client();
 
-    for (auto& sw : m_vPinches) {
+    for (auto const& sw : m_vPinches) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -189,7 +187,7 @@ void CPointerGesturesProtocol::pinchEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vPinches) {
+    for (auto const& sw : m_vPinches) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -205,7 +203,7 @@ void CPointerGesturesProtocol::holdBegin(uint32_t timeMs, uint32_t fingers) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vHolds) {
+    for (auto const& sw : m_vHolds) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 
@@ -221,7 +219,7 @@ void CPointerGesturesProtocol::holdEnd(uint32_t timeMs, bool cancelled) {
 
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->state.pointerFocusResource.lock());
 
-    for (auto& sw : m_vHolds) {
+    for (auto const& sw : m_vHolds) {
         if (sw->resource->client() != FOCUSEDCLIENT)
             continue;
 

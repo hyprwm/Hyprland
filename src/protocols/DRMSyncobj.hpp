@@ -14,23 +14,27 @@ class CDRMSyncobjSurfaceResource {
   public:
     CDRMSyncobjSurfaceResource(SP<CWpLinuxDrmSyncobjSurfaceV1> resource_, SP<CWLSurfaceResource> surface_);
 
-    bool                            good();
+    bool                   good();
 
-    WP<CWLSurfaceResource>          surface;
-    WP<CDRMSyncobjTimelineResource> acquireTimeline, releaseTimeline;
-    uint64_t                        acquirePoint = 0, releasePoint = 0;
+    WP<CWLSurfaceResource> surface;
+    struct {
+        WP<CDRMSyncobjTimelineResource> acquireTimeline, releaseTimeline;
+        uint64_t                        acquirePoint = 0, releasePoint = 0;
+    } current, pending;
 
   private:
     SP<CWpLinuxDrmSyncobjSurfaceV1> resource;
 
     struct {
         CHyprSignalListener surfacePrecommit;
+        CHyprSignalListener surfaceCommit;
     } listeners;
 };
 
 class CDRMSyncobjTimelineResource {
   public:
     CDRMSyncobjTimelineResource(SP<CWpLinuxDrmSyncobjTimelineV1> resource_, int fd_);
+    ~CDRMSyncobjTimelineResource();
     static SP<CDRMSyncobjTimelineResource> fromResource(wl_resource*);
 
     bool                                   good();

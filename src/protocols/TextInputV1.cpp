@@ -3,8 +3,6 @@
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::textInputV1->protoLog
-
 CTextInputV1::~CTextInputV1() {
     events.destroy.emit();
 }
@@ -33,6 +31,7 @@ CTextInputV1::CTextInputV1(SP<CZwpTextInputV1> resource_) : resource(resource_) 
     resource->setReset([this](CZwpTextInputV1* pMgr) {
         pendingSurrounding.isPending = false;
         pendingContentType.isPending = false;
+        events.reset.emit();
     });
 
     resource->setSetSurroundingText(

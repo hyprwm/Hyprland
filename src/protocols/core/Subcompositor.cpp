@@ -2,8 +2,6 @@
 #include "Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::subcompositor->protoLog
-
 CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_) :
     surface(surface_), parent(parent_), resource(resource_) {
     if (!good())
@@ -24,7 +22,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             return;
 
         auto pushAboveIndex = [this](int idx) -> void {
-            for (auto& c : parent->subsurfaces) {
+            for (auto const& c : parent->subsurfaces) {
                 if (c->zIndex >= idx)
                     c->zIndex++;
             }
@@ -55,7 +53,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
             return;
 
         auto pushBelowIndex = [this](int idx) -> void {
-            for (auto& c : parent->subsurfaces) {
+            for (auto const& c : parent->subsurfaces) {
                 if (c->zIndex <= idx)
                     c->zIndex--;
             }

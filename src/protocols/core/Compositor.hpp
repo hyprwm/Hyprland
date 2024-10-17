@@ -75,8 +75,9 @@ class CWLSurfaceResource {
     Vector2D                      sourceSize();
 
     struct {
-        CSignal precommit;
-        CSignal commit;
+        CSignal precommit;  // before commit
+        CSignal roleCommit; // commit for role objects, before regular commit
+        CSignal commit;     // after commit
         CSignal map;
         CSignal unmap;
         CSignal newSubsurface;
@@ -97,7 +98,8 @@ class CWLSurfaceResource {
             Vector2D destination;
             CBox     source;
         } viewport;
-        bool rejected = false;
+        bool rejected  = false;
+        bool newBuffer = false;
 
         //
         void reset() {
@@ -122,7 +124,7 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     CRegion                                accumulateCurrentBufferDamage();
-    void                                   presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync = false);
+    void                                   presentFeedback(timespec* when, SP<CMonitor> pMonitor);
     void                                   lockPendingState();
     void                                   unlockPendingState();
 
@@ -166,6 +168,8 @@ class CWLCompositorProtocol : public IWaylandProtocol {
     CWLCompositorProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+    void         forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn);
 
     struct {
         CSignal newSurface; // SP<CWLSurfaceResource>

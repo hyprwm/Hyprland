@@ -22,12 +22,13 @@ class CDRMLeaseRequestResource;
 class CDRMLeaseResource {
   public:
     CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request);
+    ~CDRMLeaseResource();
 
     bool                                        good();
 
     WP<CDRMLeaseDeviceResource>                 parent;
     std::vector<WP<CDRMLeaseConnectorResource>> requested;
-    WP<Aquamarine::CDRMLease>                   lease;
+    SP<Aquamarine::CDRMLease>                   lease;
 
     int                                         leaseFD = -1;
 

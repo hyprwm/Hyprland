@@ -1,7 +1,12 @@
+#include <algorithm>
 #include <cstring>
 #include <dirent.h>
 #include <filesystem>
+#include <gio/gio.h>
+#include <gio/gsettingsschema.h>
+#include "config/ConfigValue.hpp"
 #include "helpers/CursorShapes.hpp"
+#include "../managers/CursorManager.hpp"
 #include "debug/Log.hpp"
 #include "XCursorManager.hpp"
 
@@ -96,12 +101,13 @@ CXCursorManager::CXCursorManager() {
     defaultCursor     = hyprCursor;
 }
 
-void CXCursorManager::loadTheme(std::string const& name, int size) {
-    if (lastLoadSize == size && themeName == name)
+void CXCursorManager::loadTheme(std::string const& name, int size, float scale) {
+    if (lastLoadSize == (size * std::ceil(scale)) && themeName == name && lastLoadScale == scale)
         return;
 
-    lastLoadSize = size;
-    themeName    = name.empty() ? "default" : name;
+    lastLoadSize  = size * std::ceil(scale);
+    lastLoadScale = scale;
+    themeName     = name.empty() ? "default" : name;
     defaultCursor.reset();
     cursors.clear();
 
@@ -111,9 +117,11 @@ void CXCursorManager::loadTheme(std::string const& name, int size) {
         cursors = loadStandardCursors(themeName, lastLoadSize);
     } else {
         for (auto const& p : paths) {
-            auto dirCursors = loadAllFromDir(p, lastLoadSize);
-            std::copy_if(dirCursors.begin(), dirCursors.end(), std::back_inserter(cursors),
-                         [this](auto const& p) { return std::none_of(cursors.begin(), cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
+            try {
+                auto dirCursors = loadAllFromDir(p, lastLoadSize);
+                std::copy_if(dirCursors.begin(), dirCursors.end(), std::back_inserter(cursors),
+                             [this](auto const& p) { return std::none_of(cursors.begin(), cursors.end(), [&p](auto const& dp) { return dp->shape == p->shape; }); });
+            } catch (std::exception& e) { Debug::log(ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
         }
     }
 
@@ -135,18 +143,27 @@ void CXCursorManager::loadTheme(std::string const& name, int size) {
             continue;
         }
 
+        if (std::any_of(cursors.begin(), cursors.end(), [&shape](auto const& dp) { return dp->shape == shape; })) {
+            Debug::log(LOG, "XCursor already has a shape {} loaded, skipping", shape);
+            continue;
+        }
+
         auto cursor    = makeShared<SXCursors>();
         cursor->images = it->get()->images;
         cursor->shape  = shape;
 
         cursors.emplace_back(cursor);
     }
+
+    static auto SYNCGSETTINGS = CConfigValue<Hyprlang::INT>("cursor:sync_gsettings_theme");
+    if (*SYNCGSETTINGS)
+        syncGsettings();
 }
 
-SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size) {
+SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, float scale) {
     // monitor scaling changed etc, so reload theme with new size.
-    if (size != lastLoadSize)
-        loadTheme(themeName, size);
+    if ((size * std::ceil(scale)) != lastLoadSize || scale != lastLoadScale)
+        loadTheme(themeName, size, scale);
 
     // try to get an icon we know if we have one
     for (auto const& c : cursors) {
@@ -180,11 +197,10 @@ SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, XcursorIma
     return xcursor;
 }
 
-std::vector<std::string> CXCursorManager::themePaths(std::string const& theme) {
-    auto const*              path = XcursorLibraryPath();
-    std::vector<std::string> paths;
+std::unordered_set<std::string> CXCursorManager::themePaths(std::string const& theme) {
+    auto const* path = XcursorLibraryPath();
 
-    auto                     expandTilde = [](std::string const& path) {
+    auto        expandTilde = [](std::string const& path) {
         if (!path.empty() && path[0] == '~') {
             const char* home = std::getenv("HOME");
             if (home)
@@ -193,15 +209,109 @@ std::vector<std::string> CXCursorManager::themePaths(std::string const& theme) {
         return path;
     };
 
-    if (path) {
+    auto getInheritThemes = [](std::string const& indexTheme) {
+        std::ifstream            infile(indexTheme);
+        std::string              line;
+        std::vector<std::string> themes;
+
+        Debug::log(LOG, "XCursor parsing index.theme {}", indexTheme);
+
+        while (std::getline(infile, line)) {
+            if (line.empty())
+                continue;
+
+            // Trim leading and trailing whitespace
+            auto pos = line.find_first_not_of(" \t\n\r");
+            if (pos != std::string::npos)
+                line.erase(0, pos);
+
+            pos = line.find_last_not_of(" \t\n\r");
+            if (pos != std::string::npos && pos < line.length()) {
+                line.erase(pos + 1);
+            }
+
+            if (line.rfind("Inherits", 8) != std::string::npos) { // Check if line starts with "Inherits"
+                std::string inheritThemes = line.substr(8);       // Extract the part after "Inherits"
+                if (inheritThemes.empty())
+                    continue;
+
+                // Remove leading whitespace from inheritThemes and =
+                pos = inheritThemes.find_first_not_of(" \t\n\r");
+                if (pos != std::string::npos)
+                    inheritThemes.erase(0, pos);
+
+                if (inheritThemes.empty())
+                    continue;
+
+                if (inheritThemes.at(0) == '=')
+                    inheritThemes.erase(0, 1);
+                else
+                    continue; // not correct formatted index.theme
+
+                pos = inheritThemes.find_first_not_of(" \t\n\r");
+                if (pos != std::string::npos)
+                    inheritThemes.erase(0, pos);
+
+                std::stringstream inheritStream(inheritThemes);
+                std::string       inheritTheme;
+                while (std::getline(inheritStream, inheritTheme, ',')) {
+                    if (inheritTheme.empty())
+                        continue;
+
+                    // Trim leading and trailing whitespace from each theme
+                    pos = inheritTheme.find_first_not_of(" \t\n\r");
+                    if (pos != std::string::npos)
+                        inheritTheme.erase(0, pos);
+
+                    pos = inheritTheme.find_last_not_of(" \t\n\r");
+                    if (pos != std::string::npos && pos < inheritTheme.length())
+                        inheritTheme.erase(inheritTheme.find_last_not_of(" \t\n\r") + 1);
+
+                    themes.push_back(inheritTheme);
+                }
+            }
+        }
+        infile.close();
+
+        return themes;
+    };
+
+    std::unordered_set<std::string> paths;
+    std::unordered_set<std::string> inherits;
+
+    auto                            scanTheme = [&path, &paths, &expandTilde, &inherits, &getInheritThemes](auto const& t) {
         std::stringstream ss(path);
-        std::string       item;
+        std::string       line;
 
-        while (std::getline(ss, item, ':')) {
-            auto p = expandTilde(item + "/" + theme + "/cursors");
+        Debug::log(LOG, "XCursor scanning theme {}", t);
 
-            if (std::filesystem::exists(p) && std::filesystem::is_directory(p))
-                paths.push_back(p);
+        while (std::getline(ss, line, ':')) {
+            auto p = expandTilde(line + "/" + t + "/cursors");
+            if (std::filesystem::exists(p) && std::filesystem::is_directory(p)) {
+                Debug::log(LOG, "XCursor using theme path {}", p);
+                paths.insert(p);
+            }
+
+            auto inherit = expandTilde(line + "/" + t + "/index.theme");
+            if (std::filesystem::exists(inherit) && std::filesystem::is_regular_file(inherit)) {
+                auto inheritThemes = getInheritThemes(inherit);
+                for (auto const& i : inheritThemes) {
+                    Debug::log(LOG, "XCursor theme {} inherits {}", t, i);
+                    inherits.insert(i);
+                }
+            }
+        }
+    };
+
+    if (path) {
+        scanTheme(theme);
+        while (!inherits.empty()) {
+            auto oldInherits = inherits;
+            for (auto const& i : oldInherits)
+                scanTheme(i);
+
+            if (oldInherits.size() == inherits.size())
+                break;
         }
     }
 
@@ -402,14 +512,16 @@ std::vector<SP<SXCursors>> CXCursorManager::loadStandardCursors(std::string cons
 
 std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& path, int size) {
     std::vector<SP<SXCursors>> newCursors;
-    std::string                full;
 
     if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            if (!entry.is_regular_file() && !entry.is_symlink())
+            std::error_code e1, e2;
+            if ((!entry.is_regular_file(e1) && !entry.is_symlink(e2)) || e1 || e2) {
+                Debug::log(WARN, "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
                 continue;
+            }
 
-            std::string full = entry.path().string();
+            auto const& full = entry.path().string();
             using PcloseType = int (*)(FILE*);
             const std::unique_ptr<FILE, PcloseType> f(fopen(full.c_str(), "r"), static_cast<PcloseType>(fclose));
 
@@ -428,7 +540,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
                 }
             }
 
-            std::string shape  = entry.path().filename().string();
+            auto const& shape  = entry.path().filename().string();
             auto        cursor = createCursor(shape, xImages);
             newCursors.emplace_back(cursor);
 
@@ -444,4 +556,57 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
         defaultCursor = newCursors.front();
 
     return newCursors;
+}
+
+void CXCursorManager::syncGsettings() {
+    auto checkParamExists = [](std::string const& paramName, std::string const& category) {
+        auto* gSettingsSchemaSource = g_settings_schema_source_get_default();
+
+        if (!gSettingsSchemaSource) {
+            Debug::log(WARN, "GSettings default schema source does not exist, cant sync GSettings");
+            return false;
+        }
+
+        auto* gSettingsSchema = g_settings_schema_source_lookup(gSettingsSchemaSource, category.c_str(), true);
+        bool  hasParam        = false;
+
+        if (gSettingsSchema != NULL) {
+            hasParam = gSettingsSchema && g_settings_schema_has_key(gSettingsSchema, paramName.c_str());
+            g_settings_schema_unref(gSettingsSchema);
+        }
+
+        return hasParam;
+    };
+
+    using SettingValue = std::variant<std::string, int>;
+    auto setValue      = [&checkParamExists](std::string const& paramName, const SettingValue& paramValue, std::string const& category) {
+        if (!checkParamExists(paramName, category)) {
+            Debug::log(WARN, "GSettings parameter doesnt exist {} in {}", paramName, category);
+            return;
+        }
+
+        auto* gsettings = g_settings_new(category.c_str());
+
+        if (!gsettings) {
+            Debug::log(WARN, "GSettings failed to allocate new settings with category {}", category);
+            return;
+        }
+
+        std::visit(
+            [&](auto&& value) {
+                using T = std::decay_t<decltype(value)>;
+                if constexpr (std::is_same_v<T, std::string>)
+                    g_settings_set_string(gsettings, paramName.c_str(), value.c_str());
+                else if constexpr (std::is_same_v<T, int>)
+                    g_settings_set_int(gsettings, paramName.c_str(), value);
+            },
+            paramValue);
+
+        g_settings_sync();
+        g_object_unref(gsettings);
+    };
+
+    int unscaledSize = lastLoadSize / std::ceil(lastLoadScale);
+    setValue("cursor-theme", themeName, "org.gnome.desktop.interface");
+    setValue("cursor-size", unscaledSize, "org.gnome.desktop.interface");
 }

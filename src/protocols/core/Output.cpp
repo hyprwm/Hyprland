@@ -1,4 +1,6 @@
 #include "Output.hpp"
+#include "Compositor.hpp"
+#include "../../Compositor.hpp"
 #include "../../helpers/Monitor.hpp"
 
 CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMonitor) : monitor(pMonitor), resource(resource_) {
@@ -21,14 +23,31 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, SP<CMonitor> pMoni
             PROTO::outputs.at(monitor->szName)->destroyResource(this);
     });
 
-    resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
-                           monitor->output->model.c_str(), monitor->transform);
     if (resource->version() >= 4) {
         resource->sendName(monitor->szName.c_str());
         resource->sendDescription(monitor->szDescription.c_str());
     }
 
     updateState();
+
+    PROTO::compositor->forEachSurface([](SP<CWLSurfaceResource> surf) {
+        auto HLSurf = CWLSurface::fromResource(surf);
+
+        if (!HLSurf)
+            return;
+
+        const auto GEOMETRY = HLSurf->getSurfaceBoxGlobal();
+
+        if (!GEOMETRY.has_value())
+            return;
+
+        for (auto& m : g_pCompositor->m_vMonitors) {
+            if (!m->logicalBox().overlaps(*GEOMETRY))
+                continue;
+
+            surf->enter(m);
+        }
+    });
 }
 
 SP<CWLOutputResource> CWLOutputResource::fromResource(wl_resource* res) {
@@ -55,7 +74,10 @@ void CWLOutputResource::updateState() {
     if (resource->version() >= 2)
         resource->sendScale(std::ceil(monitor->scale));
 
-    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT | WL_OUTPUT_MODE_PREFERRED), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
+    resource->sendMode((wl_output_mode)(WL_OUTPUT_MODE_CURRENT), monitor->vecPixelSize.x, monitor->vecPixelSize.y, monitor->refreshRate * 1000.0);
+
+    resource->sendGeometry(0, 0, monitor->output->physicalSize.x, monitor->output->physicalSize.y, (wl_output_subpixel)monitor->output->subpixel, monitor->output->make.c_str(),
+                           monitor->output->model.c_str(), monitor->transform);
 
     if (resource->version() >= 2)
         resource->sendDone();
@@ -65,7 +87,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
     IWaylandProtocol(iface, ver, name), monitor(pMonitor), szName(pMonitor->szName) {
 
     listeners.modeChanged = monitor->events.modeChanged.registerListener([this](std::any d) {
-        for (auto& o : m_vOutputs) {
+        for (auto const& o : m_vOutputs) {
             o->updateState();
         }
     });
@@ -95,7 +117,7 @@ void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
 }
 
 SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
-    for (auto& r : m_vOutputs) {
+    for (auto const& r : m_vOutputs) {
         if (r->client() != client)
             continue;
 
@@ -118,7 +140,10 @@ bool CWLOutputProtocol::isDefunct() {
 }
 
 void CWLOutputProtocol::sendDone() {
-    for (auto& r : m_vOutputs) {
+    if (defunct)
+        return;
+
+    for (auto const& r : m_vOutputs) {
         r->resource->sendDone();
     }
 }

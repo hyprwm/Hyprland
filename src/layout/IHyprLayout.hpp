@@ -47,6 +47,7 @@ class IHyprLayout {
     virtual void onWindowCreated(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT);
     virtual void onWindowCreatedTiling(PHLWINDOW, eDirection direction = DIRECTION_DEFAULT) = 0;
     virtual void onWindowCreatedFloating(PHLWINDOW);
+    virtual bool onWindowCreatedAutoGroup(PHLWINDOW);
 
     /*
         Return tiled status
@@ -63,7 +64,7 @@ class IHyprLayout {
         Called when the monitor requires a layout recalculation
         this usually means reserved area changes
     */
-    virtual void recalculateMonitor(const int&) = 0;
+    virtual void recalculateMonitor(const MONITORID&) = 0;
 
     /*
         Called when the compositor requests a window

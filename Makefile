@@ -1,28 +1,24 @@
 PREFIX = /usr/local
 
 legacyrenderer:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all
-	chmod -R 777 ./build
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DLEGACY_RENDERER:BOOL=true -S . -B ./build
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 legacyrendererdebug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DLEGACY_RENDERER:BOOL=true -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all
-	chmod -R 777 ./build
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DLEGACY_RENDERER:BOOL=true -S . -B ./build
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 release:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all
-	chmod -R 777 ./build
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 debug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build -G Ninja
-	cmake --build ./build --config Debug --target all
-	chmod -R 777 ./build
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build
+	cmake --build ./build --config Debug --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 nopch:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -S . -B ./build -G Ninja
-	cmake --build ./build --config Release --target all
+	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -S . -B ./build
+	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 clear:
 	rm -rf build
@@ -87,8 +83,8 @@ asan:
 	#git reset --hard
 
 	@echo -en "If you want to apply a patch, input its path (leave empty for none):\n"
-	@read patchvar
-	@if [-n "$patchvar"]; then patch -p1 < $patchvar || echo ""; else echo "No patch specified"; fi
+	@read patchvar; \
+	 if [ -n "$$patchvar" ]; then patch -p1 < "$$patchvar" || echo ""; else echo "No patch specified"; fi
 
 	git clone --recursive https://gitlab.freedesktop.org/wayland/wayland
 	cd wayland && patch -p1 < ../scripts/waylandStatic.diff && meson setup build --buildtype=debug -Db_sanitize=address -Ddocumentation=false && ninja -C build && cd ..

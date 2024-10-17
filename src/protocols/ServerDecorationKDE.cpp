@@ -1,8 +1,6 @@
 #include "ServerDecorationKDE.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::serverDecorationKDE->protoLog
-
 CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf) : resource(resource_) {
     if (!good())
         return;

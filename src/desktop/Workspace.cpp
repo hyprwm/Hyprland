@@ -5,27 +5,28 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
-PHLWORKSPACE CWorkspace::create(int id, int monitorID, std::string name, bool special, bool isEmtpy) {
-    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmtpy);
+PHLWORKSPACE CWorkspace::create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
+    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmpty);
     workspace->init(workspace);
     return workspace;
 }
 
-CWorkspace::CWorkspace(int id, int monitorID, std::string name, bool special, bool isEmtpy) {
+CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
     m_iMonitorID          = monitorID;
     m_iID                 = id;
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
-    m_bWasCreatedEmtpy    = isEmtpy;
+    m_bWasCreatedEmpty    = isEmpty;
 }
 
 void CWorkspace::init(PHLWORKSPACE self) {
     m_pSelf = self;
 
-    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"),
+    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") :
+                                                   g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
                            self, AVARDAMAGE_ENTIRE);
     m_fAlpha.create(AVARTYPE_FLOAT,
-                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspace") : g_pConfigManager->getAnimationPropertyConfig("workspaces"), self,
+                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"), self,
                     AVARDAMAGE_ENTIRE);
     m_fAlpha.setValueAndWarp(1.f);
 
@@ -48,9 +49,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
     m_bPersistent            = WORKSPACERULE.isPersistent;
 
-    if (self->m_bWasCreatedEmtpy)
+    if (self->m_bWasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            g_pKeybindManager->spawn(*cmd);
+            g_pKeybindManager->spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({"createworkspace", m_szName});
     g_pEventManager->postEvent({"createworkspacev2", std::format("{},{}", m_iID, m_szName)});
@@ -81,12 +82,19 @@ CWorkspace::~CWorkspace() {
 }
 
 void CWorkspace::startAnim(bool in, bool left, bool instant) {
+    if (!instant) {
+        const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
+
+        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+    }
+
     const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks
     m_vRenderOffset.setUpdateCallback([&](void*) {
-        for (auto& w : g_pCompositor->m_vWindows) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
             if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
 
@@ -190,7 +198,7 @@ void CWorkspace::setActive(bool on) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
-void CWorkspace::moveToMonitor(const int& id) {
+void CWorkspace::moveToMonitor(const MONITORID& id) {
     ; // empty until https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/40
 }
 
@@ -275,7 +283,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             i                     = std::min(NEXTSPACE, std::string::npos - 1);
 
             if (cur == 'r') {
-                int from = 0, to = 0;
+                WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("r[") || !prop.ends_with("]")) {
                     Debug::log(LOG, "Invalid selector {}", selector);
                     return false;
@@ -365,7 +373,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             }
 
             if (cur == 'w') {
-                int from = 0, to = 0;
+                WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("w[") || !prop.ends_with("]")) {
                     Debug::log(LOG, "Invalid selector {}", selector);
                     return false;
@@ -378,7 +386,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 bool wantsCountVisible = false;
 
                 int  flagCount = 0;
-                for (auto& flag : prop) {
+                for (auto const& flag : prop) {
                     if (flag == 't' && wantsOnlyTiled == -1) {
                         wantsOnlyTiled = 1;
                         flagCount++;
@@ -446,7 +454,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     return false;
                 }
 
-                int count;
+                WORKSPACEID count;
                 if (wantsCountGroup)
                     count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
                                                                 wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
@@ -506,7 +514,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 void CWorkspace::markInert() {
     m_bInert     = true;
     m_iID        = WORKSPACE_INVALID;
-    m_iMonitorID = -1;
+    m_iMonitorID = MONITOR_INVALID;
     m_bVisible   = false;
 }
 

@@ -59,7 +59,7 @@ class CMonitorState {
 
 class CMonitor {
   public:
-    CMonitor();
+    CMonitor(SP<Aquamarine::IOutput> output);
     ~CMonitor();
 
     Vector2D                    vecPosition         = Vector2D(-1, -1); // means unset
@@ -70,7 +70,7 @@ class CMonitor {
 
     bool                        primary = false;
 
-    uint64_t                    ID                     = -1;
+    MONITORID                   ID                     = MONITOR_INVALID;
     PHLWORKSPACE                activeWorkspace        = nullptr;
     PHLWORKSPACE                activeSpecialWorkspace = nullptr;
     float                       setScale               = 1; // scale set by cfg
@@ -96,10 +96,12 @@ class CMonitor {
     bool                        scheduledRecalc = false;
     wl_output_transform         transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       xwaylandScale   = 1.f;
-    std::array<float, 9>        projMatrix      = {0};
+    Mat3x3                      projMatrix;
     std::optional<Vector2D>     forceSize;
     SP<Aquamarine::SOutputMode> currentMode;
     SP<Aquamarine::CSwapchain>  cursorSwapchain;
+    uint32_t                    drmFormat     = DRM_FORMAT_INVALID;
+    uint32_t                    prevDrmFormat = DRM_FORMAT_INVALID;
 
     bool                        dpmsStatus       = true;
     bool                        vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
@@ -121,14 +123,17 @@ class CMonitor {
     // explicit sync
     SP<CSyncTimeline> inTimeline;
     SP<CSyncTimeline> outTimeline;
-    uint64_t          lastWaitPoint = 0;
-    uint64_t          commitSeq     = 0;
+    uint64_t          commitSeq = 0;
 
     WP<CMonitor>      self;
 
     // mirroring
     CMonitor*              pMirrorOf = nullptr;
     std::vector<CMonitor*> mirrors;
+
+    // ctm
+    Mat3x3 ctm        = Mat3x3::identity();
+    bool   ctmUpdated = false;
 
     // for tearing
     PHLWINDOWREF solitaryClient;
@@ -156,31 +161,34 @@ class CMonitor {
     std::array<std::vector<PHLLSREF>, 4> m_aLayerSurfaceLayers;
 
     // methods
-    void     onConnect(bool noRule);
-    void     onDisconnect(bool destroy = false);
-    void     addDamage(const pixman_region32_t* rg);
-    void     addDamage(const CRegion* rg);
-    void     addDamage(const CBox* box);
-    bool     shouldSkipScheduleFrameOnMouseEvent();
-    void     setMirror(const std::string&);
-    bool     isMirror();
-    bool     matchesStaticSelector(const std::string& selector) const;
-    float    getDefaultScale();
-    void     changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void     changeWorkspace(const int& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-    void     setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-    void     setSpecialWorkspace(const int& id);
-    void     moveTo(const Vector2D& pos);
-    Vector2D middle();
-    void     updateMatrix();
-    int64_t  activeWorkspaceID();
-    int64_t  activeSpecialWorkspaceID();
-    CBox     logicalBox();
-    void     scheduleDone();
-    bool     attemptDirectScanout();
+    void        onConnect(bool noRule);
+    void        onDisconnect(bool destroy = false);
+    void        addDamage(const pixman_region32_t* rg);
+    void        addDamage(const CRegion* rg);
+    void        addDamage(const CBox* box);
+    bool        shouldSkipScheduleFrameOnMouseEvent();
+    void        setMirror(const std::string&);
+    bool        isMirror();
+    bool        matchesStaticSelector(const std::string& selector) const;
+    float       getDefaultScale();
+    void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+    void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+    void        setSpecialWorkspace(const WORKSPACEID& id);
+    void        moveTo(const Vector2D& pos);
+    Vector2D    middle();
+    void        updateMatrix();
+    WORKSPACEID activeWorkspaceID();
+    WORKSPACEID activeSpecialWorkspaceID();
+    CBox        logicalBox();
+    void        scheduleDone();
+    bool        attemptDirectScanout();
+    void        setCTM(const Mat3x3& ctm);
 
-    bool     m_bEnabled             = false;
-    bool     m_bRenderingInitPassed = false;
+    void        debugLastPresentation(const std::string& message);
+
+    bool        m_bEnabled             = false;
+    bool        m_bRenderingInitPassed = false;
 
     // For the list lookup
 
@@ -189,10 +197,10 @@ class CMonitor {
     }
 
   private:
-    void             setupDefaultWS(const SMonitorRule&);
-    int              findAvailableDefaultWS();
+    void        setupDefaultWS(const SMonitorRule&);
+    WORKSPACEID findAvailableDefaultWS();
 
-    wl_event_source* doneSource = nullptr;
+    bool        doneScheduled = false;
 
     struct {
         CHyprSignalListener frame;

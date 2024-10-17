@@ -2,8 +2,6 @@
 #include <sys/mman.h>
 #include "../devices/IKeyboard.hpp"
 
-#define LOGM PROTO::virtualKeyboard->protoLog
-
 CVirtualKeyboardV1Resource::CVirtualKeyboardV1Resource(SP<CZwpVirtualKeyboardV1> resource_) : resource(resource_) {
     if (!good())
         return;
@@ -110,7 +108,7 @@ void CVirtualKeyboardV1Resource::releasePressed() {
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    for (auto& p : pressed) {
+    for (auto const& p : pressed) {
         events.key.emit(IKeyboard::SKeyEvent{
             .timeMs  = now.tv_sec * 1000 + now.tv_nsec / 1000000,
             .keycode = p,

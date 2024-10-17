@@ -124,8 +124,8 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
     if (!PLUGIN)
         return false;
 
-    for (auto& w : g_pCompositor->m_vWindows) {
-        for (auto& d : w->m_dWindowDecorations) {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        for (auto const& d : w->m_dWindowDecorations) {
             if (d.get() == pDecoration) {
                 w->removeWindowDeco(pDecoration);
                 return true;
@@ -194,7 +194,10 @@ APICALL bool HyprlandAPI::addDispatcher(HANDLE handle, const std::string& name, 
 
     PLUGIN->registeredDispatchers.push_back(name);
 
-    g_pKeybindManager->m_mDispatchers[name] = handler;
+    g_pKeybindManager->m_mDispatchers[name] = [handler](std::string arg1) -> SDispatchResult {
+        handler(arg1);
+        return {};
+    };
 
     return true;
 }

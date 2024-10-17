@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../helpers/WLListener.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/signal/Signal.hpp"
@@ -29,6 +28,7 @@ class CTextInput {
     void                   onEnabled(SP<CWLSurfaceResource> surfV1 = nullptr);
     void                   onDisabled();
     void                   onCommit();
+    void                   onReset();
 
     bool                   hasCursorRectangle();
     CBox                   cursorBox();
@@ -47,6 +47,7 @@ class CTextInput {
     struct {
         CHyprSignalListener enable;
         CHyprSignalListener disable;
+        CHyprSignalListener reset;
         CHyprSignalListener commit;
         CHyprSignalListener destroy;
         CHyprSignalListener surfaceUnmap;

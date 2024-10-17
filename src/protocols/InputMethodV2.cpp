@@ -6,8 +6,6 @@
 #include "core/Compositor.hpp"
 #include <cstring>
 
-#define LOGM PROTO::ime->protoLog
-
 CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboardGrabV2> resource_, SP<CInputMethodV2> owner_) : resource(resource_), owner(owner_) {
     if (!resource->resource())
         return;
@@ -270,7 +268,7 @@ wl_client* CInputMethodV2::grabClient() {
     if (grabs.empty())
         return nullptr;
 
-    for (auto& gw : grabs) {
+    for (auto const& gw : grabs) {
         auto g = gw.lock();
 
         if (!g)
@@ -284,7 +282,7 @@ wl_client* CInputMethodV2::grabClient() {
 
 void CInputMethodV2::sendInputRectangle(const CBox& box) {
     inputRectangle = box;
-    for (auto& wp : popups) {
+    for (auto const& wp : popups) {
         auto p = wp.lock();
 
         if (!p)
@@ -295,7 +293,7 @@ void CInputMethodV2::sendInputRectangle(const CBox& box) {
 }
 
 void CInputMethodV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state state) {
-    for (auto& gw : grabs) {
+    for (auto const& gw : grabs) {
         auto g = gw.lock();
 
         if (!g)
@@ -306,7 +304,7 @@ void CInputMethodV2::sendKey(uint32_t time, uint32_t key, wl_keyboard_key_state 
 }
 
 void CInputMethodV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-    for (auto& gw : grabs) {
+    for (auto const& gw : grabs) {
         auto g = gw.lock();
 
         if (!g)
@@ -317,7 +315,7 @@ void CInputMethodV2::sendMods(uint32_t depressed, uint32_t latched, uint32_t loc
 }
 
 void CInputMethodV2::setKeyboard(SP<IKeyboard> keyboard) {
-    for (auto& gw : grabs) {
+    for (auto const& gw : grabs) {
         auto g = gw.lock();
 
         if (!g)

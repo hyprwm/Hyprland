@@ -8,8 +8,6 @@
 #include <memory>
 #include <wayland-server.h>
 
-#define LOGM PROTO::focusGrab->protoLog
-
 CFocusGrabSurfaceState::CFocusGrabSurfaceState(CFocusGrab* grab, SP<CWLSurfaceResource> surface) {
     listeners.destroy = surface->events.destroy.registerListener([=](std::any d) { grab->eraseSurface(surface); });
 }
@@ -105,7 +103,7 @@ void CFocusGrab::refocusKeyboard() {
         return;
 
     SP<CWLSurfaceResource> surface = nullptr;
-    for (auto& [surf, state] : m_mSurfaces) {
+    for (auto const& [surf, state] : m_mSurfaces) {
         if (state->state == CFocusGrabSurfaceState::Comitted) {
             surface = surf.lock();
             break;

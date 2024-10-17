@@ -20,7 +20,6 @@ jobs:
         run: |
           git fetch --unshallow || echo "failed unshallowing"
           bash -c scripts/generateVersion.sh
-          mv scripts/generateVersion.sh scripts/generateVersion.sh.bak
 
       - name: Create tarball with submodules
         id: tar

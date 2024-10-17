@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../helpers/WLListener.hpp"
 #include "../../desktop/WLSurface.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -33,7 +32,7 @@ class CInputPopup {
     WP<CInputMethodPopupV2> popup;
     SP<CWLSurface>          surface;
     CBox                    lastBoxLocal;
-    uint64_t                lastMonitor = -1;
+    MONITORID               lastMonitor = MONITOR_INVALID;
 
     struct {
         CHyprSignalListener map;

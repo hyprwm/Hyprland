@@ -1,8 +1,6 @@
 #include "IdleNotify.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
-#define LOGM PROTO::idle->protoLog
-
 static int onTimer(SP<CEventLoopTimer> self, void* data) {
 
     const auto NOTIF = (CExtIdleNotification*)data;
@@ -88,14 +86,14 @@ void CIdleNotifyProtocol::onGetNotification(CExtIdleNotifierV1* pMgr, uint32_t i
 }
 
 void CIdleNotifyProtocol::onActivity() {
-    for (auto& n : m_vNotifications) {
+    for (auto const& n : m_vNotifications) {
         n->onActivity();
     }
 }
 
 void CIdleNotifyProtocol::setInhibit(bool inhibited) {
     isInhibited = inhibited;
-    for (auto& n : m_vNotifications) {
+    for (auto const& n : m_vNotifications) {
         n->onActivity();
     }
 }

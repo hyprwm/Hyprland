@@ -4,6 +4,7 @@
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
 #include <algorithm>
+#include <ranges>
 
 SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : surface(surface_) {
     pWlrSurface = surface->surface();
@@ -28,6 +29,9 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
 
     listeners.commit = surface_->events.commit.registerListener([this](std::any data) {
         const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
+
+        if (mapped && pWlrSurface != g_pCompositor->m_pLastFocus)
+            g_pInputManager->simulateMouseMovement();
 
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
@@ -67,7 +71,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pInputManager->refocus();
 
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
@@ -75,7 +79,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_pSessionLock.reset();
         g_pCompositor->focusSurface(nullptr);
 
-        for (auto& m : g_pCompositor->m_vMonitors)
+        for (auto const& m : g_pCompositor->m_vMonitors)
             g_pHyprRenderer->damageMonitor(m.get());
     });
 
@@ -90,7 +94,7 @@ SSessionLockSurface* CSessionLockManager::getSessionLockSurfaceForMonitor(uint64
     if (!m_pSessionLock)
         return nullptr;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->iMonitorID == id) {
             if (sls->mapped)
                 return sls.get();
@@ -137,7 +141,7 @@ bool CSessionLockManager::isSurfaceSessionLock(SP<CWLSurfaceResource> pSurface) 
     if (!m_pSessionLock)
         return false;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (sls->surface->surface() == pSurface)
             return true;
     }
@@ -154,7 +158,7 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
     if (g_pCompositor->m_pLastFocus)
         return;
 
-    for (auto& sls : m_pSessionLock->vSessionLockSurfaces) {
+    for (auto const& sls : m_pSessionLock->vSessionLockSurfaces) {
         if (!sls->mapped)
             continue;
 
@@ -165,4 +169,8 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
 
 bool CSessionLockManager::isSessionLockPresent() {
     return m_pSessionLock && !m_pSessionLock->vSessionLockSurfaces.empty();
+}
+
+bool CSessionLockManager::anySessionLockSurfacesPresent() {
+    return m_pSessionLock && std::ranges::any_of(m_pSessionLock->vSessionLockSurfaces, [](const auto& surf) { return surf->mapped; });
 }

@@ -7,12 +7,11 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/sync/SyncReleaser.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
 #include <cstring>
-
-#define LOGM PROTO::compositor->protoLog
 
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
@@ -69,7 +68,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : resource(reso
     resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
-        pending.offset = {x, y};
+        pending.offset    = {x, y};
+        pending.newBuffer = true;
 
         if (!buffer) {
             pending.buffer.reset();
@@ -241,7 +241,7 @@ void CWLSurfaceResource::frame(timespec* now) {
     if (callbacks.empty())
         return;
 
-    for (auto& c : callbacks) {
+    for (auto const& c : callbacks) {
         c->send(now);
     }
 
@@ -257,10 +257,10 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
     std::vector<SP<CWLSurfaceResource>> nodes2;
 
     // first, gather all nodes below
-    for (auto& n : nodes) {
+    for (auto const& n : nodes) {
         std::erase_if(n->subsurfaces, [](const auto& e) { return e.expired(); });
         // subsurfaces is sorted lowest -> highest
-        for (auto& c : n->subsurfaces) {
+        for (auto const& c : n->subsurfaces) {
             if (c->zIndex >= 0)
                 break;
             if (c->surface.expired())
@@ -274,7 +274,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
 
     nodes2.clear();
 
-    for (auto& n : nodes) {
+    for (auto const& n : nodes) {
         Vector2D offset = {};
         if (n->role->role() == SURFACE_ROLE_SUBSURFACE) {
             auto subsurface = ((CSubsurfaceRole*)n->role.get())->subsurface.lock();
@@ -284,8 +284,8 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std
         fn(n, offset, data);
     }
 
-    for (auto& n : nodes) {
-        for (auto& c : n->subsurfaces) {
+    for (auto const& n : nodes) {
+        for (auto const& c : n->subsurfaces) {
             if (c->zIndex < 0)
                 continue;
             if (c->surface.expired())
@@ -310,7 +310,7 @@ std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2
                     void* data) { ((std::vector<std::pair<SP<CWLSurfaceResource>, Vector2D>>*)data)->emplace_back(std::make_pair<>(surf, offset)); },
                  &surfs);
 
-    for (auto& [surf, pos] : surfs | std::views::reverse) {
+    for (auto const& [surf, pos] : surfs | std::views::reverse) {
         if (!allowsInput) {
             const auto BOX = CBox{pos, surf->current.size};
             if (BOX.containsPoint(localCoords))
@@ -428,6 +428,12 @@ void CWLSurfaceResource::commitPendingState() {
     current = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
+    pending.newBuffer = false;
+
+    events.roleCommit.emit();
+
+    if (syncobj && syncobj->current.releaseTimeline && syncobj->current.releaseTimeline->timeline && current.buffer && current.buffer->buffer)
+        current.buffer->releaser = makeShared<CSyncReleaser>(syncobj->current.releaseTimeline->timeline, syncobj->current.releasePoint);
 
     if (current.texture)
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
@@ -442,8 +448,10 @@ void CWLSurfaceResource::commitPendingState() {
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        if (current.buffer->buffer->isSynchronous())
+        if (current.buffer->buffer->isSynchronous()) {
             dropCurrentBuffer();
+            dropPendingBuffer(); // pending atm is just a copied ref of the current, drop it too to send a release
+        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync
@@ -501,23 +509,18 @@ void CWLSurfaceResource::updateCursorShm() {
     memcpy(shmData.data(), pixelData, bufLen);
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, CMonitor* pMonitor, bool needsExplicitSync) {
+void CWLSurfaceResource::presentFeedback(timespec* when, SP<CMonitor> pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
-    if (!pMonitor || !pMonitor->outTimeline || !syncobj || !needsExplicitSync)
+    if (!pMonitor || !pMonitor->outTimeline || !syncobj)
         return;
 
     // attach explicit sync
     g_pHyprRenderer->explicitPresented.emplace_back(self.lock());
-
-    if (syncobj->acquirePoint > pMonitor->lastWaitPoint) {
-        Debug::log(TRACE, "presentFeedback lastWaitPoint {} -> {}", pMonitor->lastWaitPoint, syncobj->acquirePoint);
-        pMonitor->lastWaitPoint = syncobj->acquirePoint;
-    }
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : resource(resource_) {
@@ -585,4 +588,10 @@ void CWLCompositorProtocol::destroyResource(CWLSurfaceResource* resource) {
 
 void CWLCompositorProtocol::destroyResource(CWLRegionResource* resource) {
     std::erase_if(m_vRegions, [&](const auto& other) { return other.get() == resource; });
+}
+
+void CWLCompositorProtocol::forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn) {
+    for (auto& surf : m_vSurfaces) {
+        fn(surf);
+    }
 }

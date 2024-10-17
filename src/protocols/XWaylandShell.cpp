@@ -2,8 +2,6 @@
 #include "core/Compositor.hpp"
 #include <algorithm>
 
-#define LOGM PROTO::xwaylandShell->protoLog
-
 CXWaylandSurfaceResource::CXWaylandSurfaceResource(SP<CXwaylandSurfaceV1> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;

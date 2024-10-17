@@ -5,8 +5,6 @@
 #include "../Compositor.hpp"
 #include "../protocols/core/Output.hpp"
 
-#define LOGM PROTO::gamma->protoLog
-
 CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output) : resource(resource_) {
     if (!resource_->resource())
         return;
@@ -19,15 +17,15 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         return;
     }
 
-    pMonitor = OUTPUTRES->monitor.get();
+    pMonitor = OUTPUTRES->monitor;
 
-    if (!pMonitor) {
+    if (!pMonitor || !pMonitor->output) {
         LOGM(ERR, "No CMonitor");
         resource->sendFailed();
         return;
     }
 
-    for (auto& g : PROTO::gamma->m_vGammaControllers) {
+    for (auto const& g : PROTO::gamma->m_vGammaControllers) {
         if (g->pMonitor == pMonitor) {
             resource->sendFailed();
             return;
@@ -48,6 +46,13 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->setOnDestroy([this](CZwlrGammaControlV1* gamma) { PROTO::gamma->destroyGammaControl(this); });
 
     resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
+        if (!pMonitor) {
+            LOGM(ERR, "setGamma for a dead monitor");
+            resource->sendFailed();
+            close(fd);
+            return;
+        }
+
         LOGM(LOG, "setGamma for {}", pMonitor->szName);
 
         int fdFlags = fcntl(fd, F_GETFL, 0);
@@ -105,11 +110,11 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     resource->sendGammaSize(gammaSize);
 
     listeners.monitorDestroy    = pMonitor->events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
-    listeners.monitorDisconnect = pMonitor->events.destroy.registerListener([this](std::any) { this->onMonitorDestroy(); });
+    listeners.monitorDisconnect = pMonitor->events.disconnect.registerListener([this](std::any) { this->onMonitorDestroy(); });
 }
 
 CGammaControl::~CGammaControl() {
-    if (!gammaTableSet || !pMonitor)
+    if (!gammaTableSet || !pMonitor || !pMonitor->output)
         return;
 
     // reset the LUT if the client dies for whatever reason and doesn't unset the gamma
@@ -121,7 +126,7 @@ bool CGammaControl::good() {
 }
 
 void CGammaControl::applyToMonitor() {
-    if (!pMonitor)
+    if (!pMonitor || !pMonitor->output)
         return; // ??
 
     LOGM(LOG, "setting to monitor {}", pMonitor->szName);
@@ -138,16 +143,16 @@ void CGammaControl::applyToMonitor() {
         pMonitor->output->state->setGammaLut({});
     }
 
-    g_pHyprRenderer->damageMonitor(pMonitor);
+    g_pHyprRenderer->damageMonitor(pMonitor.get());
 }
 
 CMonitor* CGammaControl::getMonitor() {
-    return pMonitor;
+    return pMonitor ? pMonitor.get() : nullptr;
 }
 
 void CGammaControl::onMonitorDestroy() {
+    LOGM(LOG, "Destroying gamma control for {}", pMonitor->szName);
     resource->sendFailed();
-    pMonitor = nullptr;
 }
 
 CGammaControlProtocol::CGammaControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -182,7 +187,7 @@ void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, 
 }
 
 void CGammaControlProtocol::applyGammaToState(CMonitor* pMonitor) {
-    for (auto& g : m_vGammaControllers) {
+    for (auto const& g : m_vGammaControllers) {
         if (g->getMonitor() != pMonitor)
             continue;
 

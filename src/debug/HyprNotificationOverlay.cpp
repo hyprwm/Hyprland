@@ -37,14 +37,14 @@ CHyprNotificationOverlay::~CHyprNotificationOverlay() {
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon, const float fontSize) {
     const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
 
-    PNOTIF->text  = text;
+    PNOTIF->text  = icon != eIcons::ICON_NONE ? " " + text /* tiny bit of padding otherwise icon touches text */ : text;
     PNOTIF->color = color == CColor(0) ? ICONS_COLORS[icon] : color;
     PNOTIF->started.reset();
     PNOTIF->timeMs   = timeMs;
     PNOTIF->icon     = icon;
     PNOTIF->fontSize = fontSize;
 
-    for (auto& m : g_pCompositor->m_vMonitors) {
+    for (auto const& m : g_pCompositor->m_vMonitors) {
         g_pCompositor->scheduleFrameForMonitor(m.get());
     }
 }
@@ -87,7 +87,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     const auto iconBackendID = iconBackendFromLayout(layout);
     const auto PBEZIER       = g_pAnimationManager->getBezier("default");
 
-    for (auto& notif : m_dNotifications) {
+    for (auto const& notif : m_dNotifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
         const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 

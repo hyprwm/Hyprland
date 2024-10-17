@@ -3,8 +3,6 @@
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
-#define LOGM PROTO::shortcutsInhibit->protoLog
-
 CKeyboardShortcutsInhibitor::CKeyboardShortcutsInhibitor(SP<CZwpKeyboardShortcutsInhibitorV1> resource_, SP<CWLSurfaceResource> surf) : resource(resource_), pSurface(surf) {
     if (!resource->resource())
         return;
@@ -50,7 +48,7 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
     SP<CWLSurfaceResource> surf   = CWLSurfaceResource::fromResource(surface);
     const auto             CLIENT = pMgr->client();
 
-    for (auto& in : m_vInhibitors) {
+    for (auto const& in : m_vInhibitors) {
         if (in->surface() != surf)
             continue;
 
@@ -76,7 +74,7 @@ bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
     if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus.lock()); PWINDOW && PWINDOW->m_sWindowData.noShortcutsInhibit.valueOrDefault())
         return false;
 
-    for (auto& in : m_vInhibitors) {
+    for (auto const& in : m_vInhibitors) {
         if (in->surface() != g_pCompositor->m_pLastFocus)
             continue;
 

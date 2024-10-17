@@ -247,7 +247,7 @@ void IHyprLayout::onBeginDragWindow() {
     DRAGGINGWINDOW->m_bDraggingTiled = false;
 
     m_vDraggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_vLastFloatingSize;
-    
+
     static auto drag_window_when_cursor_move = CConfigValue<Hyprlang::INT>("misc:drag_window_when_cursor_move");
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
@@ -260,7 +260,7 @@ void IHyprLayout::onBeginDragWindow() {
                 DRAGGINGWINDOW->m_bDraggingTiled = true;
             }
             DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize.goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
-            DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize.goal() / 2.f;
+            DRAGGINGWINDOW->m_vRealPosition     = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize.goal() / 2.f;
         }
     }
 

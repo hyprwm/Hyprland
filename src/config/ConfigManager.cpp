@@ -375,7 +375,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:drag_window_when_cursor_move", Hyprlang::INT{0});
 
-
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:focus_removed_window", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:merge_groups_on_drag", Hyprlang::INT{1});

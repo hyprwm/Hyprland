@@ -104,6 +104,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{0, 0, 4},
     },
+    SConfigOptionDescription{
+        .value       = "general:snap:enabled",
+        .description = "enable snapping for floating windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "general:snap:window_gap",
+        .description = "minimum gap in pixels between windows before snapping",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{10, 0, 100},
+    },
+    SConfigOptionDescription{
+        .value       = "general:snap:monitor_gap",
+        .description = "minimum gap in pixels between window and monitor edges before snapping",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{10, 0, 100},
+    },
 
     /*
      * decoration:

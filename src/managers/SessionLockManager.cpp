@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
+#include "../managers/SeatManager.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -84,6 +85,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     });
 
     g_pCompositor->focusSurface(nullptr);
+    g_pSeatManager->setGrab(nullptr);
 }
 
 bool CSessionLockManager::isSessionLocked() {

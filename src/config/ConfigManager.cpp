@@ -690,7 +690,7 @@ std::string CConfigManager::getMainConfigPath() {
         return CFG_ENV;
     Debug::log(TRACE, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
 
-    static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+    const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
     if (paths.first.has_value()) {
         return paths.first.value();
     } else if (paths.second.has_value()) {

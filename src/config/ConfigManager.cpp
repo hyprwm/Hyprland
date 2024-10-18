@@ -688,14 +688,13 @@ std::string CConfigManager::getMainConfigPath() {
 
     if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
         return CFG_ENV;
-    Debug::log(TRACE, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
 
-    static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
-    if (paths.first.has_value()) {
-        return paths.first.value();
-    } else if (paths.second.has_value()) {
-        auto configPath = Hyprutils::Path::fullConfigPath(paths.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
-        return generateConfig(configPath).value();
+    const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+    if (PATHS.first.has_value()) {
+        return PATHS.first.value();
+    } else if (PATHS.second.has_value()) {
+        const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+        return generateConfig(CONFIGPATH).value();
     } else
         throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
 }

@@ -466,21 +466,24 @@ static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW,
                 }
             }
 
-            if (mode == MBIND_RESIZE_FORCE_RATIO)
-                continue;
-
             // corner snapping
             if (pos.x == bb.w || bb.x == pos.x + size.x) {
-                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, ob.y, gap))
+                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, ob.y, gap)) {
                     snapUp(pos.y, size.y, ob.y);
-                else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, ob.h, gap))
+                    snaps |= SNAP_UP;
+                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, ob.h, gap)) {
                     snapDown(pos.y, size.y, ob.h);
+                    snaps |= SNAP_DOWN;
+                }
             }
             if (pos.y == bb.h || bb.y == pos.y + size.y) {
-                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, ob.x, gap))
+                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, ob.x, gap)) {
                     snapLeft(pos.x, size.x, ob.x);
-                else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, ob.w, gap))
+                    snaps |= SNAP_LEFT;
+                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, ob.w, gap)) {
                     snapRight(pos.x, size.x, ob.w);
+                    snaps |= SNAP_RIGHT;
+                }
             }
         }
     }

@@ -155,9 +155,6 @@ int                        main(int argc, char** argv, char** envp) {
                     break;
                 default: break;
             }
-        } else if (notify) {
-            g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
-        }
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {

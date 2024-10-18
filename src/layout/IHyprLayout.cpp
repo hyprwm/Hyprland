@@ -418,7 +418,6 @@ void snapResizeRight(double& pos, double& len, const double p) {
 typedef void (*SnapFn)(double& pos, double& len, const double p);
 
 void IHyprLayout::performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode mode) {
-    static auto BORDERSIZE     = CConfigValue<Hyprlang::INT>("general:border_size");
     static auto SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
 
@@ -435,14 +434,16 @@ void IHyprLayout::performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGW
     }
 
     if (*SNAPWINDOWGAP) {
-        const int    bord = *BORDERSIZE;
-        const double gap  = *SNAPWINDOWGAP + bord;
-        const auto   PID  = DRAGGINGWINDOW->getPID();
-        const auto   WSID = DRAGGINGWINDOW->workspaceID();
+        const auto PID  = DRAGGINGWINDOW->getPID();
+        const auto WSID = DRAGGINGWINDOW->workspaceID();
+        const int  BORD = DRAGGINGWINDOW->getRealBorderSize();
 
         for (auto& other : g_pCompositor->m_vWindows) {
             if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->m_bIsX11)
                 continue;
+
+            const int      bord = std::max(BORD, other->getRealBorderSize());
+            const double   gap  = *SNAPWINDOWGAP + bord;
 
             const CBox     box = other->getWindowMainSurfaceBox();
             const CBox     ob(box.x, box.y, box.x + box.w, box.y + box.h);

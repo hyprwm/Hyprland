@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../managers/input/InputManager.hpp"
 #include <any>
 
 class CWindow;
@@ -20,17 +19,18 @@ enum eFullscreenMode : int8_t;
 
 enum eRectCorner {
     CORNER_NONE        = 0,
-    CORNER_TOPLEFT     = 1,
-    CORNER_TOPRIGHT    = 2,
-    CORNER_BOTTOMRIGHT = 4,
-    CORNER_BOTTOMLEFT  = 8,
+    CORNER_TOPLEFT     = (1 << 0),
+    CORNER_TOPRIGHT    = (1 << 1),
+    CORNER_BOTTOMRIGHT = (1 << 2),
+    CORNER_BOTTOMLEFT  = (1 << 3),
 };
 
 enum eSnapEdge {
-    SNAP_UP    = 1,
-    SNAP_DOWN  = 2,
-    SNAP_LEFT  = 4,
-    SNAP_RIGHT = 8,
+    SNAP_INVALID = 0,
+    SNAP_UP      = (1 << 0),
+    SNAP_DOWN    = (1 << 1),
+    SNAP_LEFT    = (1 << 2),
+    SNAP_RIGHT   = (1 << 3),
 };
 
 enum eDirection {
@@ -214,6 +214,4 @@ class IHyprLayout {
     eRectCorner  m_eGrabbedCorner = CORNER_TOPLEFT;
 
     PHLWINDOWREF m_pLastTiledWindow;
-
-    void         performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode mode);
 };

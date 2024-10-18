@@ -2750,6 +2750,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
     PHLWINDOW  pFirstWindowOnWorkspace = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+    int        windowsOnWorkspace      = g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID, std::nullopt, std::optional<bool>(true));
     const auto PWINDOWMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
     const auto POSTOMON                = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
     const auto PWORKSPACEMONITOR       = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
@@ -2761,8 +2762,8 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
 
     static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow && pFirstWindowOnWorkspace->m_sGroupData.pNextWindow.lock() &&
-        pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
+    if (*PGROUPONMOVETOWORKSPACE && windowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+        pFirstWindowOnWorkspace->m_sGroupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
 
         pWindow->m_bIsFloating = pFirstWindowOnWorkspace->m_bIsFloating; // match the floating state. Needed to group tiled into floated and vice versa.
         if (!pWindow->m_sGroupData.pNextWindow.expired()) {

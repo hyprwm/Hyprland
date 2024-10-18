@@ -790,6 +790,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "group:group_on_movetoworkspace",
+        .description = "whether using movetoworkspace[silent] will merge the window into the first window of the workspace if it is a unlocked group",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * group:groupbar:

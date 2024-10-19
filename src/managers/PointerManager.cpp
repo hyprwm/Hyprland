@@ -51,22 +51,22 @@ void CPointerManager::unlockSoftwareAll() {
     updateCursorBackend();
 }
 
-void CPointerManager::lockSoftwareForMonitor(PHLMONITOR Monitor) {
-    for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (m->ID == Monitor->ID) {
-            lockSoftwareForMonitor(m);
-            return;
-        }
-    }
+void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
+    auto state = stateFor(mon);
+    state->softwareLocks++;
+
+    if (state->softwareLocks == 1)
+        updateCursorBackend();
 }
 
-void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR Monitor) {
-    for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (m->ID == Monitor->ID) {
-            unlockSoftwareForMonitor(m);
-            return;
-        }
-    }
+void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
+    auto state = stateFor(mon);
+    state->softwareLocks--;
+    if (state->softwareLocks < 0)
+        state->softwareLocks = 0;
+
+    if (state->softwareLocks == 0)
+        updateCursorBackend();
 }
 
 bool CPointerManager::softwareLockedFor(SP<CMonitor> mon) {

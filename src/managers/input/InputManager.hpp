@@ -112,7 +112,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus();
-    void               refocusLastWindow(CMonitor* pMonitor);
+    void               refocusLastWindow(PHLMONITOR pMonitor);
     void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
 

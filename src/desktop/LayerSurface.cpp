@@ -6,9 +6,9 @@
 #include "../managers/SeatManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
-    PHLLS     pLS = SP<CLayerSurface>(new CLayerSurface(resource));
+    PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    CMonitor* pMonitor = resource->monitor.empty() ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->getMonitorFromName(resource->monitor);
+    auto  pMonitor = resource->monitor.empty() ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->getMonitorFromName(resource->monitor);
 
     pLS->surface->assign(resource->surface.lock(), pLS);
 
@@ -18,7 +18,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     }
 
     if (pMonitor->pMirrorOf)
-        pMonitor = g_pCompositor->m_vMonitors.front().get();
+        pMonitor = g_pCompositor->m_vMonitors.front();
 
     pLS->self = pLS;
 

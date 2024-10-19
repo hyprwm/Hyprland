@@ -295,7 +295,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     RDATA->surfaceCounter++;
 }
 
-bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, CMonitor* pMonitor) {
+bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (!pWindow->visibleOnMonitor(pMonitor))
         return false;
 
@@ -389,7 +389,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -479,7 +479,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(CMonitor* pMonitor, PHLWORK
     }
 }
 
-void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
+void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time) {
     PHLWINDOW lastWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOWS);
@@ -551,7 +551,7 @@ void CHyprRenderer::renderWorkspaceWindows(CMonitor* pMonitor, PHLWORKSPACE pWor
     }
 }
 
-void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
+void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
     if (pWindow->isHidden())
         return;
 
@@ -766,7 +766,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, CMonitor* pMonitor, timespec
     g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
-void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time, bool popups) {
+void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups) {
     if (!pLayer)
         return;
 
@@ -835,7 +835,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, CMonitor* pMonitor, timespec* time
     g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
 }
 
-void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, CMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, timespec* time) {
     const auto  POS = pPopup->globalBox().pos();
 
     SRenderData renderdata = {pMonitor, time, POS.x, POS.y};
@@ -851,7 +851,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, CMonitor* pMonitor, time
     SURF->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 }
 
-void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLMONITOR pMonitor, timespec* time) {
     SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition.x, pMonitor->vecPosition.y};
 
     renderdata.blur     = false;
@@ -863,7 +863,7 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, CMon
     renderdata.surface->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
+void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
     static auto      PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto      PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto      PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
@@ -1036,7 +1036,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(CMonitor* pMonitor, PHLWORKSPAC
     g_pHyprOpenGL->m_RenderData.renderModif = {};
 }
 
-void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CBox& geometry) {
+void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     if (g_pSessionLockManager->isSessionLocked()) {
@@ -1052,7 +1052,7 @@ void CHyprRenderer::renderLockscreen(CMonitor* pMonitor, timespec* now, const CB
     }
 }
 
-void CHyprRenderer::renderSessionLockMissing(CMonitor* pMonitor) {
+void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     const auto ALPHA = g_pSessionLockManager->getRedScreenAlphaForMonitor(pMonitor->ID);
 
     CBox       monbox = {{}, pMonitor->vecPixelSize};
@@ -1181,7 +1181,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
+void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -1410,13 +1410,13 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
                 renderLockscreen(pMonitor, &now, renderBox);
 
-                if (pMonitor == g_pCompositor->m_pLastMonitor.get()) {
+                if (pMonitor == g_pCompositor->m_pLastMonitor) {
                     g_pHyprNotificationOverlay->draw(pMonitor);
                     g_pHyprError->draw();
                 }
 
                 // for drawing the debug overlay
-                if (pMonitor == g_pCompositor->m_vMonitors.front().get() && *PDEBUGOVERLAY == 1) {
+                if (pMonitor == g_pCompositor->m_vMonitors.front() && *PDEBUGOVERLAY == 1) {
                     renderStartOverlay = std::chrono::high_resolution_clock::now();
                     g_pDebugOverlay->draw();
                     endRenderOverlay = std::chrono::high_resolution_clock::now();
@@ -1491,7 +1491,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     g_pDebugOverlay->renderData(pMonitor, durationUs);
 
     if (*PDEBUGOVERLAY == 1) {
-        if (pMonitor == g_pCompositor->m_vMonitors.front().get()) {
+        if (pMonitor == g_pCompositor->m_vMonitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else {
@@ -1500,7 +1500,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     }
 }
 
-bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
+bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
     auto inFD = pMonitor->output->state->state().explicitInFence;
@@ -1565,7 +1565,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(CMonitor* pMonitor) {
     return ok;
 }
 
-void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
+void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = (float)geometry.width / pMonitor->vecPixelSize.x;
 
@@ -1582,7 +1582,7 @@ void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace,
     g_pHyprOpenGL->m_RenderData.pWorkspace = nullptr;
 }
 
-void CHyprRenderer::sendFrameEventsToWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
+void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now) {
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (w->isHidden() || !w->m_bIsMapped || w->m_bFadingOut || !w->m_pWLSurface->resource())
             continue;
@@ -1670,7 +1670,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(CMonitor* pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
+void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
     CBox full_area = {pMonitor->vecPosition.x, pMonitor->vecPosition.y, pMonitor->vecSize.x, pMonitor->vecSize.y};
 
     for (auto const& ls : layerSurfaces) {
@@ -1865,7 +1865,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (forceFull || g_pHyprRenderer->shouldRenderWindow(pWindow, m.get())) { // only damage if window is rendered on monitor
+        if (forceFull || g_pHyprRenderer->shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
             m->addDamage(&fixedDamageBox);
@@ -1881,7 +1881,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         Debug::log(LOG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_szTitle, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 }
 
-void CHyprRenderer::damageMonitor(CMonitor* pMonitor) {
+void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     if (g_pCompositor->m_bUnsafeState || pMonitor->isMirror())
         return;
 
@@ -1925,7 +1925,7 @@ void CHyprRenderer::damageRegion(const CRegion& rg) {
     }
 }
 
-void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion) {
+void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {
     for (auto const& mirror : pMonitor->mirrors) {
 
         // transform the damage here, so it won't get clipped by the monitor damage ring
@@ -1946,11 +1946,11 @@ void CHyprRenderer::damageMirrorsWith(CMonitor* pMonitor, const CRegion& pRegion
 
         mirror->addDamage(&transformed);
 
-        g_pCompositor->scheduleFrameForMonitor(mirror, Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        g_pCompositor->scheduleFrameForMonitor(mirror.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 }
 
-void CHyprRenderer::renderDragIcon(CMonitor* pMonitor, timespec* time) {
+void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, timespec* time) {
     PROTO::data->renderDND(pMonitor, time);
 }
 
@@ -1965,7 +1965,7 @@ DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& 
     return DAMAGE_TRACKING_INVALID;
 }
 
-bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorRule, bool force) {
+bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
 
@@ -2436,7 +2436,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
-            g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
+            g_pHyprRenderer->damageMonitor(m); // TODO: maybe just damage the cursor area?
         }
 
         setCursorHidden(true);
@@ -2448,7 +2448,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
-            g_pHyprRenderer->damageMonitor(m.get()); // TODO: maybe just damage the cursor area?
+            g_pHyprRenderer->damageMonitor(m); // TODO: maybe just damage the cursor area?
         }
 
         setCursorHidden(false);
@@ -2479,7 +2479,7 @@ bool CHyprRenderer::shouldRenderCursor() {
     return !m_bCursorHidden && m_bCursorHasSurface;
 }
 
-std::tuple<float, float, float> CHyprRenderer::getRenderTimes(CMonitor* pMonitor) {
+std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
     const auto POVERLAY = &g_pDebugOverlay->m_mMonitorOverlays[pMonitor];
 
     float      avgRenderTime = 0;
@@ -2590,7 +2590,7 @@ void CHyprRenderer::setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWork
     region.subtract(rg);
 }
 
-bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
+bool CHyprRenderer::canSkipBackBufferClear(PHLMONITOR pMonitor) {
     for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
         if (!ls->layerSurface)
             continue;
@@ -2616,7 +2616,7 @@ bool CHyprRenderer::canSkipBackBufferClear(CMonitor* pMonitor) {
     return false;
 }
 
-void CHyprRenderer::recheckSolitaryForMonitor(CMonitor* pMonitor) {
+void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
     pMonitor->solitaryClient.reset(); // reset it, if we find one it will be set.
 
     if (g_pHyprNotificationOverlay->hasAny() || g_pSessionLockManager->isSessionLocked())
@@ -2704,7 +2704,7 @@ void CHyprRenderer::unsetEGL() {
     eglMakeCurrent(g_pHyprOpenGL->m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
+bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
 
     makeEGLCurrent();
 
@@ -2777,7 +2777,7 @@ void CHyprRenderer::endRender() {
     if (m_eRenderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
     else {
-        g_pHyprOpenGL->m_RenderData.pMonitor          = nullptr;
+        g_pHyprOpenGL->m_RenderData.pMonitor.reset();
         g_pHyprOpenGL->m_RenderData.mouseZoomFactor   = 1.f;
         g_pHyprOpenGL->m_RenderData.mouseZoomUseMouse = true;
     }

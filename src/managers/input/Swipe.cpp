@@ -33,7 +33,7 @@ void CInputManager::beginWorkspaceSwipe() {
 
     m_sActiveSwipe.pWorkspaceBegin = PWORKSPACE;
     m_sActiveSwipe.delta           = 0;
-    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor.get();
+    m_sActiveSwipe.pMonitor        = g_pCompositor->m_pLastMonitor;
     m_sActiveSwipe.avgSpeed        = 0;
     m_sActiveSwipe.speedPoints     = 0;
 
@@ -179,7 +179,7 @@ void CInputManager::endWorkspaceSwipe() {
     }
     m_sActiveSwipe.pWorkspaceBegin->rememberPrevWorkspace(pSwitchedTo);
 
-    g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+    g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor.lock());
 
     if (PWORKSPACEL)
         PWORKSPACEL->m_bForceRendering = false;
@@ -264,7 +264,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
 
         if (workspaceIDLeft > m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW) {
-                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor.lock());
 
                 if (VERTANIMS)
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0.0, ((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * YDISTANCE));
@@ -304,7 +304,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
 
         if (workspaceIDRight < m_sActiveSwipe.pWorkspaceBegin->m_iID || !PWORKSPACE) {
             if (*PSWIPENEW) {
-                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+                g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor.lock());
 
                 if (VERTANIMS)
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(0.0, ((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * YDISTANCE));
@@ -341,7 +341,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
         g_pCompositor->updateWorkspaceWindowDecos(workspaceIDRight);
     }
 
-    g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor);
+    g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor.lock());
 
     g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
 

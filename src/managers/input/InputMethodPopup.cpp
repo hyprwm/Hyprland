@@ -100,11 +100,11 @@ void CInputPopup::updateBox() {
         cursorBoxParent = {0, 0, (int)parentBox.w, (int)parentBox.h};
     }
 
-    Vector2D  currentPopupSize = surface->getViewporterCorrectedSize() / surface->resource()->current.scale;
+    Vector2D   currentPopupSize = surface->getViewporterCorrectedSize() / surface->resource()->current.scale;
 
-    CMonitor* pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
+    PHLMONITOR pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
 
-    Vector2D  popupOffset(0, 0);
+    Vector2D   popupOffset(0, 0);
 
     if (parentBox.y + cursorBoxParent.y + cursorBoxParent.height + currentPopupSize.y > pMonitor->vecPosition.y + pMonitor->vecSize.y)
         popupOffset.y -= currentPopupSize.y;

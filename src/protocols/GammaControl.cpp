@@ -143,11 +143,11 @@ void CGammaControl::applyToMonitor() {
         pMonitor->output->state->setGammaLut({});
     }
 
-    g_pHyprRenderer->damageMonitor(pMonitor.get());
+    g_pHyprRenderer->damageMonitor(pMonitor.lock());
 }
 
-CMonitor* CGammaControl::getMonitor() {
-    return pMonitor ? pMonitor.get() : nullptr;
+PHLMONITOR CGammaControl::getMonitor() {
+    return pMonitor ? pMonitor.lock() : nullptr;
 }
 
 void CGammaControl::onMonitorDestroy() {
@@ -186,7 +186,7 @@ void CGammaControlProtocol::onGetGammaControl(CZwlrGammaControlManagerV1* pMgr, 
     }
 }
 
-void CGammaControlProtocol::applyGammaToState(CMonitor* pMonitor) {
+void CGammaControlProtocol::applyGammaToState(PHLMONITOR pMonitor) {
     for (auto const& g : m_vGammaControllers) {
         if (g->getMonitor() != pMonitor)
             continue;

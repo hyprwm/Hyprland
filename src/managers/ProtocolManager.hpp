@@ -16,7 +16,7 @@ class CProtocolManager {
   private:
     std::unordered_map<std::string, CHyprSignalListener> m_mModeChangeListeners;
 
-    void                                                 onMonitorModeChange(CMonitor* pMonitor);
+    void                                                 onMonitorModeChange(PHLMONITOR pMonitor);
 };
 
 inline std::unique_ptr<CProtocolManager> g_pProtocolManager;

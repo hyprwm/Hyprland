@@ -1693,51 +1693,51 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
         CBox           box = {{}, PSTATE->desiredSize};
         // Horizontal axis
         const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
-        if (box.width == 0) {
+        if (box.width == 0)
             box.x = bounds.x;
-        } else if ((PSTATE->anchor & both_horiz) == both_horiz) {
+        else if ((PSTATE->anchor & both_horiz) == both_horiz)
             box.x = bounds.x + ((bounds.width / 2) - (box.width / 2));
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT))
             box.x = bounds.x;
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
             box.x = bounds.x + (bounds.width - box.width);
-        } else {
+        else
             box.x = bounds.x + ((bounds.width / 2) - (box.width / 2));
-        }
+
         // Vertical axis
         const uint32_t both_vert = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
-        if (box.height == 0) {
+        if (box.height == 0)
             box.y = bounds.y;
-        } else if ((PSTATE->anchor & both_vert) == both_vert) {
+        else if ((PSTATE->anchor & both_vert) == both_vert)
             box.y = bounds.y + ((bounds.height / 2) - (box.height / 2));
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP))
             box.y = bounds.y;
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
             box.y = bounds.y + (bounds.height - box.height);
-        } else {
+        else
             box.y = bounds.y + ((bounds.height / 2) - (box.height / 2));
-        }
+
         // Margin
         if (box.width == 0) {
             box.x += PSTATE->margin.left;
             box.width = bounds.width - (PSTATE->margin.left + PSTATE->margin.right);
-        } else if ((PSTATE->anchor & both_horiz) == both_horiz) {
-            // don't apply margins
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT)) {
+        } else if ((PSTATE->anchor & both_horiz) == both_horiz)
+            ; // don't apply margins
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT))
             box.x += PSTATE->margin.left;
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
             box.x -= PSTATE->margin.right;
-        }
+
         if (box.height == 0) {
             box.y += PSTATE->margin.top;
             box.height = bounds.height - (PSTATE->margin.top + PSTATE->margin.bottom);
-        } else if ((PSTATE->anchor & both_vert) == both_vert) {
-            // don't apply margins
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP)) {
+        } else if ((PSTATE->anchor & both_vert) == both_vert)
+            ; // don't apply margins
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP))
             box.y += PSTATE->margin.top;
-        } else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)) {
+        else if ((PSTATE->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
             box.y -= PSTATE->margin.bottom;
-        }
+
         if (box.width <= 0 || box.height <= 0) {
             Debug::log(ERR, "LayerSurface {:x} has a negative/zero w/h???", (uintptr_t)ls.get());
             continue;

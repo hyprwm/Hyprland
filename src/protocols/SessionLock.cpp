@@ -5,7 +5,7 @@
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 
-CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, CMonitor* pMonitor_, WP<CSessionLock> owner_) :
+CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     resource(resource_), sessionLock(owner_), pSurface(surface_), pMonitor(pMonitor_) {
     if (!resource->resource())
         return;
@@ -82,8 +82,8 @@ bool CSessionLockSurface::inert() {
     return sessionLock.expired();
 }
 
-CMonitor* CSessionLockSurface::monitor() {
-    return pMonitor;
+PHLMONITOR CSessionLockSurface::monitor() {
+    return pMonitor.lock();
 }
 
 SP<CWLSurfaceResource> CSessionLockSurface::surface() {
@@ -184,7 +184,7 @@ void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id
     LOGM(LOG, "New sessionLockSurface with id {}", id);
 
     auto             PSURFACE = CWLSurfaceResource::fromResource(surface);
-    auto             PMONITOR = CWLOutputResource::fromResource(output)->monitor.get();
+    auto             PMONITOR = CWLOutputResource::fromResource(output)->monitor.lock();
 
     SP<CSessionLock> sessionLock;
     for (auto const& l : m_vLocks) {

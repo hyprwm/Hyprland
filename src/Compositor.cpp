@@ -412,8 +412,8 @@ void CCompositor::initAllSignals() {
                     m_bSessionActive = true;
 
                     for (auto const& m : m_vMonitors) {
-                        scheduleFrameForMonitor(m.get());
-                        g_pHyprRenderer->applyMonitorRule(m.get(), &m->activeMonitorRule, true);
+                        scheduleFrameForMonitor(m);
+                        g_pHyprRenderer->applyMonitorRule(m, &m->activeMonitorRule, true);
                     }
 
                     g_pConfigManager->m_bWantsMonitorReload = true;
@@ -498,7 +498,7 @@ void CCompositor::cleanup() {
     m_vWindows.clear();
 
     for (auto const& m : m_vMonitors) {
-        g_pHyprOpenGL->destroyMonitorResources(m.get());
+        g_pHyprOpenGL->destroyMonitorResources(m);
 
         m->output->state->setEnabled(false);
         m->state.commit();
@@ -717,38 +717,38 @@ void CCompositor::startCompositor() {
     g_pEventLoopManager->enterLoop();
 }
 
-CMonitor* CCompositor::getMonitorFromID(const MONITORID& id) {
+PHLMONITOR CCompositor::getMonitorFromID(const MONITORID& id) {
     for (auto const& m : m_vMonitors) {
         if (m->ID == id) {
-            return m.get();
+            return m;
         }
     }
 
     return nullptr;
 }
 
-CMonitor* CCompositor::getMonitorFromName(const std::string& name) {
+PHLMONITOR CCompositor::getMonitorFromName(const std::string& name) {
     for (auto const& m : m_vMonitors) {
         if (m->szName == name) {
-            return m.get();
+            return m;
         }
     }
     return nullptr;
 }
 
-CMonitor* CCompositor::getMonitorFromDesc(const std::string& desc) {
+PHLMONITOR CCompositor::getMonitorFromDesc(const std::string& desc) {
     for (auto const& m : m_vMonitors) {
         if (m->szDescription.starts_with(desc))
-            return m.get();
+            return m;
     }
     return nullptr;
 }
 
-CMonitor* CCompositor::getMonitorFromCursor() {
+PHLMONITOR CCompositor::getMonitorFromCursor() {
     return getMonitorFromVector(g_pPointerManager->position());
 }
 
-CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
+PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
     SP<CMonitor> mon;
     for (auto const& m : m_vMonitors) {
         if (CBox{m->vecPosition, m->vecSize}.containsPoint(point)) {
@@ -772,13 +772,13 @@ CMonitor* CCompositor::getMonitorFromVector(const Vector2D& point) {
 
         if (!pBestMon) { // ?????
             Debug::log(WARN, "getMonitorFromVector no close mon???");
-            return m_vMonitors.front().get();
+            return m_vMonitors.front();
         }
 
-        return pBestMon.get();
+        return pBestMon;
     }
 
-    return mon.get();
+    return mon;
 }
 
 void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
@@ -790,9 +790,9 @@ void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
     }
 }
 
-bool CCompositor::monitorExists(CMonitor* pMonitor) {
+bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
     for (auto const& m : m_vRealMonitors) {
-        if (m.get() == pMonitor)
+        if (m == pMonitor)
             return true;
     }
 
@@ -982,20 +982,20 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
     return vec - pWindow->m_vRealPosition.goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
 }
 
-CMonitor* CCompositor::getMonitorFromOutput(SP<Aquamarine::IOutput> out) {
+PHLMONITOR CCompositor::getMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     for (auto const& m : m_vMonitors) {
         if (m->output == out) {
-            return m.get();
+            return m;
         }
     }
 
     return nullptr;
 }
 
-CMonitor* CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
+PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
     for (auto const& m : m_vRealMonitors) {
         if (m->output == out) {
-            return m.get();
+            return m;
         }
     }
 
@@ -1183,7 +1183,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
         SURF->constraint()->activate();
 }
 
-SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, CMonitor* monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
+SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
             if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha.value() == 0.f)
@@ -1779,7 +1779,7 @@ bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     return false;
 }
 
-bool CCompositor::isPointOnReservedArea(const Vector2D& point, const CMonitor* pMonitor) {
+bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {
     const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
 
     const auto XY1 = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
@@ -1788,11 +1788,11 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const CMonitor* p
     return !VECINRECT(point, XY1.x, XY1.y, XY2.x, XY2.y);
 }
 
-CMonitor* CCompositor::getMonitorInDirection(const char& dir) {
-    return this->getMonitorInDirection(m_pLastMonitor.get(), dir);
+PHLMONITOR CCompositor::getMonitorInDirection(const char& dir) {
+    return getMonitorInDirection(m_pLastMonitor.lock(), dir);
 }
 
-CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const char& dir) {
+PHLMONITOR CCompositor::getMonitorInDirection(PHLMONITOR pSourceMonitor, const char& dir) {
     if (!pSourceMonitor)
         return nullptr;
 
@@ -1800,7 +1800,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
     const auto SIZEA = pSourceMonitor->vecSize;
 
     auto       longestIntersect        = -1;
-    CMonitor*  longestIntersectMonitor = nullptr;
+    PHLMONITOR longestIntersectMonitor = nullptr;
 
     for (auto const& m : m_vMonitors) {
         if (m == m_pLastMonitor)
@@ -1814,7 +1814,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
                     const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect        = INTERSECTLEN;
-                        longestIntersectMonitor = m.get();
+                        longestIntersectMonitor = m;
                     }
                 }
                 break;
@@ -1823,7 +1823,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
                     const auto INTERSECTLEN = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect        = INTERSECTLEN;
-                        longestIntersectMonitor = m.get();
+                        longestIntersectMonitor = m;
                     }
                 }
                 break;
@@ -1833,7 +1833,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
                     const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect        = INTERSECTLEN;
-                        longestIntersectMonitor = m.get();
+                        longestIntersectMonitor = m;
                     }
                 }
                 break;
@@ -1843,7 +1843,7 @@ CMonitor* CCompositor::getMonitorInDirection(CMonitor* pSourceMonitor, const cha
                     const auto INTERSECTLEN = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
                     if (INTERSECTLEN > longestIntersect) {
                         longestIntersect        = INTERSECTLEN;
-                        longestIntersectMonitor = m.get();
+                        longestIntersectMonitor = m;
                     }
                 }
                 break;
@@ -1990,7 +1990,7 @@ MONITORID CCompositor::getNextAvailableMonitorID(std::string const& name) {
     return nextID;
 }
 
-void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB) {
+void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitorB) {
 
     const auto PWORKSPACEA = pMonitorA->activeWorkspace;
     const auto PWORKSPACEB = pMonitorB->activeWorkspace;
@@ -2077,16 +2077,16 @@ void CCompositor::swapActiveWorkspaces(CMonitor* pMonitorA, CMonitor* pMonitorB)
     EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{PWORKSPACEB, pMonitorA}));
 }
 
-CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
+PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
     if (name == "current")
-        return g_pCompositor->m_pLastMonitor.get();
+        return g_pCompositor->m_pLastMonitor.lock();
     else if (isDirection(name))
         return getMonitorInDirection(name[0]);
     else if (name[0] == '+' || name[0] == '-') {
         // relative
 
         if (m_vMonitors.size() == 1)
-            return m_vMonitors.begin()->get();
+            return *m_vMonitors.begin();
 
         const auto OFFSET = name[0] == '-' ? name : name.substr(1);
 
@@ -2119,7 +2119,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
             currentPlace = std::clamp(currentPlace, 0, (int)m_vMonitors.size() - 1);
         }
 
-        return m_vMonitors[currentPlace].get();
+        return m_vMonitors[currentPlace];
     } else if (isNumber(name)) {
         // change by ID
         MONITORID monID = MONITOR_INVALID;
@@ -2143,7 +2143,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
                 continue;
 
             if (m->matchesStaticSelector(name)) {
-                return m.get();
+                return m;
             }
         }
     }
@@ -2151,7 +2151,7 @@ CMonitor* CCompositor::getMonitorFromString(const std::string& name) {
     return nullptr;
 }
 
-void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMonitor, bool noWarpCursor) {
+void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) {
 
     // We trust the monitor to be correct.
 
@@ -2226,7 +2226,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, CMonitor* pMon
         }
     }
 
-    if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_pLastMonitor.get()) { // if it was active, preserve its' status. If it wasn't, don't.
+    if (SWITCHINGISACTIVE && POLDMON == g_pCompositor->m_pLastMonitor) { // if it was active, preserve its' status. If it wasn't, don't.
         Debug::log(LOG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_iID);
 
         if (valid(pMonitor->activeWorkspace)) {
@@ -2438,7 +2438,7 @@ void CCompositor::updateWorkspaceWindowData(const WORKSPACEID& id) {
     }
 }
 
-void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor, IOutput::scheduleFrameReason reason) {
+void CCompositor::scheduleFrameForMonitor(PHLMONITOR pMonitor, IOutput::scheduleFrameReason reason) {
     if ((m_pAqBackend->hasSession() && !m_pAqBackend->session->active) || !m_bSessionActive)
         return;
 
@@ -2555,7 +2555,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
 
     if (*PNOWARPS && !force) {
         const auto PMONITORNEW = getMonitorFromVector(pos);
-        if (PMONITORNEW != m_pLastMonitor.get())
+        if (PMONITORNEW != m_pLastMonitor)
             setActiveMonitor(PMONITORNEW);
         return;
     }
@@ -2563,7 +2563,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
     g_pPointerManager->warpTo(pos);
 
     const auto PMONITORNEW = getMonitorFromVector(pos);
-    if (PMONITORNEW != m_pLastMonitor.get())
+    if (PMONITORNEW != m_pLastMonitor)
         setActiveMonitor(PMONITORNEW);
 }
 
@@ -2690,8 +2690,8 @@ void CCompositor::renameWorkspace(const WORKSPACEID& id, const std::string& name
     g_pEventManager->postEvent({"renameworkspace", std::to_string(PWORKSPACE->m_iID) + "," + PWORKSPACE->m_szName});
 }
 
-void CCompositor::setActiveMonitor(CMonitor* pMonitor) {
-    if (m_pLastMonitor.get() == pMonitor)
+void CCompositor::setActiveMonitor(PHLMONITOR pMonitor) {
+    if (m_pLastMonitor == pMonitor)
         return;
 
     if (!pMonitor) {
@@ -2801,13 +2801,13 @@ PHLWINDOW CCompositor::getForceFocus() {
 }
 
 void CCompositor::arrangeMonitors() {
-    static auto* const     PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
+    static auto* const      PXWLFORCESCALEZERO = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling");
 
-    std::vector<CMonitor*> toArrange;
-    std::vector<CMonitor*> arranged;
+    std::vector<PHLMONITOR> toArrange;
+    std::vector<PHLMONITOR> arranged;
 
     for (auto const& m : m_vMonitors)
-        toArrange.push_back(m.get());
+        toArrange.push_back(m);
 
     Debug::log(LOG, "arrangeMonitors: {} to arrange", toArrange.size());
 
@@ -2906,7 +2906,7 @@ void CCompositor::enterUnsafeState() {
 
     m_bUnsafeState = true;
 
-    setActiveMonitor(m_pUnsafeOutput);
+    setActiveMonitor(m_pUnsafeOutput.lock());
 }
 
 void CCompositor::leaveUnsafeState() {
@@ -2917,10 +2917,10 @@ void CCompositor::leaveUnsafeState() {
 
     m_bUnsafeState = false;
 
-    CMonitor* pNewMonitor = nullptr;
+    PHLMONITOR pNewMonitor = nullptr;
     for (auto const& pMonitor : m_vMonitors) {
         if (pMonitor->output != m_pUnsafeOutput->output) {
-            pNewMonitor = pMonitor.get();
+            pNewMonitor = pMonitor;
             break;
         }
     }
@@ -2931,7 +2931,7 @@ void CCompositor::leaveUnsafeState() {
         m_pUnsafeOutput->onDisconnect();
 
     for (auto const& m : m_vMonitors) {
-        scheduleFrameForMonitor(m.get());
+        scheduleFrameForMonitor(m);
     }
 }
 
@@ -3007,7 +3007,7 @@ static void checkDefaultCursorWarp(SP<CMonitor> monitor) {
     }
 
     // modechange happend check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
-    if (g_pCompositor->getMonitorFromCursor() == monitor.get()) {
+    if (g_pCompositor->getMonitorFromCursor() == monitor) {
         g_pCompositor->warpCursorTo(POS, true);
         g_pInputManager->refocus();
     }
@@ -3017,7 +3017,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
     auto PNEWMONITOR = g_pCompositor->m_vRealMonitors.emplace_back(makeShared<CMonitor>(output));
     if (std::string("HEADLESS-1") == output->name) {
-        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR.get();
+        g_pCompositor->m_pUnsafeOutput = PNEWMONITOR;
         output->name                   = "FALLBACK"; // we are allowed to do this :)
     }
 
@@ -3040,12 +3040,12 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // ready to process if we have a real monitor
 
     if ((!g_pHyprRenderer->m_pMostHzMonitor || PNEWMONITOR->refreshRate > g_pHyprRenderer->m_pMostHzMonitor->refreshRate) && PNEWMONITOR->m_bEnabled)
-        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR.get();
+        g_pHyprRenderer->m_pMostHzMonitor = PNEWMONITOR;
 
     g_pCompositor->m_bReadyToProcess = true;
 
     g_pConfigManager->m_bWantsMonitorReload = true;
-    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR.get(), IOutput::AQ_SCHEDULE_NEW_MONITOR);
+    g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR, IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     checkDefaultCursorWarp(PNEWMONITOR);
 
@@ -3056,6 +3056,6 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
         }
     }
 
-    g_pHyprRenderer->damageMonitor(PNEWMONITOR.get());
+    g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->onMonitorFrame();
 }

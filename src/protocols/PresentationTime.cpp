@@ -73,8 +73,8 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
 
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = std::any_cast<CMonitor*>(param);
-        std::erase_if(m_vQueue, [PMONITOR](const auto& other) { return !other->surface || other->pMonitor.get() == PMONITOR; });
+        const auto PMONITOR = std::any_cast<PHLMONITOR>(param);
+        std::erase_if(m_vQueue, [PMONITOR](const auto& other) { return !other->surface || other->pMonitor == PMONITOR; });
     });
 }
 

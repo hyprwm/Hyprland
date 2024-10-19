@@ -340,7 +340,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
 
     initAssets();
 
-    static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<CMonitor*>(data)); });
+    static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<PHLMONITOR>(data)); });
 
     RASSERT(eglMakeCurrent(m_pEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
@@ -625,7 +625,7 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
     return shader;
 }
 
-bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
+bool CHyprOpenGLImpl::passRequiresIntrospection(PHLMONITOR pMonitor) {
     // passes requiring introspection are the ones that need to render blur,
     // or when we are rendering to a multigpu target
 
@@ -731,7 +731,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(CMonitor* pMonitor) {
     return false;
 }
 
-void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, SP<CRenderbuffer> rb, CFramebuffer* fb) {
+void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<CRenderbuffer> rb, CFramebuffer* fb) {
     m_RenderData.pMonitor = pMonitor;
 
 #ifndef GLES2
@@ -783,7 +783,7 @@ void CHyprOpenGLImpl::beginSimple(CMonitor* pMonitor, const CRegion& damage, SP<
     m_RenderData.simplePass = true;
 }
 
-void CHyprOpenGLImpl::begin(CMonitor* pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
+void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_RenderData.pMonitor = pMonitor;
 
     static auto PFORCEINTROSPECTION = CConfigValue<Hyprlang::INT>("opengl:force_introspection");
@@ -929,7 +929,7 @@ void CHyprOpenGLImpl::end() {
     }
 
     // reset our data
-    m_RenderData.pMonitor           = nullptr;
+    m_RenderData.pMonitor.reset();
     m_RenderData.mouseZoomFactor    = 1.f;
     m_RenderData.mouseZoomUseMouse  = true;
     m_RenderData.forceIntrospection = false;
@@ -1858,11 +1858,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::markBlurDirtyForMonitor(CMonitor* pMonitor) {
+void CHyprOpenGLImpl::markBlurDirtyForMonitor(PHLMONITOR pMonitor) {
     m_mMonitorRenderResources[pMonitor].blurFBDirty = true;
 }
 
-void CHyprOpenGLImpl::preRender(CMonitor* pMonitor) {
+void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
@@ -2728,7 +2728,7 @@ void CHyprOpenGLImpl::initAssets() {
                                        CColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 }
 
-void CHyprOpenGLImpl::createBGTextureForMonitor(CMonitor* pMonitor) {
+void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
 
     Debug::log(LOG, "Creating a texture for BGTex");
@@ -2860,7 +2860,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     auto TEXIT = m_mMonitorBGFBs.find(m_RenderData.pMonitor);
 
     if (TEXIT == m_mMonitorBGFBs.end()) {
-        createBGTextureForMonitor(m_RenderData.pMonitor);
+        createBGTextureForMonitor(m_RenderData.pMonitor.lock());
         TEXIT = m_mMonitorBGFBs.find(m_RenderData.pMonitor);
     }
 
@@ -2872,7 +2872,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     }
 }
 
-void CHyprOpenGLImpl::destroyMonitorResources(CMonitor* pMonitor) {
+void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITOR pMonitor) {
     g_pHyprRenderer->makeEGLCurrent();
 
     if (!g_pHyprOpenGL)
@@ -2935,7 +2935,7 @@ void CHyprOpenGLImpl::setRenderModifEnabled(bool enabled) {
     m_RenderData.renderModif.enabled = enabled;
 }
 
-uint32_t CHyprOpenGLImpl::getPreferredReadFormat(CMonitor* pMonitor) {
+uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
     return pMonitor->output->state->state().drmFormat;
 }
 

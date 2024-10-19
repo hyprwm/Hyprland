@@ -14,7 +14,7 @@
 
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto PMONITOR = std::any_cast<CMonitor*>(data)->self.lock();
+        auto PMONITOR = std::any_cast<PHLMONITOR>(data);
 
         onMonitorLayoutChange();
 
@@ -29,7 +29,7 @@ CPointerManager::CPointerManager() {
     });
 
     hooks.monitorPreRender = g_pHookSystem->hookDynamic("preMonitorCommit", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto state = stateFor(std::any_cast<CMonitor*>(data)->self.lock());
+        auto state = stateFor(std::any_cast<PHLMONITOR>(data));
         if (!state)
             return;
 
@@ -51,16 +51,7 @@ void CPointerManager::unlockSoftwareAll() {
     updateCursorBackend();
 }
 
-void CPointerManager::lockSoftwareForMonitor(CMonitor* Monitor) {
-    for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (m->ID == Monitor->ID) {
-            lockSoftwareForMonitor(m);
-            return;
-        }
-    }
-}
-
-void CPointerManager::lockSoftwareForMonitor(SP<CMonitor> mon) {
+void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
     auto state = stateFor(mon);
     state->softwareLocks++;
 
@@ -68,16 +59,7 @@ void CPointerManager::lockSoftwareForMonitor(SP<CMonitor> mon) {
         updateCursorBackend();
 }
 
-void CPointerManager::unlockSoftwareForMonitor(CMonitor* Monitor) {
-    for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (m->ID == Monitor->ID) {
-            unlockSoftwareForMonitor(m);
-            return;
-        }
-    }
-}
-
-void CPointerManager::unlockSoftwareForMonitor(SP<CMonitor> mon) {
+void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
     auto state = stateFor(mon);
     state->softwareLocks--;
     if (state->softwareLocks < 0)
@@ -387,7 +369,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     state->cursorFrontBuffer = buf;
 
     if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
-        g_pCompositor->scheduleFrameForMonitor(state->monitor.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+        g_pCompositor->scheduleFrameForMonitor(state->monitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
     return true;
 }
@@ -446,7 +428,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     CRegion damage = {0, 0, INT16_MAX, INT16_MAX};
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor.get();
+    g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
     if (!RBO) {
@@ -503,7 +485,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.get(), damage, RBO);
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), damage, RBO);
     g_pHyprOpenGL->clear(CColor{0.F, 0.F, 0.F, 0.F});
 
     CBox xbox = {{}, Vector2D{currentCursorImage.size / currentCursorImage.scale * state->monitor->scale}.round()};
@@ -514,7 +496,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     g_pHyprOpenGL->end();
     glFlush();
-    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+    g_pHyprOpenGL->m_RenderData.pMonitor.reset();
 
     g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 

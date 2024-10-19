@@ -11,14 +11,14 @@ class CMonitor;
 
 class COutputPower {
   public:
-    COutputPower(SP<CZwlrOutputPowerV1> resource_, CMonitor* pMonitor);
+    COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor);
 
     bool good();
 
   private:
     SP<CZwlrOutputPowerV1> resource;
 
-    CMonitor*              pMonitor = nullptr;
+    PHLMONITORREF          pMonitor;
 
     struct {
         CHyprSignalListener monitorDestroy;

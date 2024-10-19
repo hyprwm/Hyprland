@@ -13,12 +13,12 @@ class CWLSurfaceResource;
 
 class CSessionLockSurface {
   public:
-    CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, CMonitor* pMonitor_, WP<CSessionLock> owner_);
+    CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_);
     ~CSessionLockSurface();
 
     bool                   good();
     bool                   inert();
-    CMonitor*              monitor();
+    PHLMONITOR             monitor();
     SP<CWLSurfaceResource> surface();
 
     struct {
@@ -31,7 +31,7 @@ class CSessionLockSurface {
     SP<CExtSessionLockSurfaceV1> resource;
     WP<CSessionLock>             sessionLock;
     WP<CWLSurfaceResource>       pSurface;
-    CMonitor*                    pMonitor = nullptr;
+    PHLMONITORREF                pMonitor;
 
     bool                         ackdConfigure = false;
     bool                         committed     = false;

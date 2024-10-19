@@ -18,7 +18,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->boundOutput.empty() ? e.device->boundOutput : "");
 
-    PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor.get();
+    PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_pLastMonitor.lock();
 
     g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 

@@ -362,7 +362,7 @@ void CToplevelExportProtocol::destroyResource(CToplevelExportFrame* frame) {
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
-void CToplevelExportProtocol::onOutputCommit(CMonitor* pMonitor) {
+void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_vFramesAwaitingWrite.empty())
         return; // nothing to share
 

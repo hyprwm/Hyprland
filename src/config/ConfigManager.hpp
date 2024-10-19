@@ -173,7 +173,7 @@ class CConfigManager {
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
     std::string                                                     getDefaultWorkspaceFor(const std::string&);
 
-    CMonitor*                                                       getBoundMonitorForWS(const std::string&);
+    PHLMONITOR                                                      getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
 
@@ -198,7 +198,7 @@ class CConfigManager {
     void                      appendMonitorRule(const SMonitorRule&);
     bool                      replaceMonitorRule(const SMonitorRule&);
     void                      ensureMonitorStatus();
-    void                      ensureVRR(CMonitor* pMonitor = nullptr);
+    void                      ensureVRR(PHLMONITOR pMonitor = nullptr);
 
     std::string               parseKeyword(const std::string&, const std::string&);
 

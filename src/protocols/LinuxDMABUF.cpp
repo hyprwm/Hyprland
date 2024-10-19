@@ -452,7 +452,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             }
 
             static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<CMonitor*>(param);
+                auto pMonitor = std::any_cast<PHLMONITOR>(param);
                 auto mon      = pMonitor->self.lock();
                 auto tranche  = SDMABUFTranche{
                      .device  = mainDevice,
@@ -464,7 +464,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             });
 
             static auto monitorRemoved = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<CMonitor*>(param);
+                auto pMonitor = std::any_cast<PHLMONITOR>(param);
                 auto mon      = pMonitor->self.lock();
                 std::erase_if(formatTable->monitorTranches, [mon](std::pair<SP<CMonitor>, SDMABUFTranche> pair) { return pair.first == mon; });
                 resetFormatTable();

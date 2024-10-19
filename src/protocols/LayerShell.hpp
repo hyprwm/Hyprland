@@ -26,7 +26,7 @@ class CLayerShellRole : public ISurfaceRole {
 };
 class CLayerShellResource {
   public:
-    CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer);
+    CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, PHLMONITOR pMonitor, zwlrLayerShellV1Layer layer);
     ~CLayerShellResource();
 
     bool good();

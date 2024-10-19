@@ -14,8 +14,8 @@ void CLayerShellResource::SState::reset() {
     margin        = {0, 0, 0, 0};
 }
 
-CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, CMonitor* pMonitor, zwlrLayerShellV1Layer layer) :
-    layerNamespace(namespace_), surface(surf_), resource(resource_) {
+CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<CWLSurfaceResource> surf_, std::string namespace_, PHLMONITOR pMonitor,
+                                         zwlrLayerShellV1Layer layer) : layerNamespace(namespace_), surface(surf_), resource(resource_) {
     if (!good())
         return;
 
@@ -218,7 +218,7 @@ void CLayerShellProtocol::destroyResource(CLayerShellResource* surf) {
 
 void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* output, zwlrLayerShellV1Layer layer, std::string namespace_) {
     const auto CLIENT   = pMgr->client();
-    const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.get() : nullptr;
+    const auto PMONITOR = output ? CWLOutputResource::fromResource(output)->monitor.lock() : nullptr;
     auto       SURF     = CWLSurfaceResource::fromResource(surface);
 
     if (!SURF) {

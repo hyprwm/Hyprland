@@ -22,7 +22,7 @@ class CForeignToplevelHandleWlr {
     bool                             closed        = false;
     MONITORID                        lastMonitorID = MONITOR_INVALID;
 
-    void                             sendMonitor(CMonitor* pMonitor);
+    void                             sendMonitor(PHLMONITOR pMonitor);
     void                             sendState();
 
     friend class CForeignToplevelWlrManager;

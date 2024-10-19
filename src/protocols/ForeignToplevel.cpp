@@ -31,8 +31,8 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
     });
 
     for (auto const& w : g_pCompositor->m_vWindows) {
-        if (!w->m_bIsMapped || w->m_bFadingOut)
-            continue;
+        if (!PROTO::foreignToplevel->windowValidForForeign(w))
+            return;
 
         onMap(w);
     }
@@ -112,20 +112,35 @@ bool CForeignToplevelList::good() {
 
 CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        if (!windowValidForForeign(window))
+            return;
+
         for (auto const& m : m_vManagers) {
-            m->onMap(std::any_cast<PHLWINDOW>(data));
+            m->onMap(window);
         }
     });
 
     static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        if (!windowValidForForeign(window))
+            return;
+
         for (auto const& m : m_vManagers) {
-            m->onUnmap(std::any_cast<PHLWINDOW>(data));
+            m->onUnmap(window);
         }
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("windowTitle", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        if (!windowValidForForeign(window))
+            return;
+
         for (auto const& m : m_vManagers) {
-            m->onTitle(std::any_cast<PHLWINDOW>(data));
+            m->onTitle(window);
         }
     });
 }
@@ -147,4 +162,8 @@ void CForeignToplevelProtocol::onManagerResourceDestroy(CForeignToplevelList* mg
 
 void CForeignToplevelProtocol::destroyHandle(CForeignToplevelHandle* handle) {
     std::erase_if(m_vHandles, [&](const auto& other) { return other.get() == handle; });
+}
+
+bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
+    return validMapped(pWindow) && !pWindow->isX11OverrideRedirect();
 }

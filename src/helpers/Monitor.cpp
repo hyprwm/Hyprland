@@ -845,7 +845,7 @@ bool CMonitor::attemptDirectScanout() {
         return false;
 
     // we can't scanout shm buffers.
-    if (!PSURFACE->current.buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
+    if (!PSURFACE->current.buffer || !PSURFACE->current.buffer->buffer || !PSURFACE->current.texture || !PSURFACE->current.texture->m_pEglImage /* dmabuf */)
         return false;
 
     Debug::log(TRACE, "attemptDirectScanout: surface {:x} passed, will attempt", (uintptr_t)PSURFACE.get());

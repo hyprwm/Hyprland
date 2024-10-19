@@ -45,8 +45,6 @@ class CPointerManager {
 
     void lockSoftwareForMonitor(SP<CMonitor> pMonitor);
     void unlockSoftwareForMonitor(SP<CMonitor> pMonitor);
-    void lockSoftwareForMonitor(CMonitor* pMonitor);
-    void unlockSoftwareForMonitor(CMonitor* pMonitor);
     void lockSoftwareAll();
     void unlockSoftwareAll();
     bool softwareLockedFor(SP<CMonitor> pMonitor);

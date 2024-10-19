@@ -309,7 +309,7 @@ void CCursorManager::updateTheme() {
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         m->forceFullFrames = 5;
-        g_pCompositor->scheduleFrameForMonitor(m.get(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+        g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
 }
 

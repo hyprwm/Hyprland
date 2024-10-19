@@ -46,7 +46,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(CMonitor* pMonitor, float a) {
+void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float a) {
     if (doesntWantBorders())
         return;
 
@@ -119,7 +119,7 @@ void CHyprBorderDecoration::damageEntire() {
     borderRegion.subtract(surfaceBoxShrunkRounding);
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow.lock(), m.get())) {
+        if (!g_pHyprRenderer->shouldRenderWindow(m_pWindow.lock(), m)) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             borderRegion.subtract(monitorRegion);
         }

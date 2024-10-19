@@ -41,13 +41,13 @@ class CHyprNotificationOverlay {
     CHyprNotificationOverlay();
     ~CHyprNotificationOverlay();
 
-    void draw(CMonitor* pMonitor);
+    void draw(PHLMONITOR pMonitor);
     void addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon = ICON_NONE, const float fontSize = 13.f);
     void dismissNotifications(const int amount);
     bool hasAny();
 
   private:
-    CBox                                       drawNotifications(CMonitor* pMonitor);
+    CBox                                       drawNotifications(PHLMONITOR pMonitor);
     CBox                                       m_bLastDamage;
 
     std::deque<std::unique_ptr<SNotification>> m_dNotifications;
@@ -55,8 +55,8 @@ class CHyprNotificationOverlay {
     cairo_surface_t*                           m_pCairoSurface = nullptr;
     cairo_t*                                   m_pCairo        = nullptr;
 
-    CMonitor*                                  m_pLastMonitor = nullptr;
-    Vector2D                                   m_vecLastSize  = Vector2D(-1, -1);
+    PHLMONITORREF                              m_pLastMonitor;
+    Vector2D                                   m_vecLastSize = Vector2D(-1, -1);
 
     SP<CTexture>                               m_pTexture;
 };

@@ -54,7 +54,7 @@ static std::string formatToString(uint32_t drmFormat) {
     return "Invalid";
 }
 
-static std::string availableModesForOutput(CMonitor* pMonitor, eHyprCtlOutputFormat format) {
+static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
     for (auto const& m : pMonitor->output->modes) {
@@ -117,7 +117,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
             (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->solitaryClient.get(),
             (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->output->state->state().drmFormat),
-            availableModesForOutput(m.get(), format));
+            availableModesForOutput(m, format));
 
     } else {
         result += std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
@@ -128,7 +128,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
                               m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
                               (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
                               (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, (uint64_t)m->solitaryClient.get(),
-                              m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m.get(), format));
+                              m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat), availableModesForOutput(m, format));
     }
 
     return result;
@@ -1030,7 +1030,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         for (auto const& m : g_pCompositor->m_vMonitors) {
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
     }
@@ -1779,7 +1779,7 @@ std::string CHyprCtl::getReply(std::string request) {
         }
 
         for (auto const& m : g_pCompositor->m_vMonitors) {
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
         }
     }

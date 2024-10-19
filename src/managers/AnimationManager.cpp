@@ -85,7 +85,7 @@ void CAnimationManager::tick() {
         PHLWINDOW    PWINDOW            = av->m_pWindow.lock();
         PHLWORKSPACE PWORKSPACE         = av->m_pWorkspace.lock();
         PHLLS        PLAYER             = av->m_pLayer.lock();
-        CMonitor*    PMONITOR           = nullptr;
+        PHLMONITOR   PMONITOR           = nullptr;
         bool         animationsDisabled = animGlobalDisabled;
 
         if (PWINDOW) {

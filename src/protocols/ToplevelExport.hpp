@@ -80,7 +80,7 @@ class CToplevelExportProtocol : IWaylandProtocol {
     void destroyResource(CToplevelExportFrame* frame);
 
     void onWindowUnmap(PHLWINDOW pWindow);
-    void onOutputCommit(CMonitor* pMonitor);
+    void onOutputCommit(PHLMONITOR pMonitor);
 
   private:
     std::vector<SP<CToplevelExportClient>> m_vClients;

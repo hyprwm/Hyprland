@@ -94,7 +94,7 @@ struct SMonitorRenderData {
 };
 
 struct SCurrentRenderData {
-    CMonitor*           pMonitor   = nullptr;
+    PHLMONITORREF       pMonitor;
     PHLWORKSPACE        pWorkspace = nullptr;
     Mat3x3              projection;
     Mat3x3              savedProjection;
@@ -149,8 +149,8 @@ class CHyprOpenGLImpl {
     CHyprOpenGLImpl();
     ~CHyprOpenGLImpl();
 
-    void     begin(CMonitor*, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void     beginSimple(CMonitor*, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
+    void     begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void     beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
     void     end();
 
     void     renderRect(CBox*, const CColor&, int round = 0);
@@ -186,13 +186,13 @@ class CHyprOpenGLImpl {
     void     scissor(const pixman_box32*, bool transform = true);
     void     scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void     destroyMonitorResources(CMonitor*);
+    void     destroyMonitorResources(PHLMONITOR);
 
-    void     markBlurDirtyForMonitor(CMonitor*);
+    void     markBlurDirtyForMonitor(PHLMONITOR);
 
     void     preWindowPass();
     bool     preBlurQueued();
-    void     preRender(CMonitor*);
+    void     preRender(PHLMONITOR);
 
     void     saveBufferForMirror(CBox*);
     void     renderMirrored();
@@ -205,31 +205,31 @@ class CHyprOpenGLImpl {
 
     void     setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t getPreferredReadFormat(CMonitor* pMonitor);
-    std::vector<SDRMFormat>                           getDRMFormats();
-    EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                                      createEGLSync(int fenceFD);
-    bool                                              waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
+    uint32_t getPreferredReadFormat(PHLMONITOR pMonitor);
+    std::vector<SDRMFormat>                               getDRMFormats();
+    EGLImageKHR                                           createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    SP<CEGLSync>                                          createEGLSync(int fenceFD);
+    bool                                                  waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
-    SCurrentRenderData                                m_RenderData;
+    SCurrentRenderData                                    m_RenderData;
 
-    GLint                                             m_iCurrentOutputFb = 0;
+    GLint                                                 m_iCurrentOutputFb = 0;
 
-    int                                               m_iGBMFD      = -1;
-    gbm_device*                                       m_pGbmDevice  = nullptr;
-    EGLContext                                        m_pEglContext = nullptr;
-    EGLDisplay                                        m_pEglDisplay = nullptr;
-    EGLDeviceEXT                                      m_pEglDevice  = nullptr;
+    int                                                   m_iGBMFD      = -1;
+    gbm_device*                                           m_pGbmDevice  = nullptr;
+    EGLContext                                            m_pEglContext = nullptr;
+    EGLDisplay                                            m_pEglDisplay = nullptr;
+    EGLDeviceEXT                                          m_pEglDevice  = nullptr;
 
-    bool                                              m_bReloadScreenShader = true; // at launch it can be set
+    bool                                                  m_bReloadScreenShader = true; // at launch it can be set
 
-    PHLWINDOWREF                                      m_pCurrentWindow; // hack to get the current rendered window
-    PHLLS                                             m_pCurrentLayer;  // hack to get the current rendered layer
+    PHLWINDOWREF                                          m_pCurrentWindow; // hack to get the current rendered window
+    PHLLS                                                 m_pCurrentLayer;  // hack to get the current rendered layer
 
-    std::map<PHLWINDOWREF, CFramebuffer>              m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>                  m_mLayerFramebuffers;
-    std::unordered_map<CMonitor*, SMonitorRenderData> m_mMonitorRenderResources;
-    std::unordered_map<CMonitor*, CFramebuffer>       m_mMonitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer>                  m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>                      m_mLayerFramebuffers;
+    std::unordered_map<PHLMONITORREF, SMonitorRenderData> m_mMonitorRenderResources;
+    std::unordered_map<PHLMONITORREF, CFramebuffer>       m_mMonitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -282,7 +282,7 @@ class CHyprOpenGLImpl {
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
     GLuint                  compileShader(const GLuint&, std::string, bool dynamic = false);
-    void                    createBGTextureForMonitor(CMonitor*);
+    void                    createBGTextureForMonitor(PHLMONITOR);
     void                    initShaders();
     void                    initDRMFormats();
     void                    initEGL(bool gbm);
@@ -304,7 +304,7 @@ class CHyprOpenGLImpl {
 
     void          preBlurForCurrentMonitor();
 
-    bool          passRequiresIntrospection(CMonitor* pMonitor);
+    bool          passRequiresIntrospection(PHLMONITOR pMonitor);
 
     friend class CHyprRenderer;
 };

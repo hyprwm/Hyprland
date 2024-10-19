@@ -3057,5 +3057,5 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     }
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR.get());
-    Events::listener_monitorFrame(PNEWMONITOR.get(), nullptr);
+    PNEWMONITOR->onMonitorFrame();
 }

@@ -186,6 +186,7 @@ class CMonitor {
     void        setCTM(const Mat3x3& ctm);
 
     void        debugLastPresentation(const std::string& message);
+    void        onMonitorFrame();
 
     bool        m_bEnabled             = false;
     bool        m_bRenderingInitPassed = false;

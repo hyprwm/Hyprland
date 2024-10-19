@@ -11,6 +11,8 @@
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/core/Output.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../protocols/ToplevelExport.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -44,8 +46,13 @@ void CMonitor::onConnect(bool noRule) {
         outTimeline = CSyncTimeline::create(output->getBackend()->drmFD());
     }
 
-    listeners.frame  = output->events.frame.registerListener([this](std::any d) { Events::listener_monitorFrame(this, nullptr); });
-    listeners.commit = output->events.commit.registerListener([this](std::any d) { Events::listener_monitorCommit(this, nullptr); });
+    listeners.frame  = output->events.frame.registerListener([this](std::any d) { onMonitorFrame(); });
+    listeners.commit = output->events.commit.registerListener([this](std::any d) {
+        if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
+            PROTO::screencopy->onOutputCommit(this);
+            PROTO::toplevelExport->onOutputCommit(this);
+        }
+    });
     listeners.needsFrame =
         output->events.needsFrame.registerListener([this](std::any d) { g_pCompositor->scheduleFrameForMonitor(this, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
@@ -937,6 +944,69 @@ bool CMonitor::attemptDirectScanout() {
 void CMonitor::debugLastPresentation(const std::string& message) {
     Debug::log(TRACE, "{} (last presentation {} - {} fps)", message, lastPresentationTimer.getMillis(),
                lastPresentationTimer.getMillis() > 0 ? 1000.0f / lastPresentationTimer.getMillis() : 0.0f);
+}
+
+void CMonitor::onMonitorFrame() {
+    if ((g_pCompositor->m_pAqBackend->hasSession() && !g_pCompositor->m_pAqBackend->session->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
+        Debug::log(WARN, "Attempted to render frame on inactive session!");
+
+        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
+                return m->output != g_pCompositor->m_pUnsafeOutput->output;
+            })) {
+            // restore from unsafe state
+            g_pCompositor->leaveUnsafeState();
+        }
+
+        return; // cannot draw on session inactive (different tty)
+    }
+
+    if (!m_bEnabled)
+        return;
+
+    g_pHyprRenderer->recheckSolitaryForMonitor(this);
+
+    tearingState.busy = false;
+
+    if (tearingState.activelyTearing && solitaryClient.lock() /* can be invalidated by a recheck */) {
+
+        if (!tearingState.frameScheduledWhileBusy)
+            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
+
+        tearingState.nextRenderTorn          = true;
+        tearingState.frameScheduledWhileBusy = false;
+    }
+
+    static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
+    static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
+
+    lastPresentationTimer.reset();
+
+    if (*PENABLERAT && !tearingState.nextRenderTorn) {
+        if (!RATScheduled) {
+            // render
+            g_pHyprRenderer->renderMonitor(this);
+        }
+
+        RATScheduled = false;
+
+        const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(this);
+
+        if (max + *PRATSAFE > 1000.0 / refreshRate)
+            return;
+
+        const auto MSLEFT = 1000.0 / refreshRate - lastPresentationTimer.getMillis();
+
+        RATScheduled = true;
+
+        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
+        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
+
+        if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
+            g_pHyprRenderer->renderMonitor(this);
+        else
+            wl_event_source_timer_update(renderTimer, TIMETOSLEEP);
+    } else
+        g_pHyprRenderer->renderMonitor(this);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {

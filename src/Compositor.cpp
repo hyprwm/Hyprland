@@ -2749,11 +2749,11 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     if (FULLSCREEN)
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
-    PHLWINDOW  pFirstWindowOnWorkspace = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
-    int        windowsOnWorkspace      = g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID, std::nullopt, std::optional<bool>(true));
-    const auto PWINDOWMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-    const auto POSTOMON                = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
-    const auto PWORKSPACEMONITOR       = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    const PHLWINDOW pFirstWindowOnWorkspace   = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+    const int       visibleWindowsOnWorkspace = g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID, std::nullopt, true);
+    const auto      PWINDOWMONITOR            = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto      POSTOMON                  = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
+    const auto      PWORKSPACEMONITOR         = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
 
     if (!pWindow->m_bIsFloating)
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
@@ -2762,7 +2762,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
 
     static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && windowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
         pFirstWindowOnWorkspace->m_sGroupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
 
         pWindow->m_bIsFloating = pFirstWindowOnWorkspace->m_bIsFloating; // match the floating state. Needed to group tiled into floated and vice versa.

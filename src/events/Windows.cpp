@@ -687,6 +687,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(PWINDOW);
 
+    g_pHyprRenderer->damageWindow(PWINDOW);
+
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     PWINDOW->m_bIsMapped = false;
 
@@ -725,8 +727,6 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     PWINDOW->m_bFadingOut = true;
 
     g_pCompositor->addToFadingOutSafe(PWINDOW);
-
-    g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID));
 
     if (!PWINDOW->m_bX11DoesntWantBorders)                                                    // don't animate out if they weren't animated in.
         PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it

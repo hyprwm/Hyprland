@@ -670,9 +670,11 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         for (auto const& k : g_pInputManager->m_vKeyboards) {
             const auto KM = k->getActiveLayout();
-            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tmain: {}\n",
+            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
+                                  "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
                                   (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant,
-                                  k->currentRules.options, KM, (k->active ? "yes" : "no"));
+                                  k->currentRules.options, KM, ((k->modifiersState.locked & (1 << 1)) == 2 ? "yes" : "no"),
+                                  ((k->modifiersState.locked & (1 << 4)) == 16 ? "yes" : "no"), (k->active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";

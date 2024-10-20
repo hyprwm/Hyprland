@@ -586,7 +586,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     }},)#",
                 (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
                 escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
-                (k->modifiersState.locked & (1 << 1) : "true" ? "false"), (k->modifiersState.locked & (1 << 4) : "true" ? "false"), (k->active ? "true" : "false"));
+                ((k->modifiersState.locked & (1 << 1)) == 2 ? "true" : "false"), ((k->modifiersState.locked & (1 << 4)) == 16 ? "true" : "false"), (k->active ? "true" : "false"));
         }
 
         trimTrailingComma(result);

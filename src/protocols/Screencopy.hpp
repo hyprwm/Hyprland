@@ -60,7 +60,7 @@ class CScreencopyFrame {
   private:
     SP<CZwlrScreencopyFrameV1> resource;
 
-    CMonitor*                  pMonitor        = nullptr;
+    PHLMONITORREF              pMonitor;
     bool                       overlayCursor   = false;
     bool                       withDamage      = false;
     bool                       lockedSWCursors = false;
@@ -88,7 +88,7 @@ class CScreencopyProtocol : public IWaylandProtocol {
     void         destroyResource(CScreencopyClient* resource);
     void         destroyResource(CScreencopyFrame* resource);
 
-    void         onOutputCommit(CMonitor* pMonitor);
+    void         onOutputCommit(PHLMONITOR pMonitor);
 
   private:
     std::vector<SP<CScreencopyFrame>>  m_vFrames;
@@ -98,7 +98,7 @@ class CScreencopyProtocol : public IWaylandProtocol {
     SP<CEventLoopTimer>                m_pSoftwareCursorTimer;
     bool                               m_bTimerArmed = false;
 
-    void                               shareAllFrames(CMonitor* pMonitor);
+    void                               shareAllFrames(PHLMONITOR pMonitor);
     void                               shareFrame(CScreencopyFrame* frame);
     void                               sendFrameDamage(CScreencopyFrame* frame);
     bool                               copyFrameDmabuf(CScreencopyFrame* frame);

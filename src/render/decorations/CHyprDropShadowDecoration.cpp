@@ -67,7 +67,7 @@ void CHyprDropShadowDecoration::damageEntire() {
     }
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m.get())) {
+        if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m)) {
             const CRegion monitorRegion({m->vecPosition, m->vecSize});
             shadowRegion.subtract(monitorRegion);
         }
@@ -86,7 +86,7 @@ void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
-void CHyprDropShadowDecoration::draw(CMonitor* pMonitor, float a) {
+void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float a) {
 
     const auto PWINDOW = m_pWindow.lock();
 

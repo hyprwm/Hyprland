@@ -18,9 +18,9 @@ class CWLSurfaceResource;
 AQUAMARINE_FORWARD(ISwitch);
 
 struct SRenderData {
-    CMonitor* pMonitor;
-    timespec* when;
-    double    x, y;
+    PHLMONITORREF pMonitor;
+    timespec*     when;
+    double        x, y;
 
     // for iters
     void*                  data    = nullptr;
@@ -59,16 +59,16 @@ struct SRenderData {
 };
 
 struct SSwipeGesture {
-    PHLWORKSPACE pWorkspaceBegin = nullptr;
+    PHLWORKSPACE  pWorkspaceBegin = nullptr;
 
-    double       delta = 0;
+    double        delta = 0;
 
-    int          initialDirection = 0;
-    float        avgSpeed         = 0;
-    int          speedPoints      = 0;
-    int          touch_id         = 0;
+    int           initialDirection = 0;
+    float         avgSpeed         = 0;
+    int           speedPoints      = 0;
+    int           touch_id         = 0;
 
-    CMonitor*    pMonitor = nullptr;
+    PHLMONITORREF pMonitor;
 };
 
 struct SSwitchDevice {

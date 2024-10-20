@@ -1188,7 +1188,7 @@ void CWindow::setSuspended(bool suspend) {
     m_bSuspended = suspend;
 }
 
-bool CWindow::visibleOnMonitor(CMonitor* pMonitor) {
+bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
     CBox wbox = {m_vRealPosition.value(), m_vRealSize.value()};
 
     return !wbox.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty();

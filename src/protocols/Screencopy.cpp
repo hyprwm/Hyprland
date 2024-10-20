@@ -19,7 +19,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
 
     overlayCursor = !!overlay_cursor;
-    pMonitor      = CWLOutputResource::fromResource(output)->monitor.get();
+    pMonitor      = CWLOutputResource::fromResource(output)->monitor;
 
     if (!pMonitor) {
         LOGM(ERR, "Client requested sharing of a monitor that doesnt exist");
@@ -38,7 +38,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    shmFormat = g_pHyprOpenGL->getPreferredReadFormat(pMonitor);
+    shmFormat = g_pHyprOpenGL->getPreferredReadFormat(pMonitor.lock());
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture output");
         resource->sendFailed();
@@ -87,7 +87,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
         return;
     }
 
-    if (!g_pCompositor->monitorExists(pMonitor)) {
+    if (!g_pCompositor->monitorExists(pMonitor.lock())) {
         LOGM(ERR, "Client requested sharing of a monitor that is gone");
         resource->sendFailed();
         PROTO::screencopy->destroyResource(this);
@@ -165,7 +165,7 @@ void CScreencopyFrame::copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer_
     }
 
     if (!withDamage)
-        g_pHyprRenderer->damageMonitor(pMonitor);
+        g_pHyprRenderer->damageMonitor(pMonitor.lock());
 }
 
 void CScreencopyFrame::share() {
@@ -205,7 +205,7 @@ bool CScreencopyFrame::copyDmabuf() {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock(), nullptr, true)) {
+    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock(), nullptr, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
@@ -240,7 +240,7 @@ bool CScreencopyFrame::copyShm() {
     CFramebuffer fb;
     fb.alloc(box.w, box.h, pMonitor->output->state->state().drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(pMonitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
+    if (!g_pHyprRenderer->beginRender(pMonitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
         LOGM(ERR, "Can't copy: failed to begin rendering");
         return false;
     }
@@ -288,7 +288,7 @@ bool CScreencopyFrame::copyShm() {
         }
     }
 
-    g_pHyprOpenGL->m_RenderData.pMonitor = nullptr;
+    g_pHyprOpenGL->m_RenderData.pMonitor.reset();
 
     LOGM(TRACE, "Copied frame via shm");
 
@@ -402,7 +402,7 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
     std::erase_if(m_vFramesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }
 
-void CScreencopyProtocol::onOutputCommit(CMonitor* pMonitor) {
+void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_vFramesAwaitingWrite.empty()) {
         g_pHyprRenderer->m_bDirectScanoutBlocked = false;
         return; // nothing to share

@@ -29,12 +29,12 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : resource(re
 
     // send all heads at start
     for (auto const& m : g_pCompositor->m_vRealMonitors) {
-        if (m.get() == g_pCompositor->m_pUnsafeOutput)
+        if (m == g_pCompositor->m_pUnsafeOutput)
             continue;
 
         LOGM(LOG, " | sending output head for {}", m->szName);
 
-        makeAndSendNewHead(m.get());
+        makeAndSendNewHead(m);
     }
 
     sendDone();
@@ -44,7 +44,7 @@ bool COutputManager::good() {
     return resource->resource();
 }
 
-void COutputManager::makeAndSendNewHead(CMonitor* pMonitor) {
+void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
     if (stopped)
         return;
 
@@ -63,7 +63,7 @@ void COutputManager::makeAndSendNewHead(CMonitor* pMonitor) {
     RESOURCE->sendAllData();
 }
 
-void COutputManager::ensureMonitorSent(CMonitor* pMonitor) {
+void COutputManager::ensureMonitorSent(PHLMONITOR pMonitor) {
     if (pMonitor == g_pCompositor->m_pUnsafeOutput)
         return;
 
@@ -86,7 +86,7 @@ void COutputManager::sendDone() {
     resource->sendDone(wl_display_next_serial(g_pCompositor->m_sWLDisplay));
 }
 
-COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
+COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     if (!good())
         return;
 
@@ -105,7 +105,7 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, CMonitor* pMonitor_) :
             m->resource->sendFinished();
         }
 
-        pMonitor = nullptr;
+        pMonitor.reset();
         for (auto const& m : PROTO::outputManagement->m_vManagers) {
             m->sendDone();
         }
@@ -221,8 +221,8 @@ void COutputHead::makeAndSendNewMode(SP<Aquamarine::SOutputMode> mode) {
     RESOURCE->sendAllData();
 }
 
-CMonitor* COutputHead::monitor() {
-    return pMonitor;
+PHLMONITOR COutputHead::monitor() {
+    return pMonitor.lock();
 }
 
 COutputMode::COutputMode(SP<CZwlrOutputModeV1> resource_, SP<Aquamarine::SOutputMode> mode_) : resource(resource_), mode(mode_) {
@@ -424,13 +424,11 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
     return true;
 }
 
-COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, CMonitor* pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
+COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHeadV1> resource_, PHLMONITOR pMonitor_) : resource(resource_), pMonitor(pMonitor_) {
     if (!good())
         return;
 
     resource->setOnDestroy([this](CZwlrOutputConfigurationHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
-
-    listeners.monitorDestroy = pMonitor->events.destroy.registerListener([this](std::any d) { pMonitor = nullptr; });
 
     resource->setSetMode([this](CZwlrOutputConfigurationHeadV1* r, wl_resource* outputMode) {
         const auto MODE = PROTO::outputManagement->modeFromResource(outputMode);
@@ -612,7 +610,7 @@ void COutputManagementProtocol::destroyResource(COutputConfigurationHead* resour
 void COutputManagementProtocol::updateAllOutputs() {
     for (auto const& m : g_pCompositor->m_vRealMonitors) {
         for (auto const& mgr : m_vManagers) {
-            mgr->ensureMonitorSent(m.get());
+            mgr->ensureMonitorSent(m);
         }
     }
 }

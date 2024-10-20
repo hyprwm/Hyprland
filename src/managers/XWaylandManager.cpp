@@ -247,7 +247,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    CMonitor*   pMonitor     = nullptr;
+    PHLMONITOR  pMonitor     = nullptr;
     double      bestDistance = __FLT_MAX__;
     for (const auto& m : g_pCompositor->m_vMonitors) {
         const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
@@ -257,7 +257,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
         if (distance < bestDistance) {
             bestDistance = distance;
-            pMonitor     = m.get();
+            pMonitor     = m;
         }
     }
 

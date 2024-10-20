@@ -54,7 +54,7 @@ class CMonitorState {
   private:
     void      ensureBufferPresent();
 
-    CMonitor* m_pOwner;
+    CMonitor* m_pOwner = nullptr;
 };
 
 class CMonitor {
@@ -128,8 +128,8 @@ class CMonitor {
     WP<CMonitor>      self;
 
     // mirroring
-    CMonitor*              pMirrorOf = nullptr;
-    std::vector<CMonitor*> mirrors;
+    PHLMONITORREF              pMirrorOf;
+    std::vector<PHLMONITORREF> mirrors;
 
     // ctm
     Mat3x3 ctm        = Mat3x3::identity();
@@ -186,6 +186,7 @@ class CMonitor {
     void        setCTM(const Mat3x3& ctm);
 
     void        debugLastPresentation(const std::string& message);
+    void        onMonitorFrame();
 
     bool        m_bEnabled             = false;
     bool        m_bRenderingInitPassed = false;

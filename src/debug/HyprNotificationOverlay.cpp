@@ -45,7 +45,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CC
     PNOTIF->fontSize = fontSize;
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        g_pCompositor->scheduleFrameForMonitor(m.get());
+        g_pCompositor->scheduleFrameForMonitor(m);
     }
 }
 
@@ -61,7 +61,7 @@ void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     }
 }
 
-CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
+CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     static constexpr auto ANIM_DURATION_MS   = 600.0;
     static constexpr auto ANIM_LAG_MS        = 100.0;
     static constexpr auto NOTIF_LEFTBAR_SIZE = 5.0;
@@ -187,7 +187,7 @@ CBox CHyprNotificationOverlay::drawNotifications(CMonitor* pMonitor) {
     return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
 }
 
-void CHyprNotificationOverlay::draw(CMonitor* pMonitor) {
+void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
     const auto MONSIZE = pMonitor->vecTransformedSize;
 

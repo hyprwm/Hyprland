@@ -22,7 +22,7 @@ class CForeignToplevelHandleWlr {
     bool                             closed        = false;
     MONITORID                        lastMonitorID = MONITOR_INVALID;
 
-    void                             sendMonitor(CMonitor* pMonitor);
+    void                             sendMonitor(PHLMONITOR pMonitor);
     void                             sendState();
 
     friend class CForeignToplevelWlrManager;
@@ -63,6 +63,7 @@ class CForeignToplevelWlrProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(CForeignToplevelWlrManager* mgr);
     void destroyHandle(CForeignToplevelHandleWlr* handle);
+    bool windowValidForForeign(PHLWINDOW pWindow);
 
     //
     std::vector<UP<CForeignToplevelWlrManager>> m_vManagers;

@@ -131,7 +131,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     // renders and damages the dnd icon, if present
-    void renderDND(CMonitor* pMonitor, timespec* when);
+    void renderDND(PHLMONITOR pMonitor, timespec* when);
     // for inputmgr to force refocus
     // TODO: move handling to seatmgr
     bool dndActive();

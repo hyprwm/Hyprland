@@ -3,6 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/SessionLock.hpp"
+#include "../managers/SeatManager.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -72,7 +73,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         g_pInputManager->refocus();
 
         for (auto const& m : g_pCompositor->m_vMonitors)
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
     });
 
     m_pSessionLock->listeners.destroy = pLock->events.destroyed.registerListener([this](std::any data) {
@@ -80,10 +81,11 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         g_pCompositor->focusSurface(nullptr);
 
         for (auto const& m : g_pCompositor->m_vMonitors)
-            g_pHyprRenderer->damageMonitor(m.get());
+            g_pHyprRenderer->damageMonitor(m);
     });
 
     g_pCompositor->focusSurface(nullptr);
+    g_pSeatManager->setGrab(nullptr);
 }
 
 bool CSessionLockManager::isSessionLocked() {

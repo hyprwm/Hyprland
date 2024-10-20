@@ -49,10 +49,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
-    auto        PMONITOR = g_pCompositor->m_pLastMonitor.get();
+    auto        PMONITOR = g_pCompositor->m_pLastMonitor.lock();
     if (!g_pCompositor->m_pLastMonitor) {
         g_pCompositor->setActiveMonitor(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = g_pCompositor->m_pLastMonitor.get();
+        PMONITOR = g_pCompositor->m_pLastMonitor.lock();
     }
     auto PWORKSPACE           = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
     PWINDOW->m_iMonitorID     = PMONITOR->ID;
@@ -314,7 +314,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 else if (PMONITOR->activeWorkspaceID() != REQUESTEDWORKSPACEID)
                     g_pKeybindManager->m_mDispatchers["workspace"](requestedWorkspaceName);
 
-                PMONITOR = g_pCompositor->m_pLastMonitor.get();
+                PMONITOR = g_pCompositor->m_pLastMonitor.lock();
             }
         } else
             workspaceSilent = false;
@@ -330,24 +330,38 @@ void Events::listener_mapWindow(void* owner, void* data) {
         for (auto const& r : PWINDOW->m_vMatchedRules) {
             if (r.szRule.starts_with("size")) {
                 try {
-                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+                    auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
+                        auto stringToPercentage = [](const std::string& VALUE, const float REL) {
+                            if (VALUE.ends_with('%'))
+                                return (std::stof(VALUE.substr(0, VALUE.length() - 1)) * REL) / 100;
+                            else
+                                return std::stof(VALUE);
+                        };
 
-                    const auto SIZEX = SIZEXSTR == "max" ?
-                        std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) :
-                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
-                    const auto SIZEY = SIZEYSTR == "max" ?
-                        std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) :
-                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                        if (VALUE.starts_with('<'))
+                            return std::min(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+                        else if (VALUE.starts_with('>'))
+                            return std::max(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+
+                        return stringToPercentage(VALUE, REL);
+                    };
+
+                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+
+                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+
+                    const float SIZEX =
+                        SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, 20.0, PMONITOR->vecSize.x) : stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
+
+                    const float SIZEY =
+                        SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, 20.0, PMONITOR->vecSize.y) : stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize.goal().y, PMONITOR->vecSize.y);
 
                     Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
-                    PWINDOW->m_vRealSize   = Vector2D(SIZEX, SIZEY);
-                    PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal();
-                    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+                    PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
 
                     PWINDOW->setHidden(false);
                 } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
@@ -761,7 +775,9 @@ void Events::listener_commitWindow(void* owner, void* data) {
 
     const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
 
-    PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
+    if (PMONITOR)
+        PMONITOR->debugLastPresentation(g_pSeatManager->isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
+
     if (g_pSeatManager->isPointerFrameCommit) {
         g_pSeatManager->isPointerFrameSkipped = false;
         g_pSeatManager->isPointerFrameCommit  = false;

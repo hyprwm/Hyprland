@@ -24,12 +24,4 @@ namespace Events {
     DYNLISTENFUNC(requestMaximize);
     DYNLISTENFUNC(setOverrideRedirect);
     DYNLISTENFUNC(ackConfigure);
-
-    // Monitor part 2 the sequel
-    DYNLISTENFUNC(monitorFrame);
-    DYNLISTENFUNC(monitorStateRequest);
-    DYNLISTENFUNC(monitorDamage);
-    DYNLISTENFUNC(monitorNeedsFrame);
-    DYNLISTENFUNC(monitorCommit);
-    DYNLISTENFUNC(monitorBind);
 };

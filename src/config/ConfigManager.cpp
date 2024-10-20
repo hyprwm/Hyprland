@@ -689,14 +689,13 @@ std::string CConfigManager::getMainConfigPath() {
 
     if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
         return CFG_ENV;
-    Debug::log(TRACE, "Seems as if HYPRLAND_CONFIG isn't set, let's see what we can do with HOME.");
 
-    static const auto paths = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
-    if (paths.first.has_value()) {
-        return paths.first.value();
-    } else if (paths.second.has_value()) {
-        auto configPath = Hyprutils::Path::fullConfigPath(paths.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
-        return generateConfig(configPath).value();
+    const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+    if (PATHS.first.has_value()) {
+        return PATHS.first.value();
+    } else if (PATHS.second.has_value()) {
+        const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+        return generateConfig(CONFIGPATH).value();
     } else
         throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
 }
@@ -945,9 +944,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         // mark blur dirty
-        g_pHyprOpenGL->markBlurDirtyForMonitor(m.get());
+        g_pHyprOpenGL->markBlurDirtyForMonitor(m);
 
-        g_pCompositor->scheduleFrameForMonitor(m.get());
+        g_pCompositor->scheduleFrameForMonitor(m);
 
         // Force the compositor to fully re-render all monitors
         m->forceFullFrames = 2;
@@ -1508,7 +1507,7 @@ void CConfigManager::performMonitorReload() {
 
         auto rule = getMonitorRuleFor(m);
 
-        if (!g_pHyprRenderer->applyMonitorRule(m.get(), &rule)) {
+        if (!g_pHyprRenderer->applyMonitorRule(m, &rule)) {
             overAgain = true;
             break;
         }
@@ -1566,14 +1565,14 @@ void CConfigManager::ensureMonitorStatus() {
         auto rule = getMonitorRuleFor(rm);
 
         if (rule.disabled == rm->m_bEnabled)
-            g_pHyprRenderer->applyMonitorRule(rm.get(), &rule);
+            g_pHyprRenderer->applyMonitorRule(rm, &rule);
     }
 }
 
-void CConfigManager::ensureVRR(CMonitor* pMonitor) {
+void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
     static auto PVRR = reinterpret_cast<Hyprlang::INT* const*>(getConfigValuePtr("misc:vrr"));
 
-    static auto ensureVRRForDisplay = [&](CMonitor* m) -> void {
+    static auto ensureVRRForDisplay = [&](PHLMONITOR m) -> void {
         if (!m->output || m->createdByUser)
             return;
 
@@ -1643,7 +1642,7 @@ void CConfigManager::ensureVRR(CMonitor* pMonitor) {
     }
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        ensureVRRForDisplay(m.get());
+        ensureVRRForDisplay(m);
     }
 }
 
@@ -1655,7 +1654,7 @@ void CConfigManager::addParseError(const std::string& err) {
     g_pHyprError->queueCreate(err + "\nHyprland may not work correctly.", CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 }
 
-CMonitor* CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
+PHLMONITOR CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
     auto monitor = getBoundMonitorStringForWS(wsname);
     if (monitor.substr(0, 5) == "desc:")
         return g_pCompositor->getMonitorFromDesc(monitor.substr(5));

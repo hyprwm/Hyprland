@@ -50,6 +50,7 @@ class CForeignToplevelProtocol : public IWaylandProtocol {
   private:
     void onManagerResourceDestroy(CForeignToplevelList* mgr);
     void destroyHandle(CForeignToplevelHandle* handle);
+    bool windowValidForForeign(PHLWINDOW pWindow);
 
     //
     std::vector<UP<CForeignToplevelList>>   m_vManagers;

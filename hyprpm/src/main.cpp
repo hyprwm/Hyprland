@@ -23,7 +23,8 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ Flags:
 ┃
-┣ --notify       | -n    → Send a hyprland notification for important events (e.g. load fail)
+┣ --notify       | -n    → Send a hyprland notification for important events (including both successes and fail events)
+┣ --notify-fail  | -nn   → Send a hyprland notification for fail events only
 ┣ --help         | -h    → Show this menu
 ┣ --verbose      | -v    → Enable too much logging
 ┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
@@ -43,7 +44,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false;
 
     for (int i = 1; i < argc; ++i) {
         if (ARGS[i].starts_with("-")) {
@@ -52,6 +53,8 @@ int                        main(int argc, char** argv, char** envp) {
                 return 0;
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
+            } else if (ARGS[i] == "--notify-fail" || ARGS[i] == "-nn") {
+                notifyFail = notify = true;
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
@@ -155,7 +158,7 @@ int                        main(int argc, char** argv, char** envp) {
                     break;
                 default: break;
             }
-        } else if (notify) {
+        } else if (notify && !notifyFail) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
     } else if (command[0] == "list") {

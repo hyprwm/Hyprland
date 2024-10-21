@@ -6,12 +6,14 @@
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
 #include "TokenManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
+#include "protocols/InputCapture.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/LayoutManager.hpp"
@@ -139,6 +141,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
     m_mDispatchers["setprop"]                        = setProp;
+    m_mDispatchers["releaseinputcapture"]            = releaseInputCapture;
 
     m_tScrollTimer.reset();
 
@@ -3212,5 +3215,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
+    return {};
+}
+SDispatchResult CKeybindManager::releaseInputCapture(std::string args) {
+    PROTO::inputCapture->forceRelease();
     return {};
 }

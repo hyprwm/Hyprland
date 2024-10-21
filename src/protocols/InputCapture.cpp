@@ -67,6 +67,14 @@ void CInputCaptureProtocol::sendKeymap(SP<IKeyboard> keyboard, const std::unique
         close(fd);
 }
 
+void CInputCaptureProtocol::forceRelease() {
+    Debug::log(LOG, "[input-capture] Force Input released");
+    active = false;
+
+    for (const auto& manager : m_vManagers)
+        manager->sendForceRelease();
+}
+
 void CInputCaptureProtocol::sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state) {
     for (const auto& manager : m_vManagers)
         manager->sendKey(keyCode, state);

@@ -13,6 +13,8 @@ class CInputCaptureProtocol : public IWaylandProtocol {
     bool isCaptured();
 
     void updateKeymap();
+    void forceRelease();
+
     void sendMotion(const Vector2D& absolutePosition, const Vector2D& delta);
     void sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state);
     void sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state);

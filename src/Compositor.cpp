@@ -34,6 +34,7 @@
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
+#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -2748,21 +2749,47 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     if (FULLSCREEN)
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
-    if (!pWindow->m_bIsFloating) {
+    const PHLWINDOW pFirstWindowOnWorkspace   = g_pCompositor->getFirstWindowOnWorkspace(pWorkspace->m_iID);
+    const int       visibleWindowsOnWorkspace = g_pCompositor->getWindowsOnWorkspace(pWorkspace->m_iID, std::nullopt, true);
+    const auto      PWINDOWMONITOR            = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto      POSTOMON                  = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
+    const auto      PWORKSPACEMONITOR         = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+
+    if (!pWindow->m_bIsFloating)
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
-        pWindow->moveToWorkspace(pWorkspace);
-        pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+
+    pWindow->moveToWorkspace(pWorkspace);
+    pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
+
+    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
+    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+        pFirstWindowOnWorkspace->m_sGroupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
+
+        pWindow->m_bIsFloating = pFirstWindowOnWorkspace->m_bIsFloating; // match the floating state. Needed to group tiled into floated and vice versa.
+        if (!pWindow->m_sGroupData.pNextWindow.expired()) {
+            PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
+            while (next != pWindow) {
+                next->m_bIsFloating = pFirstWindowOnWorkspace->m_bIsFloating; // match the floating state of group members
+                next                = next->m_sGroupData.pNextWindow.lock();
+            }
+        }
+
+        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+        (*USECURRPOS ? pFirstWindowOnWorkspace : pFirstWindowOnWorkspace->getGroupTail())->insertWindowToGroup(pWindow);
+
+        pFirstWindowOnWorkspace->setGroupCurrent(pWindow);
+        pWindow->updateWindowDecos();
+        g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+
+        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+            pWindow->addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(pWindow));
+
     } else {
-        const auto PWINDOWMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
-        const auto POSTOMON       = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
+        if (!pWindow->m_bIsFloating)
+            g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
-        const auto PWORKSPACEMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
-
-        pWindow->moveToWorkspace(pWorkspace);
-        pWindow->m_iMonitorID = pWorkspace->m_iMonitorID;
-
-        pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
+        if (pWindow->m_bIsFloating)
+            pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
     }
 
     pWindow->updateToplevel();

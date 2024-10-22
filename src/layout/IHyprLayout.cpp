@@ -194,8 +194,9 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         denied = true;
 
     if (*PAUTOGROUP                                      // check if auto_group is enabled.
-        && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.
+        && OPENINGON                                     // this shouldn't be 0, but honestly, better safe than sorry.
         && OPENINGON != pWindow                          // prevent freeze when the "group set" window rule makes the new window to be already a group.
+        && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.
         && pWindow->canBeGroupedInto(OPENINGON)          // check if the new window can be grouped into OPENINGON.
         && !g_pXWaylandManager->shouldBeFloated(pWindow) // don't group child windows. Fix for floated groups. Tiled groups don't need this because we check if !denied.
         && !denied) {                                    // don't group a new floated window into a tiled group (for convenience).
@@ -352,7 +353,7 @@ void IHyprLayout::onEndDragWindow() {
                     DRAGGINGWINDOW->m_bDraggingTiled    = false;
                 }
 
-                if (DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock()) {
+                if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
                     std::vector<PHLWINDOW> members;
                     PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
                     do {

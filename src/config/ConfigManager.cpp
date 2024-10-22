@@ -383,6 +383,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("group:merge_floated_into_tiled_on_groupbar", Hyprlang::INT{0});
     m_pConfig->addConfigValue("group:auto_group", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:drag_into_group", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("group:group_on_movetoworkspace", Hyprlang::INT{0});
     m_pConfig->addConfigValue("group:groupbar:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("group:groupbar:font_family", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("group:groupbar:font_size", Hyprlang::INT{8});

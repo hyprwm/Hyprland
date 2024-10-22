@@ -948,14 +948,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->m_pointerEvents.frame.registerListener([] (std::any e) {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = g_pCompositor->m_lastMonitor.get();
-            shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
-        }
-        g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->m_isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
+        g_pInputManager->onMouseFrame();
     });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.registerListener([] (std::any e) {

@@ -883,7 +883,14 @@ void CInputManager::onMouseFrame() {
     if (PROTO::inputCapture->isCaptured())
         return;
 
-    g_pSeatManager->sendPointerFrame();
+    bool shouldSkip = false;
+    if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
+        auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
+        shouldSkip    = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+    }
+    g_pSeatManager->isPointerFrameSkipped = shouldSkip;
+    if (!g_pSeatManager->isPointerFrameSkipped)
+        g_pSeatManager->sendPointerFrame();
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

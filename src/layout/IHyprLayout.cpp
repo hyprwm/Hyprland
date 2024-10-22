@@ -353,7 +353,7 @@ void IHyprLayout::onEndDragWindow() {
                     DRAGGINGWINDOW->m_bDraggingTiled    = false;
                 }
 
-                if (!DRAGGINGWINDOW->m_sGroupData.pNextWindow.expired()) {
+                if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
                     std::vector<PHLWINDOW> members;
                     PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
                     do {

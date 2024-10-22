@@ -920,15 +920,28 @@ void CXWM::createWMWindow() {
 void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == focusedSurface && activate) || (surf && surf->overrideRedirect))
         return;
-
-    if (!surf || (!activate && g_pCompositor->m_pLastWindow && !g_pCompositor->m_pLastWindow->m_bIsX11)) {
+    if (!surf){
         setActiveWindow((uint32_t)XCB_WINDOW_NONE);
         focusWindow(nullptr);
-    } else {
-        setActiveWindow(surf ? surf->xID : (uint32_t)XCB_WINDOW_NONE);
-        focusWindow(surf);
+    }else{
+        if(activate){
+            setActiveWindow(surf->xID);
+            focusWindow(surf);
+        } else {
+            if(g_pCompositor->m_pLastWindow){
+                if(!g_pCompositor->m_pLastWindow->m_bIsX11){
+                    setActiveWindow(surf->wlID);
+                    focusWindow(surf);
+                }else{
+                    setActiveWindow(surf->xID);
+                    focusWindow(surf);
+                }
+            }else{
+                setActiveWindow((uint32_t)XCB_WINDOW_NONE);
+                focusWindow(nullptr);
+            }      
+        }
     }
-
     xcb_flush(connection);
 }
 

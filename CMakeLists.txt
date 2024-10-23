@@ -363,7 +363,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland-systemd.desktop
 
 # install systemd service
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland-session.service
-       DESTINATION "lib/systemd/user")
+       DESTINATION "${CMAKE_INSTALL_LIBDIR}/systemd/user")
 
 # allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")

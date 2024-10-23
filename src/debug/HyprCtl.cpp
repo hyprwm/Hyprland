@@ -586,7 +586,15 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     }},)#",
                 (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
                 escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
-                ((k->modifiersState.locked & (1 << 1)) == 2 ? "true" : "false"), ((k->modifiersState.locked & (1 << 4)) == 16 ? "true" : "false"), (k->active ? "true" : "false"));
+                (((xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_CAPS)) != XKB_MOD_INVALID &&
+                  (k->modifiersState.locked & (1 << xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_CAPS))) > 0) ?
+                     "true" :
+                     "false"),
+                (((xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_NUM)) != XKB_MOD_INVALID &&
+                  (k->modifiersState.locked & (1 << xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_NUM))) > 0) ?
+                     "true" :
+                     "false"),
+                (k->active ? "true" : "false"));
         }
 
         trimTrailingComma(result);
@@ -673,8 +681,16 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
             result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
                                   (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant,
-                                  k->currentRules.options, KM, ((k->modifiersState.locked & (1 << 1)) == 2 ? "yes" : "no"),
-                                  ((k->modifiersState.locked & (1 << 4)) == 16 ? "yes" : "no"), (k->active ? "yes" : "no"));
+                                  k->currentRules.options, KM,
+                                  (((xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_CAPS)) != XKB_MOD_INVALID &&
+                                    (k->modifiersState.locked & (1 << xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_CAPS))) > 0) ?
+                                       "yes" :
+                                       "no"),
+                                  (((xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_NUM)) != XKB_MOD_INVALID &&
+                                    (k->modifiersState.locked & (1 << xkb_keymap_mod_get_index(k->xkbKeymap, XKB_MOD_NAME_NUM))) > 0) ?
+                                       "yes" :
+                                       "no"),
+                                  (k->active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";

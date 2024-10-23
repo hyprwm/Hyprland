@@ -357,6 +357,14 @@ install(
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
+# session file - systemd support
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland-systemd.desktop
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
+
+# install systemd service
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland-session.service
+       DESTINATION "lib/systemd/user")
+
 # allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 

@@ -217,6 +217,7 @@ class CKeybindManager {
     static SDispatchResult denyWindowFromGroup(std::string);
     static SDispatchResult global(std::string);
     static SDispatchResult event(std::string);
+    static SDispatchResult releaseInputCapture(std::string);
 
     friend class CCompositor;
     friend class CInputManager;

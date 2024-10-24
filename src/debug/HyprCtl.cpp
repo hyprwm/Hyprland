@@ -549,6 +549,15 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
 std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
+    auto        getModState = [](SP<IKeyboard> keyboard, const char* xkbModName) -> bool {
+        auto IDX = xkb_keymap_mod_get_index(keyboard->xkbKeymap, xkbModName);
+
+        if (IDX == XKB_MOD_INVALID)
+            return false;
+
+        return (keyboard->modifiersState.locked & (1 << IDX)) > 0;
+    };
+
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
         result += "\"mice\": [\n";
@@ -580,11 +589,13 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
         "variant": "{}",
         "options": "{}",
         "active_keymap": "{}",
+        "capsLock": {},
+        "numLock": {},
         "main": {}
     }},)#",
                 (uintptr_t)k.get(), escapeJSONStrings(k->hlName), escapeJSONStrings(k->currentRules.rules), escapeJSONStrings(k->currentRules.model),
                 escapeJSONStrings(k->currentRules.layout), escapeJSONStrings(k->currentRules.variant), escapeJSONStrings(k->currentRules.options), escapeJSONStrings(KM),
-                (k->active ? "true" : "false"));
+                (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"), (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->active ? "true" : "false"));
         }
 
         trimTrailingComma(result);
@@ -668,9 +679,11 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
 
         for (auto const& k : g_pInputManager->m_vKeyboards) {
             const auto KM = k->getActiveLayout();
-            result += std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tmain: {}\n",
-                                  (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant,
-                                  k->currentRules.options, KM, (k->active ? "yes" : "no"));
+            result +=
+                std::format("\tKeyboard at {:x}:\n\t\t{}\n\t\t\trules: r \"{}\", m \"{}\", l \"{}\", v \"{}\", o \"{}\"\n\t\t\tactive keymap: {}\n\t\t\tcapsLock: "
+                            "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
+                            (uintptr_t)k.get(), k->hlName, k->currentRules.rules, k->currentRules.model, k->currentRules.layout, k->currentRules.variant, k->currentRules.options,
+                            KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"), (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"), (k->active ? "yes" : "no"));
         }
 
         result += "\n\nTablets:\n";

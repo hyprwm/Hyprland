@@ -3,6 +3,7 @@ Description=Hyprland - Tiling compositor with the looks
 Documentation=man:Hyprland(1)
 BindsTo=graphical-session.target
 Before=graphical-session.target
+Wants=xdg-desktop-autostart.target
 Wants=graphical-session-pre.target
 After=graphical-session-pre.target
 

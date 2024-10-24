@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
@@ -609,17 +611,23 @@ void logSystemInfo() {
 
     Debug::log(NONE, "\n");
 
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | fgrep -A4 vga");
-#elif defined(__arm__) || defined(__aarch64__)
-    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
-#else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
-#endif
-    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
+    int fd = open("/dev/dri/card0", O_RDONLY | O_CLOEXEC);
+    if (fd > 0) {
+        drmVersion* version = drmGetVersion(fd);
 
-    if (GPUINFO.contains("NVIDIA")) {
-        Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        const std::string name        = version->name ? version->name : "Unknown";
+        const std::string description = version->desc ? version->desc : "Unknown";
+        std::string       GPUINFO     = "GPU information:\n";
+        GPUINFO += "GPU Type: " + name + "\n";
+        GPUINFO += "Driver Description: " + description + "\n";
+
+        Debug::log(LOG, "{}\n", GPUINFO);
+        drmFreeVersion(version);
+        close(fd);
+
+        if (GPUINFO.contains("NVIDIA")) {
+            Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        }
     }
 
     // log etc

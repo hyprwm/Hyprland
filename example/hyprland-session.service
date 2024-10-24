@@ -10,5 +10,6 @@ After=graphical-session-pre.target
 Type=notify
 ExecStart=/usr/bin/Hyprland
 ExecStop=/usr/bin/hyprctl dispatch exit
+ExecStopPost=/usr/bin/systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
 Restart=on-failure
 Slice=session.slice

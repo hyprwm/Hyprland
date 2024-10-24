@@ -22,7 +22,8 @@ SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(int 
 }
 
 static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
-    CSecurityContextSandboxedClient* client = wl_container_of(l, client, destroyListener);
+    CSecurityContextSandboxedClientDestroyWrapper* wrap   = wl_container_of(l, wrap, listener);
+    CSecurityContextSandboxedClient*               client = wrap->parent;
     client->onDestroy();
 }
 
@@ -31,12 +32,15 @@ CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(int clientFD_) 
     if (!client)
         return;
 
-    destroyListener.notify = ::onSecurityContextClientDestroy;
-    wl_client_add_destroy_late_listener(client, &destroyListener);
+    wl_list_init(&destroyListener.listener.link);
+    destroyListener.listener.notify = ::onSecurityContextClientDestroy;
+    destroyListener.parent          = this;
+    wl_client_add_destroy_late_listener(client, &destroyListener.listener);
 }
 
 CSecurityContextSandboxedClient::~CSecurityContextSandboxedClient() {
-    wl_list_remove(&destroyListener.link);
+    wl_list_remove(&destroyListener.listener.link);
+    wl_list_init(&destroyListener.listener.link);
     close(clientFD);
 }
 

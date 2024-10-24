@@ -197,7 +197,7 @@ CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : pad(pad_) {
         });
     });
 
-    listeners.attach = pad->events.attach.registerListener([this](std::any d) {
+    listeners.attach = pad->events.attach.registerListener([](std::any d) {
         ; // TODO: this doesn't do anything in aq atm
     });
 

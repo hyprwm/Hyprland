@@ -112,7 +112,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
     resource->setDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
     resource->setOnDestroy([this](CZwlrDataControlDeviceV1* r) { PROTO::dataWlr->destroyResource(this); });
 
-    resource->setSetSelection([this](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
+    resource->setSetSelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset selection received");
@@ -129,7 +129,7 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : resourc
         g_pSeatManager->setCurrentSelection(source);
     });
 
-    resource->setSetPrimarySelection([this](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
+    resource->setSetPrimarySelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
             LOGM(LOG, "wlr reset primary selection received");

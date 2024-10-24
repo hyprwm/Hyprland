@@ -193,7 +193,11 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     if (pWindow->m_bIsFloating && !OPENINGON->m_bIsFloating)
         denied = true;
 
-    if (*PAUTOGROUP                                      // check if auto_group is enabled.
+    bool swallowing = false;
+    if (pWindow->m_pSwallowed || pWindow->m_bGroupSwallowed)
+        swallowing = true;
+
+    if ((*PAUTOGROUP || swallowing)                      // continue if auto_group is enabled or if dealing with window swallowing.
         && OPENINGON                                     // this shouldn't be 0, but honestly, better safe than sorry.
         && OPENINGON != pWindow                          // prevent freeze when the "group set" window rule makes the new window to be already a group.
         && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.

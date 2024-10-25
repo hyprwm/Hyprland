@@ -320,7 +320,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->updateWindowData();
 
-    // get the swallower before onWindowCreated() because getSwallower() wouldn't find it after if PWINDOW gets auto grouped.
+    // Verify window swallowing. Get the swallower before calling onWindowCreated(PWINDOW) because getSwallower() wouldn't get it after if PWINDOW gets auto grouped.
     const auto SWALLOWER  = PWINDOW->getSwallower();
     PWINDOW->m_pSwallowed = SWALLOWER;
 

@@ -2800,7 +2800,6 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     if (!pWindow->m_sGroupData.pNextWindow.expired()) {
         PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
         while (next != pWindow) {
-            next->moveToWorkspace(pWorkspace);
             next->updateToplevel();
             next = next->m_sGroupData.pNextWindow.lock();
         }

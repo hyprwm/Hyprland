@@ -71,7 +71,7 @@ void CMonitor::onConnect(bool noRule) {
 
         Debug::log(LOG, "Removing monitor {} from realMonitors", szName);
 
-        std::erase_if(g_pCompositor->m_vRealMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
+        std::erase_if(g_pCompositor->m_vRealMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
     });
 
     listeners.state = output->events.state.registerListener([this](std::any d) {
@@ -149,7 +149,7 @@ void CMonitor::onConnect(bool noRule) {
         return;
     }
 
-    SP<CMonitor>* thisWrapper = nullptr;
+    PHLMONITOR* thisWrapper = nullptr;
 
     // find the wrap
     for (auto& m : g_pCompositor->m_vRealMonitors) {
@@ -356,7 +356,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
         g_pHyprRenderer->m_pMostHzMonitor = pMonitorMostHz;
     }
-    std::erase_if(g_pCompositor->m_vMonitors, [&](SP<CMonitor>& el) { return el.get() == this; });
+    std::erase_if(g_pCompositor->m_vMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
@@ -509,7 +509,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // push to mvmonitors
 
-        SP<CMonitor>* thisWrapper = nullptr;
+        PHLMONITOR* thisWrapper = nullptr;
 
         // find the wrap
         for (auto& m : g_pCompositor->m_vRealMonitors) {

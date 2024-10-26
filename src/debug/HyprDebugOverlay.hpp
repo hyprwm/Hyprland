@@ -38,12 +38,12 @@ class CHyprDebugOverlay {
     void frameData(PHLMONITOR);
 
   private:
-    std::map<PHLMONITOR, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
+    std::map<PHLMONITORREF, CHyprMonitorDebugOverlay> m_mMonitorOverlays;
 
-    cairo_surface_t*                               m_pCairoSurface = nullptr;
-    cairo_t*                                       m_pCairo        = nullptr;
+    cairo_surface_t*                                  m_pCairoSurface = nullptr;
+    cairo_t*                                          m_pCairo        = nullptr;
 
-    SP<CTexture>                                   m_pTexture;
+    SP<CTexture>                                      m_pTexture;
 
     friend class CHyprMonitorDebugOverlay;
     friend class CHyprRenderer;

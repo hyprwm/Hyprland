@@ -59,8 +59,8 @@ class CCompositor {
     std::string                                m_szInstancePath      = "";
     std::string                                m_szCurrentSplash     = "error";
 
-    std::vector<SP<CMonitor>>                  m_vMonitors;
-    std::vector<SP<CMonitor>>                  m_vRealMonitors; // for all monitors, even those turned off
+    std::vector<PHLMONITOR>                    m_vMonitors;
+    std::vector<PHLMONITOR>                    m_vRealMonitors; // for all monitors, even those turned off
     std::vector<PHLWINDOW>                     m_vWindows;
     std::vector<PHLLS>                         m_vLayers;
     std::vector<PHLWORKSPACE>                  m_vWorkspaces;
@@ -80,7 +80,7 @@ class CCompositor {
 
     WP<CWLSurfaceResource>                     m_pLastFocus;
     PHLWINDOWREF                               m_pLastWindow;
-    WP<CMonitor>                               m_pLastMonitor;
+    PHLMONITORREF                              m_pLastMonitor;
 
     std::vector<PHLWINDOWREF>                  m_vWindowFocusHistory; // first element is the most recently focused.
 

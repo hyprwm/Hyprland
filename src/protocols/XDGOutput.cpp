@@ -95,7 +95,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
 
 //
 
-CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, SP<CMonitor> monitor_) : monitor(monitor_), resource(resource_) {
+CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
     if (!resource->resource())
         return;
 

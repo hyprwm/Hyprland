@@ -153,7 +153,7 @@ class COutputManagementProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     // doesn't have to return one
-    SP<SWlrManagerSavedOutputState> getOutputStateFor(SP<CMonitor> pMonitor);
+    SP<SWlrManagerSavedOutputState> getOutputStateFor(PHLMONITOR pMonitor);
 
   private:
     void destroyResource(COutputManager* resource);

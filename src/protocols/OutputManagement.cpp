@@ -633,7 +633,7 @@ SP<COutputMode> COutputManagementProtocol::modeFromResource(wl_resource* r) {
     return nullptr;
 }
 
-SP<SWlrManagerSavedOutputState> COutputManagementProtocol::getOutputStateFor(SP<CMonitor> pMonitor) {
+SP<SWlrManagerSavedOutputState> COutputManagementProtocol::getOutputStateFor(PHLMONITOR pMonitor) {
     for (auto const& m : m_vManagers) {
         if (!m->monitorStates.contains(pMonitor->szName))
             continue;

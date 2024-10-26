@@ -48,13 +48,13 @@ struct SDMABUFTranche {
 
 class CDMABUFFormatTable {
   public:
-    CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tranches);
+    CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
     ~CDMABUFFormatTable();
 
-    int                                                  tableFD   = -1;
-    size_t                                               tableSize = 0;
-    SDMABUFTranche                                       rendererTranche;
-    std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> monitorTranches;
+    int                                                   tableFD   = -1;
+    size_t                                                tableSize = 0;
+    SDMABUFTranche                                        rendererTranche;
+    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;
 };
 
 class CLinuxDMABBUFParamsResource {
@@ -111,7 +111,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     ~CLinuxDMABufV1Protocol();
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
-    void         updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor);
+    void         updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor);
 
   private:
     void destroyResource(CLinuxDMABUFResource* resource);

@@ -31,7 +31,7 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
   private:
     void destroyResource(CHyprlandCTMControlResource* resource);
 
-    void setCTM(SP<CMonitor> monitor, const Mat3x3& ctm);
+    void setCTM(PHLMONITOR monitor, const Mat3x3& ctm);
 
     //
     std::vector<SP<CHyprlandCTMControlResource>> m_vManagers;

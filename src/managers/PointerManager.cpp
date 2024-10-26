@@ -69,7 +69,7 @@ void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
         updateCursorBackend();
 }
 
-bool CPointerManager::softwareLockedFor(SP<CMonitor> mon) {
+bool CPointerManager::softwareLockedFor(PHLMONITOR mon) {
     auto state = stateFor(mon);
     return state->softwareLocks > 0 || state->hardwareFailed;
 }
@@ -82,7 +82,7 @@ bool CPointerManager::hasCursor() {
     return currentCursorImage.pBuffer || currentCursorImage.surface;
 }
 
-SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(SP<CMonitor> mon) {
+SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(PHLMONITOR mon) {
     auto it = std::find_if(monitorStates.begin(), monitorStates.end(), [mon](const auto& other) { return other->monitor == mon; });
     if (it == monitorStates.end())
         return monitorStates.emplace_back(makeShared<CPointerManager::SMonitorPointerState>(mon));
@@ -503,7 +503,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* now, CRegion& damage, std::optional<Vector2D> overridePos) {
+void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* now, CRegion& damage, std::optional<Vector2D> overridePos) {
     if (!hasCursor())
         return;
 
@@ -538,7 +538,7 @@ void CPointerManager::renderSoftwareCursorsFor(SP<CMonitor> pMonitor, timespec* 
         currentCursorImage.surface->resource()->frame(now);
 }
 
-Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
+Vector2D CPointerManager::getCursorPosForMonitor(PHLMONITOR pMonitor) {
     return CBox{pointerPos - pMonitor->vecPosition, {0, 0}}
                .transform(wlTransformToHyprutils(invertTransform(pMonitor->transform)), pMonitor->vecTransformedSize.x / pMonitor->scale,
                           pMonitor->vecTransformedSize.y / pMonitor->scale)
@@ -546,7 +546,7 @@ Vector2D CPointerManager::getCursorPosForMonitor(SP<CMonitor> pMonitor) {
         pMonitor->scale;
 }
 
-Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
+Vector2D CPointerManager::transformedHotspot(PHLMONITOR pMonitor) {
     if (!pMonitor->cursorSwapchain)
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
@@ -556,7 +556,7 @@ Vector2D CPointerManager::transformedHotspot(SP<CMonitor> pMonitor) {
         .pos();
 }
 
-CBox CPointerManager::getCursorBoxLogicalForMonitor(SP<CMonitor> pMonitor) {
+CBox CPointerManager::getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor) {
     return getCursorBoxGlobal().translate(-pMonitor->vecPosition);
 }
 
@@ -678,7 +678,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
 
 void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
 
-    SP<CMonitor> currentMonitor = g_pCompositor->m_pLastMonitor.lock();
+    PHLMONITOR currentMonitor = g_pCompositor->m_pLastMonitor.lock();
     if (!currentMonitor || !dev)
         return;
 
@@ -1055,7 +1055,7 @@ void CPointerManager::detachTablet(SP<CTablet> tablet) {
     std::erase_if(tabletListeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
 }
 
-void CPointerManager::damageCursor(SP<CMonitor> pMonitor) {
+void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
     for (auto const& mw : monitorStates) {
         if (mw->monitor != pMonitor)
             continue;

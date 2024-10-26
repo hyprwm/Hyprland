@@ -363,7 +363,6 @@ install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
 install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-systemd.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
-
 # allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 

@@ -9,8 +9,8 @@ After=graphical-session-pre.target
 
 [Service]
 Type=notify
-ExecStart=@CMAKE_INSTALL_PREFIX@/bin/Hyprland
-ExecStop=@CMAKE_INSTALL_PREFIX@/bin/hyprctl dispatch exit
-ExecStopPost=@CMAKE_INSTALL_PREFIX@/bin/systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+ExecStart=@CMAKE_INSTALL_PREFIX@@prefix@/bin/Hyprland
+ExecStop=@CMAKE_INSTALL_PREFIX@@prefix@/bin/hyprctl dispatch exit
+ExecStopPost=@CMAKE_INSTALL_PREFIX@@prefix@/bin/systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
 Restart=on-failure
 Slice=session.slice

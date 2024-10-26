@@ -3,7 +3,7 @@
 First of all, please remember to:
 - Check that your issue is not a duplicate
 - Read the [FAQ](https://wiki.hyprland.org/FAQ/)
-- Read the [Configuring Page](https://wiki.hyprland.org/Configuring/Configuring-Hyprland)
+- Read the [Configuring Page](https://wiki.hyprland.org/Configuring/)
 
 <br/>
 

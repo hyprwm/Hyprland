@@ -2795,11 +2795,11 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     pWindow->updateToplevel();
     pWindow->updateDynamicRules();
     pWindow->uncacheWindowDecos();
+    pWindow->updateGroupOutputs();
 
     if (!pWindow->m_sGroupData.pNextWindow.expired()) {
         PHLWINDOW next = pWindow->m_sGroupData.pNextWindow.lock();
         while (next != pWindow) {
-            next->moveToWorkspace(pWorkspace);
             next->updateToplevel();
             next = next->m_sGroupData.pNextWindow.lock();
         }

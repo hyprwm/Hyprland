@@ -16,6 +16,7 @@ set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
 configure_file(hyprland.pc.in hyprland.pc @ONLY)
+configure_file(systemd/hyprland-session.service.in systemd/hyprland-session.service @ONLY)
 
 set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 
@@ -357,6 +358,12 @@ install(
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
+
+# session file -systemd
+install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-systemd.desktop
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
+
+
 # allow Hyprland to find assets
 add_compile_definitions(DATAROOTDIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}")
 
@@ -397,3 +404,6 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
   FILES_MATCHING
   PATTERN "*.h*")
+
+#install systemd service
+install(FILES ${CMAKE_BINARY_DIR}/systemd/hyprland-session.service DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)

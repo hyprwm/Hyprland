@@ -80,6 +80,8 @@ if get_option('tracy_enable') and get_option('buildtype') != 'debugoptimized'
   warning('Profiling builds should set -- buildtype = debugoptimized')
 endif
 
+
+
 subdir('protocols')
 subdir('src')
 subdir('hyprctl')
@@ -87,6 +89,7 @@ subdir('hyprpm/src')
 subdir('assets')
 subdir('example')
 subdir('docs')
+subdir('systemd')
 
 # Generate hyprland.pc
 pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')

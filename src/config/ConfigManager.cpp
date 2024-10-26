@@ -552,7 +552,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
     m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{2});
 
-    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
     m_pConfig->addConfigValue("cursor:min_refresh_rate", Hyprlang::INT{24});
     m_pConfig->addConfigValue("cursor:hotspot_padding", Hyprlang::INT{0});
@@ -2776,6 +2776,18 @@ std::optional<std::string> CConfigManager::handlePlugin(const std::string& comma
 
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {
     return CONFIG_OPTIONS;
+}
+
+bool CConfigManager::shouldUseSoftwareCursors() {
+    static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
+
+    switch (*PNOHW) {
+        case 0: return false;
+        case 1: return true;
+        default: return g_pHyprRenderer->isNvidia();
+    }
+
+    return true;
 }
 
 std::string SConfigOptionDescription::jsonify() const {

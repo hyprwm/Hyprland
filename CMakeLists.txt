@@ -15,6 +15,8 @@ include(GNUInstallDirs)
 set(HYPRLAND_VERSION ${VER})
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
+set(bindir ${CMAKE_INSTALL_BINDIR})
+set(prefix ${CMAKE_INSTALL_PREFIX})
 configure_file(hyprland.pc.in hyprland.pc @ONLY)
 configure_file(systemd/hyprland-session.service.in systemd/hyprland-session.service @ONLY)
 

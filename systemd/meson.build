@@ -5,14 +5,13 @@ install_data(
 )                                                                      
 
 prefix = get_option('prefix')
+bindir = get_option('bindir')
 conf_data = configuration_data()
 conf_data.set('prefix', prefix)
+conf_data.set('bindir', bindir)
 
-
-  configure_file(
-    configuration: conf_data,
-    input: 'hyprland-session.service.in',
-    output: '@BASENAME@',
-    install_dir: join_paths(get_option('libdir'), 'systemd/user')  )
-
-
+configure_file(
+  configuration: conf_data,
+  input: 'hyprland-session.service.in',
+  output: '@BASENAME@',
+  install_dir: join_paths(get_option('libdir'), 'systemd/user')  )

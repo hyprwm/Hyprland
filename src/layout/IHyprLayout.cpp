@@ -339,12 +339,9 @@ void IHyprLayout::onEndDragWindow() {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
                 return;
 
-            bool denied = false;
-            if (!pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled)
-                denied = true;
-
-            static auto PDRAGINTOGROUP = CConfigValue<Hyprlang::INT>("group:drag_into_group");
-            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !denied) {
+            const bool  FLOATEDINTOTILED = !pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled;
+            static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
                 if (DRAGGINGWINDOW->m_bDraggingTiled) {
                     changeWindowFloatingMode(DRAGGINGWINDOW);
                     DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;

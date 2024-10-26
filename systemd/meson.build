@@ -7,8 +7,8 @@ install_data(
 prefix = get_option('prefix')
 bindir = get_option('bindir')
 conf_data = configuration_data()
-conf_data.set('prefix', prefix)
-conf_data.set('bindir', bindir)
+conf_data.set('PREFIX', get_option('prefix'))
+conf_data.set('BINDIR', get_option('bindir'))
 
 configure_file(
   configuration: conf_data,

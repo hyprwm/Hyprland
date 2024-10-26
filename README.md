@@ -100,7 +100,7 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------------------------------------------------->
 
-[Configure]: https://wiki.hyprland.org/Configuring/Configuring-Hyprland/
+[Configure]: https://wiki.hyprland.org/Configuring/
 [Stars]: https://starchart.cc/hyprwm/Hyprland
 [Hypr]: https://github.com/hyprwm/Hypr
 

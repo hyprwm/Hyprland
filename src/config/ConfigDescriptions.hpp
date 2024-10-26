@@ -1244,8 +1244,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "cursor:no_hardware_cursors",
         .description = "disables hardware cursors",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Auto"},
     },
     SConfigOptionDescription{
         .value       = "cursor:no_break_fs_vrr",

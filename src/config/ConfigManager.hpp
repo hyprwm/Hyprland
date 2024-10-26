@@ -200,6 +200,8 @@ class CConfigManager {
     void                      ensureMonitorStatus();
     void                      ensureVRR(PHLMONITOR pMonitor = nullptr);
 
+    bool                      shouldUseSoftwareCursors();
+
     std::string               parseKeyword(const std::string&, const std::string&);
 
     void                      addParseError(const std::string&);

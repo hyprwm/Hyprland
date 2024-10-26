@@ -247,9 +247,7 @@ void CPointerManager::resetCursorImage(bool apply) {
 }
 
 void CPointerManager::updateCursorBackend() {
-    static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
-
-    const auto  CURSORBOX = getCursorBoxGlobal();
+    const auto CURSORBOX = getCursorBoxGlobal();
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
         auto state = stateFor(m);
@@ -268,7 +266,7 @@ void CPointerManager::updateCursorBackend() {
             continue;
         }
 
-        if (state->softwareLocks > 0 || *PNOHW || !attemptHardwareCursor(state)) {
+        if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors() || !attemptHardwareCursor(state)) {
             Debug::log(TRACE, "Output {} rejected hardware cursors, falling back to sw", m->szName);
             state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
@@ -641,15 +639,13 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
-    auto        b = getCursorBoxGlobal().expand(4);
-
-    static auto PNOHW = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
+    auto b = getCursorBoxGlobal().expand(4);
 
     for (auto const& mw : monitorStates) {
         if (mw->monitor.expired() || !mw->monitor->output)
             continue;
 
-        if ((mw->softwareLocks > 0 || mw->hardwareFailed || *PNOHW) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
+        if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors()) && b.overlaps({mw->monitor->vecPosition, mw->monitor->vecSize})) {
             g_pHyprRenderer->damageBox(&b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
             break;
         }

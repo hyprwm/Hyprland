@@ -10,12 +10,12 @@ class CWLOutputProtocol;
 
 class CXDGOutput {
   public:
-    CXDGOutput(SP<CZxdgOutputV1> resource, SP<CMonitor> monitor_);
+    CXDGOutput(SP<CZxdgOutputV1> resource, PHLMONITOR monitor_);
 
     void sendDetails();
 
   private:
-    WP<CMonitor>            monitor;
+    PHLMONITORREF           monitor;
     SP<CZxdgOutputV1>       resource;
     WP<CWLOutputProtocol>   outputProto;
 

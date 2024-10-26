@@ -125,7 +125,7 @@ class CMonitor {
     SP<CSyncTimeline> outTimeline;
     uint64_t          commitSeq = 0;
 
-    WP<CMonitor>      self;
+    PHLMONITORREF     self;
 
     // mirroring
     PHLMONITORREF              pMirrorOf;

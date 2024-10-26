@@ -64,7 +64,7 @@ class CHyprRenderer {
     void ensureCursorRenderingMode();
     bool shouldRenderCursor();
     void setCursorHidden(bool hide);
-    void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, SP<CMonitor> pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
+    void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
     void                            renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry);
@@ -95,7 +95,7 @@ class CHyprRenderer {
     DAMAGETRACKINGMODES
     damageTrackingModeFromStr(const std::string&);
 
-    void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor); // nullptr monitor resets
+    void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                                initiateManualCrash();
 
     bool                                m_bCrashingInProgress = false;

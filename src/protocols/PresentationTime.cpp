@@ -14,7 +14,7 @@ void CQueuedPresentationData::setPresentationType(bool zeroCopy_) {
     zeroCopy = zeroCopy_;
 }
 
-void CQueuedPresentationData::attachMonitor(SP<CMonitor> pMonitor_) {
+void CQueuedPresentationData::attachMonitor(PHLMONITOR pMonitor_) {
     pMonitor = pMonitor_;
 }
 
@@ -73,7 +73,7 @@ void CPresentationFeedback::sendQueued(SP<CQueuedPresentationData> data, timespe
 
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = std::any_cast<PHLMONITOR>(param);
+        const auto PMONITOR = PHLMONITORREF{std::any_cast<PHLMONITOR>(param)};
         std::erase_if(m_vQueue, [PMONITOR](const auto& other) { return !other->surface || other->pMonitor == PMONITOR; });
     });
 }
@@ -107,7 +107,7 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
     }
 }
 
-void CPresentationProtocol::onPresented(SP<CMonitor> pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, timespec* when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     timespec  now;
     timespec* presentedAt = when;
     if (!presentedAt) {

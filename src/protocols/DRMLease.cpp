@@ -129,7 +129,7 @@ SP<CDRMLeaseConnectorResource> CDRMLeaseConnectorResource::fromResource(wl_resou
     return data ? data->self.lock() : nullptr;
 }
 
-CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, SP<CMonitor> monitor_) : monitor(monitor_), resource(resource_) {
+CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_) : monitor(monitor_), resource(resource_) {
     if (!good())
         return;
 
@@ -203,7 +203,7 @@ bool CDRMLeaseDeviceResource::good() {
     return resource->resource();
 }
 
-void CDRMLeaseDeviceResource::sendConnector(SP<CMonitor> monitor) {
+void CDRMLeaseDeviceResource::sendConnector(PHLMONITOR monitor) {
     if (std::find_if(connectorsSent.begin(), connectorsSent.end(), [monitor](const auto& e) { return e && !e->dead && e->monitor == monitor; }) != connectorsSent.end())
         return;
 
@@ -289,7 +289,7 @@ void CDRMLeaseProtocol::destroyResource(CDRMLeaseResource* resource) {
     std::erase_if(m_vLeases, [resource](const auto& e) { return e.get() == resource; });
 }
 
-void CDRMLeaseProtocol::offer(SP<CMonitor> monitor) {
+void CDRMLeaseProtocol::offer(PHLMONITOR monitor) {
     std::erase_if(primaryDevice->offeredOutputs, [](const auto& e) { return e.expired(); });
     if (std::find(primaryDevice->offeredOutputs.begin(), primaryDevice->offeredOutputs.end(), monitor) != primaryDevice->offeredOutputs.end())
         return;

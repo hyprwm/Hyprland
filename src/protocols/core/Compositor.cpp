@@ -182,7 +182,7 @@ wl_client* CWLSurfaceResource::client() {
     return pClient;
 }
 
-void CWLSurfaceResource::enter(SP<CMonitor> monitor) {
+void CWLSurfaceResource::enter(PHLMONITOR monitor) {
     if (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) != enteredOutputs.end())
         return;
 
@@ -209,7 +209,7 @@ void CWLSurfaceResource::enter(SP<CMonitor> monitor) {
     resource->sendEnter(output->getResource().get());
 }
 
-void CWLSurfaceResource::leave(SP<CMonitor> monitor) {
+void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     if (std::find(enteredOutputs.begin(), enteredOutputs.end(), monitor) == enteredOutputs.end())
         return;
 
@@ -509,7 +509,7 @@ void CWLSurfaceResource::updateCursorShm() {
     memcpy(shmData.data(), pixelData, bufLen);
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, SP<CMonitor> pMonitor) {
+void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);

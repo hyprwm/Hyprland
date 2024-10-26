@@ -1085,7 +1085,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
         g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
 }
 
-void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, SP<CMonitor> pMonitor, bool main, const Vector2D& projSize,
+void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
         Vector2D uvTL;
@@ -1603,7 +1603,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
     }
 }
 
-void CHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, SP<CMonitor> monitor) {
+void CHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor) {
     if (!PROTO::linuxDma)
         return;
 

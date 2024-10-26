@@ -169,7 +169,7 @@ class CConfigManager {
     static std::string                                              getMainConfigPath();
     const std::string                                               getConfigString();
 
-    SMonitorRule                                                    getMonitorRuleFor(const SP<CMonitor>);
+    SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
     std::string                                                     getDefaultWorkspaceFor(const std::string&);
 

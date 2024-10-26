@@ -1,7 +1,7 @@
 #include "VirtualPointer.hpp"
 #include "core/Output.hpp"
 
-CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, WP<CMonitor> boundOutput_) : boundOutput(boundOutput_), resource(resource_) {
+CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, PHLMONITORREF boundOutput_) : boundOutput(boundOutput_), resource(resource_) {
     if (!good())
         return;
 
@@ -134,7 +134,7 @@ void CVirtualPointerProtocol::destroyResource(CVirtualPointerV1Resource* pointer
     std::erase_if(m_vPointers, [&](const auto& other) { return other.get() == pointer; });
 }
 
-void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id, WP<CMonitor> output) {
+void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr, wl_resource* seat, uint32_t id, PHLMONITORREF output) {
 
     const auto RESOURCE = m_vPointers.emplace_back(makeShared<CVirtualPointerV1Resource>(makeShared<CZwlrVirtualPointerV1>(pMgr->client(), pMgr->version(), id), output));
 

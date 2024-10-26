@@ -750,7 +750,7 @@ PHLMONITOR CCompositor::getMonitorFromCursor() {
 }
 
 PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
-    SP<CMonitor> mon;
+    PHLMONITOR mon;
     for (auto const& m : m_vMonitors) {
         if (CBox{m->vecPosition, m->vecSize}.containsPoint(point)) {
             mon = m;
@@ -759,8 +759,8 @@ PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
     }
 
     if (!mon) {
-        float        bestDistance = 0.f;
-        SP<CMonitor> pBestMon;
+        float      bestDistance = 0.f;
+        PHLMONITOR pBestMon;
 
         for (auto const& m : m_vMonitors) {
             float dist = vecToRectDistanceSquared(point, m->vecPosition, m->vecPosition + m->vecSize);
@@ -3008,7 +3008,7 @@ PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
     return {};
 }
 
-static void checkDefaultCursorWarp(SP<CMonitor> monitor) {
+static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     static auto PCURSORMONITOR    = CConfigValue<std::string>("cursor:default_monitor");
     static bool cursorDefaultDone = false;
     static bool firstLaunch       = true;

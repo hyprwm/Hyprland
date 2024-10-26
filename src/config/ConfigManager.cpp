@@ -1087,7 +1087,7 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     return VAL;
 }
 
-SMonitorRule CConfigManager::getMonitorRuleFor(const SP<CMonitor> PMONITOR) {
+SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
     auto applyWlrOutputConfig = [PMONITOR](SMonitorRule rule) -> SMonitorRule {
         const auto CONFIG = PROTO::outputManagement->getOutputStateFor(PMONITOR);
 

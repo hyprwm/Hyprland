@@ -81,6 +81,6 @@ void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* r
     std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
 }
 
-void CHyprlandCTMControlProtocol::setCTM(SP<CMonitor> monitor, const Mat3x3& ctm) {
+void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {
     monitor->setCTM(ctm);
 }

@@ -60,8 +60,8 @@ class CWLSurfaceResource {
 
     bool                          good();
     wl_client*                    client();
-    void                          enter(SP<CMonitor> monitor);
-    void                          leave(SP<CMonitor> monitor);
+    void                          enter(PHLMONITOR monitor);
+    void                          leave(PHLMONITOR monitor);
     void                          sendPreferredTransform(wl_output_transform t);
     void                          sendPreferredScale(int32_t scale);
     void                          frame(timespec* now);
@@ -115,7 +115,7 @@ class CWLSurfaceResource {
     std::vector<SP<CWLCallbackResource>>   callbacks;
     WP<CWLSurfaceResource>                 self;
     WP<CWLSurface>                         hlSurface;
-    std::vector<WP<CMonitor>>              enteredOutputs;
+    std::vector<PHLMONITORREF>             enteredOutputs;
     bool                                   mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> subsurfaces;
     SP<ISurfaceRole>                       role;
@@ -124,7 +124,7 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     CRegion                                accumulateCurrentBufferDamage();
-    void                                   presentFeedback(timespec* when, SP<CMonitor> pMonitor);
+    void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor);
     void                                   lockPendingState();
     void                                   unlockPendingState();
 

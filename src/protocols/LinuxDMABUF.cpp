@@ -21,7 +21,7 @@ static std::optional<dev_t> devIDFromFD(int fd) {
     return stat.st_rdev;
 }
 
-CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tranches_) :
+CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches_) :
     rendererTranche(_rendererTranche), monitorTranches(tranches_) {
 
     std::vector<SDMABUFFormatTableEntry>    formatsVec;
@@ -436,7 +436,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             .formats = g_pHyprOpenGL->getDRMFormats(),
         };
 
-        std::vector<std::pair<SP<CMonitor>, SDMABUFTranche>> tches;
+        std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tches;
 
         if (g_pCompositor->m_pAqBackend->hasSession()) {
             // this assumes there's only 1 device used for both scanout and rendering
@@ -453,20 +453,18 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
 
             static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
                 auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                auto mon      = pMonitor->self.lock();
                 auto tranche  = SDMABUFTranche{
                      .device  = mainDevice,
                      .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
-                     .formats = mon->output->getRenderFormats(),
+                     .formats = pMonitor->output->getRenderFormats(),
                 };
-                formatTable->monitorTranches.push_back(std::make_pair<>(mon, tranche));
+                formatTable->monitorTranches.push_back(std::make_pair<>(pMonitor, tranche));
                 resetFormatTable();
             });
 
             static auto monitorRemoved = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
                 auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                auto mon      = pMonitor->self.lock();
-                std::erase_if(formatTable->monitorTranches, [mon](std::pair<SP<CMonitor>, SDMABUFTranche> pair) { return pair.first == mon; });
+                std::erase_if(formatTable->monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
                 resetFormatTable();
             });
         }
@@ -508,8 +506,8 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     for (auto const& feedback : m_vFeedbacks) {
         feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
         if (feedback->lastFeedbackWasScanout) {
-            SP<CMonitor> mon;
-            auto         HLSurface = CWLSurface::fromResource(feedback->surface);
+            PHLMONITOR mon;
+            auto       HLSurface = CWLSurface::fromResource(feedback->surface);
             if (auto w = HLSurface->getWindow(); w)
                 if (auto m = g_pCompositor->getMonitorFromID(w->m_iMonitorID); m)
                     mon = m->self.lock();
@@ -560,7 +558,7 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
     std::erase_if(m_vBuffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, SP<CMonitor> pMonitor) {
+void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor) {
     SP<CLinuxDMABUFFeedbackResource> feedbackResource;
     for (auto const& f : m_vFeedbacks) {
         if (f->surface != surface)
@@ -582,7 +580,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
     }
 
     const auto& monitorTranchePair = std::find_if(formatTable->monitorTranches.begin(), formatTable->monitorTranches.end(),
-                                                  [pMonitor](std::pair<SP<CMonitor>, SDMABUFTranche> pair) { return pair.first == pMonitor; });
+                                                  [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
 
     if (monitorTranchePair == formatTable->monitorTranches.end()) {
         LOGM(LOG, "updateScanoutTranche: monitor has no tranche");

@@ -56,7 +56,7 @@ class CDRMLeaseRequestResource {
 
 class CDRMLeaseConnectorResource {
   public:
-    CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, SP<CMonitor> monitor_);
+    CDRMLeaseConnectorResource(SP<CWpDrmLeaseConnectorV1> resource_, PHLMONITOR monitor_);
     static SP<CDRMLeaseConnectorResource> fromResource(wl_resource*);
 
     bool                                  good();
@@ -64,7 +64,7 @@ class CDRMLeaseConnectorResource {
 
     WP<CDRMLeaseConnectorResource>        self;
     WP<CDRMLeaseDeviceResource>           parent;
-    WP<CMonitor>                          monitor;
+    PHLMONITORREF                         monitor;
     bool                                  dead = false;
 
   private:
@@ -82,7 +82,7 @@ class CDRMLeaseDeviceResource {
     CDRMLeaseDeviceResource(SP<CWpDrmLeaseDeviceV1> resource_);
 
     bool                                        good();
-    void                                        sendConnector(SP<CMonitor> monitor);
+    void                                        sendConnector(PHLMONITOR monitor);
 
     std::vector<WP<CDRMLeaseConnectorResource>> connectorsSent;
 
@@ -102,7 +102,7 @@ class CDRMLeaseDevice {
     bool                        success = false;
     SP<Aquamarine::CDRMBackend> backend;
 
-    std::vector<WP<CMonitor>>   offeredOutputs;
+    std::vector<PHLMONITORREF>  offeredOutputs;
 };
 
 class CDRMLeaseProtocol : public IWaylandProtocol {
@@ -111,7 +111,7 @@ class CDRMLeaseProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         offer(SP<CMonitor> monitor);
+    void         offer(PHLMONITOR monitor);
 
   private:
     void destroyResource(CDRMLeaseDeviceResource* resource);

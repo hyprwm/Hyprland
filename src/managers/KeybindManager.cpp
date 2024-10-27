@@ -349,9 +349,9 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
             g_pInputManager->m_pForcedFocus.reset();
         }
 
-        if (PLASTWINDOW && PLASTWINDOW->m_iMonitorID != PWINDOWTOCHANGETO->m_iMonitorID) {
+        if (PLASTWINDOW && PLASTWINDOW->m_pMonitor != PWINDOWTOCHANGETO->m_pMonitor) {
             // event
-            const auto PNEWMON = g_pCompositor->getMonitorFromID(PWINDOWTOCHANGETO->m_iMonitorID);
+            const auto PNEWMON = PWINDOWTOCHANGETO->m_pMonitor.lock();
 
             g_pCompositor->setActiveMonitor(PNEWMON);
         }
@@ -1011,7 +1011,7 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
     }
     g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
     g_pCompositor->updateWorkspaceWindowData(PWINDOW->workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     return {};
@@ -1035,7 +1035,7 @@ SDispatchResult CKeybindManager::centerWindow(std::string args) {
     if (!PWINDOW || !PWINDOW->m_bIsFloating || PWINDOW->isFullscreen())
         return {.success = false, .error = "No floating window found"};
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const auto PMONITOR = PWINDOW->m_pMonitor.lock();
 
     auto       RESERVEDOFFSET = Vector2D();
     if (args == "1")
@@ -1081,7 +1081,7 @@ SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCU
 
     const auto ID = PCURRENTWORKSPACE->m_iID;
     if (const auto PWORKSPACETOCHANGETO = g_pCompositor->getWorkspaceByID(PPREVWS.id); PWORKSPACETOCHANGETO) {
-        if (PER_MON && PCURRENTWORKSPACE->m_iMonitorID != PWORKSPACETOCHANGETO->m_iMonitorID)
+        if (PER_MON && PCURRENTWORKSPACE->m_pMonitor != PWORKSPACETOCHANGETO->m_pMonitor)
             return {WORKSPACE_NOT_CHANGED, ""};
         return {ID, PWORKSPACETOCHANGETO->m_szName};
     }
@@ -1135,7 +1135,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
     g_pInputManager->releaseAllMouseButtons();
 
-    const auto PMONITORWORKSPACEOWNER = PMONITOR->ID == pWorkspaceToChangeTo->m_iMonitorID ? PMONITOR : g_pCompositor->getMonitorFromID(pWorkspaceToChangeTo->m_iMonitorID);
+    const auto PMONITORWORKSPACEOWNER = PMONITOR == pWorkspaceToChangeTo->m_pMonitor ? PMONITOR : pWorkspaceToChangeTo->m_pMonitor.lock();
 
     if (!PMONITORWORKSPACEOWNER)
         return {.success = false, .error = "Workspace to switch to has no monitor"};
@@ -1270,11 +1270,11 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
-        pMonitor = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        pMonitor = pWorkspace->m_pMonitor.lock();
         g_pCompositor->setActiveMonitor(pMonitor);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
-        pMonitor   = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->monitorID(), workspaceName, false);
+        pMonitor   = pWorkspace->m_pMonitor.lock();
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
@@ -1283,7 +1283,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
     if (pWorkspace->m_bIsSpecialWorkspace)
         pMonitor->setSpecialWorkspace(pWorkspace);
     else if (POLDWS->m_bIsSpecialWorkspace)
-        g_pCompositor->getMonitorFromID(POLDWS->m_iMonitorID)->setSpecialWorkspace(nullptr);
+        POLDWS->m_pMonitor.lock()->setSpecialWorkspace(nullptr);
 
     if (*PALLOWWORKSPACECYCLES)
         pWorkspace->rememberPrevWorkspace(POLDWS);
@@ -1328,7 +1328,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     if (pWorkspace) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     } else {
-        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->m_iMonitorID, workspaceName, false);
+        pWorkspace = g_pCompositor->createNewWorkspace(WORKSPACEID, PWINDOW->monitorID(), workspaceName, false);
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
@@ -1475,7 +1475,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
 
     if (PLASTWINDOW->m_bIsFloating) {
         std::optional<float> vPosx, vPosy;
-        const auto           PMONITOR   = g_pCompositor->getMonitorFromID(PLASTWINDOW->m_iMonitorID);
+        const auto           PMONITOR   = PLASTWINDOW->m_pMonitor.lock();
         const auto           BORDERSIZE = PLASTWINDOW->getRealBorderSize();
 
         switch (arg) {
@@ -1882,8 +1882,8 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
         workspaceID = pWorkspace->m_iID;
     }
 
-    if (pWorkspace->m_iMonitorID != PCURRMONITOR->ID) {
-        const auto POLDMONITOR = g_pCompositor->getMonitorFromID(pWorkspace->m_iMonitorID);
+    if (pWorkspace->m_pMonitor != PCURRMONITOR) {
+        const auto POLDMONITOR = pWorkspace->m_pMonitor.lock();
         if (!POLDMONITOR) { // wat
             Debug::log(ERR, "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!");
             return {.success = false, .error = "focusWorkspaceOnCurrentMonitor old monitor doesn't exist!"};
@@ -2509,7 +2509,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
 
     PWINDOW->m_bPinned = !PWINDOW->m_bPinned;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID);
+    const auto PMONITOR = PWINDOW->m_pMonitor.lock();
 
     if (!PMONITOR) {
         Debug::log(ERR, "pin: monitor not found");
@@ -2658,9 +2658,9 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 
     g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes groupped property!
 
-    if (pWindow->m_iMonitorID != pWindowInDirection->m_iMonitorID) {
+    if (pWindow->m_pMonitor != pWindowInDirection->m_pMonitor) {
         pWindow->moveToWorkspace(pWindowInDirection->m_pWorkspace);
-        pWindow->m_iMonitorID = pWindowInDirection->m_iMonitorID;
+        pWindow->m_pMonitor = pWindowInDirection->m_pMonitor;
     }
 
     static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");

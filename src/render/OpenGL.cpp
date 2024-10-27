@@ -693,7 +693,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(PHLMONITOR pMonitor) {
 
     if (*PBLURSPECIAL) {
         for (auto const& ws : g_pCompositor->m_vWorkspaces) {
-            if (!ws->m_bIsSpecialWorkspace || ws->m_iMonitorID != pMonitor->ID)
+            if (!ws->m_bIsSpecialWorkspace || ws->m_pMonitor != pMonitor)
                 continue;
 
             if (ws->m_fAlpha.value() == 0)
@@ -2219,7 +2219,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
 
 void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFramebuffer) {
     // we trust the window is valid.
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
@@ -2267,7 +2267,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFr
 
 void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
     // we trust the window is valid.
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
@@ -2319,7 +2319,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
 
 void CHyprOpenGLImpl::makeLayerSnapshot(PHLLS pLayer) {
     // we trust the window is valid.
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
+    const auto PMONITOR = pLayer->monitor.lock();
 
     if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
         return;
@@ -2372,7 +2372,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
     if (!FBDATA->m_cTex->m_iTexID)
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     CBox       windowBox;
     // some mafs to figure out the correct box
@@ -2411,7 +2411,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
     if (!FBDATA->m_cTex->m_iTexID)
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pLayer->monitorID);
+    const auto PMONITOR = pLayer->monitor.lock();
 
     CBox       layerBox;
     // some mafs to figure out the correct box

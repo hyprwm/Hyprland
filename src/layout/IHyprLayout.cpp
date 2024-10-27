@@ -429,11 +429,10 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     CBox         sourceBox          = CBox{sourcePos, sourceSize}.expand(DRAGGINGBORDERSIZE);
 
     if (*SNAPWINDOWGAP) {
-        const auto PID  = DRAGGINGWINDOW->getPID();
         const auto WSID = DRAGGINGWINDOW->workspaceID();
 
         for (auto& other : g_pCompositor->m_vWindows) {
-            if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
+            if (other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
                 continue;
 
             const int      BORDERSIZE = other->getRealBorderSize();

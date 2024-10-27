@@ -184,22 +184,20 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 }
 
 bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
-    static auto PAUTOGROUP = CConfigValue<Hyprlang::INT>("group:auto_group");
-    PHLWINDOW   OPENINGON  = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
-           g_pCompositor->m_pLastWindow.lock() :
-           g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
+    static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
+    const PHLWINDOW OPENINGON        = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
+               g_pCompositor->m_pLastWindow.lock() :
+               g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
+    const bool      FLOATEDINTOTILED = pWindow->m_bIsFloating && !OPENINGON->m_bIsFloating;
+    const bool      SWALLOWING       = pWindow->m_pSwallowed || pWindow->m_bGroupSwallowed;
 
-    bool        denied = false;
-    if (pWindow->m_bIsFloating && !OPENINGON->m_bIsFloating)
-        denied = true;
-
-    if (*PAUTOGROUP                                      // check if auto_group is enabled.
+    if ((*PAUTOGROUP || SWALLOWING)                      // continue if auto_group is enabled or if dealing with window swallowing.
         && OPENINGON                                     // this shouldn't be 0, but honestly, better safe than sorry.
         && OPENINGON != pWindow                          // prevent freeze when the "group set" window rule makes the new window to be already a group.
         && OPENINGON->m_sGroupData.pNextWindow.lock()    // check if OPENINGON is a group.
         && pWindow->canBeGroupedInto(OPENINGON)          // check if the new window can be grouped into OPENINGON.
-        && !g_pXWaylandManager->shouldBeFloated(pWindow) // don't group child windows. Fix for floated groups. Tiled groups don't need this because we check if !denied.
-        && !denied) {                                    // don't group a new floated window into a tiled group (for convenience).
+        && !g_pXWaylandManager->shouldBeFloated(pWindow) // don't group child windows. Fix for floated groups. Tiled groups don't need this because we check if !FLOATEDINTOTILED.
+        && !FLOATEDINTOTILED) {                          // don't group a new floated window into a tiled group (for convenience).
 
         pWindow->m_bIsFloating = OPENINGON->m_bIsFloating; // match the floating state. Needed to autogroup a new tiled window into a floated group.
 
@@ -341,12 +339,9 @@ void IHyprLayout::onEndDragWindow() {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
                 return;
 
-            bool denied = false;
-            if (!pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled)
-                denied = true;
-
-            static auto PDRAGINTOGROUP = CConfigValue<Hyprlang::INT>("group:drag_into_group");
-            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !denied) {
+            const bool  FLOATEDINTOTILED = !pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled;
+            static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+            if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
                 if (DRAGGINGWINDOW->m_bDraggingTiled) {
                     changeWindowFloatingMode(DRAGGINGWINDOW);
                     DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;

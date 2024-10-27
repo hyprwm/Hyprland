@@ -26,7 +26,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->layer     = resource->current.layer;
     pLS->popupHead = std::make_unique<CPopup>(pLS);
-    pLS->monitorID = pMonitor->ID;
+    pLS->monitor   = pMonitor;
     pMonitor->m_aLayerSurfaceLayers[resource->current.layer].emplace_back(pLS);
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);
@@ -50,7 +50,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 void CLayerSurface::registerCallbacks() {
     alpha.setUpdateCallback([this](void*) {
         if (dimAround)
-            g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(monitorID));
+            g_pHyprRenderer->damageMonitor(monitor.lock());
     });
 }
 
@@ -82,9 +82,9 @@ CLayerSurface::~CLayerSurface() {
 void CLayerSurface::onDestroy() {
     Debug::log(LOG, "LayerSurface {:x} destroyed", (uintptr_t)layerSurface.get());
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
+    const auto PMONITOR = monitor.lock();
 
-    if (!g_pCompositor->getMonitorFromID(monitorID))
+    if (!PMONITOR)
         Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!fadingOut) {
@@ -137,7 +137,7 @@ void CLayerSurface::onMap() {
     g_pCompositor->removeFromFadingOutSafe(self.lock());
 
     // fix if it changed its mon
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
+    const auto PMONITOR = monitor.lock();
 
     if (!PMONITOR)
         return;
@@ -197,7 +197,7 @@ void CLayerSurface::onUnmap() {
 
     std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
-    if (!g_pCompositor->getMonitorFromID(monitorID) || g_pCompositor->m_bUnsafeState) {
+    if (!monitor || g_pCompositor->m_bUnsafeState) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(self.lock());
@@ -221,7 +221,7 @@ void CLayerSurface::onUnmap() {
 
     g_pCompositor->addToFadingOutSafe(self.lock());
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
+    const auto PMONITOR = monitor.lock();
 
     const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
 
@@ -256,13 +256,13 @@ void CLayerSurface::onCommit() {
         if (layerSurface->surface && !layerSurface->surface->current.texture) {
             fadingOut = false;
             geometry  = {};
-            g_pHyprRenderer->arrangeLayersForMonitor(monitorID);
+            g_pHyprRenderer->arrangeLayersForMonitor(monitorID());
         }
 
         return;
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitorID);
+    const auto PMONITOR = monitor.lock();
 
     if (!PMONITOR)
         return;
@@ -336,7 +336,7 @@ void CLayerSurface::onCommit() {
             // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
             // so unfocus the surface here.
             g_pCompositor->focusSurface(nullptr);
-            g_pInputManager->refocusLastWindow(g_pCompositor->getMonitorFromID(monitorID));
+            g_pInputManager->refocusLastWindow(monitor.lock());
         } else if (!WASEXCLUSIVE && ISEXCLUSIVE) {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
@@ -544,4 +544,8 @@ int CLayerSurface::popupsCount() {
     int no = -1; // we have one dummy
     popupHead->breadthfirst([](CPopup* p, void* data) { *(int*)data += 1; }, &no);
     return no;
+}
+
+MONITORID CLayerSurface::monitorID() {
+    return monitor ? monitor->ID : MONITOR_INVALID;
 }

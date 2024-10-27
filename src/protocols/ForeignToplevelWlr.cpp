@@ -207,7 +207,7 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
     resource->sendToplevel(NEWHANDLE->resource.get());
     NEWHANDLE->resource->sendAppId(pWindow->m_szClass.c_str());
     NEWHANDLE->resource->sendTitle(pWindow->m_szTitle.c_str());
-    if (const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID); PMONITOR)
+    if (const auto PMONITOR = pWindow->m_pMonitor.lock(); PMONITOR)
         NEWHANDLE->sendMonitor(PMONITOR);
     NEWHANDLE->sendState();
     NEWHANDLE->resource->sendDone();
@@ -266,7 +266,7 @@ void CForeignToplevelWlrManager::onMoveMonitor(PHLWINDOW pWindow) {
     if (!H || H->closed)
         return;
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     if (!PMONITOR)
         return;

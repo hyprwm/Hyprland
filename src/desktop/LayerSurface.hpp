@@ -42,7 +42,7 @@ class CLayerSurface {
     bool                       mapped = false;
     uint32_t                   layer  = 0;
 
-    MONITORID                  monitorID = -1;
+    PHLMONITORREF              monitor;
 
     bool                       fadingOut     = false;
     bool                       readyToDelete = false;
@@ -70,6 +70,7 @@ class CLayerSurface {
     void                       onMap();
     void                       onUnmap();
     void                       onCommit();
+    MONITORID                  monitorID();
 
   private:
     struct {
@@ -83,6 +84,6 @@ class CLayerSurface {
 
     // For the list lookup
     bool operator==(const CLayerSurface& rhs) const {
-        return layerSurface == rhs.layerSurface && monitorID == rhs.monitorID;
+        return layerSurface == rhs.layerSurface && monitor == rhs.monitor;
     }
 };

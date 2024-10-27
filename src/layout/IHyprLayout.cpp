@@ -13,7 +13,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
-        const auto PMONITOR          = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+        const auto PMONITOR          = pWindow->m_pMonitor.lock();
         pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
     } else
         pWindow->m_vLastFloatingSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
@@ -88,7 +88,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
     CBox desiredGeometry = {0};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     if (pWindow->m_bIsX11) {
         Vector2D xy       = {desiredGeometry.x, desiredGeometry.y};
@@ -485,7 +485,7 @@ static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW,
     }
 
     if (*SNAPMONITORGAP) {
-        const auto   MON = g_pCompositor->getMonitorFromID(DRAGGINGWINDOW->m_iMonitorID);
+        const auto   MON = DRAGGINGWINDOW->m_pMonitor.lock();
         const CBox   mon = {MON->vecPosition.x, MON->vecPosition.y, MON->vecPosition.x + MON->vecSize.x, MON->vecPosition.y + MON->vecSize.y};
         const double gap = *SNAPMONITORGAP;
 
@@ -677,7 +677,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
 
     if (PMONITOR && !SPECIAL) {
-        DRAGGINGWINDOW->m_iMonitorID = PMONITOR->ID;
+        DRAGGINGWINDOW->m_pMonitor = PMONITOR;
         DRAGGINGWINDOW->moveToWorkspace(PMONITOR->activeWorkspace);
         DRAGGINGWINDOW->updateGroupOutputs();
 
@@ -705,8 +705,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {
-        const auto PNEWMON    = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.value() + pWindow->m_vRealSize.value() / 2.f);
-        pWindow->m_iMonitorID = PNEWMON->ID;
+        const auto PNEWMON  = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.value() + pWindow->m_vRealSize.value() / 2.f);
+        pWindow->m_pMonitor = PNEWMON;
         pWindow->moveToWorkspace(PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace);
         pWindow->updateGroupOutputs();
 
@@ -734,7 +734,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         pWindow->m_vRealSize.setValue(PSAVEDSIZE);
 
         // fix pseudo leaving artifacts
-        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
+        g_pHyprRenderer->damageMonitor(pWindow->m_pMonitor.lock());
 
         if (pWindow == g_pCompositor->m_pLastWindow)
             m_pLastTiledWindow = pWindow;
@@ -757,7 +757,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         pWindow->m_vSize     = wb.pos();
         pWindow->m_vPosition = wb.size();
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID));
+        g_pHyprRenderer->damageMonitor(pWindow->m_pMonitor.lock());
 
         pWindow->unsetWindowData(PRIORITY_LAYOUT);
         pWindow->updateWindowData();
@@ -847,7 +847,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
-        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_iMonitorID != g_pCompositor->m_pLastMonitor->ID)
+        pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_pMonitor != g_pCompositor->m_pLastMonitor)
         return nullptr;
 
     return pWindowCandidate;

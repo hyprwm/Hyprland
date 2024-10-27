@@ -272,12 +272,12 @@ class CWindow {
     bool             m_bDraggingTiled   = false; // for dragging around tiled windows
     bool             m_bWasMaximized    = false;
     sFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-    MONITORID        m_iMonitorID       = -1;
     std::string      m_szTitle          = "";
     std::string      m_szClass          = "";
     std::string      m_szInitialTitle   = "";
     std::string      m_szInitialClass   = "";
     PHLWORKSPACE     m_pWorkspace;
+    PHLMONITORREF    m_pMonitor;
 
     bool             m_bIsMapped = false;
 
@@ -429,6 +429,7 @@ class CWindow {
     void                   setSuspended(bool suspend);
     bool                   visibleOnMonitor(PHLMONITOR pMonitor);
     WORKSPACEID            workspaceID();
+    MONITORID              monitorID();
     bool                   onSpecialWorkspace();
     void                   activate(bool force = false);
     int                    surfacesCount();
@@ -559,7 +560,7 @@ struct std::formatter<PHLWINDOW, CharT> : std::formatter<CharT> {
         if (formatWorkspace)
             std::format_to(out, ", workspace: {}", w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID);
         if (formatMonitor)
-            std::format_to(out, ", monitor: {}", w->m_iMonitorID);
+            std::format_to(out, ", monitor: {}", w->monitorID());
         if (formatClass)
             std::format_to(out, ", class: {}", w->m_szClass);
         return std::format_to(out, "]");

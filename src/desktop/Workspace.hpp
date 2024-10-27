@@ -17,16 +17,16 @@ class CWindow;
 
 class CWorkspace {
   public:
-    static PHLWORKSPACE create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmpty = true);
+    static PHLWORKSPACE create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     // use create() don't use this
-    CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special = false, bool isEmpty = true);
+    CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
-    WORKSPACEID m_iID        = WORKSPACE_INVALID;
-    std::string m_szName     = "";
-    MONITORID   m_iMonitorID = MONITOR_INVALID;
+    WORKSPACEID   m_iID    = WORKSPACE_INVALID;
+    std::string   m_szName = "";
+    PHLMONITORREF m_pMonitor;
     // Previous workspace ID and name is stored during a workspace change, allowing travel
     // to the previous workspace.
     SWorkspaceIDName m_sPrevWorkspace, m_sPrevWorkspacePerMonitor;
@@ -68,6 +68,7 @@ class CWorkspace {
     void             setActive(bool on);
 
     void             moveToMonitor(const MONITORID&);
+    MONITORID        monitorID();
 
     PHLWINDOW        getLastFocusedWindow();
     void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);

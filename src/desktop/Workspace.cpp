@@ -5,14 +5,14 @@
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
-PHLWORKSPACE CWorkspace::create(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
-    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitorID, name, special, isEmpty);
+PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
+    PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
     workspace->init(workspace);
     return workspace;
 }
 
-CWorkspace::CWorkspace(WORKSPACEID id, MONITORID monitorID, std::string name, bool special, bool isEmpty) {
-    m_iMonitorID          = monitorID;
+CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
+    m_pMonitor            = monitor;
     m_iID                 = id;
     m_szName              = name;
     m_bIsSpecialWorkspace = special;
@@ -103,7 +103,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     });
 
     if (ANIMSTYLE.starts_with("slidefade")) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR = m_pMonitor.lock();
         float      movePerc = 100.f;
 
         if (ANIMSTYLE.find("%") != std::string::npos) {
@@ -151,7 +151,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         }
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
-        const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR  = m_pMonitor.lock();
         const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
@@ -164,7 +164,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         }
     } else {
         // fallback is slide
-        const auto PMONITOR  = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR  = m_pMonitor.lock();
         const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
 
         m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
@@ -224,7 +224,7 @@ void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
     m_sPrevWorkspace.id   = prev->m_iID;
     m_sPrevWorkspace.name = prev->m_szName;
 
-    if (prev->m_iMonitorID == m_iMonitorID) {
+    if (prev->m_pMonitor == m_pMonitor) {
         m_sPrevWorkspacePerMonitor.id   = prev->m_iID;
         m_sPrevWorkspacePerMonitor.name = prev->m_szName;
     }
@@ -347,7 +347,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 const auto PMONITOR = g_pCompositor->getMonitorFromString(prop);
 
-                if (!(PMONITOR ? PMONITOR->ID == m_iMonitorID : false))
+                if (!(PMONITOR ? PMONITOR == m_pMonitor : false))
                     return false;
                 continue;
             }
@@ -512,12 +512,16 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 }
 
 void CWorkspace::markInert() {
-    m_bInert     = true;
-    m_iID        = WORKSPACE_INVALID;
-    m_iMonitorID = MONITOR_INVALID;
-    m_bVisible   = false;
+    m_bInert   = true;
+    m_iID      = WORKSPACE_INVALID;
+    m_bVisible = false;
+    m_pMonitor.reset();
 }
 
 bool CWorkspace::inert() {
     return m_bInert;
+}
+
+MONITORID CWorkspace::monitorID() {
+    return m_pMonitor ? m_pMonitor->ID : MONITOR_INVALID;
 }

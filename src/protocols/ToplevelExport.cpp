@@ -97,7 +97,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { this->copy(pFrame, res, ignoreDamage); });
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     g_pHyprRenderer->makeEGLCurrent();
 
@@ -239,7 +239,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
     // render the client
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
     CRegion    fakeDamage{0, 0, PMONITOR->vecPixelSize.x * 10, PMONITOR->vecPixelSize.y * 10};
 
     g_pHyprRenderer->makeEGLCurrent();
@@ -296,7 +296,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
 }
 
 bool CToplevelExportFrame::copyDmabuf(timespec* now) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(pWindow->m_iMonitorID);
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
@@ -383,7 +383,7 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
 
         const auto PWINDOW = f->pWindow;
 
-        if (pMonitor != g_pCompositor->getMonitorFromID(PWINDOW->m_iMonitorID))
+        if (pMonitor != PWINDOW->m_pMonitor.lock())
             continue;
 
         CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};

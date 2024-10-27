@@ -123,7 +123,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         return;
     }
     if (validMapped(m_sTouchData.touchFocusWindow)) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusWindow->m_iMonitorID);
+        const auto PMONITOR = m_sTouchData.touchFocusWindow->m_pMonitor.lock();
 
         g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 
@@ -133,7 +133,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, local);
     } else if (!m_sTouchData.touchFocusLS.expired()) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_sTouchData.touchFocusLS->monitorID);
+        const auto PMONITOR = m_sTouchData.touchFocusLS->monitor.lock();
 
         g_pCompositor->warpCursorTo({PMONITOR->vecPosition.x + e.pos.x * PMONITOR->vecSize.x, PMONITOR->vecPosition.y + e.pos.y * PMONITOR->vecSize.y}, true);
 

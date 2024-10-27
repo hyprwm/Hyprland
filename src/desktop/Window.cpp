@@ -113,7 +113,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_sWindowData.dimAround.valueOrDefault()) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
             return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
                     {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
     }
@@ -173,7 +173,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
 CBox CWindow::getFullWindowBoundingBox() {
     if (m_sWindowData.dimAround.valueOrDefault()) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
 
@@ -186,7 +186,7 @@ CBox CWindow::getFullWindowBoundingBox() {
 }
 
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+    const auto PMONITOR = m_pMonitor.lock();
 
     if (!PMONITOR)
         return {m_vPosition, m_vSize};
@@ -221,7 +221,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
 CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     if (m_sWindowData.dimAround.valueOrDefault()) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR = m_pMonitor.lock();
         if (PMONITOR)
             return {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
     }
@@ -352,9 +352,9 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_iLastSurfaceMonitorID);
 
-    m_iLastSurfaceMonitorID = m_iMonitorID;
+    m_iLastSurfaceMonitorID = monitorID();
 
-    const auto PNEWMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+    const auto PNEWMONITOR = m_pMonitor.lock();
 
     if (!PNEWMONITOR)
         return;
@@ -366,10 +366,10 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
         m_pWLSurface->resource()->breadthfirst([PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PNEWMONITOR->self.lock()); }, nullptr);
     }
 
-    m_pWLSurface->resource()->breadthfirst(
-        [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+    const auto PMONITOR = m_pMonitor.lock();
 
+    m_pWLSurface->resource()->breadthfirst(
+        [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
             if (PSURFACE && PSURFACE->m_fLastScale == PMONITOR->scale)
                 return;
@@ -404,7 +404,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_pWorkspace;
 
-    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->m_iMonitorID : -1;
+    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
     m_fMovingToWorkspaceAlpha.setValueAndWarp(1.F);
     m_fMovingToWorkspaceAlpha = 0.F;
     m_fMovingToWorkspaceAlpha.setCallbackOnEnd([this](void* thisptr) { m_iMonitorMovedFrom = -1; });
@@ -415,11 +415,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
     g_pCompositor->updateWorkspaceWindowData(OLDWORKSPACE->m_iID);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceWindowData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -431,14 +431,14 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     if (const auto SWALLOWED = m_pSwallowed.lock()) {
         SWALLOWED->moveToWorkspace(pWorkspace);
-        SWALLOWED->m_iMonitorID = m_iMonitorID;
+        SWALLOWED->m_pMonitor = m_pMonitor;
     }
 
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.value());
 
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE->m_iID) == 0 && *PCLOSEONLASTSPECIAL) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(OLDWORKSPACE->m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 }
@@ -517,19 +517,19 @@ void CWindow::onUnmap() {
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other.expired() || other.lock().get() == this; });
 
     if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(workspaceID()) == 0 && onSpecialWorkspace()) {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+        const auto PMONITOR = m_pMonitor.lock();
         if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace == m_pWorkspace)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID);
+    const auto PMONITOR = m_pMonitor.lock();
 
     if (PMONITOR && PMONITOR->solitaryClient.lock().get() == this)
         PMONITOR->solitaryClient.reset();
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceWindowData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_pWorkspace.reset();
@@ -790,7 +790,7 @@ void CWindow::updateDynamicRules() {
 
     EMIT_HOOK_EVENT("windowUpdateRules", m_pSelf.lock());
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -857,7 +857,7 @@ void CWindow::createGroup() {
 
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceWindowData(workspaceID());
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("1,{:x}", (uintptr_t)this)});
@@ -875,7 +875,7 @@ void CWindow::destroyGroup() {
         updateWindowDecos();
         g_pCompositor->updateWorkspaceWindows(workspaceID());
         g_pCompositor->updateWorkspaceWindowData(workspaceID());
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{"togglegroup", std::format("0,{:x}", (uintptr_t)this)});
@@ -911,7 +911,7 @@ void CWindow::destroyGroup() {
 
     g_pCompositor->updateWorkspaceWindows(workspaceID());
     g_pCompositor->updateWorkspaceWindowData(workspaceID());
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_iMonitorID);
+    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (!addresses.empty())
@@ -1087,7 +1087,7 @@ void CWindow::updateGroupOutputs() {
     const auto WS = m_pWorkspace;
 
     while (curr.get() != this) {
-        curr->m_iMonitorID = m_iMonitorID;
+        curr->m_pMonitor = m_pMonitor;
         curr->moveToWorkspace(WS);
 
         curr->m_vRealPosition = m_vRealPosition.goal();
@@ -1209,7 +1209,7 @@ void CWindow::onWorkspaceAnimUpdate() {
     if (!PWORKSPACE)
         return;
 
-    const auto PWSMON = g_pCompositor->getMonitorFromID(PWORKSPACE->m_iMonitorID);
+    const auto PWSMON = m_pMonitor.lock();
     if (!PWSMON)
         return;
 
@@ -1273,6 +1273,10 @@ bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
 
 WORKSPACEID CWindow::workspaceID() {
     return m_pWorkspace ? m_pWorkspace->m_iID : m_iLastWorkspace;
+}
+
+MONITORID CWindow::monitorID() {
+    return m_pMonitor ? m_pMonitor->ID : MONITOR_INVALID;
 }
 
 bool CWindow::onSpecialWorkspace() {
@@ -1461,7 +1465,7 @@ void CWindow::onX11Configure(CBox box) {
         m_pXWaylandSurface->configure(box);
         m_vPendingReportedSize = box.size();
         m_vReportedSize        = box.size();
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR)
+        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
             m_fX11SurfaceScaledBy = PMONITOR->scale;
         return;
     }
@@ -1487,7 +1491,7 @@ void CWindow::onX11Configure(CBox box) {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
     if (*PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = g_pCompositor->getMonitorFromID(m_iMonitorID); PMONITOR) {
+        if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR) {
             m_vRealSize.setValueAndWarp(m_vRealSize.goal() / PMONITOR->scale);
             m_fX11SurfaceScaledBy = PMONITOR->scale;
         }

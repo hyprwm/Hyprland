@@ -44,8 +44,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
     static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PSWALLOW           = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
-    static auto PSWALLOWREGEX      = CConfigValue<std::string>("misc:swallow_regex");
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:new_window_takes_over_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
@@ -322,6 +320,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->updateWindowData();
 
+    // Verify window swallowing. Get the swallower before calling onWindowCreated(PWINDOW) because getSwallower() wouldn't get it after if PWINDOW gets auto grouped.
+    const auto SWALLOWER  = PWINDOW->getSwallower();
+    PWINDOW->m_pSwallowed = SWALLOWER;
+
     if (PWINDOW->m_bIsFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW);
         PWINDOW->m_bCreatedOverFullscreen = true;
@@ -567,20 +569,12 @@ void Events::listener_mapWindow(void* owner, void* data) {
             g_pCompositor->focusWindow(nullptr);
     }
 
-    // verify swallowing
-    if (*PSWALLOW && std::string{*PSWALLOWREGEX} != STRVAL_EMPTY) {
-        const auto SWALLOWER = PWINDOW->getSwallower();
-
-        if (SWALLOWER) {
-            // swallow
-            PWINDOW->m_pSwallowed = SWALLOWER;
-
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
-
-            SWALLOWER->setHidden(true);
-
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
-        }
+    // swallow
+    if (SWALLOWER) {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
+        g_pHyprRenderer->damageWindow(SWALLOWER);
+        SWALLOWER->setHidden(true);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->m_iMonitorID);
     }
 
     PWINDOW->m_bFirstMap = false;
@@ -662,7 +656,13 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     // swallowing
     if (valid(PWINDOW->m_pSwallowed)) {
         PWINDOW->m_pSwallowed->setHidden(false);
+
+        if (PWINDOW->m_sGroupData.pNextWindow.lock())
+            PWINDOW->m_pSwallowed->m_bGroupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
+
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(PWINDOW->m_pSwallowed.lock());
+
+        PWINDOW->m_pSwallowed->m_bGroupSwallowed = false;
         PWINDOW->m_pSwallowed.reset();
     }
 

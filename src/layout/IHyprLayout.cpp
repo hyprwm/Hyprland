@@ -415,7 +415,7 @@ static void snapResizeRight(double& pos, double& len, const double p) {
 
 typedef std::function<void(double&, double&, const double)> SnapFn;
 
-static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode mode, const int corner, const Vector2D& beginSize) {
+static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode mode, const int corner, const Vector2D& beginSize) {
     static auto  SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
     static auto  SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
 
@@ -425,59 +425,59 @@ static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW,
     const SnapFn snapUp    = snapLeft;
     int          snaps     = 0;
 
+    const int    DRAGGINGBORDERSIZE = DRAGGINGWINDOW->getRealBorderSize();
+    CBox         sourceBox          = CBox{sourcePos, sourceSize}.expand(DRAGGINGBORDERSIZE);
+
     if (*SNAPWINDOWGAP) {
         const auto PID  = DRAGGINGWINDOW->getPID();
         const auto WSID = DRAGGINGWINDOW->workspaceID();
-        const int  BORD = DRAGGINGWINDOW->getRealBorderSize();
 
         for (auto& other : g_pCompositor->m_vWindows) {
             if (other->workspaceID() != WSID || other->getPID() == PID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
                 continue;
 
-            const int      bord = std::max(BORD, other->getRealBorderSize());
-            const double   gap  = *SNAPWINDOWGAP + bord;
+            const int      BORDERSIZE = other->getRealBorderSize();
+            const double   GAPSIZE    = *SNAPWINDOWGAP + BORDERSIZE;
 
-            const CBox     box = other->getWindowMainSurfaceBox();
-            const CBox     ob  = {box.x, box.y, box.x + box.w, box.y + box.h};
-            const CBox     bb  = {ob.x - bord, ob.y - bord, ob.w + bord, ob.h + bord};
-            const Vector2D end = {pos.x + size.x, pos.y + size.y};
+            const CBox     SURFBB = other->getWindowMainSurfaceBox().expand(BORDERSIZE);
+            const Vector2D end    = sourceBox.pos() + sourceBox.size();
 
             // only snap windows if their ranges intersect in the opposite axis
-            if (pos.y <= bb.h && bb.y <= end.y) {
-                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, bb.w, gap)) {
-                    snapLeft(pos.x, size.x, bb.w);
+            if (sourceBox.y <= SURFBB.y + SURFBB.h && SURFBB.y <= end.y) {
+                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceBox.x, SURFBB.x + SURFBB.w, GAPSIZE)) {
+                    snapLeft(sourceBox.x, sourceBox.w, SURFBB.x + SURFBB.w);
                     snaps |= SNAP_LEFT;
-                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, bb.x, gap)) {
-                    snapRight(pos.x, size.x, bb.x);
+                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, SURFBB.x, GAPSIZE)) {
+                    snapRight(sourceBox.x, sourceBox.w, SURFBB.x);
                     snaps |= SNAP_RIGHT;
                 }
             }
-            if (pos.x <= bb.w && bb.x <= end.x) {
-                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, bb.h, gap)) {
-                    snapUp(pos.y, size.y, bb.h);
+            if (sourceBox.x <= SURFBB.x + SURFBB.w && SURFBB.x <= end.x) {
+                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceBox.y, SURFBB.y + SURFBB.h, GAPSIZE)) {
+                    snapUp(sourceBox.y, sourceBox.h, SURFBB.y + SURFBB.h);
                     snaps |= SNAP_UP;
-                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, bb.y, gap)) {
-                    snapDown(pos.y, size.y, bb.y);
+                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, SURFBB.y, GAPSIZE)) {
+                    snapDown(sourceBox.y, sourceBox.h, SURFBB.y);
                     snaps |= SNAP_DOWN;
                 }
             }
 
             // corner snapping
-            if (pos.x == bb.w || bb.x == pos.x + size.x) {
-                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(pos.y, ob.y, gap)) {
-                    snapUp(pos.y, size.y, ob.y);
+            if (sourceBox.x == SURFBB.x + SURFBB.w || SURFBB.x == sourceBox.x + sourceBox.w) {
+                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceBox.y, SURFBB.y, GAPSIZE)) {
+                    snapUp(sourceBox.y, sourceBox.w, SURFBB.y);
                     snaps |= SNAP_UP;
-                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, ob.h, gap)) {
-                    snapDown(pos.y, size.y, ob.h);
+                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, SURFBB.y + SURFBB.h, GAPSIZE)) {
+                    snapDown(sourceBox.y, sourceBox.h, SURFBB.y + SURFBB.h);
                     snaps |= SNAP_DOWN;
                 }
             }
-            if (pos.y == bb.h || bb.y == pos.y + size.y) {
-                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(pos.x, ob.x, gap)) {
-                    snapLeft(pos.x, size.x, ob.x);
+            if (sourceBox.y == SURFBB.y + SURFBB.h || SURFBB.y == sourceBox.y + sourceBox.w) {
+                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceBox.x, SURFBB.x, GAPSIZE)) {
+                    snapLeft(sourceBox.x, sourceBox.w, SURFBB.x);
                     snaps |= SNAP_LEFT;
-                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, ob.w, gap)) {
-                    snapRight(pos.x, size.x, ob.w);
+                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, SURFBB.x + SURFBB.w, GAPSIZE)) {
+                    snapRight(sourceBox.x, sourceBox.w, SURFBB.x + SURFBB.w);
                     snaps |= SNAP_RIGHT;
                 }
             }
@@ -485,24 +485,26 @@ static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW,
     }
 
     if (*SNAPMONITORGAP) {
-        const auto   MON = DRAGGINGWINDOW->m_pMonitor.lock();
-        const CBox   mon = {MON->vecPosition.x, MON->vecPosition.y, MON->vecPosition.x + MON->vecSize.x, MON->vecPosition.y + MON->vecSize.y};
+        const auto MON = DRAGGINGWINDOW->m_pMonitor.lock();
+        const CBox mon =
+            CBox{MON->vecPosition.x + MON->vecReservedTopLeft.x, MON->vecPosition.y + MON->vecReservedTopLeft.y,
+                 MON->vecSize.x - MON->vecReservedTopLeft.x - MON->vecReservedBottomRight.x, MON->vecSize.y - MON->vecReservedBottomRight.y - MON->vecReservedTopLeft.y};
         const double gap = *SNAPMONITORGAP;
 
-        if (canSnap(pos.x, mon.x, gap)) {
-            snapLeft(pos.x, size.x, mon.x);
+        if (canSnap(sourceBox.x, mon.x, gap)) {
+            snapLeft(sourceBox.x, sourceBox.w, mon.x);
             snaps |= SNAP_LEFT;
         }
-        if (canSnap(pos.x + size.x, mon.w, gap)) {
-            snapRight(pos.x, size.x, mon.w);
+        if (canSnap(sourceBox.x + sourceBox.w, mon.x + mon.w, gap)) {
+            snapRight(sourceBox.x, sourceBox.w, mon.w + mon.x);
             snaps |= SNAP_RIGHT;
         }
-        if (canSnap(pos.y, mon.y, gap)) {
-            snapUp(pos.y, size.y, mon.y);
+        if (canSnap(sourceBox.y, mon.y, gap)) {
+            snapUp(sourceBox.y, sourceBox.h, mon.y);
             snaps |= SNAP_UP;
         }
-        if (canSnap(pos.y + size.y, mon.h, gap)) {
-            snapDown(pos.y, size.y, mon.h);
+        if (canSnap(sourceBox.y + sourceBox.h, mon.y + mon.h, gap)) {
+            snapDown(sourceBox.y, sourceBox.h, mon.h + mon.y);
             snaps |= SNAP_DOWN;
         }
     }
@@ -511,17 +513,21 @@ static void performSnap(Vector2D& pos, Vector2D& size, PHLWINDOW DRAGGINGWINDOW,
         const double RATIO = beginSize.y / beginSize.x;
 
         if ((corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
-            const double sizeY = size.x * RATIO;
+            const double sizeY = sourceBox.h * RATIO;
             if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
-                pos.y += size.y - sizeY;
-            size.y = sizeY;
+                sourceBox.y += sourceBox.h - sizeY;
+            sourceBox.h = sizeY;
         } else if ((corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && snaps & SNAP_UP) || (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
-            const double sizeX = size.y / RATIO;
+            const double sizeX = sourceBox.h / RATIO;
             if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
-                pos.x += size.x - sizeX;
-            size.x = sizeX;
+                sourceBox.x += sourceBox.w - sizeX;
+            sourceBox.w = sizeX;
         }
     }
+
+    sourceBox.expand(-DRAGGINGBORDERSIZE).round();
+    sourcePos  = sourceBox.pos();
+    sourceSize = sourceBox.size();
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {

@@ -240,10 +240,6 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     return box;
 }
 
-CBox CWindow::getWindowMainSurfaceBox() {
-    return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
-}
-
 SBoxExtents CWindow::getFullWindowReservedArea() {
     return g_pDecorationPositioner->getWindowDecorationReserved(m_pSelf.lock());
 }

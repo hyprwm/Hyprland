@@ -139,6 +139,15 @@ void CInputManager::sendMotionEventsToFocused() {
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
+    if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
+        return;
+
+    Vector2D const mouseCoords        = getMouseCoordsInternal();
+    auto const     MOUSECOORDSFLOORED = mouseCoords.floor();
+
+    if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
+        return;
+
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PMOUSEREFOCUS     = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
     static auto PFOLLOWONDND      = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
@@ -158,15 +167,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     Vector2D               surfacePos = Vector2D(-1337, -1337);
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
-
-    if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
-        return;
-
-    Vector2D   mouseCoords        = getMouseCoordsInternal();
-    const auto MOUSECOORDSFLOORED = mouseCoords.floor();
-
-    if (MOUSECOORDSFLOORED == m_vLastCursorPosFloored && !refocus)
-        return;
 
     EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
 
@@ -1418,19 +1418,10 @@ void CInputManager::unconstrainMouse() {
 }
 
 bool CInputManager::isConstrained() {
-    for (auto const& c : m_vConstraints) {
-        const auto C = c.lock();
-
-        if (!C)
-            continue;
-
-        if (!C->isActive() || C->owner()->resource() != g_pCompositor->m_pLastFocus)
-            continue;
-
-        return true;
-    }
-
-    return false;
+    return std::any_of(m_vConstraints.begin(), m_vConstraints.end(), [](auto const& c) {
+        const auto constraint = c.lock();
+        return constraint && constraint->isActive() && constraint->owner()->resource() == g_pCompositor->m_pLastFocus;
+    });
 }
 
 bool CInputManager::isLocked() {

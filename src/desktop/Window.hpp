@@ -396,10 +396,12 @@ class CWindow {
     }
 
     // methods
-    CBox                   getFullWindowBoundingBox();
-    SBoxExtents            getFullWindowExtents();
-    CBox                   getWindowBoxUnified(uint64_t props);
-    CBox                   getWindowMainSurfaceBox();
+    CBox        getFullWindowBoundingBox();
+    SBoxExtents getFullWindowExtents();
+    CBox        getWindowBoxUnified(uint64_t props);
+    inline CBox getWindowMainSurfaceBox() const {
+        return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
+    }
     CBox                   getWindowIdealBoundingBoxIgnoreReserved();
     void                   addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
     void                   updateWindowDecos();

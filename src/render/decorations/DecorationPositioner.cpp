@@ -297,13 +297,14 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow,
     CBox accum = pWindow->getWindowMainSurfaceBox();
 
     for (auto const& data : m_vWindowPositioningDatas) {
-        if (data->pWindow.lock() != pWindow)
-            continue;
-
-        if (!data->pWindow.lock() || !data->pDecoration)
+        if (!data->pDecoration)
             continue;
 
         if (!(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT) && inputOnly)
+            continue;
+
+        auto const window = data->pWindow.lock();
+        if (!window || window != pWindow)
             continue;
 
         CBox decoBox;
@@ -373,9 +374,10 @@ CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {
 }
 
 CBox CDecorationPositioner::getWindowDecorationBox(IHyprWindowDecoration* deco) {
-    const auto DATA = getDataFor(deco, deco->m_pWindow.lock());
+    auto const window = deco->m_pWindow.lock();
+    const auto DATA   = getDataFor(deco, window);
 
     CBox       box = DATA->lastReply.assignedGeometry;
-    box.translate(getEdgeDefinedPoint(DATA->positioningInfo.edges, deco->m_pWindow.lock()));
+    box.translate(getEdgeDefinedPoint(DATA->positioningInfo.edges, window));
     return box;
 }

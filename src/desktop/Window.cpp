@@ -1535,7 +1535,7 @@ PHLWINDOW CWindow::getSwallower() {
     static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
     static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
 
-    if (!*PSWALLOW || (*PSWALLOWREGEX).empty())
+    if (!*PSWALLOW || std::string{*PSWALLOWREGEX} == STRVAL_EMPTY || (*PSWALLOWREGEX).empty())
         return nullptr;
 
     // check parent

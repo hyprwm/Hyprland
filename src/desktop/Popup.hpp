@@ -81,5 +81,5 @@ class CPopup {
 
     Vector2D    localToGlobal(const Vector2D& rel);
     Vector2D    t1ParentCoords();
-    static void bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, void*)> fn, void* data);
+    static void bfHelper(std::vector<CPopup*> const& nodes, std::function<void(CPopup*, void*)> fn, void* data);
 };

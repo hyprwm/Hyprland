@@ -13,6 +13,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
+#include "protocols/InputCapture.hpp"
 
 #include <optional>
 #include <iterator>
@@ -126,6 +127,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
     m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
+    m_mDispatchers["releaseinputcapture"]            = releaseInputCapture;
 
     m_tScrollTimer.reset();
 
@@ -715,6 +717,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.keyName, key.keysym);
 
             m_iPassPressed = (int)pressed;
+
+            // We only process the releaseinputcapture dispatcher when input capture is active
+            if (PROTO::inputCapture->isCaptured()) {
+                if (k.handler == "releaseinputcapture")
+                    res = DISPATCHER->second(k.arg);
+                else
+                    break;
+            }
 
             // if the dispatchers says to pass event then we will
             if (k.handler == "mouse")
@@ -2889,5 +2899,10 @@ SDispatchResult CKeybindManager::moveGroupWindow(std::string args) {
 
 SDispatchResult CKeybindManager::event(std::string args) {
     g_pEventManager->postEvent(SHyprIPCEvent{"custom", args});
+    return {};
+}
+
+SDispatchResult CKeybindManager::releaseInputCapture(std::string args) {
+    PROTO::inputCapture->forceRelease();
     return {};
 }

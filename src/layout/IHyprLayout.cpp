@@ -464,14 +464,14 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             // corner snapping
             if (sourceBox.x == SURFBB.x + SURFBB.w || SURFBB.x == sourceBox.x + sourceBox.w) {
                 if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceBox.y, SURFBB.y, GAPSIZE)) {
-                    snapUp(sourceBox.y, sourceBox.w, SURFBB.y);
+                    snapUp(sourceBox.y, sourceBox.h, SURFBB.y);
                     snaps |= SNAP_UP;
                 } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, SURFBB.y + SURFBB.h, GAPSIZE)) {
                     snapDown(sourceBox.y, sourceBox.h, SURFBB.y + SURFBB.h);
                     snaps |= SNAP_DOWN;
                 }
             }
-            if (sourceBox.y == SURFBB.y + SURFBB.h || SURFBB.y == sourceBox.y + sourceBox.w) {
+            if (sourceBox.y == SURFBB.y + SURFBB.h || SURFBB.y == sourceBox.y + sourceBox.h) {
                 if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceBox.x, SURFBB.x, GAPSIZE)) {
                     snapLeft(sourceBox.x, sourceBox.w, SURFBB.x);
                     snaps |= SNAP_LEFT;
@@ -512,7 +512,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         const double RATIO = beginSize.y / beginSize.x;
 
         if ((corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
-            const double sizeY = sourceBox.h * RATIO;
+            const double sizeY = sourceBox.w * RATIO;
             if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
                 sourceBox.y += sourceBox.h - sizeY;
             sourceBox.h = sizeY;

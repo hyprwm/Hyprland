@@ -294,13 +294,11 @@ SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOW pWindow
 }
 
 SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow, bool inputOnly) {
-    CBox accum = pWindow->getWindowMainSurfaceBox();
+    CBox const mainSurfaceBox = pWindow->getWindowMainSurfaceBox();
+    CBox       accum          = mainSurfaceBox;
 
     for (auto const& data : m_vWindowPositioningDatas) {
-        if (!data->pDecoration)
-            continue;
-
-        if (!(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT) && inputOnly)
+        if (!data->pDecoration || (inputOnly && !(data->pDecoration->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT)))
             continue;
 
         auto const window = data->pWindow.lock();
@@ -308,31 +306,40 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOW pWindow,
             continue;
 
         CBox decoBox;
-
         if (data->positioningInfo.policy == DECORATION_POSITION_ABSOLUTE) {
-            decoBox = data->pWindow->getWindowMainSurfaceBox();
+            decoBox = mainSurfaceBox;
             decoBox.addExtents(data->positioningInfo.desiredExtents);
         } else {
-            decoBox              = data->lastReply.assignedGeometry;
-            const auto EDGEPOINT = getEdgeDefinedPoint(data->positioningInfo.edges, pWindow);
-            decoBox.translate(EDGEPOINT);
+            decoBox = data->lastReply.assignedGeometry;
+            decoBox.translate(getEdgeDefinedPoint(data->positioningInfo.edges, pWindow));
         }
 
+        // Check bounds only if decoBox extends beyond accum
         SBoxExtents extentsToAdd;
+        bool        needUpdate = false;
 
-        if (decoBox.x < accum.x)
+        if (decoBox.x < accum.x) {
             extentsToAdd.topLeft.x = accum.x - decoBox.x;
-        if (decoBox.y < accum.y)
+            needUpdate             = true;
+        }
+        if (decoBox.y < accum.y) {
             extentsToAdd.topLeft.y = accum.y - decoBox.y;
-        if (decoBox.x + decoBox.w > accum.x + accum.w)
+            needUpdate             = true;
+        }
+        if (decoBox.x + decoBox.w > accum.x + accum.w) {
             extentsToAdd.bottomRight.x = (decoBox.x + decoBox.w) - (accum.x + accum.w);
-        if (decoBox.y + decoBox.h > accum.y + accum.h)
+            needUpdate                 = true;
+        }
+        if (decoBox.y + decoBox.h > accum.y + accum.h) {
             extentsToAdd.bottomRight.y = (decoBox.y + decoBox.h) - (accum.y + accum.h);
+            needUpdate                 = true;
+        }
 
-        accum.addExtents(extentsToAdd);
+        if (needUpdate)
+            accum.addExtents(extentsToAdd);
     }
 
-    return accum.extentsFrom(pWindow->getWindowMainSurfaceBox());
+    return accum.extentsFrom(mainSurfaceBox);
 }
 
 CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {

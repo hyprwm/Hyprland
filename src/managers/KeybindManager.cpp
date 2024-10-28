@@ -126,6 +126,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["denywindowfromgroup"]            = denyWindowFromGroup;
     m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
+    m_mDispatchers["setprop"]                        = setProp;
 
     m_tScrollTimer.reset();
 
@@ -2889,5 +2890,99 @@ SDispatchResult CKeybindManager::moveGroupWindow(std::string args) {
 
 SDispatchResult CKeybindManager::event(std::string args) {
     g_pEventManager->postEvent(SHyprIPCEvent{"custom", args});
+    return {};
+}
+
+SDispatchResult CKeybindManager::setProp(std::string args) {
+    CVarList vars(args, 3, ' ');
+
+    if (vars.size() < 3)
+        return {.success = false, .error = "Not enough args"};
+
+    const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
+    const auto PWINDOW     = g_pCompositor->getWindowByRegex(vars[0]);
+
+    if (!PWINDOW)
+        return {.success = false, .error = "Window not found"};
+
+    const auto PROP = vars[1];
+    const auto VAL  = vars[2];
+
+    bool       noFocus = PWINDOW->m_sWindowData.noFocus.valueOrDefault();
+
+    try {
+        if (PROP == "animationstyle") {
+            PWINDOW->m_sWindowData.animationStyle = CWindowOverridableVar(VAL, PRIORITY_SET_PROP);
+        } else if (PROP == "maxsize") {
+            PWINDOW->m_sWindowData.maxSize = CWindowOverridableVar(configStringToVector2D(VAL), PRIORITY_SET_PROP);
+            PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_sWindowData.maxSize.value());
+            PWINDOW->setHidden(false);
+        } else if (PROP == "minsize") {
+            PWINDOW->m_sWindowData.minSize = CWindowOverridableVar(configStringToVector2D(VAL), PRIORITY_SET_PROP);
+            PWINDOW->clampWindowSize(PWINDOW->m_sWindowData.minSize.value(), std::nullopt);
+            PWINDOW->setHidden(false);
+        } else if (PROP == "alpha") {
+            PWINDOW->m_sWindowData.alpha = CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alpha.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphainactive") {
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphafullscreen") {
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{std::stof(VAL), PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_bOverride}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphaoverride") {
+            PWINDOW->m_sWindowData.alpha =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alpha.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphainactiveoverride") {
+            PWINDOW->m_sWindowData.alphaInactive =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaInactive.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "alphafullscreenoverride") {
+            PWINDOW->m_sWindowData.alphaFullscreen =
+                CWindowOverridableVar(SAlphaValue{PWINDOW->m_sWindowData.alphaFullscreen.valueOrDefault().m_fAlpha, (bool)configStringToInt(VAL)}, PRIORITY_SET_PROP);
+        } else if (PROP == "activebordercolor" || PROP == "inactivebordercolor") {
+            CGradientValueData colorData = {};
+            if (vars.size() > 4) {
+                for (int i = 3; i < static_cast<int>(vars.size()); ++i) {
+                    const auto TOKEN = vars[i];
+                    if (TOKEN.ends_with("deg"))
+                        colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
+                    else
+                        colorData.m_vColors.push_back(configStringToInt(TOKEN));
+                }
+            } else if (VAL != "-1")
+                colorData.m_vColors.push_back(configStringToInt(VAL));
+
+            if (PROP == "activebordercolor")
+                PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
+            else
+                PWINDOW->m_sWindowData.inactiveBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->mbWindowProperties.find(PROP); search != g_pConfigManager->mbWindowProperties.end()) {
+            auto pWindowDataElement = search->second(PWINDOW);
+            if (VAL == "toggle")
+                *pWindowDataElement = CWindowOverridableVar(!pWindowDataElement->valueOrDefault(), PRIORITY_SET_PROP);
+            else if (VAL == "unset")
+                pWindowDataElement->unset(PRIORITY_SET_PROP);
+            else
+                *pWindowDataElement = CWindowOverridableVar((bool)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
+            if (VAL == "unset")
+                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
+            else
+                *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
+        } else {
+            return {.success = false, .error = "Prop not found"};
+        }
+    } catch (std::exception& e) { return {.success = false, .error = std::format("Error parsing prop value: {}", std::string(e.what()))}; }
+
+    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+    if (!(PWINDOW->m_sWindowData.noFocus.valueOrDefault() == noFocus)) {
+        g_pCompositor->focusWindow(nullptr);
+        g_pCompositor->focusWindow(PWINDOW);
+        g_pCompositor->focusWindow(PLASTWINDOW);
+    }
+
+    for (auto const& m : g_pCompositor->m_vMonitors)
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
+
     return {};
 }

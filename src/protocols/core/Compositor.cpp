@@ -252,9 +252,10 @@ void CWLSurfaceResource::resetRole() {
     role = makeShared<CDefaultSurfaceRole>();
 }
 
-void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
+void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
 
     std::vector<SP<CWLSurfaceResource>> nodes2;
+    nodes2.reserve(nodes.size() * 2);
 
     // first, gather all nodes below
     for (auto const& n : nodes) {

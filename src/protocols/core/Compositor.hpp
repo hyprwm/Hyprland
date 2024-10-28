@@ -147,7 +147,7 @@ class CWLSurfaceResource {
     void          dropPendingBuffer();
     void          dropCurrentBuffer();
     void          commitPendingState();
-    void          bfHelper(std::vector<SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    void          bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     void          updateCursorShm();
 
     friend class CWLPointerResource;

@@ -288,12 +288,13 @@ bool CPopup::visible() {
     return false;
 }
 
-void CPopup::bfHelper(std::vector<CPopup*> nodes, std::function<void(CPopup*, void*)> fn, void* data) {
+void CPopup::bfHelper(std::vector<CPopup*> const& nodes, std::function<void(CPopup*, void*)> fn, void* data) {
     for (auto const& n : nodes) {
         fn(n, data);
     }
 
     std::vector<CPopup*> nodes2;
+    nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
         for (auto const& c : n->m_vChildren) {

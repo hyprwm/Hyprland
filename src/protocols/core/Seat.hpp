@@ -119,6 +119,10 @@ class CWLKeyboardResource {
     struct {
         CHyprSignalListener destroySurface;
     } listeners;
+
+    std::string lastKeymap  = "<none>";
+    uint32_t    lastRate    = 0;
+    uint32_t    lastDelayMs = 0;
 };
 
 class CWLSeatResource {

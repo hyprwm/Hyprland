@@ -317,12 +317,13 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     if (!(PROTO::seat->currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
 
-    wl_keyboard_keymap_format format = keyboard ? WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 : WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP;
-    int                       fd;
-    uint32_t                  size;
+    std::string_view keymap;
+    int              fd;
+    uint32_t         size;
     if (keyboard) {
-        fd   = keyboard->xkbKeymapFD;
-        size = keyboard->xkbKeymapString.length() + 1;
+        keymap = keyboard->xkbKeymapString;
+        fd     = keyboard->xkbKeymapFD;
+        size   = keyboard->xkbKeymapString.length() + 1;
     } else {
         fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
         if (fd < 0) {
@@ -331,6 +332,15 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
         }
         size = 0;
     }
+
+    if (keymap == lastKeymap) {
+        if (!keyboard)
+            close(fd);
+        return;
+    }
+    lastKeymap = keymap;
+
+    const wl_keyboard_keymap_format format = keyboard ? WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1 : WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP;
 
     resource->sendKeymap(format, fd, size);
 
@@ -396,8 +406,10 @@ void CWLKeyboardResource::sendMods(uint32_t depressed, uint32_t latched, uint32_
 }
 
 void CWLKeyboardResource::repeatInfo(uint32_t rate, uint32_t delayMs) {
-    if (!owner || resource->version() < 4)
+    if (!owner || resource->version() < 4 || (rate == lastRate && delayMs == lastDelayMs))
         return;
+    lastRate    = rate;
+    lastDelayMs = delayMs;
 
     resource->sendRepeatInfo(rate, delayMs);
 }

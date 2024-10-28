@@ -1261,6 +1261,11 @@ std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
+std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
+    auto result = g_pKeybindManager->m_mDispatchers["setprop"](request.substr(request.find_first_of(' ') + 1, -1));
+    return "DEPRECATED: use hyprctl dispatch setprop instead" + (result.success ? "" : "\n" + result.error);
+}
+
 std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) {
     std::string curitem = "";
 
@@ -1581,6 +1586,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
     registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
     registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
+    registerCommand(SHyprCtlCommand{"setprop", false, dispatchSetProp});
     registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
     registerCommand(SHyprCtlCommand{"output", false, dispatchOutput});

@@ -148,7 +148,7 @@ CKeybindManager::CKeybindManager() {
 
     static auto P = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
-        m_pActiveKeybind        = nullptr;
+        m_vActiveKeybinds.clear();
         m_pLastLongPressKeybind = nullptr;
         m_vPressedSpecialBinds.clear();
     });
@@ -166,7 +166,7 @@ CKeybindManager::~CKeybindManager() {
 void CKeybindManager::addKeybind(SKeybind kb) {
     m_lKeybinds.push_back(kb);
 
-    m_pActiveKeybind        = nullptr;
+    m_pActiveKeybinds.clear();
     m_pLastLongPressKeybind = nullptr;
 }
 
@@ -180,6 +180,7 @@ void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
         }
     }
 
+    m_vActiveKeybinds.clear();
     m_pActiveKeybind        = nullptr;
     m_pLastLongPressKeybind = nullptr;
 }
@@ -429,7 +430,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     if (m_pActiveKeybindEventSource) {
         wl_event_source_remove(m_pActiveKeybindEventSource);
         m_pActiveKeybindEventSource = nullptr;
-        m_pActiveKeybind            = nullptr;
+        m_pActiveKeybinds.clear();
     }
 
     m_pLastLongPressKeybind = nullptr;
@@ -485,7 +486,7 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
     if (m_pActiveKeybindEventSource) {
         wl_event_source_remove(m_pActiveKeybindEventSource);
         m_pActiveKeybindEventSource = nullptr;
-        m_pActiveKeybind            = nullptr;
+        m_pActiveKeybinds.clear();
     }
 
     bool found = false;
@@ -528,7 +529,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e) {
     if (m_pActiveKeybindEventSource) {
         wl_event_source_remove(m_pActiveKeybindEventSource);
         m_pActiveKeybindEventSource = nullptr;
-        m_pActiveKeybind            = nullptr;
+        m_pActiveKeybinds.clear();
     }
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -581,15 +582,17 @@ void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
 }
 
 int repeatKeyHandler(void* data) {
-    SKeybind** ppActiveKeybind = (SKeybind**)data;
+    std::vector<SKeybind*>* ppActiveKeybinds = (std::vector<SKeybind*>*)data;
 
-    if (!*ppActiveKeybind || g_pSeatManager->keyboard.expired())
+    if (ppActiveKeybinds->size() == 0 || g_pSeatManager->keyboard.expired())
         return 0;
 
-    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find((*ppActiveKeybind)->handler);
+    for (SKeybind* k : *ppActiveKeybinds) {
+        const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
 
-    Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
-    DISPATCHER->second((*ppActiveKeybind)->arg);
+        Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
+        DISPATCHER->second(k->arg);
+    }
 
     wl_event_source_timer_update(g_pKeybindManager->m_pActiveKeybindEventSource, 1000 / g_pSeatManager->keyboard->repeatRate);
 
@@ -770,8 +773,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (k.repeat) {
-            m_pActiveKeybind            = &k;
-            m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybind);
+            m_pActiveKeybinds.push_back(&k);
+            m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybinds);
 
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 

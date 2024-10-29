@@ -774,11 +774,13 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
         if (k.repeat) {
             m_pActiveKeybinds.push_back(&k);
-            m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybinds);
+            if (!m_pActiveKeybindEventSource) {
+                m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, repeatKeyHandler, &m_pActiveKeybinds);
 
-            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+                const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
-            wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
+                wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
+            }
         }
 
         if (!k.nonConsuming)

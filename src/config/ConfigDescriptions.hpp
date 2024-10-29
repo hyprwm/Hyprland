@@ -122,6 +122,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{10, 0, 100},
     },
+    SConfigOptionDescription{
+        .value       = "general:snap:border_overlap",
+        .description = "if true, windows snap such that only one border's worth of space is between them",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * decoration:

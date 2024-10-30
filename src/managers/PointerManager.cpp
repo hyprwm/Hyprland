@@ -372,10 +372,8 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 }
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
-    auto output = state->monitor->output;
-
-    auto maxSize    = output->cursorPlaneSize();
-    auto cursorSize = currentCursorImage.size;
+    auto        maxSize    = state->monitor->output->cursorPlaneSize();
+    auto const& cursorSize = currentCursorImage.size;
 
     if (maxSize == Vector2D{})
         return nullptr;
@@ -421,8 +419,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         Debug::log(TRACE, "Failed to acquire a buffer from the cursor swapchain");
         return nullptr;
     }
-
-    CRegion damage = {0, 0, INT16_MAX, INT16_MAX};
 
     g_pHyprRenderer->makeEGLCurrent();
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor;
@@ -482,7 +478,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), damage, RBO);
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, INT16_MAX, INT16_MAX}, RBO);
     g_pHyprOpenGL->clear(CColor{0.F, 0.F, 0.F, 0.F});
 
     CBox xbox = {{}, Vector2D{currentCursorImage.size / currentCursorImage.scale * state->monitor->scale}.round()};

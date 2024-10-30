@@ -46,7 +46,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float a) {
+void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (doesntWantBorders())
         return;
 

@@ -29,6 +29,8 @@
 
 #define MONITOR_INVALID -1L
 
+#define MIN_WINDOW_SIZE 20.0
+
 #define LISTENER(name)                                                                                                                                                             \
     void               listener_##name(wl_listener*, void*);                                                                                                                       \
     inline wl_listener listen_##name = {.notify = listener_##name}

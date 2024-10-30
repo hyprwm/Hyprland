@@ -144,6 +144,13 @@ class CWindowOverridableVar {
             unset(priority);
     }
 
+    operator std::optional<T>() {
+        if (hasValue())
+            return value();
+        else
+            return std::nullopt;
+    }
+
   private:
     std::map<eOverridePriority, T> values;
     T                              defaultValue; // used for toggling, so required for bool

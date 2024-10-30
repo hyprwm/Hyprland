@@ -567,6 +567,20 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
+int longPressHandler(void* data) {
+    SKeybind** ppActiveKeybind = (SKeybind**)data;
+
+    if (!*ppActiveKeybind || g_pSeatManager->keyboard.expired())
+        return 0;
+
+    const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find((*ppActiveKeybind)->handler);
+
+    Debug::log(LOG, "Keybind long press triggered, calling dispatcher.");
+    DISPATCHER->second((*ppActiveKeybind)->arg);
+
+    return 0;
+}
+
 eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
     // Returns whether two sets of keysyms are equal, partially equal, or not
     // matching. (Partially matching means that pressed is a subset of bound)
@@ -700,6 +714,16 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 continue;
             }
         }
+
+		if (k.longPress) {
+            m_pActiveKeybind            = &k;
+            m_pActiveKeybindEventSource = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, longPressHandler, &m_pActiveKeybind);
+
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+
+            wl_event_source_timer_update(m_pActiveKeybindEventSource, PACTIVEKEEB->repeatDelay);
+			continue;
+		}
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
 

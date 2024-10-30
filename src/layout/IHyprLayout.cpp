@@ -341,7 +341,9 @@ void IHyprLayout::onEndDragWindow() {
 
             const bool  FLOATEDINTOTILED = !pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled;
             static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+
             if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
+
                 if (DRAGGINGWINDOW->m_bDraggingTiled) {
                     changeWindowFloatingMode(DRAGGINGWINDOW);
                     DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
@@ -349,17 +351,12 @@ void IHyprLayout::onEndDragWindow() {
                 }
 
                 if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
-                    std::vector<PHLWINDOW> members;
-                    PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
-                    do {
-                        members.push_back(curr);
-                        curr = curr->m_sGroupData.pNextWindow.lock();
-                    } while (curr != members[0]);
-
-                    for (auto it = members.begin(); it != members.end(); ++it) {
-                        (*it)->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of group members
-                        if (pWindow->m_bIsFloating)
-                            (*it)->m_vRealSize = pWindow->m_vRealSize.goal(); // match the size of group members
+                    PHLWINDOW next = DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock();
+                    while (next != DRAGGINGWINDOW) {
+                        next->m_bIsFloating   = pWindow->m_bIsFloating;          // match the floating state of group members
+                        next->m_vRealSize     = pWindow->m_vRealSize.goal();     // match the size of group members
+                        next->m_vRealPosition = pWindow->m_vRealPosition.goal(); // match the position of group members
+                        next                  = next->m_sGroupData.pNextWindow.lock();
                     }
                 }
 

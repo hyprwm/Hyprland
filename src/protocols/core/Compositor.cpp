@@ -422,10 +422,8 @@ void CWLSurfaceResource::unlockPendingState() {
 }
 
 void CWLSurfaceResource::commitPendingState() {
-    auto    previousBuffer       = current.buffer;
-    CRegion previousBufferDamage = accumulateCurrentBufferDamage();
-
-    current = pending;
+    auto const previousBuffer = current.buffer;
+    current                   = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
     pending.newBuffer = false;

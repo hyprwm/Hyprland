@@ -52,7 +52,7 @@ void CPointerManager::unlockSoftwareAll() {
 }
 
 void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     state->softwareLocks++;
 
     if (state->softwareLocks == 1)
@@ -60,7 +60,7 @@ void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
 }
 
 void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     state->softwareLocks--;
     if (state->softwareLocks < 0)
         state->softwareLocks = 0;
@@ -70,7 +70,7 @@ void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
 }
 
 bool CPointerManager::softwareLockedFor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     return state->softwareLocks > 0 || state->hardwareFailed;
 }
 
@@ -250,14 +250,13 @@ void CPointerManager::updateCursorBackend() {
     const auto CURSORBOX = getCursorBoxGlobal();
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        auto state = stateFor(m);
-
         if (!m->m_bEnabled || !m->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
         }
 
         auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+        auto state   = stateFor(m);
 
         if (!CROSSES) {
             if (state->cursorFrontBuffer)

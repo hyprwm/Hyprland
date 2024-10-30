@@ -433,7 +433,8 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             if (other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
                 continue;
 
-            const double BORDERSIZE = OVERLAP ? std::max(DRAGGINGBORDERSIZE, other->getRealBorderSize()) : (other->getRealBorderSize() + DRAGGINGBORDERSIZE);
+            const int    OTHERBORDERSIZE = other->getRealBorderSize();
+            const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
 
             const CBox   SURF   = other->getWindowMainSurfaceBox();
             const SRange SURFBX = {SURF.x - BORDERSIZE, SURF.x + SURF.w + BORDERSIZE};
@@ -460,8 +461,9 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             }
 
             // corner snapping
+            const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
             if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
-                const SRange SURFY = {SURF.y, SURF.y + SURF.h};
+                const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
@@ -471,7 +473,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
                 }
             }
             if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
-                const SRange SURFX = {SURF.x, SURF.x + SURF.w};
+                const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
@@ -486,24 +488,25 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     if (*SNAPMONITORGAP) {
         const double GAPSIZE    = *SNAPMONITORGAP;
         const double BORDERSIZE = OVERLAP ? 0 : DRAGGINGBORDERSIZE;
+        const double BORDERDIFF = DRAGGINGBORDERSIZE - BORDERSIZE;
         const auto   MON        = DRAGGINGWINDOW->m_pMonitor.lock();
 
         SRange       monX = {MON->vecPosition.x + BORDERSIZE, MON->vecSize.x - BORDERSIZE};
         SRange       monY = {MON->vecPosition.y + BORDERSIZE, MON->vecSize.y - BORDERSIZE};
 
-        if (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x), GAPSIZE)) {
+        if (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE)) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x), GAPSIZE)) {
+        if (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE)) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y), GAPSIZE)) {
+        if (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE)) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y), GAPSIZE)) {
+        if (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE)) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }

@@ -831,6 +831,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+    simulateMouseMovement();
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

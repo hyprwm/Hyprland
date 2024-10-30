@@ -86,7 +86,7 @@ void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
     m_bLastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
-void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float a) {
+void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const auto PWINDOW = m_pWindow.lock();
 

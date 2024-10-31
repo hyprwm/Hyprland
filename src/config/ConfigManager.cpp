@@ -344,6 +344,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:snap:enabled", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:snap:window_gap", Hyprlang::INT{10});
     m_pConfig->addConfigValue("general:snap:monitor_gap", Hyprlang::INT{10});
+    m_pConfig->addConfigValue("general:snap:border_overlap", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});

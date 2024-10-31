@@ -30,7 +30,7 @@
 constexpr int SOCKET_DIR_PERMISSIONS = 0755;
 constexpr int SOCKET_BACKLOG         = 1;
 constexpr int MAX_SOCKET_RETRIES     = 32;
-constexpr int LOCK_FILE_MODE         = 044;
+constexpr int LOCK_FILE_MODE         = 0444;
 
 static bool   setCloseOnExec(int fd, bool cloexec) {
     int flags = fcntl(fd, F_GETFD);
@@ -56,6 +56,11 @@ void cleanUpSocket(int fd, const char* path) {
     close(fd);
     if (path[0])
         unlink(path);
+}
+
+inline void closeSocketSafely(int& fd) {
+    if (fd >= 0)
+        close(fd);
 }
 
 static int createSocket(struct sockaddr_un* addr, size_t path_size) {
@@ -252,8 +257,8 @@ CXWaylandServer::~CXWaylandServer() {
     if (display < 0)
         return;
 
-    close(xFDs[0]);
-    close(xFDs[1]);
+    closeSocketSafely(xFDs[0]);
+    closeSocketSafely(xFDs[1]);
 
     std::string lockPath = std::format("/tmp/.X{}-lock", display);
     safeRemove(lockPath);
@@ -283,14 +288,10 @@ void CXWaylandServer::die() {
     if (pipeFd >= 0)
         close(pipeFd);
 
-    if (waylandFDs[0] >= 0)
-        close(waylandFDs[0]);
-    if (waylandFDs[1] >= 0)
-        close(waylandFDs[1]);
-    if (xwmFDs[0] >= 0)
-        close(xwmFDs[0]);
-    if (xwmFDs[1] >= 0)
-        close(xwmFDs[1]);
+    closeSocketSafely(waylandFDs[0]);
+    closeSocketSafely(waylandFDs[1]);
+    closeSocketSafely(xwmFDs[0]);
+    closeSocketSafely(xwmFDs[1]);
 
     // possible crash. Better to leak a bit.
     //if (xwaylandClient)
@@ -407,7 +408,7 @@ bool CXWaylandServer::start() {
 
     close(notify[1]);
     close(waylandFDs[1]);
-    close(xwmFDs[1]);
+    closeSocketSafely(xwmFDs[1]);
     waylandFDs[1] = -1;
     xwmFDs[1]     = -1;
 

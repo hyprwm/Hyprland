@@ -28,6 +28,7 @@ struct SKeybind {
     std::string            description    = "";
     bool                   release        = false;
     bool                   repeat         = false;
+    bool                   longPress      = false;
     bool                   mouse          = false;
     bool                   nonConsuming   = false;
     bool                   transparent    = false;

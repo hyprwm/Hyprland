@@ -2191,8 +2191,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
-		} else if (arg == 'o') {
-			longPress = true;
+        } else if (arg == 'o' && !release) {
+            longPress = true;
         } else if (arg == 'd') {
             hasDescription = true;
         } else if (arg == 'p') {

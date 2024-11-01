@@ -334,6 +334,7 @@ void CMonitor::onDisconnect(bool destroy) {
     activeWorkspace.reset();
 
     output->state->resetExplicitFences();
+    output->state->setAdaptiveSync(false);
     output->state->setEnabled(false);
 
     if (!state.commit())

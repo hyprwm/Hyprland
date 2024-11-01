@@ -1608,9 +1608,6 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             m->vrrActive = true;
             return;
         } else if (USEVRR == 2) {
-            /* fullscreen */
-            m->vrrActive = true;
-
             const auto PWORKSPACE = m->activeWorkspace;
 
             if (!PWORKSPACE)
@@ -1619,6 +1616,9 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
+                /* fullscreen */
+                m->vrrActive = true;
+
                 m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
@@ -1631,6 +1631,8 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
             } else if (!WORKSPACEFULL) {
+                m->vrrActive = false;
+
                 m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 

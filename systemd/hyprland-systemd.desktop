@@ -5,5 +5,3 @@ Exec=systemctl --user start --wait hyprland-session
 Type=Application
 DesktopNames=Hyprland (systemd session)
 Keywords=tiling;wayland;compositor;
-
-

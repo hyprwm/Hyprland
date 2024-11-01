@@ -53,7 +53,9 @@ epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
 
 # Handle options
 if get_option('systemd').enabled()
+  systemd = dependency('systemd')
   add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
+  subdir('systemd')
 endif
 
 if get_option('legacy_renderer').enabled()
@@ -89,7 +91,6 @@ subdir('hyprpm/src')
 subdir('assets')
 subdir('example')
 subdir('docs')
-subdir('systemd')
 
 # Generate hyprland.pc
 pkg_install_dir = join_paths(get_option('datadir'), 'pkgconfig')

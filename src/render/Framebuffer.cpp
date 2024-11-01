@@ -2,7 +2,7 @@
 #include "OpenGL.hpp"
 
 CFramebuffer::CFramebuffer() {
-    m_cTex = makeShared<CTexture>();
+    ;
 }
 
 bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
@@ -11,6 +11,9 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
     uint32_t glFormat = FormatUtils::drmFormatToGL(drmFormat);
     uint32_t glType   = FormatUtils::glFormatToType(glFormat);
+
+    if (!m_cTex)
+        m_cTex = makeShared<CTexture>();
 
     if (!m_iFbAllocated) {
         firstAlloc = true;
@@ -54,7 +57,8 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
+    if (g_pHyprOpenGL)
+        glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
 
     m_vSize = Vector2D(w, h);
 
@@ -85,14 +89,17 @@ void CFramebuffer::bind() {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
 #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+    if (g_pHyprOpenGL)
+        glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+    else
+        glViewport(0, 0, m_vSize.x, m_vSize.y);
 }
 
 void CFramebuffer::release() {
     if (m_iFbAllocated)
         glDeleteFramebuffers(1, &m_iFb);
 
-    m_cTex->destroyTexture();
+    m_cTex.reset();
     m_iFbAllocated = false;
     m_vSize        = Vector2D();
 }

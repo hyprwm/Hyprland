@@ -13,6 +13,13 @@
 #include <gbm.h>
 #include <filesystem>
 
+const std::vector<const char*> ASSET_PATHS = {
+#ifdef DATAROOTDIR
+    DATAROOTDIR,
+#endif
+    "/usr/share",
+};
+
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (proc == NULL) {
@@ -2595,11 +2602,32 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& file) {
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(file.c_str());
+SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
 
-    if (!CAIROSURFACE)
-        return nullptr;
+    std::string fullPath;
+    for (auto& e : ASSET_PATHS) {
+        std::string     p = std::string{e} + "/hypr/" + filename;
+        std::error_code ec;
+        if (std::filesystem::exists(p, ec)) {
+            fullPath = p;
+            break;
+        } else
+            Debug::log(LOG, "loadAsset: looking at {} unsuccessful: ec {}", filename, ec.message());
+    }
+
+    if (fullPath.empty()) {
+        failedAssetsNo++;
+        Debug::log(ERR, "loadAsset: looking for {} failed (no provider found)", filename);
+        return m_pMissingAssetTexture;
+    }
+
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
+
+    if (!CAIROSURFACE) {
+        failedAssetsNo++;
+        Debug::log(ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
+        return m_pMissingAssetTexture;
+    }
 
     const auto CAIROFORMAT = cairo_image_surface_get_format(CAIROSURFACE);
     auto       tex         = makeShared<CTexture>();
@@ -2710,51 +2738,68 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CColor col, in
     return tex;
 }
 
-void CHyprOpenGLImpl::initAssets() {
-    std::string assetsPath = "";
-#ifndef DATAROOTDIR
-    assetsPath = "/usr/share/hypr/";
-#else
-    assetsPath = std::format("{}{}", DATAROOTDIR, "/hypr/");
-#endif
+void CHyprOpenGLImpl::initMissingAssetTexture() {
+    SP<CTexture> tex = makeShared<CTexture>();
+    tex->allocate();
 
-    m_pLockDeadTexture  = loadAsset(assetsPath + "lockdead.png");
-    m_pLockDead2Texture = loadAsset(assetsPath + "lockdead2.png");
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_NONE);
+    cairo_save(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(CAIRO);
+    cairo_set_source_rgba(CAIRO, 1, 0, 1, 1);
+    cairo_rectangle(CAIRO, 256, 0, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_rectangle(CAIRO, 0, 256, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_restore(CAIRO);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    tex->m_vSize = {512, 512};
+
+    // copy the data to an OpenGL texture we have
+    const GLint glFormat = GL_RGBA;
+    const GLint glType   = GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+#ifndef GLES2
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_vSize.x, tex->m_vSize.y, 0, glFormat, glType, DATA);
+
+    cairo_surface_destroy(CAIROSURFACE);
+    cairo_destroy(CAIRO);
+
+    m_pMissingAssetTexture = tex;
+}
+
+void CHyprOpenGLImpl::initAssets() {
+    initMissingAssetTexture();
+
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+
+    m_pLockDeadTexture  = loadAsset("lockdead.png");
+    m_pLockDead2Texture = loadAsset("lockdead2.png");
 
     m_pLockTtyTextTexture = renderText(std::format("Running on tty {}",
                                                    g_pCompositor->m_pAqBackend->hasSession() && g_pCompositor->m_pAqBackend->session->vt > 0 ?
                                                        std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
                                                        "unknown"),
                                        CColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
-}
 
-void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
-    RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
-
-    Debug::log(LOG, "Creating a texture for BGTex");
-
-    static auto PRENDERTEX      = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PNOSPLASH       = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
-
-    if (*PRENDERTEX)
-        return;
-
-    // release the last tex if exists
-    const auto PFB = &m_mMonitorBGFBs[pMonitor];
-    PFB->release();
-
-    PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
-
-    if (!m_pBackgroundTexture) {
-        std::string texPath = "";
-#ifndef DATAROOTDIR
-        texPath = "/usr/share/hypr/wall";
-#else
-        texPath = std::format("{}{}", DATAROOTDIR, "/hypr/wall");
-#endif
+    // create the default background texture
+    {
+        std::string texPath = std::format("{}", "wall");
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {
@@ -2767,15 +2812,29 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
 
         texPath += ".png";
 
-        // check if wallpapers exist
-        std::error_code err;
-        if (!std::filesystem::exists(texPath, err)) {
-            Debug::log(ERR, "createBGTextureForMonitor: failed, file \"{}\" doesn't exist or access denied, ec: {}", texPath, err.message());
-            return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
-        }
-
         m_pBackgroundTexture = loadAsset(texPath);
     }
+}
+
+void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
+    RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
+
+    Debug::log(LOG, "Creating a texture for BGTex");
+
+    static auto PRENDERTEX = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PNOSPLASH  = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
+
+    if (*PRENDERTEX)
+        return;
+
+    // release the last tex if exists
+    const auto PFB = &m_mMonitorBGFBs[pMonitor];
+    PFB->release();
+
+    PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
+
+    if (!m_pBackgroundTexture) // ?!?!?!
+        return;
 
     // create a new one with cairo
     SP<CTexture> tex = makeShared<CTexture>();

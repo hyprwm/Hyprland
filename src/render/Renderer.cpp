@@ -1063,22 +1063,16 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
     if (ANY_PRESENT) {
         // render image2, without instructions. Lock still "alive", unless texture dead
-        if (g_pHyprOpenGL->m_pLockDead2Texture)
-            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDead2Texture, &monbox, ALPHA);
-        else
-            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDead2Texture, &monbox, ALPHA);
     } else {
         // render image, with instructions. Lock is gone.
-        if (g_pHyprOpenGL->m_pLockDeadTexture) {
-            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, &monbox, ALPHA);
+        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockDeadTexture, &monbox, ALPHA);
 
-            // also render text for the tty number
-            if (g_pHyprOpenGL->m_pLockTtyTextTexture) {
-                CBox texbox = {{}, g_pHyprOpenGL->m_pLockTtyTextTexture->m_vSize};
-                g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockTtyTextTexture, &texbox, 1.F);
-            }
-        } else
-            g_pHyprOpenGL->renderRect(&monbox, CColor(1.0, 0.2, 0.2, ALPHA));
+        // also render text for the tty number
+        if (g_pHyprOpenGL->m_pLockTtyTextTexture) {
+            CBox texbox = {{}, g_pHyprOpenGL->m_pLockTtyTextTexture->m_vSize};
+            g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_pLockTtyTextTexture, &texbox, 1.F);
+        }
     }
 
     if (ALPHA < 1.f) /* animate */

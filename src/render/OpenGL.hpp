@@ -215,11 +215,12 @@ class CHyprOpenGLImpl {
 
     GLint                                       m_iCurrentOutputFb = 0;
 
-    int                                         m_iGBMFD      = -1;
-    gbm_device*                                 m_pGbmDevice  = nullptr;
-    EGLContext                                  m_pEglContext = nullptr;
-    EGLDisplay                                  m_pEglDisplay = nullptr;
-    EGLDeviceEXT                                m_pEglDevice  = nullptr;
+    int                                         m_iGBMFD       = -1;
+    gbm_device*                                 m_pGbmDevice   = nullptr;
+    EGLContext                                  m_pEglContext  = nullptr;
+    EGLDisplay                                  m_pEglDisplay  = nullptr;
+    EGLDeviceEXT                                m_pEglDevice   = nullptr;
+    uint                                        failedAssetsNo = 0;
 
     bool                                        m_bReloadScreenShader = true; // at launch it can be set
 
@@ -277,7 +278,7 @@ class CHyprOpenGLImpl {
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;
 
-    SP<CTexture>            m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture;
+    SP<CTexture>            m_pMissingAssetTexture, m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture;
 
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);
@@ -290,6 +291,7 @@ class CHyprOpenGLImpl {
     SP<CTexture>            loadAsset(const std::string& file);
     SP<CTexture>            renderText(const std::string& text, CColor col, int pt, bool italic = false);
     void                    initAssets();
+    void                    initMissingAssetTexture();
 
     //
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);

@@ -2738,6 +2738,12 @@ void CCompositor::performUserChecks() {
                 CColor{}, 15000, ICON_WARNING);
         }
     }
+
+    if (g_pHyprOpenGL->failedAssetsNo > 0) {
+        g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
+                                                                g_pHyprOpenGL->failedAssetsNo, g_pHyprOpenGL->failedAssetsNo > 1 ? "s" : ""),
+                                                    CColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
+    }
 }
 
 void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace) {

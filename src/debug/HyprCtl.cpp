@@ -1041,7 +1041,8 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     }
 
     // decorations will probably need a repaint
-    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
+    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source" ||
+        COMMAND.starts_with("windowrule")) {
         for (auto const& m : g_pCompositor->m_vMonitors) {
             g_pHyprRenderer->damageMonitor(m);
             g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
@@ -1696,6 +1697,14 @@ std::string CHyprCtl::getReply(std::string request) {
 
         for (auto& [m, rd] : g_pHyprOpenGL->m_mMonitorRenderResources) {
             rd.blurFBDirty = true;
+        }
+
+        for (auto const& w : g_pCompositor->m_vWindows) {
+            if (!w->m_bIsMapped || !g_pCompositor->isWorkspaceVisible(w->m_pWorkspace))
+                continue;
+
+            w->updateDynamicRules();
+            g_pCompositor->updateWindowAnimatedDecorationValues(w);
         }
 
         for (auto const& m : g_pCompositor->m_vMonitors) {

@@ -691,6 +691,8 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         Debug::log(CRIT, "XWayland has yeeten the xwm off?!");
         g_pXWayland->pWM.reset();
         g_pXWayland->pServer.reset();
+        // Attempt to create fresh instance
+        g_pXWayland = std::make_unique<CXWayland>(true);
         return 0;
     }
 

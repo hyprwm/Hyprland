@@ -279,7 +279,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     outFB.bind();
 
 #ifndef GLES2
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.m_iFb);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
 #endif
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);

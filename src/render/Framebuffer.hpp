@@ -9,17 +9,23 @@ class CFramebuffer {
     ~CFramebuffer();
 
     bool         alloc(int w, int h, uint32_t format = GL_RGBA);
-    void         addStencil();
+    void         addStencil(SP<CTexture> tex);
     void         bind();
     void         release();
     void         reset();
     bool         isAllocated();
+    SP<CTexture> getTexture();
+    SP<CTexture> getStencilTex();
+    GLuint       getFBID();
 
     Vector2D     m_vSize;
 
+  private:
     SP<CTexture> m_cTex;
-    GLuint       m_iFb;
-    bool         m_iFbAllocated{false};
+    GLuint       m_iFb          = -1;
+    bool         m_iFbAllocated = false;
 
     SP<CTexture> m_pStencilTex;
+
+    friend class CRenderbuffer;
 };

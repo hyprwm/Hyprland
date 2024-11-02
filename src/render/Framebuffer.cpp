@@ -65,9 +65,10 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     return true;
 }
 
-void CFramebuffer::addStencil() {
+void CFramebuffer::addStencil(SP<CTexture> tex) {
     // TODO: Allow this with gles2
 #ifndef GLES2
+    m_pStencilTex = tex;
     glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_vSize.x, m_vSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
@@ -109,5 +110,17 @@ CFramebuffer::~CFramebuffer() {
 }
 
 bool CFramebuffer::isAllocated() {
-    return m_iFbAllocated;
+    return m_iFbAllocated && m_cTex;
+}
+
+SP<CTexture> CFramebuffer::getTexture() {
+    return m_cTex;
+}
+
+GLuint CFramebuffer::getFBID() {
+    return m_iFbAllocated ? m_iFb : 0;
+}
+
+SP<CTexture> CFramebuffer::getStencilTex() {
+    return m_pStencilTex;
 }

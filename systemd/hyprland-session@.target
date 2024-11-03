@@ -1,0 +1,15 @@
+[Unit]
+Description=Hyprland Session (session: %i)
+DefaultDependencies=no
+# Start happens explicitly
+RefuseManualStart=no
+
+Conflicts=shutdown.target
+PartOf=graphical-session.target
+
+# As this is the main entry point, pull in the other toplevel hyprland-session targets
+Requires=hyprland-session@.target
+After=hyprland-session@.target
+
+Requires=hyprland-session.target
+After=hyprland-session.target

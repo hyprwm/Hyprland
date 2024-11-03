@@ -1,0 +1,9 @@
+[Unit]
+Description=Hyprland Session
+DefaultDependencies=no
+RefuseManualStart=yes
+RefuseManualStop=yes
+
+BindsTo=graphical-session.target
+Before=graphical-session.target
+After=hyprland-session-pre.target

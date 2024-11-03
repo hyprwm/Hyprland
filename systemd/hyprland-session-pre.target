@@ -1,0 +1,8 @@
+[Unit]
+Description=Tasks to be run before Hyprland Session starts
+DefaultDependencies=no
+RefuseManualStart=yes
+RefuseManualStop=yes
+
+Requires=graphical-session-pre.target
+After=graphical-session-pre.target

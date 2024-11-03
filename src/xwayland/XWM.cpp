@@ -13,6 +13,7 @@
 #include "../defines.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -691,6 +692,8 @@ int CXWM::onEvent(int fd, uint32_t mask) {
         Debug::log(CRIT, "XWayland has yeeten the xwm off?!");
         g_pXWayland->pWM.reset();
         g_pXWayland->pServer.reset();
+        // Attempt to create fresh instance
+        g_pEventLoopManager->doLater([]() { g_pXWayland = std::make_unique<CXWayland>(true); });
         return 0;
     }
 

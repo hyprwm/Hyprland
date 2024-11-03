@@ -15,5 +15,7 @@ Type=notify
 ExecStart=@BINDIR@/Hyprland
 ExecStop=@BINDIR@/hyprctl dispatch exit
 ExecStopPost=systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+OnFailure=systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+OnSuccess=systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
 Restart=on-failure
 Slice=session.slice

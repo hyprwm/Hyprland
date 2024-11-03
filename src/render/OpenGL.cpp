@@ -1656,6 +1656,11 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
 // Dual (or more) kawase blur
 CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
 
+    if (!m_RenderData.currentFB->getTexture()) {
+        Debug::log(ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
+        return &m_RenderData.pCurrentMonData->mirrorFB; // return something to sample from at least
+    }
+
     TRACY_GPU_ZONE("RenderBlurMainFramebufferWithDamage");
 
     const auto BLENDBEFORE = m_bBlend;

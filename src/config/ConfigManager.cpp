@@ -2191,7 +2191,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
-        } else if (arg == 'o' && !release) {
+        } else if (arg == 'o') {
             longPress = true;
         } else if (arg == 'd') {
             hasDescription = true;
@@ -2202,8 +2202,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         }
     }
 
-    if (release && repeat)
-        return "flags r and e are mutually exclusive";
+    if ((longPress || release) && repeat)
+        return "flags e is mutually exclusive with r and o";
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";

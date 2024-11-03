@@ -12,8 +12,8 @@ After=hyprland-session-pre.target
 
 [Service]
 Type=notify
-ExecStart=@PREFIX@/@BINDIR@/Hyprland
-ExecStop=@PREFIX@/@BINDIR@/hyprctl dispatch exit
+ExecStart=@BINDIR@/Hyprland
+ExecStop=@BINDIR@/hyprctl dispatch exit
 ExecStopPost=systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
 Restart=on-failure
 Slice=session.slice

@@ -23,7 +23,6 @@ install_data(
 )
 
 conf_data = configuration_data()
-conf_data.set('PREFIX', get_option('prefix'))
 conf_data.set('BINDIR', get_option('bindir'))
 
 configure_file(

@@ -97,12 +97,18 @@ void CFramebuffer::bind() {
 }
 
 void CFramebuffer::release() {
+    if (!m_iFbAllocated && !m_cTex)
+        return;
+
+    Debug::log(TRACE, "fb {} released", m_iFb);
+
     if (m_iFbAllocated)
         glDeleteFramebuffers(1, &m_iFb);
 
     m_cTex.reset();
     m_iFbAllocated = false;
     m_vSize        = Vector2D();
+    m_iFb          = 0;
 }
 
 CFramebuffer::~CFramebuffer() {

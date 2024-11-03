@@ -222,8 +222,8 @@ if(NO_SYSTEMD)
 else()
   message(STATUS "SYSTEMD support is requested (NO_SYSTEMD not defined)...")
   add_compile_definitions(USES_SYSTEMD)
-  configure_file(systemd/hyprland-session.service.in
-                 systemd/hyprland-session.service @ONLY)
+  configure_file(${CMAKE_SOURCE_DIR}/systemd/hyprland-session.service.in
+                 ${CMAKE_BINARY_DIR}/systemd/hyprland-session.service @ONLY)
 
   # session file -systemd
   install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-systemd.desktop
@@ -231,6 +231,14 @@ else()
 
   # install systemd service
   install(FILES ${CMAKE_BINARY_DIR}/systemd/hyprland-session.service
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)
+
+  # install systemd targets
+  install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-session.target
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)
+  install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-session@.target
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)
+  install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-session-pre.target
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)
 endif()
 

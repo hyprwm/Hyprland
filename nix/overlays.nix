@@ -63,7 +63,7 @@ in {
   # Packages for extra software recommended for usage with Hyprland,
   # including forked or patched packages for compatibility.
   hyprland-extras = lib.composeManyExtensions [
-    inputs.xdph.overlays.xdg-desktop-portal-hyprland
+    inputs.xdph.overlays.default
   ];
 
   # udis86 from nixpkgs is too old, and also does not provide a .pc file

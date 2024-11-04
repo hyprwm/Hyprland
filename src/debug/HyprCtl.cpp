@@ -840,6 +840,7 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "mouse": {},
     "release": {},
     "repeat": {},
+    "longPress": {},
     "non_consuming": {},
     "has_description": {},
     "modmask": {},
@@ -851,7 +852,7 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
-                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.nonConsuming ? "true" : "false",
+                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.longPress ? "true" : "false", kb.nonConsuming ? "true" : "false",
                 kb.hasDescription ? "true" : "false", kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode, kb.catchAll ? "true" : "false",
                 escapeJSONStrings(kb.description), escapeJSONStrings(kb.handler), escapeJSONStrings(kb.arg));
         }

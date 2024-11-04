@@ -2267,7 +2267,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
 
         g_pKeybindManager->addKeybind(SKeybind{
             parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD,        MODS,     HANDLER,        COMMAND,    locked, m_szCurrentSubmap, DESCRIPTION, release,
-            repeat,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, longPress, hasDescription, dontInhibit});
+            repeat, longPress,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, hasDescription, dontInhibit});
     }
 
     return {};

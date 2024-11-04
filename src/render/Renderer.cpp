@@ -1084,8 +1084,10 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_bIsX11) {
-        Vector2D uvTL;
-        Vector2D uvBR = Vector2D(1, 1);
+        static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
+
+        Vector2D    uvTL;
+        Vector2D    uvBR = Vector2D(1, 1);
 
         if (pSurface->current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
@@ -1115,16 +1117,18 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         // this will break if later on xdg geometry is hit, but we really try
         // to let the apps know to NOT add CSD. Also if source is there.
         // there is no way to fix this if that's the case
-        const auto MONITOR_WL_SCALE = std::ceil(pMonitor->scale);
-        const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
-        const auto EXPECTED_SIZE =
-            ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale)
-                .round();
-        if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
-            // this will not work with shm AFAIK, idk why.
-            // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
-            const auto FIX = projSize / EXPECTED_SIZE;
-            uvBR           = uvBR * FIX;
+        if (*PEXPANDEDGES) {
+            const auto MONITOR_WL_SCALE = std::ceil(pMonitor->scale);
+            const bool SCALE_UNAWARE    = MONITOR_WL_SCALE != pSurface->current.scale && !pSurface->current.viewport.hasDestination;
+            const auto EXPECTED_SIZE =
+                ((pSurface->current.viewport.hasDestination ? pSurface->current.viewport.destination : pSurface->current.bufferSize / pSurface->current.scale) * pMonitor->scale)
+                    .round();
+            if (!SCALE_UNAWARE && (EXPECTED_SIZE.x < projSize.x || EXPECTED_SIZE.y < projSize.y)) {
+                // this will not work with shm AFAIK, idk why.
+                // NOTE: this math is wrong if we have a source... or geom updates later, but I don't think we can do much
+                const auto FIX = projSize / EXPECTED_SIZE;
+                uvBR           = uvBR * FIX;
+            }
         }
 
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = uvTL;

@@ -5,24 +5,27 @@
 inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
     return R"#(
 
-    // branchless baby!
+    // shoutout me: I fixed this shader being a bit pixelated while watching hentai
+
     highp vec2 pixCoord = vec2(gl_FragCoord);
     pixCoord -= topLeft + fullSize * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoord -= fullSize * 0.5 - radius;
     pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
 
+    const float SMOOTHING_CONSTANT = 0.651724; // smoothing constant for the edge: more = blurrier, but smoother
+
     if (pixCoord.x + pixCoord.y > radius) {
 
 	    float dist = length(pixCoord);
 
-	    if (dist > radius)
+	    if (dist > radius + SMOOTHING_CONSTANT * 2.0)
 	        discard;
 
-	    if (dist > radius - 1.0) {
+	    if (dist > radius - SMOOTHING_CONSTANT * 2.0) {
 	        float dist = length(pixCoord);
 
-            float normalized = 1.0 - smoothstep(0.0, 1.0, dist - radius + 0.5);
+            float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
 
 	        )#" +
         colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;

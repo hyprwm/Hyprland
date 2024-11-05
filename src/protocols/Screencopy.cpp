@@ -255,7 +255,7 @@ bool CScreencopyFrame::copyShm() {
 #ifndef GLES2
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
 #else
-    glBindFramebuffer(GL_FRAMEBUFFER, fb.m_iFb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.getFBID());
 #endif
 
     const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);

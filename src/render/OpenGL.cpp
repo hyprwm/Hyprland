@@ -2465,7 +2465,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
     box = &newBox;
 
-    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow_render_power");
+    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
 
     const auto  SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
 
@@ -2475,7 +2475,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
         newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
     Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
-    glEnable(GL_BLEND);
+    blend(true);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shSHADOW.program);
 
@@ -2485,7 +2485,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     glMatrix.transpose();
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
+    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r * col.a * a, col.g * col.a * a, col.b * col.a * a, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));

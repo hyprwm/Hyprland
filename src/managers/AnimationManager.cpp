@@ -64,7 +64,7 @@ void CAnimationManager::tick() {
     if (!*PANIMENABLED)
         animGlobalDisabled = true;
 
-    static auto* const                  PSHADOWSENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:drop_shadow");
+    static auto* const                  PSHADOWSENABLED = (Hyprlang::INT* const*)g_pConfigManager->getConfigValuePtr("decoration:shadow:enabled");
 
     const auto                          DEFAULTBEZIER = m_mBezierCurves.find("default");
 

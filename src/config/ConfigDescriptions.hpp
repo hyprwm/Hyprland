@@ -773,6 +773,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "group:merge_groups_on_groupbar",
+        .description = "whether one group will be merged with another when dragged into its groupbar",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "general:col.border_active",
         .description = "border color for inactive windows",
         .type        = CONFIG_OPTION_GRADIENT,

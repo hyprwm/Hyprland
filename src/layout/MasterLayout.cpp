@@ -101,21 +101,15 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
     PNODE->workspaceID = pWindow->workspaceID();
     PNODE->pWindow     = pWindow;
 
-    const auto  WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
-    static auto PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
-    float       lastSplitPercent   = *PMFACT;
+    const auto   WINDOWSONWORKSPACE = getNodesOnWorkspace(PNODE->workspaceID);
+    static auto  PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
+    float        lastSplitPercent   = *PMFACT;
 
-    auto        OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
-               getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) :
-               getMasterNodeOnWorkspace(pWindow->workspaceID());
+    auto         OPENINGON = isWindowTiled(g_pCompositor->m_pLastWindow.lock()) && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
+                getNodeFromWindow(g_pCompositor->m_pLastWindow.lock()) :
+                getMasterNodeOnWorkspace(pWindow->workspaceID());
 
-    const auto  MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-
-    if (g_pInputManager->m_bWasDraggingWindow && OPENINGON) {
-        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
-            return;
-    }
-
+    const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
     eOrientation orientation   = getDynamicOrientation(pWindow->m_pWorkspace);
     const auto   NODEIT        = std::find(m_lMasterNodesData.begin(), m_lMasterNodesData.end(), *PNODE);

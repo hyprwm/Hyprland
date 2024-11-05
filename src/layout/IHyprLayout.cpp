@@ -344,12 +344,6 @@ void IHyprLayout::onEndDragWindow() {
 
             if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
 
-                if (DRAGGINGWINDOW->m_bDraggingTiled) {
-                    changeWindowFloatingMode(DRAGGINGWINDOW);
-                    DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
-                    DRAGGINGWINDOW->m_bDraggingTiled    = false;
-                }
-
                 if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
                     PHLWINDOW next = DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock();
                     while (next != DRAGGINGWINDOW) {
@@ -360,7 +354,9 @@ void IHyprLayout::onEndDragWindow() {
                     }
                 }
 
-                DRAGGINGWINDOW->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of the window
+                DRAGGINGWINDOW->m_bIsFloating       = pWindow->m_bIsFloating; // match the floating state of the window
+                DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
+                DRAGGINGWINDOW->m_bDraggingTiled    = false;
 
                 if (pWindow->m_bIsFloating)
                     g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize.goal()); // match the size of the window

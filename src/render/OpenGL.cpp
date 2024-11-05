@@ -2485,7 +2485,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
     glMatrix.transpose();
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shSHADOW.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
-    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r * col.a * a, col.g * col.a * a, col.b * col.a * a, col.a * a);
+    glUniform4f(m_RenderData.pCurrentMonData->m_shSHADOW.color, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(box->width - (range + round), box->height - (range + round));

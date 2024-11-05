@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <format>
+#include "SharedValues.hpp"
 
 // makes a stencil without corners
 inline const std::string FRAGBORDER1 = R"#(
@@ -72,18 +74,22 @@ void main() {
     pixCoordOuter += vec2(1.0, 1.0) / fullSize;
 
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
+        // smoothing constant for the edge: more = blurrier, but smoother
+        const float SMOOTHING_CONSTANT = )#" +
+    std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
+
 	    float dist = length(pixCoord);
 	    float distOuter = length(pixCoordOuter);
         float h = (thick / 2.0);
 
 	    if (dist < radius - h) {
             // lower
-            float normalized = smoothstep(0.0, 1.0, dist - radius + thick + 0.5);
+            float normalized = smoothstep(0.0, 1.0, (dist - radius + thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
             done = true;
         } else if (min(pixCoordOuter.x, pixCoordOuter.y) > 0.0) {
             // higher
-            float normalized = 1.0 - smoothstep(0.0, 1.0, distOuter - radiusOuter + 0.5);
+            float normalized = 1.0 - smoothstep(0.0, 1.0, (distOuter - radiusOuter + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
             done = true;
         } else if (distOuter < radiusOuter - h) {

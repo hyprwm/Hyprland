@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <format>
+#include "SharedValues.hpp"
 
 inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVarName) -> std::string {
     return R"#(
@@ -13,7 +15,9 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
     pixCoord -= fullSize * 0.5 - radius;
     pixCoord += vec2(1.0, 1.0) / fullSize; // center the pix dont make it top-left
 
-    const float SMOOTHING_CONSTANT = 0.651724; // smoothing constant for the edge: more = blurrier, but smoother
+    // smoothing constant for the edge: more = blurrier, but smoother
+    const float SMOOTHING_CONSTANT = )#" +
+        std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
 
     if (pixCoord.x + pixCoord.y > radius) {
 

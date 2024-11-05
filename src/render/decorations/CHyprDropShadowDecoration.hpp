@@ -11,7 +11,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float a);
+    virtual void                       draw(PHLMONITOR, float const& a);
 
     virtual eDecorationType            getDecorationType();
 
@@ -33,6 +33,8 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     Vector2D     m_vLastWindowPos;
     Vector2D     m_vLastWindowSize;
+
+    void         drawShadowInternal(CBox* box, int round, int range, CColor color, float a);
 
     CBox         m_bLastWindowBox          = {0};
     CBox         m_bLastWindowBoxWithDecos = {0};

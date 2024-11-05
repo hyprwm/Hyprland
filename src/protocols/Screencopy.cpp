@@ -253,9 +253,9 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprOpenGL->setMonitorTransformEnabled(false);
 
 #ifndef GLES2
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.m_iFb);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
 #else
-    glBindFramebuffer(GL_FRAMEBUFFER, fb.m_iFb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.getFBID());
 #endif
 
     const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);

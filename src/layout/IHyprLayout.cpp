@@ -341,7 +341,9 @@ void IHyprLayout::onEndDragWindow() {
 
             const bool  FLOATEDINTOTILED = !pWindow->m_bIsFloating && !DRAGGINGWINDOW->m_bDraggingTiled;
             static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+
             if (pWindow->m_sGroupData.pNextWindow.lock() && DRAGGINGWINDOW->canBeGroupedInto(pWindow) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
+
                 if (DRAGGINGWINDOW->m_bDraggingTiled) {
                     changeWindowFloatingMode(DRAGGINGWINDOW);
                     DRAGGINGWINDOW->m_vLastFloatingSize = m_vDraggingWindowOriginalFloatSize;
@@ -349,17 +351,12 @@ void IHyprLayout::onEndDragWindow() {
                 }
 
                 if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
-                    std::vector<PHLWINDOW> members;
-                    PHLWINDOW              curr = DRAGGINGWINDOW->getGroupHead();
-                    do {
-                        members.push_back(curr);
-                        curr = curr->m_sGroupData.pNextWindow.lock();
-                    } while (curr != members[0]);
-
-                    for (auto it = members.begin(); it != members.end(); ++it) {
-                        (*it)->m_bIsFloating = pWindow->m_bIsFloating; // match the floating state of group members
-                        if (pWindow->m_bIsFloating)
-                            (*it)->m_vRealSize = pWindow->m_vRealSize.goal(); // match the size of group members
+                    PHLWINDOW next = DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock();
+                    while (next != DRAGGINGWINDOW) {
+                        next->m_bIsFloating   = pWindow->m_bIsFloating;          // match the floating state of group members
+                        next->m_vRealSize     = pWindow->m_vRealSize.goal();     // match the size of group members
+                        next->m_vRealPosition = pWindow->m_vRealPosition.goal(); // match the position of group members
+                        next                  = next->m_sGroupData.pNextWindow.lock();
                     }
                 }
 
@@ -392,91 +389,93 @@ void IHyprLayout::onEndDragWindow() {
     g_pInputManager->m_bWasDraggingWindow = false;
 }
 
-static inline bool canSnap(const double sideA, const double sideB, const double gap) {
-    return std::abs(sideA - sideB) < gap;
+static inline bool canSnap(const double SIDEA, const double SIDEB, const double GAP) {
+    return std::abs(SIDEA - SIDEB) < GAP;
 }
 
-static void snapMoveLeft(double& pos, double& len, const double p) {
-    pos = p;
+static void snapMove(double& start, double& end, const double P) {
+    end   = P + (end - start);
+    start = P;
 }
 
-static void snapMoveRight(double& pos, double& len, const double p) {
-    pos = p - len;
-}
-
-static void snapResizeLeft(double& pos, double& len, const double p) {
-    len += pos - p;
-    pos = p;
-}
-
-static void snapResizeRight(double& pos, double& len, const double p) {
-    len = p - pos;
+static void snapResize(double& start, double& end, const double P) {
+    start = P;
 }
 
 typedef std::function<void(double&, double&, const double)> SnapFn;
 
-static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode mode, const int corner, const Vector2D& beginSize) {
-    static auto  SNAPWINDOWGAP  = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
-    static auto  SNAPMONITORGAP = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
+static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE) {
+    static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
+    static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
+    static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
 
-    const SnapFn snapRight = (mode == MBIND_MOVE) ? snapMoveRight : snapResizeRight;
-    const SnapFn snapLeft  = (mode == MBIND_MOVE) ? snapMoveLeft : snapResizeLeft;
-    const SnapFn snapDown  = snapRight;
-    const SnapFn snapUp    = snapLeft;
-    int          snaps     = 0;
+    const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
+    int          snaps = 0;
 
+    const bool   OVERLAP            = *SNAPBORDEROVERLAP;
     const int    DRAGGINGBORDERSIZE = DRAGGINGWINDOW->getRealBorderSize();
-    CBox         sourceBox          = CBox{sourcePos, sourceSize}.expand(DRAGGINGBORDERSIZE);
+
+    struct SRange {
+        double start = 0;
+        double end   = 0;
+    };
+    SRange sourceX = {sourcePos.x, sourcePos.x + sourceSize.x};
+    SRange sourceY = {sourcePos.y, sourcePos.y + sourceSize.y};
 
     if (*SNAPWINDOWGAP) {
-        const auto WSID = DRAGGINGWINDOW->workspaceID();
+        const double GAPSIZE = *SNAPWINDOWGAP;
+        const auto   WSID    = DRAGGINGWINDOW->workspaceID();
 
         for (auto& other : g_pCompositor->m_vWindows) {
             if (other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
                 continue;
 
-            const int      BORDERSIZE = other->getRealBorderSize();
-            const double   GAPSIZE    = *SNAPWINDOWGAP + BORDERSIZE;
+            const int    OTHERBORDERSIZE = other->getRealBorderSize();
+            const double BORDERSIZE      = OVERLAP ? std::max(DRAGGINGBORDERSIZE, OTHERBORDERSIZE) : (DRAGGINGBORDERSIZE + OTHERBORDERSIZE);
 
-            const CBox     SURFBB = other->getWindowMainSurfaceBox().expand(BORDERSIZE);
-            const Vector2D end    = sourceBox.pos() + sourceBox.size();
+            const CBox   SURF   = other->getWindowMainSurfaceBox();
+            const SRange SURFBX = {SURF.x - BORDERSIZE, SURF.x + SURF.w + BORDERSIZE};
+            const SRange SURFBY = {SURF.y - BORDERSIZE, SURF.y + SURF.h + BORDERSIZE};
 
-            // only snap windows if their ranges intersect in the opposite axis
-            if (sourceBox.y <= SURFBB.y + SURFBB.h && SURFBB.y <= end.y) {
-                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceBox.x, SURFBB.x + SURFBB.w, GAPSIZE)) {
-                    snapLeft(sourceBox.x, sourceBox.w, SURFBB.x + SURFBB.w);
+            // only snap windows if their ranges overlap in the opposite axis
+            if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
+                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFBX.end, GAPSIZE)) {
+                    SNAP(sourceX.start, sourceX.end, SURFBX.end);
                     snaps |= SNAP_LEFT;
-                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, SURFBB.x, GAPSIZE)) {
-                    snapRight(sourceBox.x, sourceBox.w, SURFBB.x);
+                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFBX.start, GAPSIZE)) {
+                    SNAP(sourceX.end, sourceX.start, SURFBX.start);
                     snaps |= SNAP_RIGHT;
                 }
             }
-            if (sourceBox.x <= SURFBB.x + SURFBB.w && SURFBB.x <= end.x) {
-                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceBox.y, SURFBB.y + SURFBB.h, GAPSIZE)) {
-                    snapUp(sourceBox.y, sourceBox.h, SURFBB.y + SURFBB.h);
+            if (sourceX.start <= SURFBX.end && SURFBX.start <= sourceX.end) {
+                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFBY.end, GAPSIZE)) {
+                    SNAP(sourceY.start, sourceY.end, SURFBY.end);
                     snaps |= SNAP_UP;
-                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, SURFBB.y, GAPSIZE)) {
-                    snapDown(sourceBox.y, sourceBox.h, SURFBB.y);
+                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFBY.start, GAPSIZE)) {
+                    SNAP(sourceY.end, sourceY.start, SURFBY.start);
                     snaps |= SNAP_DOWN;
                 }
             }
 
             // corner snapping
-            if (sourceBox.x == SURFBB.x + SURFBB.w || SURFBB.x == sourceBox.x + sourceBox.w) {
-                if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceBox.y, SURFBB.y, GAPSIZE)) {
-                    snapUp(sourceBox.y, sourceBox.h, SURFBB.y);
+            const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
+            if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
+                const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
+                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
+                    SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
-                } else if (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(end.y, SURFBB.y + SURFBB.h, GAPSIZE)) {
-                    snapDown(sourceBox.y, sourceBox.h, SURFBB.y + SURFBB.h);
+                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
+                    SNAP(sourceY.end, sourceY.start, SURFY.end);
                     snaps |= SNAP_DOWN;
                 }
             }
-            if (sourceBox.y == SURFBB.y + SURFBB.h || SURFBB.y == sourceBox.y + sourceBox.h) {
-                if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceBox.x, SURFBB.x, GAPSIZE)) {
-                    snapLeft(sourceBox.x, sourceBox.w, SURFBB.x);
+            if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
+                const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
+                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
+                    SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
-                } else if (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(end.x, SURFBB.x + SURFBB.w, GAPSIZE)) {
-                    snapRight(sourceBox.x, sourceBox.w, SURFBB.x + SURFBB.w);
+                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
+                    SNAP(sourceX.end, sourceX.start, SURFX.end);
                     snaps |= SNAP_RIGHT;
                 }
             }
@@ -484,49 +483,50 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     }
 
     if (*SNAPMONITORGAP) {
-        const auto MON = DRAGGINGWINDOW->m_pMonitor.lock();
-        const CBox mon =
-            CBox{MON->vecPosition.x + MON->vecReservedTopLeft.x, MON->vecPosition.y + MON->vecReservedTopLeft.y,
-                 MON->vecSize.x - MON->vecReservedTopLeft.x - MON->vecReservedBottomRight.x, MON->vecSize.y - MON->vecReservedBottomRight.y - MON->vecReservedTopLeft.y};
-        const double gap = *SNAPMONITORGAP;
+        const double GAPSIZE    = *SNAPMONITORGAP;
+        const double BORDERSIZE = OVERLAP ? 0 : DRAGGINGBORDERSIZE;
+        const double BORDERDIFF = DRAGGINGBORDERSIZE - BORDERSIZE;
+        const auto   MON        = DRAGGINGWINDOW->m_pMonitor.lock();
 
-        if (canSnap(sourceBox.x, mon.x, gap)) {
-            snapLeft(sourceBox.x, sourceBox.w, mon.x);
+        SRange       monX = {MON->vecPosition.x + BORDERSIZE, MON->vecSize.x - BORDERSIZE};
+        SRange       monY = {MON->vecPosition.y + BORDERSIZE, MON->vecSize.y - BORDERSIZE};
+
+        if (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE)) {
+            SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (canSnap(sourceBox.x + sourceBox.w, mon.x + mon.w, gap)) {
-            snapRight(sourceBox.x, sourceBox.w, mon.w + mon.x);
+        if (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE)) {
+            SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (canSnap(sourceBox.y, mon.y, gap)) {
-            snapUp(sourceBox.y, sourceBox.h, mon.y);
+        if (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE)) {
+            SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (canSnap(sourceBox.y + sourceBox.h, mon.y + mon.h, gap)) {
-            snapDown(sourceBox.y, sourceBox.h, mon.h + mon.y);
+        if (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE)) {
+            SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
     }
 
-    if (mode == MBIND_RESIZE_FORCE_RATIO) {
-        const double RATIO = beginSize.y / beginSize.x;
-
-        if ((corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (corner & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
-            const double sizeY = sourceBox.w * RATIO;
-            if (corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
-                sourceBox.y += sourceBox.h - sizeY;
-            sourceBox.h = sizeY;
-        } else if ((corner & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && snaps & SNAP_UP) || (corner & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
-            const double sizeX = sourceBox.h / RATIO;
-            if (corner & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
-                sourceBox.x += sourceBox.w - sizeX;
-            sourceBox.w = sizeX;
+    if (MODE == MBIND_RESIZE_FORCE_RATIO) {
+        if ((CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
+            const double SIZEY = (sourceX.end - sourceX.start) * (BEGINSIZE.y / BEGINSIZE.x);
+            if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
+                sourceY.start = sourceY.end - SIZEY;
+            else
+                sourceY.end = sourceY.start + SIZEY;
+        } else if ((CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && snaps & SNAP_UP) || (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
+            const double SIZEX = (sourceY.end - sourceY.start) * (BEGINSIZE.x / BEGINSIZE.y);
+            if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
+                sourceX.start = sourceX.end - SIZEX;
+            else
+                sourceX.end = sourceX.start + SIZEX;
         }
     }
 
-    sourceBox.expand(-DRAGGINGBORDERSIZE).round();
-    sourcePos  = sourceBox.pos();
-    sourceSize = sourceBox.size();
+    sourcePos  = {sourceX.start, sourceY.start};
+    sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
 }
 
 void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
@@ -884,18 +884,17 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
             if (r.szRule.starts_with("size")) {
                 try {
-                    const auto VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
+                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);
+                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);
 
-                    const auto SIZEX = SIZEXSTR == "max" ?
-                        std::clamp(MAXSIZE.x, 20.0, g_pCompositor->m_pLastMonitor->vecSize.x) :
-                        (!SIZEXSTR.contains('%') ? std::stoi(SIZEXSTR) : std::stof(SIZEXSTR.substr(0, SIZEXSTR.length() - 1)) * 0.01 * g_pCompositor->m_pLastMonitor->vecSize.x);
-                    const auto SIZEY = SIZEYSTR == "max" ?
-                        std::clamp(MAXSIZE.y, 20.0, g_pCompositor->m_pLastMonitor->vecSize.y) :
-                        (!SIZEYSTR.contains('%') ? std::stoi(SIZEYSTR) : std::stof(SIZEYSTR.substr(0, SIZEYSTR.length() - 1)) * 0.01 * g_pCompositor->m_pLastMonitor->vecSize.y);
+                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.x) :
+                                                            stringToPercentage(SIZEXSTR, g_pCompositor->m_pLastMonitor->vecSize.x);
+
+                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.y) :
+                                                            stringToPercentage(SIZEYSTR, g_pCompositor->m_pLastMonitor->vecSize.y);
 
                     sizeOverride = {SIZEX, SIZEY};
 

@@ -13,6 +13,13 @@
 #include <gbm.h>
 #include <filesystem>
 
+const std::vector<const char*> ASSET_PATHS = {
+#ifdef DATAROOTDIR
+    DATAROOTDIR,
+#endif
+    "/usr/share",
+};
+
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (proc == NULL) {
@@ -823,15 +830,15 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     if (m_RenderData.pCurrentMonData->offloadFB.m_vSize != pMonitor->vecPixelSize) {
         m_RenderData.pCurrentMonData->stencilTex->allocate();
 
-        m_RenderData.pCurrentMonData->offloadFB.m_pStencilTex    = m_RenderData.pCurrentMonData->stencilTex;
-        m_RenderData.pCurrentMonData->mirrorFB.m_pStencilTex     = m_RenderData.pCurrentMonData->stencilTex;
-        m_RenderData.pCurrentMonData->mirrorSwapFB.m_pStencilTex = m_RenderData.pCurrentMonData->stencilTex;
-        m_RenderData.pCurrentMonData->offMainFB.m_pStencilTex    = m_RenderData.pCurrentMonData->stencilTex;
-
         m_RenderData.pCurrentMonData->offloadFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
         m_RenderData.pCurrentMonData->mirrorFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
         m_RenderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
         m_RenderData.pCurrentMonData->offMainFB.alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
+
+        m_RenderData.pCurrentMonData->offloadFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
+        m_RenderData.pCurrentMonData->mirrorFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
+        m_RenderData.pCurrentMonData->mirrorSwapFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
+        m_RenderData.pCurrentMonData->offMainFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
     }
 
     if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
@@ -863,10 +870,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         // we can render to the rbo / fbo (fake) directly
         const auto PFBO        = fb ? fb : PRBO->getFB();
         m_RenderData.currentFB = PFBO;
-        if (PFBO->m_pStencilTex != m_RenderData.pCurrentMonData->stencilTex) {
-            PFBO->m_pStencilTex = m_RenderData.pCurrentMonData->stencilTex;
-            PFBO->addStencil();
-        }
+        if (PFBO->getStencilTex() != m_RenderData.pCurrentMonData->stencilTex)
+            PFBO->addStencil(m_RenderData.pCurrentMonData->stencilTex);
+
         PFBO->bind();
         m_bOffloadedFramebuffer = false;
     }
@@ -917,9 +923,9 @@ void CHyprOpenGLImpl::end() {
         blend(false);
 
         if (m_sFinalScreenShader.program < 1 && !g_pHyprRenderer->m_bCrashingInProgress)
-            renderTexturePrimitive(m_RenderData.pCurrentMonData->offloadFB.m_cTex, &monbox);
+            renderTexturePrimitive(m_RenderData.pCurrentMonData->offloadFB.getTexture(), &monbox);
         else
-            renderTexture(m_RenderData.pCurrentMonData->offloadFB.m_cTex, &monbox, 1.f);
+            renderTexture(m_RenderData.pCurrentMonData->offloadFB.getTexture(), &monbox, 1.f);
 
         blend(true);
 
@@ -1262,7 +1268,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
     m_bEndFrame                 = true; // fix transformed
     const auto SAVEDRENDERMODIF = m_RenderData.renderModif;
     m_RenderData.renderModif    = {}; // fix shit
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, blurA, &damage, 0, false, false, false);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), &MONITORBOX, blurA, &damage, 0, false, false, false);
     m_bEndFrame              = false;
     m_RenderData.renderModif = SAVEDRENDERMODIF;
 
@@ -1622,7 +1628,8 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
     glBindTexture(tex->m_iTarget, tex->m_iTexID);
 
     glActiveTexture(GL_TEXTURE0 + 1);
-    glBindTexture(matte.m_cTex->m_iTarget, matte.m_cTex->m_iTexID);
+    auto matteTex = matte.getTexture();
+    glBindTexture(matteTex->m_iTarget, matteTex->m_iTexID);
 
     glVertexAttribPointer(shader->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
     glVertexAttribPointer(shader->texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
@@ -1648,6 +1655,11 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuf
 //
 // Dual (or more) kawase blur
 CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
+
+    if (!m_RenderData.currentFB->getTexture()) {
+        Debug::log(ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
+        return &m_RenderData.pCurrentMonData->mirrorFB; // return something to sample from at least
+    }
 
     TRACY_GPU_ZONE("RenderBlurMainFramebufferWithDamage");
 
@@ -1689,9 +1701,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glActiveTexture(GL_TEXTURE0);
 
-        glBindTexture(m_RenderData.currentFB->m_cTex->m_iTarget, m_RenderData.currentFB->m_cTex->m_iTexID);
+        auto currentTex = m_RenderData.currentFB->getTexture();
 
-        glTexParameteri(m_RenderData.currentFB->m_cTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(currentTex->m_iTarget, currentTex->m_iTexID);
+
+        glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         glUseProgram(m_RenderData.pCurrentMonData->m_shBLURPREPARE.program);
 
@@ -1733,9 +1747,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glActiveTexture(GL_TEXTURE0);
 
-        glBindTexture(currentRenderToFB->m_cTex->m_iTarget, currentRenderToFB->m_cTex->m_iTexID);
+        auto currentTex = currentRenderToFB->getTexture();
 
-        glTexParameteri(currentRenderToFB->m_cTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(currentTex->m_iTarget, currentTex->m_iTexID);
+
+        glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         glUseProgram(pShader->program);
 
@@ -1783,7 +1799,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     // draw the things.
     // first draw is swap -> mirr
     PMIRRORFB->bind();
-    glBindTexture(PMIRRORSWAPFB->m_cTex->m_iTarget, PMIRRORSWAPFB->m_cTex->m_iTexID);
+    glBindTexture(PMIRRORSWAPFB->getTexture()->m_iTarget, PMIRRORSWAPFB->getTexture()->m_iTexID);
 
     // damage region will be scaled, make a temp
     CRegion tempDamage{damage};
@@ -1811,9 +1827,11 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
 
         glActiveTexture(GL_TEXTURE0);
 
-        glBindTexture(currentRenderToFB->m_cTex->m_iTarget, currentRenderToFB->m_cTex->m_iTexID);
+        auto currentTex = currentRenderToFB->getTexture();
 
-        glTexParameteri(currentRenderToFB->m_cTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(currentTex->m_iTarget, currentTex->m_iTexID);
+
+        glTexParameteri(currentTex->m_iTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         glUseProgram(m_RenderData.pCurrentMonData->m_shBLURFINISH.program);
 
@@ -1851,7 +1869,7 @@ CFramebuffer* CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* o
     }
 
     // finish
-    glBindTexture(PMIRRORFB->m_cTex->m_iTarget, 0);
+    glBindTexture(PMIRRORFB->getTexture()->m_iTarget, 0);
 
     blend(BLENDBEFORE);
 
@@ -1965,7 +1983,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     clear(CColor(0, 0, 0, 0));
 
     m_bEndFrame = true; // fix transformed
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &wholeMonitor, 1, &fakeDamage, 0, false, true, false);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), &wholeMonitor, 1, &fakeDamage, 0, false, true, false);
     m_bEndFrame = false;
 
     m_RenderData.currentFB->bind();
@@ -1996,7 +2014,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
 
-    if (!m_RenderData.pCurrentMonData->blurFB.m_cTex->m_iTexID)
+    if (!m_RenderData.pCurrentMonData->blurFB.getTexture())
         return false;
 
     if (pWindow && pWindow->m_sWindowData.xray.hasValue() && !pWindow->m_sWindowData.xray.valueOrDefault())
@@ -2098,7 +2116,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     setMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
-    renderTextureInternalWithDamage(POUTFB->m_cTex, &MONITORBOX, *PBLURIGNOREOPACITY ? blurA : a * blurA, &texDamage, 0, false, false, false);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), &MONITORBOX, *PBLURIGNOREOPACITY ? blurA : a * blurA, &texDamage, 0, false, false, false);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     setMonitorTransformEnabled(false);
@@ -2231,9 +2249,8 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFr
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    pFramebuffer->m_pStencilTex = m_RenderData.pCurrentMonData->stencilTex;
-
     pFramebuffer->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
+    pFramebuffer->addStencil(m_RenderData.pCurrentMonData->stencilTex);
 
     g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, pFramebuffer);
 
@@ -2369,7 +2386,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
     const auto FBDATA = &m_mWindowFramebuffers.at(ref);
 
-    if (!FBDATA->m_cTex->m_iTexID)
+    if (!FBDATA->getTexture())
         return;
 
     const auto PMONITOR = pWindow->m_pMonitor.lock();
@@ -2395,7 +2412,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(FBDATA->m_cTex, &windowBox, pWindow->m_fAlpha.value(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(FBDATA->getTexture(), &windowBox, pWindow->m_fAlpha.value(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }
@@ -2408,7 +2425,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
 
     const auto FBDATA = &m_mLayerFramebuffers.at(pLayer);
 
-    if (!FBDATA->m_cTex->m_iTexID)
+    if (!FBDATA->getTexture())
         return;
 
     const auto PMONITOR = pLayer->monitor.lock();
@@ -2428,7 +2445,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
 
     m_bEndFrame = true;
 
-    renderTextureInternalWithDamage(FBDATA->m_cTex, &layerBox, pLayer->alpha.value(), &fakeDamage, 0);
+    renderTextureInternalWithDamage(FBDATA->getTexture(), &layerBox, pLayer->alpha.value(), &fakeDamage, 0);
 
     m_bEndFrame = false;
 }
@@ -2448,7 +2465,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
 
     box = &newBox;
 
-    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow_render_power");
+    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
 
     const auto  SHADOWPOWER = std::clamp((int)*PSHADOWPOWER, 1, 4);
 
@@ -2458,7 +2475,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const
         newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
     Mat3x3 glMatrix = m_RenderData.projection.copy().multiply(matrix);
 
-    glEnable(GL_BLEND);
+    blend(true);
 
     glUseProgram(m_RenderData.pCurrentMonData->m_shSHADOW.program);
 
@@ -2519,7 +2536,7 @@ void CHyprOpenGLImpl::saveBufferForMirror(CBox* box) {
 
     blend(false);
 
-    renderTexture(m_RenderData.currentFB->m_cTex, box, 1.f, 0, false, false);
+    renderTexture(m_RenderData.currentFB->getTexture(), box, 1.f, 0, false, false);
 
     blend(true);
 
@@ -2541,7 +2558,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     monbox.y = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
     const auto PFB = &m_mMonitorRenderResources[mirrored].monitorMirrorFB;
-    if (!PFB->isAllocated() || PFB->m_cTex->m_iTexID <= 0)
+    if (!PFB->isAllocated() || !PFB->getTexture())
         return;
 
     // replace monitor projection to undo the mirrored monitor's projection
@@ -2554,7 +2571,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
     clear(CColor(0, 0, 0, 0));
 
-    renderTexture(PFB->m_cTex, &monbox, 1.f, 0, false, false);
+    renderTexture(PFB->getTexture(), &monbox, 1.f, 0, false, false);
 
     // reset matrix for further drawing
     m_RenderData.monitorProjection = monitor->projMatrix;
@@ -2595,11 +2612,32 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& file) {
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(file.c_str());
+SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
 
-    if (!CAIROSURFACE)
-        return nullptr;
+    std::string fullPath;
+    for (auto& e : ASSET_PATHS) {
+        std::string     p = std::string{e} + "/hypr/" + filename;
+        std::error_code ec;
+        if (std::filesystem::exists(p, ec)) {
+            fullPath = p;
+            break;
+        } else
+            Debug::log(LOG, "loadAsset: looking at {} unsuccessful: ec {}", filename, ec.message());
+    }
+
+    if (fullPath.empty()) {
+        failedAssetsNo++;
+        Debug::log(ERR, "loadAsset: looking for {} failed (no provider found)", filename);
+        return m_pMissingAssetTexture;
+    }
+
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
+
+    if (!CAIROSURFACE) {
+        failedAssetsNo++;
+        Debug::log(ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
+        return m_pMissingAssetTexture;
+    }
 
     const auto CAIROFORMAT = cairo_image_surface_get_format(CAIROSURFACE);
     auto       tex         = makeShared<CTexture>();
@@ -2710,51 +2748,68 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CColor col, in
     return tex;
 }
 
-void CHyprOpenGLImpl::initAssets() {
-    std::string assetsPath = "";
-#ifndef DATAROOTDIR
-    assetsPath = "/usr/share/hypr/";
-#else
-    assetsPath = std::format("{}{}", DATAROOTDIR, "/hypr/");
-#endif
+void CHyprOpenGLImpl::initMissingAssetTexture() {
+    SP<CTexture> tex = makeShared<CTexture>();
+    tex->allocate();
 
-    m_pLockDeadTexture  = loadAsset(assetsPath + "lockdead.png");
-    m_pLockDead2Texture = loadAsset(assetsPath + "lockdead2.png");
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_NONE);
+    cairo_save(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(CAIRO);
+    cairo_set_source_rgba(CAIRO, 1, 0, 1, 1);
+    cairo_rectangle(CAIRO, 256, 0, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_rectangle(CAIRO, 0, 256, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_restore(CAIRO);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    tex->m_vSize = {512, 512};
+
+    // copy the data to an OpenGL texture we have
+    const GLint glFormat = GL_RGBA;
+    const GLint glType   = GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
+    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+#ifndef GLES2
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_vSize.x, tex->m_vSize.y, 0, glFormat, glType, DATA);
+
+    cairo_surface_destroy(CAIROSURFACE);
+    cairo_destroy(CAIRO);
+
+    m_pMissingAssetTexture = tex;
+}
+
+void CHyprOpenGLImpl::initAssets() {
+    initMissingAssetTexture();
+
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+
+    m_pLockDeadTexture  = loadAsset("lockdead.png");
+    m_pLockDead2Texture = loadAsset("lockdead2.png");
 
     m_pLockTtyTextTexture = renderText(std::format("Running on tty {}",
                                                    g_pCompositor->m_pAqBackend->hasSession() && g_pCompositor->m_pAqBackend->session->vt > 0 ?
                                                        std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
                                                        "unknown"),
                                        CColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
-}
 
-void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
-    RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
-
-    Debug::log(LOG, "Creating a texture for BGTex");
-
-    static auto PRENDERTEX      = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PNOSPLASH       = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
-
-    if (*PRENDERTEX)
-        return;
-
-    // release the last tex if exists
-    const auto PFB = &m_mMonitorBGFBs[pMonitor];
-    PFB->release();
-
-    PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
-
-    if (!m_pBackgroundTexture) {
-        std::string texPath = "";
-#ifndef DATAROOTDIR
-        texPath = "/usr/share/hypr/wall";
-#else
-        texPath = std::format("{}{}", DATAROOTDIR, "/hypr/wall");
-#endif
+    // create the default background texture
+    {
+        std::string texPath = std::format("{}", "wall");
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {
@@ -2767,15 +2822,29 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
 
         texPath += ".png";
 
-        // check if wallpapers exist
-        std::error_code err;
-        if (!std::filesystem::exists(texPath, err)) {
-            Debug::log(ERR, "createBGTextureForMonitor: failed, file \"{}\" doesn't exist or access denied, ec: {}", texPath, err.message());
-            return; // the texture will be empty, oh well. We'll clear with a solid color anyways.
-        }
-
         m_pBackgroundTexture = loadAsset(texPath);
     }
+}
+
+void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
+    RASSERT(m_RenderData.pMonitor, "Tried to createBGTex without begin()!");
+
+    Debug::log(LOG, "Creating a texture for BGTex");
+
+    static auto PRENDERTEX = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PNOSPLASH  = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
+
+    if (*PRENDERTEX)
+        return;
+
+    // release the last tex if exists
+    const auto PFB = &m_mMonitorBGFBs[pMonitor];
+    PFB->release();
+
+    PFB->alloc(pMonitor->vecPixelSize.x, pMonitor->vecPixelSize.y, pMonitor->output->state->state().drmFormat);
+
+    if (!m_pBackgroundTexture) // ?!?!?!
+        return;
 
     // create a new one with cairo
     SP<CTexture> tex = makeShared<CTexture>();
@@ -2867,7 +2936,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     if (TEXIT != m_mMonitorBGFBs.end()) {
         CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
         m_bEndFrame = true;
-        renderTexture(TEXIT->second.m_cTex, &monbox, 1);
+        renderTexture(TEXIT->second.getTexture(), &monbox, 1);
         m_bEndFrame = false;
     }
 }
@@ -2919,7 +2988,7 @@ void CHyprOpenGLImpl::bindOffMain() {
 
 void CHyprOpenGLImpl::renderOffToMain(CFramebuffer* off) {
     CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-    renderTexturePrimitive(off->m_cTex, &monbox);
+    renderTexturePrimitive(off->getTexture(), &monbox);
 }
 
 void CHyprOpenGLImpl::bindBackOnMain() {

@@ -40,6 +40,7 @@ void                             throwError(const std::string& err);
 bool                             envEnabled(const std::string& env);
 int                              allocateSHMFile(size_t len);
 bool                             allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr);
+float                            stringToPercentage(const std::string& VALUE, const float REL);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

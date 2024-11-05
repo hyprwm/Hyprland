@@ -811,10 +811,10 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
         for (auto const& w : m_vWindows | std::views::reverse) {
-            const auto BB  = w->getWindowBoxUnified(properties);
-            CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
             if (w->m_bIsFloating && w->m_bIsMapped && !w->isHidden() && !w->m_bX11ShouldntFocus && w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() &&
                 w != pIgnoreWindow) {
+                const auto BB  = w->getWindowBoxUnified(properties);
+                CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (box.containsPoint(g_pPointerManager->position()))
                     return w;
 
@@ -833,22 +833,25 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 if (special && !w->onSpecialWorkspace()) // because special floating may creep up into regular
                     continue;
 
-                const auto BB             = w->getWindowBoxUnified(properties);
                 const auto PWINDOWMONITOR = w->m_pMonitor.lock();
 
                 // to avoid focusing windows behind special workspaces from other monitors
-                if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->activeSpecialWorkspace && w->m_pWorkspace != PWINDOWMONITOR->activeSpecialWorkspace &&
-                    BB.x >= PWINDOWMONITOR->vecPosition.x && BB.y >= PWINDOWMONITOR->vecPosition.y &&
-                    BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x && BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
-                    continue;
+                if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->activeSpecialWorkspace && w->m_pWorkspace != PWINDOWMONITOR->activeSpecialWorkspace) {
+                    const auto BB = w->getWindowBoxUnified(properties);
+                    if (BB.x >= PWINDOWMONITOR->vecPosition.x && BB.y >= PWINDOWMONITOR->vecPosition.y &&
+                        BB.x + BB.width <= PWINDOWMONITOR->vecPosition.x + PWINDOWMONITOR->vecSize.x &&
+                        BB.y + BB.height <= PWINDOWMONITOR->vecPosition.y + PWINDOWMONITOR->vecSize.y)
+                        continue;
+                }
 
-                CBox box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (w->m_bIsFloating && w->m_bIsMapped && isWorkspaceVisible(w->m_pWorkspace) && !w->isHidden() && !w->m_bPinned && !w->m_sWindowData.noFocus.valueOrDefault() &&
                     w != pIgnoreWindow && (!aboveFullscreen || w->m_bCreatedOverFullscreen)) {
                     // OR windows should add focus to parent
                     if (w->m_bX11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
 
+                    const auto BB  = w->getWindowBoxUnified(properties);
+                    CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                     if (box.containsPoint(g_pPointerManager->position())) {
 
                         if (w->m_bIsX11 && w->isX11OverrideRedirect() && !w->m_pXWaylandSurface->wantsFocus()) {
@@ -906,10 +909,12 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (special != w->onSpecialWorkspace())
                 continue;
 
-            CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_vPosition, w->m_vSize};
-            if (!w->m_bIsFloating && w->m_bIsMapped && box.containsPoint(pos) && w->workspaceID() == WSPID && !w->isHidden() && !w->m_bX11ShouldntFocus &&
-                !w->m_sWindowData.noFocus.valueOrDefault() && w != pIgnoreWindow)
-                return w;
+            if (!w->m_bIsFloating && w->m_bIsMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_bX11ShouldntFocus && !w->m_sWindowData.noFocus.valueOrDefault() &&
+                w != pIgnoreWindow) {
+                CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_vPosition, w->m_vSize};
+                if (box.containsPoint(pos))
+                    return w;
+            }
         }
 
         return nullptr;
@@ -1888,8 +1893,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     static auto PINACTIVEALPHA          = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA            = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
     static auto PFULLSCREENALPHA        = CConfigValue<Hyprlang::FLOAT>("decoration:fullscreen_opacity");
-    static auto PSHADOWCOL              = CConfigValue<Hyprlang::INT>("decoration:col.shadow");
-    static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:col.shadow_inactive");
+    static auto PSHADOWCOL              = CConfigValue<Hyprlang::INT>("decoration:shadow:color");
+    static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:shadow:color_inactive");
     static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
 
@@ -1960,11 +1965,10 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
 
     // shadow
     if (!pWindow->isX11OverrideRedirect() && !pWindow->m_bX11DoesntWantBorders) {
-        if (pWindow == m_pLastWindow) {
+        if (pWindow == m_pLastWindow)
             pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
-        } else {
-            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
-        }
+        else
+            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
     } else {
         pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
     }
@@ -2732,6 +2736,12 @@ void CCompositor::performUserChecks() {
                             CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
                 CColor{}, 15000, ICON_WARNING);
         }
+    }
+
+    if (g_pHyprOpenGL->failedAssetsNo > 0) {
+        g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
+                                                                g_pHyprOpenGL->failedAssetsNo, g_pHyprOpenGL->failedAssetsNo > 1 ? "s" : ""),
+                                                    CColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 }
 

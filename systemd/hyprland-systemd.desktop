@@ -1,5 +1,7 @@
 [Desktop Entry]
-Name=Hyprland
+Name=Hyprland (systemd session)
 Comment=An intelligent dynamic tiling Wayland compositor
 Exec=systemctl --user start --wait hyprland-session
 Type=Application
+DesktopNames=Hyprland
+Keywords=tiling;wayland;compositor;

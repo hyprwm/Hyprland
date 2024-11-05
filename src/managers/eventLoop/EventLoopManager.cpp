@@ -98,7 +98,7 @@ void CEventLoopManager::nudgeTimers() {
     long nextTimerUs = 10 * 1000 * 1000; // 10s
 
     for (auto const& t : m_sTimers.timers) {
-        if (const auto µs = t->leftUs(); µs < nextTimerUs)
+        if (auto const& µs = t->leftUs(); µs < nextTimerUs)
             nextTimerUs = µs;
     }
 

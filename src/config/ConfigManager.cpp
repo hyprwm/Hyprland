@@ -344,6 +344,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("general:snap:enabled", Hyprlang::INT{0});
     m_pConfig->addConfigValue("general:snap:window_gap", Hyprlang::INT{10});
     m_pConfig->addConfigValue("general:snap:monitor_gap", Hyprlang::INT{10});
+    m_pConfig->addConfigValue("general:snap:border_overlap", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("misc:disable_hyprland_logo", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:disable_splash_rendering", Hyprlang::INT{0});
@@ -430,14 +431,15 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("decoration:inactive_opacity", {1.F});
     m_pConfig->addConfigValue("decoration:fullscreen_opacity", {1.F});
     m_pConfig->addConfigValue("decoration:no_blur_on_oversized", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("decoration:drop_shadow", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("decoration:shadow_range", Hyprlang::INT{4});
-    m_pConfig->addConfigValue("decoration:shadow_render_power", Hyprlang::INT{3});
-    m_pConfig->addConfigValue("decoration:shadow_ignore_window", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("decoration:shadow_offset", Hyprlang::VEC2{0, 0});
-    m_pConfig->addConfigValue("decoration:shadow_scale", {1.f});
-    m_pConfig->addConfigValue("decoration:col.shadow", Hyprlang::INT{0xee1a1a1a});
-    m_pConfig->addConfigValue("decoration:col.shadow_inactive", {(Hyprlang::INT)INT_MAX});
+    m_pConfig->addConfigValue("decoration:shadow:enabled", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("decoration:shadow:range", Hyprlang::INT{4});
+    m_pConfig->addConfigValue("decoration:shadow:render_power", Hyprlang::INT{3});
+    m_pConfig->addConfigValue("decoration:shadow:ignore_window", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("decoration:shadow:offset", Hyprlang::VEC2{0, 0});
+    m_pConfig->addConfigValue("decoration:shadow:scale", {1.f});
+    m_pConfig->addConfigValue("decoration:shadow:sharp", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("decoration:shadow:color", Hyprlang::INT{0xee1a1a1a});
+    m_pConfig->addConfigValue("decoration:shadow:color_inactive", {(Hyprlang::INT)INT64_MAX});
     m_pConfig->addConfigValue("decoration:dim_inactive", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:dim_strength", {0.5f});
     m_pConfig->addConfigValue("decoration:dim_special", {0.2f});
@@ -589,6 +591,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:explicit_sync", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});
@@ -1607,9 +1610,6 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             m->vrrActive = true;
             return;
         } else if (USEVRR == 2) {
-            /* fullscreen */
-            m->vrrActive = true;
-
             const auto PWORKSPACE = m->activeWorkspace;
 
             if (!PWORKSPACE)
@@ -1618,6 +1618,9 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             const auto WORKSPACEFULL = PWORKSPACE->m_bHasFullscreenWindow && (PWORKSPACE->m_efFullscreenMode & FSMODE_FULLSCREEN);
 
             if (WORKSPACEFULL) {
+                /* fullscreen */
+                m->vrrActive = true;
+
                 m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(true);
 
@@ -1630,6 +1633,8 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
                     Debug::log(ERR, "Couldn't commit output {} in ensureVRR -> true", m->output->name);
 
             } else if (!WORKSPACEFULL) {
+                m->vrrActive = false;
+
                 m->output->state->resetExplicitFences();
                 m->output->state->setAdaptiveSync(false);
 

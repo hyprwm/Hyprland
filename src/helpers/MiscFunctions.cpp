@@ -863,3 +863,10 @@ bool allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr) {
     *ro_fd_ptr = ro_fd;
     return true;
 }
+
+float stringToPercentage(const std::string& VALUE, const float REL) {
+    if (VALUE.ends_with('%'))
+        return (std::stof(VALUE.substr(0, VALUE.length() - 1)) * REL) / 100.f;
+    else
+        return std::stof(VALUE);
+};

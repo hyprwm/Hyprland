@@ -2,7 +2,7 @@
 #include "OpenGL.hpp"
 
 CFramebuffer::CFramebuffer() {
-    m_cTex = makeShared<CTexture>();
+    ;
 }
 
 bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
@@ -11,6 +11,9 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
     uint32_t glFormat = FormatUtils::drmFormatToGL(drmFormat);
     uint32_t glType   = FormatUtils::glFormatToType(glFormat);
+
+    if (!m_cTex)
+        m_cTex = makeShared<CTexture>();
 
     if (!m_iFbAllocated) {
         firstAlloc = true;
@@ -54,16 +57,18 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
+    if (g_pHyprOpenGL)
+        glBindFramebuffer(GL_FRAMEBUFFER, g_pHyprOpenGL->m_iCurrentOutputFb);
 
     m_vSize = Vector2D(w, h);
 
     return true;
 }
 
-void CFramebuffer::addStencil() {
+void CFramebuffer::addStencil(SP<CTexture> tex) {
     // TODO: Allow this with gles2
 #ifndef GLES2
+    m_pStencilTex = tex;
     glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_vSize.x, m_vSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
 
@@ -85,16 +90,25 @@ void CFramebuffer::bind() {
 #else
     glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
 #endif
-    glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+    if (g_pHyprOpenGL)
+        glViewport(0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y);
+    else
+        glViewport(0, 0, m_vSize.x, m_vSize.y);
 }
 
 void CFramebuffer::release() {
+    if (!m_iFbAllocated && !m_cTex)
+        return;
+
+    Debug::log(TRACE, "fb {} released", m_iFb);
+
     if (m_iFbAllocated)
         glDeleteFramebuffers(1, &m_iFb);
 
-    m_cTex->destroyTexture();
+    m_cTex.reset();
     m_iFbAllocated = false;
     m_vSize        = Vector2D();
+    m_iFb          = 0;
 }
 
 CFramebuffer::~CFramebuffer() {
@@ -102,5 +116,17 @@ CFramebuffer::~CFramebuffer() {
 }
 
 bool CFramebuffer::isAllocated() {
-    return m_iFbAllocated;
+    return m_iFbAllocated && m_cTex;
+}
+
+SP<CTexture> CFramebuffer::getTexture() {
+    return m_cTex;
+}
+
+GLuint CFramebuffer::getFBID() {
+    return m_iFbAllocated ? m_iFb : 0;
+}
+
+SP<CTexture> CFramebuffer::getStencilTex() {
+    return m_pStencilTex;
 }

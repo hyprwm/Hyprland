@@ -52,7 +52,7 @@ void CPointerManager::unlockSoftwareAll() {
 }
 
 void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     state->softwareLocks++;
 
     if (state->softwareLocks == 1)
@@ -60,7 +60,7 @@ void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
 }
 
 void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     state->softwareLocks--;
     if (state->softwareLocks < 0)
         state->softwareLocks = 0;
@@ -70,7 +70,7 @@ void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
 }
 
 bool CPointerManager::softwareLockedFor(PHLMONITOR mon) {
-    auto state = stateFor(mon);
+    auto const state = stateFor(mon);
     return state->softwareLocks > 0 || state->hardwareFailed;
 }
 
@@ -250,14 +250,13 @@ void CPointerManager::updateCursorBackend() {
     const auto CURSORBOX = getCursorBoxGlobal();
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        auto state = stateFor(m);
-
         if (!m->m_bEnabled || !m->dpmsStatus) {
             Debug::log(TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
         }
 
         auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+        auto state   = stateFor(m);
 
         if (!CROSSES) {
             if (state->cursorFrontBuffer)
@@ -373,10 +372,8 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 }
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
-    auto output = state->monitor->output;
-
-    auto maxSize    = output->cursorPlaneSize();
-    auto cursorSize = currentCursorImage.size;
+    auto        maxSize    = state->monitor->output->cursorPlaneSize();
+    auto const& cursorSize = currentCursorImage.size;
 
     if (maxSize == Vector2D{})
         return nullptr;
@@ -422,8 +419,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         Debug::log(TRACE, "Failed to acquire a buffer from the cursor swapchain");
         return nullptr;
     }
-
-    CRegion damage = {0, 0, INT16_MAX, INT16_MAX};
 
     g_pHyprRenderer->makeEGLCurrent();
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor;
@@ -483,7 +478,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), damage, RBO);
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, INT16_MAX, INT16_MAX}, RBO);
     g_pHyprOpenGL->clear(CColor{0.F, 0.F, 0.F, 0.F});
 
     CBox xbox = {{}, Vector2D{currentCursorImage.size / currentCursorImage.scale * state->monitor->scale}.round()};

@@ -1255,7 +1255,7 @@ int CWindow::surfacesCount() {
 
 void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_vRealSize.goal();
-    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{0.f, 0.f}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
+    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
     const Vector2D DELTA    = REALSIZE - NEWSIZE;
 
     m_vRealPosition = m_vRealPosition.goal() + DELTA / 2.0;

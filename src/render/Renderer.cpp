@@ -355,7 +355,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         windowBox.translate(pWindow->m_vFloatingOffset);
 
         const CBox monitorBox = {pMonitor->vecPosition, pMonitor->vecSize};
-        if (!windowBox.intersection(monitorBox).empty())
+        if (!windowBox.intersection(monitorBox).empty() && (pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->m_iMonitorMovedFrom != -1))
             return true;
     }
 

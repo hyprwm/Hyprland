@@ -168,6 +168,25 @@ master {
     new_status = master
 }
 
+# See https://wiki.hyprland.org/Configuring/Variables/#group for more variables to configure groups behavior and appearance
+group {
+    auto_group = true # whether new windows will be automatically grouped into the focused unlocked group
+
+    # See https://wiki.hyprland.org/Configuring/Variables/#groupbar for more variables to configure the groupbar
+    groupbar {
+        enabled = true
+        render_titles = yes
+        height = 18
+        font_size = 12
+        font_family =
+        text_color = rgb(ffffff)
+        col.active = rgba(0000009a)
+        col.inactive = rgba(0000001a)
+        col.locked_active = rgba(0000009a)
+        col.locked_inactive = rgba(0000001a)
+    }
+}
+
 # https://wiki.hyprland.org/Configuring/Variables/#misc
 misc {
     force_default_wallpaper = -1 # Set to 0 or 1 to disable the anime mascot wallpapers

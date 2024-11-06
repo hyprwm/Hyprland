@@ -18,6 +18,7 @@ const std::vector<const char*> ASSET_PATHS = {
     DATAROOTDIR,
 #endif
     "/usr/share",
+    "/usr/local/share",
 };
 
 inline void loadGLProc(void* pProc, const char* name) {

@@ -310,11 +310,6 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         return;
     }
 
-    if (!m_vOverrideFocalPoint && g_pInputManager->m_bWasDraggingWindow) {
-        if (OPENINGON->pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, pWindow))
-            return;
-    }
-
     // get the node under our cursor
 
     m_lDwindleNodesData.push_back(SDwindleNodeData());

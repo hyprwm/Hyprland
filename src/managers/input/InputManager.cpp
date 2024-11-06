@@ -776,9 +776,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
         const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
         if (PWINDOW) {
-            if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e)) {
+            if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
                 return;
-            }
 
             if (*POFFWINDOWAXIS != 1) {
                 const auto BOX = PWINDOW->getWindowMainSurfaceBox();
@@ -799,9 +798,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
             }
 
             const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus.lock());
-            if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW) {
+            if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                 simulateMouseMovement();
-            }
         }
     }
 

@@ -1,7 +1,6 @@
 [Desktop Entry]
-Name=Hyprland (systemd session)
+Name=Hyprland (uwsm-managed)
 Comment=An intelligent dynamic tiling Wayland compositor
-Exec=systemctl --user start --wait hyprland-session
-Type=Application
+Exec=uwsm start -N Hyprland -D Hyprland -C An_intelligent_dynamic_tiling_Wayland_compositor -- Hyprland
 DesktopNames=Hyprland
-Keywords=tiling;wayland;compositor;
+Type=Application

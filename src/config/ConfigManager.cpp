@@ -2265,9 +2265,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{
-            parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD,        MODS,     HANDLER,        COMMAND,    locked, m_szCurrentSubmap, DESCRIPTION, release,
-            repeat, longPress,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, hasDescription, dontInhibit});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
+                                               COMMAND,       locked,       m_szCurrentSubmap, DESCRIPTION,        release,  repeat,         longPress,
+                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit});
     }
 
     return {};

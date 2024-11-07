@@ -40,7 +40,13 @@ in {
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
-      hyprland-debug = final.hyprland.override {debug = true;};
+
+      # Build major libs with debug to get as much info as possible in a stacktrace
+      hyprland-debug = final.hyprland.override {
+        aquamarine = final.aquamarine.override {debug = true;};
+        hyprutils = final.hyprutils.override {debug = true;};
+        debug = true;
+      };
       hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
 
       # deprecated packages

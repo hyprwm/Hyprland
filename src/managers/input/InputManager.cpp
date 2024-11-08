@@ -759,6 +759,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
     static auto PEMULATEDISCRETE      = CConfigValue<Hyprlang::INT>("input:emulate_discrete_scroll");
+    static auto PFOLLOWMOUSE          = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
     auto        factor = (*PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR);
 
@@ -774,24 +775,33 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
         const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
-        if (PWINDOW && PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
-            return;
+        if (PWINDOW) {
+            if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
+                return;
 
-        if (PWINDOW && *POFFWINDOWAXIS != 1) {
-            const auto BOX = PWINDOW->getWindowMainSurfaceBox();
+            if (*POFFWINDOWAXIS != 1) {
+                const auto BOX = PWINDOW->getWindowMainSurfaceBox();
 
-            if (!BOX.containsPoint(MOUSECOORDS) && !PWINDOW->hasPopupAt(MOUSECOORDS)) {
-                if (*POFFWINDOWAXIS == 0)
-                    return;
+                if (!BOX.containsPoint(MOUSECOORDS) && !PWINDOW->hasPopupAt(MOUSECOORDS)) {
+                    if (*POFFWINDOWAXIS == 0)
+                        return;
 
-                const auto TEMPCURX = std::clamp(MOUSECOORDS.x, BOX.x, BOX.x + BOX.w - 1);
-                const auto TEMPCURY = std::clamp(MOUSECOORDS.y, BOX.y, BOX.y + BOX.h - 1);
+                    const auto TEMPCURX = std::clamp(MOUSECOORDS.x, BOX.x, BOX.x + BOX.w - 1);
+                    const auto TEMPCURY = std::clamp(MOUSECOORDS.y, BOX.y, BOX.y + BOX.h - 1);
 
-                if (*POFFWINDOWAXIS == 3)
-                    g_pCompositor->warpCursorTo({TEMPCURX, TEMPCURY}, true);
+                    if (*POFFWINDOWAXIS == 3)
+                        g_pCompositor->warpCursorTo({TEMPCURX, TEMPCURY}, true);
 
-                g_pSeatManager->sendPointerMotion(e.timeMs, Vector2D{TEMPCURX, TEMPCURY} - BOX.pos());
-                g_pSeatManager->sendPointerFrame();
+                    g_pSeatManager->sendPointerMotion(e.timeMs, Vector2D{TEMPCURX, TEMPCURY} - BOX.pos());
+                    g_pSeatManager->sendPointerFrame();
+                }
+            }
+
+            if (g_pSeatManager->state.pointerFocus) {
+                const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pSeatManager->state.pointerFocus.lock());
+
+                if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
+                    simulateMouseMovement();
             }
         }
     }

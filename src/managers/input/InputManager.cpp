@@ -797,9 +797,12 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
                 }
             }
 
-            const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pCompositor->m_pLastFocus.lock());
-            if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
-                simulateMouseMovement();
+            if (g_pSeatManager->state.pointerFocus) {
+                const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pSeatManager->state.pointerFocus.lock());
+
+                if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
+                    simulateMouseMovement();
+            }
         }
     }
 

@@ -668,9 +668,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
 }
 
 void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
-
-    PHLMONITOR currentMonitor = g_pCompositor->m_pLastMonitor.lock();
-    if (!currentMonitor || !dev)
+    if (!dev)
         return;
 
     if (!std::isnan(abs.x))
@@ -678,20 +676,44 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
     if (!std::isnan(abs.y))
         abs.y = std::clamp(abs.y, 0.0, 1.0);
 
-    // in logical global
-    CBox mappedArea = currentMonitor->logicalBox();
+    // find x and y size of the entire space
+    const auto& MONITORS = g_pCompositor->m_vMonitors;
+    Vector2D    topLeft = MONITORS.at(0)->vecPosition, bottomRight = MONITORS.at(0)->vecPosition + MONITORS.at(0)->vecSize;
+    for (size_t i = 1; i < MONITORS.size(); ++i) {
+        const auto EXTENT = MONITORS[i]->logicalBox().extent();
+        const auto POS    = MONITORS[i]->logicalBox().pos();
+        if (EXTENT.x > bottomRight.x)
+            bottomRight.x = EXTENT.x;
+        if (EXTENT.y > bottomRight.y)
+            bottomRight.y = EXTENT.y;
+        if (POS.x < topLeft.x)
+            topLeft.x = POS.x;
+        if (POS.y < topLeft.y)
+            topLeft.y = POS.y;
+    }
+    CBox mappedArea = {topLeft, bottomRight - topLeft};
+
+    auto outputMappedArea = [&mappedArea](const std::string& output) {
+        if (output == "current") {
+            if (const auto PLASTMONITOR = g_pCompositor->m_pLastMonitor.lock(); PLASTMONITOR)
+                return PLASTMONITOR->logicalBox();
+        } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(output); PMONITOR)
+            return PMONITOR->logicalBox();
+        return mappedArea;
+    };
 
     switch (dev->getType()) {
         case HID_TYPE_TABLET: {
             CTablet* TAB = reinterpret_cast<CTablet*>(dev.get());
             if (!TAB->boundOutput.empty()) {
-                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TAB->boundOutput); PMONITOR) {
-                    currentMonitor = PMONITOR->self.lock();
-                    mappedArea     = currentMonitor->logicalBox();
-                }
-            }
+                mappedArea = outputMappedArea(TAB->boundOutput);
+                mappedArea.translate(TAB->boundBox.pos());
+            } else if (TAB->absolutePos) {
+                mappedArea.x = TAB->boundBox.x;
+                mappedArea.y = TAB->boundBox.y;
+            } else
+                mappedArea.translate(TAB->boundBox.pos());
 
-            mappedArea.translate(TAB->boundBox.pos());
             if (!TAB->boundBox.empty()) {
                 mappedArea.w = TAB->boundBox.w;
                 mappedArea.h = TAB->boundBox.h;
@@ -700,38 +722,14 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         }
         case HID_TYPE_TOUCH: {
             ITouch* TOUCH = reinterpret_cast<ITouch*>(dev.get());
-            if (!TOUCH->boundOutput.empty()) {
-                if (const auto PMONITOR = g_pCompositor->getMonitorFromString(TOUCH->boundOutput); PMONITOR) {
-                    currentMonitor = PMONITOR->self.lock();
-                    mappedArea     = currentMonitor->logicalBox();
-                }
-            }
+            if (!TOUCH->boundOutput.empty())
+                mappedArea = outputMappedArea(TOUCH->boundOutput);
             break;
         }
         case HID_TYPE_POINTER: {
             IPointer* POINTER = reinterpret_cast<IPointer*>(dev.get());
-            if (!POINTER->boundOutput.empty()) {
-                if (POINTER->boundOutput == "entire") {
-                    // find x and y size of the entire space
-                    Vector2D bottomRight = {-9999999, -9999999}, topLeft = {9999999, 9999999};
-                    for (auto const& m : g_pCompositor->m_vMonitors) {
-                        const auto EXTENT = m->logicalBox().extent();
-                        const auto POS    = m->logicalBox().pos();
-                        if (EXTENT.x > bottomRight.x)
-                            bottomRight.x = EXTENT.x;
-                        if (EXTENT.y > bottomRight.y)
-                            bottomRight.y = EXTENT.y;
-                        if (POS.x < topLeft.x)
-                            topLeft.x = POS.x;
-                        if (POS.y < topLeft.y)
-                            topLeft.y = POS.y;
-                    }
-                    mappedArea = {topLeft, bottomRight - topLeft};
-                } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(POINTER->boundOutput); PMONITOR) {
-                    currentMonitor = PMONITOR->self.lock();
-                    mappedArea     = currentMonitor->logicalBox();
-                }
-            }
+            if (!POINTER->boundOutput.empty())
+                mappedArea = outputMappedArea(POINTER->boundOutput);
             break;
         }
         default: break;

@@ -516,6 +516,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("input:tablet:transform", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:tablet:output", {STRVAL_EMPTY});
     m_pConfig->addConfigValue("input:tablet:region_position", Hyprlang::VEC2{0, 0});
+    m_pConfig->addConfigValue("input:tablet:absolute_region_position", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:tablet:region_size", Hyprlang::VEC2{0, 0});
     m_pConfig->addConfigValue("input:tablet:relative_input", Hyprlang::INT{0});
     m_pConfig->addConfigValue("input:tablet:left_handed", Hyprlang::INT{0});
@@ -625,6 +626,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_pConfig->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
     m_pConfig->addSpecialConfigValue("device", "region_position", Hyprlang::VEC2{0, 0});      // only for tablets
+    m_pConfig->addSpecialConfigValue("device", "absolute_region_position", Hyprlang::INT{0}); // only for tablets
     m_pConfig->addSpecialConfigValue("device", "region_size", Hyprlang::VEC2{0, 0});          // only for tablets
     m_pConfig->addSpecialConfigValue("device", "relative_input", Hyprlang::INT{0});           // only for tablets
     m_pConfig->addSpecialConfigValue("device", "active_area_position", Hyprlang::VEC2{0, 0}); // only for tablets

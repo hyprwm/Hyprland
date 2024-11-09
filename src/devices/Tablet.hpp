@@ -92,9 +92,10 @@ class CTablet : public IHID {
     WP<CTablet> self;
 
     bool        relativeInput = false;
+    bool        absolutePos   = false;
     std::string boundOutput   = "";
     CBox        activeArea;
-    CBox        boundBox; // output-local
+    CBox        boundBox;
 
   private:
     CTablet(SP<Aquamarine::ITablet> tablet);

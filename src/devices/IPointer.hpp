@@ -104,7 +104,6 @@ class IPointer : public IHID {
         CSignal holdEnd;
     } pointerEvents;
 
-    std::string  hlName;
     bool         connected   = false; // means connected to the cursor
     std::string  boundOutput = "";
 

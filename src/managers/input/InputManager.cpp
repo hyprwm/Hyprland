@@ -1655,31 +1655,12 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
     auto proposedNewName = deviceNameToInternalString(internalName);
     int  dupeno          = 0;
 
-    while (std::find_if(m_vKeyboards.begin(), m_vKeyboards.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vKeyboards.end())
+    auto makeNewName = [&]() { return (proposedNewName.empty() ? "unknown-device" : proposedNewName) + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); };
+
+    while (std::find_if(m_vHIDs.begin(), m_vHIDs.end(), [&](const auto& other) { return other->hlName == makeNewName(); }) != m_vHIDs.end())
         dupeno++;
 
-    while (std::find_if(m_vPointers.begin(), m_vPointers.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vPointers.end())
-        dupeno++;
-
-    while (std::find_if(m_vTouches.begin(), m_vTouches.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vTouches.end())
-        dupeno++;
-
-    while (std::find_if(m_vTabletPads.begin(), m_vTabletPads.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vTabletPads.end())
-        dupeno++;
-
-    while (std::find_if(m_vTablets.begin(), m_vTablets.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vTablets.end())
-        dupeno++;
-
-    while (std::find_if(m_vTabletTools.begin(), m_vTabletTools.end(),
-                        [&](const auto& other) { return other->hlName == proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); }) != m_vTabletTools.end())
-        dupeno++;
-
-    return proposedNewName + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno)));
+    return makeNewName();
 }
 
 void CInputManager::releaseAllMouseButtons() {

@@ -149,13 +149,10 @@ animations {
 # Ref https://wiki.hyprland.org/Configuring/Workspace-Rules/
 # "Smart gaps" / "No gaps when only"
 # uncomment all if you wish to use that.
-# workspace = w[t1], gapsout:0, gapsin:0
-# workspace = w[tg1], gapsout:0, gapsin:0
+# workspace = w[tv1], gapsout:0, gapsin:0
 # workspace = f[1], gapsout:0, gapsin:0
-# windowrulev2 = bordersize 0, floating:0, onworkspace:w[t1]
-# windowrulev2 = rounding 0, floating:0, onworkspace:w[t1]
-# windowrulev2 = bordersize 0, floating:0, onworkspace:w[tg1]
-# windowrulev2 = rounding 0, floating:0, onworkspace:w[tg1]
+# windowrulev2 = bordersize 0, floating:0, onworkspace:w[tv1]
+# windowrulev2 = rounding 0, floating:0, onworkspace:w[tv1]
 # windowrulev2 = bordersize 0, floating:0, onworkspace:f[1]
 # windowrulev2 = rounding 0, floating:0, onworkspace:f[1]
 

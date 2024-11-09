@@ -222,7 +222,7 @@ void CLayerSurface::onUnmap() {
 
     const auto PMONITOR = monitor.lock();
 
-    const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
+    const bool WASLASTFOCUS = g_pSeatManager->state.keyboardFocus == surface->resource() || g_pSeatManager->state.pointerFocus == surface->resource();
 
     if (!PMONITOR)
         return;
@@ -231,7 +231,7 @@ void CLayerSurface::onUnmap() {
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
     if (WASLASTFOCUS || (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus->hlSurface && !g_pCompositor->m_pLastFocus->hlSurface->keyboardFocusable()))
         g_pInputManager->refocusLastWindow(PMONITOR);
-    else if (g_pCompositor->m_pLastFocus)
+    else if (g_pCompositor->m_pLastFocus && g_pCompositor->m_pLastFocus != surface->resource())
         g_pSeatManager->setKeyboardFocus(g_pCompositor->m_pLastFocus.lock());
 
     CBox geomFixed = {geometry.x + PMONITOR->vecPosition.x, geometry.y + PMONITOR->vecPosition.y, geometry.width, geometry.height};
@@ -320,8 +320,15 @@ void CLayerSurface::onCommit() {
             realSize.setValueAndWarp(geometry.size());
     }
 
-    if (mapped) {
-        const bool WASLASTFOCUS = g_pCompositor->m_pLastFocus == surface->resource();
+    if (mapped && (layerSurface->current.committed & CLayerShellResource::eCommittedState::STATE_INTERACTIVITY)) {
+        bool WASLASTFOCUS = false;
+        layerSurface->surface->breadthfirst(
+            [&WASLASTFOCUS](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { WASLASTFOCUS = WASLASTFOCUS || g_pSeatManager->state.keyboardFocus == surf; },
+            nullptr);
+        if (!WASLASTFOCUS && popupHead) {
+            popupHead->breadthfirst([&WASLASTFOCUS](CPopup* popup, void* data) { WASLASTFOCUS = WASLASTFOCUS || (popup->m_pWLSurface && g_pSeatManager->state.keyboardFocus == popup->m_pWLSurface->resource()); },
+                                    nullptr);
+        }
         const bool WASEXCLUSIVE = interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
         const bool ISEXCLUSIVE  = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
@@ -331,11 +338,13 @@ void CLayerSurface::onCommit() {
             std::erase_if(g_pInputManager->m_dExclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == self.lock(); });
 
         // if the surface was focused and interactive but now isn't, refocus
-        if (WASLASTFOCUS && !layerSurface->current.interactivity) {
+        if (WASLASTFOCUS && layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
             // so unfocus the surface here.
             g_pCompositor->focusSurface(nullptr);
             g_pInputManager->refocusLastWindow(monitor.lock());
+        } else if (WASLASTFOCUS && WASEXCLUSIVE && layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
+            g_pInputManager->simulateMouseMovement();
         } else if (!WASEXCLUSIVE && ISEXCLUSIVE) {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);

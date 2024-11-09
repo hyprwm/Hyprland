@@ -228,6 +228,12 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
     const auto PTOOL = m_vTabletTools.emplace_back(CTabletTool::create(pTool));
     m_vHIDs.push_back(PTOOL);
 
+    try {
+        PTOOL->hlName = deviceNameToInternalString(pTool->getName());
+    } catch (std::exception& e) {
+        Debug::log(ERR, "Tablet had no name???"); // logic error
+    }
+
     PTOOL->events.destroy.registerStaticListener(
         [this](void* owner, std::any d) {
             auto TOOL = ((CTabletTool*)owner)->self;

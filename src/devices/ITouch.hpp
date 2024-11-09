@@ -44,7 +44,6 @@ class ITouch : public IHID {
         CSignal frame;
     } touchEvents;
 
-    std::string hlName      = "";
     std::string boundOutput = "";
 
     WP<ITouch>  self;

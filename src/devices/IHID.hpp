@@ -36,5 +36,5 @@ class IHID {
         CSignal destroy;
     } events;
 
-    std::string deviceName;
+    std::string deviceName, hlName;
 };

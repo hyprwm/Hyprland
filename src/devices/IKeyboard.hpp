@@ -94,7 +94,6 @@ class IKeyboard : public IHID {
     std::array<xkb_mod_index_t, 8> modIndexes = {XKB_MOD_INVALID};
     uint32_t                       leds       = 0;
 
-    std::string                    hlName          = "";
     std::string                    xkbFilePath     = "";
     std::string                    xkbKeymapString = "";
     int                            xkbKeymapFD     = -1;

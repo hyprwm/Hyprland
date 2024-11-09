@@ -1,6 +1,7 @@
 #include "HyprCtl.hpp"
 
 #include <format>
+#include <fstream>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -949,11 +950,27 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif
     result += "GPU information: \n" + GPUINFO;
-    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version"))
-        result += execAndGet("cat /proc/driver/nvidia/version | grep NVRM");
+    if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version")) {
+        std::ifstream file("/proc/driver/nvidia/version");
+        std::string   line;
+        if (file.is_open()) {
+            while (std::getline(file, line)) {
+                if (!line.contains("NVRM"))
+                    continue;
+                result += line;
+                result += "\n";
+            }
+        } else
+            result += "error";
+    }
     result += "\n\n";
 
-    result += "os-release: " + execAndGet("cat /etc/os-release") + "\n\n";
+    if (std::ifstream file("/etc/os-release"); file.is_open()) {
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        result += "os-release: " + buffer.str() + "\n\n";
+    } else
+        result += "os-release: error\n\n";
 
     result += "plugins:\n";
     if (g_pPluginSystem) {

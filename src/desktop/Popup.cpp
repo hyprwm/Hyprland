@@ -4,6 +4,8 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../managers/SeatManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include <ranges>
 
 CPopup::CPopup(PHLWINDOW pOwner) : m_pWindowOwner(pOwner) {
@@ -106,6 +108,8 @@ void CPopup::onUnmap() {
         return;
     }
 
+    m_bMapped = false;
+
     m_vLastSize = m_pResource->surface->surface->current.size;
 
     const auto COORDS = coordsGlobal();
@@ -115,8 +119,6 @@ void CPopup::onUnmap() {
     g_pHyprRenderer->damageBox(&box);
 
     m_pSubsurfaceHead.reset();
-
-    g_pInputManager->simulateMouseMovement();
 
     if (!m_pLayerOwner.expired() && m_pLayerOwner->layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_pLayerOwner->layer));
@@ -131,6 +133,11 @@ void CPopup::onUnmap() {
             g_pHyprRenderer->damageBox(&box);
         },
         nullptr);
+
+    const bool WASLASTFOCUS = g_pSeatManager->state.keyboardFocus == m_pWLSurface->resource() || g_pSeatManager->state.pointerFocus == m_pWLSurface->resource();
+
+    if (WASLASTFOCUS)
+        g_pInputManager->simulateMouseMovement();
 }
 
 void CPopup::onCommit(bool ignoreSiblings) {
@@ -317,7 +324,7 @@ CPopup* CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
     breadthfirst([](CPopup* popup, void* data) { ((std::vector<CPopup*>*)data)->push_back(popup); }, &popups);
 
     for (auto const& p : popups | std::views::reverse) {
-        if (!p->m_pResource)
+        if (!p->m_pResource || !p->m_bMapped)
             continue;
 
         if (!allowsInput) {

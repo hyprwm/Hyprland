@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../protocols/types/Buffer.hpp"
 #include "../helpers/Format.hpp"
+#include <cstring>
 
 CTexture::CTexture() {
     // naffin'
@@ -16,7 +17,7 @@ CTexture::~CTexture() {
     destroyTexture();
 }
 
-CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
+CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
     createFromShm(drmFormat, pixels, stride, size_);
 }
 
@@ -24,7 +25,7 @@ CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     createFromDma(attrs, image);
 }
 
-CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer) {
+CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
     if (!buffer)
         return;
 
@@ -80,6 +81,11 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+
+    if (m_bKeepDataCopy) {
+        m_vDataCopy.resize(stride * size_.y);
+        memcpy(m_vDataCopy.data(), pixels, stride * size_.y);
+    }
 }
 
 void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
@@ -135,6 +141,11 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (m_bKeepDataCopy) {
+        m_vDataCopy.resize(stride * m_vSize.y);
+        memcpy(m_vDataCopy.data(), pixels, stride * m_vSize.y);
+    }
 }
 
 void CTexture::destroyTexture() {
@@ -151,4 +162,8 @@ void CTexture::destroyTexture() {
 void CTexture::allocate() {
     if (!m_iTexID)
         GLCALL(glGenTextures(1, &m_iTexID));
+}
+
+const std::vector<uint8_t>& CTexture::dataCopy() {
+    return m_vDataCopy;
 }

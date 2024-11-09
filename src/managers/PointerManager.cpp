@@ -375,6 +375,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     auto        maxSize    = state->monitor->output->cursorPlaneSize();
     auto const& cursorSize = currentCursorImage.size;
 
+    static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+
     if (maxSize == Vector2D{})
         return nullptr;
 
@@ -386,10 +388,23 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     } else
         maxSize = cursorSize;
 
-    if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size) {
+    if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size ||
+        *PDUMB != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
 
-        if (!state->monitor->cursorSwapchain)
-            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(state->monitor->output->getBackend()->preferredAllocator(), state->monitor->output->getBackend());
+        if (!state->monitor->cursorSwapchain || *PDUMB != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
+
+            auto allocator = state->monitor->output->getBackend()->preferredAllocator();
+            if (*PDUMB) {
+                for (const auto& a : state->monitor->output->getBackend()->getAllocators()) {
+                    if (a->type() == Aquamarine::AQ_ALLOCATOR_TYPE_DRM_DUMB) {
+                        allocator = a;
+                        break;
+                    }
+                }
+            }
+
+            state->monitor->cursorSwapchain = Aquamarine::CSwapchain::create(allocator, state->monitor->output->getBackend());
+        }
 
         auto options     = state->monitor->cursorSwapchain->currentOptions();
         options.size     = maxSize;
@@ -397,8 +412,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.scanout  = true;
         options.cursor   = true;
         options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
-        // We do not set the format. If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
+        // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
+        if (*PDUMB)
+            options.format = DRM_FORMAT_ARGB8888;
 
         if (!state->monitor->cursorSwapchain->reconfigure(options)) {
             Debug::log(TRACE, "Failed to reconfigure cursor swapchain");
@@ -420,60 +437,42 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return nullptr;
     }
 
+    if (*PDUMB) {
+        // get the texture data if available.
+        auto texData = texture->dataCopy();
+        if (texData.empty()) {
+            if (currentCursorImage.surface && currentCursorImage.surface->resource()->role->role() == SURFACE_ROLE_CURSOR) {
+                const auto SURFACE   = currentCursorImage.surface->resource();
+                auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
+
+                if (shmBuffer.data())
+                    texData = shmBuffer;
+                else
+                    texData = {texture->m_vSize.x * 4 * texture->m_vSize.y, 0};
+            } else {
+                Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
+                return nullptr;
+            }
+        }
+
+        // then, we just yeet it into the dumb buffer
+
+        auto [data, fmt, size] = buf->beginDataPtr(0);
+
+        memcpy(data, texData.data(), std::min(size, texData.size()));
+
+        buf->endDataPtr();
+
+        return buf;
+    }
+
     g_pHyprRenderer->makeEGLCurrent();
     g_pHyprOpenGL->m_RenderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->cursorSwapchain->currentOptions().format);
     if (!RBO) {
         Debug::log(TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
-        static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:allow_dumb_copy");
-        if (!*PDUMB)
-            return nullptr;
-
-        auto bufData = buf->beginDataPtr(0);
-        auto bufPtr  = std::get<0>(bufData);
-
-        // clear buffer
-        memset(bufPtr, 0, std::get<2>(bufData));
-
-        if (currentCursorImage.pBuffer) {
-            auto texAttrs = currentCursorImage.pBuffer->shm();
-
-            if (!texAttrs.success) {
-                Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
-                return nullptr;
-            }
-
-            auto texData = currentCursorImage.pBuffer->beginDataPtr(GBM_BO_TRANSFER_WRITE);
-            auto texPtr  = std::get<0>(texData);
-            Debug::log(TRACE, "cursor texture {}x{} {} {} {}", texAttrs.size.x, texAttrs.size.y, (void*)texPtr, texAttrs.format, texAttrs.stride);
-            // copy cursor texture
-            for (int i = 0; i < texAttrs.size.y; i++)
-                memcpy(bufPtr + i * buf->dmabuf().strides[0], texPtr + i * texAttrs.stride, texAttrs.stride);
-        } else if (currentCursorImage.surface && currentCursorImage.surface->resource()->role->role() == SURFACE_ROLE_CURSOR) {
-            const auto SURFACE   = currentCursorImage.surface->resource();
-            auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
-            Debug::log(TRACE, "cursor texture pixel data length: {}B", shmBuffer.size());
-
-            if (shmBuffer.data()) {
-                // copy cursor texture
-                // assume format is 32bpp
-                size_t STRIDE = 4 * SURFACE->current.bufferSize.x;
-                for (int i = 0; i < SURFACE->current.bufferSize.y; i++)
-                    memcpy(bufPtr + i * buf->dmabuf().strides[0], shmBuffer.data() + i * STRIDE, STRIDE);
-            } else {
-                // if there is no data, hide the cursor
-                memset(bufPtr, '\0', buf->size.x * buf->size.y * 4 /* assume 32bpp */);
-            }
-
-        } else {
-            Debug::log(TRACE, "Unsupported cursor buffer/surface, falling back to sw (can't dumb copy)");
-            return nullptr;
-        }
-
-        buf->endDataPtr();
-
-        return buf;
+        return nullptr;
     }
 
     RBO->bind();
@@ -775,7 +774,7 @@ SP<CTexture> CPointerManager::getCurrentCursorTexture() {
 
     if (currentCursorImage.pBuffer) {
         if (!currentCursorImage.bufferTex)
-            currentCursorImage.bufferTex = makeShared<CTexture>(currentCursorImage.pBuffer);
+            currentCursorImage.bufferTex = makeShared<CTexture>(currentCursorImage.pBuffer, true);
         return currentCursorImage.bufferTex;
     }
 

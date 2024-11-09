@@ -17,7 +17,9 @@
 #include <execinfo.h>
 #endif
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/os/Process.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::OS;
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
@@ -583,18 +585,12 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
 
 // Execute a shell command and get the output
 std::string execAndGet(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string           result;
-    using PcloseType = int (*)(FILE*);
-    const std::unique_ptr<FILE, PcloseType> pipe(popen(cmd, "r"), static_cast<PcloseType>(pclose));
-    if (!pipe) {
-        Debug::log(ERR, "execAndGet: failed in pipe");
-        return "";
-    }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    return result;
+    CProcess proc("/bin/sh", {cmd});
+
+    if (!proc.runSync())
+        return "error";
+
+    return proc.stdOut();
 }
 
 void logSystemInfo() {

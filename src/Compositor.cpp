@@ -1062,7 +1062,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         return;
     }
 
-    if (m_pLastWindow.lock() == pWindow && g_pSeatManager->state.keyboardFocus == pSurface)
+    if (m_pLastWindow.lock() == pWindow && g_pSeatManager->state.keyboardFocus == pSurface && g_pSeatManager->state.keyboardFocus)
         return;
 
     if (pWindow->m_bPinned)

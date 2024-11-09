@@ -326,8 +326,11 @@ void CLayerSurface::onCommit() {
             [&WASLASTFOCUS](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { WASLASTFOCUS = WASLASTFOCUS || g_pSeatManager->state.keyboardFocus == surf; },
             nullptr);
         if (!WASLASTFOCUS && popupHead) {
-            popupHead->breadthfirst([&WASLASTFOCUS](CPopup* popup, void* data) { WASLASTFOCUS = WASLASTFOCUS || (popup->m_pWLSurface && g_pSeatManager->state.keyboardFocus == popup->m_pWLSurface->resource()); },
-                                    nullptr);
+            popupHead->breadthfirst(
+                [&WASLASTFOCUS](CPopup* popup, void* data) {
+                    WASLASTFOCUS = WASLASTFOCUS || (popup->m_pWLSurface && g_pSeatManager->state.keyboardFocus == popup->m_pWLSurface->resource());
+                },
+                nullptr);
         }
         const bool WASEXCLUSIVE = interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
         const bool ISEXCLUSIVE  = layerSurface->current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;

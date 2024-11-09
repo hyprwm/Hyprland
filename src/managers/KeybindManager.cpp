@@ -592,11 +592,6 @@ int repeatKeyHandler(void* data) {
     return 0;
 }
 
-int longPressHandler(SP<CEventLoopTimer> self, void* data) {
-
-    return 0;
-}
-
 eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
     // Returns whether two sets of keysyms are equal, partially equal, or not
     // matching. (Partially matching means that pressed is a subset of bound)

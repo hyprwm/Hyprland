@@ -1388,13 +1388,19 @@ void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
         foundSurface = m_dExclusiveLSes[m_dExclusiveLSes.size() - 1]->surface->resource();
 
     // then any surfaces above windows on the same monitor
-    if (!foundSurface)
+    if (!foundSurface) {
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
                                                            &surfaceCoords, &pFoundLayerSurface);
+        if (pFoundLayerSurface && pFoundLayerSurface->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+            foundSurface = nullptr;
+    }
 
-    if (!foundSurface)
+    if (!foundSurface) {
         foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
                                                            &surfaceCoords, &pFoundLayerSurface);
+        if (pFoundLayerSurface && pFoundLayerSurface->interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+            foundSurface = nullptr;
+    }
 
     if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisibleNotCovered(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
         // then the last focused window if we're on the same workspace as it

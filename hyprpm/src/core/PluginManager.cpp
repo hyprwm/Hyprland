@@ -31,7 +31,7 @@ static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
 
     CProcess proc("/bin/sh", {cmd});
-    
+
     if (!proc.runSync())
         return "error";
 

@@ -459,7 +459,13 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
-        memcpy(data, texData.data(), std::min(size, texData.size()));
+        memset(data, 0, size);
+        if (buf->dmabuf().size.x > texture->m_vSize.x) {
+            size_t STRIDE = 4 * texture->m_vSize.x;
+            for (int i = 0; i < texture->m_vSize.y; i++)
+                memcpy(data + i * buf->dmabuf().strides[0], texData.data() + i * STRIDE, STRIDE);
+        } else
+            memcpy(data, texData.data(), std::min(size, texData.size()));
 
         buf->endDataPtr();
 

@@ -585,7 +585,7 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
 
 // Execute a shell command and get the output
 std::string execAndGet(const char* cmd) {
-    CProcess proc("/bin/sh", {cmd});
+    CProcess proc("/bin/sh", {"-c", cmd});
 
     if (!proc.runSync())
         return "error";

@@ -30,7 +30,7 @@ using namespace Hyprutils::OS;
 static std::string execAndGet(std::string cmd) {
     cmd += " 2>&1";
 
-    CProcess proc("/bin/sh", {cmd});
+    CProcess proc("/bin/sh", {"-c", cmd});
 
     if (!proc.runSync())
         return "error";

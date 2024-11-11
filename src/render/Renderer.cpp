@@ -222,6 +222,11 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
             windowBox.height = RDATA->h - y;
     }
 
+    const auto PROJSIZEUNSCALED = windowBox.size();
+
+    windowBox.scale(RDATA->pMonitor->scale);
+    windowBox.round();
+
     if (windowBox.width <= 1 || windowBox.height <= 1) {
         if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
             Debug::log(TRACE, "presentFeedback for invisible surface");
@@ -230,11 +235,6 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
 
         return; // invisible
     }
-
-    const auto PROJSIZEUNSCALED = windowBox.size();
-
-    windowBox.scale(RDATA->pMonitor->scale);
-    windowBox.round();
 
     const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
         windowBox.size() != surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.bufferSize.x, 3) &&

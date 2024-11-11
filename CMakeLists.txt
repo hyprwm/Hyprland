@@ -224,8 +224,13 @@ else()
   add_compile_definitions(USES_SYSTEMD)
 
   # session file -uwsm
-  install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-uwsm.desktop
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
+  if(NO_UWSM)
+    message(STATUS "UWSM support is disabled...")
+  else()
+    message(STATUS "UWSM support is enabled (NO_UWSM not defined)...")
+    install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-uwsm.desktop
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
+  endif()
 endif()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

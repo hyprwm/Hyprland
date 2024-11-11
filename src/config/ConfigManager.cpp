@@ -417,7 +417,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:size", Hyprlang::INT{8});
     m_pConfig->addConfigValue("decoration:blur:passes", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("decoration:blur:ignore_opacity", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("decoration:blur:ignore_opacity", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:new_optimizations", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:xray", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:contrast", {0.8916F});

@@ -152,6 +152,7 @@ in
         (mapAttrsToList mesonEnable {
           "xwayland" = enableXWayland;
           "legacy_renderer" = legacyRenderer;
+          "uwsm" = false;
         })
         (mapAttrsToList mesonBool {
           "b_pch" = false;

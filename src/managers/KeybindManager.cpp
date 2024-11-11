@@ -338,6 +338,10 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
 
         if (!PWINDOWTOCHANGETO->m_bPinned)
             g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, MODE);
+
+        // warp the position + size animation, otherwise it looks weird.
+        PWINDOWTOCHANGETO->m_vRealPosition.warp();
+        PWINDOWTOCHANGETO->m_vRealSize.warp();
     } else {
         updateRelativeCursorCoords();
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
@@ -2110,6 +2114,10 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
 
             if (FSWINDOW != PWINDOW && !PWINDOW->m_bPinned)
                 g_pCompositor->setWindowFullscreenClient(PWINDOW, FSMODE);
+
+            // warp the position + size animation, otherwise it looks weird.
+            PWINDOW->m_vRealPosition.warp();
+            PWINDOW->m_vRealSize.warp();
         }
     } else
         g_pCompositor->focusWindow(PWINDOW);

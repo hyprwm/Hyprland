@@ -1042,12 +1042,17 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, timespec* now, const C
     TRACY_GPU_ZONE("RenderLockscreen");
 
     if (g_pSessionLockManager->isSessionLocked()) {
-        Vector2D   translate = {geometry.x, geometry.y};
+        Vector2D    translate = {geometry.x, geometry.y};
 
-        const auto PSLS = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
-        if (!PSLS)
-            renderSessionLockMissing(pMonitor);
-        else {
+        const auto  PSLS                    = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->ID);
+        static auto DISABLE_LOCKDEAD_SCREEN = CConfigValue<Hyprlang::INT>("misc:disable_lockdead_screen");
+
+        if (!PSLS) {
+            if (!*DISABLE_LOCKDEAD_SCREEN)
+                renderSessionLockMissing(pMonitor);
+            else
+                Debug::log(WARN, "Lockdead screen shall have been displayed but it is disabled by configuration.");
+        } else {
             renderSessionLockSurface(PSLS, pMonitor, now);
             g_pSessionLockManager->onLockscreenRenderedOnMonitor(pMonitor->ID);
         }
@@ -2725,7 +2730,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         return true;
     }
 
-    /* This is a constant expression, as we always use double-buffering in our swapchain 
+    /* This is a constant expression, as we always use double-buffering in our swapchain
         TODO: Rewrite the CDamageRing to take advantage of that maybe? It's made to support longer swapchains atm because we used to do wlroots */
     static constexpr const int HL_BUFFER_AGE = 2;
 

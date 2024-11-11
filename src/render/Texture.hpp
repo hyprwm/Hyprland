@@ -43,6 +43,7 @@ class CTexture {
     void*                       m_pEglImage  = nullptr;
     eTransform                  m_eTransform = HYPRUTILS_TRANSFORM_NORMAL;
     bool                        m_bOpaque    = false;
+    uint32_t                    m_iDrmFormat = DRM_FORMAT_INVALID; // for shm
 
   private:
     void                 createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);

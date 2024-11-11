@@ -17,7 +17,7 @@ CTexture::~CTexture() {
     destroyTexture();
 }
 
-CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
+CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_iDrmFormat(drmFormat), m_bKeepDataCopy(keepDataCopy) {
     createFromShm(drmFormat, pixels, stride, size_);
 }
 
@@ -43,6 +43,8 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
         }
 
         auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
+
+        m_iDrmFormat = fmt;
 
         createFromShm(fmt, pixelData, bufLen, shm.size);
         return;

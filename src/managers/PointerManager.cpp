@@ -445,10 +445,29 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 const auto SURFACE   = currentCursorImage.surface->resource();
                 auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
 
+                bool       flipRB = false;
+
+                if (SURFACE->current.texture) {
+                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", FormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
+                    if (SURFACE->current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
+                        Debug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
+                        flipRB = true;
+                    } else if (SURFACE->current.texture->m_iDrmFormat != DRM_FORMAT_ARGB8888) {
+                        Debug::log(TRACE, "Cursor CPU surface format rejected, falling back to sw");
+                        return nullptr;
+                    }
+                }
+
                 if (shmBuffer.data())
                     texData = shmBuffer;
                 else
                     texData = {texture->m_vSize.x * 4 * texture->m_vSize.y, 0};
+
+                if (flipRB) {
+                    for (size_t i = 0; i < shmBuffer.size(); i += 4) {
+                        std::swap(shmBuffer.at(i), shmBuffer.at(i + 2)); // little-endian!!!!!!
+                    }
+                }
             } else {
                 Debug::log(TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
                 return nullptr;

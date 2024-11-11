@@ -268,7 +268,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "blur:ignore_opacity",
         .description = "make the blur layer ignore the opacity of the window",
         .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
         .value       = "blur:new_optimizations",

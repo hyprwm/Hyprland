@@ -52,8 +52,12 @@ backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
 
 # Handle options
-if get_option('systemd').enabled()
-  systemd = dependency('systemd')
+systemd_option = get_option('systemd')
+systemd = dependency('systemd', required: systemd_option)
+systemd_option.enable_auto_if(systemd.found())
+
+if (systemd_option.enabled())
+  message('Enabling systemd integration')
   add_project_arguments('-DUSES_SYSTEMD', language: 'cpp')
   subdir('systemd')
 endif

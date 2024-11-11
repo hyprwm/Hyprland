@@ -460,8 +460,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
                 if (shmBuffer.data())
                     texData = shmBuffer;
-                else
-                    texData = {texture->m_vSize.x * 4 * texture->m_vSize.y, 0};
+                else {
+                    texData.resize(texture->m_vSize.x * 4 * texture->m_vSize.y);
+                    memset(texData.data(), 0x00, texData.size());
+                }
 
                 if (flipRB) {
                     for (size_t i = 0; i < shmBuffer.size(); i += 4) {

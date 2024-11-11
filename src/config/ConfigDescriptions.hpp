@@ -620,15 +620,21 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:tablet:output",
-        .description = "the monitor to bind tablets. Empty means unbound..",
+        .description = "the monitor to bind tablets. Can be current or a monitor name. Leave empty to map across all monitors.",
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
     SConfigOptionDescription{
         .value       = "input:tablet:region_position",
-        .description = "position of the mapped region in monitor layout.",
+        .description = "position of the mapped region in monitor layout relative to the top left corner of the bound monitor or all monitors.",
         .type        = CONFIG_OPTION_VECTOR,
         .data        = SConfigOptionDescription::SVectorData{{}, {-20000, -20000}, {20000, 20000}},
+    },
+    SConfigOptionDescription{
+        .value       = "input:tablet:absolute_region_position",
+        .description = "whether to treat the region_position as an absolute position in monitor layout. Only applies when output is empty.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
         .value       = "input:tablet:region_size",

@@ -1851,7 +1851,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         if (it != flagsmap.end())
             mode.flags |= it->second;
         else
-            Debug::log(ERR, "invalid flag {} in modeline", key);
+            Debug::log(ERR, "Invalid flag {} in modeline", key);
     }
 
     snprintf(mode.name, sizeof(mode.name), "%dx%d@%d", mode.hdisplay, mode.vdisplay, mode.vrefresh / 1000);
@@ -1874,7 +1874,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         else if (ARGS[1] == "transform") {
             const auto TSF = std::stoi(ARGS[2]);
             if (std::clamp(TSF, 0, 7) != TSF) {
-                Debug::log(ERR, "invalid transform {} in monitor", TSF);
+                Debug::log(ERR, "Invalid transform {} in monitor", TSF);
                 return "invalid transform";
             }
 
@@ -2027,7 +2027,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             m_dWorkspaceRules.emplace_back(wsRule);
             argno++;
         } else {
-            Debug::log(ERR, "Config error: invalid monitor syntax");
+            Debug::log(ERR, "Config error: invalid monitor syntax at \"{}\"", ARGS[argno]);
             return "invalid syntax at \"" + ARGS[argno] + "\"";
         }
 
@@ -2247,12 +2247,12 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(HANDLER);
 
     if (DISPATCHER == g_pKeybindManager->m_mDispatchers.end()) {
-        Debug::log(ERR, "Invalid dispatcher!");
+        Debug::log(ERR, "Invalid dispatcher: {}", HANDLER);
         return "Invalid dispatcher, requested \"" + HANDLER + "\" does not exist";
     }
 
     if (MOD == 0 && MODSTR != "") {
-        Debug::log(ERR, "Invalid mod!");
+        Debug::log(ERR, "Invalid mod: {}", MODSTR);
         return "Invalid mod, requested mod \"" + MODSTR + "\" is not a valid mod.";
     }
 
@@ -2696,7 +2696,7 @@ std::optional<std::string> CConfigManager::handleSubmap(const std::string& comma
 std::optional<std::string> CConfigManager::handleSource(const std::string& command, const std::string& rawpath) {
     if (rawpath.length() < 2) {
         Debug::log(ERR, "source= path garbage");
-        return "source path " + rawpath + " bogus!";
+        return "source= path " + rawpath + " bogus!";
     }
     std::unique_ptr<glob_t, void (*)(glob_t*)> glob_buf{new glob_t, [](glob_t* g) { globfree(g); }};
     memset(glob_buf.get(), 0, sizeof(glob_t));
@@ -2718,8 +2718,8 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
                 continue;
             }
 
-            Debug::log(ERR, "source= file doesnt exist");
-            return "source file " + value + " doesn't exist!";
+            Debug::log(ERR, "source= file doesn't exist: {}", value);
+            return "source= file " + value + " doesn't exist!";
         }
         configPaths.push_back(value);
 

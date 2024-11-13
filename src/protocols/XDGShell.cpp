@@ -518,7 +518,7 @@ CXDGPositionerResource::CXDGPositionerResource(SP<CXdgPositioner> resource_, SP<
 
     resource->setSetGravity([this](CXdgPositioner* r, xdgPositionerGravity g) { state.setGravity(g); });
 
-    resource->setSetConstraintAdjustment([this](CXdgPositioner* r, xdgPositionerConstraintAdjustment a) { state.constraintAdjustment = (uint32_t)a; });
+    resource->setSetConstraintAdjustment([this](CXdgPositioner* r, uint32_t a) { state.constraintAdjustment = a; });
 
     // TODO: support this shit better. The current impl _works_, but is lacking and could be wrong in a few cases.
     // doesn't matter _that_ much for now, though.

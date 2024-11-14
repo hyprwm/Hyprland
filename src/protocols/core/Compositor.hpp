@@ -148,7 +148,7 @@ class CWLSurfaceResource {
     void          dropCurrentBuffer();
     void          commitPendingState();
     void          bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
-    void          updateCursorShm();
+    void          updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
 
     friend class CWLPointerResource;
 };

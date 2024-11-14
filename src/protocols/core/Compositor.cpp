@@ -438,12 +438,13 @@ void CWLSurfaceResource::commitPendingState() {
         current.texture->m_eTransform = wlTransformToHyprutils(current.transform);
 
     if (current.buffer && current.buffer->buffer) {
-        current.buffer->buffer->update(accumulateCurrentBufferDamage());
+        const auto DAMAGE = accumulateCurrentBufferDamage();
+        current.buffer->buffer->update(DAMAGE);
 
         // if the surface is a cursor, update the shm buffer
         // TODO: don't update the entire texture
-        if (role->role() == SURFACE_ROLE_CURSOR)
-            updateCursorShm();
+        if (role->role() == SURFACE_ROLE_CURSOR && !DAMAGE.empty())
+            updateCursorShm(DAMAGE);
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
@@ -486,13 +487,12 @@ void CWLSurfaceResource::commitPendingState() {
     lastBuffer = current.buffer ? current.buffer->buffer : WP<IHLBuffer>{};
 }
 
-void CWLSurfaceResource::updateCursorShm() {
+void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     auto buf = current.buffer ? current.buffer->buffer : lastBuffer;
 
     if (!buf)
         return;
 
-    // TODO: actually use damage
     auto& shmData  = CCursorSurfaceRole::cursorPixelData(self.lock());
     auto  shmAttrs = buf->shm();
 
@@ -501,11 +501,25 @@ void CWLSurfaceResource::updateCursorShm() {
         return;
     }
 
+    damage.intersect(CBox{0, 0, buf->size.x, buf->size.y});
+
     // no need to end, shm.
     auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
 
     shmData.resize(bufLen);
-    memcpy(shmData.data(), pixelData, bufLen);
+
+    if (const auto RECTS = damage.getRects(); RECTS.size() == 1 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y)
+        memcpy(shmData.data(), pixelData, bufLen);
+    else {
+        for (auto& box : damage.getRects()) {
+            for (auto y = box.y1; y < box.y2; ++y) {
+                // bpp is 32 INSALLAH
+                auto begin = 4 * box.y1 * (box.x2 - box.x1) + box.x1;
+                auto len   = 4 * (box.x2 - box.x1);
+                memcpy((uint8_t*)shmData.data() + begin, (uint8_t*)pixelData + begin, len);
+            }
+        }
+    }
 }
 
 void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor) {

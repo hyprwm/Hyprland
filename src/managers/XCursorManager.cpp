@@ -197,7 +197,7 @@ SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, XcursorIma
     return xcursor;
 }
 
-std::unordered_set<std::string> CXCursorManager::themePaths(std::string const& theme) {
+std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
     auto const* path = XcursorLibraryPath();
 
     auto        expandTilde = [](std::string const& path) {
@@ -276,10 +276,10 @@ std::unordered_set<std::string> CXCursorManager::themePaths(std::string const& t
         return themes;
     };
 
-    std::unordered_set<std::string> paths;
-    std::unordered_set<std::string> inherits;
+    std::set<std::string> paths;
+    std::set<std::string> inherits;
 
-    auto                            scanTheme = [&path, &paths, &expandTilde, &inherits, &getInheritThemes](auto const& t) {
+    auto                  scanTheme = [&path, &paths, &expandTilde, &inherits, &getInheritThemes](auto const& t) {
         std::stringstream ss(path);
         std::string       line;
 

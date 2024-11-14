@@ -1350,8 +1350,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "cursor:allow_dumb_copy",
-        .description = "Makes HW cursors work on Nvidia, at the cost of a possible hitch whenever the image changes",
+        .value       = "cursor:use_cpu_buffer",
+        .description = "Makes HW cursors use a CPU buffer. Required on Nvidia to have HW cursors. Experimental",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

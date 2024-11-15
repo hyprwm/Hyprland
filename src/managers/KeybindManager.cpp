@@ -13,6 +13,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 
 #include <optional>
 #include <iterator>
@@ -130,9 +131,25 @@ CKeybindManager::CKeybindManager() {
 
     m_tScrollTimer.reset();
 
+    m_pLongPressTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            if (!m_pLastLongPressKeybind || g_pSeatManager->keyboard.expired())
+                return;
+
+            const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(m_pLastLongPressKeybind->handler);
+
+            Debug::log(LOG, "Long press timeout passed, calling dispatcher.");
+            DISPATCHER->second(m_pLastLongPressKeybind->arg);
+        },
+        nullptr);
+
+    g_pEventLoopManager->addTimer(m_pLongPressTimer);
+
     static auto P = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
-        m_pActiveKeybind = nullptr;
+        m_pActiveKeybind        = nullptr;
+        m_pLastLongPressKeybind = nullptr;
         m_vPressedSpecialBinds.clear();
     });
 }
@@ -140,12 +157,17 @@ CKeybindManager::CKeybindManager() {
 CKeybindManager::~CKeybindManager() {
     if (m_pXKBTranslationState)
         xkb_state_unref(m_pXKBTranslationState);
+    if (m_pLongPressTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_pLongPressTimer);
+        m_pLongPressTimer.reset();
+    }
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
     m_lKeybinds.push_back(kb);
 
-    m_pActiveKeybind = nullptr;
+    m_pActiveKeybind        = nullptr;
+    m_pLastLongPressKeybind = nullptr;
 }
 
 void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
@@ -158,7 +180,8 @@ void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
         }
     }
 
-    m_pActiveKeybind = nullptr;
+    m_pActiveKeybind        = nullptr;
+    m_pLastLongPressKeybind = nullptr;
 }
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
@@ -408,6 +431,8 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         m_pActiveKeybindEventSource = nullptr;
         m_pActiveKeybind            = nullptr;
     }
+
+    m_pLastLongPressKeybind = nullptr;
 
     bool suppressEvent = false;
     if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -703,6 +728,15 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // suppress the event
                 continue;
             }
+        }
+
+        if (k.longPress) {
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+
+            m_pLongPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
+            m_pLastLongPressKeybind = &k;
+
+            continue;
         }
 
         const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);

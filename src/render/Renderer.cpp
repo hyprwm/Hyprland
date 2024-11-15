@@ -1507,6 +1507,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     pMonitor->output->state->resetExplicitFences();
     if (inFD >= 0)
         pMonitor->output->state->setExplicitInFence(inFD);
+    auto explicitOptions = getExplicitSyncSettings();
+    if (explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled)
+        pMonitor->output->state->enableExplicitOutFenceForNextCommit();
 
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
@@ -1529,8 +1532,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             pMonitor->damage.damageEntire();
         }
     }
-
-    auto explicitOptions = getExplicitSyncSettings();
 
     if (!explicitOptions.explicitEnabled)
         return ok;

@@ -8,6 +8,7 @@
 #include <functional>
 #include <xkbcommon/xkbcommon.h>
 #include "../devices/IPointer.hpp"
+#include "eventLoop/EventLoopTimer.hpp"
 
 class CInputManager;
 class CConfigManager;
@@ -28,6 +29,7 @@ struct SKeybind {
     std::string            description    = "";
     bool                   release        = false;
     bool                   repeat         = false;
+    bool                   longPress      = false;
     bool                   mouse          = false;
     bool                   nonConsuming   = false;
     bool                   transparent    = false;
@@ -119,7 +121,8 @@ class CKeybindManager {
 
     inline static std::string       m_szCurrentSelectedSubmap = "";
 
-    SKeybind*                       m_pActiveKeybind = nullptr;
+    SKeybind *                      m_pActiveKeybind = nullptr, *m_pLastLongPressKeybind = nullptr;
+    SP<CEventLoopTimer>             m_pLongPressTimer;
 
     uint32_t                        m_uTimeLastMs    = 0;
     uint32_t                        m_uLastCode      = 0;

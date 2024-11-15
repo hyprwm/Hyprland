@@ -2171,6 +2171,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       transparent    = false;
     bool       ignoreMods     = false;
     bool       multiKey       = false;
+    bool       longPress      = false;
     bool       hasDescription = false;
     bool       dontInhibit    = false;
     const auto BINDARGS       = command.substr(4);
@@ -2192,6 +2193,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             ignoreMods = true;
         } else if (arg == 's') {
             multiKey = true;
+        } else if (arg == 'o') {
+            longPress = true;
         } else if (arg == 'd') {
             hasDescription = true;
         } else if (arg == 'p') {
@@ -2201,8 +2204,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         }
     }
 
-    if (release && repeat)
-        return "flags r and e are mutually exclusive";
+    if ((longPress || release) && repeat)
+        return "flags e is mutually exclusive with r and o";
 
     if (mouse && (repeat || release || locked))
         return "flag m is exclusive";
@@ -2264,9 +2267,9 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{
-            parsedKey.key, KEYSYMS, parsedKey.keycode, parsedKey.catchAll, MOD,        MODS,     HANDLER,        COMMAND,    locked, m_szCurrentSubmap, DESCRIPTION, release,
-            repeat,        mouse,   nonConsuming,      transparent,        ignoreMods, multiKey, hasDescription, dontInhibit});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
+                                               COMMAND,       locked,       m_szCurrentSubmap, DESCRIPTION,        release,  repeat,         longPress,
+                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit});
     }
 
     return {};

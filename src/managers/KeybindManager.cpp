@@ -1853,7 +1853,7 @@ SDispatchResult CKeybindManager::moveWorkspaceToMonitor(std::string args) {
 }
 
 SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args) {
-    auto workspaceID = getWorkspaceIDNameFromString(args).id;
+    auto [workspaceID, workspaceName] = getWorkspaceIDNameFromString(args);
     if (workspaceID == WORKSPACE_INVALID) {
         Debug::log(ERR, "focusWorkspaceOnCurrentMonitor invalid workspace!");
         return {.success = false, .error = "focusWorkspaceOnCurrentMonitor invalid workspace!"};
@@ -1869,7 +1869,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
     auto pWorkspace = g_pCompositor->getWorkspaceByID(workspaceID);
 
     if (!pWorkspace) {
-        pWorkspace = g_pCompositor->createNewWorkspace(workspaceID, PCURRMONITOR->ID);
+        pWorkspace = g_pCompositor->createNewWorkspace(workspaceID, PCURRMONITOR->ID, workspaceName);
         // we can skip the moving, since it's already on the current monitor
         changeworkspace(pWorkspace->getConfigName());
         return {};

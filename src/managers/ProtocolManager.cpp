@@ -281,6 +281,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::xdgShell->getGlobal(),
         PROTO::xdgDialog->getGlobal(),
         PROTO::singlePixel->getGlobal(),
+        PROTO::primarySelection->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

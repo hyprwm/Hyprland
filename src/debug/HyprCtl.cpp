@@ -1472,17 +1472,40 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
 
         g_pPluginSystem->unloadPlugin(PLUGIN);
     } else if (OPERATION == "list") {
-        const auto PLUGINS = g_pPluginSystem->getAllPlugins();
+        const auto  PLUGINS = g_pPluginSystem->getAllPlugins();
+        std::string result  = "";
 
-        if (PLUGINS.size() == 0)
-            return "no plugins loaded";
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+            result += "[";
 
-        std::string list = "";
-        for (auto const& p : PLUGINS) {
-            list += std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->name, p->author, (uintptr_t)p->m_pHandle, p->version, p->description);
+            if (PLUGINS.size() == 0)
+                return "[]";
+
+            for (auto const& p : PLUGINS) {
+                result += std::format(
+                    R"#(
+{{
+    "name": "{}",
+    "author": "{}",
+    "handle": "{:x}",
+    "version": "{}",
+    "description": "{}"
+}},)#",
+                    escapeJSONStrings(p->name), escapeJSONStrings(p->author), (uintptr_t)p->m_pHandle, escapeJSONStrings(p->version), escapeJSONStrings(p->description));
+            }
+            trimTrailingComma(result);
+            result += "]";
+        } else {
+            if (PLUGINS.size() == 0)
+                return "no plugins loaded";
+
+            for (auto const& p : PLUGINS) {
+                result +=
+                    std::format("\nPlugin {} by {}:\n\tHandle: {:x}\n\tVersion: {}\n\tDescription: {}\n", p->name, p->author, (uintptr_t)p->m_pHandle, p->version, p->description);
+            }
         }
 
-        return list;
+        return result;
     } else {
         return "unknown opt";
     }

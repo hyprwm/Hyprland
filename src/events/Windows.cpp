@@ -296,7 +296,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             auto pWorkspace = g_pCompositor->getWorkspaceByID(REQUESTEDWORKSPACEID);
 
             if (!pWorkspace)
-                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->monitorID(), requestedWorkspaceName);
+                pWorkspace = g_pCompositor->createNewWorkspace(REQUESTEDWORKSPACEID, PWINDOW->monitorID(), requestedWorkspaceName, false);
 
             PWORKSPACE = pWorkspace;
 

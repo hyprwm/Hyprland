@@ -102,8 +102,6 @@ class CKeybindManager {
 
     std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_mDispatchers;
 
-    wl_event_source*                                                             m_pActiveKeybindEventSource = nullptr;
-
     bool                                                                         m_bGroupsLocked = false;
 
     std::list<SKeybind>                                                          m_lKeybinds;
@@ -123,7 +121,7 @@ class CKeybindManager {
 
     std::vector<SKeybind*>          m_vActiveKeybinds;
     SKeybind *                      m_pLastLongPressKeybind = nullptr;
-    SP<CEventLoopTimer>             m_pLongPressTimer;
+    SP<CEventLoopTimer>             m_pLongPressTimer, m_pRepeatKeyTimer;
 
     uint32_t                        m_uTimeLastMs    = 0;
     uint32_t                        m_uLastCode      = 0;

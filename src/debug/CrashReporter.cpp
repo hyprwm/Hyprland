@@ -159,7 +159,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "GPU:\n\t";
 #if defined(__DragonFly__) || defined(__FreeBSD__)
-    finalCrashReport.writeCmdOutput("pciconf -lv | fgrep -A4 vga");
+    finalCrashReport.writeCmdOutput("pciconf -lv | grep -F -A4 vga");
 #else
     finalCrashReport.writeCmdOutput("lspci -vnn | grep VGA");
 #endif

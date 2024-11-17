@@ -174,6 +174,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     const auto RDATA                       = (SRenderData*)data;
+    const bool BLUR                        = RDATA->blur && !TEXTURE->m_bOpaque;
     const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 
@@ -270,12 +271,12 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
     if (RDATA->surfaceCounter == 0 && !RDATA->popup) {
-        if (RDATA->blur)
+        if (BLUR)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
     } else {
-        if (RDATA->blur && RDATA->popup)
+        if (BLUR && RDATA->popup)
             g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, true, RDATA->fadeAlpha);
         else
             g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
@@ -591,6 +592,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
     // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
     const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_iMonitorMovedFrom != -1 && !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace);
+    const bool DONT_BLUR                = pWindow->m_sWindowData.noBlur.valueOrDefault() || pWindow->m_sWindowData.RGBX.valueOrDefault() || pWindow->opaque();
 
     renderdata.surface   = pWindow->m_pWLSurface->resource();
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
@@ -599,7 +601,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     renderdata.alpha    = pWindow->m_fActiveInactiveAlpha.value();
     renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
     renderdata.rounding = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.blur     = !ignoreAllGeometry; // if it shouldn't, it will be ignored later
+    renderdata.blur     = !ignoreAllGeometry && *PBLUR && !DONT_BLUR;
     renderdata.pWindow  = pWindow;
 
     if (ignoreAllGeometry) {
@@ -715,7 +717,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
             static CConfigValue PBLURPOPUPS  = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
             static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = *PBLURPOPUPS;
+            renderdata.blur = *PBLURPOPUPS && *PBLUR;
 
             const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
             const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
@@ -734,13 +736,15 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                 [](CPopup* popup, void* data) {
                     if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                         return;
-                    auto     pos    = popup->coordsRelativeToParent();
-                    auto     rd     = (SRenderData*)data;
-                    Vector2D oldPos = {rd->x, rd->y};
+                    const auto     pos    = popup->coordsRelativeToParent();
+                    auto           rd     = (SRenderData*)data;
+                    const Vector2D oldPos = {rd->x, rd->y};
                     rd->x += pos.x;
                     rd->y += pos.y;
+
                     popup->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
                                                                   data);
+
                     rd->x = oldPos.x;
                     rd->y = oldPos.y;
                 },
@@ -785,6 +789,8 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
         return;
     }
 
+    static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+
     TRACY_GPU_ZONE("RenderLayer");
 
     const auto  REALPOS = pLayer->realPosition.value();
@@ -792,7 +798,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 
     SRenderData renderdata           = {pMonitor, time, REALPOS.x, REALPOS.y};
     renderdata.fadeAlpha             = pLayer->alpha.value();
-    renderdata.blur                  = pLayer->forceBlur;
+    renderdata.blur                  = pLayer->forceBlur && *PBLUR;
     renderdata.surface               = pLayer->surface->resource();
     renderdata.decorate              = false;
     renderdata.w                     = REALSIZ.x;

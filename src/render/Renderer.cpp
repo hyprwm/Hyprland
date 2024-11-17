@@ -732,7 +732,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
             pWindow->m_pPopupHead->breadthfirst(
                 [](CPopup* popup, void* data) {
-                    if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
+                    if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                         return;
                     auto     pos    = popup->coordsRelativeToParent();
                     auto     rd     = (SRenderData*)data;
@@ -822,7 +822,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
     if (popups) {
         pLayer->popupHead->breadthfirst(
             [](CPopup* popup, void* data) {
-                if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource())
+                if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                     return;
 
                 Vector2D pos = popup->coordsRelativeToParent();

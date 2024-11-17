@@ -2036,7 +2036,6 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
 void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float a, SP<CWLSurfaceResource> pSurface, int round, bool blockBlurOptimization, float blurA) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
-    static auto PBLURENABLED     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     static auto PNOBLUROVERSIZED = CConfigValue<Hyprlang::INT>("decoration:no_blur_on_oversized");
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
@@ -2050,8 +2049,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
 
     m_RenderData.renderModif.applyToRegion(texDamage);
 
-    if (*PBLURENABLED == 0 || (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) ||
-        (m_pCurrentWindow.lock() && (m_pCurrentWindow->m_sWindowData.noBlur.valueOrDefault() || m_pCurrentWindow->m_sWindowData.RGBX.valueOrDefault()))) {
+    if (*PNOBLUROVERSIZED && m_RenderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
         renderTexture(tex, pBox, a, round, false, true);
         return;
     }

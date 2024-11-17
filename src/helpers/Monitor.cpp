@@ -39,6 +39,7 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
+    EMIT_HOOK_EVENT("preMonitorAdded", self.lock());
     CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
 
     if (output->supportsExplicit) {
@@ -238,6 +239,7 @@ void CMonitor::onConnect(bool noRule) {
 }
 
 void CMonitor::onDisconnect(bool destroy) {
+    EMIT_HOOK_EVENT("preMonitorRemoved", self.lock());
     CScopeGuard x = {[this]() {
         if (g_pCompositor->m_bIsShuttingDown)
             return;

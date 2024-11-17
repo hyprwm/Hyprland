@@ -21,8 +21,6 @@ class CHyprXWaylandManager {
     void                   setWindowFullscreen(PHLWINDOW, bool);
     bool                   shouldBeFloated(PHLWINDOW, bool pending = false);
     void                   checkBorders(PHLWINDOW);
-    Vector2D               getMaxSizeForWindow(PHLWINDOW);
-    Vector2D               getMinSizeForWindow(PHLWINDOW);
     Vector2D               xwaylandToWaylandCoords(const Vector2D&);
 };
 

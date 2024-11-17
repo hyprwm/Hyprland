@@ -608,7 +608,24 @@ void logSystemInfo() {
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
 #elif defined(__arm__) || defined(__aarch64__)
-    const std::string GPUINFO = execAndGet("cat /proc/device-tree/soc*/gpu*/compatible");
+    const std::string           GPUINFO;
+    const std::filesystem::path dev_tree = "/proc/device-tree";
+    try {
+        if (std::filesystem::exists(dev_tree) && std::filesystem::is_directory(dev_tree)) {
+            std::for_each(std::filesystem::directory_iterator(dev_tree), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& entry) {
+                if (std::filesystem::is_directory(entry) && entry.path().filename().string().starts_with("soc")) {
+                    std::for_each(std::filesystem::directory_iterator(entry.path()), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& sub_entry) {
+                        if (std::filesystem::is_directory(sub_entry) && sub_entry.path().filename().string().starts_with("gpu")) {
+                            std::filesystem::path file_path = sub_entry.path() / "compatible";
+                            std::ifstream         file(file_path);
+                            if (file)
+                                GPUINFO.append(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+                        }
+                    });
+                }
+            });
+        }
+    } catch (...) { GPUINFO = "error"; }
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
 #endif

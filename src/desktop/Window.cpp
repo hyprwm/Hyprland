@@ -1601,3 +1601,29 @@ bool CWindow::isX11OverrideRedirect() {
 bool CWindow::isModal() {
     return (m_pXWaylandSurface && m_pXWaylandSurface->modal);
 }
+
+Vector2D CWindow::requestedMinSize() {
+    if ((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && !m_pXDGSurface->toplevel))
+        return Vector2D(1, 1);
+
+    Vector2D minSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->min_width, m_pXWaylandSurface->sizeHints->min_height) : m_pXDGSurface->toplevel->layoutMinSize();
+
+    minSize = minSize.clamp({1, 1});
+
+    return minSize;
+}
+
+Vector2D CWindow::requestedMaxSize() {
+    constexpr int NO_MAX_SIZE_LIMIT = 99999;
+    if (((m_bIsX11 && !m_pXWaylandSurface->sizeHints) || (!m_bIsX11 && !m_pXDGSurface->toplevel) || m_sWindowData.noMaxSize.valueOrDefault()))
+        return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
+
+    Vector2D maxSize = m_bIsX11 ? Vector2D(m_pXWaylandSurface->sizeHints->max_width, m_pXWaylandSurface->sizeHints->max_height) : m_pXDGSurface->toplevel->layoutMaxSize();
+
+    if (maxSize.x < 5)
+        maxSize.x = NO_MAX_SIZE_LIMIT;
+    if (maxSize.y < 5)
+        maxSize.y = NO_MAX_SIZE_LIMIT;
+
+    return maxSize;
+}

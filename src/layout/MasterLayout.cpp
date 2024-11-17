@@ -200,7 +200,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         PNODE->percMaster = lastSplitPercent;
 
         // first, check if it isn't too big.
-        if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow); MAXSIZE.x < PMONITOR->vecSize.x * lastSplitPercent || MAXSIZE.y < PMONITOR->vecSize.y) {
+        if (const auto MAXSIZE = pWindow->requestedMaxSize(); MAXSIZE.x < PMONITOR->vecSize.x * lastSplitPercent || MAXSIZE.y < PMONITOR->vecSize.y) {
             // we can't continue. make it floating.
             pWindow->m_bIsFloating = true;
             m_lMasterNodesData.remove(*PNODE);
@@ -212,7 +212,7 @@ void CHyprMasterLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dire
         PNODE->percMaster = lastSplitPercent;
 
         // first, check if it isn't too big.
-        if (const auto MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);
+        if (const auto MAXSIZE = pWindow->requestedMaxSize();
             MAXSIZE.x < PMONITOR->vecSize.x * (1 - lastSplitPercent) || MAXSIZE.y < PMONITOR->vecSize.y * (1.f / (WINDOWSONWORKSPACE - 1))) {
             // we can't continue. make it floating.
             pWindow->m_bIsFloating = true;

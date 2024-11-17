@@ -346,7 +346,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
                     const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+                    const auto  MAXSIZE = PWINDOW->requestedMaxSize();
 
                     const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) :
                                                             stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
@@ -469,7 +469,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
                     const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(PWINDOW);
+                    const auto  MAXSIZE = PWINDOW->requestedMaxSize();
 
                     const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) : stringToPercentage(SIZEXSTR, PMONITOR->vecSize.x);
 
@@ -753,8 +753,8 @@ void Events::listener_commitWindow(void* owner, void* data) {
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize; // apply pending size. We pinged, the window ponged.
 
     if (!PWINDOW->m_bIsX11 && !PWINDOW->isFullscreen() && PWINDOW->m_bIsFloating) {
-        const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->current.minSize;
-        const auto MAXSIZE = PWINDOW->m_pXDGSurface->toplevel->current.maxSize;
+        const auto MINSIZE = PWINDOW->m_pXDGSurface->toplevel->layoutMinSize();
+        const auto MAXSIZE = PWINDOW->m_pXDGSurface->toplevel->layoutMaxSize();
 
         PWINDOW->clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
         g_pHyprRenderer->damageWindow(PWINDOW);

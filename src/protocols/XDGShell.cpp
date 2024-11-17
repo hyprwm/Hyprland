@@ -323,6 +323,14 @@ void CXDGToplevelResource::close() {
     resource->sendClose();
 }
 
+Vector2D CXDGToplevelResource::layoutMinSize() {
+    return owner ? current.minSize + owner->current.geometry.pos() : current.minSize;
+}
+
+Vector2D CXDGToplevelResource::layoutMaxSize() {
+    return owner ? current.maxSize + owner->current.geometry.pos() : current.maxSize;
+}
+
 CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_) :
     owner(owner_), surface(surface_), resource(resource_) {
     if (!good())

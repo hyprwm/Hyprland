@@ -213,36 +213,6 @@ void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscree
         pWindow->m_pXDGSurface->toplevel->setFullscreen(fullscreen);
 }
 
-Vector2D CHyprXWaylandManager::getMaxSizeForWindow(PHLWINDOW pWindow) {
-    constexpr int NO_MAX_SIZE_LIMIT = 99999;
-    if (!validMapped(pWindow) ||
-        ((pWindow->m_bIsX11 && !pWindow->m_pXWaylandSurface->sizeHints) || (!pWindow->m_bIsX11 && !pWindow->m_pXDGSurface->toplevel) ||
-         pWindow->m_sWindowData.noMaxSize.valueOrDefault()))
-        return Vector2D(NO_MAX_SIZE_LIMIT, NO_MAX_SIZE_LIMIT);
-
-    Vector2D maxSize = pWindow->m_bIsX11 ? Vector2D(pWindow->m_pXWaylandSurface->sizeHints->max_width, pWindow->m_pXWaylandSurface->sizeHints->max_height) :
-                                           pWindow->m_pXDGSurface->toplevel->current.maxSize;
-
-    if (maxSize.x < 5)
-        maxSize.x = NO_MAX_SIZE_LIMIT;
-    if (maxSize.y < 5)
-        maxSize.y = NO_MAX_SIZE_LIMIT;
-
-    return maxSize;
-}
-
-Vector2D CHyprXWaylandManager::getMinSizeForWindow(PHLWINDOW pWindow) {
-    if (!validMapped(pWindow) || ((pWindow->m_bIsX11 && !pWindow->m_pXWaylandSurface->sizeHints) || (!pWindow->m_bIsX11 && !pWindow->m_pXDGSurface->toplevel)))
-        return Vector2D(0, 0);
-
-    Vector2D minSize = pWindow->m_bIsX11 ? Vector2D(pWindow->m_pXWaylandSurface->sizeHints->min_width, pWindow->m_pXWaylandSurface->sizeHints->min_height) :
-                                           pWindow->m_pXDGSurface->toplevel->current.minSize;
-
-    minSize = minSize.clamp({1, 1});
-
-    return minSize;
-}
-
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");

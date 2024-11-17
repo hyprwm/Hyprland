@@ -403,12 +403,9 @@ class CWindow {
     }
 
     // methods
-    CBox        getFullWindowBoundingBox();
-    SBoxExtents getFullWindowExtents();
-    CBox        getWindowBoxUnified(uint64_t props);
-    inline CBox getWindowMainSurfaceBox() const {
-        return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
-    }
+    CBox                   getFullWindowBoundingBox();
+    SBoxExtents            getFullWindowExtents();
+    CBox                   getWindowBoxUnified(uint64_t props);
     CBox                   getWindowIdealBoundingBoxIgnoreReserved();
     void                   addWindowDeco(std::unique_ptr<IHyprWindowDecoration> deco);
     void                   updateWindowDecos();
@@ -441,19 +438,15 @@ class CWindow {
     void                   activate(bool force = false);
     int                    surfacesCount();
     void                   clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-
     bool                   isFullscreen();
     bool                   isEffectiveInternalFSMode(const eFullscreenMode);
-
     int                    getRealBorderSize();
     void                   updateWindowData();
     void                   updateWindowData(const struct SWorkspaceRule&);
-
     void                   onBorderAngleAnimEnd(void* ptr);
     bool                   isInCurvedCorner(double x, double y);
     bool                   hasPopupAt(const Vector2D& pos);
     int                    popupsCount();
-
     void                   applyGroupRules();
     void                   createGroup();
     void                   destroyGroup();
@@ -481,6 +474,12 @@ class CWindow {
     void                   unsetWindowData(eOverridePriority priority);
     bool                   isX11OverrideRedirect();
     bool                   isModal();
+    Vector2D               requestedMinSize();
+    Vector2D               requestedMaxSize();
+
+    inline CBox            getWindowMainSurfaceBox() const {
+        return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
+    }
 
     // listeners
     void onAck(uint32_t serial);

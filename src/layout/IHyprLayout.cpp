@@ -597,12 +597,12 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
-            Vector2D MINSIZE = g_pXWaylandManager->getMinSizeForWindow(DRAGGINGWINDOW).clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(20, 20)));
+            Vector2D MINSIZE = DRAGGINGWINDOW->requestedMinSize().clamp(DRAGGINGWINDOW->m_sWindowData.minSize.valueOr(Vector2D(20, 20)));
             Vector2D MAXSIZE;
             if (DRAGGINGWINDOW->m_sWindowData.maxSize.hasValue())
-                MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW).clamp({}, DRAGGINGWINDOW->m_sWindowData.maxSize.value());
+                MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, DRAGGINGWINDOW->m_sWindowData.maxSize.value());
             else
-                MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(DRAGGINGWINDOW).clamp({}, Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max()));
+                MAXSIZE = DRAGGINGWINDOW->requestedMaxSize().clamp({}, Vector2D(std::numeric_limits<double>::max(), std::numeric_limits<double>::max()));
 
             Vector2D newSize = m_vBeginDragSizeXY;
             Vector2D newPos  = m_vBeginDragPositionXY;
@@ -884,7 +884,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
                     const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
                     const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto  MAXSIZE = g_pXWaylandManager->getMaxSizeForWindow(pWindow);
+                    const auto  MAXSIZE = pWindow->requestedMaxSize();
 
                     const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.x) :
                                                             stringToPercentage(SIZEXSTR, g_pCompositor->m_pLastMonitor->vecSize.x);

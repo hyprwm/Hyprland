@@ -29,6 +29,7 @@ struct SSessionLockSurface {
 
 struct SSessionLock {
     WP<CSessionLock>                                  lock;
+    CTimer                                            mLockTimer;
 
     std::vector<std::unique_ptr<SSessionLockSurface>> vSessionLockSurfaces;
     std::unordered_map<uint64_t, CTimer>              mMonitorsWithoutMappedSurfaceTimers;
@@ -60,6 +61,8 @@ class CSessionLockManager {
     void                 removeSessionLockSurface(SSessionLockSurface*);
 
     void                 onLockscreenRenderedOnMonitor(uint64_t id);
+
+    bool                 shallConsiderLockMissing();
 
   private:
     UP<SSessionLock> m_pSessionLock;

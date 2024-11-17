@@ -272,7 +272,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         }
 
         if (m_bVerbose)
-            std::println("{}", verboseString("shell returned: " + out));
+            std::println("{}", verboseString("shell returned: {}", out));
 
         if (!std::filesystem::exists(m_szWorkingPluginDirectory + "/" + p.output)) {
             progress.printMessageAbove(failureString("Plugin {} failed to build.\n"

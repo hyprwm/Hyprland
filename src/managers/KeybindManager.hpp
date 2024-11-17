@@ -120,7 +120,7 @@ class CKeybindManager {
     inline static std::string       m_szCurrentSelectedSubmap = "";
 
     std::vector<SKeybind*>          m_vActiveKeybinds;
-    SKeybind *                      m_pLastLongPressKeybind = nullptr;
+    SKeybind*                       m_pLastLongPressKeybind = nullptr;
     SP<CEventLoopTimer>             m_pLongPressTimer, m_pRepeatKeyTimer;
 
     uint32_t                        m_uTimeLastMs    = 0;

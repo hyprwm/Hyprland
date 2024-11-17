@@ -147,19 +147,18 @@ CKeybindManager::CKeybindManager() {
     m_pRepeatKeyTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
+            if (m_vActiveKeybinds.size() == 0 || g_pSeatManager->keyboard.expired())
+                return;
 
-        if (m_vActiveKeybinds.size() == 0 || g_pSeatManager->keyboard.expired())
-            return;
+            for (SKeybind* k : m_vActiveKeybinds) {
+                const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
 
-        for (SKeybind* k : m_vActiveKeybinds) {
-            const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
+                Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
+                DISPATCHER->second(k->arg);
+            }
 
-            Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
-            DISPATCHER->second(k->arg);
-        }
-
-        const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
-        self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->repeatRate));
+            const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
+            self->updateTimeout(std::chrono::milliseconds(1000 / PACTIVEKEEB->repeatRate));
         },
         nullptr);
 

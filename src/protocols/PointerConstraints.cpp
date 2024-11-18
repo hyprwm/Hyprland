@@ -188,7 +188,7 @@ Vector2D CPointerConstraint::logicPositionHint() {
     const auto SURFBOX       = pHLSurface->getSurfaceBoxGlobal();
     const auto CONSTRAINTPOS = SURFBOX.has_value() ? SURFBOX->pos() : Vector2D{};
 
-    return hintSet ? CONSTRAINTPOS + positionHint : (locked ? CONSTRAINTPOS + SURFBOX->size() / 2.f : cursorPosOnActivate);
+    return hintSet ? CONSTRAINTPOS + positionHint : cursorPosOnActivate;
 }
 
 CPointerConstraintsProtocol::CPointerConstraintsProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

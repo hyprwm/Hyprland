@@ -150,7 +150,7 @@ CKeybindManager::CKeybindManager() {
             if (m_vActiveKeybinds.size() == 0 || g_pSeatManager->keyboard.expired())
                 return;
 
-            for (SKeybind* k : m_vActiveKeybinds) {
+            for (const auto& k : m_vActiveKeybinds) {
                 const auto DISPATCHER = g_pKeybindManager->m_mDispatchers.find(k->handler);
 
                 Debug::log(LOG, "Keybind repeat triggered, calling dispatcher.");
@@ -168,7 +168,7 @@ CKeybindManager::CKeybindManager() {
     static auto P = g_pHookSystem->hookDynamic("configReloaded", [this](void* hk, SCallbackInfo& info, std::any param) {
         // clear cuz realloc'd
         m_vActiveKeybinds.clear();
-        m_pLastLongPressKeybind = nullptr;
+        m_pLastLongPressKeybind.reset();
         m_vPressedSpecialBinds.clear();
     });
 }
@@ -187,24 +187,17 @@ CKeybindManager::~CKeybindManager() {
 }
 
 void CKeybindManager::addKeybind(SKeybind kb) {
-    m_lKeybinds.push_back(kb);
+    m_vKeybinds.emplace_back(makeShared<SKeybind>(kb));
 
     m_vActiveKeybinds.clear();
-    m_pLastLongPressKeybind = nullptr;
+    m_pLastLongPressKeybind.reset();
 }
 
 void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
-    for (auto it = m_lKeybinds.begin(); it != m_lKeybinds.end(); ++it) {
-        if (it->modmask == mod && it->key == key.key && it->keycode == key.keycode && it->catchAll == key.catchAll) {
-            it = m_lKeybinds.erase(it);
-
-            if (it == m_lKeybinds.end())
-                break;
-        }
-    }
+    std::erase_if(m_vKeybinds, [&mod, &key](const auto& el) { return el->modmask == mod && el->key == key.key && el->keycode == key.keycode && el->catchAll == key.catchAll; });
 
     m_vActiveKeybinds.clear();
-    m_pLastLongPressKeybind = nullptr;
+    m_pLastLongPressKeybind.reset();
 }
 
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
@@ -451,7 +444,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     m_vActiveKeybinds.clear();
 
-    m_pLastLongPressKeybind = nullptr;
+    m_pLastLongPressKeybind.reset();
 
     bool suppressEvent = false;
     if (e.state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -612,11 +605,11 @@ eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::set<xkb_keysym_t> k
     return MK_NO_MATCH;
 }
 
-eMultiKeyCase CKeybindManager::mkBindMatches(const SKeybind keybind) {
-    if (mkKeysymSetMatches(keybind.sMkMods, m_sMkMods) != MK_FULL_MATCH)
+eMultiKeyCase CKeybindManager::mkBindMatches(const SP<SKeybind> keybind) {
+    if (mkKeysymSetMatches(keybind->sMkMods, m_sMkMods) != MK_FULL_MATCH)
         return MK_NO_MATCH;
 
-    return mkKeysymSetMatches(keybind.sMkKeys, m_sMkKeys);
+    return mkKeysymSetMatches(keybind->sMkKeys, m_sMkKeys);
 }
 
 std::string CKeybindManager::getCurrentSubmap() {
@@ -640,35 +633,35 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             m_sMkKeys.erase(key.keysym);
     }
 
-    for (auto& k : m_lKeybinds) {
-        const bool SPECIALDISPATCHER = k.handler == "global" || k.handler == "pass" || k.handler == "sendshortcut" || k.handler == "mouse";
+    for (auto& k : m_vKeybinds) {
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse";
         const bool SPECIALTRIGGERED =
-            std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == &k; }) != m_vPressedSpecialBinds.end();
+            std::find_if(m_vPressedSpecialBinds.begin(), m_vPressedSpecialBinds.end(), [&](const auto& other) { return other == k; }) != m_vPressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
-        if (!k.dontInhibit && !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
+        if (!k->dontInhibit && !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited())
             continue;
 
-        if (!k.locked && g_pSessionLockManager->isSessionLocked())
+        if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k.modmask && !k.ignoreMods) || k.submap != m_szCurrentSelectedSubmap || k.shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || k->submap != m_szCurrentSelectedSubmap || k->shadowed))
             continue;
 
-        if (k.multiKey) {
+        if (k->multiKey) {
             switch (mkBindMatches(k)) {
                 case MK_NO_MATCH: continue;
                 case MK_PARTIAL_MATCH: found = true; continue;
                 case MK_FULL_MATCH: found = true;
             }
         } else if (!key.keyName.empty()) {
-            if (key.keyName != k.key)
+            if (key.keyName != k->key)
                 continue;
-        } else if (k.keycode != 0) {
-            if (key.keycode != k.keycode)
+        } else if (k->keycode != 0) {
+            if (key.keycode != k->keycode)
                 continue;
-        } else if (k.catchAll) {
+        } else if (k->catchAll) {
             if (found || key.submapAtPress != m_szCurrentSelectedSubmap)
                 continue;
         } else {
@@ -679,8 +672,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             // oMg such performance hit!!11!
             // this little maneouver is gonna cost us 4µs
-            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_NO_FLAGS);
-            const auto KBKEYLOWER = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEY      = xkb_keysym_from_name(k->key.c_str(), XKB_KEYSYM_NO_FLAGS);
+            const auto KBKEYLOWER = xkb_keysym_from_name(k->key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
 
             if (KBKEY == XKB_KEY_NoSymbol && KBKEYLOWER == XKB_KEY_NoSymbol) {
                 // Keysym failed to resolve from the key name of the currently iterated bind.
@@ -697,8 +690,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 continue;
         }
 
-        if (pressed && k.release && !SPECIALDISPATCHER) {
-            if (k.nonConsuming)
+        if (pressed && k->release && !SPECIALDISPATCHER) {
+            if (k->nonConsuming)
                 continue;
 
             found = true; // suppress the event
@@ -707,7 +700,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.
-            if (key.modmaskAtPressTime != modmask && !k.ignoreMods) {
+            if (key.modmaskAtPressTime != modmask && !k->ignoreMods) {
                 // Handle properly `bindr` where a key is itself a bind mod for example:
                 // "bindr = SUPER, SUPER_L, exec, $launcher".
                 // This needs to be handled separately for the above case, because `key.modmaskAtPressTime` is set
@@ -716,8 +709,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 if (keycodeToModifier(key.keycode) == key.modmaskAtPressTime)
                     continue;
 
-            } else if (!k.release && !SPECIALDISPATCHER) {
-                if (k.nonConsuming)
+            } else if (!k->release && !SPECIALDISPATCHER) {
+                if (k->nonConsuming)
                     continue;
 
                 found = true; // suppress the event
@@ -725,25 +718,25 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             }
         }
 
-        if (k.longPress) {
+        if (k->longPress) {
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
             m_pLongPressTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
-            m_pLastLongPressKeybind = &k;
+            m_pLastLongPressKeybind = k;
 
             continue;
         }
 
-        const auto DISPATCHER = m_mDispatchers.find(k.mouse ? "mouse" : k.handler);
+        const auto DISPATCHER = m_mDispatchers.find(k->mouse ? "mouse" : k->handler);
 
         if (SPECIALTRIGGERED && !pressed)
-            std::erase_if(m_vPressedSpecialBinds, [&](const auto& other) { return other == &k; });
+            std::erase_if(m_vPressedSpecialBinds, [&](const auto& other) { return other == k; });
         else if (SPECIALDISPATCHER && pressed)
-            m_vPressedSpecialBinds.push_back(&k);
+            m_vPressedSpecialBinds.push_back(k);
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
-            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k.handler);
+            Debug::log(ERR, "Invalid handler in a keybind! (handler {} does not exist)", k->handler);
         } else {
             // call the dispatcher
             Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.keyName, key.keysym);
@@ -751,27 +744,27 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             m_iPassPressed = (int)pressed;
 
             // if the dispatchers says to pass event then we will
-            if (k.handler == "mouse")
-                res = DISPATCHER->second((pressed ? "1" : "0") + k.arg);
+            if (k->handler == "mouse")
+                res = DISPATCHER->second((pressed ? "1" : "0") + k->arg);
             else
-                res = DISPATCHER->second(k.arg);
+                res = DISPATCHER->second(k->arg);
 
             m_iPassPressed = -1;
 
-            if (k.handler == "submap") {
+            if (k->handler == "submap") {
                 found = true; // don't process keybinds on submap change.
                 break;
             }
         }
 
-        if (k.repeat) {
+        if (k->repeat) {
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
-            m_vActiveKeybinds.push_back(&k);
+            m_vActiveKeybinds.push_back(k);
             m_pRepeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
         }
 
-        if (!k.nonConsuming)
+        if (!k->nonConsuming)
             found = true;
     }
 
@@ -792,17 +785,17 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint32_t doesntHaveCode) {
     // shadow disables keybinds after one has been triggered
 
-    for (auto& k : m_lKeybinds) {
+    for (auto& k : m_vKeybinds) {
 
         bool shadow = false;
 
-        if (k.handler == "global" || k.transparent)
+        if (k->handler == "global" || k->transparent)
             continue; // can't be shadowed
 
-        if (k.multiKey && (mkBindMatches(k) == MK_FULL_MATCH))
+        if (k->multiKey && (mkBindMatches(k) == MK_FULL_MATCH))
             shadow = true;
         else {
-            const auto KBKEY      = xkb_keysym_from_name(k.key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+            const auto KBKEY      = xkb_keysym_from_name(k->key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
             const auto KBKEYUPPER = xkb_keysym_to_upper(KBKEY);
 
             for (auto const& pk : m_dPressedKeys) {
@@ -815,7 +808,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
                     }
                 }
 
-                if (pk.keycode != 0 && pk.keycode == k.keycode) {
+                if (pk.keycode != 0 && pk.keycode == k->keycode) {
                     shadow = true;
 
                     if (pk.keycode == doesntHaveCode && doesntHaveCode != 0) {
@@ -826,7 +819,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
             }
         }
 
-        k.shadowed = shadow;
+        k->shadowed = shadow;
     }
 }
 
@@ -1004,7 +997,7 @@ SDispatchResult CKeybindManager::kill(std::string args) {
 }
 
 void CKeybindManager::clearKeybinds() {
-    m_lKeybinds.clear();
+    m_vKeybinds.clear();
 }
 
 static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<bool> floatState) {
@@ -2182,8 +2175,8 @@ SDispatchResult CKeybindManager::setSubmap(std::string submap) {
         return {};
     }
 
-    for (auto const& k : g_pKeybindManager->m_lKeybinds) {
-        if (k.submap == submap) {
+    for (const auto& k : g_pKeybindManager->m_vKeybinds) {
+        if (k->submap == submap) {
             m_szCurrentSelectedSubmap = submap;
             Debug::log(LOG, "Changed keybind submap to {}", submap);
             g_pEventManager->postEvent(SHyprIPCEvent{"submap", submap});

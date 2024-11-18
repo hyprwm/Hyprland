@@ -814,28 +814,28 @@ std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string requ
 std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& kb : g_pKeybindManager->m_lKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_vKeybinds) {
             ret += "bind";
-            if (kb.locked)
+            if (kb->locked)
                 ret += "l";
-            if (kb.mouse)
+            if (kb->mouse)
                 ret += "m";
-            if (kb.release)
+            if (kb->release)
                 ret += "r";
-            if (kb.repeat)
+            if (kb->repeat)
                 ret += "e";
-            if (kb.nonConsuming)
+            if (kb->nonConsuming)
                 ret += "n";
-            if (kb.hasDescription)
+            if (kb->hasDescription)
                 ret += "d";
 
-            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb.modmask, kb.submap,
-                               kb.key, kb.keycode, kb.catchAll, kb.description, kb.handler, kb.arg);
+            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
+                               kb->submap, kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
         }
     } else {
         // json
         ret += "[";
-        for (auto const& kb : g_pKeybindManager->m_lKeybinds) {
+        for (auto const& kb : g_pKeybindManager->m_vKeybinds) {
             ret += std::format(
                 R"#(
 {{
@@ -855,9 +855,9 @@ std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
-                kb.locked ? "true" : "false", kb.mouse ? "true" : "false", kb.release ? "true" : "false", kb.repeat ? "true" : "false", kb.longPress ? "true" : "false",
-                kb.nonConsuming ? "true" : "false", kb.hasDescription ? "true" : "false", kb.modmask, escapeJSONStrings(kb.submap), escapeJSONStrings(kb.key), kb.keycode,
-                kb.catchAll ? "true" : "false", escapeJSONStrings(kb.description), escapeJSONStrings(kb.handler), escapeJSONStrings(kb.arg));
+                kb->locked ? "true" : "false", kb->mouse ? "true" : "false", kb->release ? "true" : "false", kb->repeat ? "true" : "false", kb->longPress ? "true" : "false",
+                kb->nonConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap), escapeJSONStrings(kb->key), kb->keycode,
+                kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
         }
         trimTrailingComma(ret);
         ret += "]";

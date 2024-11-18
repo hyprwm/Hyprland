@@ -400,7 +400,7 @@ void CLayerSurface::applyRules() {
         } else if (rule.rule.starts_with("xray")) {
             CVarList vars{rule.rule, 0, ' '};
             try {
-                xray = configStringToInt(vars[1]);
+                xray = configStringToInt(vars[1]).value_or(false);
             } catch (...) {}
         } else if (rule.rule.starts_with("animation")) {
             CVarList vars{rule.rule, 2, 's'};

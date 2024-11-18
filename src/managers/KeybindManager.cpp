@@ -2972,11 +2972,14 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
                         colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
-                    else
-                        colorData.m_vColors.push_back(configStringToInt(TOKEN));
+                    else if (const auto V = configStringToInt(TOKEN); V)
+                        colorData.m_vColors.push_back(*V);
                 }
-            } else if (VAL != "-1")
-                colorData.m_vColors.push_back(configStringToInt(VAL));
+            } else if (VAL != "-1") {
+                const auto V = configStringToInt(VAL);
+                if (V)
+                    colorData.m_vColors.push_back(*V);
+            }
 
             if (PROP == "activebordercolor")
                 PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
@@ -2993,8 +2996,8 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
         } else if (auto search = g_pConfigManager->miWindowProperties.find(PROP); search != g_pConfigManager->miWindowProperties.end()) {
             if (VAL == "unset")
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
-            else
-                *(search->second(PWINDOW)) = CWindowOverridableVar((int)configStringToInt(VAL), PRIORITY_SET_PROP);
+            else if (const auto V = configStringToInt(VAL); V)
+                *(search->second(PWINDOW)) = CWindowOverridableVar((int)*V, PRIORITY_SET_PROP);
         } else {
             return {.success = false, .error = "Prop not found"};
         }

@@ -104,7 +104,7 @@ class CKeybindManager {
 
     bool                                                                         m_bGroupsLocked = false;
 
-    std::list<SKeybind>                                                          m_lKeybinds;
+    std::vector<SP<SKeybind>>                                                    m_vKeybinds;
 
     //since we cant find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
@@ -119,15 +119,15 @@ class CKeybindManager {
 
     inline static std::string       m_szCurrentSelectedSubmap = "";
 
-    std::vector<SKeybind*>          m_vActiveKeybinds;
-    SKeybind*                       m_pLastLongPressKeybind = nullptr;
+    std::vector<WP<SKeybind>>       m_vActiveKeybinds;
+    WP<SKeybind>                    m_pLastLongPressKeybind;
     SP<CEventLoopTimer>             m_pLongPressTimer, m_pRepeatKeyTimer;
 
     uint32_t                        m_uTimeLastMs    = 0;
     uint32_t                        m_uLastCode      = 0;
     uint32_t                        m_uLastMouseCode = 0;
 
-    std::vector<SKeybind*>          m_vPressedSpecialBinds;
+    std::vector<WP<SKeybind>>       m_vPressedSpecialBinds;
 
     int                             m_iPassPressed = -1; // used for pass
 
@@ -137,7 +137,7 @@ class CKeybindManager {
 
     std::set<xkb_keysym_t>          m_sMkKeys = {};
     std::set<xkb_keysym_t>          m_sMkMods = {};
-    eMultiKeyCase                   mkBindMatches(const SKeybind);
+    eMultiKeyCase                   mkBindMatches(const SP<SKeybind>);
     eMultiKeyCase                   mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
 
     bool                            handleInternalKeybinds(xkb_keysym_t);

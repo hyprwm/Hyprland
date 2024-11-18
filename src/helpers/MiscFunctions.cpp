@@ -6,6 +6,7 @@
 #include <optional>
 #include <cstring>
 #include <cmath>
+#include <filesystem>
 #include <set>
 #include <sys/utsname.h>
 #include <sys/mman.h>

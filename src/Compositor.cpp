@@ -1389,6 +1389,9 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     if (!validMapped(pWindow))
         return;
 
+    if (top)
+        pWindow->m_bCreatedOverFullscreen = true;
+
     if (pWindow == (top ? m_vWindows.back() : m_vWindows.front()))
         return;
 
@@ -1412,9 +1415,6 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
         if (pw->m_bIsMapped)
             g_pHyprRenderer->damageMonitor(pw->m_pMonitor.lock());
     };
-
-    if (top)
-        pWindow->m_bCreatedOverFullscreen = true;
 
     if (!pWindow->m_bIsX11)
         moveToZ(pWindow, top);

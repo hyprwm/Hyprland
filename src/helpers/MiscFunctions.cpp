@@ -692,43 +692,79 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 int64_t configStringToInt(const std::string& VALUE) {
+    auto parseHex = [](const std::string& value) -> int64_t {
+        try {
+            size_t position;
+            auto   result = stoll(value, &position, 16);
+            if (position == value.size())
+                return result;
+        } catch (const std::exception&) {}
+        throw std::invalid_argument("invalid hex " + value);
+    };
     if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
-        const auto VALUEWITHOUTHEX = VALUE.substr(2);
-        return stol(VALUEWITHOUTHEX, nullptr, 16);
+        return parseHex(VALUE);
     } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
-        const auto VALUEWITHOUTFUNC = VALUE.substr(5, VALUE.length() - 6);
+        const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
 
-        if (trim(VALUEWITHOUTFUNC).length() != 8) {
-            Debug::log(WARN, "invalid length {} for rgba", VALUEWITHOUTFUNC.length());
-            throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes)");
+        // try doing it the comma way first
+        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 3) {
+            // cool
+            std::string rolling = VALUEWITHOUTFUNC;
+            auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+            rolling             = rolling.substr(rolling.find(',') + 1);
+            auto g              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+            rolling             = rolling.substr(rolling.find(',') + 1);
+            auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+            rolling             = rolling.substr(rolling.find(',') + 1);
+            uint8_t a           = 0;
+            try {
+                a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
+            } catch (std::exception& e) { throw std::invalid_argument("failed parsing " + VALUEWITHOUTFUNC); }
+
+            return a * (Hyprlang::INT)0x1000000 + r * (Hyprlang::INT)0x10000 + g * (Hyprlang::INT)0x100 + b;
+        } else if (VALUEWITHOUTFUNC.length() == 8) {
+            const auto RGBA = parseHex(VALUEWITHOUTFUNC);
+            // now we need to RGBA -> ARGB. The config holds ARGB only.
+            return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
         }
 
-        const auto RGBA = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
+        throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes) or 4 comma separated values");
 
-        // now we need to RGBA -> ARGB. The config holds ARGB only.
-        return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
     } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
-        const auto VALUEWITHOUTFUNC = VALUE.substr(4, VALUE.length() - 5);
+        const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
 
-        if (trim(VALUEWITHOUTFUNC).length() != 6) {
-            Debug::log(WARN, "invalid length {} for rgb", VALUEWITHOUTFUNC.length());
-            throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes)");
+        // try doing it the comma way first
+        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 2) {
+            // cool
+            std::string rolling = VALUEWITHOUTFUNC;
+            auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+            rolling             = rolling.substr(rolling.find(',') + 1);
+            auto g              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+            rolling             = rolling.substr(rolling.find(',') + 1);
+            auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
+
+            return (Hyprlang::INT)0xFF000000 + r * (Hyprlang::INT)0x10000 + g * (Hyprlang::INT)0x100 + b;
+        } else if (VALUEWITHOUTFUNC.length() == 6) {
+            return parseHex(VALUEWITHOUTFUNC) + 0xFF000000;
         }
 
-        const auto RGB = std::stol(VALUEWITHOUTFUNC, nullptr, 16);
-
-        return RGB + 0xFF000000; // 0xFF for opaque
+        throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes) or 3 comma separated values");
     } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
         return 1;
     } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
         return 0;
     }
 
-    if (VALUE.empty() || !isNumber(VALUE))
-        return 0;
+    if (VALUE.empty() || !isNumber(VALUE, false))
+        throw std::invalid_argument("cannot parse \"" + VALUE + "\" as an int.");
 
-    return std::stoll(VALUE);
+    try {
+        const auto RES = std::stoll(VALUE);
+        return RES;
+    } catch (std::exception& e) { throw std::invalid_argument(std::string{"stoll threw: "} + e.what()); }
+
+    return 0;
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {

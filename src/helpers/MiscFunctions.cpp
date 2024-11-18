@@ -691,15 +691,15 @@ int64_t getPPIDof(int64_t pid) {
 #endif
 }
 
-int64_t configStringToInt(const std::string& VALUE) {
-    auto parseHex = [](const std::string& value) -> int64_t {
+std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
+    auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {
         try {
             size_t position;
             auto   result = stoll(value, &position, 16);
             if (position == value.size())
                 return result;
         } catch (const std::exception&) {}
-        throw std::invalid_argument("invalid hex " + value);
+        return std::unexpected("invalid hex " + value);
     };
     if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
@@ -718,18 +718,25 @@ int64_t configStringToInt(const std::string& VALUE) {
             auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
             rolling             = rolling.substr(rolling.find(',') + 1);
             uint8_t a           = 0;
+
+            if (!r || !g || !b)
+                return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
+
             try {
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
-            } catch (std::exception& e) { throw std::invalid_argument("failed parsing " + VALUEWITHOUTFUNC); }
+            } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * (Hyprlang::INT)0x1000000 + r * (Hyprlang::INT)0x10000 + g * (Hyprlang::INT)0x100 + b;
+            return a * (Hyprlang::INT)0x1000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
+
+            if (!RGBA)
+                return RGBA;
             // now we need to RGBA -> ARGB. The config holds ARGB only.
-            return (RGBA >> 8) + 0x1000000 * (RGBA & 0xFF);
+            return (*RGBA >> 8) + 0x1000000 * (*RGBA & 0xFF);
         }
 
-        throw std::invalid_argument("rgba() expects length of 8 characters (4 bytes) or 4 comma separated values");
+        return std::unexpected("rgba() expects length of 8 characters (4 bytes) or 4 comma separated values");
 
     } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
@@ -744,12 +751,16 @@ int64_t configStringToInt(const std::string& VALUE) {
             rolling             = rolling.substr(rolling.find(',') + 1);
             auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
 
-            return (Hyprlang::INT)0xFF000000 + r * (Hyprlang::INT)0x10000 + g * (Hyprlang::INT)0x100 + b;
+            if (!r || !g || !b)
+                return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
+
+            return (Hyprlang::INT)0xFF000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
-            return parseHex(VALUEWITHOUTFUNC) + 0xFF000000;
+            auto r = parseHex(VALUEWITHOUTFUNC);
+            return r ? *r + 0xFF000000 : r;
         }
 
-        throw std::invalid_argument("rgb() expects length of 6 characters (3 bytes) or 3 comma separated values");
+        return std::unexpected("rgb() expects length of 6 characters (3 bytes) or 3 comma separated values");
     } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
         return 1;
     } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
@@ -757,14 +768,14 @@ int64_t configStringToInt(const std::string& VALUE) {
     }
 
     if (VALUE.empty() || !isNumber(VALUE, false))
-        throw std::invalid_argument("cannot parse \"" + VALUE + "\" as an int.");
+        return std::unexpected("cannot parse \"" + VALUE + "\" as an int.");
 
     try {
         const auto RES = std::stoll(VALUE);
         return RES;
-    } catch (std::exception& e) { throw std::invalid_argument(std::string{"stoll threw: "} + e.what()); }
+    } catch (std::exception& e) { return std::unexpected(std::string{"stoll threw: "} + e.what()); }
 
-    return 0;
+    return std::unexpected("parse error");
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {

@@ -1286,7 +1286,7 @@ std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
         return "ok";
     }
 
-    const CColor COLOR = configStringToInt(vars[1]);
+    const CColor COLOR = configStringToInt(vars[1]).value_or(0);
 
     for (size_t i = 2; i < vars.size(); ++i)
         errorMessage += vars[i] + ' ';
@@ -1539,7 +1539,7 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor color = configStringToInt(vars[3]);
+    CColor color = configStringToInt(vars[3]).value_or(0);
 
     size_t msgidx   = 4;
     float  fontsize = 13.f;

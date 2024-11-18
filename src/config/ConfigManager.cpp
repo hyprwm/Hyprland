@@ -67,7 +67,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         }
 
         try {
-            DATA->m_vColors.push_back(CColor(configStringToInt(var)));
+            DATA->m_vColors.push_back(CColor(*configStringToInt(var)));
         } catch (std::exception& e) {
             Debug::log(WARN, "Error parsing gradient {}", V);
             parseError = "Error parsing gradient " + V + ": " + e.what();
@@ -2615,7 +2615,14 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     const static std::string ruleOnCreatedEmpty    = "on-created-empty:";
     const static auto        ruleOnCreatedEmptyLen = ruleOnCreatedEmpty.length();
 
-    auto                     assignRule = [&](std::string rule) -> std::optional<std::string> {
+#define CHECK_OR_THROW(expr)                                                                                                                                                       \
+                                                                                                                                                                                   \
+    auto X = expr;                                                                                                                                                                 \
+    if (!X) {                                                                                                                                                                      \
+        return "Failed parsing a workspace rule";                                                                                                                                  \
+    }
+
+    auto assignRule = [&](std::string rule) -> std::optional<std::string> {
         size_t delim = std::string::npos;
         if ((delim = rule.find("gapsin:")) != std::string::npos) {
             CVarList varlist = CVarList(rule.substr(delim + 7), 0, ' ');
@@ -2633,25 +2640,32 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             try {
                 wsRule.borderSize = std::stoi(rule.substr(delim + 11));
             } catch (...) { return "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11); }
-        else if ((delim = rule.find("border:")) != std::string::npos)
-            wsRule.noBorder = !configStringToInt(rule.substr(delim + 7));
-        else if ((delim = rule.find("shadow:")) != std::string::npos)
-            wsRule.noShadow = !configStringToInt(rule.substr(delim + 7));
-        else if ((delim = rule.find("rounding:")) != std::string::npos)
-            wsRule.noRounding = !configStringToInt(rule.substr(delim + 9));
-        else if ((delim = rule.find("decorate:")) != std::string::npos)
-            wsRule.decorate = configStringToInt(rule.substr(delim + 9));
-        else if ((delim = rule.find("monitor:")) != std::string::npos)
+        else if ((delim = rule.find("border:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 7)))
+            wsRule.noBorder = !*X;
+        } else if ((delim = rule.find("shadow:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 7)))
+            wsRule.noShadow = !*X;
+        } else if ((delim = rule.find("rounding:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 9)))
+            wsRule.noRounding = !*X;
+        } else if ((delim = rule.find("decorate:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 9)))
+            wsRule.decorate = *X;
+        } else if ((delim = rule.find("monitor:")) != std::string::npos)
             wsRule.monitor = rule.substr(delim + 8);
-        else if ((delim = rule.find("default:")) != std::string::npos)
-            wsRule.isDefault = configStringToInt(rule.substr(delim + 8));
-        else if ((delim = rule.find("persistent:")) != std::string::npos)
-            wsRule.isPersistent = configStringToInt(rule.substr(delim + 11));
-        else if ((delim = rule.find("defaultName:")) != std::string::npos)
+        else if ((delim = rule.find("default:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 8)))
+            wsRule.isDefault = *X;
+        } else if ((delim = rule.find("persistent:")) != std::string::npos) {
+            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 11)))
+            wsRule.isPersistent = *X;
+        } else if ((delim = rule.find("defaultName:")) != std::string::npos)
             wsRule.defaultName = rule.substr(delim + 12);
-        else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos)
-            wsRule.onCreatedEmptyRunCmd = cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmptyLen));
-        else if ((delim = rule.find("layoutopt:")) != std::string::npos) {
+        else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos) {
+            CHECK_OR_THROW(cleanCmdForWorkspace(name, rule.substr(delim + ruleOnCreatedEmptyLen)))
+            wsRule.onCreatedEmptyRunCmd = *X;
+        } else if ((delim = rule.find("layoutopt:")) != std::string::npos) {
             std::string opt = rule.substr(delim + 10);
             if (!opt.contains(":")) {
                 // invalid
@@ -2667,6 +2681,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
 
         return {};
     };
+
+#undef CHECK_OR_THROW
 
     CVarList rulesList{rules, 0, ',', true};
     for (auto const& r : rulesList) {

@@ -672,8 +672,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
 
             // Basic form has only two colors, everything else can be parsed as a gradient
             if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-                m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[0]))), priority);
-                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[1]))), priority);
+                m_sWindowData.activeBorderColor   = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[0]).value_or(0))), priority);
+                m_sWindowData.inactiveBorderColor = CWindowOverridableVar(CGradientValueData(CColor(configStringToInt(colorsAndAngles[1]).value_or(0))), priority);
                 return;
             }
 
@@ -685,9 +685,9 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                 } else if (token.contains("deg"))
                     inactiveBorderGradient.m_fAngle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
                 else if (active)
-                    activeBorderGradient.m_vColors.push_back(configStringToInt(token));
+                    activeBorderGradient.m_vColors.push_back(configStringToInt(token).value_or(0));
                 else
-                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token));
+                    inactiveBorderGradient.m_vColors.push_back(configStringToInt(token).value_or(0));
             }
 
             // Includes sanity checks for the number of colors in each gradient

@@ -609,7 +609,7 @@ void logSystemInfo() {
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
 #elif defined(__arm__) || defined(__aarch64__)
-    const std::string           GPUINFO;
+    std::string                 GPUINFO;
     const std::filesystem::path dev_tree = "/proc/device-tree";
     try {
         if (std::filesystem::exists(dev_tree) && std::filesystem::is_directory(dev_tree)) {

@@ -2339,6 +2339,7 @@ void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFull
 
 void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenState state) {
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
+    static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:pin_fullscreen");
 
     if (!validMapped(PWINDOW) || g_pCompositor->m_bUnsafeState)
         return;
@@ -2352,7 +2353,17 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
     const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_sFullscreenState.internal);
     const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
 
+    if (*PALLOWPINFULLSCREEN && !m_bPinFullscreened && PWINDOW->m_bPinned && !PWINDOW->isFullscreen()) {
+        PWINDOW->m_bPinned = false;
+        m_bPinFullscreened = true;
+    }
+
     const bool            CHANGEINTERNAL = !(PWINDOW->m_bPinned || CURRENT_EFFECTIVE_MODE == EFFECTIVE_MODE || (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen()));
+
+    if (*PALLOWPINFULLSCREEN && m_bPinFullscreened && !PWINDOW->m_bPinned && PWINDOW->isFullscreen()) {
+        PWINDOW->m_bPinned = true;
+        m_bPinFullscreened = false;
+    }
 
     // TODO: update the state on syncFullscreen changes
     if (!CHANGEINTERNAL && PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())

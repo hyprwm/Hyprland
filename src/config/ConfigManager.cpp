@@ -429,6 +429,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("decoration:blur:special", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:popups", Hyprlang::INT{0});
     m_pConfig->addConfigValue("decoration:blur:popups_ignorealpha", {0.2F});
+    m_pConfig->addConfigValue("decoration:blur:input_methods", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("decoration:blur:input_methods_ignorealpha", {0.2F});
     m_pConfig->addConfigValue("decoration:active_opacity", {1.F});
     m_pConfig->addConfigValue("decoration:inactive_opacity", {1.F});
     m_pConfig->addConfigValue("decoration:fullscreen_opacity", {1.F});

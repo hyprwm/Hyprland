@@ -850,11 +850,20 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
 
     const auto  SURF = pPopup->getSurface();
 
-    renderdata.blur     = false;
     renderdata.surface  = SURF;
     renderdata.decorate = false;
     renderdata.w        = SURF->current.size.x;
     renderdata.h        = SURF->current.size.y;
+
+    static auto PBLUR        = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLURIMES    = CConfigValue<Hyprlang::INT>("decoration:blur:input_methods");
+    static auto PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:input_methods_ignorealpha");
+
+    renderdata.blur = *PBLURIMES && *PBLUR;
+    if (renderdata.blur) {
+        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
+        g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURIGNOREA;
+    }
 
     SURF->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
 }

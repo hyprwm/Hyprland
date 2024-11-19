@@ -324,15 +324,21 @@ void CXDGToplevelResource::close() {
 }
 
 Vector2D CXDGToplevelResource::layoutMinSize() {
-    if (current.minSize.x <= 1 && current.minSize.y <= 1)
-        return {0, 0};
-    return owner ? current.minSize + owner->current.geometry.pos() : current.minSize;
+    Vector2D minSize;
+    if (current.minSize.x > 1)
+        minSize.x = owner ? current.minSize.x + owner->current.geometry.pos().x : current.minSize.x;
+    if (current.minSize.y > 1)
+        minSize.y = owner ? current.minSize.y + owner->current.geometry.pos().y : current.minSize.y;
+    return minSize;
 }
 
 Vector2D CXDGToplevelResource::layoutMaxSize() {
-    if (current.maxSize.x <= 1 && current.maxSize.y <= 1)
-        return {0, 0};
-    return owner ? current.maxSize + owner->current.geometry.pos() : current.maxSize;
+    Vector2D maxSize;
+    if (current.maxSize.x > 1)
+        maxSize.x = owner ? current.maxSize.x + owner->current.geometry.pos().x : current.maxSize.x;
+    if (current.maxSize.y > 1)
+        maxSize.y = owner ? current.maxSize.y + owner->current.geometry.pos().y : current.maxSize.y;
+    return maxSize;
 }
 
 CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBase> owner_, SP<CWLSurfaceResource> surface_) :

@@ -324,10 +324,14 @@ void CXDGToplevelResource::close() {
 }
 
 Vector2D CXDGToplevelResource::layoutMinSize() {
+    if (current.minSize.x <= 1 && current.minSize.y <= 1)
+        return {0, 0};
     return owner ? current.minSize + owner->current.geometry.pos() : current.minSize;
 }
 
 Vector2D CXDGToplevelResource::layoutMaxSize() {
+    if (current.maxSize.x <= 1 && current.maxSize.y <= 1)
+        return {0, 0};
     return owner ? current.maxSize + owner->current.geometry.pos() : current.maxSize;
 }
 

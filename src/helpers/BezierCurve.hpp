@@ -16,13 +16,13 @@ class CBezierCurve {
     // this EXCLUDES the 0,0 and 1,1 points,
     void  setup(std::vector<Vector2D>* points);
 
-    float getYForT(float t);
-    float getXForT(float t);
-    float getYForPoint(float x);
+    float getYForT(float const& t);
+    float getXForT(float const& t);
+    float getYForPoint(float const& x);
 
   private:
     // this INCLUDES the 0,0 and 1,1 points.
-    std::deque<Vector2D>              m_dPoints;
+    std::vector<Vector2D>             m_dPoints;
 
     std::array<Vector2D, BAKEDPOINTS> m_aPointsBaked;
 };

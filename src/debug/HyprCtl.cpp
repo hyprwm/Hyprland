@@ -1529,9 +1529,8 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         icon = std::stoi(ICON);
     } catch (std::exception& e) { return "invalid arg 1"; }
 
-    if (icon > ICON_NONE || icon < 0) {
+    if (icon > ICON_NONE || icon < 0)
         icon = ICON_NONE;
-    }
 
     const auto TIME = vars[2];
     int        time = 0;
@@ -1539,7 +1538,10 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    CColor color = configStringToInt(vars[3]).value_or(0);
+    const auto COLOR_RESULT = configStringToInt(vars[3]);
+    if (!COLOR_RESULT)
+        return "invalid arg 3";
+    CColor color = *COLOR_RESULT;
 
     size_t msgidx   = 4;
     float  fontsize = 13.f;

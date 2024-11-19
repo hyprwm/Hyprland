@@ -2920,6 +2920,9 @@ SDispatchResult CKeybindManager::event(std::string args) {
     return {};
 }
 
+#include <utility>
+#include <type_traits>
+
 SDispatchResult CKeybindManager::setProp(std::string args) {
     CVarList vars(args, 3, ' ');
 
@@ -2972,14 +2975,17 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
                         colorData.m_fAngle = std::stoi(TOKEN.substr(0, TOKEN.size() - 3)) * (PI / 180.0);
-                    else if (const auto V = configStringToInt(TOKEN); V)
-                        colorData.m_vColors.push_back(*V);
+                    else
+                        configStringToInt(TOKEN).and_then([&colorData](const auto& e) {
+                            colorData.m_vColors.push_back(e);
+                            return std::result_of<decltype (&configStringToInt)(std::string)>::type(1);
+                        });
                 }
-            } else if (VAL != "-1") {
-                const auto V = configStringToInt(VAL);
-                if (V)
-                    colorData.m_vColors.push_back(*V);
-            }
+            } else if (VAL != "-1")
+                configStringToInt(VAL).and_then([&colorData](const auto& e) {
+                    colorData.m_vColors.push_back(e);
+                    return std::result_of<decltype (&configStringToInt)(std::string)>::type(1);
+                });
 
             if (PROP == "activebordercolor")
                 PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
@@ -2998,9 +3004,8 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
             else if (const auto V = configStringToInt(VAL); V)
                 *(search->second(PWINDOW)) = CWindowOverridableVar((int)*V, PRIORITY_SET_PROP);
-        } else {
+        } else
             return {.success = false, .error = "Prop not found"};
-        }
     } catch (std::exception& e) { return {.success = false, .error = std::format("Error parsing prop value: {}", std::string(e.what()))}; }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();

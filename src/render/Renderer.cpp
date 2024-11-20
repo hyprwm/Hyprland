@@ -174,7 +174,6 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     }
 
     const auto RDATA                       = (SRenderData*)data;
-    const bool BLUR                        = RDATA->blur && !TEXTURE->m_bOpaque;
     const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 
@@ -183,6 +182,7 @@ static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* da
     auto        PSURFACE = CWLSurface::fromResource(surface);
 
     const float ALPHA = RDATA->alpha * RDATA->fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const bool  BLUR  = RDATA->blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F);
 
     CBox        windowBox;
     if (RDATA->surface && surface == RDATA->surface) {

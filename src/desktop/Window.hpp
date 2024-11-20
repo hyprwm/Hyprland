@@ -335,9 +335,6 @@ class CWindow {
     // For preserving pinned state when fullscreening a pinned window
     bool m_bPinFullscreened = false;
 
-    // For preserving pinned state when maximizing a pinned window
-    bool m_bPinMaximized = false;
-
     // urgency hint
     bool m_bIsUrgent = false;
 

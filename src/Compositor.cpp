@@ -2353,14 +2353,14 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
     const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_sFullscreenState.internal);
     const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
 
-    if (*PALLOWPINFULLSCREEN && !PWINDOW->m_bPinFullscreened && PWINDOW->m_bPinned && !PWINDOW->isFullscreen()) {
+    if (*PALLOWPINFULLSCREEN && !PWINDOW->m_bPinFullscreened && PWINDOW->m_bPinned && PWINDOW->m_sFullscreenState.internal != FSMODE_FULLSCREEN) {
         PWINDOW->m_bPinned          = false;
         PWINDOW->m_bPinFullscreened = true;
     }
 
     const bool CHANGEINTERNAL = !(PWINDOW->m_bPinned || CURRENT_EFFECTIVE_MODE == EFFECTIVE_MODE || (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen()));
 
-    if (*PALLOWPINFULLSCREEN && PWINDOW->m_bPinFullscreened && !PWINDOW->m_bPinned && PWINDOW->isFullscreen()) {
+    if (*PALLOWPINFULLSCREEN && PWINDOW->m_bPinFullscreened && !PWINDOW->m_bPinned && PWINDOW->m_sFullscreenState.internal == FSMODE_FULLSCREEN) {
         PWINDOW->m_bPinned          = true;
         PWINDOW->m_bPinFullscreened = false;
     }

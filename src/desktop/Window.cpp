@@ -707,7 +707,7 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
             *(search->second(m_pSelf.lock())) = CWindowOverridableVar(true, priority);
         } else {
             try {
-                *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)configStringToInt(VARS[1]), priority);
+                *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)configStringToInt(VARS[1]).value_or(0), priority);
             } catch (...) {}
         }
     } else if (auto search = g_pConfigManager->miWindowProperties.find(VARS[0]); search != g_pConfigManager->miWindowProperties.end()) {

@@ -332,7 +332,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 const auto SHOULDBESPECIAL = configStringToInt(prop);
 
-                if ((bool)SHOULDBESPECIAL != m_bIsSpecialWorkspace)
+                if (SHOULDBESPECIAL && (bool)*SHOULDBESPECIAL != m_bIsSpecialWorkspace)
                     return false;
                 continue;
             }
@@ -367,7 +367,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 const auto WANTSNAMED = configStringToInt(prop);
 
-                if (WANTSNAMED != (m_iID <= -1337))
+                if (WANTSNAMED && *WANTSNAMED != (m_iID <= -1337))
                     return false;
                 continue;
             }

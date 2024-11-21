@@ -1510,10 +1510,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
-    auto inFD = pMonitor->output->state->state().explicitInFence;
+    CFileDescriptor inFD(pMonitor->output->state->state().explicitInFence);
     pMonitor->output->state->resetExplicitFences();
-    if (inFD >= 0)
-        pMonitor->output->state->setExplicitInFence(inFD);
+    if (inFD.isValid())
+        pMonitor->output->state->setExplicitInFence(inFD.get());
     auto explicitOptions = getExplicitSyncSettings();
     if (explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled)
         pMonitor->output->state->enableExplicitOutFenceForNextCommit();
@@ -1525,7 +1525,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     bool ok = pMonitor->state.commit();
     if (!ok) {
-        if (inFD >= 0) {
+        if (inFD.isValid()) {
             Debug::log(TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->output->state->resetExplicitFences();
             ok = pMonitor->state.commit();
@@ -1543,12 +1543,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (!explicitOptions.explicitEnabled)
         return ok;
 
-    if (inFD >= 0)
-        close(inFD);
-
-    if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
-        close(pMonitor->output->state->state().explicitOutFence);
+    CFileDescriptor outFD(pMonitor->output->state->state().explicitOutFence);
+    if (outFD.isValid()) {
+        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", outFD.get());
     } else
         Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
 

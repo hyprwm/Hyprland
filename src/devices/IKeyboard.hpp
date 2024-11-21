@@ -6,6 +6,9 @@
 
 #include <optional>
 #include <xkbcommon/xkbcommon.h>
+#include <hyprutils/os/FileDescriptor.hpp>
+
+using namespace Hyprutils::OS;
 
 AQUAMARINE_FORWARD(IKeyboard);
 
@@ -96,7 +99,7 @@ class IKeyboard : public IHID {
 
     std::string                    xkbFilePath     = "";
     std::string                    xkbKeymapString = "";
-    int                            xkbKeymapFD     = -1;
+    CFileDescriptor                xkbKeymapFD;
 
     SStringRuleNames               currentRules;
     int                            repeatRate        = 0;

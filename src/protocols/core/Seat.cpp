@@ -322,7 +322,7 @@ void CWLKeyboardResource::sendKeymap(SP<IKeyboard> keyboard) {
     uint32_t         size;
     if (keyboard) {
         keymap = keyboard->xkbKeymapString;
-        fd     = keyboard->xkbKeymapFD;
+        fd     = keyboard->xkbKeymapFD.get();
         size   = keyboard->xkbKeymapString.length() + 1;
     } else {
         fd = open("/dev/null", O_RDONLY | O_CLOEXEC);

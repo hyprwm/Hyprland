@@ -85,10 +85,9 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
     auto w      = makeShared<SWaiter>();
     w->fn       = waiter;
     w->timeline = self;
+    w->fd       = CFileDescriptor(eventfd(0, EFD_CLOEXEC));
 
-    int eventFD = eventfd(0, EFD_CLOEXEC);
-
-    if (eventFD < 0) {
+    if (!w->fd.isValid()) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
         return false;
     }
@@ -97,19 +96,17 @@ bool CSyncTimeline::addWaiter(const std::function<void()>& waiter, uint64_t poin
         .handle = handle,
         .flags  = flags,
         .point  = point,
-        .fd     = eventFD,
+        .fd     = w->fd.get(),
     };
 
     if (drmIoctl(drmFD, DRM_IOCTL_SYNCOBJ_EVENTFD, &syncobjEventFD) != 0) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: drmIoctl failed");
-        close(eventFD);
         return false;
     }
 
-    w->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, eventFD, WL_EVENT_READABLE, ::handleWaiterFD, w.get());
+    w->source = wl_event_loop_add_fd(g_pEventLoopManager->m_sWayland.loop, w->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, w.get());
     if (!w->source) {
         Debug::log(ERR, "CSyncTimeline::addWaiter: wl_event_loop_add_fd failed");
-        close(eventFD);
         return false;
     }
 

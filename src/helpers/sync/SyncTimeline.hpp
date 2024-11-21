@@ -22,6 +22,7 @@ class CSyncTimeline {
     struct SWaiter {
         std::function<void()> fn;
         wl_event_source*      source = nullptr;
+        CFileDescriptor       fd;
         WP<CSyncTimeline>     timeline;
     };
 

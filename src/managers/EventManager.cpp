@@ -11,8 +11,8 @@
 #include <cstring>
 
 CEventManager::CEventManager() {
-    m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
-    if (m_iSocketFD < 0) {
+    m_iSocketFD = CFileDescriptor(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0));
+    if (!m_iSocketFD.isValid()) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket 2. (1) IPC will not work.");
         return;
     }
@@ -26,18 +26,18 @@ CEventManager::CEventManager() {
 
     strncpy(SERVERADDRESS.sun_path, PATH.c_str(), sizeof(SERVERADDRESS.sun_path) - 1);
 
-    if (bind(m_iSocketFD, (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
+    if (bind(m_iSocketFD.get(), (sockaddr*)&SERVERADDRESS, SUN_LEN(&SERVERADDRESS)) < 0) {
         Debug::log(ERR, "Couldn't bind the Hyprland Socket 2. (3) IPC will not work.");
         return;
     }
 
     // 10 max queued.
-    if (listen(m_iSocketFD, 10) < 0) {
+    if (listen(m_iSocketFD.get(), 10) < 0) {
         Debug::log(ERR, "Couldn't listen on the Hyprland Socket 2. (4) IPC will not work.");
         return;
     }
 
-    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD, WL_EVENT_READABLE, onClientEvent, nullptr);
+    m_pEventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, m_iSocketFD.get(), WL_EVENT_READABLE, onClientEvent, nullptr);
 }
 
 CEventManager::~CEventManager() {
@@ -48,9 +48,6 @@ CEventManager::~CEventManager() {
 
     if (m_pEventSource != nullptr)
         wl_event_source_remove(m_pEventSource);
-
-    if (m_iSocketFD >= 0)
-        close(m_iSocketFD);
 }
 
 int CEventManager::onServerEvent(int fd, uint32_t mask, void* data) {
@@ -68,21 +65,21 @@ int CEventManager::onServerEvent(int fd, uint32_t mask) {
         wl_event_source_remove(m_pEventSource);
         m_pEventSource = nullptr;
         close(fd);
-        m_iSocketFD = -1;
+        m_iSocketFD.reset();
 
         return 0;
     }
 
     sockaddr_in clientAddress;
     socklen_t   clientSize         = sizeof(clientAddress);
-    const auto  ACCEPTEDCONNECTION = accept4(m_iSocketFD, (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK);
+    const auto  ACCEPTEDCONNECTION = accept4(m_iSocketFD.get(), (sockaddr*)&clientAddress, &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK);
     if (ACCEPTEDCONNECTION < 0) {
         if (errno != EAGAIN) {
             Debug::log(ERR, "Socket2 failed receiving connection, errno: {}", errno);
             wl_event_source_remove(m_pEventSource);
             m_pEventSource = nullptr;
             close(fd);
-            m_iSocketFD = -1;
+            m_iSocketFD.reset();
         }
 
         return 0;

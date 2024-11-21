@@ -36,7 +36,7 @@ class CEventManager {
     std::vector<SClient>::iterator removeClientByFD(int fd);
 
   private:
-    int                  m_iSocketFD    = -1;
+    CFileDescriptor      m_iSocketFD;
     wl_event_source*     m_pEventSource = nullptr;
 
     std::vector<SClient> m_vClients;

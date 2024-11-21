@@ -1112,17 +1112,17 @@ void CXWM::getTransferData(SXSelection& sel) {
 
     if (sel.transfer->propertyReply->type == HYPRATOMS["INCR"]) {
         Debug::log(ERR, "[xwm] Transfer is INCR, which we don't support :(");
-        close(sel.transfer->wlFD);
+        sel.transfer->wlFD.reset();
         sel.transfer.reset();
         return;
     } else {
         char*   property  = (char*)xcb_get_property_value(sel.transfer->propertyReply);
         int     remainder = xcb_get_property_value_length(sel.transfer->propertyReply) - sel.transfer->propertyStart;
 
-        ssize_t len = write(sel.transfer->wlFD, property + sel.transfer->propertyStart, remainder);
+        ssize_t len = write(sel.transfer->wlFD.get(), property + sel.transfer->propertyStart, remainder);
         if (len == -1) {
             Debug::log(ERR, "[xwm] write died in transfer get");
-            close(sel.transfer->wlFD);
+            sel.transfer->wlFD.reset();
             sel.transfer.reset();
             return;
         }
@@ -1133,7 +1133,7 @@ void CXWM::getTransferData(SXSelection& sel) {
             return;
         } else {
             Debug::log(LOG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
-            close(sel.transfer->wlFD);
+            sel.transfer->wlFD.reset();
             sel.transfer.reset();
         }
     }
@@ -1249,20 +1249,18 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
     fcntl(p[1], F_SETFD, FD_CLOEXEC);
     fcntl(p[1], F_SETFL, O_NONBLOCK);
 
-    transfer->wlFD = p[0];
+    transfer->wlFD = CFileDescriptor(p[0]);
 
     Debug::log(LOG, "[xwm] sending wayland selection to xwayland with mime {}, target {}, fds {} {}", mime, e->target, p[0], p[1]);
 
-    selection->send(mime, p[1]);
+    selection->send(mime, CFileDescriptor(p[1]));
 
-    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD, WL_EVENT_READABLE, ::readDataSource, this);
+    transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, transfer->wlFD.get(), WL_EVENT_READABLE, ::readDataSource, this);
 
     return true;
 }
 
 SXTransfer::~SXTransfer() {
-    if (wlFD)
-        close(wlFD);
     if (eventSource)
         wl_event_source_remove(eventSource);
     if (incomingWindow)

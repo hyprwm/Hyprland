@@ -25,7 +25,7 @@ struct SXTransfer {
     bool                          flushOnDelete = false;
     bool                          propertySet   = false;
 
-    int                           wlFD        = -1;
+    CFileDescriptor               wlFD;
     wl_event_source*              eventSource = nullptr;
 
     std::vector<uint8_t>          data;

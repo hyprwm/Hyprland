@@ -50,7 +50,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
             source->accepted(mime ? mime : "");
         }
 
-        source->send(mime ? mime : "", fd);
+        source->send(mime ? mime : "", CFileDescriptor(fd));
 
         recvd = true;
 
@@ -158,15 +158,13 @@ std::vector<std::string> CWLDataSourceResource::mimes() {
     return mimeTypes;
 }
 
-void CWLDataSourceResource::send(const std::string& mime, uint32_t fd) {
+void CWLDataSourceResource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CWLDataSourceResource::sendAskSend with non-existent mime");
-        close(fd);
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd);
-    close(fd);
+    resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CWLDataSourceResource::cancelled() {

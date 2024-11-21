@@ -15,10 +15,10 @@ class IDataSource {
     IDataSource() {}
     virtual ~IDataSource() {}
 
-    virtual std::vector<std::string> mimes()                                    = 0;
-    virtual void                     send(const std::string& mime, uint32_t fd) = 0;
-    virtual void                     accepted(const std::string& mime)          = 0;
-    virtual void                     cancelled()                                = 0;
+    virtual std::vector<std::string> mimes()                                           = 0;
+    virtual void                     send(const std::string& mime, CFileDescriptor fd) = 0;
+    virtual void                     accepted(const std::string& mime)                 = 0;
+    virtual void                     cancelled()                                       = 0;
     virtual bool                     hasDnd();
     virtual bool                     dndDone();
     virtual void                     sendDndFinished();

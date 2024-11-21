@@ -9,7 +9,7 @@ class CXDataSource : public IDataSource {
     CXDataSource(SXSelection&);
 
     virtual std::vector<std::string> mimes();
-    virtual void                     send(const std::string& mime, uint32_t fd);
+    virtual void                     send(const std::string& mime, CFileDescriptor fd);
     virtual void                     accepted(const std::string& mime);
     virtual void                     cancelled();
     virtual void                     error(uint32_t code, const std::string& msg);

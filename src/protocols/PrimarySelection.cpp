@@ -26,7 +26,7 @@ CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> r
 
         LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
 
-        source->send(mime, fd);
+        source->send(mime, CFileDescriptor(fd));
     });
 }
 
@@ -78,15 +78,13 @@ std::vector<std::string> CPrimarySelectionSource::mimes() {
     return mimeTypes;
 }
 
-void CPrimarySelectionSource::send(const std::string& mime, uint32_t fd) {
+void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
-        close(fd);
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd);
-    close(fd);
+    resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CPrimarySelectionSource::accepted(const std::string& mime) {

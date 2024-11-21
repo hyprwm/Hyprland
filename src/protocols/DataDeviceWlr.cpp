@@ -25,7 +25,7 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
 
         LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)source.get());
 
-        source->send(mime, fd);
+        source->send(mime, CFileDescriptor(fd));
     });
 }
 
@@ -77,15 +77,13 @@ std::vector<std::string> CWLRDataSource::mimes() {
     return mimeTypes;
 }
 
-void CWLRDataSource::send(const std::string& mime, uint32_t fd) {
+void CWLRDataSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::find(mimeTypes.begin(), mimeTypes.end(), mime) == mimeTypes.end()) {
         LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAskSend with non-existent mime");
-        close(fd);
         return;
     }
 
-    resource->sendSend(mime.c_str(), fd);
-    close(fd);
+    resource->sendSend(mime.c_str(), fd.get());
 }
 
 void CWLRDataSource::accepted(const std::string& mime) {

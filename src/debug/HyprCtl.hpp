@@ -4,6 +4,9 @@
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
 #include <functional>
+#include <hyprutils/os/FileDescriptor.hpp>
+
+using namespace Hyprutils::OS;
 
 // exposed for main.cpp
 std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request);
@@ -19,7 +22,7 @@ class CHyprCtl {
     void                unregisterCommand(const SP<SHyprCtlCommand>& cmd);
     std::string         getReply(std::string);
 
-    int                 m_iSocketFD = -1;
+    CFileDescriptor     m_iSocketFD;
 
     struct {
         bool all           = false;

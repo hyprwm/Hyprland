@@ -45,7 +45,7 @@ class CEventLoopManager {
 
     struct {
         std::vector<SP<CEventLoopTimer>> timers;
-        int                              timerfd = -1;
+        CFileDescriptor                  timerfd;
     } m_sTimers;
 
     SIdleData                            m_sIdle;

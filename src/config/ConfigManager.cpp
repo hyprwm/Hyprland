@@ -2102,13 +2102,13 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     PANIM->second.pValues    = &PANIM->second;
 
     // This helper casts strings like "1", "true", "off", "yes"... to int.
-    int64_t enabledInt = configStringToInt(ARGS[1]) == 1;
+    int64_t enabledInt = configStringToInt(ARGS[1]).value_or(0) == 1;
 
     // Checking that the int is 1 or 0 because the helper can return integers out of range.
     if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
 
-    PANIM->second.internalEnabled = configStringToInt(ARGS[1]) == 1;
+    PANIM->second.internalEnabled = configStringToInt(ARGS[1]).value_or(0) == 1;
 
     if (PANIM->second.internalEnabled) {
         // speed

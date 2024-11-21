@@ -77,30 +77,24 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
 
     tableSize = formatsVec.size() * sizeof(SDMABUFFormatTableEntry);
 
-    int fds[2] = {0};
-    allocateSHMFilePair(tableSize, &fds[0], &fds[1]);
+    CFileDescriptor fds[2] = {};
+    allocateSHMFilePair(tableSize, fds[0], fds[1]);
 
-    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0], 0);
+    auto arr = (SDMABUFFormatTableEntry*)mmap(nullptr, tableSize, PROT_READ | PROT_WRITE, MAP_SHARED, fds[0].get(), 0);
 
     if (arr == MAP_FAILED) {
         LOGM(ERR, "mmap failed");
-        close(fds[0]);
-        close(fds[1]);
         return;
     }
-
-    close(fds[0]);
 
     std::copy(formatsVec.begin(), formatsVec.end(), arr);
 
     munmap(arr, tableSize);
 
-    tableFD = fds[1];
+    tableFD = std::move(fds[1]);
 }
 
-CDMABUFFormatTable::~CDMABUFFormatTable() {
-    close(tableFD);
-}
+CDMABUFFormatTable::~CDMABUFFormatTable() {}
 
 CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
     buffer = makeShared<CDMABuffer>(id, client, attrs);
@@ -307,7 +301,7 @@ CLinuxDMABUFFeedbackResource::CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFee
     resource->setDestroy([this](CZwpLinuxDmabufFeedbackV1* r) { PROTO::linuxDma->destroyResource(this); });
 
     auto& formatTable = PROTO::linuxDma->formatTable;
-    resource->sendFormatTable(formatTable->tableFD, formatTable->tableSize);
+    resource->sendFormatTable(formatTable->tableFD.get(), formatTable->tableSize);
     sendDefaultFeedback();
 }
 
@@ -504,7 +498,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     auto newFormatTable = std::make_unique<CDMABUFFormatTable>(formatTable->rendererTranche, formatTable->monitorTranches);
 
     for (auto const& feedback : m_vFeedbacks) {
-        feedback->resource->sendFormatTable(newFormatTable->tableFD, newFormatTable->tableSize);
+        feedback->resource->sendFormatTable(newFormatTable->tableFD.get(), newFormatTable->tableSize);
         if (feedback->lastFeedbackWasScanout) {
             PHLMONITOR mon;
             auto       HLSurface = CWLSurface::fromResource(feedback->surface);

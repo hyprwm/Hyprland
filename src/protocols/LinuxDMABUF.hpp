@@ -51,7 +51,7 @@ class CDMABUFFormatTable {
     CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
     ~CDMABUFFormatTable();
 
-    int                                                   tableFD   = -1;
+    CFileDescriptor                                       tableFD;
     size_t                                                tableSize = 0;
     SDMABUFTranche                                        rendererTranche;
     std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;

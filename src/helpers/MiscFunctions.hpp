@@ -7,8 +7,11 @@
 #include <vector>
 #include <format>
 #include <expected>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "../SharedDefs.hpp"
 #include "../macros.hpp"
+
+using namespace Hyprutils::OS;
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
@@ -39,8 +42,8 @@ double                              normalizeAngleRad(double ang);
 std::vector<SCallstackFrameInfo>    getBacktrace();
 void                                throwError(const std::string& err);
 bool                                envEnabled(const std::string& env);
-int                                 allocateSHMFile(size_t len);
-bool                                allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr);
+CFileDescriptor                     allocateSHMFile(size_t len);
+bool                                allocateSHMFilePair(size_t size, CFileDescriptor& rw_fd_ref, CFileDescriptor& ro_fd_ref);
 float                               stringToPercentage(const std::string& VALUE, const float REL);
 
 template <typename... Args>

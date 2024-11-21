@@ -853,50 +853,46 @@ bool envEnabled(const std::string& env) {
     return std::string(ENV) == "1";
 }
 
-std::pair<int, std::string> openExclusiveShm() {
+std::pair<CFileDescriptor, std::string> openExclusiveShm() {
     // Only absolute paths can be shared across different shm_open() calls
     std::string name = "/" + g_pTokenManager->getRandomUUID();
 
     for (size_t i = 0; i < 69; ++i) {
-        int fd = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
-        if (fd >= 0)
-            return {fd, name};
+        CFileDescriptor fd(shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600));
+        if (fd.isValid())
+            return {std::move(fd), name};
     }
 
-    return {-1, ""};
+    return {};
 }
 
-int allocateSHMFile(size_t len) {
+CFileDescriptor allocateSHMFile(size_t len) {
     auto [fd, name] = openExclusiveShm();
-    if (fd < 0)
-        return -1;
+    if (!fd.isValid())
+        return {};
 
     shm_unlink(name.c_str());
 
     int ret;
     do {
-        ret = ftruncate(fd, len);
+        ret = ftruncate(fd.get(), len);
     } while (ret < 0 && errno == EINTR);
 
-    if (ret < 0) {
-        close(fd);
-        return -1;
-    }
+    if (ret < 0)
+        return {};
 
-    return fd;
+    return std::move(fd);
 }
 
-bool allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr) {
+bool allocateSHMFilePair(size_t size, CFileDescriptor& rw_fd_ref, CFileDescriptor& ro_fd_ref) {
     auto [fd, name] = openExclusiveShm();
-    if (fd < 0) {
+    if (!fd.isValid())
         return false;
-    }
 
     // CLOEXEC is guaranteed to be set by shm_open
-    int ro_fd = shm_open(name.c_str(), O_RDONLY, 0);
-    if (ro_fd < 0) {
+    CFileDescriptor ro_fd = CFileDescriptor(shm_open(name.c_str(), O_RDONLY, 0));
+    if (!ro_fd.isValid()) {
         shm_unlink(name.c_str());
-        close(fd);
         return false;
     }
 
@@ -904,24 +900,18 @@ bool allocateSHMFilePair(size_t size, int* rw_fd_ptr, int* ro_fd_ptr) {
 
     // Make sure the file cannot be re-opened in read-write mode (e.g. via
     // "/proc/self/fd/" on Linux)
-    if (fchmod(fd, 0) != 0) {
-        close(fd);
-        close(ro_fd);
+    if (fchmod(fd.get(), 0) != 0)
         return false;
-    }
 
     int ret;
     do {
-        ret = ftruncate(fd, size);
+        ret = ftruncate(fd.get(), size);
     } while (ret < 0 && errno == EINTR);
-    if (ret < 0) {
-        close(fd);
-        close(ro_fd);
+    if (ret < 0)
         return false;
-    }
 
-    *rw_fd_ptr = fd;
-    *ro_fd_ptr = ro_fd;
+    rw_fd_ref = std::move(fd);
+    ro_fd_ref = std::move(ro_fd);
     return true;
 }
 

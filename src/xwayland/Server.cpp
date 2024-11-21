@@ -27,68 +27,36 @@
 #include "../managers/CursorManager.hpp"
 
 // Constants
-constexpr int SOCKET_DIR_PERMISSIONS = 0755;
-constexpr int SOCKET_BACKLOG         = 1;
-constexpr int MAX_SOCKET_RETRIES     = 32;
-constexpr int LOCK_FILE_MODE         = 0444;
+constexpr int          SOCKET_DIR_PERMISSIONS = 0755;
+constexpr int          SOCKET_BACKLOG         = 1;
+constexpr int          MAX_SOCKET_RETRIES     = 32;
+constexpr int          LOCK_FILE_MODE         = 0444;
 
-static bool   setCloseOnExec(int fd, bool cloexec) {
-    int flags = fcntl(fd, F_GETFD);
-    if (flags == -1) {
-        Debug::log(ERR, "fcntl failed");
-        return false;
-    }
-
-    if (cloexec)
-        flags = flags | FD_CLOEXEC;
-    else
-        flags = flags & ~FD_CLOEXEC;
-
-    if (fcntl(fd, F_SETFD, flags) == -1) {
-        Debug::log(ERR, "fcntl failed");
-        return false;
-    }
-
-    return true;
-}
-
-void cleanUpSocket(int fd, const char* path) {
-    close(fd);
-    if (path[0])
-        unlink(path);
-}
-
-inline void closeSocketSafely(int& fd) {
-    if (fd >= 0)
-        close(fd);
-}
-
-static int createSocket(struct sockaddr_un* addr, size_t path_size) {
-    socklen_t size = offsetof(struct sockaddr_un, sun_path) + path_size + 1;
-    int       fd   = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) {
+static CFileDescriptor createSocket(struct sockaddr_un* addr, size_t path_size) {
+    socklen_t       size = offsetof(struct sockaddr_un, sun_path) + path_size + 1;
+    CFileDescriptor fd   = CFileDescriptor(socket(AF_UNIX, SOCK_STREAM, 0));
+    if (!fd.isValid()) {
         Debug::log(ERR, "Failed to create socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
-        return -1;
+        return {};
     }
 
-    if (!setCloseOnExec(fd, true)) {
-        close(fd);
-        return -1;
+    if (!fd.setFlags(fd.getFlags() | FD_CLOEXEC)) {
+        return {};
     }
 
     if (addr->sun_path[0])
         unlink(addr->sun_path);
 
-    if (bind(fd, (struct sockaddr*)addr, size) < 0) {
+    if (bind(fd.get(), (struct sockaddr*)addr, size) < 0) {
         Debug::log(ERR, "Failed to bind socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
-        cleanUpSocket(fd, addr->sun_path);
-        return -1;
+        unlink(addr->sun_path);
+        return {};
     }
 
-    if (listen(fd, SOCKET_BACKLOG) < 0) {
+    if (listen(fd.get(), SOCKET_BACKLOG) < 0) {
         Debug::log(ERR, "Failed to listen to socket {}{}", addr->sun_path[0] ? addr->sun_path[0] : '@', addr->sun_path + 1);
-        cleanUpSocket(fd, addr->sun_path);
-        return -1;
+        unlink(addr->sun_path);
+        return {};
     }
 
     return fd;
@@ -142,7 +110,7 @@ static std::string getSocketPath(int display, bool isLinux) {
     return std::format("/tmp/.X11-unix/X{}_", display);
 }
 
-static bool openSockets(std::array<int, 2>& sockets, int display) {
+static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
     if (!ensureSocketDirExists())
         return false;
 
@@ -160,16 +128,15 @@ static bool openSockets(std::array<int, 2>& sockets, int display) {
 #endif
 
     sockets[0] = createSocket(&addr, path.length());
-    if (sockets[0] < 0)
+    if (!sockets[0].isValid())
         return false;
 
     path = getSocketPath(display, true);
     strncpy(addr.sun_path, path.c_str(), path.length() + 1);
 
     sockets[1] = createSocket(&addr, path.length());
-    if (sockets[1] < 0) {
-        close(sockets[0]);
-        sockets[0] = -1;
+    if (!sockets[1].isValid()) {
+        sockets[0].reset();
         return false;
     }
 
@@ -194,38 +161,35 @@ static bool safeRemove(const std::string& path) {
 
 bool CXWaylandServer::tryOpenSockets() {
     for (size_t i = 0; i <= MAX_SOCKET_RETRIES; ++i) {
-        std::string lockPath = std::format("/tmp/.X{}-lock", i);
+        std::string     lockPath = std::format("/tmp/.X{}-lock", i);
 
-        int         fd = open(lockPath.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, LOCK_FILE_MODE);
-        if (fd >= 0) {
+        CFileDescriptor fd = CFileDescriptor(open(lockPath.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, LOCK_FILE_MODE));
+        if (fd.isValid()) {
             // we managed to open the lock
             if (!openSockets(xFDs, i)) {
                 safeRemove(lockPath);
-                close(fd);
                 continue;
             }
 
             const std::string pidStr = std::to_string(getpid());
-            if (write(fd, pidStr.c_str(), pidStr.length()) != (long)pidStr.length()) {
+            if (write(fd.get(), pidStr.c_str(), pidStr.length()) != (long)pidStr.length()) {
                 safeRemove(lockPath);
-                close(fd);
                 continue;
             }
 
-            close(fd);
+            fd.reset();
             display     = i;
             displayName = std::format(":{}", display);
             break;
         }
 
-        fd = open(lockPath.c_str(), O_RDONLY | O_CLOEXEC);
+        fd = CFileDescriptor(open(lockPath.c_str(), O_RDONLY | O_CLOEXEC));
 
-        if (fd < 0)
+        if (!fd.isValid())
             continue;
 
         char pidstr[12] = {0};
-        read(fd, pidstr, sizeof(pidstr) - 1);
-        close(fd);
+        read(fd.get(), pidstr, sizeof(pidstr) - 1);
 
         int32_t pid = 0;
         try {
@@ -257,9 +221,6 @@ CXWaylandServer::~CXWaylandServer() {
     if (display < 0)
         return;
 
-    closeSocketSafely(xFDs[0]);
-    closeSocketSafely(xFDs[1]);
-
     std::string lockPath = std::format("/tmp/.X{}-lock", display);
     safeRemove(lockPath);
 
@@ -285,21 +246,11 @@ void CXWaylandServer::die() {
     if (pipeSource)
         wl_event_source_remove(pipeSource);
 
-    if (pipeFd >= 0)
-        close(pipeFd);
-
-    closeSocketSafely(waylandFDs[0]);
-    closeSocketSafely(waylandFDs[1]);
-    closeSocketSafely(xwmFDs[0]);
-    closeSocketSafely(xwmFDs[1]);
-
     // possible crash. Better to leak a bit.
     //if (xwaylandClient)
     //    wl_client_destroy(xwaylandClient);
 
     xwaylandClient = nullptr;
-    waylandFDs     = {-1, -1};
-    xwmFDs         = {-1, -1};
 }
 
 bool CXWaylandServer::create() {
@@ -315,15 +266,17 @@ bool CXWaylandServer::create() {
     return true;
 }
 
-void CXWaylandServer::runXWayland(int notifyFD) {
-    if (!setCloseOnExec(xFDs[0], false) || !setCloseOnExec(xFDs[1], false) || !setCloseOnExec(waylandFDs[1], false) || !setCloseOnExec(xwmFDs[1], false)) {
+void CXWaylandServer::runXWayland(CFileDescriptor notifyFD) {
+    if (!xFDs[0].setFlags(xFDs[0].getFlags() & ~FD_CLOEXEC) || !xFDs[1].setFlags(xFDs[1].getFlags() & ~FD_CLOEXEC) ||
+        !waylandFDs[1].setFlags(waylandFDs[1].getFlags() & ~FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() & ~FD_CLOEXEC)) {
         Debug::log(ERR, "Failed to unset cloexec on fds");
         _exit(EXIT_FAILURE);
     }
 
-    auto cmd = std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0], xFDs[1], notifyFD, xwmFDs[1]);
+    auto cmd =
+        std::format("Xwayland {} -rootless -core -listenfd {} -listenfd {} -displayfd {} -wm {}", displayName, xFDs[0].get(), xFDs[1].get(), notifyFD.get(), xwmFDs[1].get());
 
-    auto waylandSocket = std::format("{}", waylandFDs[1]);
+    auto waylandSocket = std::format("{}", waylandFDs[1].get());
     setenv("WAYLAND_SOCKET", waylandSocket.c_str(), true);
 
     Debug::log(LOG, "Starting XWayland with \"{}\", bon voyage!", cmd);
@@ -337,62 +290,63 @@ void CXWaylandServer::runXWayland(int notifyFD) {
 bool CXWaylandServer::start() {
     idleSource = nullptr;
 
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, waylandFDs.data()) != 0) {
+    int tmp[2] = {-1, -1};
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, tmp) != 0) {
         Debug::log(ERR, "socketpair failed (1)");
         die();
         return false;
     }
+    waylandFDs = {CFileDescriptor(tmp[0]), CFileDescriptor(tmp[1])};
 
-    if (!setCloseOnExec(waylandFDs[0], true) || !setCloseOnExec(waylandFDs[1], true)) {
+    if (!waylandFDs[0].setFlags(waylandFDs[0].getFlags() | FD_CLOEXEC) || !waylandFDs[1].setFlags(waylandFDs[1].getFlags() | FD_CLOEXEC)) {
         Debug::log(ERR, "set_cloexec failed (1)");
         die();
         return false;
     }
 
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, xwmFDs.data()) != 0) {
+    std::fill(std::begin(tmp), std::end(tmp), -1);
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, tmp) != 0) {
         Debug::log(ERR, "socketpair failed (2)");
         die();
         return false;
     }
 
-    if (!setCloseOnExec(xwmFDs[0], true) || !setCloseOnExec(xwmFDs[1], true)) {
-        Debug::log(ERR, "set_cloexec failed (2)");
+    xwmFDs = {CFileDescriptor(tmp[0]), CFileDescriptor(tmp[1])};
+
+    if (!xwmFDs[0].setFlags(xwmFDs[0].getFlags() | FD_CLOEXEC) || !xwmFDs[1].setFlags(xwmFDs[1].getFlags() | FD_CLOEXEC)) {
+        Debug::log(ERR, "set_cloexec failed (1)");
         die();
         return false;
     }
 
-    xwaylandClient = wl_client_create(g_pCompositor->m_sWLDisplay, waylandFDs[0]);
+    xwaylandClient = wl_client_create(g_pCompositor->m_sWLDisplay, waylandFDs[0].get());
     if (!xwaylandClient) {
         Debug::log(ERR, "wl_client_create failed");
         die();
         return false;
     }
 
-    waylandFDs[0] = -1;
-
-    int notify[2] = {-1, -1};
-    if (pipe(notify) < 0) {
+    std::fill(std::begin(tmp), std::end(tmp), -1);
+    if (pipe(tmp) < 0) {
         Debug::log(ERR, "pipe failed");
         die();
         return false;
     }
 
-    if (!setCloseOnExec(notify[0], true)) {
+    CFileDescriptor notify[2] = {CFileDescriptor(tmp[0]), CFileDescriptor(tmp[1])};
+
+    if (!notify[0].setFlags(notify[0].getFlags() | FD_CLOEXEC)) {
         Debug::log(ERR, "set_cloexec failed (3)");
-        close(notify[0]);
-        close(notify[1]);
         die();
         return false;
     }
 
-    pipeSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, notify[0], WL_EVENT_READABLE, ::xwaylandReady, nullptr);
-    pipeFd     = notify[0];
+    pipeSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, notify[0].get(), WL_EVENT_READABLE, ::xwaylandReady, nullptr);
+    pipeFd     = std::move(notify[0]);
 
     serverPID = fork();
     if (serverPID < 0) {
         Debug::log(ERR, "fork failed");
-        close(notify[0]);
-        close(notify[1]);
         die();
         return false;
     } else if (serverPID == 0) {
@@ -401,16 +355,10 @@ bool CXWaylandServer::start() {
             Debug::log(ERR, "second fork failed");
             _exit(1);
         } else if (pid == 0)
-            runXWayland(notify[1]);
+            runXWayland(std::move(notify[1]));
 
         _exit(0);
     }
-
-    close(notify[1]);
-    close(waylandFDs[1]);
-    closeSocketSafely(xwmFDs[1]);
-    waylandFDs[1] = -1;
-    xwmFDs[1]     = -1;
 
     return true;
 }

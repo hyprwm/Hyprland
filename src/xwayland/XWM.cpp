@@ -841,7 +841,7 @@ void CXWM::getRenderFormat() {
     free(reply);
 }
 
-CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
+CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0].get()) {
 
     if (connection.hasError()) {
         Debug::log(ERR, "[xwm] Couldn't start, error {}", connection.hasError());
@@ -857,7 +857,7 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
     xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen                                = screen_iterator.data;
 
-    eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, g_pXWayland->pServer->xwmFDs[0], WL_EVENT_READABLE, ::onX11Event, nullptr);
+    eventSource = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, g_pXWayland->pServer->xwmFDs[0].get(), WL_EVENT_READABLE, ::onX11Event, nullptr);
     wl_event_source_check(eventSource);
 
     gatherResources();

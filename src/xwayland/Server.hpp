@@ -31,19 +31,19 @@ class CXWaylandServer {
 
   private:
     bool                            tryOpenSockets();
-    void                            runXWayland(int notifyFD);
+    void                            runXWayland(CFileDescriptor notifyFD);
 
     pid_t                           serverPID = 0;
 
     std::string                     displayName;
     int                             display       = -1;
-    std::array<int, 2>              xFDs          = {-1, -1};
+    std::array<CFileDescriptor, 2>  xFDs          = {};
     std::array<wl_event_source*, 2> xFDReadEvents = {nullptr, nullptr};
     wl_event_source*                idleSource    = nullptr;
     wl_event_source*                pipeSource    = nullptr;
-    int                             pipeFd        = -1;
-    std::array<int, 2>              xwmFDs        = {-1, -1};
-    std::array<int, 2>              waylandFDs    = {-1, -1};
+    CFileDescriptor                 pipeFd;
+    std::array<CFileDescriptor, 2>  xwmFDs     = {};
+    std::array<CFileDescriptor, 2>  waylandFDs = {};
 
     friend class CXWM;
 };

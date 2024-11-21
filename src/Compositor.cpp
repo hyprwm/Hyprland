@@ -225,7 +225,7 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 }
 
 //
-void CCompositor::initServer(std::string socketName, int socketFd) {
+void CCompositor::initServer(std::string socketName, CFileDescriptor& socketFd) {
 
     m_sWLDisplay = wl_display_create();
 
@@ -290,9 +290,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_iDRMFD = m_pAqBackend->drmFD();
     Debug::log(LOG, "Running on DRMFD: {}", m_iDRMFD);
 
-    if (!socketName.empty() && socketFd != -1) {
-        fcntl(socketFd, F_SETFD, FD_CLOEXEC);
-        const auto RETVAL = wl_display_add_socket_fd(m_sWLDisplay, socketFd);
+    if (!socketName.empty() && socketFd.isValid()) {
+        socketFd.setFlags(FD_CLOEXEC);
+        const auto RETVAL = wl_display_add_socket_fd(m_sWLDisplay, socketFd.get());
         if (RETVAL >= 0) {
             m_szWLDisplaySocket = socketName;
             Debug::log(LOG, "wl_display_add_socket_fd for {} succeeded with {}", socketName, RETVAL);

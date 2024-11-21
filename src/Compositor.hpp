@@ -69,7 +69,7 @@ class CCompositor {
 
     std::unordered_map<std::string, MONITORID> m_mMonitorIDMap;
 
-    void                                       initServer(std::string socketName, int socketFd);
+    void                                       initServer(std::string socketName, CFileDescriptor& socketFd);
     void                                       startCompositor();
     void                                       stopCompositor();
     void                                       cleanup();

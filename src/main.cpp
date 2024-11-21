@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     // parse some args
     std::string              configPath;
     std::string              socketName;
-    int                      socketFd   = -1;
+    CFileDescriptor          socketFd;
     bool                     ignoreSudo = false;
 
     std::vector<std::string> args{argv + 1, argv + argc};
@@ -75,10 +75,10 @@ int main(int argc, char** argv) {
             }
 
             try {
-                socketFd = std::stoi(std::next(it)->c_str());
+                socketFd = CFileDescriptor(std::stoi(std::next(it)->c_str()));
 
                 // check if socketFd is a valid file descriptor
-                if (fcntl(socketFd, F_GETFD) == -1)
+                if (!socketFd.isValid())
                     throw std::exception();
             } catch (...) {
                 std::println(stderr, "[ ERROR ] Invalid Wayland FD!");
@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
         std::println("Superuser privileges check is omitted. I hope you know what you're doing.");
     }
 
-    if (socketName.empty() ^ (socketFd == -1)) {
+    if (socketName.empty() ^ (!socketFd.isValid())) {
         std::println(stderr,
                      "[ ERROR ] Hyprland was launched with only one of --socket and --wayland-fd.\n"
                      "          Hint: Pass both --socket and --wayland-fd to perform Wayland socket handover.");

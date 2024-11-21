@@ -296,11 +296,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() {
         Debug::log(WARN, "EGL: EXT_platform_device or EGL_EXT_device_query not supported, using gbm");
         if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
             success  = true;
-            m_iGBMFD = openRenderNode(m_iDRMFD);
-            if (m_iGBMFD < 0)
+            m_iGBMFD = CFileDescriptor(openRenderNode(m_iDRMFD));
+            if (!m_iGBMFD.isValid())
                 RASSERT(false, "Couldn't open a gbm fd");
 
-            m_pGbmDevice = gbm_create_device(m_iGBMFD);
+            m_pGbmDevice = gbm_create_device(m_iGBMFD.get());
             if (!m_pGbmDevice)
                 RASSERT(false, "Couldn't open a gbm device");
 
@@ -366,9 +366,6 @@ CHyprOpenGLImpl::~CHyprOpenGLImpl() {
 
     if (m_pGbmDevice)
         gbm_device_destroy(m_pGbmDevice);
-
-    if (m_iGBMFD >= 0)
-        close(m_iGBMFD);
 }
 
 std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
@@ -3011,11 +3008,11 @@ std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {
     return drmFormats;
 }
 
-SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
+SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(CFileDescriptor fenceFD) {
     std::vector<EGLint> attribs;
     int                 dupFd = -1;
-    if (fenceFD > 0) {
-        dupFd = fcntl(fenceFD, F_DUPFD_CLOEXEC, 0);
+    if (fenceFD.isValid()) {
+        dupFd = fcntl(fenceFD.get(), F_DUPFD_CLOEXEC, 0);
         if (dupFd < 0) {
             Debug::log(ERR, "createEGLSync: dup failed");
             return nullptr;
@@ -3037,27 +3034,26 @@ SP<CEGLSync> CHyprOpenGLImpl::createEGLSync(int fenceFD) {
     // we need to flush otherwise we might not get a valid fd
     glFlush();
 
-    int fd = g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+    CFileDescriptor fd(g_pHyprOpenGL->m_sProc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_pEglDisplay, sync));
+    if (fd.get() == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
         Debug::log(ERR, "eglDupNativeFenceFDANDROID failed");
         return nullptr;
     }
 
     auto eglsync   = SP<CEGLSync>(new CEGLSync);
     eglsync->sync  = sync;
-    eglsync->m_iFd = fd;
+    eglsync->m_iFd = std::move(fd);
     return eglsync;
 }
 
 bool CHyprOpenGLImpl::waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point) {
-    int fd = timeline->exportAsSyncFileFD(point);
-    if (fd < 0) {
+    CFileDescriptor fd(timeline->exportAsSyncFileFD(point));
+    if (!fd.isValid()) {
         Debug::log(ERR, "waitForTimelinePoint: failed to get a fd from explicit timeline");
         return false;
     }
 
-    auto sync = g_pHyprOpenGL->createEGLSync(fd);
-    close(fd);
+    auto sync = g_pHyprOpenGL->createEGLSync(std::move(fd));
     if (!sync) {
         Debug::log(ERR, "waitForTimelinePoint: failed to get an eglsync from explicit timeline");
         return false;
@@ -3138,13 +3134,10 @@ CEGLSync::~CEGLSync() {
 
     if (g_pHyprOpenGL->m_sProc.eglDestroySyncKHR(g_pHyprOpenGL->m_pEglDisplay, sync) != EGL_TRUE)
         Debug::log(ERR, "eglDestroySyncKHR failed");
-
-    if (m_iFd >= 0)
-        close(m_iFd);
 }
 
 int CEGLSync::fd() {
-    return m_iFd;
+    return m_iFd.get();
 }
 
 bool CEGLSync::wait() {

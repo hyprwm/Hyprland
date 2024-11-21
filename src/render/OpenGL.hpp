@@ -137,7 +137,7 @@ class CEGLSync {
   private:
     CEGLSync() = default;
 
-    int m_iFd = -1;
+    CFileDescriptor m_iFd;
 
     friend class CHyprOpenGLImpl;
 };
@@ -208,14 +208,14 @@ class CHyprOpenGLImpl {
     uint32_t getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                                createEGLSync(int fenceFD);
+    SP<CEGLSync>                                createEGLSync(CFileDescriptor fenceFD = {});
     bool                                        waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
     SCurrentRenderData                          m_RenderData;
 
     GLint                                       m_iCurrentOutputFb = 0;
 
-    int                                         m_iGBMFD       = -1;
+    CFileDescriptor                             m_iGBMFD;
     gbm_device*                                 m_pGbmDevice   = nullptr;
     EGLContext                                  m_pEglContext  = nullptr;
     EGLDisplay                                  m_pEglDisplay  = nullptr;

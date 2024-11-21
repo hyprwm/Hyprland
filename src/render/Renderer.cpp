@@ -1553,7 +1553,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
 
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
-    auto sync = g_pHyprOpenGL->createEGLSync(-1);
+    auto sync = g_pHyprOpenGL->createEGLSync();
 
     if (!sync)
         Debug::log(TRACE, "Explicit: can't add sync, EGLSync failed");
@@ -2802,7 +2802,7 @@ void CHyprRenderer::endRender() {
         auto explicitOptions = getExplicitSyncSettings();
 
         if (PMONITOR->inTimeline && explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled) {
-            auto sync = g_pHyprOpenGL->createEGLSync(-1);
+            auto sync = g_pHyprOpenGL->createEGLSync();
             if (!sync) {
                 Debug::log(ERR, "renderer: couldn't create an EGLSync for out in endRender");
                 return;

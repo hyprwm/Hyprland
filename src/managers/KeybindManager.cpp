@@ -423,8 +423,10 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     const xkb_keysym_t keysym         = xkb_state_key_get_one_sym(pKeyboard->resolveBindsBySym ? pKeyboard->xkbSymState : m_pXKBTranslationState, KEYCODE);
     const xkb_keysym_t internalKeysym = xkb_state_key_get_one_sym(pKeyboard->xkbState, KEYCODE);
 
+    // handleInternalKeybinds returns true when the key should be suppressed,
+    // while this function returns true when the key event should be sent
     if (handleInternalKeybinds(internalKeysym))
-        return true;
+        return false;
 
     const auto MODS = g_pInputManager->accumulateModsFromAllKBs();
 

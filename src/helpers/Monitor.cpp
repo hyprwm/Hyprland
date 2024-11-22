@@ -629,7 +629,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         if (!noFocus && !g_pCompositor->m_pLastMonitor->activeSpecialWorkspace &&
             !(g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_bPinned && g_pCompositor->m_pLastWindow->m_pMonitor == self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-            auto        pWindow      = pWorkspace->getLastFocusedWindow();
+            auto        pWindow      = pWorkspace->m_bHasFullscreenWindow ? g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID) : pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)

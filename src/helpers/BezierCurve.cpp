@@ -6,24 +6,27 @@
 #include <algorithm>
 
 void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
-    m_dPoints.clear();
-
     const auto BEGIN = std::chrono::high_resolution_clock::now();
 
-    m_dPoints.emplace_back(Vector2D(0, 0));
-
-    for (auto const& p : *pVec) {
-        m_dPoints.push_back(p);
+    // Avoid reallocations by reserving enough memory upfront
+    m_dPoints.resize(pVec->size() + 2);
+    m_dPoints[0] = Vector2D(0, 0); // Start point
+    size_t index = 1;              // Start after the first element
+    for (const auto& vec : *pVec) {
+        if (index < m_dPoints.size() - 1) { // Bounds check to ensure safety
+            m_dPoints[index] = vec;
+            ++index;
+        }
     }
-
-    m_dPoints.emplace_back(Vector2D(1, 1));
+    m_dPoints.back() = Vector2D(1, 1); // End point
 
     RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: {})", m_dPoints.size());
 
     // bake BAKEDPOINTS points for faster lookups
     // T -> X ( / BAKEDPOINTS )
     for (int i = 0; i < BAKEDPOINTS; ++i) {
-        m_aPointsBaked[i] = Vector2D(getXForT((i + 1) / (float)BAKEDPOINTS), getYForT((i + 1) / (float)BAKEDPOINTS));
+        float const t     = (i + 1) / (float)BAKEDPOINTS;
+        m_aPointsBaked[i] = Vector2D(getXForT(t), getYForT(t));
     }
 
     const auto ELAPSEDUS  = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - BEGIN).count() / 1000.f;
@@ -40,18 +43,26 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
                ELAPSEDUS, ELAPSEDCALCAVG);
 }
 
-float CBezierCurve::getYForT(float t) {
-    return 3 * t * pow(1 - t, 2) * m_dPoints[1].y + 3 * pow(t, 2) * (1 - t) * m_dPoints[2].y + pow(t, 3);
+float CBezierCurve::getXForT(float const& t) {
+    float t2 = t * t;
+    float t3 = t2 * t;
+
+    return 3 * t * (1 - t) * (1 - t) * m_dPoints[1].x + 3 * t2 * (1 - t) * m_dPoints[2].x + t3 * m_dPoints[3].x;
 }
 
-float CBezierCurve::getXForT(float t) {
-    return 3 * t * pow(1 - t, 2) * m_dPoints[1].x + 3 * pow(t, 2) * (1 - t) * m_dPoints[2].x + pow(t, 3);
+float CBezierCurve::getYForT(float const& t) {
+    float t2 = t * t;
+    float t3 = t2 * t;
+
+    return 3 * t * (1 - t) * (1 - t) * m_dPoints[1].y + 3 * t2 * (1 - t) * m_dPoints[2].y + t3 * m_dPoints[3].y;
 }
 
 // Todo: this probably can be done better and faster
-float CBezierCurve::getYForPoint(float x) {
+float CBezierCurve::getYForPoint(float const& x) {
     if (x >= 1.f)
         return 1.f;
+    if (x <= 0.f)
+        return 0.f;
 
     int  index = 0;
     bool below = true;

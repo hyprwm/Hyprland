@@ -509,7 +509,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         else if (*PNEWTAKESOVERFS == 1)
             requestedInternalFSMode = PWINDOW->m_pWorkspace->m_efFullscreenMode;
         else if (*PNEWTAKESOVERFS == 2)
-            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), FSMODE_NONE);
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW->m_pWorkspace->getFullscreenWindow(), FSMODE_NONE);
     }
 
     if (!PWINDOW->m_sWindowData.noFocus.valueOrDefault() && !PWINDOW->m_bNoInitialFocus &&
@@ -531,7 +531,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     if (!PWINDOW->m_bNoInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
         if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow)
-            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWINDOW->m_pWorkspace->m_iID), FSMODE_NONE);
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW->m_pWorkspace->getFullscreenWindow(), FSMODE_NONE);
 
         PWINDOW->m_vRealPosition.warp();
         PWINDOW->m_vRealSize.warp();
@@ -603,7 +603,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // fix some xwayland apps that don't behave nicely
     PWINDOW->m_vReportedSize = PWINDOW->m_vPendingReportedSize;
 
-    g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
+    if (PWINDOW->m_pWorkspace)
+        PWINDOW->m_pWorkspace->updateWindows();
 
     if (PMONITOR && PWINDOW->isX11OverrideRedirect())
         PWINDOW->m_fX11SurfaceScaledBy = PMONITOR->scale;
@@ -699,7 +700,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
 
-        if (!PWINDOWCANDIDATE && g_pCompositor->getWindowsOnWorkspace(PWINDOW->workspaceID()) == 0)
+        if (!PWINDOWCANDIDATE && PWINDOW->m_pWorkspace && PWINDOW->m_pWorkspace->getWindows() == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();
@@ -729,7 +730,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     g_pInputManager->recheckIdleInhibitorStatus();
 
     // force report all sizes (QT sometimes has an issue with this)
-    g_pCompositor->forceReportSizesToWindowsOnWorkspace(PWINDOW->workspaceID());
+    if (PWINDOW->m_pWorkspace)
+        PWINDOW->m_pWorkspace->forceReportSizesToWindows();
 
     // update lastwindow after focus
     PWINDOW->onUnmap();

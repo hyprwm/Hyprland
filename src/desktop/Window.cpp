@@ -413,12 +413,12 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     setAnimationsToMove();
 
-    g_pCompositor->updateWorkspaceWindows(OLDWORKSPACE->m_iID);
-    g_pCompositor->updateWorkspaceWindowData(OLDWORKSPACE->m_iID);
+    OLDWORKSPACE->updateWindows();
+    OLDWORKSPACE->updateWindowData();
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
 
-    g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceWindowData(workspaceID());
+    pWorkspace->updateWindows();
+    pWorkspace->updateWindowData();
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -437,7 +437,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     // update xwayland coords
     g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.value());
 
-    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && g_pCompositor->getWindowsOnWorkspace(OLDWORKSPACE->m_iID) == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -516,7 +516,7 @@ void CWindow::onUnmap() {
 
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other.expired() || other.lock().get() == this; });
 
-    if (*PCLOSEONLASTSPECIAL && g_pCompositor->getWindowsOnWorkspace(workspaceID()) == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_pWorkspace && m_pWorkspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_pMonitor.lock();
         if (PMONITOR && PMONITOR->activeSpecialWorkspace && PMONITOR->activeSpecialWorkspace == m_pWorkspace)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -527,8 +527,10 @@ void CWindow::onUnmap() {
     if (PMONITOR && PMONITOR->solitaryClient.lock().get() == this)
         PMONITOR->solitaryClient.reset();
 
-    g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceWindowData(workspaceID());
+    if (m_pWorkspace) {
+        m_pWorkspace->updateWindows();
+        m_pWorkspace->updateWindowData();
+    }
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -855,8 +857,10 @@ void CWindow::createGroup() {
 
         addWindowDeco(std::make_unique<CHyprGroupBarDecoration>(m_pSelf.lock()));
 
-        g_pCompositor->updateWorkspaceWindows(workspaceID());
-        g_pCompositor->updateWorkspaceWindowData(workspaceID());
+        if (m_pWorkspace) {
+            m_pWorkspace->updateWindows();
+            m_pWorkspace->updateWindowData();
+        }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -873,8 +877,10 @@ void CWindow::destroyGroup() {
         m_sGroupData.pNextWindow.reset();
         m_sGroupData.head = false;
         updateWindowDecos();
-        g_pCompositor->updateWorkspaceWindows(workspaceID());
-        g_pCompositor->updateWorkspaceWindowData(workspaceID());
+        if (m_pWorkspace) {
+            m_pWorkspace->updateWindows();
+            m_pWorkspace->updateWindowData();
+        }
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -909,8 +915,10 @@ void CWindow::destroyGroup() {
     }
     g_pKeybindManager->m_bGroupsLocked = GROUPSLOCKEDPREV;
 
-    g_pCompositor->updateWorkspaceWindows(workspaceID());
-    g_pCompositor->updateWorkspaceWindowData(workspaceID());
+    if (m_pWorkspace) {
+        m_pWorkspace->updateWindows();
+        m_pWorkspace->updateWindowData();
+    }
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -1507,7 +1515,7 @@ void CWindow::onX11Configure(CBox box) {
 
     updateWindowDecos();
 
-    if (!g_pCompositor->isWorkspaceVisible(m_pWorkspace))
+    if (!m_pWorkspace || !m_pWorkspace->isVisible())
         return; // further things are only for visible windows
 
     m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition.value() + m_vRealSize.value() / 2.f)->activeWorkspace;

@@ -243,8 +243,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     m_sActiveSwipe.delta = std::clamp(m_sActiveSwipe.delta, (double)-SWIPEDISTANCE, (double)SWIPEDISTANCE);
 
     if ((m_sActiveSwipe.pWorkspaceBegin->m_iID == workspaceIDLeft && *PSWIPENEW && (m_sActiveSwipe.delta < 0)) ||
-        (m_sActiveSwipe.delta > 0 && g_pCompositor->getWindowsOnWorkspace(m_sActiveSwipe.pWorkspaceBegin->m_iID) == 0 &&
-         workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID) ||
+        (m_sActiveSwipe.delta > 0 && m_sActiveSwipe.pWorkspaceBegin->getWindows() == 0 && workspaceIDRight <= m_sActiveSwipe.pWorkspaceBegin->m_iID) ||
         (m_sActiveSwipe.delta < 0 && m_sActiveSwipe.pWorkspaceBegin->m_iID <= workspaceIDLeft)) {
 
         m_sActiveSwipe.delta = 0;
@@ -270,7 +269,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
                 else
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
 
-                g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
+                m_sActiveSwipe.pWorkspaceBegin->updateWindowDecos();
                 return;
             }
             m_sActiveSwipe.delta = 0;
@@ -297,7 +296,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 
-        g_pCompositor->updateWorkspaceWindowDecos(workspaceIDLeft);
+        PWORKSPACE->updateWindowDecos();
     } else {
         const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
 
@@ -310,7 +309,7 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
                 else
                     m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
 
-                g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
+                m_sActiveSwipe.pWorkspaceBegin->updateWindowDecos();
                 return;
             }
             m_sActiveSwipe.delta = 0;
@@ -337,12 +336,12 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
             m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.setValueAndWarp(Vector2D(((-m_sActiveSwipe.delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 
-        g_pCompositor->updateWorkspaceWindowDecos(workspaceIDRight);
+        PWORKSPACE->updateWindowDecos();
     }
 
     g_pHyprRenderer->damageMonitor(m_sActiveSwipe.pMonitor.lock());
 
-    g_pCompositor->updateWorkspaceWindowDecos(m_sActiveSwipe.pWorkspaceBegin->m_iID);
+    m_sActiveSwipe.pWorkspaceBegin->updateWindowDecos();
 
     if (*PSWIPEFOREVER) {
         if (abs(m_sActiveSwipe.delta) >= SWIPEDISTANCE) {

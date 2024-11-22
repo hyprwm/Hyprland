@@ -927,8 +927,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     for (auto const& w : g_pCompositor->m_vWorkspaces) {
         if (w->inert())
             continue;
-        g_pCompositor->updateWorkspaceWindows(w->m_iID);
-        g_pCompositor->updateWorkspaceWindowData(w->m_iID);
+        w->updateWindows();
+        w->updateWindowData();
     }
 
     // Update window border colors

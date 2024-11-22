@@ -264,7 +264,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         WORKSPACEID id = next ? g_pCompositor->m_pLastMonitor->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || g_pCompositor->getWindowsOnWorkspace(id) == 0)) {
+            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
                 result.id = id;
                 return result;
             }

@@ -115,21 +115,11 @@ class CCompositor {
     PHLMONITOR             getRealMonitorFromOutput(SP<Aquamarine::IOutput>);
     PHLWINDOW              getWindowFromSurface(SP<CWLSurfaceResource>);
     PHLWINDOW              getWindowFromHandle(uint32_t);
-    bool                   isWorkspaceVisible(PHLWORKSPACE);
-    bool                   isWorkspaceVisibleNotCovered(PHLWORKSPACE);
     PHLWORKSPACE           getWorkspaceByID(const WORKSPACEID&);
     PHLWORKSPACE           getWorkspaceByName(const std::string&);
     PHLWORKSPACE           getWorkspaceByString(const std::string&);
     void                   sanityCheckWorkspaces();
-    void                   updateWorkspaceWindowDecos(const WORKSPACEID&);
-    void                   updateWorkspaceWindowData(const WORKSPACEID&);
-    int                    getWindowsOnWorkspace(const WORKSPACEID& id, std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
-    int                    getGroupsOnWorkspace(const WORKSPACEID& id, std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
     PHLWINDOW              getUrgentWindow();
-    bool                   hasUrgentWindowOnWorkspace(const WORKSPACEID&);
-    PHLWINDOW              getFirstWindowOnWorkspace(const WORKSPACEID&);
-    PHLWINDOW              getTopLeftWindowOnWorkspace(const WORKSPACEID&);
-    PHLWINDOW              getFullscreenWindowOnWorkspace(const WORKSPACEID&);
     bool                   isWindowActive(PHLWINDOW);
     void                   changeWindowZOrder(PHLWINDOW, bool);
     void                   cleanupFadingOut(const MONITORID& monid);
@@ -142,7 +132,6 @@ class CCompositor {
     PHLMONITOR             getMonitorInDirection(const char&);
     PHLMONITOR             getMonitorInDirection(PHLMONITOR, const char&);
     void                   updateAllWindowsAnimatedDecorationValues();
-    void                   updateWorkspaceWindows(const WORKSPACEID& id);
     void                   updateWindowAnimatedDecorationValues(PHLWINDOW);
     MONITORID              getNextAvailableMonitorID(std::string const& name);
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
@@ -165,10 +154,8 @@ class CCompositor {
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
     void                   closeWindow(PHLWINDOW);
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
-    void                   forceReportSizesToWindowsOnWorkspace(const WORKSPACEID&);
     PHLWORKSPACE           createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
                                               bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
-    void                   renameWorkspace(const WORKSPACEID&, const std::string& name = "");
     void                   setActiveMonitor(PHLMONITOR);
     bool                   isWorkspaceSpecial(const WORKSPACEID&);
     WORKSPACEID            getNewSpecialID();

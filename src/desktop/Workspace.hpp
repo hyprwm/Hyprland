@@ -63,23 +63,29 @@ class CWorkspace {
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
     bool             inert();
-
     void             startAnim(bool in, bool left, bool instant = false);
     void             setActive(bool on);
-
     void             moveToMonitor(const MONITORID&);
     MONITORID        monitorID();
-
     PHLWINDOW        getLastFocusedWindow();
     void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
-
     std::string      getConfigName();
-
     bool             matchesStaticSelector(const std::string& selector);
-
     void             markInert();
-
     SWorkspaceIDName getPrevWorkspaceIDName(bool perMonitor) const;
+    void             updateWindowDecos();
+    void             updateWindowData();
+    int              getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
+    int              getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyVisible = {});
+    bool             hasUrgentWindow();
+    PHLWINDOW        getFirstWindow();
+    PHLWINDOW        getTopLeftWindow();
+    PHLWINDOW        getFullscreenWindow();
+    bool             isVisible();
+    bool             isVisibleNotCovered();
+    void             rename(const std::string& name = "");
+    void             forceReportSizesToWindows();
+    void             updateWindows();
 
   private:
     void                 init(PHLWORKSPACE self);

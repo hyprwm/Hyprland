@@ -187,7 +187,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
     static auto     PAUTOGROUP       = CConfigValue<Hyprlang::INT>("group:auto_group");
     const PHLWINDOW OPENINGON        = g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace == pWindow->m_pWorkspace ?
                g_pCompositor->m_pLastWindow.lock() :
-               g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
+               (pWindow->m_pWorkspace ? pWindow->m_pWorkspace->getFirstWindow() : nullptr);
     const bool      FLOATEDINTOTILED = pWindow->m_bIsFloating && !OPENINGON->m_bIsFloating;
     const bool      SWALLOWING       = pWindow->m_pSwallowed || pWindow->m_bGroupSwallowed;
 
@@ -714,7 +714,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         const auto PWORKSPACE = PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace;
 
         if (PWORKSPACE->m_bHasFullscreenWindow)
-            g_pCompositor->setWindowFullscreenInternal(g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID), FSMODE_NONE);
+            g_pCompositor->setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
 
         // save real pos cuz the func applies the default 5,5 mid
         const auto PSAVEDPOS  = pWindow->m_vRealPosition.goal();
@@ -803,7 +803,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 
     // first of all, if this is a fullscreen workspace,
     if (PWORKSPACE->m_bHasFullscreenWindow)
-        return g_pCompositor->getFullscreenWindowOnWorkspace(pWindow->workspaceID());
+        return PWORKSPACE->getFullscreenWindow();
 
     if (pWindow->m_bIsFloating) {
 
@@ -842,10 +842,10 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     auto pWindowCandidate = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
     if (!pWindowCandidate)
-        pWindowCandidate = g_pCompositor->getTopLeftWindowOnWorkspace(pWindow->workspaceID());
+        pWindowCandidate = PWORKSPACE->getTopLeftWindow();
 
     if (!pWindowCandidate)
-        pWindowCandidate = g_pCompositor->getFirstWindowOnWorkspace(pWindow->workspaceID());
+        pWindowCandidate = PWORKSPACE->getFirstWindow();
 
     if (!pWindowCandidate || pWindow == pWindowCandidate || !pWindowCandidate->m_bIsMapped || pWindowCandidate->isHidden() || pWindowCandidate->m_bX11ShouldntFocus ||
         pWindowCandidate->isX11OverrideRedirect() || pWindowCandidate->m_pMonitor != g_pCompositor->m_pLastMonitor)

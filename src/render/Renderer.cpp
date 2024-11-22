@@ -310,8 +310,8 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return true;
 
     // if the window is being moved to a workspace that is not invisible, and the alpha is > 0.F, render it.
-    if (pWindow->m_iMonitorMovedFrom != -1 && pWindow->m_fMovingToWorkspaceAlpha.isBeingAnimated() && pWindow->m_fMovingToWorkspaceAlpha.value() > 0.F &&
-        !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+    if (pWindow->m_iMonitorMovedFrom != -1 && pWindow->m_fMovingToWorkspaceAlpha.isBeingAnimated() && pWindow->m_fMovingToWorkspaceAlpha.value() > 0.F && pWindow->m_pWorkspace &&
+        !pWindow->m_pWorkspace->isVisible())
         return true;
 
     const auto PWINDOWWORKSPACE = pWindow->m_pWorkspace;
@@ -324,18 +324,18 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
             pWindow->m_fAlpha.value() == 0)
             return false;
 
-        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+        if (!PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !PWINDOWWORKSPACE->m_fAlpha.isBeingAnimated() && !PWINDOWWORKSPACE->isVisible())
             return false;
     }
 
     if (pWindow->m_pMonitor == pMonitor)
         return true;
 
-    if (!g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace) && pWindow->m_pMonitor != pMonitor)
+    if (!(!pWindow->m_pWorkspace || !pWindow->m_pWorkspace->isVisible()) && pWindow->m_pMonitor != pMonitor)
         return false;
 
     // if not, check if it maybe is active on a different monitor.
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace) && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
+    if (pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible() && pWindow->m_bIsFloating /* tiled windows can't be multi-ws */)
         return !pWindow->isFullscreen(); // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->activeSpecialWorkspace == pWindow->m_pWorkspace)
@@ -376,7 +376,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (pWindow->m_bPinned || PWORKSPACE->m_bForceRendering)
         return true;
 
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+    if (PWORKSPACE && PWORKSPACE->isVisible())
         return true;
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
@@ -591,7 +591,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         decorate = false;
 
     // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
-    const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_iMonitorMovedFrom != -1 && !g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace);
+    const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_iMonitorMovedFrom != -1 && (!PWORKSPACE || !PWORKSPACE->isVisible());
     const bool DONT_BLUR                = pWindow->m_sWindowData.noBlur.valueOrDefault() || pWindow->m_sWindowData.RGBX.valueOrDefault() || pWindow->opaque();
 
     renderdata.surface   = pWindow->m_pWLSurface->resource();
@@ -933,7 +933,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // Render layer surfaces below windows for monitor
     // if we have a fullscreen, opaque window that convers the screen, we can skip this.
     // TODO: check better with solitary after MR for tearing.
-    const auto PFULLWINDOW = pWorkspace ? g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID) : nullptr;
+    const auto PFULLWINDOW = pWorkspace ? pWorkspace->getFullscreenWindow() : nullptr;
     if (!pWorkspace->m_bHasFullscreenWindow || pWorkspace->m_efFullscreenMode != FSMODE_FULLSCREEN || !PFULLWINDOW || PFULLWINDOW->m_vRealSize.isBeingAnimated() ||
         !PFULLWINDOW->opaque() || pWorkspace->m_vRenderOffset.value() != Vector2D{} || g_pHyprOpenGL->preBlurQueued()) {
 
@@ -2639,7 +2639,7 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
         PWORKSPACE->m_vRenderOffset.value() != Vector2D{})
         return;
 
-    const auto PCANDIDATE = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+    const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
 
     if (!PCANDIDATE)
         return; // ????

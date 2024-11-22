@@ -294,7 +294,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     const auto PWORKSPACE   = PMONITOR->activeWorkspace;
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
     if (PWORKSPACE->m_bHasFullscreenWindow && !foundSurface && PWORKSPACE->m_efFullscreenMode == FSMODE_FULLSCREEN) {
-        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        pFoundWindow = PWORKSPACE->getFullscreenWindow();
 
         if (!pFoundWindow) {
             // what the fuck, somehow happens occasionally??
@@ -325,7 +325,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                         pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                     if (pFoundWindow && !pFoundWindow->onSpecialWorkspace()) {
-                        pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+                        pFoundWindow = PWORKSPACE->getFullscreenWindow();
                     }
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
@@ -339,7 +339,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
                             pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
 
                         if (!(pFoundWindow && pFoundWindow->m_bIsFloating && pFoundWindow->m_bCreatedOverFullscreen))
-                            pFoundWindow = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+                            pFoundWindow = PWORKSPACE->getFullscreenWindow();
                     }
                 }
             }
@@ -1402,7 +1402,7 @@ void CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
             foundSurface = nullptr;
     }
 
-    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->isWorkspaceVisibleNotCovered(g_pCompositor->m_pLastWindow->m_pWorkspace)) {
+    if (!foundSurface && g_pCompositor->m_pLastWindow.lock() && g_pCompositor->m_pLastWindow->m_pWorkspace && g_pCompositor->m_pLastWindow->m_pWorkspace->isVisibleNotCovered()) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = g_pCompositor->m_pLastWindow.lock();
         g_pCompositor->focusWindow(PLASTWINDOW);

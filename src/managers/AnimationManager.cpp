@@ -149,7 +149,7 @@ void CAnimationManager::tick() {
             animationsDisabled = animationsDisabled || PLAYER->noAnimations;
         }
 
-        const bool VISIBLE = PWINDOW && PWINDOW->m_pWorkspace ? g_pCompositor->isWorkspaceVisible(PWINDOW->m_pWorkspace) : true;
+        const bool VISIBLE = PWINDOW && PWINDOW->m_pWorkspace ? PWINDOW->m_pWorkspace->isVisible() : true;
 
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner

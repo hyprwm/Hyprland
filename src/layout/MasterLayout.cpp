@@ -298,7 +298,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
 
     if (pWorkspace->m_bHasFullscreenWindow) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
+        const auto PFULLWINDOW = pWorkspace->getFullscreenWindow();
 
         if (pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;

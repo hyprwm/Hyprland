@@ -1036,8 +1036,12 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
 
         g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
     }
-    g_pCompositor->updateWorkspaceWindows(PWINDOW->workspaceID());
-    g_pCompositor->updateWorkspaceWindowData(PWINDOW->workspaceID());
+
+    if (PWINDOW->m_pWorkspace) {
+        PWINDOW->m_pWorkspace->updateWindows();
+        PWINDOW->m_pWorkspace->updateWindowData();
+    }
+
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -1305,7 +1309,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
         g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, pWorkspace);
     }
 
-    POLDWS->m_pLastFocusedWindow = g_pCompositor->getFirstWindowOnWorkspace(POLDWS->m_iID);
+    POLDWS->m_pLastFocusedWindow = POLDWS->getFirstWindow();
 
     if (pWorkspace->m_bIsSpecialWorkspace)
         pMonitor->setSpecialWorkspace(pWorkspace);
@@ -1799,10 +1803,14 @@ SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
         if (FIRSTSPACEPOS != std::string::npos) {
             int         workspace = std::stoi(args.substr(0, FIRSTSPACEPOS));
             std::string name      = args.substr(FIRSTSPACEPOS + 1);
-            g_pCompositor->renameWorkspace(workspace, name);
-        } else {
-            g_pCompositor->renameWorkspace(std::stoi(args), "");
-        }
+            if (const auto& PWS = g_pCompositor->getWorkspaceByID(workspace); PWS)
+                PWS->rename(name);
+            else
+                return {.success = false, .error = "No such workspace"};
+        } else if (const auto& PWS = g_pCompositor->getWorkspaceByID(std::stoi(args)); PWS)
+            PWS->rename("");
+        else
+            return {.success = false, .error = "No such workspace"};
     } catch (std::exception& e) {
         Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args, e.what());
         return {.success = false, .error = std::format("Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args, e.what())};
@@ -2069,9 +2077,9 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
 
     if (g_pCompositor->m_pLastWindow.expired()) {
         // if we have a clear focus, find the first window and get the next focusable.
-        if (g_pCompositor->getWindowsOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID()) > 0) {
-            const auto PWINDOW = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspaceID());
-
+        const auto PWS = g_pCompositor->m_pLastMonitor->activeWorkspace;
+        if (PWS && PWS->getWindows() > 0) {
+            const auto PWINDOW = PWS->getFirstWindow();
             switchToWindow(PWINDOW);
         }
 
@@ -2117,7 +2125,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
     }
 
     if (PWORKSPACE->m_bHasFullscreenWindow) {
-        const auto FSWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(PWORKSPACE->m_iID);
+        const auto FSWINDOW = PWORKSPACE->getFullscreenWindow();
         const auto FSMODE   = PWORKSPACE->m_efFullscreenMode;
 
         if (PWINDOW->m_bIsFloating) {

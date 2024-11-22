@@ -514,7 +514,7 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     if (pWorkspace->m_bHasFullscreenWindow) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = g_pCompositor->getFullscreenWindowOnWorkspace(pWorkspace->m_iID);
+        const auto PFULLWINDOW = pWorkspace->getFullscreenWindow();
 
         if (pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
@@ -1054,7 +1054,7 @@ void CHyprDwindleLayout::moveToRoot(PHLWINDOW pWindow, bool stable) {
         std::swap(pRoot->children[0], pRoot->children[1]);
 
     // if the workspace is visible, recalculate layout
-    if (g_pCompositor->isWorkspaceVisible(pWindow->m_pWorkspace))
+    if (pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible())
         pRoot->recalcSizePosRecursive();
 }
 
@@ -1094,7 +1094,7 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
     PHLWINDOW candidate = g_pCompositor->m_pLastWindow.lock();
 
     if (!candidate)
-        candidate = g_pCompositor->getFirstWindowOnWorkspace(g_pCompositor->m_pLastMonitor->activeWorkspace->m_iID);
+        candidate = g_pCompositor->m_pLastMonitor->activeWorkspace->getFirstWindow();
 
     // create a fake node
     SDwindleNodeData node;

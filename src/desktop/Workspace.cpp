@@ -422,11 +422,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                     int count;
                     if (wantsCountGroup)
-                        count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
-                                                                    wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                          wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
-                                                                     wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
                         return false;
@@ -456,11 +456,11 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 WORKSPACEID count;
                 if (wantsCountGroup)
-                    count = g_pCompositor->getGroupsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
-                                                                wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                      wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = g_pCompositor->getWindowsOnWorkspace(m_iID, wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
-                                                                 wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>((bool)wantsOnlyTiled),
+                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
                     return false;
@@ -524,4 +524,137 @@ bool CWorkspace::inert() {
 
 MONITORID CWorkspace::monitorID() {
     return m_pMonitor ? m_pMonitor->ID : MONITOR_INVALID;
+}
+
+PHLWINDOW CWorkspace::getFullscreenWindow() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace == m_pSelf && w->isFullscreen())
+            return w;
+    }
+
+    return nullptr;
+}
+
+bool CWorkspace::isVisible() {
+    return m_bVisible;
+}
+
+bool CWorkspace::isVisibleNotCovered() {
+    const auto PMONITOR = m_pMonitor.lock();
+    if (PMONITOR->activeSpecialWorkspace)
+        return PMONITOR->activeSpecialWorkspace->m_iID == m_iID;
+
+    return PMONITOR->activeWorkspace->m_iID == m_iID;
+}
+
+int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
+    int no = 0;
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->workspaceID() != m_iID || !w->m_bIsMapped)
+            continue;
+        if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+            continue;
+        no++;
+    }
+
+    return no;
+}
+
+int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyVisible) {
+    int no = 0;
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->workspaceID() != m_iID || !w->m_bIsMapped)
+            continue;
+        if (!w->m_sGroupData.head)
+            continue;
+        if (onlyTiled.has_value() && w->m_bIsFloating == onlyTiled.value())
+            continue;
+        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+            continue;
+        no++;
+    }
+    return no;
+}
+
+PHLWINDOW CWorkspace::getFirstWindow() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace == m_pSelf && w->m_bIsMapped && !w->isHidden())
+            return w;
+    }
+
+    return nullptr;
+}
+
+PHLWINDOW CWorkspace::getTopLeftWindow() {
+    const auto PMONITOR = m_pMonitor.lock();
+
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
+            continue;
+
+        const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
+
+        if (WINDOWIDEALBB.x <= PMONITOR->vecPosition.x + 1 && WINDOWIDEALBB.y <= PMONITOR->vecPosition.y + 1)
+            return w;
+    }
+    return nullptr;
+}
+
+bool CWorkspace::hasUrgentWindow() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace == m_pSelf && w->m_bIsMapped && w->m_bIsUrgent)
+            return true;
+    }
+
+    return false;
+}
+
+void CWorkspace::updateWindowDecos() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace != m_pSelf)
+            continue;
+
+        w->updateWindowDecos();
+    }
+}
+
+void CWorkspace::updateWindowData() {
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_pSelf.lock());
+
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace != m_pSelf)
+            continue;
+
+        w->updateWindowData(WORKSPACERULE);
+    }
+}
+
+void CWorkspace::forceReportSizesToWindows() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
+            continue;
+
+        g_pXWaylandManager->setWindowSize(w, w->m_vRealSize.value(), true);
+    }
+}
+
+void CWorkspace::rename(const std::string& name) {
+    if (g_pCompositor->isWorkspaceSpecial(m_iID))
+        return;
+
+    Debug::log(LOG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_iID, name);
+    m_szName = name;
+
+    g_pEventManager->postEvent({"renameworkspace", std::to_string(m_iID) + "," + m_szName});
+}
+
+void CWorkspace::updateWindows() {
+    for (auto const& w : g_pCompositor->m_vWindows) {
+        if (!w->m_bIsMapped || w->m_pWorkspace != m_pSelf)
+            continue;
+
+        w->updateDynamicRules();
+    }
 }

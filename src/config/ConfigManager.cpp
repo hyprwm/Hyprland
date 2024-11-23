@@ -536,6 +536,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("binds:movefocus_cycles_fullscreen", Hyprlang::INT{1});
     m_pConfig->addConfigValue("binds:disable_keybind_grabbing", Hyprlang::INT{0});
     m_pConfig->addConfigValue("binds:window_direction_monitor_fallback", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("binds:allow_pin_fullscreen", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("gestures:workspace_swipe", Hyprlang::INT{0});
     m_pConfig->addConfigValue("gestures:workspace_swipe_fingers", Hyprlang::INT{3});

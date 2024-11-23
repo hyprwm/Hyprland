@@ -331,6 +331,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{0.2, 0, 1},
     },
+    SConfigOptionDescription{
+        .value       = "blur:input_methods",
+        .description = "whether to blur input methods (e.g. fcitx5)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "blur:input_methods_ignorealpha",
+        .description = "works like ignorealpha in layer rules. If pixel opacity is below set value, will not blur. [0.0 - 1.0]",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.2, 0, 1},
+    },
 
     /*
      * animations:

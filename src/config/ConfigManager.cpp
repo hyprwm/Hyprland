@@ -79,7 +79,8 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
 
     if (DATA->m_vColors.size() == 0) {
         Debug::log(WARN, "Error parsing gradient {}", V);
-        parseError = "Error parsing gradient " + V + ": No colors?";
+        if (parseError.empty())
+            parseError = "Error parsing gradient " + V + ": No colors?";
 
         DATA->m_vColors.push_back(0); // transparent
     }

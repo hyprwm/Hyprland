@@ -100,7 +100,7 @@ void CSHMPool::resize(size_t size_) {
         LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd);
 }
 
-int shmIsSizeValid(int fd, size_t size) {
+static int shmIsSizeValid(int fd, size_t size) {
     struct stat st;
     if (fstat(fd, &st) == -1) {
         LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd);

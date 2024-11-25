@@ -66,6 +66,11 @@ std::string getRuntimeDir() {
 std::vector<SInstanceData> instances() {
     std::vector<SInstanceData> result;
 
+    try {
+        if (!std::filesystem::exists(getRuntimeDir()))
+            return {};
+    } catch (std::exception& e) { return {}; }
+
     for (const auto& el : std::filesystem::directory_iterator(getRuntimeDir())) {
         if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
             continue;

@@ -1,6 +1,7 @@
 #include "Shm.hpp"
 #include <algorithm>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <drm_fourcc.h>
 #include "../../render/Texture.hpp"
 #include "../types/WLBuffer.hpp"
@@ -99,9 +100,24 @@ void CSHMPool::resize(size_t size_) {
         LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", size, fd);
 }
 
+static int shmIsSizeValid(int fd, size_t size) {
+    struct stat st;
+    if (fstat(fd, &st) == -1) {
+        LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd);
+        return 0;
+    }
+
+    return (size_t)st.st_size >= size;
+}
+
 CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t size_) : resource(resource_) {
     if (!good())
         return;
+
+    if (!shmIsSizeValid(fd_, size_)) {
+        resource_->error(-1, "The size of the file is not big enough for the shm pool");
+        return;
+    }
 
     pool = makeShared<CSHMPool>(fd_, size_);
 
@@ -113,6 +129,11 @@ CWLSHMPoolResource::CWLSHMPoolResource(SP<CWlShmPool> resource_, int fd_, size_t
             r->error(-1, "Shrinking a shm pool is illegal");
             return;
         }
+        if (!shmIsSizeValid(pool->fd, size_)) {
+            r->error(-1, "The size of the file is not big enough for the shm pool");
+            return;
+        }
+
         pool->resize(size_);
     });
 

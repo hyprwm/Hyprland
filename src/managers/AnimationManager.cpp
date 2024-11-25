@@ -319,6 +319,30 @@ void CAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minP
     }
 }
 
+void CAnimationManager::animationPopout(PHLWINDOW pWindow, bool close, float maxPerc) {
+    if (maxPerc <= 1.0f)
+        maxPerc = 1.5f; // Default to 150%
+
+    const auto ORIGSIZE = pWindow->m_vRealSize.goal();
+    const auto ORIGPOS  = pWindow->m_vRealPosition.goal();
+
+    if (!close) {
+        // Opening: Scale down from larger size to original size
+        pWindow->m_vRealSize.setValueAndWarp(ORIGSIZE * maxPerc);
+        pWindow->m_vRealPosition.setValueAndWarp(ORIGPOS - (ORIGSIZE * (maxPerc - 1.0f) / 2.f));
+
+        pWindow->m_vRealSize     = ORIGSIZE;
+        pWindow->m_vRealPosition = ORIGPOS;
+    } else {
+        // Closing: Scale up from original size to larger size
+        pWindow->m_vRealSize.setValueAndWarp(ORIGSIZE);
+        pWindow->m_vRealPosition.setValueAndWarp(ORIGPOS);
+
+        pWindow->m_vRealSize     = ORIGSIZE * maxPerc;
+        pWindow->m_vRealPosition = ORIGPOS - (ORIGSIZE * (maxPerc - 1.0f) / 2.f);
+    }
+}
+
 void CAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
     pWindow->m_vRealSize.warp(false); // size we preserve in slide
 
@@ -413,7 +437,20 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
             animationSlide(pWindow, animList2[1], close);
-        } else {
+        } else if (STYLE.starts_with("popout")) {
+			float maxPerc = 0.f;
+			if (STYLE.find("%") != std::string::npos) {
+				try {
+					auto percstr = STYLE.substr(STYLE.find_last_of(' '));
+					maxPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+				} catch (std::exception& e) {
+					; // oops
+				}
+			}
+
+			animationPopout(pWindow, close, maxPerc / 100.f);
+			
+		} else {
             // anim popin, fallback
 
             float minPerc = 0.f;
@@ -431,7 +468,19 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     } else {
         if (animList[0] == "slide")
             animationSlide(pWindow, animList[1], close);
-        else {
+        else if (animList[0] == "popout") {
+            float maxPerc = 0.f;
+            if (animList[0].find("%") != std::string::npos) {
+				try {
+					auto percstr = animList[0].substr(animList[0].find_last_of(' '));
+					maxPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
+				} catch (std::exception& e) {
+					; // oops
+				}
+			}
+
+			animationPopout(pWindow, close, maxPerc / 100.f);
+        } else {
             // anim popin, fallback
 
             float minPerc = 0.f;
@@ -467,6 +516,9 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
 
             minPerc; // fix warning
 
+            return "";
+        }
+        else if (style.starts_with("popout")) {
             return "";
         }
 
@@ -514,7 +566,9 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
             minPerc; // fix warning
 
             return "";
-        }
+        } else if (style.starts_with("popout")) {
+			return "";
+		}
         return "";
         return "unknown style";
     } else {

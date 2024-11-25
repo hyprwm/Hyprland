@@ -51,6 +51,7 @@ class CAnimationManager {
 
     // Anim stuff
     void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
+	void animationPopout(PHLWINDOW, bool close = false, float maxPerc = 1.5f);
     void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
 };
 

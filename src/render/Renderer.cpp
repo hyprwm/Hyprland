@@ -331,7 +331,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (pWindow->m_pMonitor == pMonitor)
         return true;
 
-    if (!(!pWindow->m_pWorkspace || !pWindow->m_pWorkspace->isVisible()) && pWindow->m_pMonitor != pMonitor)
+    if ((!pWindow->m_pWorkspace || !pWindow->m_pWorkspace->isVisible()) && pWindow->m_pMonitor != pMonitor)
         return false;
 
     // if not, check if it maybe is active on a different monitor.

@@ -332,8 +332,10 @@ void CSeatManager::sendPointerAxis(uint32_t timeMs, wl_pointer_axis axis, double
             p->sendAxisRelativeDirection(axis, relative);
 
             if (source == 0) {
-                p->sendAxisValue120(axis, value120);
-                p->sendAxisDiscrete(axis, discrete);
+                if (p->version() >= 8)
+                    p->sendAxisValue120(axis, value120);
+                else
+                    p->sendAxisDiscrete(axis, discrete);
             } else if (value == 0)
                 p->sendAxisStop(timeMs, axis);
         }

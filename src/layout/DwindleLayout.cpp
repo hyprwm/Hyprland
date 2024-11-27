@@ -12,6 +12,10 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
         if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0)
             splitTop = box.h * *PFLMULT > box.w;
 
+        const float FIRSTSIZE = box.w / 2.0 * splitRatio;
+        if (FIRSTSIZE < box.h && box.w - FIRSTSIZE < box.h)
+            splitTop = true;
+
         if (verticalOverride == true)
             splitTop = true;
         else if (horizontalOverride == true)
@@ -423,6 +427,11 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
         } else {
             OPENINGON->pParent->children[1] = NEWPARENT;
         }
+    }
+
+    const auto WH = Vector2D(NEWPARENT->box.w / 2.f, NEWPARENT->box.h);
+    if (WH.y > WH.x) {
+        verticalOverride = true;
     }
 
     // Update the children

@@ -1395,6 +1395,19 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
+    // Prioritize focus change within groups if the window is part of it.
+    if (!PLASTWINDOW->m_sGroupData.pNextWindow.expired()) {
+        if (arg == 'l' && PLASTWINDOW != PLASTWINDOW->getGroupHead()) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+            return {};
+        }
+        else if (arg == 'r' && PLASTWINDOW != PLASTWINDOW->getGroupTail()) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
+            return {};
+        }
+    }
+
+
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
         switchToWindow(PWINDOWTOCHANGETO);

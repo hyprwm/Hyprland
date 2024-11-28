@@ -2988,13 +2988,13 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                     else
                         configStringToInt(TOKEN).and_then([&colorData](const auto& e) {
                             colorData.m_vColors.push_back(e);
-                            return std::result_of<decltype (&configStringToInt)(std::string)>::type(1);
+                            return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                         });
                 }
             } else if (VAL != "-1")
                 configStringToInt(VAL).and_then([&colorData](const auto& e) {
                     colorData.m_vColors.push_back(e);
-                    return std::result_of<decltype (&configStringToInt)(std::string)>::type(1);
+                    return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                 });
 
             if (PROP == "activebordercolor")

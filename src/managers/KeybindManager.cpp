@@ -1401,12 +1401,12 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
             PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
             return {};
         }
+
         else if (arg == 'r' && PLASTWINDOW != PLASTWINDOW->getGroupTail()) {
             PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
             return {};
         }
     }
-
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {

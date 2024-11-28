@@ -21,6 +21,7 @@ struct SKeybind {
     uint32_t               keycode        = 0;
     bool                   catchAll       = false;
     uint32_t               modmask        = 0;
+    std::string            modkeys        = "";
     std::set<xkb_keysym_t> sMkMods        = {};
     std::string            handler        = "";
     std::string            arg            = "";

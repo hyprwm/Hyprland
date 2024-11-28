@@ -115,7 +115,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     const auto HLVER = getHyprlandVersion();
 
     if (!hasDeps()) {
-        std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio"));
+        std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio, pkg-config"));
         return false;
     }
 
@@ -421,7 +421,7 @@ bool CPluginManager::updateHeaders(bool force) {
     const auto HLVER = getHyprlandVersion();
 
     if (!hasDeps()) {
-        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio"));
+        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio, pkg-config"));
         return false;
     }
 

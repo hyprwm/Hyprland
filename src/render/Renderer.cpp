@@ -859,6 +859,10 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
     static auto PBLURIMES    = CConfigValue<Hyprlang::INT>("decoration:blur:input_methods");
     static auto PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:input_methods_ignorealpha");
 
+    // TODO: make push/pop methods for this.
+    const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
+    const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
+
     renderdata.blur = *PBLURIMES && *PBLUR;
     if (renderdata.blur) {
         g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
@@ -866,6 +870,9 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
     }
 
     SURF->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
+
+    g_pHyprOpenGL->m_RenderData.discardMode    = DM;
+    g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLMONITOR pMonitor, timespec* time) {

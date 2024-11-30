@@ -206,6 +206,7 @@ struct SWindowRule {
     std::string szTag;
     int         bX11              = -1; // -1 means "ANY"
     int         bFloating         = -1;
+    int         bPseudo           = -1;
     int         bFullscreen       = -1;
     int         bPinned           = -1;
     int         bFocus            = -1;

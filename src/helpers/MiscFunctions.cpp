@@ -528,7 +528,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             } else if (isNumber(in))
                 result.id = std::max(std::stoi(in), 1);
             else {
-                // maybe name
+                // prob name
                 const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);
                 if (PWORKSPACE)
                     result.id = PWORKSPACE->m_iID;
@@ -582,16 +582,6 @@ float vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Ve
     const float DX = std::max({0.0, p1.x - vec.x, vec.x - p2.x});
     const float DY = std::max({0.0, p1.y - vec.y, vec.y - p2.y});
     return DX * DX + DY * DY;
-}
-
-// Execute a shell command and get the output
-std::string execAndGet(const char* cmd) {
-    CProcess proc("/bin/sh", {"-c", cmd});
-
-    if (!proc.runSync())
-        return "error";
-
-    return proc.stdOut();
 }
 
 void logSystemInfo() {

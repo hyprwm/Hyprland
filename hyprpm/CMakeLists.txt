@@ -13,7 +13,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0.2.4)
 
 add_executable(hyprpm ${SRCFILES})
 
-target_link_libraries(hyprpm PUBLIC PkgConfig::deps)
+target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps)
 
 # binary
 install(TARGETS hyprpm)

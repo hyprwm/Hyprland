@@ -247,7 +247,7 @@ target_precompile_headers(Hyprland PRIVATE
 
 message(STATUS "Setting link libraries")
 
-target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::deps)
+target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::hyprlang_dep PkgConfig::hyprutils_dep PkgConfig::hyprcursor_dep PkgConfig::deps)
 if(udis_dep_FOUND)
   target_link_libraries(Hyprland PkgConfig::udis_dep)
 else()

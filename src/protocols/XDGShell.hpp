@@ -199,12 +199,12 @@ class CXDGSurfaceResource {
     void configure();
 
   private:
-    SP<CXdgSurface>  resource;
+    SP<CXdgSurface> resource;
 
-    uint32_t         lastConfigureSerial = 0;
-    uint32_t         scheduledSerial     = 0;
+    uint32_t        lastConfigureSerial = 0;
+    uint32_t        scheduledSerial     = 0;
 
-    wl_event_source* configureSource = nullptr;
+    bool            configureScheduled = false;
 
     //
     std::vector<WP<CXDGPopupResource>> popups;

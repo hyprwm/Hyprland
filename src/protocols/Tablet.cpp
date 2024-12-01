@@ -2,6 +2,7 @@
 #include "../devices/Tablet.hpp"
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
@@ -162,11 +163,6 @@ CTabletToolV2Resource::CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<
     });
 }
 
-CTabletToolV2Resource::~CTabletToolV2Resource() {
-    if (frameSource)
-        wl_event_source_remove(frameSource);
-}
-
 bool CTabletToolV2Resource::good() {
     return resource->resource();
 }
@@ -205,20 +201,22 @@ void CTabletToolV2Resource::sendData() {
 }
 
 void CTabletToolV2Resource::queueFrame() {
-    if (frameSource)
+    if (frameQueued)
         return;
 
-    frameSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, [](void* data) { ((CTabletToolV2Resource*)data)->sendFrame(false); }, this);
+    frameQueued = true;
+    g_pEventLoopManager->doLater([this]() {
+        if (!frameQueued || tool.expired() || inert)
+            return;
+
+        sendFrame();
+    });
 }
 
-void CTabletToolV2Resource::sendFrame(bool removeSource) {
-    if (frameSource) {
-        if (removeSource)
-            wl_event_source_remove(frameSource);
-        frameSource = nullptr;
-    }
+void CTabletToolV2Resource::sendFrame() {
+    frameQueued = false;
 
-    if (!current)
+    if (!current || !resource)
         return;
 
     timespec now;

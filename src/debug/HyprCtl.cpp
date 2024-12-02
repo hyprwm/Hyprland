@@ -875,8 +875,9 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
                                          "Tag: {}, commits: {}\n"
-                                         "built against aquamarine {}\n\n\n",
-                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION);
+                                         "built against:\n aquamarine {}\n hyprlang {}\n hyprutils {}\n hyprcursor {}\n\n\n",
+                                         HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION,
+                                         HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION);
 
 #if (!defined(LEGACY_RENDERER) && !defined(ISDEBUG) && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
@@ -905,9 +906,12 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "tag": "{}",
     "commits": "{}",
     "buildAquamarine": "{}",
+    "buildHyprlang": "{}",
+    "buildHyprutils": "{}",
+    "buildHyprcursor": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, HYPRLAND_VERSION, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG,
-            GIT_COMMITS, AQUAMARINE_VERSION);
+            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";

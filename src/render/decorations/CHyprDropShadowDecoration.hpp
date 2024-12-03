@@ -34,7 +34,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     Vector2D     m_vLastWindowPos;
     Vector2D     m_vLastWindowSize;
 
-    void         drawShadowInternal(CBox* box, int round, int range, CColor color, float a);
+    void         drawShadowInternal(CBox* box, int round, int range, CHyprColor color, float a);
 
     CBox         m_bLastWindowBox          = {0};
     CBox         m_bLastWindowBoxWithDecos = {0};

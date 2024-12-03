@@ -2,7 +2,7 @@
 #include <limits>
 #include "render/Renderer.hpp"
 
-CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CColor col_) {
+CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColor col_) {
     LOGM(LOG, "New single-pixel buffer with color 0x{:x}", col_.getAsHex());
 
     color = col_.getAsHex();
@@ -59,7 +59,7 @@ bool CSinglePixelBuffer::good() {
     return resource->good();
 }
 
-CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* client, CColor color) {
+CSinglePixelBufferResource::CSinglePixelBufferResource(uint32_t id, wl_client* client, CHyprColor color) {
     buffer = makeShared<CSinglePixelBuffer>(id, client, color);
 
     if (!buffer->good())
@@ -89,8 +89,8 @@ CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(SP<CWpSingl
     resource->setOnDestroy([this](CWpSinglePixelBufferManagerV1* r) { PROTO::singlePixel->destroyResource(this); });
 
     resource->setCreateU32RgbaBuffer([this](CWpSinglePixelBufferManagerV1* res, uint32_t id, uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
-        CColor     color{r / (float)std::numeric_limits<uint32_t>::max(), g / (float)std::numeric_limits<uint32_t>::max(), b / (float)std::numeric_limits<uint32_t>::max(),
-                     a / (float)std::numeric_limits<uint32_t>::max()};
+        CHyprColor color{r / (float)std::numeric_limits<uint32_t>::max(), g / (float)std::numeric_limits<uint32_t>::max(), b / (float)std::numeric_limits<uint32_t>::max(),
+                         a / (float)std::numeric_limits<uint32_t>::max()};
         const auto RESOURCE = PROTO::singlePixel->m_vBuffers.emplace_back(makeShared<CSinglePixelBufferResource>(id, resource->client(), color));
 
         if (!RESOURCE->good()) {

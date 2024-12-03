@@ -275,7 +275,7 @@ void CKeybindManager::updateXKBTranslationState() {
     if (!PKEYMAP) {
         g_pHyprError->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
                                       ", layout: " + LAYOUT + " )",
-                                  CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+                                  CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
         Debug::log(ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
                    rules.rules, rules.model, rules.options);

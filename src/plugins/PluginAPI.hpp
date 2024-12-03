@@ -187,7 +187,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addNotification(HANDLE handle, const std::string& text, const CColor& color, const float timeMs);
+    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs);
 
     /*
         Creates a trampoline function hook to an internal hl func.
@@ -251,7 +251,7 @@ namespace HyprlandAPI {
         data has to contain:
          - text: std::string or const char*
          - time: uint64_t
-         - color: CColor -> CColor(0) will apply the default color for the notification icon
+         - color: CHyprColor -> CHyprColor(0) will apply the default color for the notification icon
 
         data may contain:
          - icon: eIcons

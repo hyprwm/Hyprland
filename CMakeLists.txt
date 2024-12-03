@@ -107,11 +107,13 @@ pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.4.5)
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=0.2.3)
+pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=0.1.1)
 
 add_compile_definitions(AQUAMARINE_VERSION="${aquamarine_dep_VERSION}")
 add_compile_definitions(HYPRLANG_VERSION="${hyprlang_dep_VERSION}")
 add_compile_definitions(HYPRUTILS_VERSION="${hyprutils_dep_VERSION}")
 add_compile_definitions(HYPRCURSOR_VERSION="${hyprcursor_dep_VERSION}")
+add_compile_definitions(HYPRGRAPHICS_VERSION="${hyprgraphics_dep_VERSION}")
 
 pkg_check_modules(
   deps
@@ -247,7 +249,7 @@ target_precompile_headers(Hyprland PRIVATE
 
 message(STATUS "Setting link libraries")
 
-target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::hyprlang_dep PkgConfig::hyprutils_dep PkgConfig::hyprcursor_dep PkgConfig::deps)
+target_link_libraries(Hyprland rt PkgConfig::aquamarine_dep PkgConfig::hyprlang_dep PkgConfig::hyprutils_dep PkgConfig::hyprcursor_dep PkgConfig::hyprgraphics_dep PkgConfig::deps)
 if(udis_dep_FOUND)
   target_link_libraries(Hyprland PkgConfig::udis_dep)
 else()

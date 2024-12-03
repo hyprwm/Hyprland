@@ -619,7 +619,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
     if (*PDIMAROUND && pWindow->m_sWindowData.dimAround.valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
+        g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
     }
 
     renderdata.x += pWindow->m_vFloatingOffset.x;
@@ -668,7 +668,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         if (!pWindow->m_sWindowData.noBlur.valueOrDefault() && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
             CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
-            g_pHyprOpenGL->renderRectWithBlur(&wb, CColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
+            g_pHyprOpenGL->renderRectWithBlur(&wb, CHyprColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
                                               g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow));
             renderdata.blur = false;
         }
@@ -780,7 +780,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 
     if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot && !popups) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * pLayer->alpha.value()));
+        g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->alpha.value()));
     }
 
     if (pLayer->fadingOut) {
@@ -919,7 +919,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         g_pHyprOpenGL->blend(false);
         if (!canSkipBackBufferClear(pMonitor)) {
             if (*PRENDERTEX /* inverted cfg flag */)
-                g_pHyprOpenGL->clear(CColor(*PBACKGROUNDCOLOR));
+                g_pHyprOpenGL->clear(CHyprColor(*PBACKGROUNDCOLOR));
             else
                 g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
         }
@@ -959,7 +959,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         g_pHyprOpenGL->blend(false);
         if (!canSkipBackBufferClear(pMonitor)) {
             if (*PRENDERTEX /* inverted cfg flag */)
-                g_pHyprOpenGL->clear(CColor(*PBACKGROUNDCOLOR));
+                g_pHyprOpenGL->clear(CHyprColor(*PBACKGROUNDCOLOR));
             else
                 g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
         }
@@ -995,12 +995,12 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
             if (*PDIMSPECIAL != 0.f) {
                 CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+                g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
             }
 
             if (*PBLURSPECIAL && *PBLUR) {
                 CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRectWithBlur(&monbox, CColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+                g_pHyprOpenGL->renderRectWithBlur(&monbox, CHyprColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
             }
 
             break;
@@ -1447,7 +1447,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
                 if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
                     CBox monrect = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-                    g_pHyprOpenGL->renderRect(&monrect, CColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
+                    g_pHyprOpenGL->renderRect(&monrect, CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
                     damageBlinkCleanup = 1;
                 } else if (*PDAMAGEBLINK) {
                     damageBlinkCleanup++;
@@ -2526,7 +2526,7 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - (int)(g_pHyprRenderer->m_fCrashingDistort * 2.f)) + "s.", CColor(0), 5000,
+    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - (int)(g_pHyprRenderer->m_fCrashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
                                                 ICON_INFO);
 
     g_pHyprRenderer->m_fCrashingDistort += 0.5f;
@@ -2540,7 +2540,7 @@ static int handleCrashLoop(void* data) {
 }
 
 void CHyprRenderer::initiateManualCrash() {
-    g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CColor(0), 5000, ICON_INFO);
+    g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
 
     m_pCrashingLoop = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, handleCrashLoop, nullptr);
     wl_event_source_timer_update(m_pCrashingLoop, 1000);

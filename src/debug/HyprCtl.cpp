@@ -875,9 +875,9 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
                                          "Tag: {}, commits: {}\n"
-                                         "built against:\n aquamarine {}\n hyprlang {}\n hyprutils {}\n hyprcursor {}\n\n\n",
+                                         "built against:\n aquamarine {}\n hyprlang {}\n hyprutils {}\n hyprcursor {}\n hyprgraphics {}\n\n\n",
                                          HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION,
-                                         HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION);
+                                         HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
 
 #if (!defined(LEGACY_RENDERER) && !defined(ISDEBUG) && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
@@ -909,9 +909,10 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
     "buildHyprlang": "{}",
     "buildHyprutils": "{}",
     "buildHyprcursor": "{}",
+    "buildHyprgraphics": "{}",
     "flags": [)#",
             GIT_BRANCH, GIT_COMMIT_HASH, HYPRLAND_VERSION, (strcmp(GIT_DIRTY, "dirty") == 0 ? "true" : "false"), escapeJSONStrings(commitMsg), GIT_COMMIT_DATE, GIT_TAG,
-            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION);
+            GIT_COMMITS, AQUAMARINE_VERSION, HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
 
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
@@ -1290,7 +1291,7 @@ std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
         return "ok";
     }
 
-    const CColor COLOR = configStringToInt(vars[1]).value_or(0);
+    const CHyprColor COLOR = configStringToInt(vars[1]).value_or(0);
 
     for (size_t i = 2; i < vars.size(); ++i)
         errorMessage += vars[i] + ' ';
@@ -1545,10 +1546,10 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     const auto COLOR_RESULT = configStringToInt(vars[3]);
     if (!COLOR_RESULT)
         return "invalid arg 3";
-    CColor color = *COLOR_RESULT;
+    CHyprColor color = *COLOR_RESULT;
 
-    size_t msgidx   = 4;
-    float  fontsize = 13.f;
+    size_t     msgidx   = 4;
+    float      fontsize = 13.f;
     if (vars[msgidx].length() > 9 && vars[msgidx].compare(0, 9, "fontsize:") == 0) {
         const auto FONTSIZE = vars[msgidx].substr(9);
 

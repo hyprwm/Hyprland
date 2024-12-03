@@ -1873,11 +1873,11 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     // shadow
     if (!pWindow->isX11OverrideRedirect() && !pWindow->m_bX11DoesntWantBorders) {
         if (pWindow == m_pLastWindow)
-            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOL);
+            pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOL);
         else
-            pWindow->m_cRealShadowColor = CColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+            pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
     } else {
-        pWindow->m_cRealShadowColor.setValueAndWarp(CColor(0, 0, 0, 0)); // no shadow
+        pWindow->m_cRealShadowColor.setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
     }
 
     pWindow->updateWindowDecos();
@@ -2608,14 +2608,14 @@ void CCompositor::performUserChecks() {
             g_pHyprNotificationOverlay->addNotification(
                 std::format("Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {}.\nThis might cause issues unless it's intentional.",
                             CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
-                CColor{}, 15000, ICON_WARNING);
+                CHyprColor{}, 15000, ICON_WARNING);
         }
     }
 
     if (g_pHyprOpenGL->failedAssetsNo > 0) {
         g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
                                                                 g_pHyprOpenGL->failedAssetsNo, g_pHyprOpenGL->failedAssetsNo > 1 ? "s" : ""),
-                                                    CColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
+                                                    CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 }
 

@@ -33,7 +33,9 @@ runs:
           libfontenc \
           libglvnd \
           libinput \
+          libjxl \
           libliftoff \
+          libwebp \
           libxcursor \
           libxcvt \
           libxfont2 \
@@ -68,6 +70,11 @@ runs:
         cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
         cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
         cmake --install build
+
+    - name: Get hyprgraphics-git
+      shell: bash
+      run: |
+        git clone https://github.com/hyprwm/hyprgraphics && cd hyprgraphics && cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -B build && cmake --build build --target hyprgraphics && cmake --install build
 
     - name: Get hyprutils-git
       shell: bash

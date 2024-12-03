@@ -692,6 +692,8 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
                     inactiveBorderGradient.m_vColors.push_back(configStringToInt(token).value_or(0));
             }
 
+            activeBorderGradient.updateColorsOk();
+
             // Includes sanity checks for the number of colors in each gradient
             if (activeBorderGradient.m_vColors.size() > 10 || inactiveBorderGradient.m_vColors.size() > 10)
                 Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", r.szRule);

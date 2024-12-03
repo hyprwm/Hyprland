@@ -2997,6 +2997,8 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                     return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                 });
 
+            colorData.updateColorsOk();
+
             if (PROP == "activebordercolor")
                 PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);
             else

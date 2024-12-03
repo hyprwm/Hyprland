@@ -255,7 +255,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
         return false;
 
-    g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
 
     // render client at 0,0
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
@@ -308,7 +308,7 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, buffer.lock()))
         return false;
 
-    g_pHyprOpenGL->clear(CColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(pWindow); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, now, false, RENDER_PASS_ALL, true, true);

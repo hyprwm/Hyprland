@@ -93,7 +93,7 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (!validMapped(PWINDOW))
         return;
 
-    if (PWINDOW->m_cRealShadowColor.value() == CColor(0, 0, 0, 0))
+    if (PWINDOW->m_cRealShadowColor.value() == CHyprColor(0, 0, 0, 0))
         return; // don't draw invisible shadows
 
     if (!PWINDOW->m_sWindowData.decorate.valueOrDefault())
@@ -181,13 +181,13 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
         // first, clear region of interest with black (fully transparent)
-        g_pHyprOpenGL->renderRect(&fullBox, CColor(0, 0, 0, 1), 0);
+        g_pHyprOpenGL->renderRect(&fullBox, CHyprColor(0, 0, 0, 1), 0);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
-        drawShadowInternal(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CColor(1, 1, 1, PWINDOW->m_cRealShadowColor.value().a), a);
+        drawShadowInternal(&fullBox, ROUNDING * pMonitor->scale, *PSHADOWSIZE * pMonitor->scale, CHyprColor(1, 1, 1, PWINDOW->m_cRealShadowColor.value().a), a);
 
         // render black window box ("clip")
-        g_pHyprOpenGL->renderRect(&windowBox, CColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->scale);
+        g_pHyprOpenGL->renderRect(&windowBox, CHyprColor(0, 0, 0, 1.0), (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->scale);
 
         alphaSwapFB.bind();
 
@@ -215,7 +215,7 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
     return DECORATION_LAYER_BOTTOM;
 }
 
-void CHyprDropShadowDecoration::drawShadowInternal(CBox* box, int round, int range, CColor color, float a) {
+void CHyprDropShadowDecoration::drawShadowInternal(CBox* box, int round, int range, CHyprColor color, float a) {
     static auto PSHADOWSHARP = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
 
     g_pHyprOpenGL->blend(true);

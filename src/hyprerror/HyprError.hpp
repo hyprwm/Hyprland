@@ -11,7 +11,7 @@ class CHyprError {
     CHyprError();
     ~CHyprError();
 
-    void  queueCreate(std::string message, const CColor& color);
+    void  queueCreate(std::string message, const CHyprColor& color);
     void  draw();
     void  destroy();
 
@@ -21,7 +21,7 @@ class CHyprError {
   private:
     void                     createQueued();
     std::string              m_szQueued = "";
-    CColor                   m_cQueued;
+    CHyprColor               m_cQueued;
     bool                     m_bQueuedDestroy = false;
     bool                     m_bIsCreated     = false;
     SP<CTexture>             m_pTexture;

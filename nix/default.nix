@@ -12,6 +12,7 @@
   cairo,
   git,
   hyprcursor,
+  hyprgraphics,
   hyprland-protocols,
   hyprlang,
   hyprutils,
@@ -113,6 +114,7 @@ in
           cairo
           git
           hyprcursor
+          hyprgraphics
           hyprland-protocols
           hyprlang
           hyprutils

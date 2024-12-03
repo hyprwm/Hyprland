@@ -566,7 +566,11 @@ void CHyprOpenGLImpl::logShaderError(const GLuint& shader, bool program) {
         glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog.data());
     std::string errorStr(errorLog.begin(), errorLog.end());
 
-    g_pConfigManager->addParseError((program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr);
+    const auto  FULLERROR = (program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr;
+
+    Debug::log(ERR, "Failed to link shader: {}", FULLERROR);
+
+    g_pConfigManager->addParseError(FULLERROR);
 }
 
 GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string& frag, bool dynamic) {
@@ -604,6 +608,8 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
             return 0;
         }
     } else {
+        if (ok != GL_TRUE)
+            logShaderError(prog, true);
         RASSERT(ok != GL_FALSE, "createProgram() failed! GL_LINK_STATUS not OK!");
     }
 
@@ -627,6 +633,8 @@ GLuint CHyprOpenGLImpl::compileShader(const GLuint& type, std::string src, bool 
             return 0;
         }
     } else {
+        if (ok != GL_TRUE)
+            logShaderError(shader, false);
         RASSERT(ok != GL_FALSE, "compileShader() failed! GL_COMPILE_STATUS not OK!");
     }
 
@@ -1114,8 +1122,12 @@ void CHyprOpenGLImpl::initShaders() {
     m_RenderData.pCurrentMonData->m_shBORDER1.radius                = glGetUniformLocation(prog, "radius");
     m_RenderData.pCurrentMonData->m_shBORDER1.radiusOuter           = glGetUniformLocation(prog, "radiusOuter");
     m_RenderData.pCurrentMonData->m_shBORDER1.gradient              = glGetUniformLocation(prog, "gradient");
+    m_RenderData.pCurrentMonData->m_shBORDER1.gradient2             = glGetUniformLocation(prog, "gradient2");
     m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength        = glGetUniformLocation(prog, "gradientLength");
+    m_RenderData.pCurrentMonData->m_shBORDER1.gradient2Length       = glGetUniformLocation(prog, "gradient2Length");
     m_RenderData.pCurrentMonData->m_shBORDER1.angle                 = glGetUniformLocation(prog, "angle");
+    m_RenderData.pCurrentMonData->m_shBORDER1.angle2                = glGetUniformLocation(prog, "angle2");
+    m_RenderData.pCurrentMonData->m_shBORDER1.gradientLerp          = glGetUniformLocation(prog, "gradientLerp");
     m_RenderData.pCurrentMonData->m_shBORDER1.alpha                 = glGetUniformLocation(prog, "alpha");
 
     m_RenderData.pCurrentMonData->m_bShadersInitialized = true;
@@ -1167,7 +1179,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     m_sFinalScreenShader.posAttrib = glGetAttribLocation(m_sFinalScreenShader.program, "pos");
 }
 
-void CHyprOpenGLImpl::clear(const CColor& color) {
+void CHyprOpenGLImpl::clear(const CHyprColor& color) {
     RASSERT(m_RenderData.pMonitor, "Tried to render without begin()!");
 
     TRACY_GPU_ZONE("RenderClear");
@@ -1231,12 +1243,12 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
     scissor(&box, transform);
 }
 
-void CHyprOpenGLImpl::renderRect(CBox* box, const CColor& col, int round) {
+void CHyprOpenGLImpl::renderRect(CBox* box, const CHyprColor& col, int round) {
     if (!m_RenderData.damage.empty())
         renderRectWithDamage(box, col, &m_RenderData.damage, round);
 }
 
-void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round, float blurA, bool xray) {
+void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CHyprColor& col, int round, float blurA, bool xray) {
     if (m_RenderData.damage.empty())
         return;
 
@@ -1258,7 +1270,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderRect(box, CColor(0, 0, 0, 0), round);
+    renderRect(box, CHyprColor(0, 0, 0, 0), round);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -1283,7 +1295,7 @@ void CHyprOpenGLImpl::renderRectWithBlur(CBox* box, const CColor& col, int round
     renderRectWithDamage(box, col, &m_RenderData.damage, round);
 }
 
-void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CColor& col, CRegion* damage, int round) {
+void CHyprOpenGLImpl::renderRectWithDamage(CBox* box, const CHyprColor& col, CRegion* damage, int round) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 
@@ -1981,7 +1993,7 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
                                                m_RenderData.pMonitor->output->state->state().drmFormat);
     m_RenderData.pCurrentMonData->blurFB.bind();
 
-    clear(CColor(0, 0, 0, 0));
+    clear(CHyprColor(0, 0, 0, 0));
 
     m_bEndFrame = true; // fix transformed
     renderTextureInternalWithDamage(POUTFB->getTexture(), &wholeMonitor, 1, &fakeDamage, 0, false, true, false);
@@ -2100,7 +2112,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     if (USENEWOPTIMIZE && !(m_RenderData.discardMode & DISCARD_ALPHA))
-        renderRect(pBox, CColor(0, 0, 0, 0), round);
+        renderRect(pBox, CHyprColor(0, 0, 0, 0), round);
     else
         renderTexture(tex, pBox, a, round, true, true); // discard opaque
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -2184,12 +2196,107 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    static_assert(sizeof(CColor) == 4 * sizeof(float)); // otherwise the line below this will fail
-
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColors.size(), (float*)grad.m_vColors.data());
-    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColors.size());
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size(), (float*)grad.m_vColorsOkLabA.data());
+    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColorsOkLabA.size() / 4);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
+    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2Length, 0);
+
+    CBox transformedBox = *box;
+    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
+                             m_RenderData.pMonitor->vecTransformedSize.y);
+
+    const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
+    const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
+
+    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.topLeft, (float)TOPLEFT.x, (float)TOPLEFT.y);
+    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSize, (float)FULLSIZE.x, (float)FULLSIZE.y);
+    glUniform2f(m_RenderData.pCurrentMonData->m_shBORDER1.fullSizeUntransformed, (float)box->width, (float)box->height);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radius, round);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.radiusOuter, outerRound == -1 ? round : outerRound);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.thick, scaledBorderSize);
+
+    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+    glVertexAttribPointer(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib, 2, GL_FLOAT, GL_FALSE, 0, fullVerts);
+
+    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);
+    glEnableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
+
+    if (m_RenderData.clipBox.width != 0 && m_RenderData.clipBox.height != 0) {
+        CRegion damageClip{m_RenderData.clipBox.x, m_RenderData.clipBox.y, m_RenderData.clipBox.width, m_RenderData.clipBox.height};
+        damageClip.intersect(m_RenderData.damage);
+
+        if (!damageClip.empty()) {
+            for (auto const& RECT : damageClip.getRects()) {
+                scissor(&RECT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+        }
+    } else {
+        for (auto const& RECT : m_RenderData.damage.getRects()) {
+            scissor(&RECT);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+    }
+
+    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.posAttrib);
+    glDisableVertexAttribArray(m_RenderData.pCurrentMonData->m_shBORDER1.texAttrib);
+
+    blend(BLEND);
+}
+
+void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad1, const CGradientValueData& grad2, float lerp, int round, int borderSize, float a, int outerRound) {
+    RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
+    RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
+
+    TRACY_GPU_ZONE("RenderBorder2");
+
+    if (m_RenderData.damage.empty() || (m_pCurrentWindow.lock() && m_pCurrentWindow->m_sWindowData.noBorder.valueOrDefault()))
+        return;
+
+    CBox newBox = *box;
+    m_RenderData.renderModif.applyToBox(newBox);
+
+    box = &newBox;
+
+    if (borderSize < 1)
+        return;
+
+    int scaledBorderSize = std::round(borderSize * m_RenderData.pMonitor->scale);
+    scaledBorderSize     = std::round(scaledBorderSize * m_RenderData.renderModif.combinedScale());
+
+    // adjust box
+    box->x -= scaledBorderSize;
+    box->y -= scaledBorderSize;
+    box->width += 2 * scaledBorderSize;
+    box->height += 2 * scaledBorderSize;
+
+    round += round == 0 ? 0 : scaledBorderSize;
+
+    Mat3x3 matrix = m_RenderData.monitorProjection.projectBox(
+        newBox, wlTransformToHyprutils(invertTransform(!m_bEndFrame ? WL_OUTPUT_TRANSFORM_NORMAL : m_RenderData.pMonitor->transform)), newBox.rot);
+    Mat3x3     glMatrix = m_RenderData.projection.copy().multiply(matrix);
+
+    const auto BLEND = m_bBlend;
+    blend(true);
+
+    glUseProgram(m_RenderData.pCurrentMonData->m_shBORDER1.program);
+
+#ifndef GLES2
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_TRUE, glMatrix.getMatrix().data());
+#else
+    glMatrix.transpose();
+    glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
+#endif
+
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size(), (float*)grad1.m_vColorsOkLabA.data());
+    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad1.m_vColorsOkLabA.size() / 4);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, (int)(grad1.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size(), (float*)grad2.m_vColorsOkLabA.data());
+    glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2Length, grad2.m_vColorsOkLabA.size() / 4);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle2, (int)(grad2.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
+    glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLerp, lerp);
 
     CBox transformedBox = *box;
     transformedBox.transform(wlTransformToHyprutils(invertTransform(m_RenderData.pMonitor->transform)), m_RenderData.pMonitor->vecTransformedSize.x,
@@ -2253,7 +2360,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFr
 
     g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, pFramebuffer);
 
-    clear(CColor(0, 0, 0, 0)); // JIC
+    clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -2272,7 +2379,7 @@ void CHyprOpenGLImpl::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFr
 
     m_RenderData.currentFB = pFramebuffer;
 
-    clear(CColor(0, 0, 0, 0)); // JIC
+    clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, false, RENDER_PASS_ALL, true);
 
@@ -2308,7 +2415,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
 
     g_pHyprRenderer->m_bRenderingSnapshot = true;
 
-    clear(CColor(0, 0, 0, 0)); // JIC
+    clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -2322,7 +2429,7 @@ void CHyprOpenGLImpl::makeWindowSnapshot(PHLWINDOW pWindow) {
     const auto         BLURVAL = **PBLUR;
     **PBLUR                    = 0;
 
-    clear(CColor(0, 0, 0, 0)); // JIC
+    clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     g_pHyprRenderer->renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
 
@@ -2355,7 +2462,7 @@ void CHyprOpenGLImpl::makeLayerSnapshot(PHLLS pLayer) {
 
     g_pHyprRenderer->m_bRenderingSnapshot = true;
 
-    clear(CColor(0, 0, 0, 0)); // JIC
+    clear(CHyprColor(0, 0, 0, 0)); // JIC
 
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
@@ -2405,7 +2512,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
     if (*PDIMAROUND && pWindow->m_sWindowData.dimAround.valueOrDefault()) {
         CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CColor(0, 0, 0, *PDIMAROUND * pWindow->m_fAlpha.value()));
+        g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_fAlpha.value()));
         g_pHyprRenderer->damageMonitor(PMONITOR);
     }
 
@@ -2449,7 +2556,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
     m_bEndFrame = false;
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const CColor& color, float a) {
+void CHyprOpenGLImpl::renderRoundedShadow(CBox* box, int round, int range, const CHyprColor& color, float a) {
     RASSERT(m_RenderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box->width > 0 && box->height > 0), "Tried to render shadow with width/height < 0!");
     RASSERT(m_pCurrentWindow.lock(), "Tried to render shadow without a window!");
@@ -2568,7 +2675,7 @@ void CHyprOpenGLImpl::renderMirrored() {
                                          .translate(-monitor->vecTransformedSize / 2.0);
 
     // clear stuff outside of mirrored area (e.g. when changing to mirrored)
-    clear(CColor(0, 0, 0, 0));
+    clear(CHyprColor(0, 0, 0, 0));
 
     renderTexture(PFB->getTexture(), &monbox, 1.f, 0, false, false);
 
@@ -2583,7 +2690,7 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
 
     const auto            FONTFAMILY = *PSPLASHFONT != STRVAL_EMPTY ? *PSPLASHFONT : *FALLBACKFONT;
     const auto            FONTSIZE   = (int)(size.y / 76);
-    const auto            COLOR      = CColor(*PSPLASHCOLOR);
+    const auto            COLOR      = CHyprColor(*PSPLASHCOLOR);
 
     PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
     PangoFontDescription* pangoFD    = pango_font_description_new();
@@ -2671,7 +2778,7 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CColor col, int pt, bool italic) {
+SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic) {
     SP<CTexture>          tex = makeShared<CTexture>();
 
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
@@ -2804,7 +2911,7 @@ void CHyprOpenGLImpl::initAssets() {
                                                    g_pCompositor->m_pAqBackend->hasSession() && g_pCompositor->m_pAqBackend->session->vt > 0 ?
                                                        std::to_string(g_pCompositor->m_pAqBackend->session->vt) :
                                                        "unknown"),
-                                       CColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+                                       CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 
     // create the default background texture
     {
@@ -2889,7 +2996,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
     blend(true);
-    clear(CColor{0, 0, 0, 1});
+    clear(CHyprColor{0, 0, 0, 1});
 
     // first render the background
     if (m_pBackgroundTexture) {
@@ -2981,7 +3088,7 @@ void CHyprOpenGLImpl::restoreMatrix() {
 
 void CHyprOpenGLImpl::bindOffMain() {
     m_RenderData.pCurrentMonData->offMainFB.bind();
-    clear(CColor(0, 0, 0, 0));
+    clear(CHyprColor(0, 0, 0, 0));
     m_RenderData.currentFB = &m_RenderData.pCurrentMonData->offMainFB;
 }
 

@@ -487,19 +487,23 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         SRange       monX = {MON->vecPosition.x + BORDERSIZE, MON->vecPosition.x + MON->vecSize.x - BORDERSIZE};
         SRange       monY = {MON->vecPosition.y + BORDERSIZE, MON->vecPosition.y + MON->vecSize.y - BORDERSIZE};
 
-        if (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
+            (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
+            (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
+            (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
+            (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }

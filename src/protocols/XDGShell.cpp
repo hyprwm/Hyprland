@@ -487,10 +487,14 @@ uint32_t CXDGSurfaceResource::scheduleConfigure() {
     if (configureScheduled)
         return scheduledSerial;
 
-    scheduledSerial = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
-
+    scheduledSerial    = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
     configureScheduled = true;
-    g_pEventLoopManager->doLater([this]() { configure(); });
+
+    // sometimes `this` is unreferencable due to timing, so copy self WP to ensure object is alive
+    g_pEventLoopManager->doLater([pSelf = self] {
+        if (!pSelf.expired())
+            pSelf->configure();
+    });
 
     return scheduledSerial;
 }

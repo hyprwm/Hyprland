@@ -147,7 +147,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CColor            color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
+        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_pLastWindow.lock() ? PCOLACTIVE->m_vColors[0] : PCOLINACTIVE->m_vColors[0];
         color.a *= a;
         g_pHyprOpenGL->renderRect(&rect, color);
 
@@ -205,19 +205,19 @@ void CHyprGroupBarDecoration::invalidateTextures() {
 }
 
 CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) {
-    tex                        = makeShared<CTexture>();
-    szContent                  = pWindow->m_szTitle;
-    pWindowOwner               = pWindow;
-    const auto   LAYOUTSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
-    const auto   LAYOUTCAIRO   = cairo_create(LAYOUTSURFACE);
+    tex                            = makeShared<CTexture>();
+    szContent                      = pWindow->m_szTitle;
+    pWindowOwner                   = pWindow;
+    const auto       LAYOUTSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
+    const auto       LAYOUTCAIRO   = cairo_create(LAYOUTSURFACE);
 
-    static auto  FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
-    static auto  PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
-    static auto  PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
-    static auto  PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
+    static auto      FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
+    static auto      PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
+    static auto      PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
+    static auto      PTEXTCOLOR       = CConfigValue<Hyprlang::INT>("group:groupbar:text_color");
 
-    const CColor COLOR      = CColor(*PTEXTCOLOR);
-    const auto   FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
+    const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
+    const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
     cairo_surface_destroy(LAYOUTSURFACE);
 

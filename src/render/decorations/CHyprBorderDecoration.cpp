@@ -60,7 +60,6 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     auto       grad     = m_pWindow->m_cRealBorderColor;
     const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
-    float      a1       = a * (ANIMATED ? m_pWindow->m_fBorderFadeAnimationProgress.value() : 1.f);
 
     if (m_pWindow->m_fBorderAngleAnimationProgress.getConfig()->pValues->internalEnabled) {
         grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress.value() * M_PI * 2;
@@ -70,12 +69,10 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     int        borderSize = m_pWindow->getRealBorderSize();
     const auto ROUNDING   = m_pWindow->rounding() * pMonitor->scale;
 
-    g_pHyprOpenGL->renderBorder(&windowBox, grad, ROUNDING, borderSize, a1);
-
-    if (ANIMATED) {
-        float a2 = a * (1.f - m_pWindow->m_fBorderFadeAnimationProgress.value());
-        g_pHyprOpenGL->renderBorder(&windowBox, m_pWindow->m_cRealBorderColorPrevious, ROUNDING, borderSize, a2);
-    }
+    if (ANIMATED)
+        g_pHyprOpenGL->renderBorder(&windowBox, m_pWindow->m_cRealBorderColorPrevious, grad, m_pWindow->m_fBorderFadeAnimationProgress.value(), ROUNDING, borderSize, a);
+    else
+        g_pHyprOpenGL->renderBorder(&windowBox, grad, ROUNDING, borderSize, a);
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

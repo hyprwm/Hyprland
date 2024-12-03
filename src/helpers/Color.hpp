@@ -1,35 +1,45 @@
 #pragma once
 
 #include <cstdint>
+#include <hyprgraphics/color/Color.hpp>
 
-class CColor {
+class CHyprColor {
   public:
-    CColor();
-    CColor(float r, float g, float b, float a);
-    CColor(uint64_t);
-
-    float r = 0, g = 0, b = 0, a = 1.f;
+    CHyprColor();
+    CHyprColor(float r, float g, float b, float a);
+    CHyprColor(const Hyprgraphics::CColor& col, float a);
+    CHyprColor(uint64_t);
 
     // AR32
-    uint32_t getAsHex() const;
+    uint32_t                     getAsHex() const;
+    Hyprgraphics::CColor::SSRGB  asRGB() const;
+    Hyprgraphics::CColor::SOkLab asOkLab() const;
+    Hyprgraphics::CColor::SHSL   asHSL() const;
+    CHyprColor                   stripA() const;
 
-    CColor   operator-(const CColor& c2) const {
-        return CColor(r - c2.r, g - c2.g, b - c2.b, a - c2.a);
+    //
+    bool operator==(const CHyprColor& c2) const {
+        return c2.r == r && c2.g == g && c2.b == b && c2.a == a;
     }
 
-    CColor operator+(const CColor& c2) const {
-        return CColor(r + c2.r, g + c2.g, b + c2.b, a + c2.a);
+    // stubs for the AnimationMgr
+    CHyprColor operator-(const CHyprColor& c2) const {
+        RASSERT(false, "CHyprColor: - is a STUB");
+        return {};
     }
 
-    CColor operator*(const float& v) const {
-        return CColor(r * v, g * v, b * v, a * v);
+    CHyprColor operator+(const CHyprColor& c2) const {
+        RASSERT(false, "CHyprColor: + is a STUB");
+        return {};
     }
 
-    bool operator==(const CColor& c2) const {
-        return r == c2.r && g == c2.g && b == c2.b && a == c2.a;
+    CHyprColor operator*(const float& c2) const {
+        RASSERT(false, "CHyprColor: * is a STUB");
+        return {};
     }
 
-    CColor stripA() const {
-        return {r, g, b, 1};
-    }
+    double r = 0, g = 0, b = 0, a = 0;
+
+  private:
+    Hyprgraphics::CColor::SOkLab okLab; // cache for the OkLab representation
 };

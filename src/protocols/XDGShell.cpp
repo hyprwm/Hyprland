@@ -3,7 +3,6 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <cstring>
@@ -470,6 +469,8 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
 CXDGSurfaceResource::~CXDGSurfaceResource() {
     events.destroy.emit();
+    if (configureSource)
+        wl_event_source_remove(configureSource);
     if (surface)
         surface->resetRole();
 }
@@ -483,23 +484,22 @@ SP<CXDGSurfaceResource> CXDGSurfaceResource::fromResource(wl_resource* res) {
     return data ? data->self.lock() : nullptr;
 }
 
+static void onConfigure(void* data) {
+    ((CXDGSurfaceResource*)data)->configure();
+}
+
 uint32_t CXDGSurfaceResource::scheduleConfigure() {
-    if (configureScheduled)
+    if (configureSource)
         return scheduledSerial;
 
+    configureSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, onConfigure, this);
     scheduledSerial = wl_display_next_serial(g_pCompositor->m_sWLDisplay);
-
-    configureScheduled = true;
-    g_pEventLoopManager->doLater([this]() { configure(); });
 
     return scheduledSerial;
 }
 
 void CXDGSurfaceResource::configure() {
-    if (!resource)
-        return;
-
-    configureScheduled = false;
+    configureSource = nullptr;
     resource->sendConfigure(scheduledSerial);
 }
 

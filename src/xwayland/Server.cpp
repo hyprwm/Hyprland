@@ -176,6 +176,11 @@ static bool openSockets(std::array<int, 2>& sockets, int display) {
     return true;
 }
 
+static void startServer(void* data) {
+    if (!g_pXWayland->pServer->start())
+        Debug::log(ERR, "The XWayland server could not start! XWayland will not work...");
+}
+
 static int xwaylandReady(int fd, uint32_t mask, void* data) {
     return g_pXWayland->pServer->ready(fd, mask);
 }
@@ -303,10 +308,9 @@ bool CXWaylandServer::create() {
 
     setenv("DISPLAY", displayName.c_str(), true);
 
-    g_pEventLoopManager->doLater([this]() {
-        if (!start())
-            Debug::log(ERR, "The XWayland server could not start! XWayland will not work...");
-    });
+    // TODO: lazy mode
+
+    idleSource = wl_event_loop_add_idle(g_pCompositor->m_sWLEventLoop, ::startServer, nullptr);
 
     return true;
 }

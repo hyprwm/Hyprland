@@ -112,20 +112,21 @@ class CTabletV2Resource {
 class CTabletToolV2Resource {
   public:
     CTabletToolV2Resource(SP<CZwpTabletToolV2> resource_, SP<CTabletTool> tool_, SP<CTabletSeat> seat_);
+    ~CTabletToolV2Resource();
 
     bool                   good();
     void                   sendData();
     void                   queueFrame();
-    void                   sendFrame();
+    void                   sendFrame(bool removeSource = true);
 
     bool                   current = false;
     WP<CWLSurfaceResource> lastSurf;
 
     WP<CTabletTool>        tool;
     WP<CTabletSeat>        seat;
+    wl_event_source*       frameSource = nullptr;
 
-    bool                   frameQueued = false;
-    bool                   inert       = false; // removed was sent
+    bool                   inert = false; // removed was sent
 
   private:
     SP<CZwpTabletToolV2> resource;

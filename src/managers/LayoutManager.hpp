@@ -14,6 +14,7 @@ class CLayoutManager {
     bool                     addLayout(const std::string& name, IHyprLayout* layout);
     bool                     removeLayout(IHyprLayout* layout);
     std::vector<std::string> getAllLayoutNames();
+    std::string              getCurrentLayoutName();
 
   private:
     enum HYPRLAYOUTS {

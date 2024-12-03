@@ -1379,6 +1379,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                             continue;
                     }
                 }
+
+                if (!rule.szLayout.empty()) {
+                    if (rule.szLayout != g_pLayoutManager->getCurrentLayoutName())
+                        continue;
+                }
             } catch (std::exception& e) {
                 Debug::log(ERR, "Regex error at {} ({})", rule.szValue, e.what());
                 continue;
@@ -2408,6 +2413,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     const auto FOCUSPOS           = VALUE.find("focus:");
     const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
+    const auto LAYOUTPOS          = VALUE.find("layout:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2420,8 +2426,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,    TITLEPOS,      CLASSPOS,  INITIALTITLEPOS,    INITIALCLASSPOS, X11POS,   FLOATPOS,
-                                             PSEUDOPOS, FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS, ONWORKSPACEPOS};
+    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  PSEUDOPOS,
+                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS, LAYOUTPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2460,6 +2466,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = WORKSPACEPOS;
         if (FOCUSPOS > pos && FOCUSPOS < min)
             min = FOCUSPOS;
+        if (LAYOUTPOS > pos && LAYOUTPOS < min)
+            min = LAYOUTPOS;
 
         result = result.substr(0, min - pos);
 
@@ -2513,6 +2521,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (ONWORKSPACEPOS != std::string::npos)
         rule.szOnWorkspace = extract(ONWORKSPACEPOS + 12);
 
+    if (LAYOUTPOS != std::string::npos)
+        rule.szLayout = extract(LAYOUTPOS + 7);
+
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
@@ -2560,6 +2571,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                 if (!rule.szOnWorkspace.empty() && rule.szOnWorkspace != other.szOnWorkspace)
                     return false;
 
+                if (!rule.szLayout.empty() && rule.szLayout != other.szLayout)
+                    return false;
+
                 return true;
             }
         });
@@ -2570,6 +2584,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         m_dWindowRules.push_front(rule);
     else
         m_dWindowRules.push_back(rule);
+
+    for (auto& pWindow : g_pCompositor->m_vWindows)
+        pWindow->updateDynamicRules();
 
     return {};
 }

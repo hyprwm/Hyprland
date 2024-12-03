@@ -1,4 +1,5 @@
 #include "LayoutManager.hpp"
+#include "../Compositor.hpp"
 
 CLayoutManager::CLayoutManager() {
     m_vLayouts.emplace_back(std::make_pair<>("dwindle", &m_cDwindleLayout));
@@ -18,6 +19,10 @@ void CLayoutManager::switchToLayout(std::string layout) {
             getCurrentLayout()->onDisable();
             m_iCurrentLayoutID = i;
             getCurrentLayout()->onEnable();
+
+            for (auto& pWindow : g_pCompositor->m_vWindows)
+                pWindow->updateDynamicRules();
+
             return;
         }
     }
@@ -57,4 +62,8 @@ std::vector<std::string> CLayoutManager::getAllLayoutNames() {
     for (size_t i = 0; i < m_vLayouts.size(); ++i)
         results[i] = m_vLayouts[i].first;
     return results;
+}
+
+std::string CLayoutManager::getCurrentLayoutName() {
+    return m_vLayouts[m_iCurrentLayoutID].first;
 }

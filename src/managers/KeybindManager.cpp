@@ -275,7 +275,7 @@ void CKeybindManager::updateXKBTranslationState() {
     if (!PKEYMAP) {
         g_pHyprError->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT + ", options: " + OPTIONS +
                                       ", layout: " + LAYOUT + " )",
-                                  CColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+                                  CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
         Debug::log(ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
                    rules.rules, rules.model, rules.options);
@@ -3009,6 +3009,8 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                     colorData.m_vColors.push_back(e);
                     return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
                 });
+
+            colorData.updateColorsOk();
 
             if (PROP == "activebordercolor")
                 PWINDOW->m_sWindowData.activeBorderColor = CWindowOverridableVar(colorData, PRIORITY_SET_PROP);

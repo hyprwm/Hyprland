@@ -32,7 +32,15 @@ if cpp_compiler.check_header('execinfo.h')
 endif
 
 aquamarine = dependency('aquamarine', version: '>=0.4.5')
+hyprcursor = dependency('hyprcursor', version: '>=0.1.7')
+hyprgraphics = dependency('hyprgraphics', version: '>= 0.1.1')
+hyprlang = dependency('hyprlang', version: '>= 0.3.2')
+hyprutils = dependency('hyprutils', version: '>= 0.2.3')
 add_project_arguments(['-DAQUAMARINE_VERSION="@0@"'.format(aquamarine.version())], language: 'cpp')
+add_project_arguments(['-DHYPRCURSOR_VERSION="@0@"'.format(hyprcursor.version())], language: 'cpp')
+add_project_arguments(['-DHYPRGRAPHICS_VERSION="@0@"'.format(hyprgraphics.version())], language: 'cpp')
+add_project_arguments(['-DHYPRLANG_VERSION="@0@"'.format(hyprlang.version())], language: 'cpp')
+add_project_arguments(['-DHYPRUTILS_VERSION="@0@"'.format(hyprutils.version())], language: 'cpp')
 
 xcb_dep = dependency('xcb', required: get_option('xwayland'))
 xcb_composite_dep = dependency('xcb-composite', required: get_option('xwayland'))

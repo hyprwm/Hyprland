@@ -8,6 +8,8 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "../helpers/varlist/VarList.hpp"
 
+#include <hyprgraphics/color/Color.hpp>
+
 int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
         g_pAnimationManager->onTicked();
@@ -154,7 +156,7 @@ void CAnimationManager::tick() {
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
 
-        auto updateVariable = [&]<Animable T>(CAnimatedVariable<T>& av) {
+        static const auto updateVariable = [&]<Animable T>(CAnimatedVariable<T>& av) {
             // for disabled anims just warp
             if (av.m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
                 av.warp(false);
@@ -166,13 +168,50 @@ void CAnimationManager::tick() {
                 return;
             }
 
-            const auto DELTA  = av.m_Goal - av.m_Begun;
             const auto BEZIER = m_mBezierCurves.find(av.m_pConfig->pValues->internalBezier);
+            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+            const auto DELTA = av.m_Goal - av.m_Begun;
 
             if (BEZIER != m_mBezierCurves.end())
-                av.m_Value = av.m_Begun + DELTA * BEZIER->second.getYForPoint(SPENT);
+                av.m_Value = av.m_Begun + DELTA * POINTY;
             else
-                av.m_Value = av.m_Begun + DELTA * DEFAULTBEZIER->second.getYForPoint(SPENT);
+                av.m_Value = av.m_Begun + DELTA * POINTY;
+        };
+
+        static const auto updateColorVariable = [&](CAnimatedVariable<CHyprColor>& av) {
+            // for disabled anims just warp
+            if (av.m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
+                av.warp(false);
+                return;
+            }
+
+            if (SPENT >= 1.f || av.m_Begun == av.m_Goal) {
+                av.warp(false);
+                return;
+            }
+
+            const auto BEZIER = m_mBezierCurves.find(av.m_pConfig->pValues->internalBezier);
+            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER->second.getYForPoint(SPENT);
+
+            // convert both to OkLab, then lerp that, and convert back.
+            // This is not as fast as just lerping rgb, but it's WAY more precise...
+            // Use the CHyprColor cache for OkLab
+
+            const auto&                L1 = av.m_Begun.asOkLab();
+            const auto&                L2 = av.m_Goal.asOkLab();
+
+            static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
+
+            const Hyprgraphics::CColor lerped = Hyprgraphics::CColor::SOkLab{
+                .l = lerp(L1.l, L2.l, POINTY),
+                .a = lerp(L1.a, L2.a, POINTY),
+                .b = lerp(L1.b, L2.b, POINTY),
+            };
+
+            av.m_Value = {lerped, lerp(av.m_Begun.a, av.m_Goal.a, POINTY)};
+
+            return;
         };
 
         switch (av->m_Type) {
@@ -187,8 +226,8 @@ void CAnimationManager::tick() {
                 break;
             }
             case AVARTYPE_COLOR: {
-                auto typedAv = static_cast<CAnimatedVariable<CColor>*>(av);
-                updateVariable(*typedAv);
+                auto typedAv = static_cast<CAnimatedVariable<CHyprColor>*>(av);
+                updateColorVariable(*typedAv);
                 break;
             }
             default: UNREACHABLE();
@@ -272,7 +311,7 @@ bool CAnimationManager::deltaSmallToFlip(const Vector2D& a, const Vector2D& b) {
     return std::abs(a.x - b.x) < 0.5f && std::abs(a.y - b.y) < 0.5f;
 }
 
-bool CAnimationManager::deltaSmallToFlip(const CColor& a, const CColor& b) {
+bool CAnimationManager::deltaSmallToFlip(const CHyprColor& a, const CHyprColor& b) {
     return std::abs(a.r - b.r) < 0.5f && std::abs(a.g - b.g) < 0.5f && std::abs(a.b - b.b) < 0.5f && std::abs(a.a - b.a) < 0.5f;
 }
 
@@ -288,7 +327,7 @@ bool CAnimationManager::deltazero(const float& a, const float& b) {
     return a == b;
 }
 
-bool CAnimationManager::deltazero(const CColor& a, const CColor& b) {
+bool CAnimationManager::deltazero(const CHyprColor& a, const CHyprColor& b) {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 }
 

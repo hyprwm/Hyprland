@@ -3,8 +3,6 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
-int slowUpdate = 0;
-
 int handleTimer(void* data) {
     const auto  PTM = (CThreadManager*)data;
 

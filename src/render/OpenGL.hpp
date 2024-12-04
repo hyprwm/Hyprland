@@ -153,15 +153,16 @@ class CHyprOpenGLImpl {
     void     beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
     void     end();
 
-    void     renderRect(CBox*, const CColor&, int round = 0);
-    void     renderRectWithBlur(CBox*, const CColor&, int round = 0, float blurA = 1.f, bool xray = false);
-    void     renderRectWithDamage(CBox*, const CColor&, CRegion* damage, int round = 0);
+    void     renderRect(CBox*, const CHyprColor&, int round = 0);
+    void     renderRectWithBlur(CBox*, const CHyprColor&, int round = 0, float blurA = 1.f, bool xray = false);
+    void     renderRectWithDamage(CBox*, const CHyprColor&, CRegion* damage, int round = 0);
     void     renderTexture(SP<CTexture>, CBox*, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false);
     void     renderTextureWithDamage(SP<CTexture>, CBox*, CRegion* damage, float a, int round = 0, bool discardActive = false, bool allowCustomUV = false,
                                      SP<CSyncTimeline> waitTimeline = nullptr, uint64_t waitPoint = 0);
     void     renderTextureWithBlur(SP<CTexture>, CBox*, float a, SP<CWLSurfaceResource> pSurface, int round = 0, bool blockBlurOptimization = false, float blurA = 1.f);
-    void     renderRoundedShadow(CBox*, int round, int range, const CColor& color, float a = 1.0);
+    void     renderRoundedShadow(CBox*, int round, int range, const CHyprColor& color, float a = 1.0);
     void     renderBorder(CBox*, const CGradientValueData&, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
+    void     renderBorder(CBox*, const CGradientValueData&, const CGradientValueData&, float lerp, int round, int borderSize, float a = 1.0, int outerRound = -1 /* use round */);
     void     renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuffer& matte);
 
     void     setMonitorTransformEnabled(bool enabled);
@@ -180,7 +181,7 @@ class CHyprOpenGLImpl {
     void     renderSnapshot(PHLLS);
     bool     shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
-    void     clear(const CColor&);
+    void     clear(const CHyprColor&);
     void     clearWithTex();
     void     scissor(const CBox*, bool transform = true);
     void     scissor(const pixman_box32*, bool transform = true);
@@ -289,7 +290,7 @@ class CHyprOpenGLImpl {
     void                    initEGL(bool gbm);
     EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
     SP<CTexture>            loadAsset(const std::string& file);
-    SP<CTexture>            renderText(const std::string& text, CColor col, int pt, bool italic = false);
+    SP<CTexture>            renderText(const std::string& text, CHyprColor col, int pt, bool italic = false);
     void                    initAssets();
     void                    initMissingAssetTexture();
 

@@ -21,8 +21,9 @@ class ICustomConfigValueData {
 class CGradientValueData : public ICustomConfigValueData {
   public:
     CGradientValueData() {};
-    CGradientValueData(CColor col) {
+    CGradientValueData(CHyprColor col) {
         m_vColors.push_back(col);
+        updateColorsOk();
     };
     virtual ~CGradientValueData() {};
 
@@ -30,14 +31,29 @@ class CGradientValueData : public ICustomConfigValueData {
         return CVD_TYPE_GRADIENT;
     }
 
-    void reset(CColor col) {
+    void reset(CHyprColor col) {
         m_vColors.clear();
         m_vColors.emplace_back(col);
         m_fAngle = 0;
+        updateColorsOk();
+    }
+
+    void updateColorsOk() {
+        m_vColorsOkLabA.clear();
+        for (auto& c : m_vColors) {
+            const auto OKLAB = c.asOkLab();
+            m_vColorsOkLabA.emplace_back(OKLAB.l);
+            m_vColorsOkLabA.emplace_back(OKLAB.a);
+            m_vColorsOkLabA.emplace_back(OKLAB.b);
+            m_vColorsOkLabA.emplace_back(c.a);
+        }
     }
 
     /* Vector containing the colors */
-    std::vector<CColor> m_vColors;
+    std::vector<CHyprColor> m_vColors;
+
+    /* Vector containing pure colors for shoving into opengl */
+    std::vector<float> m_vColorsOkLabA;
 
     /* Float corresponding to the angle (rad) */
     float m_fAngle = 0;

@@ -34,11 +34,11 @@ CHyprNotificationOverlay::~CHyprNotificationOverlay() {
         cairo_surface_destroy(m_pCairoSurface);
 }
 
-void CHyprNotificationOverlay::addNotification(const std::string& text, const CColor& color, const float timeMs, const eIcons icon, const float fontSize) {
+void CHyprNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
     const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
 
     PNOTIF->text  = icon != eIcons::ICON_NONE ? " " + text /* tiny bit of padding otherwise icon touches text */ : text;
-    PNOTIF->color = color == CColor(0) ? ICONS_COLORS[icon] : color;
+    PNOTIF->color = color == CHyprColor(0) ? ICONS_COLORS[icon] : color;
     PNOTIF->started.reset();
     PNOTIF->timeMs   = timeMs;
     PNOTIF->icon     = icon;

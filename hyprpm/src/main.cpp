@@ -103,7 +103,7 @@ int                        main(int argc, char** argv, char** envp) {
         bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
         bool headers      = g_pPluginManager->updateHeaders(force);
         if (headers) {
-            const auto HLVER            = g_pPluginManager->getHyprlandVersion();
+            const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
             const auto COMPILEDOUTDATED = HLVER.hash != GLOBALSTATE.headersHashCompiled;
 
@@ -114,7 +114,10 @@ int                        main(int argc, char** argv, char** envp) {
 
             auto ret2 = g_pPluginManager->ensurePluginsLoadState();
 
-            if (ret2 != LOADSTATE_OK)
+            if (ret2 == LOADSTATE_HYPRLAND_UPDATED)
+                g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] Updated plugins, but Hyprland was updated. Please restart Hyprland.");
+
+            if (ret2 != LOADSTATE_OK && ret2 != LOADSTATE_HYPRLAND_UPDATED)
                 return 1;
         } else if (notify)
             g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");

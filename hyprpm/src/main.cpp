@@ -133,7 +133,11 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         auto ret = g_pPluginManager->ensurePluginsLoadState();
-        if (ret != LOADSTATE_OK)
+
+        if (ret == LOADSTATE_HYPRLAND_UPDATED)
+            g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] Enabled plugin, but Hyprland was updated. Please restart Hyprland.");
+
+        if (ret != LOADSTATE_OK && ret != LOADSTATE_HYPRLAND_UPDATED)
             return 1;
     } else if (command[0] == "disable") {
         if (command.size() < 2) {

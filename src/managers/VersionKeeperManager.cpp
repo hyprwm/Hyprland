@@ -5,6 +5,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../config/ConfigValue.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -17,7 +18,9 @@ using namespace Hyprutils::OS;
 constexpr const char* VERSION_FILE_NAME = "lastVersion";
 
 CVersionKeeperManager::CVersionKeeperManager() {
-    const auto DATAROOT = getDataHome();
+    static auto PNONOTIFY = CConfigValue<Hyprlang::INT>("ecosystem:no_update_news");
+
+    const auto  DATAROOT = getDataHome();
 
     if (!DATAROOT)
         return;
@@ -33,6 +36,11 @@ CVersionKeeperManager::CVersionKeeperManager() {
     }
 
     writeVersionToVersionFile(*DATAROOT);
+
+    if (*PNONOTIFY) {
+        Debug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
+        return;
+    }
 
     if (!executableExistsInPath("hyprland-update-screen")) {
         Debug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");

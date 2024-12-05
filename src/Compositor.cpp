@@ -206,11 +206,21 @@ CCompositor::~CCompositor() {
 }
 
 void CCompositor::setRandomSplash() {
+    auto        tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto        local = *localtime(&tt);
+
+    const auto* SPLASHES = &NSplashes::SPLASHES;
+
+    if (local.tm_mon + 1 == 12 && local.tm_mday >= 23 && local.tm_mday <= 27) // dec 23-27
+        SPLASHES = &NSplashes::SPLASHES_CHRISTMAS;
+    if ((local.tm_mon + 1 == 12 && local.tm_mday >= 29) || (local.tm_mon + 1 == 1 && local.tm_mday <= 3))
+        SPLASHES = &NSplashes::SPLASHES_NEWYEAR;
+
     std::random_device              dev;
     std::mt19937                    engine(dev());
-    std::uniform_int_distribution<> distribution(0, SPLASHES.size() - 1);
+    std::uniform_int_distribution<> distribution(0, SPLASHES->size() - 1);
 
-    m_szCurrentSplash = SPLASHES[distribution(engine)];
+    m_szCurrentSplash = SPLASHES->at(distribution(engine));
 }
 
 static std::vector<SP<Aquamarine::IOutput>> pendingOutputs;

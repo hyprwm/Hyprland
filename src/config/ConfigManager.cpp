@@ -383,6 +383,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_unfocused_fps", Hyprlang::INT{15});
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:disable_hyprqtutils_check", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:lockdead_screen_delay", Hyprlang::INT{1000});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});

@@ -16,8 +16,6 @@
 #define ISDEBUG false
 #endif
 
-#include "version.h"
-
 #define SPECIAL_WORKSPACE_START (-99)
 
 #define PI 3.14159265358979

@@ -2615,7 +2615,7 @@ WORKSPACEID CCompositor::getNewSpecialID() {
 
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
-    static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprqtutils_check");
+    static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");

@@ -1134,8 +1134,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_hyprqtutils_check",
-        .description = "disable the warning if hyprqtutils is missing",
+        .value       = "misc:disable_hyprland_qtutils_check",
+        .description = "disable the warning if hyprland-qtutils is missing",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

@@ -263,6 +263,10 @@ class CConfigManager {
         {"bordersize", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.borderSize; }},
     };
 
+    std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> mfWindowProperties = {
+        {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
+        {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
+
     bool m_bWantsMonitorReload = false;
     bool m_bForceReload        = false;
     bool m_bNoMonitorReload    = false;

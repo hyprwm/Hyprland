@@ -14,6 +14,8 @@ class CConfigManager;
 class CPluginSystem;
 class IKeyboard;
 
+enum eMouseBindMode : int8_t;
+
 struct SKeybind {
     std::string            key            = "";
     std::set<xkb_keysym_t> sMkKeys        = {};

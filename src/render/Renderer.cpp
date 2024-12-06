@@ -1530,9 +1530,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     pMonitor->output->state->resetExplicitFences();
     if (inFD >= 0)
         pMonitor->output->state->setExplicitInFence(inFD);
-    auto explicitOptions = getExplicitSyncSettings();
-    if (explicitOptions.explicitEnabled && explicitOptions.explicitKMSEnabled)
-        pMonitor->output->state->enableExplicitOutFenceForNextCommit();
 
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;
@@ -1556,17 +1553,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         }
     }
 
+    auto explicitOptions = getExplicitSyncSettings();
     if (!explicitOptions.explicitEnabled)
         return ok;
 
     if (inFD >= 0)
         close(inFD);
-
-    if (pMonitor->output->state->state().explicitOutFence >= 0) {
-        Debug::log(TRACE, "Aquamarine returned an explicit out fence at {}", pMonitor->output->state->state().explicitOutFence);
-        close(pMonitor->output->state->state().explicitOutFence);
-    } else
-        Debug::log(TRACE, "Aquamarine did not return an explicit out fence");
 
     Debug::log(TRACE, "Explicit: {} presented", explicitPresented.size());
     auto sync = g_pHyprOpenGL->createEGLSync(-1);

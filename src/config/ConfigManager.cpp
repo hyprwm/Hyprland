@@ -1,5 +1,6 @@
 #include "ConfigManager.hpp"
 #include "../managers/KeybindManager.hpp"
+#include "../Compositor.hpp"
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
@@ -12,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
-#include <string.h>
+#include <cstring>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>

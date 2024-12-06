@@ -35,7 +35,7 @@
 
 class CWLSurfaceResource;
 
-enum eManagersInitStage {
+enum eManagersInitStage : uint8_t {
     STAGE_PRIORITY = 0,
     STAGE_BASICINIT,
     STAGE_LATE

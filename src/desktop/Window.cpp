@@ -443,7 +443,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 }
 
-PHLWINDOW CWindow::X11TransientFor() {
+PHLWINDOW CWindow::x11TransientFor() {
     if (!m_pXWaylandSurface || !m_pXWaylandSurface->parent)
         return nullptr;
 

@@ -1,10 +1,10 @@
 #include "initHelpers.hpp"
 
-bool Init::isSudo() {
+bool NInit::isSudo() {
     return getuid() != geteuid() || !geteuid();
 }
 
-void Init::gainRealTime() {
+void NInit::gainRealTime() {
     const int          minPrio = sched_get_priority_min(SCHED_RR);
     int                old_policy;
     struct sched_param param;
@@ -21,7 +21,7 @@ void Init::gainRealTime() {
         return;
     }
 
-    pthread_atfork(NULL, NULL, []() {
+    pthread_atfork(nullptr, nullptr, []() {
         const struct sched_param param = {.sched_priority = 0};
         if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &param))
             Debug::log(WARN, "Failed to reset process scheduling strategy");

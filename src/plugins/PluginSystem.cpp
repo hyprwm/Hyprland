@@ -201,7 +201,7 @@ size_t CPluginSystem::pluginCount() {
     return m_vLoadedPlugins.size();
 }
 
-void CPluginSystem::sig_getPlugins(CPlugin** data, size_t len) {
+void CPluginSystem::sigGetPlugins(CPlugin** data, size_t len) {
     for (size_t i = 0; i < std::min(m_vLoadedPlugins.size(), len); i++) {
         data[i] = m_vLoadedPlugins[i].get();
     }

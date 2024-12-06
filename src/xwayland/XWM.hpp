@@ -67,7 +67,7 @@ class CXCBConnection {
             xcb_disconnect(connection);
     }
 
-    [[nodiscard]] bool hasError() const {
+    bool hasError() const {
         return xcb_connection_has_error(connection);
     }
 
@@ -91,7 +91,7 @@ class CXCBErrorContext {
             xcb_errors_context_free(errors);
     }
 
-    [[nodiscard]] bool isValid() const {
+    bool isValid() const {
         return errors != nullptr;
     }
 

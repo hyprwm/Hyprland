@@ -15,13 +15,20 @@ class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
 
-enum eRenderPassMode {
+enum eDamageTrackingModes : int8_t {
+    DAMAGE_TRACKING_INVALID = -1,
+    DAMAGE_TRACKING_NONE    = 0,
+    DAMAGE_TRACKING_MONITOR,
+    DAMAGE_TRACKING_FULL,
+};
+
+enum eRenderPassMode : uint8_t {
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
     RENDER_PASS_POPUP
 };
 
-enum eRenderMode {
+enum eRenderMode : uint8_t {
     RENDER_MODE_NORMAL              = 0,
     RENDER_MODE_FULL_FAKE           = 1,
     RENDER_MODE_TO_BUFFER           = 2,
@@ -81,8 +88,8 @@ class CHyprRenderer {
 
     bool m_bBlockSurfaceFeedback = false;
     bool m_bRenderingSnapshot    = false;
-    PHLMONITORREF m_pMostHzMonitor;
-    bool          m_bDirectScanoutBlocked = false;
+    PHLMONITORREF                       m_pMostHzMonitor;
+    bool                                m_bDirectScanoutBlocked = false;
 
     void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                                initiateManualCrash();

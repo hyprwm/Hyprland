@@ -10,7 +10,7 @@
 #include "../debug/Log.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
-enum eAnimatedVarType {
+enum eAnimatedVarType : int8_t {
     AVARTYPE_INVALID = -1,
     AVARTYPE_FLOAT,
     AVARTYPE_VECTOR,
@@ -42,7 +42,7 @@ struct STypeToAnimatedVarType_t<CHyprColor> {
 template <class T>
 inline constexpr eAnimatedVarType typeToeAnimatedVarType = STypeToAnimatedVarType_t<T>::value;
 
-enum eAVarDamagePolicy {
+enum eAVarDamagePolicy : int8_t {
     AVARDAMAGE_NONE   = -1,
     AVARDAMAGE_ENTIRE = 0,
     AVARDAMAGE_BORDER,
@@ -104,7 +104,7 @@ class CBaseAnimatedVariable {
     float getCurveValue();
 
     // checks if an animation is in progress
-    inline bool isBeingAnimated() {
+    bool isBeingAnimated() const {
         return m_bIsBeingAnimated;
     }
 
@@ -112,7 +112,7 @@ class CBaseAnimatedVariable {
         if an animation is not running, runs instantly.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnEnd(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fEndCallback       = func;
+        m_fEndCallback       = std::move(func);
         m_bRemoveEndAfterRan = remove;
 
         if (!isBeingAnimated())
@@ -122,14 +122,14 @@ class CBaseAnimatedVariable {
     /*  sets a function to be ran when an animation is started.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnBegin(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fBeginCallback       = func;
+        m_fBeginCallback       = std::move(func);
         m_bRemoveBeginAfterRan = remove;
     }
 
     /*  Sets the update callback, called every time the value is animated and a step is done
         Warning: calling unregisterVar/registerVar in this handler will cause UB */
     void setUpdateCallback(std::function<void(void* thisptr)> func) {
-        m_fUpdateCallback = func;
+        m_fUpdateCallback = std::move(func);
     }
 
     /*  resets all callbacks. Does not call any. */
@@ -158,8 +158,8 @@ class CBaseAnimatedVariable {
 
     std::chrono::steady_clock::time_point animationBegin;
 
-    eAVarDamagePolicy                      m_eDamagePolicy = AVARDAMAGE_NONE;
-    eAnimatedVarType                       m_Type;
+    eAVarDamagePolicy                     m_eDamagePolicy = AVARDAMAGE_NONE;
+    eAnimatedVarType                      m_Type;
 
     bool                                  m_bRemoveEndAfterRan   = true;
     bool                                  m_bRemoveBeginAfterRan = true;
@@ -207,7 +207,9 @@ class CBaseAnimatedVariable {
 template <Animable VarType>
 class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
-    CAnimatedVariable() : CBaseAnimatedVariable(typeToeAnimatedVarType<VarType>) {} // dummy var
+    CAnimatedVariable() : CBaseAnimatedVariable(typeToeAnimatedVarType<VarType>) {
+        ;
+    } // dummy var
 
     void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
         create(pAnimConfig, pWindow, policy);

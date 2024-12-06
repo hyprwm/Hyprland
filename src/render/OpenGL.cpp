@@ -30,7 +30,7 @@ inline void loadGLProc(void* pProc, const char* name) {
     *(void**)pProc = proc;
 }
 
-static enum LogLevel eglLogToLevel(EGLint type) {
+static enum eLogLevel eglLogToLevel(EGLint type) {
     switch (type) {
         case EGL_DEBUG_MSG_CRITICAL_KHR: return CRIT;
         case EGL_DEBUG_MSG_ERROR_KHR: return ERR;

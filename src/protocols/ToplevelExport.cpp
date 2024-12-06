@@ -109,7 +109,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
+    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture toplevel");
         resource->sendFailed();
@@ -123,9 +123,9 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
 
-    shmStride = FormatUtils::minStride(PSHMINFO, box.w);
+    shmStride = NFormatUtils::minStride(PSHMINFO, box.w);
 
-    resource->sendBuffer(FormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
+    resource->sendBuffer(NFormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
 
     if (dmabufFormat != DRM_FORMAT_INVALID) {
         resource->sendLinuxDmabuf(dmabufFormat, box.width, box.height);
@@ -265,7 +265,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     if (overlayCursor)
         g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.value());
 
-    const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         g_pHyprRenderer->endRender();
         return false;

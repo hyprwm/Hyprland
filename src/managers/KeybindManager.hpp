@@ -3,7 +3,6 @@
 #include "../defines.hpp"
 #include <deque>
 #include <set>
-#include "../Compositor.hpp"
 #include <unordered_map>
 #include <functional>
 #include <xkbcommon/xkbcommon.h>
@@ -42,7 +41,7 @@ struct SKeybind {
     bool shadowed = false;
 };
 
-enum eFocusWindowMode {
+enum eFocusWindowMode : uint8_t {
     MODE_CLASS_REGEX = 0,
     MODE_INITIAL_CLASS_REGEX,
     MODE_TITLE_REGEX,
@@ -67,7 +66,7 @@ struct SParsedKey {
     bool        catchAll = false;
 };
 
-enum eMultiKeyCase {
+enum eMultiKeyCase : uint8_t {
     MK_NO_MATCH = 0,
     MK_PARTIAL_MATCH,
     MK_FULL_MATCH

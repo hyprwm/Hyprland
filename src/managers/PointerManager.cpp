@@ -448,7 +448,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
                 bool       flipRB = false;
 
                 if (SURFACE->current.texture) {
-                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", FormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
+                    Debug::log(TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->current.texture->m_iDrmFormat));
                     if (SURFACE->current.texture->m_iDrmFormat == DRM_FORMAT_ABGR8888) {
                         Debug::log(TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
                         flipRB = true;

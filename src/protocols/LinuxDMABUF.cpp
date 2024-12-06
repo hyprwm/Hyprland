@@ -219,7 +219,7 @@ void CLinuxDMABBUFParamsResource::create(uint32_t id) {
         return;
     }
 
-    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, FormatUtils::drmFormatName(attrs->format), attrs->planes);
+    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, NFormatUtils::drmFormatName(attrs->format), attrs->planes);
     for (int i = 0; i < attrs->planes; ++i) {
         LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs->modifier, attrs->fds[i], attrs->strides[i], attrs->offsets[i]);
     }

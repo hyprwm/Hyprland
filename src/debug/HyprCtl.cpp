@@ -1810,13 +1810,13 @@ void runWritingDebugLogThread(const int conn) {
     Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
     std::thread([conn]() {
-        while (Debug::RollingLogFollow::Get().IsRunning()) {
-            if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
+        while (Debug::SRollingLogFollow::get().isRunning()) {
+            if (Debug::SRollingLogFollow::get().isEmpty(conn)) {
                 std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
-            auto line = Debug::RollingLogFollow::Get().GetLog(conn);
+            auto line = Debug::SRollingLogFollow::get().getLog(conn);
             if (!successWrite(conn, line))
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
@@ -1824,7 +1824,7 @@ void runWritingDebugLogThread(const int conn) {
             std::this_thread::sleep_for(100ms);
         }
         close(conn);
-        Debug::RollingLogFollow::Get().StopFor(conn);
+        Debug::SRollingLogFollow::get().stopFor(conn);
     }).detach();
 }
 
@@ -1883,9 +1883,9 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     if (isFollowUpRollingLogRequest(request)) {
         Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-        Debug::RollingLogFollow::Get().StartFor(ACCEPTEDCONNECTION);
+        Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
         runWritingDebugLogThread(ACCEPTEDCONNECTION);
-        Debug::log(LOG, Debug::RollingLogFollow::Get().DebugInfo());
+        Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
     } else
         close(ACCEPTEDCONNECTION);
 

@@ -9,8 +9,8 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 1 && h > 1), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    uint32_t glFormat = FormatUtils::drmFormatToGL(drmFormat);
-    uint32_t glType   = FormatUtils::glFormatToType(glFormat);
+    uint32_t glFormat = NFormatUtils::drmFormatToGL(drmFormat);
+    uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
 
     if (!m_cTex)
         m_cTex = makeShared<CTexture>();

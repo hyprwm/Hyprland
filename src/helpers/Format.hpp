@@ -22,7 +22,7 @@ struct SPixelFormat {
 
 typedef Aquamarine::SDRMFormat SDRMFormat;
 
-namespace FormatUtils {
+namespace NFormatUtils {
     SHMFormat           drmToShm(DRMFormat drm);
     DRMFormat           shmToDRM(SHMFormat shm);
 

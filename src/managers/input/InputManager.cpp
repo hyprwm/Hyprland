@@ -761,7 +761,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
     static auto PEMULATEDISCRETE      = CConfigValue<Hyprlang::INT>("input:emulate_discrete_scroll");
     static auto PFOLLOWMOUSE          = CConfigValue<Hyprlang::INT>("input:follow_mouse");
 
-    auto        factor = (*PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR);
+    const bool  ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
+    auto        factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
 
     const auto  EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
     EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
@@ -803,6 +804,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
                 if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                     simulateMouseMovement();
             }
+            factor = ISTOUCHPADSCROLL ? PWINDOW->getScrollTouchpad() : PWINDOW->getScrollMouse();
         }
     }
 

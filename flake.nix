@@ -35,6 +35,13 @@
       inputs.systems.follows = "systems";
     };
 
+    hyprland-qtutils = {
+      url = "github:hyprwm/hyprland-qtutils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+    };
+
     hyprlang = {
       url = "github:hyprwm/hyprlang";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -123,13 +130,11 @@
       inherit
         (pkgsFor.${system})
         # hyprland-packages
-
         hyprland
         hyprland-debug
         hyprland-legacy-renderer
         hyprland-unwrapped
         # hyprland-extras
-
         xdg-desktop-portal-hyprland
         ;
       hyprland-cross = (pkgsCrossFor.${system} "aarch64-linux").hyprland;

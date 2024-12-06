@@ -6,6 +6,7 @@
 #include "managers/TokenManager.hpp"
 #include "managers/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
+#include "managers/VersionKeeperManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -644,6 +645,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the CursorManager!");
             g_pCursorManager = std::make_unique<CCursorManager>();
+
+            Debug::log(LOG, "Creating the VersionKeeper!");
+            g_pVersionKeeperMgr = std::make_unique<CVersionKeeperManager>();
 
             Debug::log(LOG, "Starting XWayland");
             g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
@@ -2610,7 +2614,8 @@ WORKSPACEID CCompositor::getNewSpecialID() {
 }
 
 void CCompositor::performUserChecks() {
-    static auto PNOCHECKXDG = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
+    static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
+    static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2619,6 +2624,13 @@ void CCompositor::performUserChecks() {
                 std::format("Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {}.\nThis might cause issues unless it's intentional.",
                             CURRENT_DESKTOP_ENV ? CURRENT_DESKTOP_ENV : "unset"),
                 CHyprColor{}, 15000, ICON_WARNING);
+        }
+    }
+
+    if (!*PNOCHECKQTUTILS) {
+        if (!executableExistsInPath("hyprland-dialog")) {
+            g_pHyprNotificationOverlay->addNotification(
+                "Your system does not have hyprland-qtutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
         }
     }
 

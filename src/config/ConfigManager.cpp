@@ -383,6 +383,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_unfocused_fps", Hyprlang::INT{15});
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:lockdead_screen_delay", Hyprlang::INT{1000});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
@@ -605,6 +606,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
+
+    m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});

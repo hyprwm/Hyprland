@@ -1973,17 +1973,6 @@ void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, timespec* time) {
     PROTO::data->renderDND(pMonitor, time);
 }
 
-DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& mode) {
-    if (mode == "full")
-        return DAMAGE_TRACKING_FULL;
-    if (mode == "monitor")
-        return DAMAGE_TRACKING_MONITOR;
-    if (mode == "none")
-        return DAMAGE_TRACKING_NONE;
-
-    return DAMAGE_TRACKING_INVALID;
-}
-
 bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");

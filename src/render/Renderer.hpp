@@ -15,14 +15,6 @@ class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
 
-// TODO: add fuller damage tracking for updating only parts of a window
-enum DAMAGETRACKINGMODES {
-    DAMAGE_TRACKING_INVALID = -1,
-    DAMAGE_TRACKING_NONE    = 0,
-    DAMAGE_TRACKING_MONITOR,
-    DAMAGE_TRACKING_FULL
-};
-
 enum eRenderPassMode {
     RENDER_PASS_ALL = 0,
     RENDER_PASS_MAIN,
@@ -92,9 +84,6 @@ class CHyprRenderer {
     PHLMONITORREF m_pMostHzMonitor;
     bool          m_bDirectScanoutBlocked = false;
 
-    DAMAGETRACKINGMODES
-    damageTrackingModeFromStr(const std::string&);
-
     void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                                initiateManualCrash();
 
@@ -108,8 +97,8 @@ class CHyprRenderer {
     std::vector<SP<CWLSurfaceResource>> explicitPresented;
 
     struct {
-        int                           hotspotX;
-        int                           hotspotY;
+        int                           hotspotX = 0;
+        int                           hotspotY = 0;
         std::optional<SP<CWLSurface>> surf;
         std::string                   name;
     } m_sLastCursorData;

@@ -104,6 +104,7 @@ typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)(void);
     End plugin methods
 */
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace HyprlandAPI {
 
     /*

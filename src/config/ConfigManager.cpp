@@ -1347,10 +1347,10 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                     else
                         throw std::runtime_error("szFullscreenState client mode not valid");
 
-                    if (internalMode.has_value() && pWindow->m_sFullscreenState.internal != internalMode)
+                    if (internalMode.has_value() && pWindow->m_SFullscreenState.internal != internalMode)
                         continue;
 
-                    if (clientMode.has_value() && pWindow->m_sFullscreenState.client != clientMode)
+                    if (clientMode.has_value() && pWindow->m_SFullscreenState.client != clientMode)
                         continue;
                 }
 

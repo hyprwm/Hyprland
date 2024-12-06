@@ -21,6 +21,7 @@ enum LogLevel {
     TRACE
 };
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace Debug {
     inline std::string     logFile;
     inline std::ofstream   logOfs;

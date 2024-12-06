@@ -1007,7 +1007,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
 
         if (header.pWindow->isFullscreen()) {
             const auto  PWORKSPACE        = header.pWindow->m_pWorkspace;
-            const auto  FSMODE            = header.pWindow->m_sFullscreenState.internal;
+            const auto  FSMODE            = header.pWindow->m_SFullscreenState.internal;
             static auto INHERITFULLSCREEN = CConfigValue<Hyprlang::INT>("master:inherit_fullscreen");
             g_pCompositor->setWindowFullscreenInternal(header.pWindow, FSMODE_NONE);
             g_pCompositor->focusWindow(PWINDOWTOCHANGETO);

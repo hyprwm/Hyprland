@@ -58,8 +58,8 @@ struct SXSelection {
 
 class CXCBConnection {
   public:
-    CXCBConnection(int fd) {
-        connection = xcb_connect_to_fd(fd, nullptr);
+    CXCBConnection(int fd) : connection{xcb_connect_to_fd(fd, nullptr)} {
+        ;
     }
 
     ~CXCBConnection() {
@@ -67,7 +67,7 @@ class CXCBConnection {
             xcb_disconnect(connection);
     }
 
-    bool hasError() const {
+    [[nodiscard]] bool hasError() const {
         return xcb_connection_has_error(connection);
     }
 
@@ -91,7 +91,7 @@ class CXCBErrorContext {
             xcb_errors_context_free(errors);
     }
 
-    bool isValid() const {
+    [[nodiscard]] bool isValid() const {
         return errors != nullptr;
     }
 

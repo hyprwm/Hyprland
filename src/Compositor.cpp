@@ -2236,29 +2236,29 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
 
 void CCompositor::changeWindowFullscreenModeInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
     setWindowFullscreenInternal(
-        PWINDOW, (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.internal | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.internal & (uint8_t)~MODE)));
+        PWINDOW, (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_SFullscreenState.internal | (uint8_t)MODE : ((uint8_t)PWINDOW->m_SFullscreenState.internal & (uint8_t)~MODE)));
 }
 
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
     setWindowFullscreenClient(PWINDOW,
-                              (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.client | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.client & (uint8_t)~MODE)));
+                              (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_SFullscreenState.client | (uint8_t)MODE : ((uint8_t)PWINDOW->m_SFullscreenState.client & (uint8_t)~MODE)));
 }
 
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = PWINDOW->m_sFullscreenState.client});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_SFullscreenState.client});
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_SFullscreenState.internal, .client = MODE});
 }
 
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenState state) {
+void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenState state) {
     static auto PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:allow_pin_fullscreen");
 
@@ -2271,7 +2271,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
     const auto            PMONITOR   = PWINDOW->m_pMonitor.lock();
     const auto            PWORKSPACE = PWINDOW->m_pWorkspace;
 
-    const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_sFullscreenState.internal);
+    const eFullscreenMode CURRENT_EFFECTIVE_MODE = (eFullscreenMode)std::bit_floor((uint8_t)PWINDOW->m_SFullscreenState.internal);
     const eFullscreenMode EFFECTIVE_MODE         = (eFullscreenMode)std::bit_floor((uint8_t)state.internal);
 
     if (*PALLOWPINFULLSCREEN && !PWINDOW->m_bPinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_bPinned) {
@@ -2290,7 +2290,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
     if (!CHANGEINTERNAL && PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
         return;
 
-    PWINDOW->m_sFullscreenState.client = state.client;
+    PWINDOW->m_SFullscreenState.client = state.client;
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
 
     if (!CHANGEINTERNAL) {
@@ -2302,7 +2302,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenS
 
     g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
 
-    PWINDOW->m_sFullscreenState.internal = state.internal;
+    PWINDOW->m_SFullscreenState.internal = state.internal;
     PWORKSPACE->m_efFullscreenMode       = EFFECTIVE_MODE;
     PWORKSPACE->m_bHasFullscreenWindow   = EFFECTIVE_MODE != FSMODE_NONE;
 
@@ -2649,7 +2649,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         return;
 
     const bool FULLSCREEN     = pWindow->isFullscreen();
-    const auto FULLSCREENMODE = pWindow->m_sFullscreenState.internal;
+    const auto FULLSCREENMODE = pWindow->m_SFullscreenState.internal;
 
     if (FULLSCREEN)
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);

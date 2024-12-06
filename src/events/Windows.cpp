@@ -134,7 +134,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     // window rules
     PWINDOW->m_vMatchedRules = g_pConfigManager->getMatchingRules(PWINDOW, false);
     std::optional<eFullscreenMode>  requestedInternalFSMode, requestedClientFSMode;
-    std::optional<sFullscreenState> requestedFSState;
+    std::optional<SFullscreenState> requestedFSState;
     if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
 
@@ -206,7 +206,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             try {
                 clientMode = std::stoi(ARGS[1]);
             } catch (std::exception& e) { clientMode = 0; }
-            requestedFSState = sFullscreenState{.internal = (eFullscreenMode)internalMode, .client = (eFullscreenMode)clientMode};
+            requestedFSState = SFullscreenState{.internal = (eFullscreenMode)internalMode, .client = (eFullscreenMode)clientMode};
         } else if (r.szRule.starts_with("suppressevent")) {
             CVarList vars(r.szRule, 0, 's', true);
             for (size_t i = 1; i < vars.size(); ++i) {
@@ -539,7 +539,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
             g_pCompositor->setWindowFullscreenState(PWINDOW, requestedFSState.value());
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
-            g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
+            g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
         else if (requestedInternalFSMode.has_value())
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestedInternalFSMode.value());
         else if (requestedClientFSMode.has_value())
@@ -618,7 +618,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
 
     const auto  CURRENTWINDOWFSSTATE = PWINDOW->isFullscreen();
-    const auto  CURRENTFSMODE        = PWINDOW->m_sFullscreenState.internal;
+    const auto  CURRENTFSMODE        = PWINDOW->m_SFullscreenState.internal;
 
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);

@@ -219,7 +219,7 @@ struct SInitialWorkspaceToken {
     std::string  workspace;
 };
 
-struct sFullscreenState {
+struct SFullscreenState {
     eFullscreenMode internal = FSMODE_NONE;
     eFullscreenMode client   = FSMODE_NONE;
 };
@@ -278,7 +278,7 @@ class CWindow {
     bool             m_bIsFloating      = false;
     bool             m_bDraggingTiled   = false; // for dragging around tiled windows
     bool             m_bWasMaximized    = false;
-    sFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+    SFullscreenState m_SFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
     std::string      m_szTitle          = "";
     std::string      m_szClass          = "";
     std::string      m_szInitialTitle   = "";

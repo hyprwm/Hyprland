@@ -16,7 +16,7 @@ class CLayoutManager {
     std::vector<std::string> getAllLayoutNames();
 
   private:
-    enum HYPRLAYOUTS {
+    enum eHyprLayouts {
         LAYOUT_DWINDLE = 0,
         LAYOUT_MASTER
     };

@@ -33,7 +33,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
     if (firstAlloc || m_vSize != Vector2D(w, h)) {
         glBindTexture(GL_TEXTURE_2D, m_cTex->m_iTexID);
-        glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, nullptr);
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_cTex->m_iTexID, 0);
@@ -42,7 +42,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 #ifndef GLES2
         if (m_pStencilTex) {
             glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 
             glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
 
@@ -70,7 +70,7 @@ void CFramebuffer::addStencil(SP<CTexture> tex) {
 #ifndef GLES2
     m_pStencilTex = tex;
     glBindTexture(GL_TEXTURE_2D, m_pStencilTex->m_iTexID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_vSize.x, m_vSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_vSize.x, m_vSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_iFb);
 

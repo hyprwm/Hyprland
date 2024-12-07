@@ -448,7 +448,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                     .formats = mon->output->getRenderFormats(),
                 };
-                tches.push_back(std::make_pair<>(mon, tranche));
+                tches.emplace_back(std::make_pair<>(mon, tranche));
             }
 
             static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -458,7 +458,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                      .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                      .formats = pMonitor->output->getRenderFormats(),
                 };
-                formatTable->monitorTranches.push_back(std::make_pair<>(pMonitor, tranche));
+                formatTable->monitorTranches.emplace_back(std::make_pair<>(pMonitor, tranche));
                 resetFormatTable();
             });
 

@@ -10,6 +10,7 @@ Checks: >
   -bugprone-macro-parentheses,
   -bugprone-narrowing-conversions,
   -bugprone-branch-clone,
+  -bugprone-assignment-in-if-condition,
   concurrency-*,
   -concurrency-mt-unsafe,
   cppcoreguidelines-*,
@@ -34,6 +35,7 @@ Checks: >
   -cppcoreguidelines-init-variables,
   -cppcoreguidelines-pro-type-cstyle-cast,
   -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
   google-global-names-in-headers,
   -google-readability-casting,
   google-runtime-operator,
@@ -78,6 +80,8 @@ Checks: >
   -readability-convert-member-functions-to-static,
   -readability-qualified-auto,
   -readability-make-member-function-const,
+  -readability-isolate-declaration,
+  -readability-inconsistent-declaration-parameter-name,
   -clang-diagnostic-error,
 
 CheckOptions:

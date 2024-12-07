@@ -5,9 +5,9 @@
 #include <fstream>
 #include <iterator>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -537,7 +537,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
     CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format(
                 R"#(
 	"{}",)#",
@@ -547,7 +547,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
         trimTrailingComma(result);
         result += "\n]\n";
     } else {
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format("{}\n", line);
         }
     }
@@ -1355,17 +1355,16 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             return std::format("custom type: {}\nset: {}", ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
-            return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::FLOAT))
-            return std::format("{{\"option\": \"{}\", \"float\": {:2f}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format("{{\"option\": \"{}\", \"vec2\": [{},{}], \"set\": {} }}", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
+            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
                                VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
         else if (TYPE == typeid(void*))
-            return std::format("{{\"option\": \"{}\", \"custom\": \"{}\", \"set\": {} }}", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(),
-                               VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";

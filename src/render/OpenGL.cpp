@@ -23,7 +23,7 @@ const std::vector<const char*> ASSET_PATHS = {
 
 inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
-    if (proc == NULL) {
+    if (proc == nullptr) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();
     }
@@ -238,12 +238,10 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
     return EGL_NO_DEVICE_EXT;
 }
 
-CHyprOpenGLImpl::CHyprOpenGLImpl() {
+CHyprOpenGLImpl::CHyprOpenGLImpl() : m_iDRMFD(g_pCompositor->m_iDRMFD) {
     const std::string EGLEXTENSIONS = (const char*)eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
     Debug::log(LOG, "Supported EGL extensions: ({}) {}", std::count(EGLEXTENSIONS.begin(), EGLEXTENSIONS.end(), ' '), EGLEXTENSIONS);
-
-    m_iDRMFD = g_pCompositor->m_iDRMFD;
 
     m_sExts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
 
@@ -578,16 +576,15 @@ GLuint CHyprOpenGLImpl::createProgram(const std::string& vert, const std::string
     if (dynamic) {
         if (vertCompiled == 0)
             return 0;
-    } else {
-        RASSERT(vertCompiled, "Compiling shader failed. VERTEX NULL! Shader source:\n\n{}", vert.c_str());
-    }
+    } else
+        RASSERT(vertCompiled, "Compiling shader failed. VERTEX nullptr! Shader source:\n\n{}", vert);
 
     auto fragCompiled = compileShader(GL_FRAGMENT_SHADER, frag, dynamic);
     if (dynamic) {
         if (fragCompiled == 0)
             return 0;
     } else {
-        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT NULL! Shader source:\n\n{}", frag.c_str());
+        RASSERT(fragCompiled, "Compiling shader failed. FRAGMENT nullptr! Shader source:\n\n{}", frag.c_str());
     }
 
     auto prog = glCreateProgram();
@@ -1380,7 +1377,7 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, CReg
 void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, CRegion* damage, int round, bool discardActive, bool noAA, bool allowCustomUV,
                                                       bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_iTexID > 0), "Attempted to draw NULL texture!");
+    RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 
@@ -1558,7 +1555,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 
 void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_iTexID > 0), "Attempted to draw NULL texture!");
+    RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTexturePrimitive");
 
@@ -1609,7 +1606,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, CBox* pBox) {
 
 void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, CBox* pBox, CFramebuffer& matte) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_iTexID > 0), "Attempted to draw NULL texture!");
+    RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureMatte");
 

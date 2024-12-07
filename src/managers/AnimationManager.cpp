@@ -216,17 +216,17 @@ void CAnimationManager::tick() {
 
         switch (av->m_Type) {
             case AVARTYPE_FLOAT: {
-                auto typedAv = static_cast<CAnimatedVariable<float>*>(av);
+                auto typedAv = dynamic_cast<CAnimatedVariable<float>*>(av);
                 updateVariable(*typedAv);
                 break;
             }
             case AVARTYPE_VECTOR: {
-                auto typedAv = static_cast<CAnimatedVariable<Vector2D>*>(av);
+                auto typedAv = dynamic_cast<CAnimatedVariable<Vector2D>*>(av);
                 updateVariable(*typedAv);
                 break;
             }
             case AVARTYPE_COLOR: {
-                auto typedAv = static_cast<CAnimatedVariable<CHyprColor>*>(av);
+                auto typedAv = dynamic_cast<CAnimatedVariable<CHyprColor>*>(av);
                 updateColorVariable(*typedAv);
                 break;
             }
@@ -495,7 +495,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
         else if (style.starts_with("popin")) {
             // try parsing
             float minPerc = 0.f;
-            if (style.find("%") != std::string::npos) {
+            if (style.find('%') != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
                     minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
@@ -516,7 +516,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
         else if (style.starts_with("slidefade")) {
             // try parsing
             float movePerc = 0.f;
-            if (style.find("%") != std::string::npos) {
+            if (style.find('%') != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' ') + 1);
                     movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
@@ -541,7 +541,7 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
         else if (style.starts_with("popin")) {
             // try parsing
             float minPerc = 0.f;
-            if (style.find("%") != std::string::npos) {
+            if (style.find('%') != std::string::npos) {
                 try {
                     auto percstr = style.substr(style.find_last_of(' '));
                     minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));

@@ -85,12 +85,7 @@ CDecorationPositioner::SWindowPositioningData* CDecorationPositioner::getDataFor
 }
 
 void CDecorationPositioner::sanitizeDatas() {
-    std::erase_if(m_mWindowDatas, [](const auto& other) {
-        if (!valid(other.first))
-            return true;
-
-        return false;
-    });
+    std::erase_if(m_mWindowDatas, [](const auto& other) { return !valid(other.first); });
     std::erase_if(m_vWindowPositioningDatas, [](const auto& other) {
         if (!validMapped(other->pWindow))
             return true;

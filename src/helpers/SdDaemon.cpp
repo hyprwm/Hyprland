@@ -4,15 +4,14 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstring>
 
 namespace Systemd {
-    int SdBooted(void) {
+    int SdBooted() {
         if (!faccessat(AT_FDCWD, "/run/systemd/system/", F_OK, AT_SYMLINK_NOFOLLOW))
             return true;
 
@@ -29,7 +28,7 @@ namespace Systemd {
 
         constexpr char envVar[] = "NOTIFY_SOCKET";
 
-        auto           cleanup = [unsetEnvironment, envVar](int* fd) {
+        auto           cleanup = [unsetEnvironment, envVar](const int* fd) {
             if (unsetEnvironment)
                 unsetenv(envVar);
             close(*fd);

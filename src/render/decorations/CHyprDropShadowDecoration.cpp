@@ -3,11 +3,11 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 
-CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
-    m_pWindow = pWindow;
+CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
+    ;
 }
 
-CHyprDropShadowDecoration::~CHyprDropShadowDecoration() {}
+CHyprDropShadowDecoration::~CHyprDropShadowDecoration() = default;
 
 eDecorationType CHyprDropShadowDecoration::getDecorationType() {
     return DECORATION_SHADOW;

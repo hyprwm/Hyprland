@@ -63,11 +63,10 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
     // v1 only, map surface to PTI
     if (!isV3()) {
-        SP<CWLSurfaceResource> pSurface = surfV1;
-        if (g_pCompositor->m_pLastFocus != pSurface || !pV1Input->active)
+        if (g_pCompositor->m_pLastFocus != surfV1 || !pV1Input->active)
             return;
 
-        enter(pSurface);
+        enter(surfV1);
     }
 
     g_pInputManager->m_sIMERelay.activateIME(this);

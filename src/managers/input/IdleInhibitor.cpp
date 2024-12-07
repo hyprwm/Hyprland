@@ -70,5 +70,4 @@ void CInputManager::recheckIdleInhibitorStatus() {
     }
 
     PROTO::idle->setInhibit(false);
-    return;
 }

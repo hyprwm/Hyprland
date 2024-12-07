@@ -953,10 +953,7 @@ bool executableExistsInPath(const std::string& exe) {
 
         auto perms = stat.permissions();
 
-        if (std::filesystem::perms::none == (perms & std::filesystem::perms::others_exec))
-            return false;
-
-        return true;
+        return std::filesystem::perms::none != (perms & std::filesystem::perms::others_exec);
     }
 
     return false;

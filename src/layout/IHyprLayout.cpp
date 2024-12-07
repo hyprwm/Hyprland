@@ -81,7 +81,7 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
-    return; // no-op
+    ; // no-op
 }
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
@@ -934,4 +934,4 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     return sizePredicted;
 }
 
-IHyprLayout::~IHyprLayout() {}
+IHyprLayout::~IHyprLayout() = default;

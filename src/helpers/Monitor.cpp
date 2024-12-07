@@ -1010,8 +1010,8 @@ void CMonitor::onMonitorFrame() {
         g_pHyprRenderer->renderMonitor(self.lock());
 }
 
-CMonitorState::CMonitorState(CMonitor* owner) {
-    m_pOwner = owner;
+CMonitorState::CMonitorState(CMonitor* owner) : m_pOwner(owner) {
+    ;
 }
 
 CMonitorState::~CMonitorState() {

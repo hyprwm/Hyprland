@@ -79,8 +79,8 @@ void CWLSHMBuffer::update(const CRegion& damage) {
     texture->update(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, damage);
 }
 
-CSHMPool::CSHMPool(int fd_, size_t size_) : fd(fd_), size(size_) {
-    data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+CSHMPool::CSHMPool(int fd_, size_t size_) : fd(fd_), size(size_), data(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) {
+    ;
 }
 
 CSHMPool::~CSHMPool() {

@@ -82,7 +82,7 @@ CPlugin* CPluginSystem::loadPlugin(const std::string& path) {
 
     g_pConfigManager->m_bForceReload = true;
 
-    Debug::log(LOG, " [PluginSystem] Plugin {} loaded. Handle: {:x}, path: \"{}\", author: \"{}\", description: \"{}\", version: \"{}\"", PLUGINDATA.name, (uintptr_t)MODULE, path,
+    Debug::log(LOG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name, (uintptr_t)MODULE, path,
                PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
 
     return PLUGIN;

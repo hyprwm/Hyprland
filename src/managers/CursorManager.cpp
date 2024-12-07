@@ -17,16 +17,12 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
     Debug::log(NONE, "[hc] {}", message);
 }
 
-CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_) {
-    surface = surf;
-    size    = size_;
-    stride  = cairo_image_surface_get_stride(surf);
+CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_), surface(surf), stride(cairo_image_surface_get_stride(surf)) {
+    size = size_;
 }
 
-CCursorBuffer::CCursorBuffer(uint8_t* pixelData_, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_) {
-    pixelData = pixelData_;
-    size      = size_;
-    stride    = 4 * size_.x;
+CCursorBuffer::CCursorBuffer(uint8_t* pixelData_, const Vector2D& size_, const Vector2D& hot_) : hotspot(hot_), pixelData(pixelData_), stride(4 * size_.x) {
+    size = size_;
 }
 
 Aquamarine::eBufferCapability CCursorBuffer::caps() {

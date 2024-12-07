@@ -57,7 +57,7 @@ CWLRDataSource::CWLRDataSource(SP<CZwlrDataControlSourceV1> resource_, SP<CWLRDa
         PROTO::dataWlr->destroyResource(this);
     });
 
-    resource->setOffer([this](CZwlrDataControlSourceV1* r, const char* mime) { mimeTypes.push_back(mime); });
+    resource->setOffer([this](CZwlrDataControlSourceV1* r, const char* mime) { mimeTypes.emplace_back(mime); });
 }
 
 CWLRDataSource::~CWLRDataSource() {
@@ -219,7 +219,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
 
         RESOURCE->self = RESOURCE;
 
-        sources.push_back(RESOURCE);
+        sources.emplace_back(RESOURCE);
 
         LOGM(LOG, "New wlr data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });

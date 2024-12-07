@@ -491,8 +491,8 @@ void CCompositor::cleanup() {
     Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (Systemd::SdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-        Systemd::SdNotify(0, "STOPPING=1");
+    if (NSystemd::sdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+        NSystemd::sdNotify(0, "STOPPING=1");
 #endif
 
     cleanEnvironment();
@@ -713,10 +713,10 @@ void CCompositor::startCompositor() {
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
-    if (Systemd::SdBooted() > 0) {
+    if (NSystemd::sdBooted() > 0) {
         // tell systemd that we are ready so it can start other bond, following, related units
         if (!envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-            Systemd::SdNotify(0, "READY=1");
+            NSystemd::sdNotify(0, "READY=1");
     } else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
@@ -1366,7 +1366,7 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
 
         x11Stack(pWindow, top, x11Stack);
 
-        for (auto it : toMove) {
+        for (const auto& it : toMove) {
             moveToZ(it, top);
         }
     }
@@ -2564,7 +2564,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
 }
 
 PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITORID& monid, const std::string& name, bool isEmpty) {
-    const auto NAME  = name == "" ? std::to_string(id) : name;
+    const auto NAME  = name.empty() ? std::to_string(id) : name;
     auto       monID = monid;
 
     // check if bound

@@ -5,9 +5,9 @@
 #include <fstream>
 #include <iterator>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -537,7 +537,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
     CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format(
                 R"#(
 	"{}",)#",
@@ -547,7 +547,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
         trimTrailingComma(result);
         result += "\n]\n";
     } else {
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format("{}\n", line);
         }
     }
@@ -1355,17 +1355,16 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             return std::format("custom type: {}\nset: {}", ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
-            return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::FLOAT))
-            return std::format("{{\"option\": \"{}\", \"float\": {:2f}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format("{{\"option\": \"{}\", \"vec2\": [{},{}], \"set\": {} }}", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
+            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
                                VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
         else if (TYPE == typeid(void*))
-            return std::format("{{\"option\": \"{}\", \"custom\": \"{}\", \"set\": {} }}", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(),
-                               VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";
@@ -1810,13 +1809,13 @@ void runWritingDebugLogThread(const int conn) {
     Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
     std::thread([conn]() {
-        while (Debug::RollingLogFollow::Get().IsRunning()) {
-            if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
+        while (Debug::SRollingLogFollow::get().isRunning()) {
+            if (Debug::SRollingLogFollow::get().isEmpty(conn)) {
                 std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
-            auto line = Debug::RollingLogFollow::Get().GetLog(conn);
+            auto line = Debug::SRollingLogFollow::get().getLog(conn);
             if (!successWrite(conn, line))
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
@@ -1824,7 +1823,7 @@ void runWritingDebugLogThread(const int conn) {
             std::this_thread::sleep_for(100ms);
         }
         close(conn);
-        Debug::RollingLogFollow::Get().StopFor(conn);
+        Debug::SRollingLogFollow::get().stopFor(conn);
     }).detach();
 }
 
@@ -1883,9 +1882,9 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     if (isFollowUpRollingLogRequest(request)) {
         Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-        Debug::RollingLogFollow::Get().StartFor(ACCEPTEDCONNECTION);
+        Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
         runWritingDebugLogThread(ACCEPTEDCONNECTION);
-        Debug::log(LOG, Debug::RollingLogFollow::Get().DebugInfo());
+        Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
     } else
         close(ACCEPTEDCONNECTION);
 

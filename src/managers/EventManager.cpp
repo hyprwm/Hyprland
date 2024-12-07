@@ -10,8 +10,7 @@
 #include <unistd.h>
 #include <cstring>
 
-CEventManager::CEventManager() {
-    m_iSocketFD = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+CEventManager::CEventManager() : m_iSocketFD(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0)) {
     if (m_iSocketFD < 0) {
         Debug::log(ERR, "Couldn't start the Hyprland Socket 2. (1) IPC will not work.");
         return;

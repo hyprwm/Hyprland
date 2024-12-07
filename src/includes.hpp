@@ -9,11 +9,11 @@
 #include <getopt.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/wait.h>
-#include <time.h>
+#include <ctime>
 #include <unistd.h>
 #include <wayland-server-core.h>
 

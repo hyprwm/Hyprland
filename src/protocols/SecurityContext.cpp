@@ -22,8 +22,8 @@ SP<CSecurityContextSandboxedClient> CSecurityContextSandboxedClient::create(int 
 }
 
 static void onSecurityContextClientDestroy(wl_listener* l, void* d) {
-    CSecurityContextSandboxedClientDestroyWrapper* wrap   = wl_container_of(l, wrap, listener);
-    CSecurityContextSandboxedClient*               client = wrap->parent;
+    SCSecurityContextSandboxedClientDestroyWrapper* wrap   = wl_container_of(l, wrap, listener);
+    CSecurityContextSandboxedClient*                client = wrap->parent;
     client->onDestroy();
 }
 

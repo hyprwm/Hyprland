@@ -16,12 +16,9 @@ CPopup::CPopup(PHLLS pOwner) : m_pLayerOwner(pOwner) {
     initAllSignals();
 }
 
-CPopup::CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner) : m_pParent(pOwner), m_pResource(popup) {
+CPopup::CPopup(SP<CXDGPopupResource> popup, CPopup* pOwner) : m_pWindowOwner(pOwner->m_pWindowOwner), m_pLayerOwner(pOwner->m_pLayerOwner), m_pParent(pOwner), m_pResource(popup) {
     m_pWLSurface = CWLSurface::create();
     m_pWLSurface->assign(popup->surface->surface.lock(), this);
-
-    m_pLayerOwner  = pOwner->m_pLayerOwner;
-    m_pWindowOwner = pOwner->m_pWindowOwner;
 
     m_vLastSize = popup->surface->current.geometry.size();
     reposition();

@@ -4,12 +4,12 @@
 #include <cstring>
 
 template <uint16_t N>
-class MaxLengthCString {
+class CMaxLengthCString {
   public:
-    MaxLengthCString() : m_strPos(0), m_boundsExceeded(false) {
+    CMaxLengthCString() {
         m_str[0] = '\0';
     }
-    inline void operator+=(char const* rhs) {
+    void operator+=(char const* rhs) {
         write(rhs, strlen(rhs));
     }
     void write(char const* data, size_t len) {
@@ -29,7 +29,7 @@ class MaxLengthCString {
         m_str[m_strPos] = c;
         m_strPos++;
     }
-    void write_num(size_t num) {
+    void writeNum(size_t num) {
         size_t d = 1;
         while (num / 10 >= d)
             d *= 10;
@@ -40,7 +40,7 @@ class MaxLengthCString {
             d /= 10;
         }
     }
-    char const* get_str() {
+    char const* getStr() {
         return m_str;
     };
     bool boundsExceeded() {
@@ -49,15 +49,15 @@ class MaxLengthCString {
 
   private:
     char   m_str[N];
-    size_t m_strPos;
-    bool   m_boundsExceeded;
+    size_t m_strPos         = 0;
+    bool   m_boundsExceeded = false;
 };
 
 template <uint16_t BUFSIZE>
-class BufFileWriter {
+class CBufFileWriter {
   public:
-    inline BufFileWriter(int fd_) : m_writeBufPos(0), m_fd(fd_) {}
-    ~BufFileWriter() {
+    CBufFileWriter(int fd_) : m_fd(fd_) {}
+    ~CBufFileWriter() {
         flush();
     }
     void write(char const* data, size_t len) {
@@ -71,19 +71,19 @@ class BufFileWriter {
                 flush();
         }
     }
-    inline void write(char c) {
+    void write(char c) {
         if (m_writeBufPos == BUFSIZE)
             flush();
         m_writeBuf[m_writeBufPos] = c;
         m_writeBufPos++;
     }
-    inline void operator+=(char const* str) {
+    void operator+=(char const* str) {
         write(str, strlen(str));
     }
-    inline void operator+=(std::string_view str) {
+    void operator+=(std::string_view str) {
         write(str.data(), str.size());
     }
-    inline void operator+=(char c) {
+    void operator+=(char c) {
         write(c);
     }
     void writeNum(size_t num) {
@@ -114,9 +114,9 @@ class BufFileWriter {
 #ifdef SA_RESTORER
             act.sa_restorer = NULL;
 #endif
-            sigaction(SIGCHLD, &act, NULL);
+            sigaction(SIGCHLD, &act, nullptr);
         }
-        pid_t pid = fork();
+        const pid_t pid = fork();
         if (pid < 0) {
             *this += "<fork() failed with ";
             writeNum(errno);
@@ -126,10 +126,10 @@ class BufFileWriter {
         if (pid == 0) {
             close(pipefd[0]);
             dup2(pipefd[1], STDOUT_FILENO);
-            char const* const argv[] = {"/bin/sh", "-c", cmd, NULL};
+            char const* const argv[] = {"/bin/sh", "-c", cmd, nullptr};
             execv("/bin/sh", (char* const*)argv);
 
-            BufFileWriter<64> failmsg(pipefd[1]);
+            CBufFileWriter<64> failmsg(pipefd[1]);
             failmsg += "<execv(";
             failmsg += cmd;
             failmsg += ") resulted in errno ";
@@ -139,8 +139,8 @@ class BufFileWriter {
             abort();
         } else {
             close(pipefd[1]);
-            long len;
-            char readbuf[256];
+            int64_t len = 0;
+            char    readbuf[256];
             while ((len = read(pipefd[0], readbuf, 256)) > 0) {
                 write(readbuf, len);
             }
@@ -165,11 +165,11 @@ class BufFileWriter {
     }
 
   private:
-    char   m_writeBuf[BUFSIZE];
-    size_t m_writeBufPos;
-    int    m_fd;
+    char   m_writeBuf[BUFSIZE] = {0};
+    size_t m_writeBufPos       = 0;
+    int    m_fd                = 0;
 };
 
-char const* sig_getenv(char const* name);
+char const* sigGetenv(char const* name);
 
-char const* sig_strsignal(int sig);
+char const* sigStrsignal(int sig);

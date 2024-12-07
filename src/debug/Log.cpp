@@ -18,7 +18,7 @@ void Debug::close() {
     logOfs.close();
 }
 
-void Debug::log(LogLevel level, std::string str) {
+void Debug::log(eLogLevel level, std::string str) {
     if (level == TRACE && !trace)
         return;
 
@@ -26,6 +26,7 @@ void Debug::log(LogLevel level, std::string str) {
         return;
 
     std::string coloredStr = str;
+    //NOLINTBEGIN
     switch (level) {
         case LOG:
             str        = "[LOG] " + str;
@@ -53,13 +54,14 @@ void Debug::log(LogLevel level, std::string str) {
             break;
         default: break;
     }
+    //NOLINTEND
 
     rollingLog += str + "\n";
     if (rollingLog.size() > ROLLING_LOG_SIZE)
         rollingLog = rollingLog.substr(rollingLog.size() - ROLLING_LOG_SIZE);
 
-    if (RollingLogFollow::Get().IsRunning())
-        RollingLogFollow::Get().AddLog(str);
+    if (SRollingLogFollow::get().isRunning())
+        SRollingLogFollow::get().addLog(str);
 
     if (!disableLogs || !**disableLogs) {
         // log to a file

@@ -219,7 +219,7 @@ void CLinuxDMABBUFParamsResource::create(uint32_t id) {
         return;
     }
 
-    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, FormatUtils::drmFormatName(attrs->format), attrs->planes);
+    LOGM(LOG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs->size, NFormatUtils::drmFormatName(attrs->format), attrs->planes);
     for (int i = 0; i < attrs->planes; ++i) {
         LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs->modifier, attrs->fds[i], attrs->strides[i], attrs->offsets[i]);
     }
@@ -448,7 +448,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                     .formats = mon->output->getRenderFormats(),
                 };
-                tches.push_back(std::make_pair<>(mon, tranche));
+                tches.emplace_back(std::make_pair<>(mon, tranche));
             }
 
             static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -458,7 +458,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                      .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
                      .formats = pMonitor->output->getRenderFormats(),
                 };
-                formatTable->monitorTranches.push_back(std::make_pair<>(pMonitor, tranche));
+                formatTable->monitorTranches.emplace_back(std::make_pair<>(pMonitor, tranche));
                 resetFormatTable();
             });
 

@@ -177,7 +177,7 @@ std::string CXWM::getAtomName(uint32_t atom) {
 
     // Get the name of the atom
     auto const atom_name_cookie = xcb_get_atom_name(connection, atom);
-    auto*      atom_name_reply  = xcb_get_atom_name_reply(connection, atom_name_cookie, NULL);
+    auto*      atom_name_reply  = xcb_get_atom_name_reply(connection, atom_name_cookie, nullptr);
 
     if (!atom_name_reply)
         return "Unknown";
@@ -247,7 +247,7 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             if (XID) {
                 if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
                     XSURF->parent = NEWXSURF;
-                    NEWXSURF->children.push_back(XSURF);
+                    NEWXSURF->children.emplace_back(XSURF);
                 } else
                     Debug::log(LOG, "[xwm] Denying transient because it would create a loop");
             }
@@ -763,7 +763,7 @@ void CXWM::gatherResources() {
     xcb_xfixes_query_version_cookie_t xfixes_cookie;
     xcb_xfixes_query_version_reply_t* xfixes_reply;
     xfixes_cookie = xcb_xfixes_query_version(connection, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
-    xfixes_reply  = xcb_xfixes_query_version_reply(connection, xfixes_cookie, NULL);
+    xfixes_reply  = xcb_xfixes_query_version_reply(connection, xfixes_cookie, nullptr);
 
     Debug::log(LOG, "xfixes version: {}.{}", xfixes_reply->major_version, xfixes_reply->minor_version);
     xfixesMajor = xfixes_reply->major_version;
@@ -775,8 +775,8 @@ void CXWM::gatherResources() {
         return;
 
     xcb_res_query_version_cookie_t xres_cookie = xcb_res_query_version(connection, XCB_RES_MAJOR_VERSION, XCB_RES_MINOR_VERSION);
-    xcb_res_query_version_reply_t* xres_reply  = xcb_res_query_version_reply(connection, xres_cookie, NULL);
-    if (xres_reply == NULL)
+    xcb_res_query_version_reply_t* xres_reply  = xcb_res_query_version_reply(connection, xres_cookie, nullptr);
+    if (xres_reply == nullptr)
         return;
 
     Debug::log(LOG, "xres version: {}.{}", xres_reply->server_major, xres_reply->server_minor);
@@ -792,7 +792,7 @@ void CXWM::getVisual() {
     xcb_visualtype_t*         visualtype;
 
     d_iter     = xcb_screen_allowed_depths_iterator(screen);
-    visualtype = NULL;
+    visualtype = nullptr;
     while (d_iter.rem > 0) {
         if (d_iter.data->depth == 32) {
             vt_iter    = xcb_depth_visuals_iterator(d_iter.data);
@@ -803,7 +803,7 @@ void CXWM::getVisual() {
         xcb_depth_next(&d_iter);
     }
 
-    if (visualtype == NULL) {
+    if (visualtype == nullptr) {
         Debug::log(LOG, "xwm: No 32-bit visualtype");
         return;
     }
@@ -815,13 +815,13 @@ void CXWM::getVisual() {
 
 void CXWM::getRenderFormat() {
     xcb_render_query_pict_formats_cookie_t cookie = xcb_render_query_pict_formats(connection);
-    xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(connection, cookie, NULL);
+    xcb_render_query_pict_formats_reply_t* reply  = xcb_render_query_pict_formats_reply(connection, cookie, nullptr);
     if (!reply) {
         Debug::log(LOG, "xwm: No xcb_render_query_pict_formats_reply_t reply");
         return;
     }
     xcb_render_pictforminfo_iterator_t iter   = xcb_render_query_pict_formats_formats_iterator(reply);
-    xcb_render_pictforminfo_t*         format = NULL;
+    xcb_render_pictforminfo_t*         format = nullptr;
     while (iter.rem > 0) {
         if (iter.data->depth == 32) {
             format = iter.data;
@@ -831,7 +831,7 @@ void CXWM::getRenderFormat() {
         xcb_render_pictforminfo_next(&iter);
     }
 
-    if (format == NULL) {
+    if (format == nullptr) {
         Debug::log(LOG, "xwm: No 32-bit render format");
         free(reply);
         return;
@@ -906,7 +906,7 @@ void CXWM::setActiveWindow(xcb_window_t window) {
 void CXWM::createWMWindow() {
     constexpr const char* wmName = "Hyprland :D";
     wmWindow                     = xcb_generate_id(connection);
-    xcb_create_window(connection, XCB_COPY_FROM_PARENT, wmWindow, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, 0, NULL);
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT, wmWindow, screen->root, 0, 0, 10, 10, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, 0, nullptr);
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, wmWindow, HYPRATOMS["_NET_WM_NAME"], HYPRATOMS["UTF8_STRING"],
                         8, // format
                         strlen(wmName), wmName);
@@ -986,7 +986,7 @@ void CXWM::onNewResource(SP<CXWaylandSurfaceResource> resource) {
     Debug::log(LOG, "[xwm] New XWayland resource at {:x}", (uintptr_t)resource.get());
 
     std::erase_if(shellResources, [](const auto& e) { return e.expired(); });
-    shellResources.push_back(resource);
+    shellResources.emplace_back(resource);
 
     for (auto const& surf : surfaces) {
         if (surf->resource || surf->wlSerial != resource->serial)
@@ -1157,7 +1157,7 @@ void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& si
     xcb_render_create_picture(connection, pic, pix, render_format_id, 0, 0);
 
     xcb_gcontext_t gc = xcb_generate_id(connection);
-    xcb_create_gc(connection, gc, pix, 0, NULL);
+    xcb_create_gc(connection, gc, pix, 0, nullptr);
 
     xcb_put_image(connection, XCB_IMAGE_FORMAT_Z_PIXMAP, pix, gc, size.x, size.y, 0, 0, 0, CURSOR_DEPTH, stride * size.y * sizeof(uint8_t), pixData);
     xcb_free_gc(connection, gc);

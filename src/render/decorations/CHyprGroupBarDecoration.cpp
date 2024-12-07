@@ -17,16 +17,15 @@ constexpr int       BAR_PADDING_OUTER_HORZ = 2;
 constexpr int       BAR_TEXT_PAD           = 2;
 constexpr int       BAR_HORIZONTAL_PADDING = 2;
 
-CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow) {
+CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
-    m_pWindow              = pWindow;
 
     if (m_tGradientActive->m_iTexID == 0 && *PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
-CHyprGroupBarDecoration::~CHyprGroupBarDecoration() {}
+CHyprGroupBarDecoration::~CHyprGroupBarDecoration() = default;
 
 SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT       = CConfigValue<Hyprlang::INT>("group:groupbar:height");

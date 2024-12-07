@@ -185,8 +185,8 @@ SP<SXCursors> CXCursorManager::createCursor(std::string const& shape, XcursorIma
         SXCursorImage image;
         image.size    = {(int)xImage->width, (int)xImage->height};
         image.hotspot = {(int)xImage->xhot, (int)xImage->yhot};
-        image.pixels.resize(xImage->width * xImage->height);
-        std::memcpy(image.pixels.data(), xImage->pixels, xImage->width * xImage->height * sizeof(uint32_t));
+        image.pixels.resize((size_t)xImage->width * xImage->height);
+        std::memcpy(image.pixels.data(), xImage->pixels, (size_t)xImage->width * xImage->height * sizeof(uint32_t));
         image.delay = xImage->delay;
 
         xcursor->images.emplace_back(image);
@@ -570,7 +570,7 @@ void CXCursorManager::syncGsettings() {
         auto* gSettingsSchema = g_settings_schema_source_lookup(gSettingsSchemaSource, category.c_str(), true);
         bool  hasParam        = false;
 
-        if (gSettingsSchema != NULL) {
+        if (gSettingsSchema) {
             hasParam = gSettingsSchema && g_settings_schema_has_key(gSettingsSchema, paramName.c_str());
             g_settings_schema_unref(gSettingsSchema);
         }

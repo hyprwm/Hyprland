@@ -896,9 +896,9 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
-        RENDERMODIFDATA.modifs.push_back({SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate});
+        RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate));
     if (scale != 1.f)
-        RENDERMODIFDATA.modifs.push_back({SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale});
+        RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
     if (!pMonitor)
         return;
@@ -1652,7 +1652,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
-            .positive_axis   = NULL,
+            .positive_axis   = nullptr,
             .negative_axis   = &usableArea.height,
             .margin          = marginBottom,
         },
@@ -1668,7 +1668,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
         {
             .singular_anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
             .anchor_triplet  = ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT | ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
-            .positive_axis   = NULL,
+            .positive_axis   = nullptr,
             .negative_axis   = &usableArea.width,
             .margin          = marginRight,
         },
@@ -1948,19 +1948,18 @@ void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
     for (auto const& mirror : pMonitor->mirrors) {
 
         // transform the damage here, so it won't get clipped by the monitor damage ring
-        auto    monitor  = mirror;
-        auto    mirrored = pMonitor;
+        auto    monitor = mirror;
 
         CRegion transformed{pRegion};
 
         // we want to transform to the same box as in CHyprOpenGLImpl::renderMirrored
-        double scale  = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
-        CBox   monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
+        double scale  = std::min(monitor->vecTransformedSize.x / pMonitor->vecTransformedSize.x, monitor->vecTransformedSize.y / pMonitor->vecTransformedSize.y);
+        CBox   monbox = {0, 0, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
         monbox.x      = (monitor->vecTransformedSize.x - monbox.w) / 2;
         monbox.y      = (monitor->vecTransformedSize.y - monbox.h) / 2;
 
         transformed.scale(scale);
-        transformed.transform(wlTransformToHyprutils(mirrored->transform), mirrored->vecPixelSize.x * scale, mirrored->vecPixelSize.y * scale);
+        transformed.transform(wlTransformToHyprutils(pMonitor->transform), pMonitor->vecPixelSize.x * scale, pMonitor->vecPixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
         mirror->addDamage(&transformed);
@@ -1971,17 +1970,6 @@ void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
 
 void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, timespec* time) {
     PROTO::data->renderDND(pMonitor, time);
-}
-
-DAMAGETRACKINGMODES CHyprRenderer::damageTrackingModeFromStr(const std::string& mode) {
-    if (mode == "full")
-        return DAMAGE_TRACKING_FULL;
-    if (mode == "monitor")
-        return DAMAGE_TRACKING_MONITOR;
-    if (mode == "none")
-        return DAMAGE_TRACKING_NONE;
-
-    return DAMAGE_TRACKING_INVALID;
 }
 
 bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitorRule, bool force) {

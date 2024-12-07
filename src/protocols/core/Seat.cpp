@@ -442,7 +442,7 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : resource(resource_) {
             return;
         }
 
-        keyboards.push_back(RESOURCE);
+        keyboards.emplace_back(RESOURCE);
     });
 
     resource->setGetPointer([this](CWlSeat* r, uint32_t id) {
@@ -454,7 +454,7 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : resource(resource_) {
             return;
         }
 
-        pointers.push_back(RESOURCE);
+        pointers.emplace_back(RESOURCE);
     });
 
     resource->setGetTouch([this](CWlSeat* r, uint32_t id) {
@@ -466,7 +466,7 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : resource(resource_) {
             return;
         }
 
-        touches.push_back(RESOURCE);
+        touches.emplace_back(RESOURCE);
     });
 
     if (resource->version() >= 2)

@@ -551,8 +551,8 @@ bool CXDGPositionerResource::good() {
     return resource->resource();
 }
 
-CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) {
-    state = positioner->state;
+CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) : state(positioner->state) {
+    ;
 }
 
 CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoord) {

@@ -4,7 +4,6 @@
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../helpers/math/Math.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <tuple>
@@ -160,8 +159,8 @@ class CPointerManager {
     Vector2D storedUnaccel = {0, 0};
 
     struct SMonitorPointerState {
-        SMonitorPointerState(PHLMONITOR m) : monitor(m) {}
-        ~SMonitorPointerState() {}
+        SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}
+        ~SMonitorPointerState() = default;
 
         PHLMONITORREF           monitor;
 

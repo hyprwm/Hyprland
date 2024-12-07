@@ -320,7 +320,7 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     };
 
     if (SYMBOLS.empty()) {
-        Debug::log(ERR, "Unable to search for function \"{}\": no symbols found in binary (is \"{}\" in path?)", name,
+        Debug::log(ERR, R"(Unable to search for function "{}": no symbols found in binary (is "{}" in path?))", name,
 #ifdef __clang__
                    "llvm-nm"
 #else

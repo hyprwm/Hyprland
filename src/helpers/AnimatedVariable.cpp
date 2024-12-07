@@ -2,11 +2,11 @@
 #include "../managers/AnimationManager.hpp"
 #include "../config/ConfigManager.hpp"
 
-CBaseAnimatedVariable::CBaseAnimatedVariable(ANIMATEDVARTYPE type) : m_Type(type) {
+CBaseAnimatedVariable::CBaseAnimatedVariable(eAnimatedVarType type) : m_Type(type) {
     ; // dummy var
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pWindow       = pWindow;
@@ -14,7 +14,7 @@ void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWIN
     m_bDummy = false;
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, eAVarDamagePolicy policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pLayer        = pLayer;
@@ -22,7 +22,7 @@ void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLLS 
     m_bDummy = false;
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
     m_pWorkspace    = pWorkspace;
@@ -30,7 +30,7 @@ void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, PHLWOR
     m_bDummy = false;
 }
 
-void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy) {
+void CBaseAnimatedVariable::create(SAnimationPropertyConfig* pAnimConfig, eAVarDamagePolicy policy) {
     m_eDamagePolicy = policy;
     m_pConfig       = pAnimConfig;
 

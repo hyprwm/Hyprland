@@ -16,7 +16,7 @@
 #include <aquamarine/allocator/Swapchain.hpp>
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
-enum eAutoDirs {
+enum eAutoDirs : uint8_t {
     DIR_AUTO_NONE = 0, /* None will be treated as right. */
     DIR_AUTO_UP,
     DIR_AUTO_DOWN,

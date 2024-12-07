@@ -11,6 +11,8 @@ struct SRenderData;
 // Worth noting transformers for now only affect the main pass (not popups)
 class IWindowTransformer {
   public:
+    virtual ~IWindowTransformer() = default;
+
     // called by Hyprland. For more data about what is being rendered, inspect render data.
     // returns the out fb.
     virtual CFramebuffer* transform(CFramebuffer* in) = 0;

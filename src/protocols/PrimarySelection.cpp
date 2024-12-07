@@ -58,7 +58,7 @@ CPrimarySelectionSource::CPrimarySelectionSource(SP<CZwpPrimarySelectionSourceV1
         PROTO::primarySelection->destroyResource(this);
     });
 
-    resource->setOffer([this](CZwpPrimarySelectionSourceV1* r, const char* mime) { mimeTypes.push_back(mime); });
+    resource->setOffer([this](CZwpPrimarySelectionSourceV1* r, const char* mime) { mimeTypes.emplace_back(mime); });
 }
 
 CPrimarySelectionSource::~CPrimarySelectionSource() {
@@ -203,7 +203,7 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
 
         RESOURCE->self = RESOURCE;
 
-        sources.push_back(RESOURCE);
+        sources.emplace_back(RESOURCE);
 
         LOGM(LOG, "New primary selection data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });

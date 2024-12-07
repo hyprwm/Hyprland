@@ -17,7 +17,7 @@ struct SLayoutMessageHeader {
 
 enum eFullscreenMode : int8_t;
 
-enum eRectCorner {
+enum eRectCorner : uint8_t {
     CORNER_NONE        = 0,
     CORNER_TOPLEFT     = (1 << 0),
     CORNER_TOPRIGHT    = (1 << 1),
@@ -25,7 +25,7 @@ enum eRectCorner {
     CORNER_BOTTOMLEFT  = (1 << 3),
 };
 
-enum eSnapEdge {
+enum eSnapEdge : uint8_t {
     SNAP_INVALID = 0,
     SNAP_UP      = (1 << 0),
     SNAP_DOWN    = (1 << 1),
@@ -33,7 +33,7 @@ enum eSnapEdge {
     SNAP_RIGHT   = (1 << 3),
 };
 
-enum eDirection {
+enum eDirection : int8_t {
     DIRECTION_DEFAULT = -1,
     DIRECTION_UP      = 0,
     DIRECTION_RIGHT,

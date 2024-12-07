@@ -57,7 +57,7 @@ void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
         return;
     }
 
-    heads.push_back(RESOURCE);
+    heads.emplace_back(RESOURCE);
 
     resource->sendHead(RESOURCE->resource.get());
     RESOURCE->sendAllData();
@@ -216,7 +216,7 @@ void COutputHead::makeAndSendNewMode(SP<Aquamarine::SOutputMode> mode) {
         return;
     }
 
-    modes.push_back(RESOURCE);
+    modes.emplace_back(RESOURCE);
     resource->sendMode(RESOURCE->resource.get());
     RESOURCE->sendAllData();
 }
@@ -285,7 +285,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
             return;
         }
 
-        heads.push_back(RESOURCE);
+        heads.emplace_back(RESOURCE);
 
         LOGM(LOG, "enableHead on {}. For now, doing nothing. Waiting for apply().", PMONITOR->szName);
     });

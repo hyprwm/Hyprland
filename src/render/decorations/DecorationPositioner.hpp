@@ -9,12 +9,12 @@
 class CWindow;
 class IHyprWindowDecoration;
 
-enum eDecorationPositioningPolicy {
+enum eDecorationPositioningPolicy : uint8_t {
     DECORATION_POSITION_ABSOLUTE = 0, /* Decoration wants absolute positioning */
     DECORATION_POSITION_STICKY,       /* Decoration is stuck to some edge of a window */
 };
 
-enum eDecorationEdges {
+enum eDecorationEdges : uint8_t {
     DECORATION_EDGE_TOP    = 1 << 0,
     DECORATION_EDGE_BOTTOM = 1 << 1,
     DECORATION_EDGE_LEFT   = 1 << 2,

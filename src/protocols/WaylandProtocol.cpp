@@ -6,8 +6,8 @@ static void bindManagerInternal(wl_client* client, void* data, uint32_t ver, uin
 }
 
 static void displayDestroyInternal(struct wl_listener* listener, void* data) {
-    IWaylandProtocolDestroyWrapper* wrap  = wl_container_of(listener, wrap, listener);
-    IWaylandProtocol*               proto = wrap->parent;
+    SIWaylandProtocolDestroyWrapper* wrap  = wl_container_of(listener, wrap, listener);
+    IWaylandProtocol*                proto = wrap->parent;
     proto->onDisplayDestroy();
 }
 
@@ -17,8 +17,8 @@ void IWaylandProtocol::onDisplayDestroy() {
     wl_global_destroy(m_pGlobal);
 }
 
-IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) : m_szName(name) {
-    m_pGlobal = wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal);
+IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
+    m_szName(name), m_pGlobal(wl_global_create(g_pCompositor->m_sWLDisplay, iface, ver, this, &bindManagerInternal)) {
 
     if (!m_pGlobal) {
         LOGM(ERR, "could not create a global [{}]", m_szName);

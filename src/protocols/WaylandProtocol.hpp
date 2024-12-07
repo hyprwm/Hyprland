@@ -41,7 +41,7 @@
     } while (0)
 
 class IWaylandProtocol;
-struct IWaylandProtocolDestroyWrapper {
+struct SIWaylandProtocolDestroyWrapper {
     wl_listener       listener;
     IWaylandProtocol* parent = nullptr;
 };
@@ -51,13 +51,13 @@ class IWaylandProtocol {
     IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name);
     virtual ~IWaylandProtocol();
 
-    virtual void                   onDisplayDestroy();
-    virtual void                   removeGlobal();
-    virtual wl_global*             getGlobal();
+    virtual void                    onDisplayDestroy();
+    virtual void                    removeGlobal();
+    virtual wl_global*              getGlobal();
 
-    virtual void                   bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
+    virtual void                    bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) = 0;
 
-    IWaylandProtocolDestroyWrapper m_liDisplayDestroy;
+    SIWaylandProtocolDestroyWrapper m_liDisplayDestroy;
 
   private:
     std::string m_szName;

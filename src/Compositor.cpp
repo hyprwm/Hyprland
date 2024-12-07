@@ -76,7 +76,7 @@ void handleUnrecoverableSignal(int sig) {
     });
     alarm(15);
 
-    CrashReporter::createAndSaveCrash(sig);
+    NCrashReporter::createAndSaveCrash(sig);
 
     abort();
 }
@@ -88,7 +88,7 @@ void handleUserSignal(int sig) {
     }
 }
 
-static LogLevel aqLevelToHl(Aquamarine::eBackendLogLevel level) {
+static eLogLevel aqLevelToHl(Aquamarine::eBackendLogLevel level) {
     switch (level) {
         case Aquamarine::eBackendLogLevel::AQ_LOG_TRACE: return TRACE;
         case Aquamarine::eBackendLogLevel::AQ_LOG_DEBUG: return LOG;
@@ -136,9 +136,7 @@ void CCompositor::restoreNofile() {
         Debug::log(ERR, "Failed restoring NOFILE limits");
 }
 
-CCompositor::CCompositor() {
-    m_iHyprlandPID = getpid();
-
+CCompositor::CCompositor() : m_iHyprlandPID(getpid()) {
     m_szHyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
 
     if (m_szHyprTempDataRoot.starts_with("/hypr")) {
@@ -153,7 +151,7 @@ CCompositor::CCompositor() {
     std::mt19937                    engine(dev());
     std::uniform_int_distribution<> distribution(0, INT32_MAX);
 
-    m_szInstanceSignature = std::format("{}_{}_{}", GIT_COMMIT_HASH, std::time(NULL), distribution(engine));
+    m_szInstanceSignature = std::format("{}_{}_{}", GIT_COMMIT_HASH, std::time(nullptr), distribution(engine));
 
     setenv("HYPRLAND_INSTANCE_SIGNATURE", m_szInstanceSignature.c_str(), true);
 
@@ -261,7 +259,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     // set the buffer size to 1MB to avoid disconnects due to an app hanging for a short while
     wl_display_set_default_max_buffer_size(m_sWLDisplay, 1_MB);
 
-    Aquamarine::SBackendOptions options;
+    Aquamarine::SBackendOptions options{};
     options.logFunction = aqLog;
 
     std::vector<Aquamarine::SBackendImplementationOptions> implementations;
@@ -493,8 +491,8 @@ void CCompositor::cleanup() {
     Debug::shuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (Systemd::SdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-        Systemd::SdNotify(0, "STOPPING=1");
+    if (NSystemd::sdBooted() > 0 && !envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+        NSystemd::sdNotify(0, "STOPPING=1");
 #endif
 
     cleanEnvironment();
@@ -715,10 +713,10 @@ void CCompositor::startCompositor() {
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
 #ifdef USES_SYSTEMD
-    if (Systemd::SdBooted() > 0) {
+    if (NSystemd::sdBooted() > 0) {
         // tell systemd that we are ready so it can start other bond, following, related units
         if (!envEnabled("HYPRLAND_NO_SD_NOTIFY"))
-            Systemd::SdNotify(0, "READY=1");
+            NSystemd::sdNotify(0, "READY=1");
     } else
         Debug::log(LOG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
@@ -1360,7 +1358,7 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
                 toMove.emplace_front(pw);
 
             for (auto const& w : m_vWindows) {
-                if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->X11TransientFor() == pw && w != pw && std::find(toMove.begin(), toMove.end(), w) == toMove.end()) {
+                if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->x11TransientFor() == pw && w != pw && std::find(toMove.begin(), toMove.end(), w) == toMove.end()) {
                     x11Stack(w, top, x11Stack);
                 }
             }
@@ -1368,7 +1366,7 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
 
         x11Stack(pWindow, top, x11Stack);
 
-        for (auto it : toMove) {
+        for (const auto& it : toMove) {
             moveToZ(it, top);
         }
     }
@@ -1572,7 +1570,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
         static const std::unordered_map<char, Vector2D> VECTORS = {{'r', {1, 0}}, {'t', {0, -1}}, {'b', {0, 1}}, {'l', {-1, 0}}};
 
         //
-        auto vectorAngles = [](Vector2D a, Vector2D b) -> double {
+        auto vectorAngles = [](const Vector2D& a, const Vector2D& b) -> double {
             double dot = a.x * b.x + a.y * b.y;
             double ang = std::acos(dot / (a.size() * b.size()));
             return ang;
@@ -2246,19 +2244,19 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
 
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = PWINDOW->m_sFullscreenState.client});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_sFullscreenState.client});
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_sWindowData.syncFullscreen.valueOrDefault())
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = MODE});
+        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = MODE});
 }
 
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, sFullscreenState state) {
+void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenState state) {
     static auto PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:allow_pin_fullscreen");
 
@@ -2566,7 +2564,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
 }
 
 PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITORID& monid, const std::string& name, bool isEmpty) {
-    const auto NAME  = name == "" ? std::to_string(id) : name;
+    const auto NAME  = name.empty() ? std::to_string(id) : name;
     auto       monID = monid;
 
     // check if bound

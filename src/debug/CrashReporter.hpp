@@ -2,6 +2,6 @@
 
 #include "../defines.hpp"
 
-namespace CrashReporter {
+namespace NCrashReporter {
     void createAndSaveCrash(int sig);
 };

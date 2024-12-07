@@ -50,7 +50,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     if (shmFormat == DRM_FORMAT_XRGB2101010 || shmFormat == DRM_FORMAT_ARGB2101010)
         shmFormat = DRM_FORMAT_XBGR2101010;
 
-    const auto PSHMINFO = FormatUtils::getPixelFormatFromDRM(shmFormat);
+    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(shmFormat);
     if (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture output");
         resource->sendFailed();
@@ -68,9 +68,9 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
 
     box.transform(wlTransformToHyprutils(pMonitor->transform), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y).scale(pMonitor->scale).round();
 
-    shmStride = FormatUtils::minStride(PSHMINFO, box.w);
+    shmStride = NFormatUtils::minStride(PSHMINFO, box.w);
 
-    resource->sendBuffer(FormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
+    resource->sendBuffer(NFormatUtils::drmToShm(shmFormat), box.width, box.height, shmStride);
 
     if (resource->version() >= 3) {
         if (dmabufFormat != DRM_FORMAT_INVALID) {
@@ -258,7 +258,7 @@ bool CScreencopyFrame::copyShm() {
     glBindFramebuffer(GL_FRAMEBUFFER, fb.getFBID());
 #endif
 
-    const auto PFORMAT = FormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(ERR, "Can't copy: failed to find a pixel format");
         g_pHyprRenderer->endRender();
@@ -276,8 +276,8 @@ bool CScreencopyFrame::copyShm() {
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    const auto drmFmt     = FormatUtils::getPixelFormatFromDRM(shm.format);
-    uint32_t   packStride = FormatUtils::minStride(drmFmt, box.w);
+    const auto drmFmt     = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    uint32_t   packStride = NFormatUtils::minStride(drmFmt, box.w);
 
     if (packStride == (uint32_t)shm.stride) {
         glReadPixels(0, 0, box.w, box.h, glFormat, PFORMAT->glType, pixelData);

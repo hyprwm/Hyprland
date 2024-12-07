@@ -267,7 +267,7 @@ void CHyprMasterLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     // the screen half bare, and make it difficult to select remaining window
     if (getNodesOnWorkspace(WORKSPACEID) == 1) {
         for (auto& nd : m_lMasterNodesData) {
-            if (nd.workspaceID == WORKSPACEID && nd.isMaster == false) {
+            if (nd.workspaceID == WORKSPACEID && !nd.isMaster) {
                 nd.isMaster = true;
                 break;
             }

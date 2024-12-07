@@ -647,7 +647,7 @@ bool CSeatGrab::accepts(SP<CWLSurfaceResource> surf) {
 }
 
 void CSeatGrab::add(SP<CWLSurfaceResource> surf) {
-    surfs.push_back(surf);
+    surfs.emplace_back(surf);
 }
 
 void CSeatGrab::remove(SP<CWLSurfaceResource> surf) {

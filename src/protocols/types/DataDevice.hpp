@@ -5,15 +5,15 @@
 #include <cstdint>
 #include "../../helpers/signal/Signal.hpp"
 
-enum eDataSourceType {
+enum eDataSourceType : uint8_t {
     DATA_SOURCE_TYPE_WAYLAND = 0,
     DATA_SOURCE_TYPE_X11,
 };
 
 class IDataSource {
   public:
-    IDataSource() {}
-    virtual ~IDataSource() {}
+    IDataSource()          = default;
+    virtual ~IDataSource() = default;
 
     virtual std::vector<std::string> mimes()                                    = 0;
     virtual void                     send(const std::string& mime, uint32_t fd) = 0;

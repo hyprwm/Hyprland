@@ -1,6 +1,6 @@
 #pragma once
 
-enum eSurfaceRole {
+enum eSurfaceRole : uint8_t {
     SURFACE_ROLE_UNASSIGNED = 0,
     SURFACE_ROLE_XDG_SHELL,
     SURFACE_ROLE_LAYER_SHELL,

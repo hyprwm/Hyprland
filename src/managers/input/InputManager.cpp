@@ -868,7 +868,7 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
 
-    m_vHIDs.push_back(keeb);
+    m_vHIDs.emplace_back(keeb);
 
     try {
         keeb->hlName = getNameForNewDevice(keeb->deviceName);
@@ -1016,7 +1016,7 @@ void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
 }
 
 void CInputManager::setupMouse(SP<IPointer> mauz) {
-    m_vHIDs.push_back(mauz);
+    m_vHIDs.emplace_back(mauz);
 
     try {
         mauz->hlName = getNameForNewDevice(mauz->deviceName);
@@ -1495,7 +1495,7 @@ void CInputManager::disableAllKeyboards(bool virt) {
 
 void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     const auto PNEWDEV = m_vTouches.emplace_back(CTouchDevice::create(pDevice));
-    m_vHIDs.push_back(PNEWDEV);
+    m_vHIDs.emplace_back(PNEWDEV);
 
     try {
         PNEWDEV->hlName = getNameForNewDevice(PNEWDEV->deviceName);

@@ -1,15 +1,14 @@
 #pragma once
 
 #include "../defines.hpp"
-#include <thread>
-#include "../Compositor.hpp"
+struct wl_event_source;
 
 class CThreadManager {
   public:
     CThreadManager();
     ~CThreadManager();
 
-    wl_event_source* m_esConfigTimer;
+    wl_event_source* m_esConfigTimer = nullptr;
 
   private:
 };

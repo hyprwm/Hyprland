@@ -231,7 +231,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     },
 };
 
-SHMFormat FormatUtils::drmToShm(DRMFormat drm) {
+SHMFormat NFormatUtils::drmToShm(DRMFormat drm) {
     switch (drm) {
         case DRM_FORMAT_XRGB8888: return WL_SHM_FORMAT_XRGB8888;
         case DRM_FORMAT_ARGB8888: return WL_SHM_FORMAT_ARGB8888;
@@ -241,7 +241,7 @@ SHMFormat FormatUtils::drmToShm(DRMFormat drm) {
     return drm;
 }
 
-DRMFormat FormatUtils::shmToDRM(SHMFormat shm) {
+DRMFormat NFormatUtils::shmToDRM(SHMFormat shm) {
     switch (shm) {
         case WL_SHM_FORMAT_XRGB8888: return DRM_FORMAT_XRGB8888;
         case WL_SHM_FORMAT_ARGB8888: return DRM_FORMAT_ARGB8888;
@@ -251,7 +251,7 @@ DRMFormat FormatUtils::shmToDRM(SHMFormat shm) {
     return shm;
 }
 
-const SPixelFormat* FormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
+const SPixelFormat* NFormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
     for (auto const& fmt : GLES3_FORMATS) {
         if (fmt.drmFormat == drm)
             return &fmt;
@@ -260,7 +260,7 @@ const SPixelFormat* FormatUtils::getPixelFormatFromDRM(DRMFormat drm) {
     return nullptr;
 }
 
-const SPixelFormat* FormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha) {
+const SPixelFormat* NFormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha) {
     for (auto const& fmt : GLES3_FORMATS) {
         if (fmt.glFormat == (int)glFormat && fmt.glType == (int)glType && fmt.withAlpha == alpha)
             return &fmt;
@@ -269,23 +269,23 @@ const SPixelFormat* FormatUtils::getPixelFormatFromGL(uint32_t glFormat, uint32_
     return nullptr;
 }
 
-bool FormatUtils::isFormatOpaque(DRMFormat drm) {
-    const auto FMT = FormatUtils::getPixelFormatFromDRM(drm);
+bool NFormatUtils::isFormatOpaque(DRMFormat drm) {
+    const auto FMT = NFormatUtils::getPixelFormatFromDRM(drm);
     if (!FMT)
         return false;
 
     return !FMT->withAlpha;
 }
 
-int FormatUtils::pixelsPerBlock(const SPixelFormat* const fmt) {
+int NFormatUtils::pixelsPerBlock(const SPixelFormat* const fmt) {
     return fmt->blockSize.x * fmt->blockSize.y > 0 ? fmt->blockSize.x * fmt->blockSize.y : 1;
 }
 
-int FormatUtils::minStride(const SPixelFormat* const fmt, int32_t width) {
+int NFormatUtils::minStride(const SPixelFormat* const fmt, int32_t width) {
     return std::ceil((width * fmt->bytesPerBlock) / pixelsPerBlock(fmt));
 }
 
-uint32_t FormatUtils::drmFormatToGL(DRMFormat drm) {
+uint32_t NFormatUtils::drmFormatToGL(DRMFormat drm) {
     switch (drm) {
         case DRM_FORMAT_XRGB8888:
         case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
@@ -302,7 +302,7 @@ uint32_t FormatUtils::drmFormatToGL(DRMFormat drm) {
     return GL_RGBA;
 }
 
-uint32_t FormatUtils::glFormatToType(uint32_t gl) {
+uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
     return gl != GL_RGBA ?
 #ifdef GLES2
         GL_UNSIGNED_INT_2_10_10_10_REV_EXT :
@@ -312,14 +312,14 @@ uint32_t FormatUtils::glFormatToType(uint32_t gl) {
         GL_UNSIGNED_BYTE;
 }
 
-std::string FormatUtils::drmFormatName(DRMFormat drm) {
+std::string NFormatUtils::drmFormatName(DRMFormat drm) {
     auto        n    = drmGetFormatName(drm);
     std::string name = n;
     free(n);
     return name;
 }
 
-std::string FormatUtils::drmModifierName(uint64_t mod) {
+std::string NFormatUtils::drmModifierName(uint64_t mod) {
     auto        n    = drmGetFormatModifierName(mod);
     std::string name = n;
     free(n);

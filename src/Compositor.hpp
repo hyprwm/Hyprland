@@ -35,7 +35,7 @@
 
 class CWLSurfaceResource;
 
-enum eManagersInitStage {
+enum eManagersInitStage : uint8_t {
     STAGE_PRIORITY = 0,
     STAGE_BASICINIT,
     STAGE_LATE
@@ -140,7 +140,7 @@ class CCompositor {
     bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
     void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const sFullscreenState state);
+    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState state);
     void                   changeWindowFullscreenModeInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     void                   updateFullscreenFadeOnWorkspace(PHLWORKSPACE);

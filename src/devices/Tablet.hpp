@@ -3,7 +3,6 @@
 #include "IHID.hpp"
 #include "../macros.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../helpers/math/Math.hpp"
 
 AQUAMARINE_FORWARD(ITablet);
 AQUAMARINE_FORWARD(ITabletTool);
@@ -27,7 +26,7 @@ class CTablet : public IHID {
     virtual eHIDType        getType();
     SP<Aquamarine::ITablet> aq();
 
-    enum eTabletToolAxes {
+    enum eTabletToolAxes : uint16_t {
         HID_TABLET_TOOL_AXIS_X        = (1 << 0),
         HID_TABLET_TOOL_AXIS_Y        = (1 << 1),
         HID_TABLET_TOOL_AXIS_TILT_X   = (1 << 2),
@@ -173,7 +172,7 @@ class CTabletTool : public IHID {
     static SP<CTabletTool> create(SP<Aquamarine::ITabletTool> tool);
     ~CTabletTool();
 
-    enum eTabletToolType {
+    enum eTabletToolType : uint8_t {
         HID_TABLET_TOOL_TYPE_PEN = 1,
         HID_TABLET_TOOL_TYPE_ERASER,
         HID_TABLET_TOOL_TYPE_BRUSH,
@@ -184,7 +183,7 @@ class CTabletTool : public IHID {
         HID_TABLET_TOOL_TYPE_TOTEM,
     };
 
-    enum eTabletToolCapabilities {
+    enum eTabletToolCapabilities : uint8_t {
         HID_TABLET_TOOL_CAPABILITY_TILT     = (1 << 0),
         HID_TABLET_TOOL_CAPABILITY_PRESSURE = (1 << 1),
         HID_TABLET_TOOL_CAPABILITY_DISTANCE = (1 << 2),

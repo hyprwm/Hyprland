@@ -5,9 +5,7 @@
 #include "../helpers/Format.hpp"
 #include <cstring>
 
-CTexture::CTexture() {
-    // naffin'
-}
+CTexture::CTexture() = default;
 
 CTexture::~CTexture() {
     if (!g_pCompositor || g_pCompositor->m_bIsShuttingDown || !g_pHyprRenderer)
@@ -63,7 +61,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
 void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = FormatUtils::getPixelFormatFromDRM(drmFormat);
+    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
     m_iType = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
@@ -96,11 +94,11 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
         return;
     }
 
-    m_bOpaque = FormatUtils::isFormatOpaque(attrs.format);
+    m_bOpaque = NFormatUtils::isFormatOpaque(attrs.format);
     m_iTarget = GL_TEXTURE_2D;
     m_iType   = TEXTURE_RGBA;
     m_vSize   = attrs.size;
-    m_iType   = FormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    m_iType   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
     allocate();
     m_pEglImage = image;
 
@@ -114,7 +112,7 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = FormatUtils::getPixelFormatFromDRM(drmFormat);
+    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
     glBindTexture(GL_TEXTURE_2D, m_iTexID);

@@ -19,9 +19,9 @@ CWLSHMBuffer::CWLSHMBuffer(SP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     stride = stride_;
     fmt    = fmt_;
     offset = offset_;
-    opaque = FormatUtils::isFormatOpaque(FormatUtils::shmToDRM(fmt_));
+    opaque = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
 
-    texture = makeShared<CTexture>(FormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, size_);
+    texture = makeShared<CTexture>(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, size_);
 
     resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->resource->client(), 1, id));
 
@@ -56,7 +56,7 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
     Aquamarine::SSHMAttrs attrs;
     attrs.success = true;
     attrs.fd      = pool->fd;
-    attrs.format  = FormatUtils::shmToDRM(fmt);
+    attrs.format  = NFormatUtils::shmToDRM(fmt);
     attrs.size    = size;
     attrs.stride  = stride;
     attrs.offset  = offset;
@@ -76,11 +76,11 @@ bool CWLSHMBuffer::good() {
 }
 
 void CWLSHMBuffer::update(const CRegion& damage) {
-    texture->update(FormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, damage);
+    texture->update(NFormatUtils::shmToDRM(fmt), (uint8_t*)pool->data + offset, stride, damage);
 }
 
-CSHMPool::CSHMPool(int fd_, size_t size_) : fd(fd_), size(size_) {
-    data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+CSHMPool::CSHMPool(int fd_, size_t size_) : fd(fd_), size(size_), data(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) {
+    ;
 }
 
 CSHMPool::~CSHMPool() {

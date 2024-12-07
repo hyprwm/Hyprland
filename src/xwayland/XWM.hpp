@@ -58,8 +58,8 @@ struct SXSelection {
 
 class CXCBConnection {
   public:
-    CXCBConnection(int fd) {
-        connection = xcb_connect_to_fd(fd, nullptr);
+    CXCBConnection(int fd) : connection{xcb_connect_to_fd(fd, nullptr)} {
+        ;
     }
 
     ~CXCBConnection() {

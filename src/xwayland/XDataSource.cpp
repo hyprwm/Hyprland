@@ -11,7 +11,7 @@ CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
                                                         1, // delete
                                                         selection.window, HYPRATOMS["_WL_SELECTION"], XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
 
-    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection, cookie, NULL);
+    xcb_get_property_reply_t* reply = xcb_get_property_reply(g_pXWayland->pWM->connection, cookie, nullptr);
     if (!reply)
         return;
 
@@ -23,9 +23,9 @@ CXDataSource::CXDataSource(SXSelection& sel_) : selection(sel_) {
     auto value = (xcb_atom_t*)xcb_get_property_value(reply);
     for (uint32_t i = 0; i < reply->value_len; i++) {
         if (value[i] == HYPRATOMS["UTF8_STRING"])
-            mimeTypes.push_back("text/plain;charset=utf-8");
+            mimeTypes.emplace_back("text/plain;charset=utf-8");
         else if (value[i] == HYPRATOMS["TEXT"])
-            mimeTypes.push_back("text/plain");
+            mimeTypes.emplace_back("text/plain");
         else if (value[i] != HYPRATOMS["TARGETS"] && value[i] != HYPRATOMS["TIMESTAMP"]) {
 
             auto type = g_pXWayland->pWM->mimeFromAtom(value[i]);

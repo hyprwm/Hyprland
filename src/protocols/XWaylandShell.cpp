@@ -42,7 +42,7 @@ CXWaylandShellResource::CXWaylandShellResource(SP<CXwaylandShellV1> resource_) :
     resource->setDestroy([this](CXwaylandShellV1* r) { PROTO::xwaylandShell->destroyResource(this); });
     resource->setOnDestroy([this](CXwaylandShellV1* r) { PROTO::xwaylandShell->destroyResource(this); });
 
-    resource->setGetXwaylandSurface([this](CXwaylandShellV1* r, uint32_t id, wl_resource* surface) {
+    resource->setGetXwaylandSurface([](CXwaylandShellV1* r, uint32_t id, wl_resource* surface) {
         const auto RESOURCE = PROTO::xwaylandShell->m_vSurfaces.emplace_back(
             makeShared<CXWaylandSurfaceResource>(makeShared<CXwaylandSurfaceV1>(r->client(), r->version(), id), CWLSurfaceResource::fromResource(surface)));
 

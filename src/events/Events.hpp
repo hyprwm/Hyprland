@@ -1,12 +1,7 @@
 #pragma once
 #include "../defines.hpp"
 
-//
-// LISTEN_NAME -> the wl_listener
-//
-// LISTENER_NAME -> the wl_listener.notify function
-//
-
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace Events {
     // Window events
     DYNLISTENFUNC(commitWindow);

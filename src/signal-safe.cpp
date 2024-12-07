@@ -5,21 +5,19 @@
 #endif
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
+#include <cstring>
 
-extern char** environ;
-
-char const*   sig_getenv(char const* name) {
-    size_t len = strlen(name);
-    for (char** var = environ; *var != NULL; var++) {
+char const* sigGetenv(char const* name) {
+    const size_t len = strlen(name);
+    for (char** var = environ; *var != nullptr; var++) {
         if (strncmp(*var, name, len) == 0 && (*var)[len] == '=') {
             return (*var) + len + 1;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
-char const* sig_strsignal(int sig) {
+char const* sigStrsignal(int sig) {
 #ifdef __GLIBC__
     return sigabbrev_np(sig);
 #elif defined(__DragonFly__) || defined(__FreeBSD__)

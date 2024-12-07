@@ -618,7 +618,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
     static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
 
     const auto  CURRENTWINDOWFSSTATE = PWINDOW->isFullscreen();
-    const auto  CURRENTFSMODE        = PWINDOW->m_SFullscreenState.internal;
+    const auto  CURRENTFSMODE        = PWINDOW->m_sFullscreenState.internal;
 
     if (!PWINDOW->m_pWLSurface->exists() || !PWINDOW->m_bIsMapped) {
         Debug::log(WARN, "{} unmapped without being mapped??", PWINDOW);

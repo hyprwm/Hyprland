@@ -1248,19 +1248,19 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
         clientMode = std::stoi(ARGS[1]);
     } catch (std::exception& e) { clientMode = -1; }
 
-    const SFullscreenState STATE = SFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_SFullscreenState.internal),
-                                                    .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_SFullscreenState.client)};
+    const SFullscreenState STATE = SFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
+                                                    .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)};
 
-    if (internalMode != -1 && clientMode != -1 && PWINDOW->m_SFullscreenState.internal == STATE.internal && PWINDOW->m_SFullscreenState.client == STATE.client)
+    if (internalMode != -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client)
         g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
-    else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_SFullscreenState.internal == STATE.internal)
-        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_SFullscreenState.client});
-    else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_SFullscreenState.client == STATE.client)
-        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_SFullscreenState.internal, .client = FSMODE_NONE});
+    else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal)
+        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_sFullscreenState.client});
+    else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client)
+        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = FSMODE_NONE});
     else
         g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 
-    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(PWINDOW->m_SFullscreenState.internal == PWINDOW->m_SFullscreenState.client, PRIORITY_SET_PROP);
+    PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(PWINDOW->m_sFullscreenState.internal == PWINDOW->m_sFullscreenState.client, PRIORITY_SET_PROP);
 
     return {};
 }

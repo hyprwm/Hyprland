@@ -57,6 +57,7 @@ Checks: >
   -modernize-use-auto,
   performance-*,
   -performance-avoid-endl,
+  -performance-unnecessary-value-param,
   portability-std-allocator-const,
   readability-*,
   -readability-function-cognitive-complexity,

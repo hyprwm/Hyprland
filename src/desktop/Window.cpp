@@ -1001,7 +1001,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto PCURRENT   = getGroupCurrent();
     const bool FULLSCREEN = PCURRENT->isFullscreen();
     const auto WORKSPACE  = PCURRENT->m_pWorkspace;
-    const auto MODE       = PCURRENT->m_SFullscreenState.internal;
+    const auto MODE       = PCURRENT->m_sFullscreenState.internal;
 
     const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
     const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();
@@ -1274,11 +1274,11 @@ void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 }
 
 bool CWindow::isFullscreen() {
-    return m_SFullscreenState.internal != FSMODE_NONE;
+    return m_sFullscreenState.internal != FSMODE_NONE;
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) {
-    return (eFullscreenMode)std::bit_floor((uint8_t)m_SFullscreenState.internal) == MODE;
+    return (eFullscreenMode)std::bit_floor((uint8_t)m_sFullscreenState.internal) == MODE;
 }
 
 WORKSPACEID CWindow::workspaceID() {

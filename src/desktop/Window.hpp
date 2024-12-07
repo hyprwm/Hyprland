@@ -276,7 +276,7 @@ class CWindow {
     bool             m_bIsFloating      = false;
     bool             m_bDraggingTiled   = false; // for dragging around tiled windows
     bool             m_bWasMaximized    = false;
-    SFullscreenState m_SFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+    SFullscreenState m_sFullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
     std::string      m_szTitle          = "";
     std::string      m_szClass          = "";
     std::string      m_szInitialTitle   = "";

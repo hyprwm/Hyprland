@@ -883,8 +883,8 @@ void CHyprDwindleLayout::switchWindows(PHLWINDOW pWindow, PHLWINDOW pWindow2) {
     if (!PNODE2 || !PNODE)
         return;
 
-    const eFullscreenMode MODE1 = pWindow->m_SFullscreenState.internal;
-    const eFullscreenMode MODE2 = pWindow2->m_SFullscreenState.internal;
+    const eFullscreenMode MODE1 = pWindow->m_sFullscreenState.internal;
+    const eFullscreenMode MODE2 = pWindow2->m_sFullscreenState.internal;
 
     g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE_NONE);
     g_pCompositor->setWindowFullscreenInternal(pWindow2, FSMODE_NONE);

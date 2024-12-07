@@ -1,3 +1,9 @@
+<!--
+BEFORE you submit your PR, please check out the PR guidelines
+on our wiki: https://wiki.hyprland.org/Contributing-and-Debugging/PR-Guidelines/
+-->
+
+
 #### Describe your PR, what does it fix/add?
 
 

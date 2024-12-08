@@ -2,6 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../pass/BorderPassElement.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     ;
@@ -69,10 +70,21 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     int        borderSize = m_pWindow->getRealBorderSize();
     const auto ROUNDING   = m_pWindow->rounding() * pMonitor->scale;
 
-    if (ANIMATED)
-        g_pHyprOpenGL->renderBorder(&windowBox, m_pWindow->m_cRealBorderColorPrevious, grad, m_pWindow->m_fBorderFadeAnimationProgress.value(), ROUNDING, borderSize, a);
-    else
-        g_pHyprOpenGL->renderBorder(&windowBox, grad, ROUNDING, borderSize, a);
+    CBorderPassElement::SBorderData data;
+    data.box = windowBox;
+    data.grad1 = grad;
+    data.round = ROUNDING;
+    data.a = a;
+    data.borderSize = borderSize;
+
+    if (ANIMATED) {
+        data.hasGrad2 = true;
+        data.grad1 = m_pWindow->m_cRealBorderColorPrevious;
+        data.grad2 = grad;
+        data.lerp = m_pWindow->m_fBorderFadeAnimationProgress.value();
+    }
+
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

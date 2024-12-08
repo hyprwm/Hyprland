@@ -110,6 +110,8 @@ class CHyprRenderer {
         std::string                   name;
     } m_sLastCursorData;
 
+    CRenderPass m_sRenderPass = {};
+
   private:
     void              arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void              renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
@@ -129,10 +131,9 @@ class CHyprRenderer {
     bool              m_bCursorHidden        = false;
     bool              m_bCursorHasSurface    = false;
     SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_pCurrentBuffer;
-    eRenderMode             m_eRenderMode = RENDER_MODE_NORMAL;
-
-    bool                    m_bNvidia = false;
+    SP<Aquamarine::IBuffer> m_pCurrentBuffer = nullptr;
+    eRenderMode             m_eRenderMode    = RENDER_MODE_NORMAL;
+    bool                    m_bNvidia        = false;
 
     struct {
         bool hiddenOnTouch    = false;

@@ -20,6 +20,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include "pass/TexPassElement.hpp"
 #include "debug/Log.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -152,148 +153,6 @@ CHyprRenderer::CHyprRenderer() {
 CHyprRenderer::~CHyprRenderer() {
     if (m_pCursorTicker)
         wl_event_source_remove(m_pCursorTicker);
-}
-
-static void renderSurface(SP<CWLSurfaceResource> surface, int x, int y, void* data) {
-    if (!surface->current.texture)
-        return;
-
-    const auto& TEXTURE = surface->current.texture;
-
-    // this is bad, probably has been logged elsewhere. Means the texture failed
-    // uploading to the GPU.
-    if (!TEXTURE->m_iTexID)
-        return;
-
-    // explicit sync: wait for the timeline, if any
-    if (surface->syncobj && surface->syncobj->current.acquireTimeline) {
-        if (!g_pHyprOpenGL->waitForTimelinePoint(surface->syncobj->current.acquireTimeline->timeline, surface->syncobj->current.acquirePoint)) {
-            Debug::log(ERR, "Renderer: failed to wait for explicit timeline");
-            return;
-        }
-    }
-
-    const auto RDATA                       = (SRenderData*)data;
-    const auto INTERACTIVERESIZEINPROGRESS = RDATA->pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
-    TRACY_GPU_ZONE("RenderSurface");
-
-    double      outputX = -RDATA->pMonitor->vecPosition.x, outputY = -RDATA->pMonitor->vecPosition.y;
-
-    auto        PSURFACE = CWLSurface::fromResource(surface);
-
-    const float ALPHA = RDATA->alpha * RDATA->fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
-    const bool  BLUR  = RDATA->blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F);
-
-    CBox        windowBox;
-    if (RDATA->surface && surface == RDATA->surface) {
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, RDATA->w, RDATA->h};
-
-        // however, if surface buffer w / h < box, we need to adjust them
-        const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
-
-        // center the surface if it's smaller than the viewport we assign it
-        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
-            const auto CORRECT = PSURFACE->correctSmallVec();
-            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
-
-            if (!INTERACTIVERESIZEINPROGRESS) {
-                windowBox.translate(CORRECT);
-
-                windowBox.width  = SIZE.x * (PWINDOW->m_vRealSize.value().x / PWINDOW->m_vReportedSize.x);
-                windowBox.height = SIZE.y * (PWINDOW->m_vRealSize.value().y / PWINDOW->m_vReportedSize.y);
-            } else {
-                windowBox.width  = SIZE.x;
-                windowBox.height = SIZE.y;
-            }
-        }
-
-    } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + RDATA->x + x, (int)outputY + RDATA->y + y, std::max((float)surface->current.size.x, 2.F), std::max((float)surface->current.size.y, 2.F)};
-        if (RDATA->pWindow && RDATA->pWindow->m_vRealSize.isBeingAnimated() && RDATA->surface && RDATA->surface != surface && RDATA->squishOversized /* subsurface */) {
-            // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / RDATA->pWindow->m_vReportedSize.x) * RDATA->pWindow->m_vRealSize.value().x;
-            windowBox.height = (windowBox.height / RDATA->pWindow->m_vReportedSize.y) * RDATA->pWindow->m_vRealSize.value().y;
-        }
-    }
-
-    if (RDATA->squishOversized) {
-        if (x + windowBox.width > RDATA->w)
-            windowBox.width = RDATA->w - x;
-        if (y + windowBox.height > RDATA->h)
-            windowBox.height = RDATA->h - y;
-    }
-
-    const auto PROJSIZEUNSCALED = windowBox.size();
-
-    windowBox.scale(RDATA->pMonitor->scale);
-    windowBox.round();
-
-    if (windowBox.width <= 1 || windowBox.height <= 1) {
-        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-            Debug::log(TRACE, "presentFeedback for invisible surface");
-            surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
-        }
-
-        return; // invisible
-    }
-
-    const bool MISALIGNEDFSV1 = std::floor(RDATA->pMonitor->scale) != RDATA->pMonitor->scale /* Fractional */ && surface->current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != surface->current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, surface->current.bufferSize.x, 3) &&
-        DELTALESSTHAN(windowBox.height, surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!RDATA->pWindow || (!RDATA->pWindow->m_vRealSize.isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
-
-    g_pHyprRenderer->calculateUVForSurface(RDATA->pWindow, surface, RDATA->pMonitor->self.lock(), RDATA->surface == surface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
-
-    // check for fractional scale surfaces misaligning the buffer size
-    // in those cases it's better to just force nearest neighbor
-    // as long as the window is not animated. During those it'd look weird.
-    // UV will fixup it as well
-    const auto NEARESTNEIGHBORSET = g_pHyprOpenGL->m_RenderData.useNearestNeighbor;
-    if (MISALIGNEDFSV1)
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
-
-    float rounding = RDATA->rounding;
-
-    rounding -= 1; // to fix a border issue
-
-    if (RDATA->dontRound)
-        rounding = 0;
-
-    const bool WINDOWOPAQUE    = RDATA->pWindow && RDATA->pWindow->m_pWLSurface->resource() == surface ? RDATA->pWindow->opaque() : false;
-    const bool CANDISABLEBLEND = ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
-
-    if (CANDISABLEBLEND)
-        g_pHyprOpenGL->blend(false);
-    else
-        g_pHyprOpenGL->blend(true);
-
-    // FIXME: This is wrong and will bug the blur out as shit if the first surface
-    // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
-    // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
-    if (RDATA->surfaceCounter == 0 && !RDATA->popup) {
-        if (BLUR)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, RDATA->blockBlurOptimization, RDATA->fadeAlpha);
-        else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
-    } else {
-        if (BLUR && RDATA->popup)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, surface, rounding, true, RDATA->fadeAlpha);
-        else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA, rounding, false, true);
-    }
-
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        surface->presentFeedback(RDATA->when, RDATA->pMonitor->self.lock());
-
-    g_pHyprOpenGL->blend(true);
-
-    // reset props
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    g_pHyprOpenGL->m_RenderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-    g_pHyprOpenGL->m_RenderData.useNearestNeighbor          = NEARESTNEIGHBORSET;
-
-    // up the counter so that we dont blur any surfaces above this one
-    RDATA->surfaceCounter++;
 }
 
 bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
@@ -495,7 +354,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
-        windows.push_back(w);
+        windows.emplace_back(w);
     }
 
     // Non-floating main
@@ -569,22 +428,22 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto  PWORKSPACE = pWindow->m_pWorkspace;
-    const auto  REALPOS    = pWindow->m_vRealPosition.value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.value());
-    static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
-    static auto PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    const auto                   PWORKSPACE = pWindow->m_pWorkspace;
+    const auto                   REALPOS    = pWindow->m_vRealPosition.value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.value());
+    static auto                  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto                  PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    SRenderData renderdata = {pMonitor, time};
-    CBox        textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
+    CTexPassElement::SRenderData renderdata = {pMonitor, time};
+    CBox                         textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
 
-    renderdata.x = textureBox.x;
-    renderdata.y = textureBox.y;
-    renderdata.w = textureBox.w;
-    renderdata.h = textureBox.h;
+    renderdata.pos.x = textureBox.x;
+    renderdata.pos.y = textureBox.y;
+    renderdata.w     = textureBox.w;
+    renderdata.h     = textureBox.h;
 
     if (ignorePosition) {
-        renderdata.x = pMonitor->vecPosition.x;
-        renderdata.y = pMonitor->vecPosition.y;
+        renderdata.pos.x = pMonitor->vecPosition.x;
+        renderdata.pos.y = pMonitor->vecPosition.y;
     }
 
     if (ignoreAllGeometry)
@@ -613,7 +472,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     if (pWindow->m_sWindowData.opaque.valueOrDefault())
         renderdata.alpha = 1.f;
 
-    g_pHyprOpenGL->m_pCurrentWindow = pWindow;
+    renderdata.pWindow = pWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
@@ -622,14 +481,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMAROUND * renderdata.alpha * renderdata.fadeAlpha));
     }
 
-    renderdata.x += pWindow->m_vFloatingOffset.x;
-    renderdata.y += pWindow->m_vFloatingOffset.y;
+    renderdata.pos.x += pWindow->m_vFloatingOffset.x;
+    renderdata.pos.y += pWindow->m_vFloatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
     if (!ignorePosition && pWindow->m_bIsFloating && !pWindow->isFullscreen() && PWORKSPACE->m_vRenderOffset.isBeingAnimated() && !pWindow->m_bPinned) {
         CRegion rg =
             pWindow->getFullWindowBoundingBox().translate(-pMonitor->vecPosition + PWORKSPACE->m_vRenderOffset.value() + pWindow->m_vFloatingOffset).scale(pMonitor->scale);
-        g_pHyprOpenGL->m_RenderData.clipBox = rg.getExtents();
+        renderdata.clipBox = rg.getExtents();
     }
 
     // render window decorations first, if not fullscreen full
@@ -663,10 +522,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
         static auto PXWLUSENN = CConfigValue<Hyprlang::INT>("xwayland:use_nearest_neighbor");
         if ((pWindow->m_bIsX11 && *PXWLUSENN) || pWindow->m_sWindowData.nearestNeighbor.valueOrDefault())
-            g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+            renderdata.useNearestNeighbor = true;
 
         if (!pWindow->m_sWindowData.noBlur.valueOrDefault() && pWindow->m_pWLSurface->small() && !pWindow->m_pWLSurface->m_bFillIgnoreSmall && renderdata.blur && *PBLUR) {
-            CBox wb = {renderdata.x - pMonitor->vecPosition.x, renderdata.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
+            CBox wb = {renderdata.pos.x - pMonitor->vecPosition.x, renderdata.pos.y - pMonitor->vecPosition.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->scale).round();
             g_pHyprOpenGL->renderRectWithBlur(&wb, CHyprColor(0, 0, 0, 0), renderdata.dontRound ? 0 : renderdata.rounding - 1, renderdata.fadeAlpha,
                                               g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow));
@@ -674,8 +533,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         }
 
         renderdata.surfaceCounter = 0;
-        pWindow->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
-                                                        &renderdata);
+        pWindow->m_pWLSurface->resource()->breadthfirst(
+            [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                renderdata.localPos = offset;
+                renderdata.texture  = s->current.texture;
+                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                renderdata.surfaceCounter++;
+            },
+            nullptr);
 
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
 
@@ -689,7 +554,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         }
 
         if (TRANSFORMERSPRESENT) {
-
             CFramebuffer* last = g_pHyprOpenGL->m_RenderData.currentFB;
             for (auto const& t : pWindow->m_vTransformers) {
                 last = t->transform(last);
@@ -706,9 +570,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         if (!pWindow->m_bIsX11) {
             CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
-            renderdata.x -= geom.x;
-            renderdata.y -= geom.y;
-
+            renderdata.pos -= geom.pos();
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups
@@ -719,41 +581,36 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
             renderdata.blur = *PBLURPOPUPS && *PBLUR;
 
-            const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
-            const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
-
             if (renderdata.blur) {
-                g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
-                g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURIGNOREA;
+                renderdata.discardMode |= DISCARD_ALPHA;
+                renderdata.discardOpacity = *PBLURIGNOREA;
             }
 
             if (pWindow->m_sWindowData.nearestNeighbor.valueOrDefault())
-                g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
+                renderdata.useNearestNeighbor = true;
 
             renderdata.surfaceCounter = 0;
 
             pWindow->m_pPopupHead->breadthfirst(
-                [](CPopup* popup, void* data) {
+                [this, &renderdata](CPopup* popup, void* data) {
                     if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
-                    auto           rd     = (SRenderData*)data;
-                    const Vector2D oldPos = {rd->x, rd->y};
-                    rd->x += pos.x;
-                    rd->y += pos.y;
+                    const Vector2D oldPos = renderdata.pos;
+                    renderdata.pos += pos;
 
-                    popup->m_pWLSurface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); },
-                                                                  data);
+                    popup->m_pWLSurface->resource()->breadthfirst(
+                        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                            renderdata.localPos = offset;
+                            renderdata.texture  = s->current.texture;
+                            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                            renderdata.surfaceCounter++;
+                        },
+                        data);
 
-                    rd->x = oldPos.x;
-                    rd->y = oldPos.y;
+                    renderdata.pos = oldPos;
                 },
                 &renderdata);
-
-            g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
-
-            g_pHyprOpenGL->m_RenderData.discardMode    = DM;
-            g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
         }
 
         if (decorate) {
@@ -767,9 +624,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     }
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
-
-    g_pHyprOpenGL->m_pCurrentWindow.reset();
-    g_pHyprOpenGL->m_RenderData.clipBox = CBox();
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups) {
@@ -793,32 +647,35 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 
     TRACY_GPU_ZONE("RenderLayer");
 
-    const auto  REALPOS = pLayer->realPosition.value();
-    const auto  REALSIZ = pLayer->realSize.value();
+    const auto                   REALPOS = pLayer->realPosition.value();
+    const auto                   REALSIZ = pLayer->realSize.value();
 
-    SRenderData renderdata           = {pMonitor, time, REALPOS.x, REALPOS.y};
-    renderdata.fadeAlpha             = pLayer->alpha.value();
-    renderdata.blur                  = pLayer->forceBlur && *PBLUR;
-    renderdata.surface               = pLayer->surface->resource();
-    renderdata.decorate              = false;
-    renderdata.w                     = REALSIZ.x;
-    renderdata.h                     = REALSIZ.y;
-    renderdata.blockBlurOptimization = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+    CTexPassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
+    renderdata.fadeAlpha                    = pLayer->alpha.value();
+    renderdata.blur                         = pLayer->forceBlur && *PBLUR;
+    renderdata.surface                      = pLayer->surface->resource();
+    renderdata.decorate                     = false;
+    renderdata.w                            = REALSIZ.x;
+    renderdata.h                            = REALSIZ.y;
+    renderdata.pLS                          = pLayer;
+    renderdata.blockBlurOptimization        = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
-    g_pHyprOpenGL->m_RenderData.clipBox = CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y}.scale(pMonitor->scale);
-
-    g_pHyprOpenGL->m_pCurrentLayer = pLayer;
-
-    const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
-    const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
+    renderdata.clipBox = CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y}.scale(pMonitor->scale);
 
     if (renderdata.blur && pLayer->ignoreAlpha) {
-        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
-        g_pHyprOpenGL->m_RenderData.discardOpacity = pLayer->ignoreAlphaValue;
+        renderdata.discardMode |= DISCARD_ALPHA;
+        renderdata.discardOpacity = pLayer->ignoreAlphaValue;
     }
 
     if (!popups)
-        pLayer->surface->resource()->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
+        pLayer->surface->resource()->breadthfirst(
+            [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                renderdata.localPos = offset;
+                renderdata.texture  = s->current.texture;
+                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                renderdata.surfaceCounter++;
+            },
+            &renderdata);
 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
@@ -827,28 +684,26 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
     renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->popupHead->breadthfirst(
-            [](CPopup* popup, void* data) {
+            [this, &renderdata](CPopup* popup, void* data) {
                 if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                     return;
 
-                Vector2D pos = popup->coordsRelativeToParent();
-                renderSurface(popup->m_pWLSurface->resource(), pos.x, pos.y, data);
+                Vector2D pos        = popup->coordsRelativeToParent();
+                renderdata.localPos = pos;
+                renderdata.texture  = popup->m_pWLSurface->resource()->current.texture;
+                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                renderdata.surfaceCounter++;
             },
             &renderdata);
     }
-
-    g_pHyprOpenGL->m_pCurrentLayer             = nullptr;
-    g_pHyprOpenGL->m_RenderData.clipBox        = {};
-    g_pHyprOpenGL->m_RenderData.discardMode    = DM;
-    g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
 }
 
 void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, timespec* time) {
-    const auto  POS = pPopup->globalBox().pos();
+    const auto                   POS = pPopup->globalBox().pos();
 
-    SRenderData renderdata = {pMonitor, time, POS.x, POS.y};
+    CTexPassElement::SRenderData renderdata = {pMonitor, time, POS};
 
-    const auto  SURF = pPopup->getSurface();
+    const auto                   SURF = pPopup->getSurface();
 
     renderdata.surface  = SURF;
     renderdata.decorate = false;
@@ -859,24 +714,24 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
     static auto PBLURIMES    = CConfigValue<Hyprlang::INT>("decoration:blur:input_methods");
     static auto PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:input_methods_ignorealpha");
 
-    // TODO: make push/pop methods for this.
-    const auto DM = g_pHyprOpenGL->m_RenderData.discardMode;
-    const auto DA = g_pHyprOpenGL->m_RenderData.discardOpacity;
-
     renderdata.blur = *PBLURIMES && *PBLUR;
     if (renderdata.blur) {
-        g_pHyprOpenGL->m_RenderData.discardMode |= DISCARD_ALPHA;
-        g_pHyprOpenGL->m_RenderData.discardOpacity = *PBLURIGNOREA;
+        renderdata.discardMode |= DISCARD_ALPHA;
+        renderdata.discardOpacity = *PBLURIGNOREA;
     }
 
-    SURF->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
-
-    g_pHyprOpenGL->m_RenderData.discardMode    = DM;
-    g_pHyprOpenGL->m_RenderData.discardOpacity = DA;
+    SURF->breadthfirst(
+        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            renderdata.localPos = offset;
+            renderdata.texture  = s->current.texture;
+            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+            renderdata.surfaceCounter++;
+        },
+        &renderdata);
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLMONITOR pMonitor, timespec* time) {
-    SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition.x, pMonitor->vecPosition.y};
+    CTexPassElement::SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition, pMonitor->vecPosition};
 
     renderdata.blur     = false;
     renderdata.surface  = pSurface->surface->surface();
@@ -884,7 +739,14 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLM
     renderdata.w        = pMonitor->vecSize.x;
     renderdata.h        = pMonitor->vecSize.y;
 
-    renderdata.surface->breadthfirst([](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) { renderSurface(s, offset.x, offset.y, data); }, &renderdata);
+    renderdata.surface->breadthfirst(
+        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            renderdata.localPos = offset;
+            renderdata.texture  = s->current.texture;
+            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+            renderdata.surfaceCounter++;
+        },
+        &renderdata);
 }
 
 void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* time, const Vector2D& translate, const float& scale) {
@@ -1325,6 +1187,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         }
     }
 
+    m_sRenderPass.clear();
+
     EMIT_HOOK_EVENT("preRender", pMonitor);
 
     timespec now;
@@ -1471,6 +1335,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
+
+    m_sRenderPass.simplify();
+    m_sRenderPass.render();
 
     endRender();
 

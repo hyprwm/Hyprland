@@ -551,7 +551,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* no
     box.x = std::round(box.x);
     box.y = std::round(box.y);
 
-    g_pHyprOpenGL->renderTextureWithDamage(texture, &box, &damage, 1.F, 0, false, false, currentCursorImage.waitTimeline, currentCursorImage.waitPoint);
+    g_pHyprOpenGL->renderTextureWithDamage(texture, &box, damage, 1.F, 0, false, false, currentCursorImage.waitTimeline, currentCursorImage.waitPoint);
 
     if (currentCursorImage.surface)
         currentCursorImage.surface->resource()->frame(now);

@@ -2,6 +2,7 @@
 
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../pass/ShadowPassElement.hpp"
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_pWindow(pWindow) {
     ;
@@ -87,7 +88,13 @@ void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+    CShadowPassElement::SShadowData data;
+    data.deco = this;
+    data.a = a;
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CShadowPassElement>(data));
+}
 
+void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     const auto PWINDOW = m_pWindow.lock();
 
     if (!validMapped(PWINDOW))
@@ -141,6 +148,7 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         return; // don't draw invisible shadows
 
     g_pHyprOpenGL->scissor((CBox*)nullptr);
+    g_pHyprOpenGL->m_RenderData.currentWindow = m_pWindow;
 
     // we'll take the liberty of using this as it should not be used rn
     CFramebuffer& alphaFB     = g_pHyprOpenGL->m_RenderData.pCurrentMonData->mirrorFB;
@@ -197,6 +205,7 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         LASTFB->bind();
 
         CBox monbox = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+
         g_pHyprOpenGL->setMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.getTexture(), &monbox, alphaFB);
@@ -209,6 +218,8 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     if (m_seExtents != m_seReportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
+
+    g_pHyprOpenGL->m_RenderData.currentWindow.reset();
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

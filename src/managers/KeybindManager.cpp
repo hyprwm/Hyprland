@@ -1092,6 +1092,8 @@ SDispatchResult CKeybindManager::toggleActivePseudo(std::string args) {
     if (!PWINDOW->isFullscreen())
         g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
 
+    PWINDOW->updateDynamicRules();
+
     return {};
 }
 

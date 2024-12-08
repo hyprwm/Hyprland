@@ -1245,6 +1245,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
     // since some rules will be applied later, we need to store some flags
     bool hasFloating   = pWindow->m_bIsFloating;
+    bool hasPseudo     = pWindow->m_bIsPseudotiled;
     bool hasFullscreen = pWindow->isFullscreen();
 
     // local tags for dynamic tag rule match
@@ -1315,6 +1316,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                         continue;
                 }
 
+                if (rule.bPseudo != -1) {
+                    if (hasPseudo != rule.bPseudo)
+                        continue;
+                }
+
                 if (rule.bFullscreen != -1) {
                     if (hasFullscreen != rule.bFullscreen)
                         continue;
@@ -1382,6 +1388,11 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
                             continue;
                     }
                 }
+
+                if (!rule.szLayout.empty()) {
+                    if (rule.szLayout != g_pLayoutManager->getCurrentLayoutName())
+                        continue;
+                }
             } catch (std::exception& e) {
                 Debug::log(ERR, "Regex error at {} ({})", rule.szValue, e.what());
                 continue;
@@ -1405,6 +1416,8 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
 
         if (rule.szRule == "float")
             hasFloating = true;
+        else if (rule.szRule == "pseudo")
+            hasPseudo = true;
         else if (rule.szRule == "fullscreen")
             hasFullscreen = true;
     }
@@ -2403,11 +2416,13 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     const auto INITIALCLASSPOS    = VALUE.find("initialClass:");
     const auto X11POS             = VALUE.find("xwayland:");
     const auto FLOATPOS           = VALUE.find("floating:");
+    const auto PSEUDOPOS          = VALUE.find("pseudo:");
     const auto FULLSCREENPOS      = VALUE.find("fullscreen:");
     const auto PINNEDPOS          = VALUE.find("pinned:");
     const auto FOCUSPOS           = VALUE.find("focus:");
     const auto FULLSCREENSTATEPOS = VALUE.find("fullscreenstate:");
     const auto ONWORKSPACEPOS     = VALUE.find("onworkspace:");
+    const auto LAYOUTPOS          = VALUE.find("layout:");
 
     // find workspacepos that isn't onworkspacepos
     size_t WORKSPACEPOS = std::string::npos;
@@ -2420,8 +2435,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         currentPos = VALUE.find("workspace:", currentPos + 1);
     }
 
-    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,        FLOATPOS,
-                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS};
+    const auto checkPos = std::unordered_set{TAGPOS,        TITLEPOS,  CLASSPOS,           INITIALTITLEPOS, INITIALCLASSPOS, X11POS,         FLOATPOS,  PSEUDOPOS,
+                                             FULLSCREENPOS, PINNEDPOS, FULLSCREENSTATEPOS, WORKSPACEPOS,    FOCUSPOS,        ONWORKSPACEPOS, LAYOUTPOS};
     if (checkPos.size() == 1 && checkPos.contains(std::string::npos)) {
         Debug::log(ERR, "Invalid rulev2 syntax: {}", VALUE);
         return "Invalid rulev2 syntax: " + VALUE;
@@ -2446,6 +2461,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = X11POS;
         if (FLOATPOS > pos && FLOATPOS < min)
             min = FLOATPOS;
+        if (PSEUDOPOS > pos && PSEUDOPOS < min)
+            min = PSEUDOPOS;
         if (FULLSCREENPOS > pos && FULLSCREENPOS < min)
             min = FULLSCREENPOS;
         if (PINNEDPOS > pos && PINNEDPOS < min)
@@ -2458,6 +2475,8 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
             min = WORKSPACEPOS;
         if (FOCUSPOS > pos && FOCUSPOS < min)
             min = FOCUSPOS;
+        if (LAYOUTPOS > pos && LAYOUTPOS < min)
+            min = LAYOUTPOS;
 
         result = result.substr(0, min - pos);
 
@@ -2490,6 +2509,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (FLOATPOS != std::string::npos)
         rule.bFloating = extract(FLOATPOS + 9) == "1" ? 1 : 0;
 
+    if (PSEUDOPOS != std::string::npos)
+        rule.bPseudo = extract(PSEUDOPOS + 7) == "1" ? 1 : 0;
+
     if (FULLSCREENPOS != std::string::npos)
         rule.bFullscreen = extract(FULLSCREENPOS + 11) == "1" ? 1 : 0;
 
@@ -2507,6 +2529,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
 
     if (ONWORKSPACEPOS != std::string::npos)
         rule.szOnWorkspace = extract(ONWORKSPACEPOS + 12);
+
+    if (LAYOUTPOS != std::string::npos)
+        rule.szLayout = extract(LAYOUTPOS + 7);
 
     if (RULE == "unset") {
         std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
@@ -2534,6 +2559,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                 if (rule.bFloating != -1 && rule.bFloating != other.bFloating)
                     return false;
 
+                if (rule.bPseudo != -1 && rule.bPseudo != other.bPseudo)
+                    return false;
+
                 if (rule.bFullscreen != -1 && rule.bFullscreen != other.bFullscreen)
                     return false;
 
@@ -2552,6 +2580,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
                 if (!rule.szOnWorkspace.empty() && rule.szOnWorkspace != other.szOnWorkspace)
                     return false;
 
+                if (!rule.szLayout.empty() && rule.szLayout != other.szLayout)
+                    return false;
+
                 return true;
             }
         });
@@ -2562,6 +2593,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         m_dWindowRules.push_front(rule);
     else
         m_dWindowRules.push_back(rule);
+
+    for (auto& pWindow : g_pCompositor->m_vWindows)
+        pWindow->updateDynamicRules();
 
     return {};
 }

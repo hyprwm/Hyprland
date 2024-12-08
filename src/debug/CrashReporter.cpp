@@ -122,9 +122,9 @@ void NCrashReporter::createAndSaveCrash(int sig) {
     if (g_pPluginSystem && g_pPluginSystem->pluginCount() > 0) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
-        size_t   count          = g_pPluginSystem->pluginCount();
-        CPlugin* plugins[count] = {nullptr};
-        g_pPluginSystem->sigGetPlugins(plugins, count);
+        const size_t          count = g_pPluginSystem->pluginCount();
+        std::vector<CPlugin*> plugins(count);
+        g_pPluginSystem->sigGetPlugins(plugins.data(), count);
 
         for (size_t i = 0; i < count; i++) {
             auto p = plugins[i];

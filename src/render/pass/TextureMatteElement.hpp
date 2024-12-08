@@ -13,9 +13,13 @@ class CTextureMatteElement : public IPassElement {
     CTextureMatteElement(const STextureMatteData& data_);
     virtual ~CTextureMatteElement() = default;
 
-    virtual void draw(const CRegion& damage);
-    virtual bool needsLiveBlur();
-    virtual bool needsPrecomputeBlur();
+    virtual void        draw(const CRegion& damage);
+    virtual bool        needsLiveBlur();
+    virtual bool        needsPrecomputeBlur();
+
+    virtual const char* passName() {
+        return "CTextureMatteElement";
+    }
 
   private:
     STextureMatteData data;

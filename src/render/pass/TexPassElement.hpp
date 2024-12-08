@@ -62,17 +62,23 @@ class CTexPassElement : public IPassElement {
         CBox         box;
         float        a = 1.F;
         CRegion      damage;
-        int          round = 0;
-        bool     flipEndFrame = false;
+        int          round        = 0;
+        bool         flipEndFrame = false;
     };
 
     CTexPassElement(const SSimpleRenderData& data);
     CTexPassElement(const SRenderData& data);
     virtual ~CTexPassElement() = default;
 
-    virtual void draw(const CRegion& damage);
-    virtual bool needsLiveBlur();
-    virtual bool needsPrecomputeBlur();
+    virtual void                draw(const CRegion& damage);
+    virtual bool                needsLiveBlur();
+    virtual bool                needsPrecomputeBlur();
+    virtual std::optional<CBox> boundingBox();
+    virtual CRegion             opaqueRegion();
+
+    virtual const char*         passName() {
+        return "CTexPassElement";
+    }
 
   private:
     SRenderData                      data;

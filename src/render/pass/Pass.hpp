@@ -10,15 +10,23 @@ class CRenderPass {
     bool needsIntrospection() const;
 
     void add(SP<IPassElement> elem);
-    void simplify();
     void clear();
 
-    void render();
+    void render(const CRegion& damage_);
 
   private:
-    std::vector<SP<IPassElement>> m_vPassElements;
+    CRegion damage;
 
-    SP<IPassElement>             currentPassInfo = nullptr;
+    struct SPassElementData {
+        CRegion          elementDamage;
+        SP<IPassElement> element;
+    };
+
+    std::vector<SP<SPassElementData>> m_vPassElements;
+
+    SP<IPassElement>                  currentPassInfo = nullptr;
+
+    void                              simplify();
 
     friend class CHyprOpenGLImpl;
 };

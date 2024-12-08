@@ -67,21 +67,21 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
     }
 
-    int        borderSize = m_pWindow->getRealBorderSize();
-    const auto ROUNDING   = m_pWindow->rounding() * pMonitor->scale;
+    int                             borderSize = m_pWindow->getRealBorderSize();
+    const auto                      ROUNDING   = m_pWindow->rounding() * pMonitor->scale;
 
     CBorderPassElement::SBorderData data;
-    data.box = windowBox;
-    data.grad1 = grad;
-    data.round = ROUNDING;
-    data.a = a;
+    data.box        = windowBox;
+    data.grad1      = grad;
+    data.round      = ROUNDING;
+    data.a          = a;
     data.borderSize = borderSize;
 
     if (ANIMATED) {
         data.hasGrad2 = true;
-        data.grad1 = m_pWindow->m_cRealBorderColorPrevious;
-        data.grad2 = grad;
-        data.lerp = m_pWindow->m_fBorderFadeAnimationProgress.value();
+        data.grad1    = m_pWindow->m_cRealBorderColorPrevious;
+        data.grad2    = grad;
+        data.lerp     = m_pWindow->m_fBorderFadeAnimationProgress.value();
     }
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPassElement>(data));

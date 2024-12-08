@@ -10,6 +10,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
+#include "pass/PreBlurElement.hpp"
 #include <xf86drm.h>
 #include <fcntl.h>
 #include <gbm.h>
@@ -1376,8 +1377,8 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, cons
     scissor((CBox*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, const CRegion& damage, int round, bool discardActive, bool noAA, bool allowCustomUV,
-                                                      bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, const CRegion& damage, int round, bool discardActive, bool noAA,
+                                                      bool allowCustomUV, bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
@@ -2011,8 +2012,7 @@ void CHyprOpenGLImpl::preWindowPass() {
     if (!preBlurQueued())
         return;
 
-    // blur the main FB, it will be rendered onto the mirror
-    preBlurForCurrentMonitor();
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CPreBlurElement>());
 }
 
 bool CHyprOpenGLImpl::preBlurQueued() {
@@ -2093,9 +2093,8 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
         inverseOpaque.intersect(texDamage);
 
         POUTFB = blurMainFramebufferWithDamage(a, &inverseOpaque);
-    } else {
+    } else
         POUTFB = &m_RenderData.pCurrentMonData->blurFB;
-    }
 
     m_RenderData.currentFB->bind();
 
@@ -2513,7 +2512,7 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
         CRectPassElement::SRectData data;
 
-        data.box = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
+        data.box   = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_fAlpha.value());
 
         g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(data));
@@ -2522,10 +2521,10 @@ void CHyprOpenGLImpl::renderSnapshot(PHLWINDOW pWindow) {
 
     CTexPassElement::SSimpleRenderData data;
     data.flipEndFrame = true;
-    data.tex = FBDATA->getTexture();
-    data.box = windowBox;
-    data.a = pWindow->m_fAlpha.value();
-    data.damage = fakeDamage;
+    data.tex          = FBDATA->getTexture();
+    data.box          = windowBox;
+    data.a            = pWindow->m_fAlpha.value();
+    data.damage       = fakeDamage;
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }
@@ -2554,14 +2553,14 @@ void CHyprOpenGLImpl::renderSnapshot(PHLLS pLayer) {
     layerBox.x = ((pLayer->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
     layerBox.y = ((pLayer->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
 
-    CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    CRegion                            fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
     CTexPassElement::SSimpleRenderData data;
     data.flipEndFrame = true;
-    data.tex = FBDATA->getTexture();
-    data.box = layerBox;
-    data.a = pLayer->alpha.value();
-    data.damage = fakeDamage;
+    data.tex          = FBDATA->getTexture();
+    data.box          = layerBox;
+    data.a            = pLayer->alpha.value();
+    data.damage       = fakeDamage;
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }
@@ -3040,8 +3039,6 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
 void CHyprOpenGLImpl::clearWithTex() {
     RASSERT(m_RenderData.pMonitor, "Tried to render BGtex without begin()!");
 
-    TRACY_GPU_ZONE("RenderClearWithTex");
-
     auto TEXIT = m_mMonitorBGFBs.find(m_RenderData.pMonitor);
 
     if (TEXIT == m_mMonitorBGFBs.end()) {
@@ -3050,10 +3047,11 @@ void CHyprOpenGLImpl::clearWithTex() {
     }
 
     if (TEXIT != m_mMonitorBGFBs.end()) {
-        CBox monbox = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
-        m_bEndFrame = true;
-        renderTexture(TEXIT->second.getTexture(), &monbox, 1);
-        m_bEndFrame = false;
+        CTexPassElement::SSimpleRenderData data;
+        data.box          = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
+        data.flipEndFrame = true;
+        data.tex          = TEXIT->second.getTexture();
+        g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
     }
 }
 

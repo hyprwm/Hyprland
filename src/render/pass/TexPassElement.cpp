@@ -38,7 +38,7 @@ void CTexPassElement::draw(const CRegion& damage) {
     }};
 
     if (simple) {
-        g_pHyprOpenGL->renderTextureInternalWithDamage(simple->tex, &simple->box, simple->a, simple->damage, simple->round);
+        g_pHyprOpenGL->renderTextureInternalWithDamage(simple->tex, &simple->box, simple->a, simple->damage.empty() ? damage : simple->damage, simple->round);
         return;
     }
 
@@ -175,9 +175,60 @@ void CTexPassElement::draw(const CRegion& damage) {
 }
 
 bool CTexPassElement::needsLiveBlur() {
-    return false; // FIXME:
+    if (simple)
+        return false; // TODO?
+
+    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const bool  BLUR  = data.blur && (!data.texture->m_bOpaque || ALPHA < 1.F);
+
+    if (!data.pLS && !data.pWindow)
+        return BLUR;
+
+    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(data.pLS, data.pWindow);
+
+    return BLUR && !NEWOPTIM;
 }
 
 bool CTexPassElement::needsPrecomputeBlur() {
-    return false;
+    if (simple)
+        return false; // TODO?
+
+    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const bool  BLUR  = data.blur && (!data.texture->m_bOpaque || ALPHA < 1.F);
+
+    if (!data.pLS && !data.pWindow)
+        return BLUR;
+
+    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(data.pLS, data.pWindow);
+
+    return BLUR && NEWOPTIM;
+}
+
+std::optional<CBox> CTexPassElement::boundingBox() {
+    if (simple)
+        return simple->box;
+    return CBox{data.pos + data.localPos - data.pMonitor->vecPosition, {data.w, data.h}};
+}
+
+CRegion CTexPassElement::opaqueRegion() {
+    if (simple)
+        return {}; // TODO:
+
+    auto        PSURFACE = CWLSurface::fromResource(data.surface);
+
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+
+    if (ALPHA < 1.F)
+        return {};
+
+    if (data.surface && data.surface->current.size == Vector2D{data.w, data.h}) {
+        CRegion opaqueSurf = data.surface->current.opaque.copy();
+        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->vecPosition);
+    }
+
+    return data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};
 }

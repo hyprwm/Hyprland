@@ -11,9 +11,13 @@ class CFramebufferElement : public IPassElement {
     CFramebufferElement(const SFramebufferElementData& data_);
     virtual ~CFramebufferElement() = default;
 
-    virtual void draw(const CRegion& damage);
-    virtual bool needsLiveBlur();
-    virtual bool needsPrecomputeBlur();
+    virtual void        draw(const CRegion& damage);
+    virtual bool        needsLiveBlur();
+    virtual bool        needsPrecomputeBlur();
+
+    virtual const char* passName() {
+        return "CFramebufferElement";
+    }
 
   private:
     SFramebufferElementData data;

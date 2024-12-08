@@ -14,9 +14,13 @@ class CBorderPassElement : public IPassElement {
     CBorderPassElement(const SBorderData& data_);
     virtual ~CBorderPassElement() = default;
 
-    virtual void draw(const CRegion& damage);
-    virtual bool needsLiveBlur();
-    virtual bool needsPrecomputeBlur();
+    virtual void        draw(const CRegion& damage);
+    virtual bool        needsLiveBlur();
+    virtual bool        needsPrecomputeBlur();
+
+    virtual const char* passName() {
+        return "CBorderPassElement";
+    }
 
   private:
     SBorderData data;

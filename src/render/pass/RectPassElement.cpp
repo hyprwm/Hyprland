@@ -19,3 +19,11 @@ bool CRectPassElement::needsLiveBlur() {
 bool CRectPassElement::needsPrecomputeBlur() {
     return data.color.a < 1.F && data.xray;
 }
+
+std::optional<CBox> CRectPassElement::boundingBox() {
+    return data.box.expand(-data.round);
+}
+
+CRegion CRectPassElement::opaqueRegion() {
+    return data.color.a >= 1.F ? *boundingBox() : CRegion{};
+}

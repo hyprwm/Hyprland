@@ -326,6 +326,7 @@ class CHyprOpenGLImpl {
 
     friend class CHyprRenderer;
     friend class CTexPassElement;
+    friend class CPreBlurElement;
 };
 
 inline std::unique_ptr<CHyprOpenGLImpl> g_pHyprOpenGL;

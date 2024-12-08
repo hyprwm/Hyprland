@@ -14,9 +14,15 @@ class CRectPassElement : public IPassElement {
     CRectPassElement(const SRectData& data);
     virtual ~CRectPassElement() = default;
 
-    virtual void draw(const CRegion& damage);
-    virtual bool needsLiveBlur();
-    virtual bool needsPrecomputeBlur();
+    virtual void                draw(const CRegion& damage);
+    virtual bool                needsLiveBlur();
+    virtual bool                needsPrecomputeBlur();
+    virtual std::optional<CBox> boundingBox();
+    virtual CRegion             opaqueRegion();
+
+    virtual const char*         passName() {
+        return "CRectPassElement";
+    }
 
   private:
     SRectData data;

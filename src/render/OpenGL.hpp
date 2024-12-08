@@ -192,11 +192,6 @@ class CHyprOpenGLImpl {
 
     void     blend(bool enabled);
 
-    void     makeWindowSnapshot(PHLWINDOW);
-    void     makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
-    void     makeLayerSnapshot(PHLLS);
-    void     renderSnapshot(PHLWINDOW);
-    void     renderSnapshot(PHLLS);
     bool     shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
     void     clear(const CHyprColor&);

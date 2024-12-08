@@ -421,7 +421,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
     if (pWindow->m_bFadingOut) {
         if (pMonitor == pWindow->m_pMonitor) // TODO: fix this
-            g_pHyprOpenGL->renderSnapshot(pWindow);
+            renderSnapshot(pWindow);
         return;
     }
 
@@ -643,13 +643,15 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
     static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     if (*PDIMAROUND && pLayer->dimAround && !m_bRenderingSnapshot && !popups) {
-        CBox monbox = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
-        g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->alpha.value()));
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize.y};
+        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->alpha.value());
+        m_sRenderPass.add(makeShared<CRectPassElement>(data));
     }
 
     if (pLayer->fadingOut) {
         if (!popups)
-            g_pHyprOpenGL->renderSnapshot(pLayer);
+            renderSnapshot(pLayer);
         return;
     }
 
@@ -1301,7 +1303,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
                 }
             }
         } else
-            g_pHyprRenderer->renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
+            renderWindow(pMonitor->solitaryClient.lock(), pMonitor, &now, false, RENDER_PASS_MAIN /* solitary = no popups */);
     } else if (!pMonitor->isMirror()) {
         sendFrameEventsToWorkspace(pMonitor, pMonitor->activeWorkspace, &now);
         if (pMonitor->activeSpecialWorkspace)
@@ -1333,7 +1335,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         if (*PDAMAGEBLINK)
             frameDamage.add(damage);
 
-        g_pHyprRenderer->damageMirrorsWith(pMonitor, frameDamage);
+        damageMirrorsWith(pMonitor, frameDamage);
 
         pMonitor->output->state->addDamage(frameDamage);
     }
@@ -1728,7 +1730,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_vFloatingOffset);
 
     for (auto const& m : g_pCompositor->m_vMonitors) {
-        if (forceFull || g_pHyprRenderer->shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
+        if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->vecPosition.x, windowBox.y - m->vecPosition.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->scale);
             m->addDamage(&fixedDamageBox);
@@ -2288,7 +2290,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
-            g_pHyprRenderer->damageMonitor(m); // TODO: maybe just damage the cursor area?
+            damageMonitor(m); // TODO: maybe just damage the cursor area?
         }
 
         setCursorHidden(true);
@@ -2300,7 +2302,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
             if (!g_pPointerManager->softwareLockedFor(m))
                 continue;
 
-            g_pHyprRenderer->damageMonitor(m); // TODO: maybe just damage the cursor area?
+            damageMonitor(m); // TODO: maybe just damage the cursor area?
         }
 
         setCursorHidden(false);
@@ -2663,4 +2665,226 @@ void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
 
     if (!m_tRenderUnfocusedTimer->armed())
         m_tRenderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
+}
+
+void CHyprRenderer::makeRawWindowSnapshot(PHLWINDOW pWindow, CFramebuffer* pFramebuffer) {
+    // we trust the window is valid.
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
+
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
+        return;
+
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual damage
+    CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
+
+    makeEGLCurrent();
+
+    pFramebuffer->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
+    pFramebuffer->addStencil(g_pHyprOpenGL->m_RenderData.pCurrentMonData->stencilTex);
+
+    beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, pFramebuffer);
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    // this is a hack but it works :P
+    // we need to disable blur or else we will get a black background, as the shader
+    // will try to copy the bg to apply blur.
+    // this isn't entirely correct, but like, oh well.
+    // small todo: maybe make this correct? :P
+    static auto* const PBLUR   = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("decoration:blur:enabled"));
+    const auto         BLURVAL = **PBLUR;
+    **PBLUR                    = 0;
+
+    // TODO: how can we make this the size of the window? setting it to window's size makes the entire screen render with the wrong res forever more. odd.
+    glViewport(0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+
+    g_pHyprOpenGL->m_RenderData.currentFB = pFramebuffer;
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    renderWindow(pWindow, PMONITOR, &now, false, RENDER_PASS_ALL, true);
+
+    **PBLUR = BLURVAL;
+
+    endRender();
+}
+
+void CHyprRenderer::makeWindowSnapshot(PHLWINDOW pWindow) {
+    // we trust the window is valid.
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
+
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
+        return;
+
+    if (!shouldRenderWindow(pWindow))
+        return; // ignore, window is not being rendered
+
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual damage
+    CRegion      fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
+
+    PHLWINDOWREF ref{pWindow};
+
+    makeEGLCurrent();
+
+    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_mWindowFramebuffers[ref];
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
+
+    beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
+
+    m_bRenderingSnapshot = true;
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    // this is a hack but it works :P
+    // we need to disable blur or else we will get a black background, as the shader
+    // will try to copy the bg to apply blur.
+    // this isn't entirely correct, but like, oh well.
+    // small todo: maybe make this correct? :P
+    static auto* const PBLUR   = (Hyprlang::INT* const*)(g_pConfigManager->getConfigValuePtr("decoration:blur:enabled"));
+    const auto         BLURVAL = **PBLUR;
+    **PBLUR                    = 0;
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    renderWindow(pWindow, PMONITOR, &now, !pWindow->m_bX11DoesntWantBorders, RENDER_PASS_ALL);
+
+    **PBLUR = BLURVAL;
+
+    endRender();
+
+    m_bRenderingSnapshot = false;
+}
+
+void CHyprRenderer::makeLayerSnapshot(PHLLS pLayer) {
+    // we trust the window is valid.
+    const auto PMONITOR = pLayer->monitor.lock();
+
+    if (!PMONITOR || !PMONITOR->output || PMONITOR->vecPixelSize.x <= 0 || PMONITOR->vecPixelSize.y <= 0)
+        return;
+
+    // we need to "damage" the entire monitor
+    // so that we render the entire window
+    // this is temporary, doesnt mess with the actual damage
+    CRegion fakeDamage{0, 0, (int)PMONITOR->vecTransformedSize.x, (int)PMONITOR->vecTransformedSize.y};
+
+    makeEGLCurrent();
+
+    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_mLayerFramebuffers[pLayer];
+
+    PFRAMEBUFFER->alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
+
+    beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
+
+    m_bRenderingSnapshot = true;
+
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    const auto BLURLSSTATUS = pLayer->forceBlur;
+    pLayer->forceBlur       = false;
+
+    // draw the layer
+    renderLayer(pLayer, PMONITOR, &now);
+
+    pLayer->forceBlur = BLURLSSTATUS;
+
+    endRender();
+
+    m_bRenderingSnapshot = false;
+}
+
+void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
+    static auto  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+
+    PHLWINDOWREF ref{pWindow};
+
+    if (!g_pHyprOpenGL->m_mWindowFramebuffers.contains(ref))
+        return;
+
+    const auto FBDATA = &g_pHyprOpenGL->m_mWindowFramebuffers.at(ref);
+
+    if (!FBDATA->getTexture())
+        return;
+
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
+
+    CBox       windowBox;
+    // some mafs to figure out the correct box
+    // the originalClosedPos is relative to the monitor's pos
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * pWindow->m_vRealSize.value().x / (pWindow->m_vOriginalClosedSize.x * PMONITOR->scale)),
+                                (PMONITOR->scale * pWindow->m_vRealSize.value().y / (pWindow->m_vOriginalClosedSize.y * PMONITOR->scale)));
+
+    windowBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
+    windowBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
+    windowBox.x      = ((pWindow->m_vRealPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - ((pWindow->m_vOriginalClosedPos.x * PMONITOR->scale) * scaleXY.x);
+    windowBox.y      = ((pWindow->m_vRealPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - ((pWindow->m_vOriginalClosedPos.y * PMONITOR->scale) * scaleXY.y);
+
+    CRegion fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+
+    if (*PDIMAROUND && pWindow->m_sWindowData.dimAround.valueOrDefault()) {
+
+        CRectPassElement::SRectData data;
+
+        data.box   = {0, 0, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.x, g_pHyprOpenGL->m_RenderData.pMonitor->vecPixelSize.y};
+        data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_fAlpha.value());
+
+        m_sRenderPass.add(makeShared<CRectPassElement>(data));
+        damageMonitor(PMONITOR);
+    }
+
+    CTexPassElement::SSimpleRenderData data;
+    data.flipEndFrame = true;
+    data.tex          = FBDATA->getTexture();
+    data.box          = windowBox;
+    data.a            = pWindow->m_fAlpha.value();
+    data.damage       = fakeDamage;
+
+    m_sRenderPass.add(makeShared<CTexPassElement>(data));
+}
+
+void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
+    if (!g_pHyprOpenGL->m_mLayerFramebuffers.contains(pLayer))
+        return;
+
+    const auto FBDATA = &g_pHyprOpenGL->m_mLayerFramebuffers.at(pLayer);
+
+    if (!FBDATA->getTexture())
+        return;
+
+    const auto PMONITOR = pLayer->monitor.lock();
+
+    CBox       layerBox;
+    // some mafs to figure out the correct box
+    // the originalClosedPos is relative to the monitor's pos
+    Vector2D scaleXY = Vector2D((PMONITOR->scale * pLayer->realSize.value().x / (pLayer->geometry.w * PMONITOR->scale)),
+                                (PMONITOR->scale * pLayer->realSize.value().y / (pLayer->geometry.h * PMONITOR->scale)));
+
+    layerBox.width  = PMONITOR->vecTransformedSize.x * scaleXY.x;
+    layerBox.height = PMONITOR->vecTransformedSize.y * scaleXY.y;
+    layerBox.x = ((pLayer->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
+    layerBox.y = ((pLayer->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
+
+    CRegion                            fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+
+    CTexPassElement::SSimpleRenderData data;
+    data.flipEndFrame = true;
+    data.tex          = FBDATA->getTexture();
+    data.box          = layerBox;
+    data.a            = pLayer->alpha.value();
+    data.damage       = fakeDamage;
+
+    m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }

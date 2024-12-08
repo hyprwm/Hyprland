@@ -77,6 +77,11 @@ class CHyprRenderer {
     void                            unsetEGL();
     SExplicitSyncSettings           getExplicitSyncSettings();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
+    void                            makeWindowSnapshot(PHLWINDOW);
+    void                            makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
+    void                            makeLayerSnapshot(PHLLS);
+    void                            renderSnapshot(PHLWINDOW);
+    void                            renderSnapshot(PHLLS);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.

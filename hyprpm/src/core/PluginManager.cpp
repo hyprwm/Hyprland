@@ -51,21 +51,21 @@ static std::string getTempRoot() {
 }
 
 SHyprlandVersion CPluginManager::getHyprlandVersion(bool running = true) {
-    static bool             once_running   = false;
-    static bool             once_installed = false;
-    static SHyprlandVersion ver_running;
-    static SHyprlandVersion ver_installed;
+    static bool             onceRunning   = false;
+    static bool             onceInstalled = false;
+    static SHyprlandVersion verRunning;
+    static SHyprlandVersion verInstalled;
 
-    if (once_running && running)
-        return ver_running;
+    if (onceRunning && running)
+        return verRunning;
 
-    if (once_installed && !running)
-        return ver_installed;
+    if (onceInstalled && !running)
+        return verInstalled;
 
     if (running)
-        once_running = true;
+        onceRunning = true;
     else
-        once_installed = true;
+        onceInstalled = true;
 
     const auto HLVERCALL = running ? execAndGet("hyprctl version") : execAndGet("Hyprland --version");
     if (m_bVerbose)
@@ -103,9 +103,9 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running = true) {
     auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
 
     if (running)
-        ver_running = ver;
+        verRunning = ver;
     else
-        ver_installed = ver;
+        verInstalled = ver;
 
     return ver;
 }

@@ -2,6 +2,9 @@
 #include "PassElement.hpp"
 #include <optional>
 
+class CWLSurfaceResource;
+class CTexture;
+
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {

@@ -470,7 +470,7 @@ class CWindow {
     void                   onResourceChangeX11();
     std::string            fetchTitle();
     std::string            fetchClass();
-    void                   warpCursor();
+    void                   warpCursor(bool force = false);
     PHLWINDOW              getSwallower();
     void                   unsetWindowData(eOverridePriority priority);
     bool                   isX11OverrideRedirect();

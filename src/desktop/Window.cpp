@@ -1529,15 +1529,15 @@ void CWindow::onX11Configure(CBox box) {
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
 }
 
-void CWindow::warpCursor() {
+void CWindow::warpCursor(bool force) {
     static auto PERSISTENTWARPS         = CConfigValue<Hyprlang::INT>("cursor:persistent_warps");
     const auto  coords                  = m_vRelativeCursorCoordsOnLastWarp;
     m_vRelativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
     if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_vSize) // don't warp cursor outside the window
-        g_pCompositor->warpCursorTo(m_vPosition + coords);
+        g_pCompositor->warpCursorTo(m_vPosition + coords, force);
     else
-        g_pCompositor->warpCursorTo(middle());
+        g_pCompositor->warpCursorTo(middle(), force);
 }
 
 PHLWINDOW CWindow::getSwallower() {

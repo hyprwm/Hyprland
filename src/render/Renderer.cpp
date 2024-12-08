@@ -1187,8 +1187,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         }
     }
 
-    m_sRenderPass.clear();
-
     EMIT_HOOK_EVENT("preRender", pMonitor);
 
     timespec now;
@@ -1335,9 +1333,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
-
-    m_sRenderPass.simplify();
-    m_sRenderPass.render();
 
     endRender();
 
@@ -2582,6 +2577,8 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 
     makeEGLCurrent();
 
+    m_sRenderPass.clear();
+
     m_eRenderMode = mode;
 
     g_pHyprOpenGL->m_RenderData.pMonitor = pMonitor; // has to be set cuz allocs
@@ -2640,6 +2637,9 @@ void CHyprRenderer::endRender() {
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
     PMONITOR->commitSeq++;
+
+    m_sRenderPass.simplify();
+    m_sRenderPass.render();
 
     auto cleanup = CScopeGuard([this]() {
         if (m_pCurrentRenderbuffer)

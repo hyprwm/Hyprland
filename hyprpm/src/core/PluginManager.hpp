@@ -27,7 +27,8 @@ enum ePluginLoadStateReturn {
     LOADSTATE_OK = 0,
     LOADSTATE_FAIL,
     LOADSTATE_PARTIAL_FAIL,
-    LOADSTATE_HEADERS_OUTDATED
+    LOADSTATE_HEADERS_OUTDATED,
+    LOADSTATE_HYPRLAND_UPDATED
 };
 
 struct SHyprlandVersion {
@@ -53,7 +54,7 @@ class CPluginManager {
     ePluginLoadStateReturn ensurePluginsLoadState();
 
     bool                   loadUnloadPlugin(const std::string& path, bool load);
-    SHyprlandVersion       getHyprlandVersion();
+    SHyprlandVersion       getHyprlandVersion(bool running);
 
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 

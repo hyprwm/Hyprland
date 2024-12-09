@@ -3,6 +3,8 @@
 #include "../../defines.hpp"
 #include "PassElement.hpp"
 
+class CGradientValueData;
+
 class CRenderPass {
   public:
     bool empty() const;

@@ -1,5 +1,6 @@
 #include "Pass.hpp"
 #include "../OpenGL.hpp"
+#include <algorithm>
 #include <ranges>
 
 bool CRenderPass::empty() const {

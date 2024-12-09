@@ -3,6 +3,8 @@
 #include "../../desktop/WLSurface.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../Renderer.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;

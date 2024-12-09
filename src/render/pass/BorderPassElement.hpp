@@ -1,5 +1,8 @@
 #pragma once
 #include "PassElement.hpp"
+#include "../../config/ConfigDataValues.hpp"
+
+class CGradientValueData;
 
 class CBorderPassElement : public IPassElement {
   public:

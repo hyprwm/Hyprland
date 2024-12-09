@@ -29,7 +29,6 @@ class CRenderPass {
     SP<IPassElement>                  currentPassInfo = nullptr;
 
     void                              simplify();
-    CRegion                           expandRegionForBlur(const CRegion& rg);
     float                             oneBlurRadius();
 
     friend class CHyprOpenGLImpl;

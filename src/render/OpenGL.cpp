@@ -667,7 +667,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(PHLMONITOR pMonitor) {
     if (*PBLUR == 0)
         return false;
 
-    if (m_RenderData.pCurrentMonData->blurFBShouldRender)
+    if (preBlurQueued())
         return true;
 
     if (!pMonitor->solitaryClient.expired())
@@ -2020,7 +2020,7 @@ bool CHyprOpenGLImpl::preBlurQueued() {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    return !(!m_RenderData.pCurrentMonData->blurFBDirty || !*PBLURNEWOPTIMIZE || !*PBLUR || !m_RenderData.pCurrentMonData->blurFBShouldRender);
+    return m_RenderData.pCurrentMonData->blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_RenderData.pCurrentMonData->blurFBShouldRender;
 }
 
 bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {

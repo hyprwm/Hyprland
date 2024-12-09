@@ -188,7 +188,7 @@ bool CTexPassElement::needsLiveBlur() {
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
     const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
-    const bool  BLUR  = data.blur && (!data.texture->m_bOpaque || ALPHA < 1.F);
+    const bool  BLUR  = data.blur && (!data.texture || !data.texture->m_bOpaque || ALPHA < 1.F);
 
     if (!data.pLS && !data.pWindow)
         return BLUR;

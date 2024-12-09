@@ -1,5 +1,8 @@
 #pragma once
 #include "PassElement.hpp"
+#include "../Framebuffer.hpp"
+
+class CTexture;
 
 class CTextureMatteElement : public IPassElement {
   public:

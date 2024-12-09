@@ -11,6 +11,7 @@ class IPassElement {
     virtual bool                needsLiveBlur()             = 0;
     virtual bool                needsPrecomputeBlur()       = 0;
     virtual const char*         passName()                  = 0;
+    virtual void                discard();
     virtual std::optional<CBox> boundingBox();
     virtual CRegion             opaqueRegion();
     virtual bool                disableSimplification();

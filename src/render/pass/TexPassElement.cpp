@@ -123,12 +123,8 @@ void CTexPassElement::draw(const CRegion& damage) {
     windowBox.round();
 
     if (windowBox.width <= 1 || windowBox.height <= 1) {
-        if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-            Debug::log(TRACE, "presentFeedback for invisible surface");
-            data.surface->presentFeedback(data.when, data.pMonitor->self.lock());
-        }
-
-        return; // invisible
+        discard();
+        return;
     }
 
     const bool MISALIGNEDFSV1 = std::floor(data.pMonitor->scale) != data.pMonitor->scale /* Fractional */ && data.surface->current.scale == 1 /* fs protocol */ &&
@@ -238,4 +234,14 @@ CRegion CTexPassElement::opaqueRegion() {
     }
 
     return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};
+}
+
+void CTexPassElement::discard() {
+    if (simple)
+        return;
+
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+        Debug::log(TRACE, "discard for invisible surface");
+        data.surface->presentFeedback(data.when, data.pMonitor->self.lock(), true);
+    }
 }

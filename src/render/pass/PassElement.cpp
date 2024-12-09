@@ -11,3 +11,7 @@ CRegion IPassElement::opaqueRegion() {
 bool IPassElement::disableSimplification() {
     return false;
 }
+
+void IPassElement::discard() {
+    ;
+}

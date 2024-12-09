@@ -24,14 +24,13 @@ void CRenderPass::simplify() {
     // TODO: use precompute blur for instances where there is nothing in between
 
     // if there is live blur, we need to NOT occlude any area where it will be influenced
-    const auto                        WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+    const auto WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
 
-    std::vector<SP<SPassElementData>> toRemove;
-    CRegion                           newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize});
+    CRegion    newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize});
     for (auto& el : m_vPassElements | std::views::reverse) {
 
         if (newDamage.empty()) {
-            toRemove.emplace_back(el);
+            el->discard = true;
             continue;
         }
 
@@ -42,7 +41,7 @@ void CRenderPass::simplify() {
 
         // drop if empty
         if (CRegion copy = newDamage.copy(); copy.intersect(*bb).empty()) {
-            toRemove.emplace_back(el);
+            el->discard = true;
             continue;
         }
 
@@ -77,8 +76,6 @@ void CRenderPass::simplify() {
             newDamage.subtract(opaque);
         }
     }
-
-    std::erase_if(m_vPassElements, [&toRemove](const auto& el) { return std::find(toRemove.begin(), toRemove.end(), el) != toRemove.end(); });
 }
 
 void CRenderPass::clear() {
@@ -129,6 +126,11 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         return {};
 
     for (auto& el : m_vPassElements) {
+        if (el->discard) {
+            el->element->discard();
+            continue;
+        }
+
         g_pHyprOpenGL->m_RenderData.damage = el->elementDamage;
         el->element->draw(el->elementDamage);
     }

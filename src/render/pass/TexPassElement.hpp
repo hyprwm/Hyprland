@@ -82,6 +82,7 @@ class CTexPassElement : public IPassElement {
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
     virtual CRegion             opaqueRegion();
+    virtual void                discard();
 
     virtual const char*         passName() {
         return "CTexPassElement";

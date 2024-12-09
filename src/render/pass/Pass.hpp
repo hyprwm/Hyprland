@@ -22,9 +22,11 @@ class CRenderPass {
     struct SPassElementData {
         CRegion          elementDamage;
         SP<IPassElement> element;
+        bool             discard = false;
     };
 
     std::vector<SP<SPassElementData>> m_vPassElements;
+    std::vector<SP<SPassElementData>> m_vDiscardedPassElements;
 
     SP<IPassElement>                  currentPassInfo = nullptr;
 

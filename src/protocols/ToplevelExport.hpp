@@ -5,7 +5,6 @@
 #include "WaylandProtocol.hpp"
 #include "Screencopy.hpp"
 
-#include <list>
 #include <vector>
 
 class CMonitor;

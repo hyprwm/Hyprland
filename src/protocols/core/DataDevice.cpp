@@ -119,7 +119,7 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
         PROTO::data->destroyResource(this);
     });
 
-    resource->setOffer([this](CWlDataSource* r, const char* mime) { mimeTypes.push_back(mime); });
+    resource->setOffer([this](CWlDataSource* r, const char* mime) { mimeTypes.emplace_back(mime); });
     resource->setSetActions([this](CWlDataSource* r, uint32_t a) {
         LOGM(LOG, "DataSource {:x} actions {}", (uintptr_t)this, a);
         supportedActions = a;
@@ -311,7 +311,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
 
         RESOURCE->self = RESOURCE;
 
-        sources.push_back(RESOURCE);
+        sources.emplace_back(RESOURCE);
 
         LOGM(LOG, "New data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });

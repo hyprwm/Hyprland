@@ -44,7 +44,7 @@ CXDGWmDialogManagerResource::CXDGWmDialogManagerResource(SP<CXdgWmDialogV1> reso
     resource->setDestroy([this](CXdgWmDialogV1* r) { PROTO::xdgDialog->destroyResource(this); });
     resource->setOnDestroy([this](CXdgWmDialogV1* r) { PROTO::xdgDialog->destroyResource(this); });
 
-    resource->setGetXdgDialog([this](CXdgWmDialogV1* r, uint32_t id, wl_resource* toplevel) {
+    resource->setGetXdgDialog([](CXdgWmDialogV1* r, uint32_t id, wl_resource* toplevel) {
         auto tl = CXDGToplevelResource::fromResource(toplevel);
         if (!tl) {
             r->error(-1, "Toplevel inert");

@@ -12,7 +12,8 @@ jobs:
       matrix:
         package:
           - hyprland
-          - hyprland-cross
+          # - hyprland-cross # cross compiling fails due to qt
+          # failure chain: hyprland-qtutils -> qt6.qtsvg -> qt6.qtbase -> psqlodbc & qt6.qttranslations
           - xdg-desktop-portal-hyprland
 
     runs-on: ubuntu-latest

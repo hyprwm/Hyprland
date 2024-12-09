@@ -6,7 +6,7 @@
 #include <limits>
 
 #include <sys/timerfd.h>
-#include <time.h>
+#include <ctime>
 
 #include <aquamarine/backend/Backend.hpp>
 
@@ -95,7 +95,7 @@ void CEventLoopManager::nudgeTimers() {
     // remove timers that have gone missing
     std::erase_if(m_sTimers.timers, [](const auto& t) { return t.strongRef() <= 1; });
 
-    long nextTimerUs = 10 * 1000 * 1000; // 10s
+    long nextTimerUs = 10L * 1000 * 1000; // 10s
 
     for (auto const& t : m_sTimers.timers) {
         if (auto const& µs = t->leftUs(); µs < nextTimerUs)

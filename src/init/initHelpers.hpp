@@ -2,7 +2,7 @@
 
 #include "../defines.hpp"
 
-namespace Init {
+namespace NInit {
     bool isSudo();
     void gainRealTime();
 };

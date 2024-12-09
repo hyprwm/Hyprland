@@ -54,11 +54,11 @@ int main(int argc, char** argv) {
     std::vector<std::string> args{argv + 1, argv + argc};
 
     for (auto it = args.begin(); it != args.end(); it++) {
-        if (it->compare("--i-am-really-stupid") == 0 && !ignoreSudo) {
+        if (*it == "--i-am-really-stupid" && !ignoreSudo) {
             std::println("[ WARNING ] Running Hyprland with superuser privileges might damage your system");
 
             ignoreSudo = true;
-        } else if (it->compare("--socket") == 0) {
+        } else if (*it == "--socket") {
             if (std::next(it) == args.end()) {
                 help();
 
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
             socketName = *std::next(it);
             it++;
-        } else if (it->compare("--wayland-fd") == 0) {
+        } else if (*it == "--wayland-fd") {
             if (std::next(it) == args.end()) {
                 help();
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
             }
 
             try {
-                socketFd = std::stoi(std::next(it)->c_str());
+                socketFd = std::stoi(*std::next(it));
 
                 // check if socketFd is a valid file descriptor
                 if (fcntl(socketFd, F_GETFD) == -1)
@@ -88,13 +88,13 @@ int main(int argc, char** argv) {
             }
 
             it++;
-        } else if (it->compare("-c") == 0 || it->compare("--config") == 0) {
+        } else if (*it == "-c" || *it == "--config") {
             if (std::next(it) == args.end()) {
                 help();
 
                 return 1;
             }
-            configPath = std::next(it)->c_str();
+            configPath = *std::next(it);
 
             try {
                 configPath = std::filesystem::canonical(configPath);
@@ -114,31 +114,31 @@ int main(int argc, char** argv) {
             it++;
 
             continue;
-        } else if (it->compare("-h") == 0 || it->compare("--help") == 0) {
+        } else if (*it == "-h" || *it == "--help") {
             help();
 
             return 0;
-        } else if (it->compare("-v") == 0 || it->compare("--version") == 0) {
+        } else if (*it == "-v" || *it == "--version") {
             std::println("{}", versionRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));
             return 0;
-        } else if (it->compare("--systeminfo") == 0) {
+        } else if (*it == "--systeminfo") {
             std::println("{}", systemInfoRequest(eHyprCtlOutputFormat::FORMAT_NORMAL, ""));
             return 0;
         } else {
-            std::println(stderr, "[ ERROR ] Unknown option '{}' !", it->c_str());
+            std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
             help();
 
             return 1;
         }
     }
 
-    if (!ignoreSudo && Init::isSudo()) {
+    if (!ignoreSudo && NInit::isSudo()) {
         std::println(stderr,
                      "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n"
                      "          Hint: Use the --i-am-really-stupid flag to omit that check.");
 
         return 1;
-    } else if (ignoreSudo && Init::isSudo()) {
+    } else if (ignoreSudo && NInit::isSudo()) {
         std::println("Superuser privileges check is omitted. I hope you know what you're doing.");
     }
 
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
     g_pCompositor->initServer(socketName, socketFd);
 
     if (!envEnabled("HYPRLAND_NO_RT"))
-        Init::gainRealTime();
+        NInit::gainRealTime();
 
     Debug::log(LOG, "Hyprland init finished.");
 

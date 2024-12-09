@@ -251,7 +251,7 @@ void CTabletSeat::sendTool(SP<CTabletTool> tool) {
     resource->sendToolAdded(RESOURCE->resource.get());
 
     RESOURCE->sendData();
-    tools.push_back(RESOURCE);
+    tools.emplace_back(RESOURCE);
 }
 
 void CTabletSeat::sendPad(SP<CTabletPad> pad) {
@@ -267,7 +267,7 @@ void CTabletSeat::sendPad(SP<CTabletPad> pad) {
     resource->sendPadAdded(RESOURCE->resource.get());
 
     RESOURCE->sendData();
-    pads.push_back(RESOURCE);
+    pads.emplace_back(RESOURCE);
 }
 
 void CTabletSeat::sendTablet(SP<CTablet> tablet) {
@@ -283,7 +283,7 @@ void CTabletSeat::sendTablet(SP<CTablet> tablet) {
     resource->sendTabletAdded(RESOURCE->resource.get());
 
     RESOURCE->sendData();
-    tablets.push_back(RESOURCE);
+    tablets.emplace_back(RESOURCE);
 }
 
 void CTabletSeat::sendData() {
@@ -371,7 +371,7 @@ void CTabletV2Protocol::registerDevice(SP<CTablet> tablet) {
         s->sendTablet(tablet);
     }
 
-    tablets.push_back(tablet);
+    tablets.emplace_back(tablet);
 }
 
 void CTabletV2Protocol::registerDevice(SP<CTabletTool> tool) {
@@ -379,7 +379,7 @@ void CTabletV2Protocol::registerDevice(SP<CTabletTool> tool) {
         s->sendTool(tool);
     }
 
-    tools.push_back(tool);
+    tools.emplace_back(tool);
 }
 
 void CTabletV2Protocol::registerDevice(SP<CTabletPad> pad) {
@@ -387,7 +387,7 @@ void CTabletV2Protocol::registerDevice(SP<CTabletPad> pad) {
         s->sendPad(pad);
     }
 
-    pads.push_back(pad);
+    pads.emplace_back(pad);
 }
 
 void CTabletV2Protocol::unregisterDevice(SP<CTablet> tablet) {

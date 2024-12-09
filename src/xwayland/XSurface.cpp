@@ -33,7 +33,7 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID
             }
             xcb_res_client_id_value_next(&iter);
         }
-        if (ppid == NULL) {
+        if (!ppid) {
             free(reply);
             return;
         }
@@ -208,7 +208,7 @@ void CXWaylandSurface::restackToTop() {
 }
 
 void CXWaylandSurface::close() {
-    xcb_client_message_data_t msg = {0};
+    xcb_client_message_data_t msg = {};
     msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
     msg.data32[1]                 = XCB_CURRENT_TIME;
     g_pXWayland->pWM->sendWMMessage(self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);

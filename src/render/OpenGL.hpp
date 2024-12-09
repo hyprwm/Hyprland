@@ -38,13 +38,13 @@ inline const float fullVerts[] = {
 };
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
-enum eDiscardMode {
+enum eDiscardMode : uint8_t {
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
 };
 
 struct SRenderModifData {
-    enum eRenderModifType {
+    enum eRenderModifType : uint8_t {
         RMOD_TYPE_SCALE,        /* scale by a float */
         RMOD_TYPE_SCALECENTER,  /* scale by a float from the center */
         RMOD_TYPE_TRANSLATE,    /* translate by a Vector2D */

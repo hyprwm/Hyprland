@@ -5,9 +5,9 @@
 #include <fstream>
 #include <iterator>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -39,6 +39,7 @@ using namespace Hyprutils::String;
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
+#include "../version.h"
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -108,6 +109,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "vrr": {},
     "solitary": "{:x}",
     "activelyTearing": {},
+    "directScanoutTo": "{:x}",
     "disabled": {},
     "currentFormat": "{}",
     "mirrorOf": "{}",
@@ -120,19 +122,20 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             escapeJSONStrings(m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x, (int)m->vecReservedTopLeft.y,
             (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform, (m == g_pCompositor->m_pLastMonitor ? "true" : "false"),
             (m->dpmsStatus ? "true" : "false"), (m->output->state->state().adaptiveSync ? "true" : "false"), (uint64_t)m->solitaryClient.get(),
-            (m->tearingState.activelyTearing ? "true" : "false"), (m->m_bEnabled ? "false" : "true"), formatToString(m->output->state->state().drmFormat),
-            m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
+            (m->tearingState.activelyTearing ? "true" : "false"), (uint64_t)m->lastScanout.get(), (m->m_bEnabled ? "false" : "true"),
+            formatToString(m->output->state->state().drmFormat), m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
 
     } else {
         result += std::format("Monitor {} (ID {}):\n\t{}x{}@{:.5f} at {}x{}\n\tdescription: {}\n\tmake: {}\n\tmodel: {}\n\tserial: {}\n\tactive workspace: {} ({})\n\t"
                               "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
-                              "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: {}\n\tavailableModes: {}\n\n",
+                              "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tactivelyTearing: {}\n\tdirectScanoutTo: {:x}\n\tdisabled: {}\n\tcurrentFormat: {}\n\tmirrorOf: "
+                              "{}\n\tavailableModes: {}\n\n",
                               m->szName, m->ID, (int)m->vecPixelSize.x, (int)m->vecPixelSize.y, m->refreshRate, (int)m->vecPosition.x, (int)m->vecPosition.y, m->szShortDescription,
                               m->output->make, m->output->model, m->output->serial, m->activeWorkspaceID(), (!m->activeWorkspace ? "" : m->activeWorkspace->m_szName),
                               m->activeSpecialWorkspaceID(), (m->activeSpecialWorkspace ? m->activeSpecialWorkspace->m_szName : ""), (int)m->vecReservedTopLeft.x,
                               (int)m->vecReservedTopLeft.y, (int)m->vecReservedBottomRight.x, (int)m->vecReservedBottomRight.y, m->scale, (int)m->transform,
                               (m == g_pCompositor->m_pLastMonitor ? "yes" : "no"), (int)m->dpmsStatus, m->output->state->state().adaptiveSync, (uint64_t)m->solitaryClient.get(),
-                              m->tearingState.activelyTearing, !m->m_bEnabled, formatToString(m->output->state->state().drmFormat),
+                              m->tearingState.activelyTearing, (uint64_t)m->lastScanout.get(), !m->m_bEnabled, formatToString(m->output->state->state().drmFormat),
                               m->pMirrorOf ? std::format("{}", m->pMirrorOf->ID) : "none", availableModesForOutput(m, format));
     }
 
@@ -534,7 +537,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
     CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format(
                 R"#(
 	"{}",)#",
@@ -544,7 +547,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
         trimTrailingComma(result);
         result += "\n]\n";
     } else {
-        for (auto line : errLines) {
+        for (const auto& line : errLines) {
             result += std::format("{}\n", line);
         }
     }
@@ -1352,17 +1355,16 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
             return std::format("custom type: {}\nset: {}", ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     } else {
         if (TYPE == typeid(Hyprlang::INT))
-            return std::format("{{\"option\": \"{}\", \"int\": {}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::FLOAT))
-            return std::format("{{\"option\": \"{}\", \"float\": {:2f}, \"set\": {} }}", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format("{{\"option\": \"{}\", \"vec2\": [{},{}], \"set\": {} }}", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
+            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
                                VAR->m_bSetByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("{{\"option\": \"{}\", \"str\": \"{}\", \"set\": {} }}", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
         else if (TYPE == typeid(void*))
-            return std::format("{{\"option\": \"{}\", \"custom\": \"{}\", \"set\": {} }}", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(),
-                               VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, ((ICustomConfigValueData*)std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
     }
 
     return "invalid type (internal error)";
@@ -1807,13 +1809,13 @@ void runWritingDebugLogThread(const int conn) {
     Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
     std::thread([conn]() {
-        while (Debug::RollingLogFollow::Get().IsRunning()) {
-            if (Debug::RollingLogFollow::Get().isEmpty(conn)) {
+        while (Debug::SRollingLogFollow::get().isRunning()) {
+            if (Debug::SRollingLogFollow::get().isEmpty(conn)) {
                 std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
-            auto line = Debug::RollingLogFollow::Get().GetLog(conn);
+            auto line = Debug::SRollingLogFollow::get().getLog(conn);
             if (!successWrite(conn, line))
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
@@ -1821,7 +1823,7 @@ void runWritingDebugLogThread(const int conn) {
             std::this_thread::sleep_for(100ms);
         }
         close(conn);
-        Debug::RollingLogFollow::Get().StopFor(conn);
+        Debug::SRollingLogFollow::get().stopFor(conn);
     }).detach();
 }
 
@@ -1880,9 +1882,9 @@ int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
 
     if (isFollowUpRollingLogRequest(request)) {
         Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-        Debug::RollingLogFollow::Get().StartFor(ACCEPTEDCONNECTION);
+        Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
         runWritingDebugLogThread(ACCEPTEDCONNECTION);
-        Debug::log(LOG, Debug::RollingLogFollow::Get().DebugInfo());
+        Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
     } else
         close(ACCEPTEDCONNECTION);
 

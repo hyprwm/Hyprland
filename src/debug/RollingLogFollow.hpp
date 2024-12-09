@@ -2,8 +2,9 @@
 
 #include <shared_mutex>
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace Debug {
-    struct RollingLogFollow {
+    struct SRollingLogFollow {
         std::unordered_map<int, std::string> socketToRollingLogFollowQueue;
         std::shared_mutex                    m;
         bool                                 running                    = false;
@@ -15,12 +16,12 @@ namespace Debug {
             return socketToRollingLogFollowQueue[socket].empty();
         }
 
-        std::string DebugInfo() {
+        std::string debugInfo() {
             std::shared_lock<std::shared_mutex> r(m);
             return std::format("RollingLogFollow, got {} connections", socketToRollingLogFollowQueue.size());
         }
 
-        std::string GetLog(int socket) {
+        std::string getLog(int socket) {
             std::unique_lock<std::shared_mutex> w(m);
 
             const std::string                   ret = socketToRollingLogFollowQueue[socket];
@@ -29,7 +30,7 @@ namespace Debug {
             return ret;
         };
 
-        void AddLog(std::string log) {
+        void addLog(const std::string& log) {
             std::unique_lock<std::shared_mutex> w(m);
             running = true;
             std::vector<int> to_erase;
@@ -37,26 +38,26 @@ namespace Debug {
                 socketToRollingLogFollowQueue[p.first] += log + "\n";
         }
 
-        bool IsRunning() {
+        bool isRunning() {
             std::shared_lock<std::shared_mutex> r(m);
             return running;
         }
 
-        void StopFor(int socket) {
+        void stopFor(int socket) {
             std::unique_lock<std::shared_mutex> w(m);
             socketToRollingLogFollowQueue.erase(socket);
             if (socketToRollingLogFollowQueue.empty())
                 running = false;
         }
 
-        void StartFor(int socket) {
+        void startFor(int socket) {
             std::unique_lock<std::shared_mutex> w(m);
             socketToRollingLogFollowQueue[socket] = std::format("[LOG] Following log to socket: {} started\n", socket);
             running                               = true;
         }
 
-        static RollingLogFollow& Get() {
-            static RollingLogFollow     instance;
+        static SRollingLogFollow& get() {
+            static SRollingLogFollow    instance;
             static std::mutex           gm;
             std::lock_guard<std::mutex> lock(gm);
             return instance;

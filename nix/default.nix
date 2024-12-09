@@ -14,6 +14,7 @@
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
+  hyprland-qtutils,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
@@ -65,7 +66,7 @@ in
   assert assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
   assert assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
   assert assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hyprland.org/Configuring/XWayland";
-    customStdenv.mkDerivation {
+    customStdenv.mkDerivation (finalAttrs: {
       pname = "hyprland${optionalString debug "-debug"}";
       inherit version;
 
@@ -89,6 +90,7 @@ in
       DATE = date;
       DIRTY = optionalString (commit == "") "dirty";
       HASH = commit;
+      TAG = "v${builtins.readFile "${finalAttrs.src}/VERSION"}";
 
       depsBuildBuild = [
         pkg-config
@@ -167,6 +169,7 @@ in
           wrapProgram $out/bin/Hyprland \
             --suffix PATH : ${makeBinPath [
             binutils
+            hyprland-qtutils
             pciutils
             pkgconf
           ]}
@@ -182,4 +185,4 @@ in
         platforms = lib.platforms.linux;
         mainProgram = "Hyprland";
       };
-    }
+    })

@@ -38,7 +38,7 @@ class CSecurityContextManagerResource {
 };
 
 class CSecurityContextSandboxedClient;
-struct CSecurityContextSandboxedClientDestroyWrapper {
+struct SCSecurityContextSandboxedClientDestroyWrapper {
     wl_listener                      listener;
     CSecurityContextSandboxedClient* parent = nullptr;
 };
@@ -48,9 +48,9 @@ class CSecurityContextSandboxedClient {
     static SP<CSecurityContextSandboxedClient> create(int clientFD);
     ~CSecurityContextSandboxedClient();
 
-    void                                          onDestroy();
+    void                                           onDestroy();
 
-    CSecurityContextSandboxedClientDestroyWrapper destroyListener;
+    SCSecurityContextSandboxedClientDestroyWrapper destroyListener;
 
   private:
     CSecurityContextSandboxedClient(int clientFD_);

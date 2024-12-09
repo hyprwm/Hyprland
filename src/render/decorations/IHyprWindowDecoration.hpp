@@ -5,7 +5,7 @@
 #include "../../helpers/math/Math.hpp"
 #include "DecorationPositioner.hpp"
 
-enum eDecorationType {
+enum eDecorationType : int8_t {
     DECORATION_NONE = -1,
     DECORATION_GROUPBAR,
     DECORATION_SHADOW,
@@ -13,14 +13,14 @@ enum eDecorationType {
     DECORATION_CUSTOM
 };
 
-enum eDecorationLayer {
+enum eDecorationLayer : uint8_t {
     DECORATION_LAYER_BOTTOM = 0, /* lowest. */
     DECORATION_LAYER_UNDER,      /* under the window, but above BOTTOM */
     DECORATION_LAYER_OVER,       /* above the window, but below its popups */
     DECORATION_LAYER_OVERLAY     /* above everything of the window, including popups */
 };
 
-enum eDecorationFlags {
+enum eDecorationFlags : uint8_t {
     DECORATION_ALLOWS_MOUSE_INPUT  = 1 << 0, /* this decoration accepts mouse input */
     DECORATION_PART_OF_MAIN_WINDOW = 1 << 1, /* this decoration is a *seamless* part of the main window, so stuff like shadows will include it */
     DECORATION_NON_SOLID           = 1 << 2, /* this decoration is not solid. Other decorations should draw on top of it. Example: shadow */

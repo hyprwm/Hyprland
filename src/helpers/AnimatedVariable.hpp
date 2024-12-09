@@ -10,38 +10,39 @@
 #include "../debug/Log.hpp"
 #include "../desktop/DesktopTypes.hpp"
 
-enum ANIMATEDVARTYPE {
+enum eAnimatedVarType : int8_t {
     AVARTYPE_INVALID = -1,
     AVARTYPE_FLOAT,
     AVARTYPE_VECTOR,
     AVARTYPE_COLOR
 };
 
-// Utility to bind a type with its corresponding ANIMATEDVARTYPE
+// Utility to bind a type with its corresponding eAnimatedVarType
 template <class T>
-struct typeToANIMATEDVARTYPE_t {
-    static constexpr ANIMATEDVARTYPE value = AVARTYPE_INVALID;
+// NOLINTNEXTLINE(readability-identifier-naming)
+struct STypeToAnimatedVarType_t {
+    static constexpr eAnimatedVarType value = AVARTYPE_INVALID;
 };
 
 template <>
-struct typeToANIMATEDVARTYPE_t<float> {
-    static constexpr ANIMATEDVARTYPE value = AVARTYPE_FLOAT;
+struct STypeToAnimatedVarType_t<float> {
+    static constexpr eAnimatedVarType value = AVARTYPE_FLOAT;
 };
 
 template <>
-struct typeToANIMATEDVARTYPE_t<Vector2D> {
-    static constexpr ANIMATEDVARTYPE value = AVARTYPE_VECTOR;
+struct STypeToAnimatedVarType_t<Vector2D> {
+    static constexpr eAnimatedVarType value = AVARTYPE_VECTOR;
 };
 
 template <>
-struct typeToANIMATEDVARTYPE_t<CHyprColor> {
-    static constexpr ANIMATEDVARTYPE value = AVARTYPE_COLOR;
+struct STypeToAnimatedVarType_t<CHyprColor> {
+    static constexpr eAnimatedVarType value = AVARTYPE_COLOR;
 };
 
 template <class T>
-inline constexpr ANIMATEDVARTYPE typeToANIMATEDVARTYPE = typeToANIMATEDVARTYPE_t<T>::value;
+inline constexpr eAnimatedVarType typeToeAnimatedVarType = STypeToAnimatedVarType_t<T>::value;
 
-enum AVARDAMAGEPOLICY {
+enum eAVarDamagePolicy : int8_t {
     AVARDAMAGE_NONE   = -1,
     AVARDAMAGE_ENTIRE = 0,
     AVARDAMAGE_BORDER,
@@ -67,11 +68,11 @@ concept Animable = OneOf<T, Vector2D, float, CHyprColor>;
 
 class CBaseAnimatedVariable {
   public:
-    CBaseAnimatedVariable(ANIMATEDVARTYPE type);
-    void create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy);
-    void create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy);
-    void create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy);
-    void create(SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy);
+    CBaseAnimatedVariable(eAnimatedVarType type);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, eAVarDamagePolicy policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy);
+    void create(SAnimationPropertyConfig* pAnimConfig, eAVarDamagePolicy policy);
 
     CBaseAnimatedVariable(const CBaseAnimatedVariable&)            = delete;
     CBaseAnimatedVariable(CBaseAnimatedVariable&&)                 = delete;
@@ -103,7 +104,7 @@ class CBaseAnimatedVariable {
     float getCurveValue();
 
     // checks if an animation is in progress
-    inline bool isBeingAnimated() {
+    bool isBeingAnimated() const {
         return m_bIsBeingAnimated;
     }
 
@@ -111,7 +112,7 @@ class CBaseAnimatedVariable {
         if an animation is not running, runs instantly.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnEnd(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fEndCallback       = func;
+        m_fEndCallback       = std::move(func);
         m_bRemoveEndAfterRan = remove;
 
         if (!isBeingAnimated())
@@ -121,14 +122,14 @@ class CBaseAnimatedVariable {
     /*  sets a function to be ran when an animation is started.
         if "remove" is set to true, will remove the callback when ran. */
     void setCallbackOnBegin(std::function<void(void* thisptr)> func, bool remove = true) {
-        m_fBeginCallback       = func;
+        m_fBeginCallback       = std::move(func);
         m_bRemoveBeginAfterRan = remove;
     }
 
     /*  Sets the update callback, called every time the value is animated and a step is done
         Warning: calling unregisterVar/registerVar in this handler will cause UB */
     void setUpdateCallback(std::function<void(void* thisptr)> func) {
-        m_fUpdateCallback = func;
+        m_fUpdateCallback = std::move(func);
     }
 
     /*  resets all callbacks. Does not call any. */
@@ -157,8 +158,8 @@ class CBaseAnimatedVariable {
 
     std::chrono::steady_clock::time_point animationBegin;
 
-    AVARDAMAGEPOLICY                      m_eDamagePolicy = AVARDAMAGE_NONE;
-    ANIMATEDVARTYPE                       m_Type;
+    eAVarDamagePolicy                     m_eDamagePolicy = AVARDAMAGE_NONE;
+    eAnimatedVarType                      m_Type;
 
     bool                                  m_bRemoveEndAfterRan   = true;
     bool                                  m_bRemoveBeginAfterRan = true;
@@ -206,24 +207,26 @@ class CBaseAnimatedVariable {
 template <Animable VarType>
 class CAnimatedVariable : public CBaseAnimatedVariable {
   public:
-    CAnimatedVariable() : CBaseAnimatedVariable(typeToANIMATEDVARTYPE<VarType>) {} // dummy var
+    CAnimatedVariable() : CBaseAnimatedVariable(typeToeAnimatedVarType<VarType>) {
+        ;
+    } // dummy var
 
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
         create(pAnimConfig, pWindow, policy);
         m_Value = value;
         m_Goal  = value;
     }
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLLS pLayer, eAVarDamagePolicy policy) {
         create(pAnimConfig, pLayer, policy);
         m_Value = value;
         m_Goal  = value;
     }
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
         create(pAnimConfig, pWorkspace, policy);
         m_Value = value;
         m_Goal  = value;
     }
-    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, AVARDAMAGEPOLICY policy) {
+    void create(const VarType& value, SAnimationPropertyConfig* pAnimConfig, eAVarDamagePolicy policy) {
         create(pAnimConfig, policy);
         m_Value = value;
         m_Goal  = value;

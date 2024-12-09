@@ -26,12 +26,12 @@ AQUAMARINE_FORWARD(ITablet);
 AQUAMARINE_FORWARD(ITabletTool);
 AQUAMARINE_FORWARD(ITabletPad);
 
-enum eClickBehaviorMode {
+enum eClickBehaviorMode : uint8_t {
     CLICKMODE_DEFAULT = 0,
     CLICKMODE_KILL
 };
 
-enum eMouseBindMode {
+enum eMouseBindMode : int8_t {
     MBIND_INVALID            = -1,
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
@@ -39,8 +39,8 @@ enum eMouseBindMode {
     MBIND_RESIZE_FORCE_RATIO = 3
 };
 
-enum eBorderIconDirection {
-    BORDERICON_NONE,
+enum eBorderIconDirection : uint8_t {
+    BORDERICON_NONE = 0,
     BORDERICON_UP,
     BORDERICON_DOWN,
     BORDERICON_LEFT,
@@ -276,7 +276,7 @@ class CInputManager {
     void setCursorImageOverride(const std::string& name);
 
     // cursor surface
-    struct cursorSI {
+    struct {
         bool           hidden = false; // null surface = hidden
         SP<CWLSurface> wlSurface;
         Vector2D       vHotspot;
@@ -288,8 +288,8 @@ class CInputManager {
 
     // discrete scrolling emulation using v120 data
     struct {
-        bool     lastEventSign     = 0;
-        bool     lastEventAxis     = 0;
+        bool     lastEventSign     = false;
+        bool     lastEventAxis     = false;
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_ScrollWheelState;

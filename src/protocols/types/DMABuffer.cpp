@@ -27,7 +27,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     }
 
     texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
-    opaque  = FormatUtils::isFormatOpaque(attrs.format);
+    opaque  = NFormatUtils::isFormatOpaque(attrs.format);
     success = texture->m_iTexID;
 
     if (!success)

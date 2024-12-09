@@ -5,7 +5,6 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
-#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
@@ -13,7 +12,6 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
-#include "eventLoop/EventLoopManager.hpp"
 
 #include <optional>
 #include <iterator>
@@ -265,7 +263,7 @@ void CKeybindManager::updateXKBTranslationState() {
 
     xkb_rule_names    rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const       KEYMAPFILE = FILEPATH == "" ? NULL : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
+    FILE* const       KEYMAPFILE = FILEPATH == "" ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->configCurrentPath).c_str(), "r");
 
     auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS) :
                                              xkb_keymap_new_from_names(PCONTEXT, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -409,7 +407,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
     }
 
     if (!m_pXKBTranslationState) {
-        Debug::log(ERR, "BUG THIS: m_pXKBTranslationState NULL!");
+        Debug::log(ERR, "BUG THIS: m_pXKBTranslationState nullptr!");
         updateXKBTranslationState();
 
         if (!m_pXKBTranslationState)
@@ -734,7 +732,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (SPECIALTRIGGERED && !pressed)
             std::erase_if(m_vPressedSpecialBinds, [&](const auto& other) { return other == k; });
         else if (SPECIALDISPATCHER && pressed)
-            m_vPressedSpecialBinds.push_back(k);
+            m_vPressedSpecialBinds.emplace_back(k);
 
         // Should never happen, as we check in the ConfigManager, but oh well
         if (DISPATCHER == m_mDispatchers.end()) {
@@ -762,7 +760,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (k->repeat) {
             const auto PACTIVEKEEB = g_pSeatManager->keyboard.lock();
 
-            m_vActiveKeybinds.push_back(k);
+            m_vActiveKeybinds.emplace_back(k);
             m_pRepeatKeyTimer->updateTimeout(std::chrono::milliseconds(PACTIVEKEEB->repeatDelay));
         }
 
@@ -827,7 +825,7 @@ void CKeybindManager::shadowKeybinds(const xkb_keysym_t& doesntHave, const uint3
 
 bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
     // Handles the CTRL+ALT+FX TTY keybinds
-    if (!(keysym >= XKB_KEY_XF86Switch_VT_1 && keysym <= XKB_KEY_XF86Switch_VT_12))
+    if (keysym < XKB_KEY_XF86Switch_VT_1 || keysym > XKB_KEY_XF86Switch_VT_12)
         return false;
 
     // beyond this point, return true to not handle anything else.
@@ -942,7 +940,7 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 
         sigset_t set;
         sigemptyset(&set);
-        sigprocmask(SIG_SETMASK, &set, NULL);
+        sigprocmask(SIG_SETMASK, &set, nullptr);
 
         grandchild = fork();
         if (grandchild == 0) {
@@ -968,7 +966,7 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
     read(socket[0], &grandchild, sizeof(grandchild));
     close(socket[0]);
     // clear child and leave grandchild to init
-    waitpid(child, NULL, 0);
+    waitpid(child, nullptr, 0);
     if (grandchild < 0) {
         Debug::log(LOG, "Fail to create the second fork");
         return 0;
@@ -1248,15 +1246,15 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
         clientMode = std::stoi(ARGS[1]);
     } catch (std::exception& e) { clientMode = -1; }
 
-    const sFullscreenState STATE = sFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
+    const SFullscreenState STATE = SFullscreenState{.internal = (internalMode != -1 ? (eFullscreenMode)internalMode : PWINDOW->m_sFullscreenState.internal),
                                                     .client   = (clientMode != -1 ? (eFullscreenMode)clientMode : PWINDOW->m_sFullscreenState.client)};
 
     if (internalMode != -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal && PWINDOW->m_sFullscreenState.client == STATE.client)
-        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
     else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_sFullscreenState.internal == STATE.internal)
-        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_sFullscreenState.client});
+        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_sFullscreenState.client});
     else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_sFullscreenState.client == STATE.client)
-        g_pCompositor->setWindowFullscreenState(PWINDOW, sFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = FSMODE_NONE});
+        g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_sFullscreenState.internal, .client = FSMODE_NONE});
     else
         g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
 
@@ -1825,8 +1823,8 @@ SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
         else
             return {.success = false, .error = "No such workspace"};
     } catch (std::exception& e) {
-        Debug::log(ERR, "Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args, e.what());
-        return {.success = false, .error = std::format("Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. \"{}\": \"{}\"", args, e.what())};
+        Debug::log(ERR, R"(Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. "{}": "{}")", args, e.what());
+        return {.success = false, .error = std::format(R"(Invalid arg in renameWorkspace, expected numeric id only or a numeric id and string name. "{}": "{}")", args, e.what())};
     }
 
     return {};
@@ -2299,7 +2297,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
     const auto MOD     = g_pKeybindManager->stringToModMask(ARGS[0]);
     const auto KEY     = ARGS[1];
     uint32_t   keycode = 0;
-    bool       isMouse = 0;
+    bool       isMouse = false;
 
     // similar to parseKey in ConfigManager
     if (isNumber(KEY) && std::stoi(KEY) > 9)
@@ -2308,7 +2306,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         keycode = std::stoi(KEY.substr(5));
     else if (KEY.compare(0, 6, "mouse:") == 0 && isNumber(KEY.substr(6))) {
         keycode = std::stoi(KEY.substr(6));
-        isMouse = 1;
+        isMouse = true;
         if (keycode < 272) {
             Debug::log(ERR, "sendshortcut: invalid mouse button");
             return {.success = false, .error = "sendshortcut: invalid mouse button"};
@@ -2656,9 +2654,9 @@ SDispatchResult CKeybindManager::alterZOrder(std::string args) {
     }
 
     if (POSITION == "top")
-        g_pCompositor->changeWindowZOrder(PWINDOW, 1);
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
     else if (POSITION == "bottom")
-        g_pCompositor->changeWindowZOrder(PWINDOW, 0);
+        g_pCompositor->changeWindowZOrder(PWINDOW, false);
     else {
         Debug::log(ERR, "alterZOrder: bad position: {}", POSITION);
         return {.success = false, .error = "alterZOrder: bad position: {}"};

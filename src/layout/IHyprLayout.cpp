@@ -81,7 +81,7 @@ void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
 }
 
 void IHyprLayout::onWindowRemovedFloating(PHLWINDOW pWindow) {
-    return; // no-op
+    ; // no-op
 }
 
 void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
@@ -455,7 +455,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
 
             // corner snapping
             const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
-            if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
+            if (snaps & (SNAP_LEFT | SNAP_RIGHT)) {
                 const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
@@ -465,7 +465,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
                     snaps |= SNAP_DOWN;
                 }
             }
-            if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
+            if (snaps & (SNAP_UP | SNAP_DOWN)) {
                 const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
@@ -487,19 +487,23 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
         SRange       monX = {MON->vecPosition.x + BORDERSIZE, MON->vecPosition.x + MON->vecSize.x - BORDERSIZE};
         SRange       monY = {MON->vecPosition.y + BORDERSIZE, MON->vecPosition.y + MON->vecSize.y - BORDERSIZE};
 
-        if (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
+            (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
+            (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
+            (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE)) {
+        if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
+            (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }
@@ -930,4 +934,4 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     return sizePredicted;
 }
 
-IHyprLayout::~IHyprLayout() {}
+IHyprLayout::~IHyprLayout() = default;

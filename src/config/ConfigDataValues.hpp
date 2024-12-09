@@ -3,7 +3,7 @@
 #include "../helpers/varlist/VarList.hpp"
 #include <vector>
 
-enum eConfigValueDataTypes {
+enum eConfigValueDataTypes : int8_t {
     CVD_TYPE_INVALID   = -1,
     CVD_TYPE_GRADIENT  = 0,
     CVD_TYPE_CSS_VALUE = 1
@@ -20,12 +20,12 @@ class ICustomConfigValueData {
 
 class CGradientValueData : public ICustomConfigValueData {
   public:
-    CGradientValueData() {};
+    CGradientValueData() = default;
     CGradientValueData(CHyprColor col) {
         m_vColors.push_back(col);
         updateColorsOk();
     };
-    virtual ~CGradientValueData() {};
+    virtual ~CGradientValueData() = default;
 
     virtual eConfigValueDataTypes getDataType() {
         return CVD_TYPE_GRADIENT;

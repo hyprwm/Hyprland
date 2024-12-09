@@ -12,9 +12,9 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
         if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0)
             splitTop = box.h * *PFLMULT > box.w;
 
-        if (verticalOverride == true)
+        if (verticalOverride)
             splitTop = true;
-        else if (horizontalOverride == true)
+        else if (horizontalOverride)
             splitTop = false;
 
         const auto SPLITSIDE = !splitTop;
@@ -231,7 +231,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     if (pWindow->m_bIsFloating)
         return;
 
-    m_lDwindleNodesData.push_back(SDwindleNodeData());
+    m_lDwindleNodesData.emplace_back();
     const auto  PNODE = &m_lDwindleNodesData.back();
 
     const auto  PMONITOR = pWindow->m_pMonitor.lock();
@@ -312,7 +312,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     // get the node under our cursor
 
-    m_lDwindleNodesData.push_back(SDwindleNodeData());
+    m_lDwindleNodesData.emplace_back();
     const auto NEWPARENT = &m_lDwindleNodesData.back();
 
     // make the parent have the OPENINGON's stats

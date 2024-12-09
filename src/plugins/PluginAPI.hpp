@@ -96,7 +96,7 @@ typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
 
     Hooks are unloaded after exit.
 */
-typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)(void);
+typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)();
 #define PLUGIN_EXIT          pluginExit
 #define PLUGIN_EXIT_FUNC_STR "pluginExit"
 
@@ -104,6 +104,7 @@ typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)(void);
     End plugin methods
 */
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 namespace HyprlandAPI {
 
     /*
@@ -290,6 +291,7 @@ namespace HyprlandAPI {
     APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
 };
 
+// NOLINTBEGIN
 /*
     Get the hash this plugin/server was compiled with.
 
@@ -303,3 +305,4 @@ APICALL EXPORT const char*        __hyprland_api_get_hash();
 APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
     return GIT_COMMIT_HASH;
 }
+// NOLINTEND

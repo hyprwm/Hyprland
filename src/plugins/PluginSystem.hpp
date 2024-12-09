@@ -38,7 +38,7 @@ class CPluginSystem {
     CPlugin*                 getPluginByHandle(HANDLE handle);
     std::vector<CPlugin*>    getAllPlugins();
     size_t                   pluginCount();
-    void                     sig_getPlugins(CPlugin** data, size_t len);
+    void                     sigGetPlugins(CPlugin** data, size_t len);
 
     bool                     m_bAllowConfigVars = false;
     std::string              m_szLastError      = "";

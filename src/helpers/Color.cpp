@@ -5,32 +5,21 @@
 #define GREEN(c) ((double)(((c) >> 8) & 0xff) / 255.0)
 #define BLUE(c)  ((double)(((c)) & 0xff) / 255.0)
 
-CHyprColor::CHyprColor() {}
+CHyprColor::CHyprColor() = default;
 
-CHyprColor::CHyprColor(float r_, float g_, float b_, float a_) {
-    r = r_;
-    g = g_;
-    b = b_;
-    a = a_;
-
+CHyprColor::CHyprColor(float r_, float g_, float b_, float a_) : r(r_), g(g_), b(b_), a(a_) {
     okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
 }
 
-CHyprColor::CHyprColor(uint64_t hex) {
-    r = RED(hex);
-    g = GREEN(hex);
-    b = BLUE(hex);
-    a = ALPHA(hex);
-
+CHyprColor::CHyprColor(uint64_t hex) : r(RED(hex)), g(GREEN(hex)), b(BLUE(hex)), a(ALPHA(hex)) {
     okLab = Hyprgraphics::CColor(Hyprgraphics::CColor::SSRGB{r, g, b}).asOkLab();
 }
 
-CHyprColor::CHyprColor(const Hyprgraphics::CColor& color, float a_) {
+CHyprColor::CHyprColor(const Hyprgraphics::CColor& color, float a_) : a(a_) {
     const auto SRGB = color.asRgb();
     r               = SRGB.r;
     g               = SRGB.g;
     b               = SRGB.b;
-    a               = a_;
 
     okLab = color.asOkLab();
 }

@@ -4,14 +4,14 @@
 #include <string>
 #include "../helpers/signal/Signal.hpp"
 
-enum eHIDCapabilityType : uint32_t {
+enum eHIDCapabilityType : uint8_t {
     HID_INPUT_CAPABILITY_KEYBOARD = (1 << 0),
     HID_INPUT_CAPABILITY_POINTER  = (1 << 1),
     HID_INPUT_CAPABILITY_TOUCH    = (1 << 2),
     HID_INPUT_CAPABILITY_TABLET   = (1 << 3),
 };
 
-enum eHIDType {
+enum eHIDType : uint8_t {
     HID_TYPE_UNKNOWN = 0,
     HID_TYPE_POINTER,
     HID_TYPE_KEYBOARD,
@@ -27,7 +27,7 @@ enum eHIDType {
 */
 class IHID {
   public:
-    virtual ~IHID() {}
+    virtual ~IHID() = default;
 
     virtual uint32_t getCapabilities() = 0;
     virtual eHIDType getType();

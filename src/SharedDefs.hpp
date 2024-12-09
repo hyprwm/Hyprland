@@ -5,9 +5,7 @@
 #include <any>
 #include <hyprutils/math/Box.hpp>
 
-using namespace Hyprutils::Math;
-
-enum eIcons {
+enum eIcons : uint8_t {
     ICON_WARNING = 0,
     ICON_INFO,
     ICON_HINT,
@@ -17,7 +15,7 @@ enum eIcons {
     ICON_NONE
 };
 
-enum eRenderStage {
+enum eRenderStage : uint8_t {
     RENDER_PRE = 0,      /* Before binding the gl context */
     RENDER_BEGIN,        /* Just when the rendering begins, nothing has been rendered yet. Damage, current render data in opengl valid. */
     RENDER_PRE_WINDOWS,  /* Pre windows, post bottom and overlay layers */
@@ -29,7 +27,7 @@ enum eRenderStage {
     RENDER_POST_WINDOW,  /* After rendering a window (any pass) */
 };
 
-enum eInputType {
+enum eInputType : uint8_t {
     INPUT_TYPE_AXIS = 0,
     INPUT_TYPE_BUTTON,
     INPUT_TYPE_DRAG_START,
@@ -41,7 +39,7 @@ struct SCallbackInfo {
     bool cancelled = false; /* on cancellable events, will cancel the event. */
 };
 
-enum eHyprCtlOutputFormat {
+enum eHyprCtlOutputFormat : uint8_t {
     FORMAT_NORMAL = 0,
     FORMAT_JSON
 };

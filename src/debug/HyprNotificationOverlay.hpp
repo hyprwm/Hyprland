@@ -10,7 +10,7 @@
 
 #include <cairo/cairo.h>
 
-enum eIconBackend {
+enum eIconBackend : uint8_t {
     ICONS_BACKEND_NONE = 0,
     ICONS_BACKEND_NF,
     ICONS_BACKEND_FA

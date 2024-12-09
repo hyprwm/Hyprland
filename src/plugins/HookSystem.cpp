@@ -14,10 +14,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) {
-    m_pSource      = source;
-    m_pDestination = destination;
-    m_pOwner       = owner;
+CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) : m_pSource(source), m_pDestination(destination), m_pOwner(owner) {
+    ;
 }
 
 CFunctionHook::~CFunctionHook() {
@@ -88,7 +86,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             finalBytes[currentDestinationOffset + i] = *(char*)(currentAddress + i);
         }
 
-        std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find("\n", lastAsmNewline) - lastAsmNewline);
+        std::string code = probe.assembly.substr(lastAsmNewline, probe.assembly.find('\n', lastAsmNewline) - lastAsmNewline);
         if (code.contains("%rip")) {
             CVarList    tokens{code, 0, 's'};
             size_t      plusPresent  = tokens[1][0] == '+' ? 1 : 0;
@@ -132,7 +130,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             currentDestinationOffset += len;
         }
 
-        lastAsmNewline = probe.assembly.find("\n", lastAsmNewline) + 1;
+        lastAsmNewline = probe.assembly.find('\n', lastAsmNewline) + 1;
         currentAddress += len;
     }
 

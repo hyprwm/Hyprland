@@ -1,5 +1,6 @@
 #include "ConfigManager.hpp"
 #include "../managers/KeybindManager.hpp"
+#include "../Compositor.hpp"
 
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "config/ConfigDataValues.hpp"
@@ -12,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
-#include <string.h>
+#include <cstring>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -30,6 +31,7 @@
 #include <filesystem>
 using namespace Hyprutils::String;
 
+//NOLINTNEXTLINE
 extern "C" char** environ;
 
 #include "ConfigDescriptions.hpp"
@@ -70,7 +72,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
             const auto COL = configStringToInt(var);
             if (!COL)
                 throw std::runtime_error(std::format("failed to parse {} as a color", var));
-            DATA->m_vColors.push_back(CHyprColor(COL.value()));
+            DATA->m_vColors.emplace_back(COL.value());
         } catch (std::exception& e) {
             Debug::log(WARN, "Error parsing gradient {}", V);
             parseError = "Error parsing gradient " + V + ": " + e.what();
@@ -82,7 +84,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         if (parseError.empty())
             parseError = "Error parsing gradient " + V + ": No colors?";
 
-        DATA->m_vColors.push_back(0); // transparent
+        DATA->m_vColors.emplace_back(0); // transparent
     }
 
     DATA->updateColorsOk();
@@ -383,6 +385,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:middle_click_paste", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:render_unfocused_fps", Hyprlang::INT{15});
     m_pConfig->addConfigValue("misc:disable_xdg_env_checks", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:lockdead_screen_delay", Hyprlang::INT{1000});
 
     m_pConfig->addConfigValue("group:insert_after_current", Hyprlang::INT{1});
@@ -606,6 +609,8 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
 
+    m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
+
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});
     m_pConfig->addSpecialConfigValue("device", "sensitivity", {0.F});
@@ -733,7 +738,7 @@ const std::string CConfigManager::getConfigString() {
     std::string configString;
     std::string currFileContent;
 
-    for (auto path : configPaths) {
+    for (const auto& path : configPaths) {
         std::ifstream configFile(path);
         configString += ("\n\nConfig File: " + path + ": ");
         if (!configFile.is_open()) {
@@ -1097,7 +1102,7 @@ Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string&
 }
 
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback) {
-    const auto VAL = std::string{std::any_cast<Hyprlang::STRING>(getConfigValueSafeDevice(dev, v, fallback)->getValue())};
+    auto VAL = std::string{std::any_cast<Hyprlang::STRING>(getConfigValueSafeDevice(dev, v, fallback)->getValue())};
 
     if (VAL == STRVAL_EMPTY)
         return "";
@@ -1715,7 +1720,7 @@ void CConfigManager::handlePluginLoads() {
         std::stringstream error;
         error << "Failed to load the following plugins:";
 
-        for (auto path : failedPlugins) {
+        for (const auto& path : failedPlugins) {
             error << "\n" << path;
         }
 
@@ -2146,7 +2151,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         PANIM->second.internalStyle = ARGS[4];
 
         if (ARGS[4] != "") {
-            const auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
+            auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
             if (ERR != "")
                 return ERR;
@@ -2235,10 +2240,10 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     std::set<xkb_keysym_t> MODS;
 
     if (multiKey) {
-        for (auto splitKey : CVarList(ARGS[1], 8, '&')) {
+        for (const auto& splitKey : CVarList(ARGS[1], 8, '&')) {
             KEYSYMS.insert(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
         }
-        for (auto splitMod : CVarList(ARGS[0], 8, '&')) {
+        for (const auto& splitMod : CVarList(ARGS[0], 8, '&')) {
             MODS.insert(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
         }
     }
@@ -2684,8 +2689,8 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
                 return "Invalid workspace rule found: " + rule;
             }
 
-            std::string val = opt.substr(opt.find(":") + 1);
-            opt             = opt.substr(0, opt.find(":"));
+            std::string val = opt.substr(opt.find(':') + 1);
+            opt             = opt.substr(0, opt.find(':'));
 
             wsRule.layoutopts[opt] = val;
         }

@@ -11,12 +11,9 @@ PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string 
     return workspace;
 }
 
-CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
-    m_pMonitor            = monitor;
-    m_iID                 = id;
-    m_szName              = name;
-    m_bIsSpecialWorkspace = special;
-    m_bWasCreatedEmpty    = isEmpty;
+CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) :
+    m_iID(id), m_szName(name), m_pMonitor(monitor), m_bIsSpecialWorkspace(special), m_bWasCreatedEmpty(isEmpty) {
+    ;
 }
 
 void CWorkspace::init(PHLWORKSPACE self) {
@@ -106,7 +103,7 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
         const auto PMONITOR = m_pMonitor.lock();
         float      movePerc = 100.f;
 
-        if (ANIMSTYLE.find("%") != std::string::npos) {
+        if (ANIMSTYLE.find('%') != std::string::npos) {
             try {
                 auto percstr = ANIMSTYLE.substr(ANIMSTYLE.find_last_of(' ') + 1);
                 movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
@@ -296,7 +293,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     return false;
                 }
 
-                const auto DASHPOS = prop.find("-");
+                const auto DASHPOS = prop.find('-');
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {
@@ -433,7 +430,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     continue;
                 }
 
-                const auto DASHPOS = prop.find("-");
+                const auto DASHPOS = prop.find('-');
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {

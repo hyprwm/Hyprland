@@ -11,6 +11,7 @@
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
 #include "pass/PreBlurElement.hpp"
+#include "pass/ClearPassElement.hpp"
 #include <xf86drm.h>
 #include <fcntl.h>
 #include <gbm.h>
@@ -2434,11 +2435,11 @@ void CHyprOpenGLImpl::saveBufferForMirror(CBox* box) {
 
 void CHyprOpenGLImpl::renderMirrored() {
 
-    auto   monitor  = m_RenderData.pMonitor;
-    auto   mirrored = monitor->pMirrorOf;
+    auto         monitor  = m_RenderData.pMonitor;
+    auto         mirrored = monitor->pMirrorOf;
 
-    double scale  = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
-    CBox   monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
+    const double scale  = std::min(monitor->vecTransformedSize.x / mirrored->vecTransformedSize.x, monitor->vecTransformedSize.y / mirrored->vecTransformedSize.y);
+    CBox         monbox = {0, 0, mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale};
 
     // transform box as it will be drawn on a transformed projection
     monbox.transform(wlTransformToHyprutils(mirrored->transform), mirrored->vecTransformedSize.x * scale, mirrored->vecTransformedSize.y * scale);
@@ -2450,20 +2451,16 @@ void CHyprOpenGLImpl::renderMirrored() {
     if (!PFB->isAllocated() || !PFB->getTexture())
         return;
 
-    // replace monitor projection to undo the mirrored monitor's projection
-    m_RenderData.monitorProjection = Mat3x3::identity()
-                                         .translate(monitor->vecPixelSize / 2.0)
-                                         .transform(wlTransformToHyprutils(monitor->transform))
-                                         .transform(wlTransformToHyprutils(invertTransform(mirrored->transform)))
-                                         .translate(-monitor->vecTransformedSize / 2.0);
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
-    // clear stuff outside of mirrored area (e.g. when changing to mirrored)
-    clear(CHyprColor(0, 0, 0, 0));
-
-    renderTexture(PFB->getTexture(), &monbox, 1.f, 0, false, false);
-
-    // reset matrix for further drawing
-    m_RenderData.monitorProjection = monitor->projMatrix;
+    CTexPassElement::SSimpleRenderData data;
+    data.tex               = PFB->getTexture();
+    data.box               = monbox;
+    data.replaceProjection = Mat3x3::identity()
+                                 .translate(monitor->vecPixelSize / 2.0)
+                                 .transform(wlTransformToHyprutils(monitor->transform))
+                                 .transform(wlTransformToHyprutils(invertTransform(mirrored->transform)))
+                                 .translate(-monitor->vecTransformedSize / 2.0);
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {

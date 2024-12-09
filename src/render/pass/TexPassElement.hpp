@@ -62,14 +62,15 @@ class CTexPassElement : public IPassElement {
     };
 
     struct SSimpleRenderData {
-        SP<CTexture>      tex;
-        CBox              box;
-        float             a = 1.F;
-        CRegion           damage;
-        int               round        = 0;
-        bool              flipEndFrame = false;
-        SP<CSyncTimeline> syncTimeline;
-        int64_t           syncPoint = 0;
+        SP<CTexture>          tex;
+        CBox                  box;
+        float                 a = 1.F;
+        CRegion               damage;
+        int                   round        = 0;
+        bool                  flipEndFrame = false;
+        SP<CSyncTimeline>     syncTimeline;
+        int64_t               syncPoint = 0;
+        std::optional<Mat3x3> replaceProjection;
     };
 
     CTexPassElement(const SSimpleRenderData& data);

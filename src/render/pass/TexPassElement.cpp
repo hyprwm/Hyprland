@@ -40,8 +40,12 @@ void CTexPassElement::draw(const CRegion& damage) {
     }};
 
     if (simple) {
+        if (simple->replaceProjection)
+            g_pHyprOpenGL->m_RenderData.monitorProjection = *simple->replaceProjection;
         g_pHyprOpenGL->renderTextureInternalWithDamage(simple->tex, &simple->box, simple->a, simple->damage.empty() ? damage : simple->damage, simple->round, simple->syncTimeline,
                                                        simple->syncPoint);
+        if (simple->replaceProjection)
+            g_pHyprOpenGL->m_RenderData.monitorProjection = g_pHyprOpenGL->m_RenderData.pMonitor->projMatrix;
         return;
     }
 

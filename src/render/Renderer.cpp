@@ -1308,8 +1308,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
                 }
 
                 if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                    CBox monrect = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
-                    g_pHyprOpenGL->renderRect(&monrect, CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0), 0);
+                    CRectPassElement::SRectData data;
+                    data.box   = {0, 0, pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y};
+                    data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
+                    m_sRenderPass.add(makeShared<CRectPassElement>(data));
                     damageBlinkCleanup = 1;
                 } else if (*PDAMAGEBLINK) {
                     damageBlinkCleanup++;

@@ -4,6 +4,7 @@
 
 class CWLSurfaceResource;
 class CTexture;
+class CSyncTimeline;
 
 class CTexPassElement : public IPassElement {
   public:
@@ -61,12 +62,14 @@ class CTexPassElement : public IPassElement {
     };
 
     struct SSimpleRenderData {
-        SP<CTexture> tex;
-        CBox         box;
-        float        a = 1.F;
-        CRegion      damage;
-        int          round        = 0;
-        bool         flipEndFrame = false;
+        SP<CTexture>      tex;
+        CBox              box;
+        float             a = 1.F;
+        CRegion           damage;
+        int               round        = 0;
+        bool              flipEndFrame = false;
+        SP<CSyncTimeline> syncTimeline;
+        int64_t           syncPoint = 0;
     };
 
     CTexPassElement(const SSimpleRenderData& data);

@@ -8,6 +8,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../render/pass/TexPassElement.hpp"
 #include "SeatManager.hpp"
 #include <cstring>
 #include <gbm.h>
@@ -551,7 +552,13 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* no
     box.x = std::round(box.x);
     box.y = std::round(box.y);
 
-    g_pHyprOpenGL->renderTextureWithDamage(texture, &box, damage, 1.F, 0, false, false, currentCursorImage.waitTimeline, currentCursorImage.waitPoint);
+    CTexPassElement::SSimpleRenderData data;
+    data.tex = texture;
+    data.box = box;
+    data.damage = damage;
+    data.syncTimeline = currentCursorImage.waitTimeline;
+    data.syncPoint = currentCursorImage.waitPoint;
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
     if (currentCursorImage.surface)
         currentCursorImage.surface->resource()->frame(now);

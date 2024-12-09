@@ -40,7 +40,8 @@ void CTexPassElement::draw(const CRegion& damage) {
     }};
 
     if (simple) {
-        g_pHyprOpenGL->renderTextureInternalWithDamage(simple->tex, &simple->box, simple->a, simple->damage.empty() ? damage : simple->damage, simple->round);
+        g_pHyprOpenGL->renderTextureInternalWithDamage(simple->tex, &simple->box, simple->a, simple->damage.empty() ? damage : simple->damage, simple->round, simple->syncTimeline,
+                                                       simple->syncPoint);
         return;
     }
 

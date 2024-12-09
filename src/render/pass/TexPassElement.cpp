@@ -24,7 +24,7 @@ void CTexPassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->m_RenderData.discardMode        = data.discardMode;
     g_pHyprOpenGL->m_RenderData.discardOpacity     = data.discardOpacity;
     g_pHyprOpenGL->m_RenderData.useNearestNeighbor = data.useNearestNeighbor;
-    g_pHyprOpenGL->m_bEndFrame                     = data.flipEndFrame;
+    g_pHyprOpenGL->m_bEndFrame                     = simple ? simple->flipEndFrame : data.flipEndFrame;
 
     CScopeGuard x = {[]() {
         g_pHyprOpenGL->m_RenderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);

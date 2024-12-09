@@ -50,7 +50,7 @@ static std::string getTempRoot() {
     return STR;
 }
 
-SHyprlandVersion CPluginManager::getHyprlandVersion(bool running = true) {
+SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
     static bool             onceRunning   = false;
     static bool             onceInstalled = false;
     static SHyprlandVersion verRunning;
@@ -868,10 +868,12 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
             if (std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
-            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true))
+            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true)) {
+                std::println("{}", infoString("{} will be loaded after restarting Hyprland", p.name));
                 hyprlandVersionMismatch = true;
-
-            std::println("{}", successString("Loaded {}", p.name));
+            } else {
+                std::println("{}", successString("Loaded {}", p.name));
+            }
         }
     }
 

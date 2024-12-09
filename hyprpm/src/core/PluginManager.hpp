@@ -54,7 +54,7 @@ class CPluginManager {
     ePluginLoadStateReturn ensurePluginsLoadState();
 
     bool                   loadUnloadPlugin(const std::string& path, bool load);
-    SHyprlandVersion       getHyprlandVersion(bool running);
+    SHyprlandVersion       getHyprlandVersion(bool running = true);
 
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 

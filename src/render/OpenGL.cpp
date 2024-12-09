@@ -2461,6 +2461,8 @@ void CHyprOpenGLImpl::renderMirrored() {
                                  .transform(wlTransformToHyprutils(monitor->transform))
                                  .transform(wlTransformToHyprutils(invertTransform(mirrored->transform)))
                                  .translate(-monitor->vecTransformedSize / 2.0);
+
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }
 
 void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {

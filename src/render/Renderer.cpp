@@ -856,13 +856,21 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             const bool ANIMOUT           = !pMonitor->activeSpecialWorkspace;
 
             if (*PDIMSPECIAL != 0.f) {
-                CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRect(&monbox, CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS)));
+                CRectPassElement::SRectData data;
+                data.box   = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
+                data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+
+                g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(data));
             }
 
             if (*PBLURSPECIAL && *PBLUR) {
-                CBox monbox = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
-                g_pHyprOpenGL->renderRectWithBlur(&monbox, CHyprColor(0, 0, 0, 0), 0, (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+                CRectPassElement::SRectData data;
+                data.box   = {translate.x, translate.y, pMonitor->vecTransformedSize.x * scale, pMonitor->vecTransformedSize.y * scale};
+                data.color = CHyprColor(0, 0, 0, 0);
+                data.blur  = true;
+                data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
+
+                g_pHyprRenderer->m_sRenderPass.add(makeShared<CRectPassElement>(data));
             }
 
             break;

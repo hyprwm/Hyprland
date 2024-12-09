@@ -544,9 +544,11 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
         renderdata.surfaceCounter = 0;
         pWindow->m_pWLSurface->resource()->breadthfirst(
-            [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-                renderdata.localPos = offset;
-                renderdata.texture  = s->current.texture;
+            [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                renderdata.localPos    = offset;
+                renderdata.texture     = s->current.texture;
+                renderdata.surface     = s;
+                renderdata.mainSurface = s == pWindow->m_pWLSurface->resource();
                 m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -611,8 +613,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
                     popup->m_pWLSurface->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-                            renderdata.localPos = offset;
-                            renderdata.texture  = s->current.texture;
+                            renderdata.localPos    = offset;
+                            renderdata.texture     = s->current.texture;
+                            renderdata.surface     = s;
+                            renderdata.mainSurface = false;
                             m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
                             renderdata.surfaceCounter++;
                         },
@@ -681,9 +685,11 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 
     if (!popups)
         pLayer->surface->resource()->breadthfirst(
-            [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-                renderdata.localPos = offset;
-                renderdata.texture  = s->current.texture;
+            [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+                renderdata.localPos    = offset;
+                renderdata.texture     = s->current.texture;
+                renderdata.surface     = s;
+                renderdata.mainSurface = s == pLayer->surface->resource();
                 m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -700,9 +706,11 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
                 if (!popup->m_pWLSurface || !popup->m_pWLSurface->resource() || !popup->m_bMapped)
                     return;
 
-                Vector2D pos        = popup->coordsRelativeToParent();
-                renderdata.localPos = pos;
-                renderdata.texture  = popup->m_pWLSurface->resource()->current.texture;
+                Vector2D pos           = popup->coordsRelativeToParent();
+                renderdata.localPos    = pos;
+                renderdata.texture     = popup->m_pWLSurface->resource()->current.texture;
+                renderdata.surface     = popup->m_pWLSurface->resource();
+                renderdata.mainSurface = false;
                 m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
@@ -733,9 +741,11 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
     }
 
     SURF->breadthfirst(
-        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-            renderdata.localPos = offset;
-            renderdata.texture  = s->current.texture;
+        [this, &renderdata, &SURF](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            renderdata.localPos    = offset;
+            renderdata.texture     = s->current.texture;
+            renderdata.surface     = s;
+            renderdata.mainSurface = s == SURF;
             m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
@@ -752,9 +762,11 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLM
     renderdata.h        = pMonitor->vecSize.y;
 
     renderdata.surface->breadthfirst(
-        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-            renderdata.localPos = offset;
-            renderdata.texture  = s->current.texture;
+        [this, &renderdata, &pSurface](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            renderdata.localPos    = offset;
+            renderdata.texture     = s->current.texture;
+            renderdata.surface     = s;
+            renderdata.mainSurface = s == pSurface->surface->surface();
             m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
             renderdata.surfaceCounter++;
         },

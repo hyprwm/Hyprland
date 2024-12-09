@@ -73,7 +73,7 @@ void CTexPassElement::draw(const CRegion& damage) {
     const bool  BLUR  = data.blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F);
 
     CBox        windowBox;
-    if (data.surface && data.surface == data.surface) {
+    if (data.surface && data.mainSurface) {
         windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, data.w, data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them

@@ -16,7 +16,7 @@ class CTexPassElement : public IPassElement {
         void*                  data        = nullptr;
         SP<CWLSurfaceResource> surface     = nullptr;
         SP<CTexture>           texture     = nullptr;
-        bool                   mainSurface = false;
+        bool                   mainSurface = true;
         double                 w = 0, h = 0;
 
         // for rounding

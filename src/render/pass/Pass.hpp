@@ -7,14 +7,14 @@ class CGradientValueData;
 
 class CRenderPass {
   public:
-    bool empty() const;
-    bool single() const;
-    bool needsIntrospection() const;
+    bool    empty() const;
+    bool    single() const;
+    bool    needsIntrospection() const;
 
-    void add(SP<IPassElement> elem);
-    void clear();
+    void    add(SP<IPassElement> elem);
+    void    clear();
 
-    void render(const CRegion& damage_);
+    CRegion render(const CRegion& damage_);
 
   private:
     CRegion damage;
@@ -29,6 +29,8 @@ class CRenderPass {
     SP<IPassElement>                  currentPassInfo = nullptr;
 
     void                              simplify();
+    CRegion                           expandRegionForBlur(const CRegion& rg);
+    float                             oneBlurRadius();
 
     friend class CHyprOpenGLImpl;
 };

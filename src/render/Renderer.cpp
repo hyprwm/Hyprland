@@ -1251,30 +1251,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0) {
-        damage      = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
-        finalDamage = damage;
-    } else {
-        static auto PBLURENABLED = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->forceFullFrames > 0 || damageBlinkCleanup > 0)
+        damage = {0, 0, (int)pMonitor->vecTransformedSize.x * 10, (int)pMonitor->vecTransformedSize.y * 10};
 
-        // if we use blur we need to expand the damage for proper blurring
-        // if framebuffer was not offloaded we're not doing introspection aka not blurring so this is redundant and dumb
-        if (*PBLURENABLED == 1 && g_pHyprOpenGL->m_bOffloadedFramebuffer) {
-            // TODO: can this be optimized?
-            static auto PBLURSIZE   = CConfigValue<Hyprlang::INT>("decoration:blur:size");
-            static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
-            const auto  BLURRADIUS =
-                *PBLURPASSES > 10 ? pow(2, 15) : std::clamp(*PBLURSIZE, (int64_t)1, (int64_t)40) * pow(2, *PBLURPASSES); // is this 2^pass? I don't know but it works... I think.
-
-            // now, prep the damage, get the extended damage region
-            damage.expand(BLURRADIUS); // expand for proper blurring
-
-            finalDamage = damage;
-
-            damage.expand(BLURRADIUS); // expand for proper blurring
-        } else
-            finalDamage = damage;
-    }
+    finalDamage = damage;
 
     // update damage in renderdata as we modified it
     g_pHyprOpenGL->setDamage(damage, finalDamage);
@@ -1345,6 +1325,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
     endRender();
+
+    finalDamage = g_pHyprOpenGL->m_RenderData.damage;
 
     TRACY_GPU_COLLECT;
 
@@ -2560,7 +2542,7 @@ void CHyprRenderer::endRender() {
 
     PMONITOR->commitSeq++;
 
-    m_sRenderPass.render(g_pHyprOpenGL->m_RenderData.damage);
+    g_pHyprOpenGL->m_RenderData.damage = m_sRenderPass.render(g_pHyprOpenGL->m_RenderData.damage);
 
     auto cleanup = CScopeGuard([this]() {
         if (m_pCurrentRenderbuffer)

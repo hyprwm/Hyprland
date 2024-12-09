@@ -853,9 +853,11 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     for (auto const& p : loadedPlugins) {
         if (!enabled(p)) {
             // unload
-            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false))
+            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false)) {
+                std::println("{}", infoString("{} will be unloaded after restarting Hyprland", p));
                 hyprlandVersionMismatch = true;
-            std::println("{}", successString("Unloaded {}", p));
+            } else
+                std::println("{}", successString("Unloaded {}", p));
         }
     }
 
@@ -871,9 +873,8 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
             if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true)) {
                 std::println("{}", infoString("{} will be loaded after restarting Hyprland", p.name));
                 hyprlandVersionMismatch = true;
-            } else {
+            } else
                 std::println("{}", successString("Loaded {}", p.name));
-            }
         }
     }
 

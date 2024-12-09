@@ -767,6 +767,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto      PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
     static auto      PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto      PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+    static auto      PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
 
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
@@ -814,16 +815,18 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         return;
     }
 
-    if (*PRENDERTEX /* inverted cfg flag */)
-        m_sRenderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
-    else
-        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+    if (!*PXPMODE) {
+        if (*PRENDERTEX /* inverted cfg flag */)
+            m_sRenderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        else
+            g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ls.lock(), pMonitor, time);
-    }
-    for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-        renderLayer(ls.lock(), pMonitor, time);
+        for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+        for (auto const& ls : pMonitor->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
     }
 
     // pre window pass

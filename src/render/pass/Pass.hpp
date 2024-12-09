@@ -26,7 +26,6 @@ class CRenderPass {
     };
 
     std::vector<SP<SPassElementData>> m_vPassElements;
-    std::vector<SP<SPassElementData>> m_vDiscardedPassElements;
 
     SP<IPassElement>                  currentPassInfo = nullptr;
 

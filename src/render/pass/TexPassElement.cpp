@@ -230,7 +230,7 @@ CRegion CTexPassElement::opaqueRegion() {
 
     if (data.surface && data.surface->current.size == Vector2D{data.w, data.h}) {
         CRegion opaqueSurf = data.surface->current.opaque.copy();
-        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->vecPosition);
+        return opaqueSurf.intersect(CBox{{}, {data.w, data.h}}).translate(data.pos + data.localPos - data.pMonitor->vecPosition);
     }
 
     return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};

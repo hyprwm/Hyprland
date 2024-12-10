@@ -87,6 +87,12 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
     damage = damage_.copy();
 
+    if (damage.empty()) {
+        g_pHyprOpenGL->m_RenderData.damage      = damage;
+        g_pHyprOpenGL->m_RenderData.finalDamage = damage;
+        return damage;
+    }
+
     if (WILLBLUR) {
         // combine blur regions into one that will be expanded
         CRegion blurRegion;

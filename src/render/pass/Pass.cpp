@@ -26,7 +26,7 @@ void CRenderPass::simplify() {
     // if there is live blur, we need to NOT occlude any area where it will be influenced
     const auto WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
 
-    CRegion    newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize});
+    CRegion    newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize});
     for (auto& el : m_vPassElements | std::views::reverse) {
 
         if (newDamage.empty()) {
@@ -35,12 +35,14 @@ void CRenderPass::simplify() {
         }
 
         el->elementDamage = newDamage;
-        auto bb           = el->element->boundingBox();
-        if (!bb)
+        auto bb1          = el->element->boundingBox();
+        if (!bb1)
             continue;
 
+        auto bb = bb1->scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);
+
         // drop if empty
-        if (CRegion copy = newDamage.copy(); copy.intersect(*bb).empty()) {
+        if (CRegion copy = newDamage.copy(); copy.intersect(bb).empty()) {
             el->discard = true;
             continue;
         }
@@ -48,6 +50,8 @@ void CRenderPass::simplify() {
         auto opaque = el->element->opaqueRegion();
 
         if (!opaque.empty()) {
+            opaque.scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);
+
             // if this intersects the liveBlur region, allow live blur to operate correctly.
             // do not occlude a border near it.
             if (WILLBLUR) {

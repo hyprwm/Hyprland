@@ -2,6 +2,7 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../render/pass/TexPassElement.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -206,7 +207,12 @@ void CHyprError::draw() {
 
     m_bMonitorChanged = false;
 
-    g_pHyprOpenGL->renderTexture(m_pTexture, &monbox, m_fFadeOpacity.value(), 0);
+    CTexPassElement::SSimpleRenderData data;
+    data.tex = m_pTexture;
+    data.box = monbox;
+    data.a   = m_fFadeOpacity.value();
+
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }
 
 void CHyprError::destroy() {

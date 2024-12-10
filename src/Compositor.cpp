@@ -2277,7 +2277,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
         PWINDOW->m_bPinFullscreened = true;
     }
 
-    const bool CHANGEINTERNAL = !(PWINDOW->m_bPinned || CURRENT_EFFECTIVE_MODE == EFFECTIVE_MODE || (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen()));
+    if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen())
+        setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
+
+    const bool CHANGEINTERNAL = !(PWINDOW->m_bPinned || CURRENT_EFFECTIVE_MODE == EFFECTIVE_MODE);
 
     if (*PALLOWPINFULLSCREEN && PWINDOW->m_bPinFullscreened && PWINDOW->isFullscreen() && !PWINDOW->m_bPinned && state.internal == FSMODE_NONE) {
         PWINDOW->m_bPinned          = true;

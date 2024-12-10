@@ -1206,9 +1206,8 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
         auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
 
-        bool force = *PWARPONWORKSPACECHANGE == 2;
         if (PLAST && (!HLSurface || HLSurface->getWindow()))
-            PLAST->warpCursor(force);
+            PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
     }
 
     return {};

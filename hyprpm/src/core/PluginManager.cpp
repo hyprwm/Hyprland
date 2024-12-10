@@ -50,17 +50,26 @@ static std::string getTempRoot() {
     return STR;
 }
 
-SHyprlandVersion CPluginManager::getHyprlandVersion() {
-    static SHyprlandVersion ver;
-    static bool             once = false;
+SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
+    static bool             onceRunning   = false;
+    static bool             onceInstalled = false;
+    static SHyprlandVersion verRunning;
+    static SHyprlandVersion verInstalled;
 
-    if (once)
-        return ver;
+    if (onceRunning && running)
+        return verRunning;
 
-    once                 = true;
-    const auto HLVERCALL = execAndGet("hyprctl version");
+    if (onceInstalled && !running)
+        return verInstalled;
+
+    if (running)
+        onceRunning = true;
+    else
+        onceInstalled = true;
+
+    const auto HLVERCALL = running ? execAndGet("hyprctl version") : execAndGet("Hyprland --version");
     if (m_bVerbose)
-        std::println("{}", verboseString("version returned: {}", HLVERCALL));
+        std::println("{}", verboseString("{} version returned: {}", running ? "running" : "installed", HLVERCALL));
 
     if (!HLVERCALL.contains("Tag:")) {
         std::println(stderr, "\n{}", failureString("You don't seem to be running Hyprland."));
@@ -91,7 +100,13 @@ SHyprlandVersion CPluginManager::getHyprlandVersion() {
     if (m_bVerbose)
         std::println("{}", verboseString("parsed commit {} at branch {} on {}, commits {}", hlcommit, hlbranch, hldate, commits));
 
-    ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
+    auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, commits};
+
+    if (running)
+        verRunning = ver;
+    else
+        verInstalled = ver;
+
     return ver;
 }
 
@@ -356,7 +371,7 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
 }
 
 eHeadersErrors CPluginManager::headersValid() {
-    const auto HLVER = getHyprlandVersion();
+    const auto HLVER = getHyprlandVersion(false);
 
     if (!std::filesystem::exists(DataState::getHeadersPath() + "/share/pkgconfig/hyprland.pc"))
         return HEADERS_MISSING;
@@ -418,7 +433,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     DataState::ensureStateStoreExists();
 
-    const auto HLVER = getHyprlandVersion();
+    const auto HLVER = getHyprlandVersion(false);
 
     if (!hasDeps()) {
         std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio, pkg-config"));
@@ -580,7 +595,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return true;
     }
 
-    const auto   HLVER = getHyprlandVersion();
+    const auto   HLVER = getHyprlandVersion(false);
 
     CProgressBar progress;
     progress.m_iMaxSteps        = REPOS.size() * 2 + 2;
@@ -829,12 +844,20 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
         return "";
     };
 
+    // if any of the loadUnloadPlugin calls return false, this is true
+    // bcs that means the header version doesn't match the running version
+    // (and Hyprland needs to restart)
+    bool hyprlandVersionMismatch = false;
+
     // unload disabled plugins
     for (auto const& p : loadedPlugins) {
         if (!enabled(p)) {
             // unload
-            loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false);
-            std::println("{}", successString("Unloaded {}", p));
+            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false)) {
+                std::println("{}", infoString("{} will be unloaded after restarting Hyprland", p));
+                hyprlandVersionMismatch = true;
+            } else
+                std::println("{}", successString("Unloaded {}", p));
         }
     }
 
@@ -847,17 +870,28 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
             if (std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
-            loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true);
-            std::println("{}", successString("Loaded {}", p.name));
+            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true)) {
+                std::println("{}", infoString("{} will be loaded after restarting Hyprland", p.name));
+                hyprlandVersionMismatch = true;
+            } else
+                std::println("{}", successString("Loaded {}", p.name));
         }
     }
 
     std::println("{}", successString("Plugin load state ensured"));
 
-    return LOADSTATE_OK;
+    return hyprlandVersionMismatch ? LOADSTATE_HYPRLAND_UPDATED : LOADSTATE_OK;
 }
 
 bool CPluginManager::loadUnloadPlugin(const std::string& path, bool load) {
+    auto state = DataState::getGlobalState();
+    auto HLVER = getHyprlandVersion(true);
+
+    if (state.headersHashCompiled != HLVER.hash) {
+        std::println("{}", infoString("Running Hyprland version differs from plugin state, please restart Hyprland."));
+        return false;
+    }
+
     if (load)
         execAndGet("hyprctl plugin load " + path);
     else

@@ -3,6 +3,7 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../render/pass/TexPassElement.hpp"
 #include "Seat.hpp"
 #include "Compositor.hpp"
 
@@ -688,7 +689,11 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
     const auto POS = g_pInputManager->getMouseCoordsInternal();
 
     CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
-    g_pHyprOpenGL->renderTexture(dnd.dndSurface->current.texture, &box, 1.F);
+
+    CTexPassElement::SSimpleRenderData data;
+    data.tex = dnd.dndSurface->current.texture;
+    data.box = box;
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 
     box = CBox{POS, dnd.dndSurface->current.size}.translate(g_pPointerManager->cursorSizeLogical() / 2.F);
     g_pHyprRenderer->damageBox(&box);

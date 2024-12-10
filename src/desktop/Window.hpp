@@ -204,12 +204,14 @@ struct SWindowRule {
     std::string szTag;
     int         bX11              = -1; // -1 means "ANY"
     int         bFloating         = -1;
+    int         bPseudo           = -1;
     int         bFullscreen       = -1;
     int         bPinned           = -1;
     int         bFocus            = -1;
     std::string szFullscreenState = ""; // empty means any
     std::string szOnWorkspace     = ""; // empty means any
     std::string szWorkspace       = ""; // empty means any
+    std::string szLayout          = ""; // empty means any
 };
 
 struct SInitialWorkspaceToken {

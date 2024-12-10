@@ -718,6 +718,10 @@ void CWindow::applyDynamicRule(const SWindowRule& r) {
         try {
             *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stoi(VARS[1]), priority);
         } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
+    } else if (auto search = g_pConfigManager->mfWindowProperties.find(VARS[0]); search != g_pConfigManager->mfWindowProperties.end()) {
+        try {
+            *(search->second(m_pSelf.lock())) = CWindowOverridableVar(std::stof(VARS[1]), priority);
+        } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r.szRule, e.what()); }
     } else if (r.szRule.starts_with("idleinhibit")) {
         auto IDLERULE = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
 
@@ -1178,6 +1182,16 @@ int CWindow::getRealBorderSize() {
     return m_sWindowData.borderSize.valueOr(*PBORDERSIZE);
 }
 
+float CWindow::getScrollMouse() {
+    static auto PINPUTSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
+    return m_sWindowData.scrollMouse.valueOr(*PINPUTSCROLLFACTOR);
+}
+
+float CWindow::getScrollTouchpad() {
+    static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
+    return m_sWindowData.scrollTouchpad.valueOr(*PTOUCHPADSCROLLFACTOR);
+}
+
 bool CWindow::canBeTorn() {
     static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
     return m_sWindowData.tearing.valueOr(m_bTearingHint) && *PTEARING;
@@ -1600,6 +1614,9 @@ void CWindow::unsetWindowData(eOverridePriority priority) {
         element.second(m_pSelf.lock())->unset(priority);
     }
     for (auto const& element : g_pConfigManager->miWindowProperties) {
+        element.second(m_pSelf.lock())->unset(priority);
+    }
+    for (auto const& element : g_pConfigManager->mfWindowProperties) {
         element.second(m_pSelf.lock())->unset(priority);
     }
 }

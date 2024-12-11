@@ -275,9 +275,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             // f - fullscreen state : f[-1], f[0], f[1], or f[2] for different fullscreen states
             //                        -1: no fullscreen, 0: fullscreen, 1: maximized, 2: fullscreen without sending fs state to window
 
-            const auto  NEXTSPACE = selector.find_first_of(' ', i);
-            std::string prop      = selector.substr(i, NEXTSPACE == std::string::npos ? std::string::npos : NEXTSPACE - i);
-            i                     = std::min(NEXTSPACE, std::string::npos - 1);
+            const auto  CLOSING_BRACKET = selector.find_first_of(']', i);
+            std::string prop            = selector.substr(i, CLOSING_BRACKET == std::string::npos ? std::string::npos : CLOSING_BRACKET + 1 - i);
+            i                           = std::min(CLOSING_BRACKET, std::string::npos - 1);
 
             if (cur == 'r') {
                 WORKSPACEID from = 0, to = 0;
@@ -648,6 +648,8 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
+    m_bHasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_vWindows, [this](const auto& w) { return w->m_bIsMapped && w->m_pWorkspace == m_pSelf && w->isFullscreen(); });
+
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_pWorkspace != m_pSelf)
             continue;

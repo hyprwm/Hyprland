@@ -184,6 +184,9 @@ struct SWindowData {
     CWindowOverridableVar<int>                rounding;
     CWindowOverridableVar<int>                borderSize;
 
+    CWindowOverridableVar<float>              scrollMouse;
+    CWindowOverridableVar<float>              scrollTouchpad;
+
     CWindowOverridableVar<std::string>        animationStyle;
     CWindowOverridableVar<Vector2D>           maxSize;
     CWindowOverridableVar<Vector2D>           minSize;
@@ -442,6 +445,8 @@ class CWindow {
     bool                   isFullscreen();
     bool                   isEffectiveInternalFSMode(const eFullscreenMode);
     int                    getRealBorderSize();
+    float                  getScrollMouse();
+    float                  getScrollTouchpad();
     void                   updateWindowData();
     void                   updateWindowData(const struct SWorkspaceRule&);
     void                   onBorderAngleAnimEnd(void* ptr);
@@ -470,7 +475,7 @@ class CWindow {
     void                   onResourceChangeX11();
     std::string            fetchTitle();
     std::string            fetchClass();
-    void                   warpCursor();
+    void                   warpCursor(bool force = false);
     PHLWINDOW              getSwallower();
     void                   unsetWindowData(eOverridePriority priority);
     bool                   isX11OverrideRedirect();

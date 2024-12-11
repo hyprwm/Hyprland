@@ -1202,12 +1202,12 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
     const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
 
-    if (*PWARPONWORKSPACECHANGE) {
+    if (*PWARPONWORKSPACECHANGE > 0) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
         auto HLSurface = CWLSurface::fromResource(g_pSeatManager->state.pointerFocus.lock());
 
         if (PLAST && (!HLSurface || HLSurface->getWindow()))
-            PLAST->warpCursor();
+            PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
     }
 
     return {};
@@ -3030,6 +3030,13 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                 search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
             else if (const auto V = configStringToInt(VAL); V)
                 *(search->second(PWINDOW)) = CWindowOverridableVar((int)*V, PRIORITY_SET_PROP);
+        } else if (auto search = g_pConfigManager->mfWindowProperties.find(PROP); search != g_pConfigManager->mfWindowProperties.end()) {
+            if (VAL == "unset")
+                search->second(PWINDOW)->unset(PRIORITY_SET_PROP);
+            else {
+                const auto V               = std::stof(VAL);
+                *(search->second(PWINDOW)) = CWindowOverridableVar(V, PRIORITY_SET_PROP);
+            }
         } else
             return {.success = false, .error = "Prop not found"};
     } catch (std::exception& e) { return {.success = false, .error = std::format("Error parsing prop value: {}", std::string(e.what()))}; }

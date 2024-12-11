@@ -42,7 +42,7 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
             return;
 
         for (auto& m : g_pCompositor->m_vMonitors) {
-            if (!m->logicalBox().overlaps(*GEOMETRY))
+            if (!m->logicalBox().expand(-4).overlaps(*GEOMETRY))
                 continue;
 
             surf->enter(m);

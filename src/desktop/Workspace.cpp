@@ -648,6 +648,8 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
+    m_bHasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_vWindows, [this](const auto& w) { return w->m_bIsMapped && w->m_pWorkspace == m_pSelf && w->isFullscreen(); });
+
     for (auto const& w : g_pCompositor->m_vWindows) {
         if (!w->m_bIsMapped || w->m_pWorkspace != m_pSelf)
             continue;

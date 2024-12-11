@@ -8,7 +8,7 @@
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    auto  pMonitor = resource->monitor.empty() ? g_pCompositor->getMonitorFromCursor() : g_pCompositor->getMonitorFromName(resource->monitor);
+    auto  pMonitor = resource->monitor.empty() ? g_pCompositor->m_pLastMonitor.lock() : g_pCompositor->getMonitorFromName(resource->monitor);
 
     pLS->surface->assign(resource->surface.lock(), pLS);
 

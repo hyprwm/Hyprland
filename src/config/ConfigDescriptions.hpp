@@ -1202,7 +1202,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "binds:movefocus_cycles_groupfirst",
-        .description = "If enabled, when in a grouped window, movefocus will cycle windows in the groups first, then at the end of 'tabs', it'll move on to other windows/groups",
+        .description = "If enabled, when in a grouped window, movefocus will cycle windows in the groups first, then at each ends of tabs, it'll move on to other windows/groups",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

@@ -70,54 +70,14 @@ void CTexPassElement::draw(const CRegion& damage) {
     const auto INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
 
-    double      outputX = -data.pMonitor->vecPosition.x, outputY = -data.pMonitor->vecPosition.y;
-
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
     const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
     const bool  BLUR  = data.blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F);
 
-    CBox        windowBox;
-    if (data.surface && data.mainSurface) {
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, data.w, data.h};
+    auto        windowBox = getTexBox();
 
-        // however, if surface buffer w / h < box, we need to adjust them
-        const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
-
-        // center the surface if it's smaller than the viewport we assign it
-        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
-            const auto CORRECT = PSURFACE->correctSmallVec();
-            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
-
-            if (!INTERACTIVERESIZEINPROGRESS) {
-                windowBox.translate(CORRECT);
-
-                windowBox.width  = SIZE.x * (PWINDOW->m_vRealSize.value().x / PWINDOW->m_vReportedSize.x);
-                windowBox.height = SIZE.y * (PWINDOW->m_vRealSize.value().y / PWINDOW->m_vReportedSize.y);
-            } else {
-                windowBox.width  = SIZE.x;
-                windowBox.height = SIZE.y;
-            }
-        }
-
-    } else { //  here we clamp to 2, these might be some tiny specks
-        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->current.size.x, 2.F),
-                     std::max((float)data.surface->current.size.y, 2.F)};
-        if (data.pWindow && data.pWindow->m_vRealSize.isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
-            // adjust subsurfaces to the window
-            windowBox.width  = (windowBox.width / data.pWindow->m_vReportedSize.x) * data.pWindow->m_vRealSize.value().x;
-            windowBox.height = (windowBox.height / data.pWindow->m_vReportedSize.y) * data.pWindow->m_vRealSize.value().y;
-        }
-    }
-
-    if (data.squishOversized) {
-        if (data.localPos.x + windowBox.width > data.w)
-            windowBox.width = data.w - data.localPos.x;
-        if (data.localPos.y + windowBox.height > data.h)
-            windowBox.height = data.h - data.localPos.y;
-    }
-
-    const auto PROJSIZEUNSCALED = windowBox.size();
+    const auto  PROJSIZEUNSCALED = windowBox.size();
 
     windowBox.scale(data.pMonitor->scale);
     windowBox.round();
@@ -177,6 +137,55 @@ void CTexPassElement::draw(const CRegion& damage) {
     g_pHyprOpenGL->blend(true);
 }
 
+CBox CTexPassElement::getTexBox() {
+    const double outputX = -data.pMonitor->vecPosition.x, outputY = -data.pMonitor->vecPosition.y;
+
+    const auto   INTERACTIVERESIZEINPROGRESS = data.pWindow && g_pInputManager->currentlyDraggedWindow && g_pInputManager->dragMode == MBIND_RESIZE;
+    auto         PSURFACE                    = CWLSurface::fromResource(data.surface);
+
+    CBox         windowBox;
+    if (data.surface && data.mainSurface) {
+        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, data.w, data.h};
+
+        // however, if surface buffer w / h < box, we need to adjust them
+        const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
+
+        // center the surface if it's smaller than the viewport we assign it
+        if (PSURFACE && !PSURFACE->m_bFillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
+            const auto CORRECT = PSURFACE->correctSmallVec();
+            const auto SIZE    = PSURFACE->getViewporterCorrectedSize();
+
+            if (!INTERACTIVERESIZEINPROGRESS) {
+                windowBox.translate(CORRECT);
+
+                windowBox.width  = SIZE.x * (PWINDOW->m_vRealSize.value().x / PWINDOW->m_vReportedSize.x);
+                windowBox.height = SIZE.y * (PWINDOW->m_vRealSize.value().y / PWINDOW->m_vReportedSize.y);
+            } else {
+                windowBox.width  = SIZE.x;
+                windowBox.height = SIZE.y;
+            }
+        }
+
+    } else { //  here we clamp to 2, these might be some tiny specks
+        windowBox = {(int)outputX + data.pos.x + data.localPos.x, (int)outputY + data.pos.y + data.localPos.y, std::max((float)data.surface->current.size.x, 2.F),
+                     std::max((float)data.surface->current.size.y, 2.F)};
+        if (data.pWindow && data.pWindow->m_vRealSize.isBeingAnimated() && data.surface && !data.mainSurface && data.squishOversized /* subsurface */) {
+            // adjust subsurfaces to the window
+            windowBox.width  = (windowBox.width / data.pWindow->m_vReportedSize.x) * data.pWindow->m_vRealSize.value().x;
+            windowBox.height = (windowBox.height / data.pWindow->m_vReportedSize.y) * data.pWindow->m_vRealSize.value().y;
+        }
+    }
+
+    if (data.squishOversized) {
+        if (data.localPos.x + windowBox.width > data.w)
+            windowBox.width = data.w - data.localPos.x;
+        if (data.localPos.y + windowBox.height > data.h)
+            windowBox.height = data.h - data.localPos.y;
+    }
+
+    return windowBox;
+}
+
 bool CTexPassElement::needsLiveBlur() {
     if (simple)
         return false; // TODO?
@@ -214,7 +223,7 @@ bool CTexPassElement::needsPrecomputeBlur() {
 std::optional<CBox> CTexPassElement::boundingBox() {
     if (simple)
         return simple->box;
-    return CBox{data.pos + data.localPos - data.pMonitor->vecPosition, {data.w, data.h}};
+    return getTexBox();
 }
 
 CRegion CTexPassElement::opaqueRegion() {
@@ -229,8 +238,10 @@ CRegion CTexPassElement::opaqueRegion() {
         return {};
 
     if (data.surface && data.surface->current.size == Vector2D{data.w, data.h}) {
-        CRegion opaqueSurf = data.surface->current.opaque.copy();
-        return opaqueSurf.intersect(CBox{{}, {data.w, data.h}}).translate(data.pos + data.localPos - data.pMonitor->vecPosition);
+        CRegion    opaqueSurf = data.surface->current.opaque.copy().intersect(CBox{{}, {data.w, data.h}});
+        const auto texBox     = getTexBox();
+        opaqueSurf.scale(texBox.size() / Vector2D{data.w, data.h});
+        return opaqueSurf.translate(data.pos + data.localPos - data.pMonitor->vecPosition).expand(-data.rounding);
     }
 
     return data.texture && data.texture->m_bOpaque ? boundingBox()->expand(-data.rounding) : CRegion{};

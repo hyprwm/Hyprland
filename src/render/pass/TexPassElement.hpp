@@ -91,4 +91,6 @@ class CTexPassElement : public IPassElement {
   private:
     SRenderData                      data;
     std::optional<SSimpleRenderData> simple;
+
+    CBox                             getTexBox();
 };

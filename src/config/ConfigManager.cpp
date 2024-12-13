@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <hyprlang.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <cstring>
 #include <string>
@@ -610,6 +611,11 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
+
+    m_pConfig->addConfigValue("experimental:wide_color_gamut", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("experimental:hdr", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("experimental:hdr_sdr_brightness", Hyprlang::FLOAT{0.5});
+    m_pConfig->addConfigValue("experimental:xx_color_management_v4", Hyprlang::INT{0});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
+#include <drm_mode.h>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -1523,6 +1524,46 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     }
 }
 
+static const auto BT709 = Aquamarine::IOutput::SChromaticityCoords{
+    .red   = Aquamarine::IOutput::xy{0.64, 0.33},
+    .green = Aquamarine::IOutput::xy{0.30, 0.60},
+    .blue  = Aquamarine::IOutput::xy{0.15, 0.06},
+    .white = Aquamarine::IOutput::xy{0.3127, 0.3290},
+};
+
+const hdr_output_metadata createHDRMetadataFromEdid(uint8_t eotf, Aquamarine::IOutput::SParsedEDID edid, float brightness = 1) {
+    if (eotf == 0) {
+        return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
+    }
+    const auto toNits      = [](float value) { return uint16_t(std::round(value)); };
+    const auto to16Bit     = [](float value) { return uint16_t(std::round(value * 50000)); };
+    const auto colorimetry = edid.chromaticityCoords.value_or(BT709);
+
+    Debug::log(TRACE, "primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x, colorimetry.blue.y,
+               colorimetry.white.x, colorimetry.white.y);
+    Debug::log(TRACE, "max avg {}, min {}, max {}, brightness {}", edid.hdrMetadata->desiredMaxFrameAverageLuminance, edid.hdrMetadata->desiredContentMinLuminance,
+               edid.hdrMetadata->desiredContentMaxLuminance, brightness);
+    return hdr_output_metadata{
+        .metadata_type = 0,
+        .hdmi_metadata_type1 =
+            hdr_metadata_infoframe{
+                .eotf          = uint8_t(eotf),
+                .metadata_type = 0,
+                .display_primaries =
+                    {
+                        {to16Bit(colorimetry.red.x), to16Bit(colorimetry.red.y)},
+                        {to16Bit(colorimetry.green.x), to16Bit(colorimetry.green.y)},
+                        {to16Bit(colorimetry.blue.x), to16Bit(colorimetry.blue.y)},
+                    },
+                .white_point                     = {to16Bit(colorimetry.white.x), to16Bit(colorimetry.white.y)},
+                .max_display_mastering_luminance = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance * brightness),
+                .min_display_mastering_luminance = toNits(edid.hdrMetadata->desiredContentMinLuminance * 10000 * brightness),
+                .max_cll                         = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance * brightness),
+                .max_fall                        = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance * brightness),
+            },
+    };
+}
+
 bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     // apply timelines for explicit sync
     // save inFD otherwise reset will reset it
@@ -1530,6 +1571,16 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     pMonitor->output->state->resetExplicitFences();
     if (inFD >= 0)
         pMonitor->output->state->setExplicitInFence(inFD);
+
+    static auto PWIDE = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
+    if (pMonitor->output->state->state().wideColorGamut != *PWIDE)
+        Debug::log(TRACE, "Setting wide color gamut {}", *PWIDE ? "on" : "off");
+    pMonitor->output->state->setWideColorGamut(*PWIDE);
+
+    static auto PHDR     = CConfigValue<Hyprlang::INT>("experimental:hdr");
+    static auto PHDR_SDR = CConfigValue<Hyprlang::FLOAT>("experimental:hdr_sdr_brightness");
+    pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadataFromEdid(2, pMonitor->output->parsedEDID, *PHDR_SDR) :
+                                                    createHDRMetadataFromEdid(0, pMonitor->output->parsedEDID));
 
     if (pMonitor->ctmUpdated) {
         pMonitor->ctmUpdated = false;

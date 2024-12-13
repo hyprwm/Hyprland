@@ -58,6 +58,7 @@
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
+#include "protocols/ColorManagement.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
@@ -81,6 +82,7 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
 CProtocolManager::CProtocolManager() {
 
     static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static const auto PENABLEXXCM     = CConfigValue<Hyprlang::INT>("experimental:xx_color_management_v4");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -159,6 +161,9 @@ CProtocolManager::CProtocolManager() {
     PROTO::singlePixel         = std::make_unique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
     PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
+
+    if (*PENABLEXXCM)
+        PROTO::colorManagement = std::make_unique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
 
     for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)

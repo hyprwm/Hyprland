@@ -52,11 +52,17 @@ void log(const std::string& str) {
     std::println("{}", str);
 }
 
+static int getUID() {
+    const auto UID   = getuid();
+    const auto PWUID = getpwuid(UID);
+    return PWUID ? PWUID->pw_uid : UID;
+}
+
 std::string getRuntimeDir() {
     const auto XDG = getenv("XDG_RUNTIME_DIR");
 
     if (!XDG) {
-        const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+        const std::string USERID = std::to_string(getUID());
         return "/run/user/" + USERID + "/hypr";
     }
 
@@ -168,7 +174,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
         return 2;
     }
 
-    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+    const std::string USERID = std::to_string(getUID());
 
     sockaddr_un       serverAddress = {0};
     serverAddress.sun_family        = AF_UNIX;
@@ -238,7 +244,7 @@ int requestHyprpaper(std::string arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+    const std::string USERID = std::to_string(getUID());
 
     std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/.hyprpaper.sock";
 

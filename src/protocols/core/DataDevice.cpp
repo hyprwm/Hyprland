@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/PointerManager.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../Compositor.hpp"
 #include "Seat.hpp"
 #include "Compositor.hpp"
@@ -342,7 +343,10 @@ bool CWLDataDeviceManagerResource::good() {
 }
 
 CWLDataDeviceProtocol::CWLDataDeviceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    ;
+    g_pEventLoopManager->doLater([this]() {
+        listeners.onKeyboardFocusChange   = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { onKeyboardFocus(); });
+        listeners.onDndPointerFocusChange = g_pSeatManager->events.dndPointerFocusChange.registerListener([this](std::any d) { onDndPointerFocus(); });
+    });
 }
 
 void CWLDataDeviceProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -355,10 +359,6 @@ void CWLDataDeviceProtocol::bindManager(wl_client* client, void* data, uint32_t 
     }
 
     LOGM(LOG, "New datamgr resource bound at {:x}", (uintptr_t)RESOURCE.get());
-
-    // we need to do it here because protocols come before seatMgr
-    if (!listeners.onKeyboardFocusChange)
-        listeners.onKeyboardFocusChange = g_pSeatManager->events.keyboardFocusChange.registerListener([this](std::any d) { this->onKeyboardFocus(); });
 }
 
 void CWLDataDeviceProtocol::destroyResource(CWLDataDeviceManagerResource* seat) {
@@ -461,10 +461,21 @@ void CWLDataDeviceProtocol::updateSelection() {
 
 void CWLDataDeviceProtocol::onKeyboardFocus() {
     for (auto const& o : m_vOffers) {
+        if (o->source && o->source->hasDnd())
+            continue;
         o->dead = true;
     }
 
     updateSelection();
+}
+
+void CWLDataDeviceProtocol::onDndPointerFocus() {
+    for (auto const& o : m_vOffers) {
+        if (o->source && !o->source->hasDnd())
+            continue;
+        o->dead = true;
+    }
+
     updateDrag();
 }
 
@@ -515,8 +526,8 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 
     dnd.mouseMove = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto V = std::any_cast<const Vector2D>(e);
-        if (dnd.focusedDevice && g_pSeatManager->state.keyboardFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->state.keyboardFocus.lock());
+        if (dnd.focusedDevice && g_pSeatManager->state.dndPointerFocus) {
+            auto surf = CWLSurface::fromResource(g_pSeatManager->state.dndPointerFocus.lock());
 
             if (!surf)
                 return;
@@ -536,8 +547,8 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 
     dnd.touchMove = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<ITouch::SMotionEvent>(e);
-        if (dnd.focusedDevice && g_pSeatManager->state.keyboardFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->state.keyboardFocus.lock());
+        if (dnd.focusedDevice && g_pSeatManager->state.dndPointerFocus) {
+            auto surf = CWLSurface::fromResource(g_pSeatManager->state.dndPointerFocus.lock());
 
             if (!surf)
                 return;
@@ -555,7 +566,9 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
     // BTW, the spec does NOT require this explicitly...
     // Fuck you gtk.
+    const auto LASTDNDFOCUS = g_pSeatManager->state.dndPointerFocus;
     g_pSeatManager->setPointerFocus(nullptr, {});
+    g_pSeatManager->state.dndPointerFocus = LASTDNDFOCUS;
 
     // make a new offer, etc
     updateDrag();
@@ -565,13 +578,20 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (!dndActive())
         return;
 
-    if (dnd.focusedDevice)
-        dnd.focusedDevice->sendLeave();
+    if (dnd.focusedDevice) {
+        if (g_pSeatManager->state.dndPointerFocus) {
+            const auto NEW = dataDeviceForClient(g_pSeatManager->state.dndPointerFocus->client());
+            if (NEW == dnd.focusedDevice)
+                return; // nothing to do
+        }
 
-    if (!g_pSeatManager->state.keyboardFocusResource)
+        dnd.focusedDevice->sendLeave();
+    }
+
+    if (!g_pSeatManager->state.dndPointerFocus)
         return;
 
-    dnd.focusedDevice = dataDeviceForClient(g_pSeatManager->state.keyboardFocusResource->client());
+    dnd.focusedDevice = dataDeviceForClient(g_pSeatManager->state.dndPointerFocus->client());
 
     if (!dnd.focusedDevice)
         return;
@@ -590,8 +610,8 @@ void CWLDataDeviceProtocol::updateDrag() {
 
     dnd.focusedDevice->sendDataOffer(OFFER);
     OFFER->sendData();
-    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.keyboardFocus.lock(),
-                                 g_pSeatManager->state.keyboardFocus->current.size / 2.F, OFFER);
+    dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
+                                 g_pSeatManager->state.dndPointerFocus->current.size / 2.F, OFFER);
 }
 
 void CWLDataDeviceProtocol::resetDndState() {

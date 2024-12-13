@@ -245,7 +245,8 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "grouped": [{}],
     "tags": [{}],
     "swallowing": "0x{:x}",
-    "focusHistoryID": {}
+    "focusHistoryID": {},
+    "inhibitingIdle": {}
 }},)#",
             (uintptr_t)w.get(), (w->m_bIsMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
             (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID,
@@ -253,18 +254,18 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             (int64_t)w->monitorID(), escapeJSONStrings(w->m_szClass), escapeJSONStrings(w->m_szTitle), escapeJSONStrings(w->m_szInitialClass),
             escapeJSONStrings(w->m_szInitialTitle), w->getPID(), ((int)w->m_bIsX11 == 1 ? "true" : "false"), (w->m_bPinned ? "true" : "false"),
             (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
-            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w), (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\n",
+            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\n",
             (uintptr_t)w.get(), w->m_szTitle, (int)w->m_bIsMapped, (int)w->isHidden(), (int)w->m_vRealPosition.goal().x, (int)w->m_vRealPosition.goal().y,
             (int)w->m_vRealSize.goal().x, (int)w->m_vRealSize.goal().y, w->m_pWorkspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_pWorkspace ? "" : w->m_pWorkspace->m_szName),
             (int)w->m_bIsFloating, (int)w->m_bIsPseudotiled, (int64_t)w->monitorID(), w->m_szClass, w->m_szTitle, w->m_szInitialClass, w->m_szInitialTitle, w->getPID(),
             (int)w->m_bIsX11, (int)w->m_bPinned, (uint8_t)w->m_sFullscreenState.internal, (uint8_t)w->m_sFullscreenState.client, getGroupedData(w, format), getTagsData(w, format),
-            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w));
+            (uintptr_t)w->m_pSwallowed.lock().get(), getFocusHistoryID(w), (int)g_pInputManager->isWindowInhibiting(w, false));
     }
 }
 

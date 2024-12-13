@@ -171,6 +171,7 @@ class CInputManager {
     //
     void              newIdleInhibitor(std::any);
     void              recheckIdleInhibitorStatus();
+    bool              isWindowInhibiting(const PHLWINDOW& pWindow, bool onlyHl = true);
 
     SSwipeGesture     m_sActiveSwipe;
 

@@ -1374,6 +1374,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     static auto PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PGROUPCYCLE      = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_groupfirst");
     char        arg              = args[0];
 
     if (!isDirection(args)) {
@@ -1392,6 +1393,21 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+
+    // Prioritize focus change within groups if the window is a part of it.
+    if (*PGROUPCYCLE) {
+        if (!PLASTWINDOW->m_sGroupData.pNextWindow.expired()) {
+            if (arg == 'l' && PLASTWINDOW != PLASTWINDOW->getGroupHead()) {
+                PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+                return {};
+            }
+
+            else if (arg == 'r' && PLASTWINDOW != PLASTWINDOW->getGroupTail()) {
+                PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
+                return {};
+            }
+        }
+    }
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {

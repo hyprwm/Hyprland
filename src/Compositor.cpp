@@ -2766,50 +2766,48 @@ void CCompositor::arrangeMonitors() {
     }
 
     // Variables to store the max and min values of monitors on each axis.
-    int maxXOffsetRight = 0;
-    int maxXOffsetLeft  = 0;
-    int maxYOffsetUp    = 0;
-    int maxYOffsetDown  = 0;
+    int  maxXOffsetRight = 0;
+    int  maxXOffsetLeft  = 0;
+    int  maxYOffsetUp    = 0;
+    int  maxYOffsetDown  = 0;
 
-    // Finds the max and min values of explicitely placed monitors.
-    for (auto const& m : arranged) {
-        if (m->vecPosition.x + m->vecSize.x > maxXOffsetRight)
-            maxXOffsetRight = m->vecPosition.x + m->vecSize.x;
-        if (m->vecPosition.x < maxXOffsetLeft)
-            maxXOffsetLeft = m->vecPosition.x;
-        if (m->vecPosition.y + m->vecSize.y > maxYOffsetDown)
-            maxYOffsetDown = m->vecPosition.y + m->vecSize.y;
-        if (m->vecPosition.y < maxYOffsetUp)
-            maxYOffsetUp = m->vecPosition.y;
-    }
+    auto recalcMaxOffsets = [&]() {
+        maxXOffsetRight = 0;
+        maxXOffsetLeft  = 0;
+        maxYOffsetUp    = 0;
+        maxYOffsetDown  = 0;
+
+        // Finds the max and min values of explicitely placed monitors.
+        for (auto const& m : arranged) {
+            if (m->vecPosition.x + m->vecSize.x > maxXOffsetRight)
+                maxXOffsetRight = m->vecPosition.x + m->vecSize.x;
+            if (m->vecPosition.x < maxXOffsetLeft)
+                maxXOffsetLeft = m->vecPosition.x;
+            if (m->vecPosition.y + m->vecSize.y > maxYOffsetDown)
+                maxYOffsetDown = m->vecPosition.y + m->vecSize.y;
+            if (m->vecPosition.y < maxYOffsetUp)
+                maxYOffsetUp = m->vecPosition.y;
+        }
+    };
 
     // Iterates through all non-explicitly placed monitors.
     for (auto const& m : toArrange) {
+        recalcMaxOffsets();
+
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
         Vector2D newPosition = {0, 0};
         switch (m->activeMonitorRule.autoDir) {
-            case eAutoDirs::DIR_AUTO_UP:
-                newPosition.y = maxYOffsetUp - m->vecSize.y;
-                maxYOffsetUp  = newPosition.y;
-                break;
-            case eAutoDirs::DIR_AUTO_DOWN:
-                newPosition.y = maxYOffsetDown;
-                maxYOffsetDown += m->vecSize.y;
-                break;
-            case eAutoDirs::DIR_AUTO_LEFT:
-                newPosition.x  = maxXOffsetLeft - m->vecSize.x;
-                maxXOffsetLeft = newPosition.x;
-                break;
+            case eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->vecSize.y; break;
+            case eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
+            case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->vecSize.x; break;
             case eAutoDirs::DIR_AUTO_RIGHT:
-            case eAutoDirs::DIR_AUTO_NONE:
-                newPosition.x = maxXOffsetRight;
-                maxXOffsetRight += m->vecSize.x;
-                break;
+            case eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
             default: UNREACHABLE();
         }
         Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->szName, m->vecPosition);
         m->moveTo(newPosition);
+        arranged.emplace_back(m);
     }
 
     // reset maxXOffsetRight (reuse)

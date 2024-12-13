@@ -480,30 +480,35 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
 
     if (*SNAPMONITORGAP) {
         const double GAPSIZE    = *SNAPMONITORGAP;
-        const double BORDERSIZE = OVERLAP ? 0 : DRAGGINGBORDERSIZE;
-        const double BORDERDIFF = DRAGGINGBORDERSIZE - BORDERSIZE;
+        const double BORDERDIFF = OVERLAP ? DRAGGINGBORDERSIZE : 0;
         const auto   MON        = DRAGGINGWINDOW->m_pMonitor.lock();
 
-        SRange       monX = {MON->vecPosition.x + BORDERSIZE, MON->vecPosition.x + MON->vecSize.x - BORDERSIZE};
-        SRange       monY = {MON->vecPosition.y + BORDERSIZE, MON->vecPosition.y + MON->vecSize.y - BORDERSIZE};
+        SRange       monX = {MON->vecPosition.x + MON->vecReservedTopLeft.x + DRAGGINGBORDERSIZE,
+                             MON->vecPosition.x + MON->vecSize.x - MON->vecReservedBottomRight.x - DRAGGINGBORDERSIZE};
+        SRange       monY = {MON->vecPosition.y + MON->vecReservedTopLeft.y + DRAGGINGBORDERSIZE,
+                             MON->vecPosition.y + MON->vecSize.y - MON->vecReservedBottomRight.y - DRAGGINGBORDERSIZE};
 
         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
-            (canSnap(sourceX.start, monX.start, GAPSIZE) || canSnap(sourceX.start, (monX.start += MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
+            ((MON->vecReservedTopLeft.x > 0 && canSnap(sourceX.start, monX.start, GAPSIZE)) ||
+             canSnap(sourceX.start, (monX.start -= MON->vecReservedTopLeft.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
-            (canSnap(sourceX.end, monX.end, GAPSIZE) || canSnap(sourceX.end, (monX.end -= MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
+            ((MON->vecReservedBottomRight.x > 0 && canSnap(sourceX.end, monX.end, GAPSIZE)) ||
+             canSnap(sourceX.end, (monX.end += MON->vecReservedBottomRight.x + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
-            (canSnap(sourceY.start, monY.start, GAPSIZE) || canSnap(sourceY.start, (monY.start += MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
+            ((MON->vecReservedTopLeft.y > 0 && canSnap(sourceY.start, monY.start, GAPSIZE)) ||
+             canSnap(sourceY.start, (monY.start -= MON->vecReservedTopLeft.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
-            (canSnap(sourceY.end, monY.end, GAPSIZE) || canSnap(sourceY.end, (monY.end -= MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
+            ((MON->vecReservedBottomRight.y > 0 && canSnap(sourceY.end, monY.end, GAPSIZE)) ||
+             canSnap(sourceY.end, (monY.end += MON->vecReservedBottomRight.y + BORDERDIFF), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
         }

@@ -6,6 +6,7 @@
 #include "../../helpers/signal/Signal.hpp"
 #include <wayland-server-protocol.h>
 #include "../../helpers/memory/Memory.hpp"
+#include "../../helpers/math/Math.hpp"
 
 class CWLDataOfferResource;
 class CX11DataOffer;

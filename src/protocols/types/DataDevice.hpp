@@ -4,6 +4,8 @@
 #include <vector>
 #include <cstdint>
 #include "../../helpers/signal/Signal.hpp"
+#include <wayland-server-protocol.h>
+#include "../../helpers/memory/Memory.hpp"
 
 class CWLDataOfferResource;
 class CX11DataOffer;

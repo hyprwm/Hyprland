@@ -387,6 +387,28 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
         }
     } else if (e->type == HYPRATOMS["_NET_ACTIVE_WINDOW"]) {
         XSURF->events.activate.emit();
+    } else if (e->type == HYPRATOMS["XdndStatus"]) {
+        if (dndDataOffers.empty() || !dndDataOffers.at(0)->getSource()) {
+            Debug::log(TRACE, "[xwm] Rejecting XdndStatus message: nothing to get");
+            return;
+        }
+
+        xcb_client_message_data_t* data     = &e->data;
+        const bool                 ACCEPTED = data->data32[1] & 1;
+
+        if (ACCEPTED)
+            dndDataOffers.at(0)->getSource()->accepted("");
+
+        Debug::log(LOG, "[xwm] XdndStatus: accepted: {}");
+    } else if (e->type == HYPRATOMS["XdndFinished"]) {
+        if (dndDataOffers.empty() || !dndDataOffers.at(0)->getSource()) {
+            Debug::log(TRACE, "[xwm] Rejecting XdndFinished message: nothing to get");
+            return;
+        }
+
+        dndDataOffers.at(0)->getSource()->sendDndFinished();
+
+        Debug::log(LOG, "[xwm] XdndFinished");
     } else {
         Debug::log(TRACE, "[xwm] Unhandled message prop {} -> {}", e->type, propName);
         return;
@@ -545,22 +567,22 @@ std::string CXWM::mimeFromAtom(xcb_atom_t atom) {
 void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
     Debug::log(TRACE, "[xwm] Selection notify for {} prop {} target {}", e->selection, e->property, e->target);
 
-    SXSelection& sel = clipboard;
+    SXSelection* sel = getSelection(e->selection);
 
     if (e->property == XCB_ATOM_NONE) {
-        if (sel.transfer) {
+        if (sel->transfer) {
             Debug::log(TRACE, "[xwm] converting selection failed");
-            sel.transfer.reset();
+            sel->transfer.reset();
         }
-    } else if (e->target == HYPRATOMS["TARGETS"]) {
+    } else if (e->target == HYPRATOMS["TARGETS"] && sel == &clipboard) {
         if (!focusedSurface) {
             Debug::log(TRACE, "[xwm] denying access to write to clipboard because no X client is in focus");
             return;
         }
 
-        setClipboardToWayland(sel);
-    } else if (sel.transfer)
-        getTransferData(sel);
+        setClipboardToWayland(*sel);
+    } else if (sel->transfer)
+        getTransferData(*sel);
 }
 
 bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
@@ -571,13 +593,22 @@ bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
     return false;
 }
 
+SXSelection* CXWM::getSelection(xcb_atom_t atom) {
+    if (atom == HYPRATOMS["CLIPBOARD"])
+        return &clipboard;
+    else if (atom == HYPRATOMS["XdndSelection"])
+        return &dndSelection;
+
+    return nullptr;
+}
+
 void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
     Debug::log(TRACE, "[xwm] Selection request for {} prop {} target {} time {} requestor {} selection {}", e->selection, e->property, e->target, e->time, e->requestor,
                e->selection);
 
-    SXSelection& sel = clipboard;
+    SXSelection* sel = getSelection(e->selection);
 
-    if (!g_pSeatManager->selection.currentSelection) {
+    if (!sel) {
         Debug::log(ERR, "[xwm] No selection");
         selectionSendNotify(e, false);
         return;
@@ -588,8 +619,8 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
         return;
     }
 
-    if (sel.window != e->owner && e->time != XCB_CURRENT_TIME && e->time < sel.timestamp) {
-        Debug::log(ERR, "[xwm] outdated selection request. Time {} < {}", e->time, sel.timestamp);
+    if (sel->window != e->owner && e->time != XCB_CURRENT_TIME && e->time < sel->timestamp) {
+        Debug::log(ERR, "[xwm] outdated selection request. Time {} < {}", e->time, sel->timestamp);
         selectionSendNotify(e, false);
         return;
     }
@@ -615,12 +646,11 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
         xcb_change_property(connection, XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_ATOM, 32, atoms.size(), atoms.data());
         selectionSendNotify(e, true);
     } else if (e->target == HYPRATOMS["TIMESTAMP"]) {
-        xcb_change_property(connection, XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_INTEGER, 32, 1, &sel.timestamp);
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE, e->requestor, e->property, XCB_ATOM_INTEGER, 32, 1, &sel->timestamp);
         selectionSendNotify(e, true);
     } else if (e->target == HYPRATOMS["DELETE"]) {
         selectionSendNotify(e, true);
     } else {
-
         std::string mime = mimeFromAtom(e->target);
 
         if (mime == "INVALID") {
@@ -629,7 +659,7 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
             return;
         }
 
-        if (!sel.sendData(e, mime)) {
+        if (!sel->sendData(e, mime)) {
             Debug::log(LOG, "[xwm] Failed to send selection :(");
             selectionSendNotify(e, false);
             return;
@@ -641,24 +671,27 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
     Debug::log(TRACE, "[xwm] Selection xfixes notify for {}", e->selection);
 
     // IMPORTANT: mind the g_pSeatManager below
-    SXSelection& sel = clipboard;
+    SXSelection* sel = getSelection(e->selection);
+
+    if (sel == &dndSelection)
+        return true;
 
     if (e->owner == XCB_WINDOW_NONE) {
-        if (sel.owner != sel.window)
+        if (sel->owner != sel->window && sel == &clipboard)
             g_pSeatManager->setCurrentSelection(nullptr);
 
-        sel.owner = 0;
+        sel->owner = 0;
         return true;
     }
 
-    sel.owner = e->owner;
+    sel->owner = e->owner;
 
-    if (sel.owner == sel.window) {
-        sel.timestamp = e->timestamp;
+    if (sel->owner == sel->window) {
+        sel->timestamp = e->timestamp;
         return true;
     }
 
-    xcb_convert_selection(connection, sel.window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
+    xcb_convert_selection(connection, sel->window, HYPRATOMS["CLIPBOARD"], HYPRATOMS["TARGETS"], HYPRATOMS["_WL_SELECTION"], e->timestamp);
     xcb_flush(connection);
 
     return true;
@@ -854,6 +887,8 @@ CXWM::CXWM() : connection(g_pXWayland->pServer->xwmFDs[0]) {
         return;
     }
 
+    dndDataDevice->self = dndDataDevice;
+
     xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(xcb_get_setup(connection));
     screen                                = screen_iterator.data;
 
@@ -1015,6 +1050,15 @@ void CXWM::readWindowData(SP<CXWaylandSurface> surf) {
     }
 }
 
+SP<CXWaylandSurface> CXWM::windowForWayland(SP<CWLSurfaceResource> surf) {
+    for (auto& s : surfaces) {
+        if (s->surface == surf)
+            return s;
+    }
+
+    return nullptr;
+}
+
 void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {
     if (surf->surface)
         return;
@@ -1068,7 +1112,7 @@ void CXWM::updateClientList() {
 }
 
 bool CXWM::isWMWindow(xcb_window_t w) {
-    return w == wmWindow || w == clipboard.window;
+    return w == wmWindow || w == clipboard.window || w == dndSelection.window;
 }
 
 void CXWM::updateOverrideRedirect(SP<CXWaylandSurface> surf, bool overrideRedirect) {
@@ -1090,6 +1134,13 @@ void CXWM::initSelection() {
     xcb_xfixes_select_selection_input(connection, clipboard.window, HYPRATOMS["CLIPBOARD"], mask2);
 
     clipboard.listeners.setSelection = g_pSeatManager->events.setSelection.registerListener([this](std::any d) { clipboard.onSelection(); });
+
+    dndSelection.window = xcb_generate_id(connection);
+    xcb_create_window(connection, XCB_COPY_FROM_PARENT, dndSelection.window, screen->root, 0, 0, 8192, 8192, 0, XCB_WINDOW_CLASS_INPUT_ONLY, screen->root_visual, XCB_CW_EVENT_MASK,
+                      mask);
+
+    uint32_t val1 = XDND_VERSION;
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE, dndSelection.window, HYPRATOMS["XdndAware"], XCB_ATOM_ATOM, 32, 1, &val1);
 }
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
@@ -1172,6 +1223,49 @@ void CXWM::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& si
     xcb_flush(connection);
 }
 
+void CXWM::sendDndEvent(SP<CWLSurfaceResource> destination, xcb_atom_t type, xcb_client_message_data_t& data) {
+    auto XSURF = windowForWayland(destination);
+
+    if (!XSURF) {
+        Debug::log(ERR, "[xwm] No xwayland surface for destination in sendDndEvent");
+        return;
+    }
+
+    xcb_client_message_event_t event = {
+        .response_type = XCB_CLIENT_MESSAGE,
+        .format        = 32,
+        .sequence      = 0,
+        .window        = XSURF->xID,
+        .type          = type,
+        .data          = data,
+    };
+
+    xcb_send_event(g_pXWayland->pWM->connection,
+                   0, // propagate
+                   XSURF->xID, XCB_EVENT_MASK_NO_EVENT, (const char*)&event);
+    xcb_flush(g_pXWayland->pWM->connection);
+}
+
+SP<CX11DataDevice> CXWM::getDataDevice() {
+    return dndDataDevice;
+}
+
+SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source) {
+    auto XSURF = windowForWayland(surf);
+
+    if (!XSURF) {
+        Debug::log(ERR, "[xwm] No xwayland surface for destination in createX11DataOffer");
+        return nullptr;
+    }
+
+    auto offer             = dndDataOffers.emplace_back(makeShared<CX11DataOffer>());
+    offer->self            = offer;
+    offer->xwaylandSurface = XSURF;
+    offer->source          = source;
+
+    return offer;
+}
+
 void SXSelection::onSelection() {
     if (g_pSeatManager->selection.currentSelection && g_pSeatManager->selection.currentSelection->type() == DATA_SOURCE_TYPE_X11)
         return;
@@ -1220,7 +1314,11 @@ static int readDataSource(int fd, uint32_t mask, void* data) {
 }
 
 bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
-    WP<IDataSource> selection = g_pSeatManager->selection.currentSelection;
+    WP<IDataSource> selection;
+    if (this == &g_pXWayland->pWM->clipboard)
+        selection = g_pSeatManager->selection.currentSelection;
+    else if (!g_pXWayland->pWM->dndDataOffers.empty())
+        selection = g_pXWayland->pWM->dndDataOffers.at(0)->getSource();
 
     if (!selection)
         return false;

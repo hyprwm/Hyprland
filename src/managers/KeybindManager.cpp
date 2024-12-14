@@ -1395,17 +1395,16 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Prioritize focus change within groups if the window is a part of it.
-    if (*PGROUPCYCLE) {
-        if (!PLASTWINDOW->m_sGroupData.pNextWindow.expired()) {
-            if (arg == 'l' && PLASTWINDOW != PLASTWINDOW->getGroupHead()) {
-                PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
-                return {};
-            }
+    if (*PGROUPCYCLE && (!PLASTWINDOW->m_sGroupData.pNextWindow.expired())) {
+        auto isTheOnlyGroupOnWs = (PWINDOWTOCHANGETO == nullptr);
+        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->getGroupHead() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+            return {};
+        }
 
-            else if (arg == 'r' && PLASTWINDOW != PLASTWINDOW->getGroupTail()) {
-                PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
-                return {};
-            }
+        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->getGroupTail() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
+            return {};
         }
     }
 

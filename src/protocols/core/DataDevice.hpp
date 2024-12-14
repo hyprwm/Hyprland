@@ -155,6 +155,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void sendSelectionToDevice(SP<CWLDataDeviceResource> dev, SP<IDataSource> sel);
     void updateSelection();
     void onKeyboardFocus();
+    void onDndPointerFocus();
 
     struct {
         WP<CWLDataDeviceResource> focusedDevice;
@@ -191,6 +192,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
 
     struct {
         CHyprSignalListener onKeyboardFocusChange;
+        CHyprSignalListener onDndPointerFocusChange;
     } listeners;
 };
 

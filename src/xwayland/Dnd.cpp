@@ -58,9 +58,6 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
         return;
     }
 
-    // invalidate old
-    std::erase_if(g_pXWayland->pWM->dndDataOffers, [this](const auto& e) { return e != self; });
-
     xcb_set_selection_owner(g_pXWayland->pWM->connection, g_pXWayland->pWM->dndSelection.window, HYPRATOMS["XdndSelection"], XCB_TIME_CURRENT_TIME);
 
     xcb_client_message_data_t data = {0};
@@ -136,6 +133,8 @@ void CX11DataDevice::sendDrop() {
     data.data32[2]                 = lastTime + 1;
 
     g_pXWayland->pWM->sendDndEvent(lastSurface->surface.lock(), HYPRATOMS["XdndDrop"], data);
+
+    sendLeave();
 }
 
 void CX11DataDevice::sendSelection(SP<IDataOffer> offer) {

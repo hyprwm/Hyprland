@@ -1258,6 +1258,9 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
         return nullptr;
     }
 
+    // invalidate old
+    g_pXWayland->pWM->dndDataOffers.clear();
+
     auto offer             = dndDataOffers.emplace_back(makeShared<CX11DataOffer>());
     offer->self            = offer;
     offer->xwaylandSurface = XSURF;

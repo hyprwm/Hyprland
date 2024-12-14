@@ -9,6 +9,7 @@ class CWLDataOfferResource;
 class CX11DataOffer;
 class CX11DataDevice;
 class CWLDataDeviceResource;
+class CWLSurfaceResource;
 
 enum eDataSourceType : uint8_t {
     DATA_SOURCE_TYPE_WAYLAND = 0,

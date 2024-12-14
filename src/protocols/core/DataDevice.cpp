@@ -415,8 +415,10 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
 }
 
 SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
+#ifndef NO_XWAYLAND
     if (c == g_pXWayland->pServer->xwaylandClient)
         return g_pXWayland->pWM->getDataDevice();
+#endif
 
     auto it = std::find_if(m_vDevices.begin(), m_vDevices.end(), [c](const auto& e) { return e->client() == c; });
     if (it == m_vDevices.end())
@@ -442,8 +444,11 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
         OFFER->source = sel;
         OFFER->self   = OFFER;
         offer         = OFFER;
-    } else if (const auto X11 = dev->getX11(); X11)
+    }
+#ifndef NO_XWAYLAND
+    else if (const auto X11 = dev->getX11(); X11)
         offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), sel);
+#endif
 
     if (!offer) {
         LOGM(ERR, "No offer could be created in sendSelectionToDevice");
@@ -660,8 +665,11 @@ void CWLDataDeviceProtocol::updateDrag() {
         OFFER->source = dnd.currentSource;
         OFFER->self   = OFFER;
         offer         = OFFER;
-    } else if (const auto X11 = dnd.focusedDevice->getX11(); X11)
+    }
+#ifndef NO_XWAYLAND
+    else if (const auto X11 = dnd.focusedDevice->getX11(); X11)
         offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), dnd.currentSource.lock());
+#endif
 
     if (!offer) {
         LOGM(ERR, "No offer could be created in updateDrag");
@@ -722,6 +730,7 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
             return true;
     }
 
+#ifndef NO_XWAYLAND
     for (auto const& o : g_pXWayland->pWM->dndDataOffers) {
         if (o->dead || !o->source || !o->source->hasDnd())
             continue;
@@ -731,6 +740,7 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
 
         return true;
     }
+#endif
 
     return false;
 }

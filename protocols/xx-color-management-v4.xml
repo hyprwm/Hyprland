@@ -20,7 +20,7 @@
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
     THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
@@ -83,9 +83,9 @@
 
     <enum name="error">
       <entry name="unsupported_feature" value="0"
-             summary="request not supported"/>
+        summary="request not supported" />
       <entry name="surface_exists" value="1"
-             summary="color management surface exists already"/>
+        summary="color management surface exists already" />
     </enum>
 
     <enum name="render_intent">
@@ -101,30 +101,30 @@
       </description>
 
       <entry name="perceptual" value="0"
-             summary="perceptual"/>
+        summary="perceptual" />
       <entry name="relative" value="1"
-             summary="media-relative colorimetric"/>
+        summary="media-relative colorimetric" />
       <entry name="saturation" value="2"
-             summary="saturation"/>
+        summary="saturation" />
       <entry name="absolute" value="3"
-             summary="ICC-absolute colorimetric"/>
+        summary="ICC-absolute colorimetric" />
       <entry name="relative_bpc" value="4"
-             summary="media-relative colorimetric + black point compensation"/>
+        summary="media-relative colorimetric + black point compensation" />
     </enum>
 
     <enum name="feature">
-      <description summary="compositor supported features"/>
+      <description summary="compositor supported features" />
 
       <entry name="icc_v2_v4" value="0"
-             summary="new_icc_creator request"/>
+        summary="new_icc_creator request" />
       <entry name="parametric" value="1"
-             summary="new_parametric_creator request"/>
+        summary="new_parametric_creator request" />
       <entry name="set_primaries" value="2"
-             summary="parametric set_primaries request"/>
+        summary="parametric set_primaries request" />
       <entry name="set_tf_power" value="3"
-             summary="parametric set_tf_power request"/>
+        summary="parametric set_tf_power request" />
       <entry name="set_luminances" value="4"
-             summary="parametric set_luminances request"/>
+        summary="parametric set_luminances request" />
       <entry name="set_mastering_display_primaries" value="5">
         <description summary="parametric set_mastering_display_primaries request">
           The compositor supports set_mastering_display_primaries request with a
@@ -152,15 +152,16 @@
       </description>
 
       <entry name="srgb" value="0">
-        <description summary="Color primaries for the sRGB color space as defined by the BT.709 standard">
+        <description
+          summary="Color primaries for the sRGB color space as defined by the BT.709 standard">
           Color primaries as defined by
           - Rec. ITU-R BT.709-6
           - Rec. ITU-R BT.1361-0 conventional colour gamut system and extended
-            colour gamut system (historical)
+          colour gamut system (historical)
           - IEC 61966-2-1 sRGB or sYCC
           - IEC 61966-2-4
           - Society of Motion Picture and Television Engineers (SMPTE) RP 177
-            (1993) Annex B
+          (1993) Annex B
           Equivalent to H.273 ColourPrimaries code point 1.
         </description>
       </entry>
@@ -169,9 +170,9 @@
           Color primaries as defined by
           - Rec. ITU-R BT.470-6 System M (historical)
           - United States National Television System Committee 1953
-            Recommendation for transmission standards for color television
+          Recommendation for transmission standards for color television
           - United States Federal Communications Commission (2003) Title 47 Code
-            of Federal Regulations 73.682 (a)(20)
+          of Federal Regulations 73.682 (a)(20)
           Equivalent to H.273 ColourPrimaries code point 4.
         </description>
       </entry>
@@ -220,21 +221,24 @@
         </description>
       </entry>
       <entry name="dci_p3" value="7">
-        <description summary="Color primaries of the DCI P3 color space as defined by the SMPTE RP 431 standard">
+        <description
+          summary="Color primaries of the DCI P3 color space as defined by the SMPTE RP 431 standard">
           Color primaries as defined by Digital Cinema System and published in
           SMPTE RP 431-2 (2011). Equivalent to H.273 ColourPrimaries code point
           11.
         </description>
       </entry>
       <entry name="display_p3" value="8">
-        <description summary="Color primaries of Display P3 variant of the DCI-P3 color space as defined by the SMPTE EG 432 standard">
+        <description
+          summary="Color primaries of Display P3 variant of the DCI-P3 color space as defined by the SMPTE EG 432 standard">
           Color primaries as defined by Digital Cinema System and published in
           SMPTE EG 432-1 (2010).
           Equivalent to H.273 ColourPrimaries code point 12.
         </description>
       </entry>
       <entry name="adobe_rgb" value="9">
-        <description summary="Color primaries of the Adobe RGB color space as defined by the ISO 12640 standard">
+        <description
+          summary="Color primaries of the Adobe RGB color space as defined by the ISO 12640 standard">
           Color primaries as defined by Adobe as "Adobe RGB" and later published
           by ISO 12640-4 (2011).
         </description>
@@ -264,9 +268,9 @@
           Transfer characteristics as defined by
           - Rec. ITU-R BT.470-6 System M (historical)
           - United States National Television System Committee 1953
-            Recommendation for transmission standards for color television
+          Recommendation for transmission standards for color television
           - United States Federal Communications Commission (2003) Title 47 Code
-            of Federal Regulations 73.682 (a) (20)
+          of Federal Regulations 73.682 (a) (20)
           - Rec. ITU-R BT.1700-0 625 PAL and 625 SECAM
           Equivalent to H.273 TransferCharacteristics code point 4.
         </description>
@@ -378,8 +382,8 @@
         See the xx_color_management_output_v4 interface for more details.
       </description>
 
-      <arg name="id" type="new_id" interface="xx_color_management_output_v4"/>
-      <arg name="output" type="object" interface="wl_output"/>
+      <arg name="id" type="new_id" interface="xx_color_management_output_v4" />
+      <arg name="output" type="object" interface="wl_output" />
     </request>
 
     <request name="get_surface">
@@ -393,8 +397,8 @@
         See the xx_color_management_surface_v4 interface for more details.
       </description>
 
-      <arg name="id" type="new_id" interface="xx_color_management_surface_v4"/>
-      <arg name="surface" type="object" interface="wl_surface"/>
+      <arg name="id" type="new_id" interface="xx_color_management_surface_v4" />
+      <arg name="surface" type="object" interface="wl_surface" />
     </request>
 
     <request name="get_feedback_surface">
@@ -407,8 +411,8 @@
       </description>
 
       <arg name="id" type="new_id"
-           interface="xx_color_management_feedback_surface_v4"/>
-      <arg name="surface" type="object" interface="wl_surface"/>
+        interface="xx_color_management_feedback_surface_v4" />
+      <arg name="surface" type="object" interface="wl_surface" />
     </request>
 
     <request name="new_icc_creator">
@@ -424,8 +428,8 @@
       </description>
 
       <arg name="obj"
-           type="new_id" interface="xx_image_description_creator_icc_v4"
-           summary="the new creator object"/>
+        type="new_id" interface="xx_image_description_creator_icc_v4"
+        summary="the new creator object" />
     </request>
 
     <request name="new_parametric_creator">
@@ -441,8 +445,8 @@
       </description>
 
       <arg name="obj"
-           type="new_id" interface="xx_image_description_creator_params_v4"
-           summary="the new creator object"/>
+        type="new_id" interface="xx_image_description_creator_params_v4"
+        summary="the new creator object" />
     </request>
 
     <event name="supported_intent">
@@ -452,7 +456,7 @@
       </description>
 
       <arg name="render_intent" type="uint" enum="render_intent"
-           summary="rendering intent"/>
+        summary="rendering intent" />
     </event>
 
     <event name="supported_feature">
@@ -462,7 +466,7 @@
       </description>
 
       <arg name="feature" type="uint" enum="feature"
-           summary="supported feature"/>
+        summary="supported feature" />
     </event>
 
     <event name="supported_tf_named">
@@ -473,7 +477,7 @@
       </description>
 
       <arg name="tf" type="uint" enum="transfer_function"
-           summary="Named transfer function"/>
+        summary="Named transfer function" />
     </event>
 
     <event name="supported_primaries_named">
@@ -484,7 +488,7 @@
       </description>
 
       <arg name="primaries" type="uint" enum="primaries"
-           summary="Named color primaries"/>
+        summary="Named color primaries" />
     </event>
   </interface>
 
@@ -554,17 +558,17 @@
       </description>
 
       <arg name="image_description"
-           type="new_id" interface="xx_image_description_v4"/>
+        type="new_id" interface="xx_image_description_v4" />
     </request>
   </interface>
 
   <interface name="xx_color_management_surface_v4" version="1">
     <description summary="color management extension to a surface">
-        A xx_color_management_surface_v4 allows the client to set the color
-        space and HDR properties of a surface.
+      A xx_color_management_surface_v4 allows the client to set the color
+      space and HDR properties of a surface.
 
-        If the wl_surface associated with the xx_color_management_surface_v4 is
-        destroyed, the xx_color_management_surface_v4 object becomes inert.
+      If the wl_surface associated with the xx_color_management_surface_v4 is
+      destroyed, the xx_color_management_surface_v4 object becomes inert.
     </description>
 
     <request name="destroy" type="destructor">
@@ -575,11 +579,11 @@
     </request>
 
     <enum name="error">
-      <description summary="protocol errors"/>
+      <description summary="protocol errors" />
       <entry name="render_intent" value="0"
-             summary="unsupported rendering intent"/>
+        summary="unsupported rendering intent" />
       <entry name="image_description" value="1"
-             summary="invalid image description"/>
+        summary="invalid image description" />
     </enum>
 
     <request name="set_image_description">
@@ -615,10 +619,10 @@
       </description>
 
       <arg name="image_description"
-           type="object" interface="xx_image_description_v4"/>
+        type="object" interface="xx_image_description_v4" />
       <arg name="render_intent"
-           type="uint" enum="xx_color_manager_v4.render_intent"
-           summary="rendering intent"/>
+        type="uint" enum="xx_color_manager_v4.render_intent"
+        summary="rendering intent" />
     </request>
 
     <request name="unset_image_description">
@@ -633,11 +637,11 @@
 
   <interface name="xx_color_management_feedback_surface_v4" version="1">
     <description summary="color management extension to a surface">
-        A xx_color_management_feedback_surface_v4 allows the client to get the
-        preferred color description of a surface.
+      A xx_color_management_feedback_surface_v4 allows the client to get the
+      preferred color description of a surface.
 
-        If the wl_surface associated with this object is destroyed, the
-        xx_color_management_feedback_surface_v4 object becomes inert.
+      If the wl_surface associated with this object is destroyed, the
+      xx_color_management_feedback_surface_v4 object becomes inert.
     </description>
 
     <request name="destroy" type="destructor">
@@ -647,9 +651,9 @@
     </request>
 
     <enum name="error">
-      <description summary="protocol errors"/>
+      <description summary="protocol errors" />
       <entry name="inert" value="0"
-             summary="forbidden request on inert object"/>
+        summary="forbidden request on inert object" />
     </enum>
 
     <event name="preferred_changed">
@@ -704,7 +708,7 @@
       </description>
 
       <arg name="image_description"
-           type="new_id" interface="xx_image_description_v4"/>
+        type="new_id" interface="xx_image_description_v4" />
     </request>
   </interface>
 
@@ -727,18 +731,18 @@
     </description>
 
     <enum name="error">
-      <description summary="protocol errors"/>
+      <description summary="protocol errors" />
 
       <entry name="incomplete_set" value="0"
-             summary="incomplete parameter set"/>
+        summary="incomplete parameter set" />
       <entry name="already_set" value="1"
-             summary="property already set"/>
+        summary="property already set" />
       <entry name="bad_fd" value="2"
-             summary="fd not seekable and readable"/>
+        summary="fd not seekable and readable" />
       <entry name="bad_size" value="3"
-             summary="no or too much data"/>
+        summary="no or too much data" />
       <entry name="out_of_file" value="4"
-             summary="offset + length exceeds file size"/>
+        summary="offset + length exceeds file size" />
     </enum>
 
     <request name="create" type="destructor">
@@ -765,7 +769,7 @@
       </description>
 
       <arg name="image_description"
-           type="new_id" interface="xx_image_description_v4"/>
+        type="new_id" interface="xx_image_description_v4" />
     </request>
 
     <request name="set_icc_file">
@@ -788,9 +792,9 @@
         A compositor may read the file at any time starting from this request
         and only until whichever happens first:
         - If create request was issued, the xx_image_description_v4 object
-          delivers either failed or ready event; or
+        delivers either failed or ready event; or
         - if create request was not issued, this
-          xx_image_description_creator_icc_v4 object is destroyed.
+        xx_image_description_creator_icc_v4 object is destroyed.
 
         A compositor shall not modify the contents of the file, and the fd may
         be sealed for writes and size changes. The client must ensure to its
@@ -812,11 +816,11 @@
       </description>
 
       <arg name="icc_profile" type="fd"
-           summary="ICC profile"/>
+        summary="ICC profile" />
       <arg name="offset" type="uint"
-           summary="byte offset in fd to start of ICC data"/>
+        summary="byte offset in fd to start of ICC data" />
       <arg name="length" type="uint"
-           summary="length of ICC data in bytes"/>
+        summary="length of ICC data in bytes" />
     </request>
   </interface>
 
@@ -849,24 +853,24 @@
     </description>
 
     <enum name="error">
-      <description summary="protocol errors"/>
+      <description summary="protocol errors" />
 
       <entry name="incomplete_set" value="0"
-             summary="incomplete parameter set"/>
+        summary="incomplete parameter set" />
       <entry name="inconsistent_set" value="1"
-             summary="invalid combination of parameters"/>
+        summary="invalid combination of parameters" />
       <entry name="already_set" value="2"
-             summary="property already set"/>
+        summary="property already set" />
       <entry name="unsupported_feature" value="3"
-             summary="request not supported"/>
+        summary="request not supported" />
       <entry name="invalid_tf" value="4"
-             summary="invalid transfer characteristic"/>
+        summary="invalid transfer characteristic" />
       <entry name="invalid_primaries" value="5"
-             summary="invalid primaries or white point"/>
+        summary="invalid primaries or white point" />
       <entry name="invalid_luminance" value="6"
-             summary="invalid luminance value or range"/>
+        summary="invalid luminance value or range" />
       <entry name="invalid_mastering" value="7"
-             summary="invalid mastering information"/>
+        summary="invalid mastering information" />
     </enum>
 
     <request name="create" type="destructor">
@@ -896,7 +900,7 @@
       </description>
 
       <arg name="image_description"
-           type="new_id" interface="xx_image_description_v4"/>
+        type="new_id" interface="xx_image_description_v4" />
     </request>
 
     <request name="set_tf_named">
@@ -916,7 +920,7 @@
       </description>
 
       <arg name="tf" type="uint" enum="xx_color_manager_v4.transfer_function"
-           summary="named transfer function"/>
+        summary="named transfer function" />
     </request>
 
     <request name="set_tf_power">
@@ -942,7 +946,7 @@
         the protocol error unsupported_feature.
       </description>
 
-      <arg name="eexp" type="uint" summary="the exponent * 10000"/>
+      <arg name="eexp" type="uint" summary="the exponent * 10000" />
     </request>
 
     <request name="set_primaries_named">
@@ -960,7 +964,7 @@
       </description>
 
       <arg name="primaries" type="uint" enum="xx_color_manager_v4.primaries"
-           summary="named primaries"/>
+        summary="named primaries" />
     </request>
 
     <request name="set_primaries">
@@ -980,14 +984,14 @@
         the protocol error unsupported_feature.
       </description>
 
-      <arg name="r_x" type="int" summary="Red x * 10000"/>
-      <arg name="r_y" type="int" summary="Red y * 10000"/>
-      <arg name="g_x" type="int" summary="Green x * 10000"/>
-      <arg name="g_y" type="int" summary="Green y * 10000"/>
-      <arg name="b_x" type="int" summary="Blue x * 10000"/>
-      <arg name="b_y" type="int" summary="Blue y * 10000"/>
-      <arg name="w_x" type="int" summary="White x * 10000"/>
-      <arg name="w_y" type="int" summary="White y * 10000"/>
+      <arg name="r_x" type="int" summary="Red x * 10000" />
+      <arg name="r_y" type="int" summary="Red y * 10000" />
+      <arg name="g_x" type="int" summary="Green x * 10000" />
+      <arg name="g_y" type="int" summary="Green y * 10000" />
+      <arg name="b_x" type="int" summary="Blue x * 10000" />
+      <arg name="b_y" type="int" summary="Blue y * 10000" />
+      <arg name="w_x" type="int" summary="White x * 10000" />
+      <arg name="w_y" type="int" summary="White y * 10000" />
     </request>
 
     <request name="set_luminances">
@@ -1036,11 +1040,11 @@
       </description>
 
       <arg name="min_lum" type="uint"
-           summary="minimum luminance (cd/m²) * 10000"/>
+        summary="minimum luminance (cd/m²) * 10000" />
       <arg name="max_lum" type="uint"
-           summary="maximum luminance (cd/m²)"/>
+        summary="maximum luminance (cd/m²)" />
       <arg name="reference_lum" type="uint"
-           summary="reference white luminance (cd/m²)"/>
+        summary="reference white luminance (cd/m²)" />
     </request>
 
     <request name="set_mastering_display_primaries">
@@ -1092,14 +1096,14 @@
         description gracefully, but it may as well result in color artifacts.
       </description>
 
-      <arg name="r_x" type="int" summary="Red x * 10000"/>
-      <arg name="r_y" type="int" summary="Red y * 10000"/>
-      <arg name="g_x" type="int" summary="Green x * 10000"/>
-      <arg name="g_y" type="int" summary="Green y * 10000"/>
-      <arg name="b_x" type="int" summary="Blue x * 10000"/>
-      <arg name="b_y" type="int" summary="Blue y * 10000"/>
-      <arg name="w_x" type="int" summary="White x * 10000"/>
-      <arg name="w_y" type="int" summary="White y * 10000"/>
+      <arg name="r_x" type="int" summary="Red x * 10000" />
+      <arg name="r_y" type="int" summary="Red y * 10000" />
+      <arg name="g_x" type="int" summary="Green x * 10000" />
+      <arg name="g_y" type="int" summary="Green y * 10000" />
+      <arg name="b_x" type="int" summary="Blue x * 10000" />
+      <arg name="b_y" type="int" summary="Blue y * 10000" />
+      <arg name="w_x" type="int" summary="White x * 10000" />
+      <arg name="w_y" type="int" summary="White y * 10000" />
     </request>
 
     <request name="set_mastering_luminance">
@@ -1117,8 +1121,8 @@
         and carry precision of 4 decimals. Max L value is unscaled for max_lum.
       </description>
 
-      <arg name="min_lum" type="uint" summary="min L (cd/m²) * 10000"/>
-      <arg name="max_lum" type="uint" summary="max L (cd/m²)"/>
+      <arg name="min_lum" type="uint" summary="min L (cd/m²) * 10000" />
+      <arg name="max_lum" type="uint" summary="max L (cd/m²)" />
     </request>
 
     <request name="set_max_cll">
@@ -1133,7 +1137,7 @@
         max_cll is undefined by default.
       </description>
 
-      <arg name="max_cll" type="uint" summary="Maximum content light level (cd/m²)"/>
+      <arg name="max_cll" type="uint" summary="Maximum content light level (cd/m²)" />
     </request>
 
     <request name="set_max_fall">
@@ -1148,7 +1152,7 @@
         max_fall is undefined by default.
       </description>
 
-      <arg name="max_fall" type="uint" summary="Maximum frame-average light level (cd/m²)"/>
+      <arg name="max_fall" type="uint" summary="Maximum frame-average light level (cd/m²)" />
     </request>
   </interface>
 
@@ -1186,25 +1190,25 @@
     </request>
 
     <enum name="error">
-      <description summary="protocol errors"/>
+      <description summary="protocol errors" />
 
       <entry name="not_ready" value="0"
-             summary="attempted to use an object which is not ready"/>
+        summary="attempted to use an object which is not ready" />
       <entry name="no_information" value="1"
-             summary="get_information not allowed"/>
+        summary="get_information not allowed" />
     </enum>
 
     <enum name="cause">
-      <description summary="generic reason for failure"/>
+      <description summary="generic reason for failure" />
 
       <entry name="low_version" value="0"
-             summary="interface version too low"/>
+        summary="interface version too low" />
       <entry name="unsupported" value="1"
-             summary="unsupported image description data"/>
+        summary="unsupported image description data" />
       <entry name="operating_system" value="2"
-             summary="error independent of the client"/>
+        summary="error independent of the client" />
       <entry name="no_output" value="3"
-             summary="the relevant output no longer exists"/>
+        summary="the relevant output no longer exists" />
     </enum>
 
     <event name="failed">
@@ -1222,9 +1226,9 @@
       </description>
 
       <arg name="cause" type="uint" enum="cause"
-           summary="generic reason"/>
+        summary="generic reason" />
       <arg name="msg" type="string"
-           summary="ad hoc human-readable explanation"/>
+        summary="ad hoc human-readable explanation" />
     </event>
 
     <event name="ready">
@@ -1257,7 +1261,7 @@
         description information.
       </description>
 
-      <arg name="identity" type="uint" summary="image description id number"/>
+      <arg name="identity" type="uint" summary="image description id number" />
     </event>
 
     <request name="get_information">
@@ -1272,7 +1276,7 @@
       </description>
 
       <arg name="information"
-           type="new_id" interface="xx_image_description_info_v4"/>
+        type="new_id" interface="xx_image_description_info_v4" />
     </request>
   </interface>
 
@@ -1306,8 +1310,8 @@
         kind of a profile.
       </description>
 
-      <arg name="icc" type="fd" summary="ICC profile file descriptor"/>
-      <arg name="icc_size" type="uint" summary="ICC profile size, in bytes"/>
+      <arg name="icc" type="fd" summary="ICC profile file descriptor" />
+      <arg name="icc_size" type="uint" summary="ICC profile size, in bytes" />
       <!-- Offset always 0, compositor must not expose unnecessary data. -->
     </event>
 
@@ -1320,14 +1324,14 @@
         to carry precision of 4 decimals.
       </description>
 
-      <arg name="r_x" type="int" summary="Red x * 10000"/>
-      <arg name="r_y" type="int" summary="Red y * 10000"/>
-      <arg name="g_x" type="int" summary="Green x * 10000"/>
-      <arg name="g_y" type="int" summary="Green y * 10000"/>
-      <arg name="b_x" type="int" summary="Blue x * 10000"/>
-      <arg name="b_y" type="int" summary="Blue y * 10000"/>
-      <arg name="w_x" type="int" summary="White x * 10000"/>
-      <arg name="w_y" type="int" summary="White y * 10000"/>
+      <arg name="r_x" type="int" summary="Red x * 10000" />
+      <arg name="r_y" type="int" summary="Red y * 10000" />
+      <arg name="g_x" type="int" summary="Green x * 10000" />
+      <arg name="g_y" type="int" summary="Green y * 10000" />
+      <arg name="b_x" type="int" summary="Blue x * 10000" />
+      <arg name="b_y" type="int" summary="Blue y * 10000" />
+      <arg name="w_x" type="int" summary="White x * 10000" />
+      <arg name="w_y" type="int" summary="White y * 10000" />
     </event>
 
     <event name="primaries_named">
@@ -1337,7 +1341,7 @@
       </description>
 
       <arg name="primaries" type="uint" enum="xx_color_manager_v4.primaries"
-           summary="named primaries"/>
+        summary="named primaries" />
     </event>
 
     <event name="tf_power">
@@ -1351,7 +1355,7 @@
         value to carry the precision of 4 decimals.
       </description>
 
-      <arg name="eexp" type="uint" summary="the exponent * 10000"/>
+      <arg name="eexp" type="uint" summary="the exponent * 10000" />
     </event>
 
     <event name="tf_named">
@@ -1361,7 +1365,7 @@
       </description>
 
       <arg name="tf" type="uint" enum="xx_color_manager_v4.transfer_function"
-           summary="named transfer function"/>
+        summary="named transfer function" />
     </event>
 
     <event name="luminances">
@@ -1375,11 +1379,11 @@
       </description>
 
       <arg name="min_lum" type="uint"
-           summary="minimum luminance (cd/m²) * 10000"/>
+        summary="minimum luminance (cd/m²) * 10000" />
       <arg name="max_lum" type="uint"
-           summary="maximum luminance (cd/m²)"/>
+        summary="maximum luminance (cd/m²)" />
       <arg name="reference_lum" type="uint"
-           summary="reference white luminance (cd/m²)"/>
+        summary="reference white luminance (cd/m²)" />
     </event>
 
     <event name="target_primaries">
@@ -1397,14 +1401,14 @@
         to carry precision of 4 decimals.
       </description>
 
-      <arg name="r_x" type="int" summary="Red x * 10000"/>
-      <arg name="r_y" type="int" summary="Red y * 10000"/>
-      <arg name="g_x" type="int" summary="Green x * 10000"/>
-      <arg name="g_y" type="int" summary="Green y * 10000"/>
-      <arg name="b_x" type="int" summary="Blue x * 10000"/>
-      <arg name="b_y" type="int" summary="Blue y * 10000"/>
-      <arg name="w_x" type="int" summary="White x * 10000"/>
-      <arg name="w_y" type="int" summary="White y * 10000"/>
+      <arg name="r_x" type="int" summary="Red x * 10000" />
+      <arg name="r_y" type="int" summary="Red y * 10000" />
+      <arg name="g_x" type="int" summary="Green x * 10000" />
+      <arg name="g_y" type="int" summary="Green y * 10000" />
+      <arg name="b_x" type="int" summary="Blue x * 10000" />
+      <arg name="b_y" type="int" summary="Blue y * 10000" />
+      <arg name="w_x" type="int" summary="White x * 10000" />
+      <arg name="w_y" type="int" summary="White y * 10000" />
     </event>
 
     <event name="target_luminance">
@@ -1420,8 +1424,8 @@
         carry precision of 4 decimals. Max L value is unscaled for max_lum.
       </description>
 
-      <arg name="min_lum" type="uint" summary="min L (cd/m²) * 10000"/>
-      <arg name="max_lum" type="uint" summary="max L (cd/m²)"/>
+      <arg name="min_lum" type="uint" summary="min L (cd/m²) * 10000" />
+      <arg name="max_lum" type="uint" summary="max L (cd/m²)" />
     </event>
 
     <event name="target_max_cll">
@@ -1434,7 +1438,7 @@
       </description>
 
       <arg name="max_cll" type="uint"
-           summary="Maximum content light-level (cd/m²)"/>
+        summary="Maximum content light-level (cd/m²)" />
     </event>
 
     <event name="target_max_fall">
@@ -1447,7 +1451,7 @@
       </description>
 
       <arg name="max_fall" type="uint"
-           summary="Maximum frame-average light level (cd/m²)"/>
+        summary="Maximum frame-average light level (cd/m²)" />
     </event>
   </interface>
 </protocol>

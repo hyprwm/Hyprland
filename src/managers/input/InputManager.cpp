@@ -374,8 +374,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
-    // grabs
-    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface)) {
+    // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
+    // xdg-popup grabs should be keyboard-only, while they are absolute in our case...
+    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface) && !PROTO::data->dndActive()) {
         if (m_bHardInput || refocus) {
             g_pSeatManager->setGrab(nullptr);
             return; // setGrab will refocus

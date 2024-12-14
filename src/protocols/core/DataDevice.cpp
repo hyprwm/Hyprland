@@ -6,6 +6,8 @@
 #include "../../Compositor.hpp"
 #include "Seat.hpp"
 #include "Compositor.hpp"
+#include "../../xwayland/XWayland.hpp"
+#include "../../xwayland/Server.hpp"
 
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())
@@ -101,6 +103,22 @@ void CWLDataOfferResource::sendData() {
         LOGM(LOG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
         resource->sendOffer(m.c_str());
     }
+}
+
+eDataSourceType CWLDataOfferResource::type() {
+    return DATA_SOURCE_TYPE_WAYLAND;
+}
+
+SP<CWLDataOfferResource> CWLDataOfferResource::getWayland() {
+    return self.lock();
+}
+
+SP<CX11DataOffer> CWLDataOfferResource::getX11() {
+    return nullptr;
+}
+
+SP<IDataSource> CWLDataOfferResource::getSource() {
+    return source.lock();
 }
 
 CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWLDataDeviceResource> device_) : device(device_), resource(resource_) {
@@ -209,6 +227,10 @@ uint32_t CWLDataSourceResource::actions() {
     return supportedActions;
 }
 
+eDataSourceType CWLDataSourceResource::type() {
+    return DATA_SOURCE_TYPE_WAYLAND;
+}
+
 CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : resource(resource_) {
     if (!good())
         return;
@@ -260,15 +282,18 @@ wl_client* CWLDataDeviceResource::client() {
     return pClient;
 }
 
-void CWLDataDeviceResource::sendDataOffer(SP<CWLDataOfferResource> offer) {
-    if (offer)
-        resource->sendDataOffer(offer->resource.get());
-    else
+void CWLDataDeviceResource::sendDataOffer(SP<IDataOffer> offer) {
+    if (!offer)
         resource->sendDataOfferRaw(nullptr);
+    else if (const auto WL = offer->getWayland(); WL)
+        resource->sendDataOffer(WL->resource.get());
+    //FIXME: X11
 }
 
-void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<CWLDataOfferResource> offer) {
-    resource->sendEnterRaw(serial, surf->getResource()->resource(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), offer->resource->resource());
+void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
+    if (const auto WL = offer->getWayland(); WL)
+        resource->sendEnterRaw(serial, surf->getResource()->resource(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), WL->resource->resource());
+    // FIXME: X11
 }
 
 void CWLDataDeviceResource::sendLeave() {
@@ -283,11 +308,23 @@ void CWLDataDeviceResource::sendDrop() {
     resource->sendDrop();
 }
 
-void CWLDataDeviceResource::sendSelection(SP<CWLDataOfferResource> offer) {
+void CWLDataDeviceResource::sendSelection(SP<IDataOffer> offer) {
     if (!offer)
         resource->sendSelectionRaw(nullptr);
-    else
-        resource->sendSelection(offer->resource.get());
+    else if (const auto WL = offer->getWayland(); WL)
+        resource->sendSelection(WL->resource.get());
+}
+
+eDataSourceType CWLDataDeviceResource::type() {
+    return DATA_SOURCE_TYPE_WAYLAND;
+}
+
+SP<CWLDataDeviceResource> CWLDataDeviceResource::getWayland() {
+    return self.lock();
+}
+
+SP<CX11DataDevice> CWLDataDeviceResource::getX11() {
+    return nullptr;
 }
 
 CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManager> resource_) : resource(resource_) {
@@ -377,32 +414,53 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
     std::erase_if(m_vOffers, [&](const auto& other) { return other.get() == resource; });
 }
 
-SP<CWLDataDeviceResource> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
+SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
+#ifndef NO_XWAYLAND
+    if (c == g_pXWayland->pServer->xwaylandClient)
+        return g_pXWayland->pWM->getDataDevice();
+#endif
+
     auto it = std::find_if(m_vDevices.begin(), m_vDevices.end(), [c](const auto& e) { return e->client() == c; });
     if (it == m_vDevices.end())
         return nullptr;
     return *it;
 }
 
-void CWLDataDeviceProtocol::sendSelectionToDevice(SP<CWLDataDeviceResource> dev, SP<IDataSource> sel) {
+void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataSource> sel) {
     if (!sel) {
         dev->sendSelection(nullptr);
         return;
     }
 
-    const auto OFFER = m_vOffers.emplace_back(makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(dev->resource->client(), dev->resource->version(), 0), sel));
+    SP<IDataOffer> offer;
 
-    if (!OFFER->good()) {
-        dev->resource->noMemory();
-        m_vOffers.pop_back();
+    if (const auto WL = dev->getWayland(); WL) {
+        const auto OFFER = m_vOffers.emplace_back(makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(WL->resource->client(), WL->resource->version(), 0), sel));
+        if (!OFFER->good()) {
+            WL->resource->noMemory();
+            m_vOffers.pop_back();
+            return;
+        }
+        OFFER->source = sel;
+        OFFER->self   = OFFER;
+        offer         = OFFER;
+    }
+#ifndef NO_XWAYLAND
+    else if (const auto X11 = dev->getX11(); X11)
+        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), sel);
+#endif
+
+    if (!offer) {
+        LOGM(ERR, "No offer could be created in sendSelectionToDevice");
         return;
     }
 
-    LOGM(LOG, "New offer {:x} for data source {:x}", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
+    LOGM(LOG, "New {} offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(), (uintptr_t)sel.get());
 
-    dev->sendDataOffer(OFFER);
-    OFFER->sendData();
-    dev->sendSelection(OFFER);
+    dev->sendDataOffer(offer);
+    if (const auto WL = offer->getWayland(); WL)
+        WL->sendData();
+    dev->sendSelection(offer);
 }
 
 void CWLDataDeviceProtocol::onDestroyDataSource(WP<CWLDataSourceResource> source) {
@@ -424,7 +482,7 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
             return;
 
         auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->state.keyboardFocusResource->client());
-        if (DESTDEVICE)
+        if (DESTDEVICE && DESTDEVICE->type() == DATA_SOURCE_TYPE_WAYLAND)
             sendSelectionToDevice(DESTDEVICE, nullptr);
 
         return;
@@ -439,6 +497,11 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
 
     if (!DESTDEVICE) {
         LOGM(LOG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
+        return;
+    }
+
+    if (DESTDEVICE->type() != DATA_SOURCE_TYPE_WAYLAND) {
+        LOGM(LOG, "CWLDataDeviceProtocol::setSelection: ignoring X11 data device");
         return;
     }
 
@@ -589,22 +652,38 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (!dnd.focusedDevice)
         return;
 
-    // make a new offer
-    const auto OFFER = m_vOffers.emplace_back(
-        makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(dnd.focusedDevice->resource->client(), dnd.focusedDevice->resource->version(), 0), dnd.currentSource.lock()));
+    SP<IDataOffer> offer;
 
-    if (!OFFER->good()) {
-        dnd.currentSource->resource->noMemory();
-        m_vOffers.pop_back();
+    if (const auto WL = dnd.focusedDevice->getWayland(); WL) {
+        const auto OFFER =
+            m_vOffers.emplace_back(makeShared<CWLDataOfferResource>(makeShared<CWlDataOffer>(WL->resource->client(), WL->resource->version(), 0), dnd.currentSource.lock()));
+        if (!OFFER->good()) {
+            WL->resource->noMemory();
+            m_vOffers.pop_back();
+            return;
+        }
+        OFFER->source = dnd.currentSource;
+        OFFER->self   = OFFER;
+        offer         = OFFER;
+    }
+#ifndef NO_XWAYLAND
+    else if (const auto X11 = dnd.focusedDevice->getX11(); X11)
+        offer = g_pXWayland->pWM->createX11DataOffer(g_pSeatManager->state.keyboardFocus.lock(), dnd.currentSource.lock());
+#endif
+
+    if (!offer) {
+        LOGM(ERR, "No offer could be created in updateDrag");
         return;
     }
 
-    LOGM(LOG, "New dnd offer {:x} for data source {:x}", (uintptr_t)OFFER.get(), (uintptr_t)dnd.currentSource.get());
+    LOGM(LOG, "New {} dnd offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(),
+         (uintptr_t)dnd.currentSource.get());
 
-    dnd.focusedDevice->sendDataOffer(OFFER);
-    OFFER->sendData();
+    dnd.focusedDevice->sendDataOffer(offer);
+    if (const auto WL = offer->getWayland(); WL)
+        WL->sendData();
     dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_sWLDisplay), g_pSeatManager->state.dndPointerFocus.lock(),
-                                 g_pSeatManager->state.dndPointerFocus->current.size / 2.F, OFFER);
+                                 g_pSeatManager->state.dndPointerFocus->current.size / 2.F, offer);
 }
 
 void CWLDataDeviceProtocol::resetDndState() {
@@ -650,6 +729,18 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
         if (o->recvd || o->accepted)
             return true;
     }
+
+#ifndef NO_XWAYLAND
+    for (auto const& o : g_pXWayland->pWM->dndDataOffers) {
+        if (o->dead || !o->source || !o->source->hasDnd())
+            continue;
+
+        if (o->source != dnd.currentSource)
+            continue;
+
+        return true;
+    }
+#endif
 
     return false;
 }

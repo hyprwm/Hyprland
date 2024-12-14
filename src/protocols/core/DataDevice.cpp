@@ -578,15 +578,8 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (!dndActive())
         return;
 
-    if (dnd.focusedDevice) {
-        if (g_pSeatManager->state.dndPointerFocus) {
-            const auto NEW = dataDeviceForClient(g_pSeatManager->state.dndPointerFocus->client());
-            if (NEW == dnd.focusedDevice)
-                return; // nothing to do
-        }
-
+    if (dnd.focusedDevice)
         dnd.focusedDevice->sendLeave();
-    }
 
     if (!g_pSeatManager->state.dndPointerFocus)
         return;

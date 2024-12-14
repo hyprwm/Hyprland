@@ -213,6 +213,36 @@ void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscree
         pWindow->m_pXDGSurface->toplevel->setFullscreen(fullscreen);
 }
 
+Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    PHLMONITOR  pMonitor     = nullptr;
+    double      bestDistance = __FLT_MAX__;
+    for (const auto& m : g_pCompositor->m_vMonitors) {
+        const auto SIZ = *PXWLFORCESCALEZERO ? m->vecTransformedSize : m->vecSize;
+
+        double     distance = vecToRectDistanceSquared(coord, {m->vecPosition.x, m->vecPosition.y}, {m->vecPosition.x + SIZ.x - 1, m->vecPosition.y + SIZ.y - 1});
+
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            pMonitor     = m;
+        }
+    }
+
+    if (!pMonitor)
+        return Vector2D{};
+
+    // get local coords
+    Vector2D result = coord - pMonitor->vecPosition;
+    // if scaled, scale
+    if (*PXWLFORCESCALEZERO)
+        result *= pMonitor->scale;
+    // add pos
+    result += pMonitor->vecXWaylandPosition;
+
+    return result;
+}
+
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");

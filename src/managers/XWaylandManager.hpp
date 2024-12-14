@@ -22,6 +22,7 @@ class CHyprXWaylandManager {
     bool                   shouldBeFloated(PHLWINDOW, bool pending = false);
     void                   checkBorders(PHLWINDOW);
     Vector2D               xwaylandToWaylandCoords(const Vector2D&);
+    Vector2D               waylandToXWaylandCoords(const Vector2D&);
 };
 
 inline std::unique_ptr<CHyprXWaylandManager> g_pXWaylandManager;

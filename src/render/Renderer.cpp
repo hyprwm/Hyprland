@@ -1525,13 +1525,13 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 }
 
 static const auto BT709 = Aquamarine::IOutput::SChromaticityCoords{
-    .red   = Aquamarine::IOutput::xy{0.64, 0.33},
-    .green = Aquamarine::IOutput::xy{0.30, 0.60},
-    .blue  = Aquamarine::IOutput::xy{0.15, 0.06},
-    .white = Aquamarine::IOutput::xy{0.3127, 0.3290},
+    .red   = Aquamarine::IOutput::xy{.x = 0.64, .y = 0.33},
+    .green = Aquamarine::IOutput::xy{.x = 0.30, .y = 0.60},
+    .blue  = Aquamarine::IOutput::xy{.x = 0.15, .y = 0.06},
+    .white = Aquamarine::IOutput::xy{.x = 0.3127, .y = 0.3290},
 };
 
-const hdr_output_metadata createHDRMetadataFromEdid(uint8_t eotf, Aquamarine::IOutput::SParsedEDID edid, float brightness = 1) {
+static hdr_output_metadata createHDRMetadataFromEdid(uint8_t eotf, Aquamarine::IOutput::SParsedEDID edid, float brightness = 1) {
     if (eotf == 0) {
         return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
     }
@@ -1547,15 +1547,15 @@ const hdr_output_metadata createHDRMetadataFromEdid(uint8_t eotf, Aquamarine::IO
         .metadata_type = 0,
         .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                .eotf          = uint8_t(eotf),
+                .eotf          = eotf,
                 .metadata_type = 0,
                 .display_primaries =
                     {
-                        {to16Bit(colorimetry.red.x), to16Bit(colorimetry.red.y)},
-                        {to16Bit(colorimetry.green.x), to16Bit(colorimetry.green.y)},
-                        {to16Bit(colorimetry.blue.x), to16Bit(colorimetry.blue.y)},
+                        {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
+                        {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
+                        {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
-                .white_point                     = {to16Bit(colorimetry.white.x), to16Bit(colorimetry.white.y)},
+                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
                 .max_display_mastering_luminance = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance * brightness),
                 .min_display_mastering_luminance = toNits(edid.hdrMetadata->desiredContentMinLuminance * 10000 * brightness),
                 .max_cll                         = toNits(edid.hdrMetadata->desiredMaxFrameAverageLuminance * brightness),

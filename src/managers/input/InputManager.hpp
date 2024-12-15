@@ -239,7 +239,8 @@ class CInputManager {
 
     uint32_t           m_uiCapabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false);
+    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false);
+    void               recheckMouseWarpOnMouseInput();
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
 
@@ -249,6 +250,10 @@ class CInputManager {
     WP<CWLSurfaceResource> m_pFoundSurfaceToFocus;
     PHLLSREF               m_pFoundLSToFocus;
     PHLWINDOWREF           m_pFoundWindowToFocus;
+
+    // used for warping back after non-mouse input
+    Vector2D m_vLastMousePos   = {};
+    bool     m_bLastInputMouse = true;
 
     // for holding focus on buttons held
     bool m_bFocusHeldByButtons   = false;

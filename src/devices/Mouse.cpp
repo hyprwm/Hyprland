@@ -26,6 +26,7 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
             .timeMs  = E.timeMs,
             .delta   = E.delta,
             .unaccel = E.unaccel,
+            .mouse   = true,
         });
     });
 
@@ -46,6 +47,7 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
             .timeMs = E.timeMs,
             .button = E.button,
             .state  = E.pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
+            .mouse  = true,
         });
     });
 
@@ -59,6 +61,7 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : mouse(mouse_) {
             .relativeDirection = (wl_pointer_axis_relative_direction)E.direction,
             .delta             = E.delta,
             .deltaDiscrete     = E.discrete,
+            .mouse             = true,
         });
     });
 

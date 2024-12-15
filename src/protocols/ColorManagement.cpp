@@ -1,5 +1,4 @@
 #include "ColorManagement.hpp"
-#include "xx-color-management-v4.hpp"
 
 CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resource_) {
     if (!good())
@@ -315,7 +314,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        this->settings.luminances = SImageDescription::SPCLuminances{.min = min, .max = max_lum, .reference = reference_lum};
+        this->settings.luminances = SImageDescription::SPCLuminances{.min = min_lum, .max = max_lum, .reference = reference_lum};
         this->valuesSet |= PC_LUMINANCES;
     });
     resource->setSetMasteringDisplayPrimaries(
@@ -340,7 +339,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        this->settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};
+        this->settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min_lum, .max = max_lum};
         this->valuesSet |= PC_MASTERING_LUMINANCES;
     });
     resource->setSetMaxCll([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t max_cll) {

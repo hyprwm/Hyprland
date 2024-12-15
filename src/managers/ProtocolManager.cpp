@@ -54,11 +54,13 @@
 #include "../protocols/core/Subcompositor.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../protocols/core/Shm.hpp"
+#include "../protocols/ColorManagement.hpp"
+#include "../protocols/FrogColorManagement.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
-#include "protocols/ColorManagement.hpp"
+#include "frog-color-management-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
@@ -163,8 +165,10 @@ CProtocolManager::CProtocolManager() {
     PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
 
-    if (*PENABLEXXCM)
-        PROTO::colorManagement = std::make_unique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
+    if (*PENABLEXXCM) {
+        PROTO::colorManagement     = std::make_unique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
+        PROTO::frogColorManagement = std::make_unique<CFrogColorManagementProtocol>(&frog_color_management_factory_v1_interface, 1, "FrogColorManagement");
+    }
 
     for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)

@@ -71,6 +71,7 @@ class CColorManagementFeedbackSurface {
 };
 
 struct SImageDescription {
+    bool                             drmCoded              = false; // values are ready to pass to hdr_output_metadata as is
     xxColorManagerV4TransferFunction transferFunction      = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
     float                            transferFunctionPower = 1.0f;
     struct SPCPRimaries {
@@ -80,12 +81,12 @@ struct SImageDescription {
         } red, green, blue, white;
     } primaries, masteringPrimaries;
     struct SPCLuminances {
-        float    min       = 0.2f;
-        uint32_t max       = 80;
-        uint32_t reference = 80;
+        uint32_t min       = 2000; // 0.2 cd/m²
+        uint32_t max       = 80;   // 80 cd/m²
+        uint32_t reference = 80;   // 80 cd/m²
     } luminances;
     struct SPCMasteringLuminances {
-        float    min = 0.0f;
+        uint32_t min = 0;
         uint32_t max = 0;
     } masteringLuminances;
     uint32_t maxCLL  = 0;

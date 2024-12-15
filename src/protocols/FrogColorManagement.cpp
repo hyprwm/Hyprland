@@ -35,6 +35,16 @@ bool CFrogColorManager::good() {
     return resource->resource();
 }
 
+static const auto BT709 = SImageDescription::SPCPRimaries{.red   = {.x = 0.64 * 50000, .y = 0.33 * 50000},
+                                                          .green = {.x = 0.30 * 50000, .y = 0.60 * 50000},
+                                                          .blue  = {.x = 0.15 * 50000, .y = 0.06 * 50000},
+                                                          .white = {.x = 0.3127 * 50000, .y = 0.3290 * 50000}};
+
+static const auto BT2020 = SImageDescription::SPCPRimaries{.red   = {.x = 0.708 * 50000, .y = 0.292 * 50000},
+                                                           .green = {.x = 0.170 * 50000, .y = 0.797 * 50000},
+                                                           .blue  = {.x = 0.131 * 50000, .y = 0.046 * 50000},
+                                                           .white = {.x = 0.3127 * 50000, .y = 0.3290 * 50000}};
+
 CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSurface> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;
@@ -57,21 +67,30 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
                 this->settings.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
                 break;
                 ;
-            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22:
-            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(WARN, "FIXME: add tf support");
+                if (this->pqIntentSent) {
+                    LOGM(TRACE,
+                         "FIXME: assuming broken enum value 2 (FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22) referring to eotf value 2 (TRANSFER_FUNCTION_ST2084_PQ)");
+                    this->settings.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
+                    break;
+                };
+            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
+            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, std::format("FIXME: add tf support for {}", (uint32_t)tf));
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB: this->settings.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
         }
     });
-    resource->setSetKnownContainerColorVolume([](CFrogColorManagedSurface* r, frogColorManagedSurfacePrimaries primariesName) {
-        LOGM(TRACE, "Set frog cm primaries {} (FIXME: stub)", (uint32_t)primariesName);
+    resource->setSetKnownContainerColorVolume([this](CFrogColorManagedSurface* r, frogColorManagedSurfacePrimaries primariesName) {
+        LOGM(TRACE, "Set frog cm primaries {}", (uint32_t)primariesName);
         switch (primariesName) {
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_UNDEFINED:
-            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709:
-            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020:;
+            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: this->settings.masteringPrimaries = BT709; break;
+            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: this->settings.masteringPrimaries = BT2020; break;
         }
     });
-    resource->setSetRenderIntent([](CFrogColorManagedSurface* r, frogColorManagedSurfaceRenderIntent intent) { LOGM(TRACE, "Set frog cm intent {} (noop)", (uint32_t)intent); });
+    resource->setSetRenderIntent([this](CFrogColorManagedSurface* r, frogColorManagedSurfaceRenderIntent intent) {
+        LOGM(TRACE, "Set frog cm intent {}", (uint32_t)intent);
+        this->pqIntentSent = intent == FROG_COLOR_MANAGED_SURFACE_RENDER_INTENT_PERCEPTUAL;
+    });
     resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x, uint32_t w_y,
                                        uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
         LOGM(TRACE, "Set frog mastering primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll,

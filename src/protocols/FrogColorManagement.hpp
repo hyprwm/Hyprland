@@ -28,6 +28,7 @@ class CFrogColorManagementSurface {
     WP<CWLSurfaceResource>          surface;
 
     SImageDescription               settings;
+    bool                            pqIntentSent = false;
 
   private:
     SP<CFrogColorManagedSurface> resource;

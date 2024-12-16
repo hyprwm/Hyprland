@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <deque>
 #include <list>
 #include <sys/resource.h>
 

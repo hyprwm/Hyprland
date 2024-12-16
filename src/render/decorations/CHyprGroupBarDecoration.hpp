@@ -2,7 +2,7 @@
 
 #include "IHyprWindowDecoration.hpp"
 #include "../../devices/IPointer.hpp"
-#include <deque>
+#include <vector>
 #include "../Texture.hpp"
 #include <string>
 #include <memory>
@@ -48,29 +48,29 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
   private:
-    SBoxExtents              m_seExtents;
+    SBoxExtents               m_seExtents;
 
-    CBox                     m_bAssignedBox = {0};
+    CBox                      m_bAssignedBox = {0};
 
-    PHLWINDOWREF             m_pWindow;
+    PHLWINDOWREF              m_pWindow;
 
-    std::deque<PHLWINDOWREF> m_dwGroupMembers;
+    std::vector<PHLWINDOWREF> m_dwGroupMembers;
 
-    float                    m_fBarWidth;
-    float                    m_fBarHeight;
+    float                     m_fBarWidth;
+    float                     m_fBarHeight;
 
-    CTitleTex*               textureFromTitle(const std::string&);
-    void                     invalidateTextures();
+    CTitleTex*                textureFromTitle(const std::string&);
+    void                      invalidateTextures();
 
-    CBox                     assignedBoxGlobal();
+    CBox                      assignedBoxGlobal();
 
-    bool                     onBeginWindowDragOnDeco(const Vector2D&);
-    bool                     onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);
-    bool                     onMouseButtonOnDeco(const Vector2D&, const IPointer::SButtonEvent&);
-    bool                     onScrollOnDeco(const Vector2D&, const IPointer::SAxisEvent);
+    bool                      onBeginWindowDragOnDeco(const Vector2D&);
+    bool                      onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);
+    bool                      onMouseButtonOnDeco(const Vector2D&, const IPointer::SButtonEvent&);
+    bool                      onScrollOnDeco(const Vector2D&, const IPointer::SAxisEvent);
 
     struct STitleTexs {
         // STitleTexs*                            overriden = nullptr; // TODO: make shit shared in-group to decrease VRAM usage.
-        std::deque<std::unique_ptr<CTitleTex>> titleTexs;
+        std::vector<std::unique_ptr<CTitleTex>> titleTexs;
     } m_sTitleTexs;
 };

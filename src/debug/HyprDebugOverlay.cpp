@@ -8,7 +8,12 @@ CHyprDebugOverlay::CHyprDebugOverlay() {
 }
 
 void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    m_dLastRenderTimes.push_back(durationUs / 1000.f);
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    m_dLastRenderTimes.emplace_back(durationUs / 1000.f);
 
     if (m_dLastRenderTimes.size() > (long unsigned int)pMonitor->refreshRate)
         m_dLastRenderTimes.pop_front();
@@ -18,7 +23,12 @@ void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs)
 }
 
 void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    m_dLastRenderTimesNoOverlay.push_back(durationUs / 1000.f);
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    m_dLastRenderTimesNoOverlay.emplace_back(durationUs / 1000.f);
 
     if (m_dLastRenderTimesNoOverlay.size() > (long unsigned int)pMonitor->refreshRate)
         m_dLastRenderTimesNoOverlay.pop_front();
@@ -28,7 +38,12 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float du
 }
 
 void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
-    m_dLastFrametimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    m_dLastFrametimes.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - m_tpLastFrame).count() / 1000.f);
 
     if (m_dLastFrametimes.size() > (long unsigned int)pMonitor->refreshRate)
         m_dLastFrametimes.pop_front();
@@ -189,14 +204,29 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 }
 
 void CHyprDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
     m_mMonitorOverlays[pMonitor].renderData(pMonitor, durationUs);
 }
 
 void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
     m_mMonitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, durationUs);
 }
 
 void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
+    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
     m_mMonitorOverlays[pMonitor].frameData(pMonitor);
 }
 

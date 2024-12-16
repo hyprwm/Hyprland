@@ -301,7 +301,7 @@ void CAnimationManager::tick() {
             g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 
-    // do it here, because if this alters the animation vars deque we would be in trouble above.
+    // do it here, because if this alters the animation vars vec we would be in trouble above.
     for (auto const& ave : animationEndedVars) {
         ave->onAnimationEnd();
     }

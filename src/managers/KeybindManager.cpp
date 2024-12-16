@@ -1776,7 +1776,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         // apply
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
-        std::deque<PHLWINDOW> ptrs;
+        std::vector<PHLWINDOW> ptrs;
         for (auto const& w : g_pCompositor->m_vWindows)
             ptrs.push_back(w);
 

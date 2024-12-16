@@ -9,18 +9,18 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
     const auto BEGIN = std::chrono::high_resolution_clock::now();
 
     // Avoid reallocations by reserving enough memory upfront
-    m_dPoints.resize(pVec->size() + 2);
-    m_dPoints[0] = Vector2D(0, 0); // Start point
+    m_vPoints.resize(pVec->size() + 2);
+    m_vPoints[0] = Vector2D(0, 0); // Start point
     size_t index = 1;              // Start after the first element
     for (const auto& vec : *pVec) {
-        if (index < m_dPoints.size() - 1) { // Bounds check to ensure safety
-            m_dPoints[index] = vec;
+        if (index < m_vPoints.size() - 1) { // Bounds check to ensure safety
+            m_vPoints[index] = vec;
             ++index;
         }
     }
-    m_dPoints.back() = Vector2D(1, 1); // End point
+    m_vPoints.back() = Vector2D(1, 1); // End point
 
-    RASSERT(m_dPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: {})", m_dPoints.size());
+    RASSERT(m_vPoints.size() == 4, "CBezierCurve only supports cubic beziers! (points num: {})", m_vPoints.size());
 
     // bake BAKEDPOINTS points for faster lookups
     // T -> X ( / BAKEDPOINTS )
@@ -47,14 +47,14 @@ float CBezierCurve::getXForT(float const& t) {
     float t2 = t * t;
     float t3 = t2 * t;
 
-    return 3 * t * (1 - t) * (1 - t) * m_dPoints[1].x + 3 * t2 * (1 - t) * m_dPoints[2].x + t3 * m_dPoints[3].x;
+    return 3 * t * (1 - t) * (1 - t) * m_vPoints[1].x + 3 * t2 * (1 - t) * m_vPoints[2].x + t3 * m_vPoints[3].x;
 }
 
 float CBezierCurve::getYForT(float const& t) {
     float t2 = t * t;
     float t3 = t2 * t;
 
-    return 3 * t * (1 - t) * (1 - t) * m_dPoints[1].y + 3 * t2 * (1 - t) * m_dPoints[2].y + t3 * m_dPoints[3].y;
+    return 3 * t * (1 - t) * (1 - t) * m_vPoints[1].y + 3 * t2 * (1 - t) * m_vPoints[2].y + t3 * m_vPoints[3].y;
 }
 
 // Todo: this probably can be done better and faster

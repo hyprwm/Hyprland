@@ -1,6 +1,6 @@
 #pragma once
 
-#include <deque>
+#include <vector>
 #include <array>
 #include <vector>
 #include "math/Math.hpp"
@@ -22,7 +22,7 @@ class CBezierCurve {
 
   private:
     // this INCLUDES the 0,0 and 1,1 points.
-    std::vector<Vector2D>             m_dPoints;
+    std::vector<Vector2D>             m_vPoints;
 
     std::array<Vector2D, BAKEDPOINTS> m_aPointsBaked;
 };

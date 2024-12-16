@@ -21,7 +21,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <deque>
 #include <filesystem>
 #include <cstdarg>
 #include <regex>
@@ -322,11 +321,11 @@ void instancesRequest(bool json) {
     log(result + "\n");
 }
 
-std::deque<std::string> splitArgs(int argc, char** argv) {
-    std::deque<std::string> result;
+std::vector<std::string> splitArgs(int argc, char** argv) {
+    std::vector<std::string> result;
 
     for (auto i = 1 /* skip the executable */; i < argc; ++i)
-        result.push_back(std::string(argv[i]));
+        result.emplace_back(argv[i]);
 
     return result;
 }

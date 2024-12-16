@@ -5,7 +5,7 @@
 #include "../config/ConfigManager.hpp"
 #include <vector>
 #include <list>
-#include <deque>
+#include <vector>
 #include <any>
 
 enum eFullscreenMode : int8_t;

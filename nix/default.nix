@@ -27,6 +27,7 @@
   mesa,
   pango,
   pciutils,
+  re2,
   systemd,
   tomlplusplus,
   udis86-hyprland,
@@ -128,6 +129,7 @@ in
           mesa
           pango
           pciutils
+          re2
           tomlplusplus
           udis86-hyprland
           wayland

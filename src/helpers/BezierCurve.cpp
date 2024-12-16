@@ -43,14 +43,14 @@ void CBezierCurve::setup(std::vector<Vector2D>* pVec) {
                ELAPSEDUS, ELAPSEDCALCAVG);
 }
 
-float CBezierCurve::getXForT(float const& t) {
+float CBezierCurve::getXForT(float const& t) const {
     float t2 = t * t;
     float t3 = t2 * t;
 
     return 3 * t * (1 - t) * (1 - t) * m_vPoints[1].x + 3 * t2 * (1 - t) * m_vPoints[2].x + t3 * m_vPoints[3].x;
 }
 
-float CBezierCurve::getYForT(float const& t) {
+float CBezierCurve::getYForT(float const& t) const {
     float t2 = t * t;
     float t3 = t2 * t;
 
@@ -58,7 +58,7 @@ float CBezierCurve::getYForT(float const& t) {
 }
 
 // Todo: this probably can be done better and faster
-float CBezierCurve::getYForPoint(float const& x) {
+float CBezierCurve::getYForPoint(float const& x) const {
     if (x >= 1.f)
         return 1.f;
     if (x <= 0.f)

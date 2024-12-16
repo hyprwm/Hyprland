@@ -156,9 +156,9 @@ void CAnimationManager::tick() {
         // beziers are with a switch unforto
         // TODO: maybe do something cleaner
 
-        static const auto updateVariable = [&]<Animable T>(CAnimatedVariable<T>& av) {
+        static const auto updateVariable = [this]<Animable T>(CAnimatedVariable<T>& av, const float SPENT, const CBezierCurve& DEFAULTBEZIER, const bool DISABLED) {
             // for disabled anims just warp
-            if (av.m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
+            if (av.m_pConfig->pValues->internalEnabled == 0 || DISABLED) {
                 av.warp(false);
                 return;
             }
@@ -169,7 +169,7 @@ void CAnimationManager::tick() {
             }
 
             const auto BEZIER = m_mBezierCurves.find(av.m_pConfig->pValues->internalBezier);
-            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER->second.getYForPoint(SPENT);
+            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER.getYForPoint(SPENT);
 
             const auto DELTA = av.m_Goal - av.m_Begun;
 
@@ -179,9 +179,9 @@ void CAnimationManager::tick() {
                 av.m_Value = av.m_Begun + DELTA * POINTY;
         };
 
-        static const auto updateColorVariable = [&](CAnimatedVariable<CHyprColor>& av) {
+        static const auto updateColorVariable = [this](CAnimatedVariable<CHyprColor>& av, const float SPENT, const CBezierCurve& DEFAULTBEZIER, const bool DISABLED) {
             // for disabled anims just warp
-            if (av.m_pConfig->pValues->internalEnabled == 0 || animationsDisabled) {
+            if (av.m_pConfig->pValues->internalEnabled == 0 || DISABLED) {
                 av.warp(false);
                 return;
             }
@@ -192,7 +192,7 @@ void CAnimationManager::tick() {
             }
 
             const auto BEZIER = m_mBezierCurves.find(av.m_pConfig->pValues->internalBezier);
-            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER->second.getYForPoint(SPENT);
+            const auto POINTY = BEZIER != m_mBezierCurves.end() ? BEZIER->second.getYForPoint(SPENT) : DEFAULTBEZIER.getYForPoint(SPENT);
 
             // convert both to OkLab, then lerp that, and convert back.
             // This is not as fast as just lerping rgb, but it's WAY more precise...
@@ -217,17 +217,17 @@ void CAnimationManager::tick() {
         switch (av->m_Type) {
             case AVARTYPE_FLOAT: {
                 auto typedAv = dynamic_cast<CAnimatedVariable<float>*>(av);
-                updateVariable(*typedAv);
+                updateVariable(*typedAv, SPENT, DEFAULTBEZIER->second, animationsDisabled);
                 break;
             }
             case AVARTYPE_VECTOR: {
                 auto typedAv = dynamic_cast<CAnimatedVariable<Vector2D>*>(av);
-                updateVariable(*typedAv);
+                updateVariable(*typedAv, SPENT, DEFAULTBEZIER->second, animationsDisabled);
                 break;
             }
             case AVARTYPE_COLOR: {
                 auto typedAv = dynamic_cast<CAnimatedVariable<CHyprColor>*>(av);
-                updateColorVariable(*typedAv);
+                updateColorVariable(*typedAv, SPENT, DEFAULTBEZIER->second, animationsDisabled);
                 break;
             }
             default: UNREACHABLE();

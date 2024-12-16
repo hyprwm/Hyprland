@@ -783,7 +783,7 @@ void CWindow::applyDynamicRule(const SP<CWindowRule>& r) {
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             } else if (auto search = g_pConfigManager->mbWindowProperties.find(VARS[1]); search != g_pConfigManager->mbWindowProperties.end()) {
                 try {
-                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar((bool)std::stoi(VARS[2]), priority);
+                    *(search->second(m_pSelf.lock())) = CWindowOverridableVar(VARS[2].empty() ? true : (bool)std::stoi(VARS[2]), priority);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule \"{}\" failed with: {}", r->szRule, e.what()); }
             }
             break;

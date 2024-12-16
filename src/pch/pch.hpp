@@ -1,5 +1,3 @@
-#include "Compositor.hpp"
-
 #include <algorithm>
 #include <any>
 #include <array>

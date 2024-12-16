@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include <cctype>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -14,7 +16,6 @@
 #include <algorithm>
 #include <csignal>
 #include <format>
-#include <re2/re2.h>
 
 #include <iostream>
 #include <string>

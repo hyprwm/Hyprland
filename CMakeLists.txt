@@ -101,8 +101,6 @@ else()
 endif()
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 
-pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4)
-
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=0.4.5)
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=0.3.2)
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=0.1.7)
@@ -131,7 +129,8 @@ pkg_check_modules(
   libdrm
   libinput
   gbm
-  gio-2.0)
+  gio-2.0
+  re2)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

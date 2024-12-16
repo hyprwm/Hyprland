@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include <any>
 #include <bit>
 #include <string_view>
@@ -1601,13 +1603,13 @@ PHLWINDOW CWindow::getSwallower() {
     }
 
     if (!(*PSWALLOWREGEX).empty())
-        std::erase_if(candidates, [&](const auto& other) { return !std::regex_match(other->m_szClass, std::regex(*PSWALLOWREGEX)); });
+        std::erase_if(candidates, [&](const auto& other) { return !RE2::FullMatch(other->m_szClass, *PSWALLOWREGEX); });
 
     if (candidates.size() <= 0)
         return nullptr;
 
     if (!(*PSWALLOWEXREGEX).empty())
-        std::erase_if(candidates, [&](const auto& other) { return std::regex_match(other->m_szTitle, std::regex(*PSWALLOWEXREGEX)); });
+        std::erase_if(candidates, [&](const auto& other) { return RE2::FullMatch(other->m_szTitle, *PSWALLOWEXREGEX); });
 
     if (candidates.size() <= 0)
         return nullptr;

@@ -4,11 +4,7 @@
 #include "../defines.hpp"
 #include "WLSurface.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-
-struct SLayerRule {
-    std::string targetNamespace = "";
-    std::string rule            = "";
-};
+#include "LayerRule.hpp"
 
 class CLayerShellResource;
 

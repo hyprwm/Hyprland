@@ -887,25 +887,26 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
     Vector2D sizeOverride = {};
     if (g_pCompositor->m_pLastMonitor) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r.szRule.starts_with("size")) {
-                try {
-                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+            if (r->ruleType != CWindowRule::RULE_SIZE)
+                continue;
 
-                    const auto  MAXSIZE = pWindow->requestedMaxSize();
+            try {
+                const auto  VALUE    = r->szRule.substr(r->szRule.find(' ') + 1);
+                const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.x) :
-                                                            stringToPercentage(SIZEXSTR, g_pCompositor->m_pLastMonitor->vecSize.x);
+                const auto  MAXSIZE = pWindow->requestedMaxSize();
 
-                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.y) :
-                                                            stringToPercentage(SIZEYSTR, g_pCompositor->m_pLastMonitor->vecSize.y);
+                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.x) :
+                                                        stringToPercentage(SIZEXSTR, g_pCompositor->m_pLastMonitor->vecSize.x);
 
-                    sizeOverride = {SIZEX, SIZEY};
+                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, g_pCompositor->m_pLastMonitor->vecSize.y) :
+                                                        stringToPercentage(SIZEYSTR, g_pCompositor->m_pLastMonitor->vecSize.y);
 
-                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
-                break;
-            }
+                sizeOverride = {SIZEX, SIZEY};
+
+            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
+            break;
         }
     }
 
@@ -917,10 +918,11 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
 
     if (!shouldBeFloated) {
         for (auto const& r : g_pConfigManager->getMatchingRules(pWindow, true, true)) {
-            if (r.szRule.starts_with("float")) {
-                shouldBeFloated = true;
-                break;
-            }
+            if (r->ruleType != CWindowRule::RULE_FLOAT)
+                continue;
+
+            shouldBeFloated = true;
+            break;
         }
     }
 

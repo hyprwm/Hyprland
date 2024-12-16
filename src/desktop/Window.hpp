@@ -17,6 +17,7 @@
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
+#include "WindowRule.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -193,26 +194,6 @@ struct SWindowData {
 
     CWindowOverridableVar<CGradientValueData> activeBorderColor;
     CWindowOverridableVar<CGradientValueData> inactiveBorderColor;
-};
-
-struct SWindowRule {
-    std::string szRule;
-    std::string szValue;
-
-    bool        v2 = false;
-    std::string szTitle;
-    std::string szClass;
-    std::string szInitialTitle;
-    std::string szInitialClass;
-    std::string szTag;
-    int         bX11              = -1; // -1 means "ANY"
-    int         bFloating         = -1;
-    int         bFullscreen       = -1;
-    int         bPinned           = -1;
-    int         bFocus            = -1;
-    std::string szFullscreenState = ""; // empty means any
-    std::string szOnWorkspace     = ""; // empty means any
-    std::string szWorkspace       = ""; // empty means any
 };
 
 struct SInitialWorkspaceToken {
@@ -395,7 +376,7 @@ class CWindow {
     bool     m_bTearingHint = false;
 
     // stores the currently matched window rules
-    std::vector<SWindowRule> m_vMatchedRules;
+    std::vector<SP<CWindowRule>> m_vMatchedRules;
 
     // window tags
     CTagKeeper m_tags;
@@ -427,7 +408,7 @@ class CWindow {
     void                   onMap();
     void                   setHidden(bool hidden);
     bool                   isHidden();
-    void                   applyDynamicRule(const SWindowRule& r);
+    void                   applyDynamicRule(const SP<CWindowRule>& r);
     void                   updateDynamicRules();
     SBoxExtents            getFullWindowReservedArea();
     Vector2D               middle();

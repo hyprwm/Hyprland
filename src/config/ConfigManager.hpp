@@ -166,7 +166,7 @@ class CConfigManager {
     Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
     void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getMainConfigPath();
-    const std::string                                               getConfigString();
+    std::string                                                     getConfigString();
 
     SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
@@ -176,8 +176,8 @@ class CConfigManager {
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
     const std::vector<SWorkspaceRule>&                              getAllWorkspaceRules();
 
-    std::vector<SWindowRule>                                        getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
-    std::vector<SLayerRule>                                         getMatchingRules(PHLLS);
+    std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
+    std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
 
     const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
 
@@ -291,8 +291,8 @@ class CConfigManager {
 
     std::vector<SMonitorRule>                                 m_vMonitorRules;
     std::vector<SWorkspaceRule>                               m_vWorkspaceRules;
-    std::vector<SWindowRule>                                  m_vWindowRules;
-    std::vector<SLayerRule>                                   m_vLayerRules;
+    std::vector<SP<CWindowRule>>                              m_vWindowRules;
+    std::vector<SP<CLayerRule>>                               m_vLayerRules;
     std::vector<std::string>                                  m_dBlurLSNamespaces;
 
     bool                                                      firstExecDispatched     = false;

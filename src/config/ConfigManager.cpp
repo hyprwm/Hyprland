@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <glob.h>
 #include <xkbcommon/xkbcommon.h>
+#include <re2/re2.h>
 
 #include <algorithm>
 #include <fstream>
@@ -1257,14 +1258,10 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                     continue;
 
                 if (rule->szValue.starts_with("title:")) {
-                    std::regex RULECHECK(rule->szValue.substr(6));
-
-                    if (!std::regex_search(pWindow->m_szTitle, RULECHECK))
+                    if (!RE2::FullMatch(pWindow->m_szTitle, rule->szValue.substr(6)))
                         continue;
                 } else {
-                    std::regex classCheck(rule->szValue);
-
-                    if (!std::regex_search(pWindow->m_szClass, classCheck))
+                    if (!RE2::FullMatch(pWindow->m_szClass, rule->szValue))
                         continue;
                 }
             } catch (...) {

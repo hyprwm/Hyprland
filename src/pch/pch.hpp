@@ -18,7 +18,6 @@
 #include <optional>
 #include <random>
 #include <ranges>
-#include <regex>
 #include <set>
 #include <sstream>
 #include <string>

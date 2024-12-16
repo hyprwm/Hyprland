@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <csignal>
 #include <format>
+#include <re2/re2.h>
 
 #include <iostream>
 #include <string>
@@ -23,7 +24,6 @@
 #include <vector>
 #include <filesystem>
 #include <cstdarg>
-#include <regex>
 #include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
 #include <cstring>
@@ -281,11 +281,10 @@ int requestHyprpaper(std::string arg) {
 }
 
 void batchRequest(std::string arg, bool json) {
-    std::string commands = arg.substr(arg.find_first_of(" ") + 1);
+    std::string commands = arg.substr(arg.find_first_of(' ') + 1);
 
-    if (json) {
-        commands = "j/" + std::regex_replace(commands, std::regex(";\\s*"), ";j/");
-    }
+    if (json)
+        RE2::GlobalReplace(&commands, ";\\s*", ";j/");
 
     std::string rq = "[[BATCH]]" + commands;
     request(rq);

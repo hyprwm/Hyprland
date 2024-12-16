@@ -51,6 +51,7 @@ xcb_res_dep = dependency('xcb-res', required: get_option('xwayland'))
 xcb_xfixes_dep = dependency('xcb-xfixes', required: get_option('xwayland'))
 
 gio_dep = dependency('gio-2.0', required: true)
+re2_dep = dependency('re2', required: true)
 
 if not xcb_dep.found()
   add_project_arguments('-DNO_XWAYLAND', language: 'cpp')

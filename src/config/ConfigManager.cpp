@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include "ConfigManager.hpp"
 #include "../managers/KeybindManager.hpp"
 #include "../Compositor.hpp"
@@ -1256,17 +1258,12 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (rule->szValue.starts_with("tag:") && !tags.isTagged(rule->szValue.substr(4)))
                     continue;
 
-                if (rule->szValue.starts_with("title:")) {
-                    std::regex RULECHECK(rule->szValue.substr(6));
+                if (rule->szValue.starts_with("title:") && !RE2::FullMatch(pWindow->m_szTitle, rule->szValue.substr(6)))
+                    continue;
 
-                    if (!std::regex_search(pWindow->m_szTitle, RULECHECK))
-                        continue;
-                } else {
-                    std::regex classCheck(rule->szValue);
+                if (!RE2::FullMatch(pWindow->m_szClass, rule->szValue))
+                    continue;
 
-                    if (!std::regex_search(pWindow->m_szClass, classCheck))
-                        continue;
-                }
             } catch (...) {
                 Debug::log(ERR, "Regex error at {}", rule->szValue);
                 continue;
@@ -1354,33 +1351,18 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (!rule->szTag.empty() && !tags.isTagged(rule->szTag))
                     continue;
 
-                if (!rule->szClass.empty()) {
-                    std::regex RULECHECK(rule->szClass);
+                if (!rule->szClass.empty() && !RE2::FullMatch(pWindow->m_szClass, rule->szClass))
+                    continue;
 
-                    if (!std::regex_search(pWindow->m_szClass, RULECHECK))
-                        continue;
-                }
+                if (!rule->szTitle.empty() && !RE2::FullMatch(pWindow->m_szTitle, rule->szTitle))
+                    continue;
 
-                if (!rule->szTitle.empty()) {
-                    std::regex RULECHECK(rule->szTitle);
+                if (!rule->szInitialTitle.empty() && !RE2::FullMatch(pWindow->m_szInitialTitle, rule->szInitialTitle))
+                    continue;
 
-                    if (!std::regex_search(pWindow->m_szTitle, RULECHECK))
-                        continue;
-                }
+                if (!rule->szInitialClass.empty() && !RE2::FullMatch(pWindow->m_szInitialClass, rule->szInitialClass))
+                    continue;
 
-                if (!rule->szInitialTitle.empty()) {
-                    std::regex RULECHECK(rule->szInitialTitle);
-
-                    if (!std::regex_search(pWindow->m_szInitialTitle, RULECHECK))
-                        continue;
-                }
-
-                if (!rule->szInitialClass.empty()) {
-                    std::regex RULECHECK(rule->szInitialClass);
-
-                    if (!std::regex_search(pWindow->m_szInitialClass, RULECHECK))
-                        continue;
-                }
             } catch (std::exception& e) {
                 Debug::log(ERR, "Regex error at {} ({})", rule->szValue, e.what());
                 continue;
@@ -1437,12 +1419,8 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->targetNamespace)
                 continue;
-        } else {
-            std::regex NSCHECK(lr->targetNamespace);
-
-            if (!std::regex_search(pLS->layerSurface->layerNamespace, NSCHECK))
-                continue;
-        }
+        } else if (!RE2::FullMatch(pLS->layerSurface->layerNamespace, lr->targetNamespace))
+            continue;
 
         // hit
         returns.emplace_back(lr);

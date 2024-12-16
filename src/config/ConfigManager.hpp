@@ -9,7 +9,6 @@
 #include <variant>
 #include <vector>
 #include <algorithm>
-#include <regex>
 #include <optional>
 #include <functional>
 #include <xf86drmMode.h>

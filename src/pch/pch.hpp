@@ -1,5 +1,3 @@
-#include "Compositor.hpp"
-
 #include <algorithm>
 #include <any>
 #include <array>
@@ -18,7 +16,6 @@
 #include <optional>
 #include <random>
 #include <ranges>
-#include <regex>
 #include <set>
 #include <sstream>
 #include <string>

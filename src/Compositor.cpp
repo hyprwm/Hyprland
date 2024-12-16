@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
 #include "helpers/Splashes.hpp"
@@ -2392,19 +2394,19 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
 
     eFocusWindowMode mode = MODE_CLASS_REGEX;
 
-    std::regex       regexCheck(regexp_);
+    std::string      regexCheck;
     std::string      matchCheck;
     if (regexp.starts_with("class:")) {
-        regexCheck = std::regex(regexp.substr(6));
+        regexCheck = regexp.substr(6);
     } else if (regexp.starts_with("initialclass:")) {
         mode       = MODE_INITIAL_CLASS_REGEX;
-        regexCheck = std::regex(regexp.substr(13));
+        regexCheck = regexp.substr(13);
     } else if (regexp.starts_with("title:")) {
         mode       = MODE_TITLE_REGEX;
-        regexCheck = std::regex(regexp.substr(6));
+        regexCheck = regexp.substr(6);
     } else if (regexp.starts_with("initialtitle:")) {
         mode       = MODE_INITIAL_TITLE_REGEX;
-        regexCheck = std::regex(regexp.substr(13));
+        regexCheck = regexp.substr(13);
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2420,25 +2422,25 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
         switch (mode) {
             case MODE_CLASS_REGEX: {
                 const auto windowClass = w->m_szClass;
-                if (!std::regex_search(windowClass, regexCheck))
+                if (!RE2::FullMatch(windowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_CLASS_REGEX: {
                 const auto initialWindowClass = w->m_szInitialClass;
-                if (!std::regex_search(initialWindowClass, regexCheck))
+                if (!RE2::FullMatch(initialWindowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_TITLE_REGEX: {
                 const auto windowTitle = w->m_szTitle;
-                if (!std::regex_search(windowTitle, regexCheck))
+                if (!RE2::FullMatch(windowTitle, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_TITLE_REGEX: {
                 const auto initialWindowTitle = w->m_szInitialTitle;
-                if (!std::regex_search(initialWindowTitle, regexCheck))
+                if (!RE2::FullMatch(initialWindowTitle, regexCheck))
                     continue;
                 break;
             }

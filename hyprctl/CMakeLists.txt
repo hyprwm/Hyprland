@@ -5,7 +5,7 @@ project(
     DESCRIPTION "Control utility for Hyprland"
 )
 
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprutils>=0.1.1)
+pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 re2)
 
 add_executable(hyprctl "main.cpp")
 

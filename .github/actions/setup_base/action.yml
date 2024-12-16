@@ -60,7 +60,8 @@ runs:
           xcb-util \
           xcb-util-image \
           libzip \
-          librsvg
+          librsvg \
+          re2
 
     - name: Get hyprwayland-scanner-git
       shell: bash

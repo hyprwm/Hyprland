@@ -139,144 +139,173 @@ void Events::listener_mapWindow(void* owner, void* data) {
         requestedClientFSMode = FSMODE_FULLSCREEN;
 
     for (auto const& r : PWINDOW->m_vMatchedRules) {
-        if (r.szRule.starts_with("monitor")) {
-            try {
-                const auto MONITORSTR = trim(r.szRule.substr(r.szRule.find(' ')));
+        switch (r->ruleType) {
+            case CWindowRule::RULE_MONITOR: {
+                try {
+                    const auto MONITORSTR = trim(r->szRule.substr(r->szRule.find(' ')));
 
-                if (MONITORSTR == "unset") {
-                    PWINDOW->m_pMonitor = PMONITOR;
-                } else {
-                    if (isNumber(MONITORSTR)) {
-                        const MONITORID MONITOR = std::stoi(MONITORSTR);
-                        if (const auto PM = g_pCompositor->getMonitorFromID(MONITOR); PM)
-                            PWINDOW->m_pMonitor = PM;
-                        else
-                            PWINDOW->m_pMonitor = g_pCompositor->m_vMonitors.at(0);
+                    if (MONITORSTR == "unset") {
+                        PWINDOW->m_pMonitor = PMONITOR;
                     } else {
-                        const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
-                        if (PMONITOR)
-                            PWINDOW->m_pMonitor = PMONITOR;
-                        else {
-                            Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
-                            continue;
+                        if (isNumber(MONITORSTR)) {
+                            const MONITORID MONITOR = std::stoi(MONITORSTR);
+                            if (const auto PM = g_pCompositor->getMonitorFromID(MONITOR); PM)
+                                PWINDOW->m_pMonitor = PM;
+                            else
+                                PWINDOW->m_pMonitor = g_pCompositor->m_vMonitors.at(0);
+                        } else {
+                            const auto PMONITOR = g_pCompositor->getMonitorFromName(MONITORSTR);
+                            if (PMONITOR)
+                                PWINDOW->m_pMonitor = PMONITOR;
+                            else {
+                                Debug::log(ERR, "No monitor in monitor {} rule", MONITORSTR);
+                                continue;
+                            }
                         }
                     }
+
+                    const auto PMONITORFROMID = PWINDOW->m_pMonitor.lock();
+
+                    if (PWINDOW->m_pMonitor != PMONITOR) {
+                        g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+                        PMONITOR = PMONITORFROMID;
+                    }
+                    PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
+
+                    Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
+                } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r->szRule, r->szValue, e.what()); }
+                break;
+            }
+            case CWindowRule::RULE_WORKSPACE: {
+                // check if it isnt unset
+                const auto WORKSPACERQ = r->szRule.substr(r->szRule.find_first_of(' ') + 1);
+
+                if (WORKSPACERQ == "unset") {
+                    requestedWorkspace = "";
+                } else {
+                    requestedWorkspace = WORKSPACERQ;
                 }
 
-                const auto PMONITORFROMID = PWINDOW->m_pMonitor.lock();
+                const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
 
-                if (PWINDOW->m_pMonitor != PMONITOR) {
-                    g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
-                    PMONITOR = PMONITORFROMID;
+                if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
+                    requestedWorkspace = "";
+
+                Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r->szValue);
+                break;
+            }
+            case CWindowRule::RULE_FLOAT: {
+                PWINDOW->m_bIsFloating = true;
+                break;
+            }
+            case CWindowRule::RULE_TILE: {
+                PWINDOW->m_bIsFloating = false;
+                break;
+            }
+            case CWindowRule::RULE_PSEUDO: {
+                PWINDOW->m_bIsPseudotiled = true;
+                break;
+            }
+            case CWindowRule::RULE_NOINITIALFOCUS: {
+                PWINDOW->m_bNoInitialFocus = true;
+                break;
+            }
+            case CWindowRule::RULE_FULLSCREENSTATE: {
+                const auto ARGS = CVarList(r->szRule.substr(r->szRule.find_first_of(' ') + 1), 2, ' ');
+                int        internalMode, clientMode;
+                try {
+                    internalMode = std::stoi(ARGS[0]);
+                } catch (std::exception& e) { internalMode = 0; }
+                try {
+                    clientMode = std::stoi(ARGS[1]);
+                } catch (std::exception& e) { clientMode = 0; }
+                requestedFSState = SFullscreenState{.internal = (eFullscreenMode)internalMode, .client = (eFullscreenMode)clientMode};
+                break;
+            }
+            case CWindowRule::RULE_SUPPRESSEVENT: {
+                CVarList vars(r->szRule, 0, 's', true);
+                for (size_t i = 1; i < vars.size(); ++i) {
+                    if (vars[i] == "fullscreen")
+                        PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN;
+                    else if (vars[i] == "maximize")
+                        PWINDOW->m_eSuppressedEvents |= SUPPRESS_MAXIMIZE;
+                    else if (vars[i] == "activate")
+                        PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE;
+                    else if (vars[i] == "activatefocus")
+                        PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE_FOCUSONLY;
+                    else
+                        Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
                 }
-                PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
-
-                Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
-            } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r.szRule, r.szValue, e.what()); }
-        } else if (r.szRule.starts_with("workspace")) {
-            // check if it isnt unset
-            const auto WORKSPACERQ = r.szRule.substr(r.szRule.find_first_of(' ') + 1);
-
-            if (WORKSPACERQ == "unset") {
-                requestedWorkspace = "";
-            } else {
-                requestedWorkspace = WORKSPACERQ;
+                break;
             }
-
-            const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
-
-            if (JUSTWORKSPACE == PWORKSPACE->m_szName || JUSTWORKSPACE == "name:" + PWORKSPACE->m_szName)
-                requestedWorkspace = "";
-
-            Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r.szValue);
-        } else if (r.szRule.starts_with("float")) {
-            PWINDOW->m_bIsFloating = true;
-        } else if (r.szRule.starts_with("tile")) {
-            PWINDOW->m_bIsFloating = false;
-        } else if (r.szRule.starts_with("pseudo")) {
-            PWINDOW->m_bIsPseudotiled = true;
-        } else if (r.szRule.starts_with("noinitialfocus")) {
-            PWINDOW->m_bNoInitialFocus = true;
-        } else if (r.szRule.starts_with("fullscreenstate")) {
-            const auto ARGS = CVarList(r.szRule.substr(r.szRule.find_first_of(' ') + 1), 2, ' ');
-            int        internalMode, clientMode;
-            try {
-                internalMode = std::stoi(ARGS[0]);
-            } catch (std::exception& e) { internalMode = 0; }
-            try {
-                clientMode = std::stoi(ARGS[1]);
-            } catch (std::exception& e) { clientMode = 0; }
-            requestedFSState = SFullscreenState{.internal = (eFullscreenMode)internalMode, .client = (eFullscreenMode)clientMode};
-        } else if (r.szRule.starts_with("suppressevent")) {
-            CVarList vars(r.szRule, 0, 's', true);
-            for (size_t i = 1; i < vars.size(); ++i) {
-                if (vars[i] == "fullscreen")
-                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN;
-                else if (vars[i] == "maximize")
-                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_MAXIMIZE;
-                else if (vars[i] == "activate")
-                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE;
-                else if (vars[i] == "activatefocus")
-                    PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE_FOCUSONLY;
-                else
-                    Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
+            case CWindowRule::RULE_PIN: {
+                PWINDOW->m_bPinned = true;
+                break;
             }
-        } else if (r.szRule == "pin") {
-            PWINDOW->m_bPinned = true;
-        } else if (r.szRule == "fullscreen") {
-            requestedInternalFSMode = FSMODE_FULLSCREEN;
-        } else if (r.szRule == "maximize") {
-            requestedInternalFSMode = FSMODE_MAXIMIZED;
-        } else if (r.szRule == "stayfocused") {
-            PWINDOW->m_bStayFocused = true;
-        } else if (r.szRule.starts_with("group")) {
-            if (PWINDOW->m_eGroupRules & GROUP_OVERRIDE)
-                continue;
-
-            // `group` is a shorthand of `group set`
-            if (trim(r.szRule) == "group") {
-                PWINDOW->m_eGroupRules |= GROUP_SET;
-                continue;
+            case CWindowRule::RULE_FULLSCREEN: {
+                requestedInternalFSMode = FSMODE_FULLSCREEN;
+                break;
             }
-
-            CVarList    vars(r.szRule, 0, 's');
-            std::string vPrev = "";
-
-            for (auto const& v : vars) {
-                if (v == "group")
+            case CWindowRule::RULE_MAXIMIZE: {
+                requestedInternalFSMode = FSMODE_MAXIMIZED;
+                break;
+            }
+            case CWindowRule::RULE_STAYFOCUSED: {
+                PWINDOW->m_bStayFocused = true;
+                break;
+            }
+            case CWindowRule::RULE_GROUP: {
+                if (PWINDOW->m_eGroupRules & GROUP_OVERRIDE)
                     continue;
 
-                if (v == "set") {
+                // `group` is a shorthand of `group set`
+                if (trim(r->szRule) == "group") {
                     PWINDOW->m_eGroupRules |= GROUP_SET;
-                } else if (v == "new") {
-                    // shorthand for `group barred set`
-                    PWINDOW->m_eGroupRules |= (GROUP_SET | GROUP_BARRED);
-                } else if (v == "lock") {
-                    PWINDOW->m_eGroupRules |= GROUP_LOCK;
-                } else if (v == "invade") {
-                    PWINDOW->m_eGroupRules |= GROUP_INVADE;
-                } else if (v == "barred") {
-                    PWINDOW->m_eGroupRules |= GROUP_BARRED;
-                } else if (v == "deny") {
-                    PWINDOW->m_sGroupData.deny = true;
-                } else if (v == "override") {
-                    // Clear existing rules
-                    PWINDOW->m_eGroupRules = GROUP_OVERRIDE;
-                } else if (v == "unset") {
-                    // Clear existing rules and stop processing
-                    PWINDOW->m_eGroupRules = GROUP_OVERRIDE;
-                    break;
-                } else if (v == "always") {
-                    if (vPrev == "set" || vPrev == "group")
-                        PWINDOW->m_eGroupRules |= GROUP_SET_ALWAYS;
-                    else if (vPrev == "lock")
-                        PWINDOW->m_eGroupRules |= GROUP_LOCK_ALWAYS;
-                    else
-                        Debug::log(ERR, "windowrule `group` does not support `{} always`", vPrev);
+                    continue;
                 }
-                vPrev = v;
+
+                CVarList    vars(r->szRule, 0, 's');
+                std::string vPrev = "";
+
+                for (auto const& v : vars) {
+                    if (v == "group")
+                        continue;
+
+                    if (v == "set") {
+                        PWINDOW->m_eGroupRules |= GROUP_SET;
+                    } else if (v == "new") {
+                        // shorthand for `group barred set`
+                        PWINDOW->m_eGroupRules |= (GROUP_SET | GROUP_BARRED);
+                    } else if (v == "lock") {
+                        PWINDOW->m_eGroupRules |= GROUP_LOCK;
+                    } else if (v == "invade") {
+                        PWINDOW->m_eGroupRules |= GROUP_INVADE;
+                    } else if (v == "barred") {
+                        PWINDOW->m_eGroupRules |= GROUP_BARRED;
+                    } else if (v == "deny") {
+                        PWINDOW->m_sGroupData.deny = true;
+                    } else if (v == "override") {
+                        // Clear existing rules
+                        PWINDOW->m_eGroupRules = GROUP_OVERRIDE;
+                    } else if (v == "unset") {
+                        // Clear existing rules and stop processing
+                        PWINDOW->m_eGroupRules = GROUP_OVERRIDE;
+                        break;
+                    } else if (v == "always") {
+                        if (vPrev == "set" || vPrev == "group")
+                            PWINDOW->m_eGroupRules |= GROUP_SET_ALWAYS;
+                        else if (vPrev == "lock")
+                            PWINDOW->m_eGroupRules |= GROUP_LOCK_ALWAYS;
+                        else
+                            Debug::log(ERR, "windowrule `group` does not support `{} always`", vPrev);
+                    }
+                    vPrev = v;
+                }
+                break;
             }
+            default: break;
         }
+
         PWINDOW->applyDynamicRule(r);
     }
 
@@ -330,125 +359,133 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // size and move rules
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            if (r.szRule.starts_with("size")) {
-                try {
+            switch (r->ruleType) {
+                case CWindowRule::RULE_SIZE: {
+                    try {
+                        auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
+                            if (VALUE.starts_with('<'))
+                                return std::min(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+                            else if (VALUE.starts_with('>'))
+                                return std::max(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
 
-                    auto stringToFloatClamp = [](const std::string& VALUE, const float CURR, const float REL) {
-                        if (VALUE.starts_with('<'))
-                            return std::min(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
-                        else if (VALUE.starts_with('>'))
-                            return std::max(CURR, stringToPercentage(VALUE.substr(1, VALUE.length() - 1), REL));
+                            return stringToPercentage(VALUE, REL);
+                        };
 
-                        return stringToPercentage(VALUE, REL);
-                    };
+                        const auto  VALUE    = r->szRule.substr(r->szRule.find(' ') + 1);
+                        const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                        const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+                        const auto  MAXSIZE = PWINDOW->requestedMaxSize();
 
-                    const auto  MAXSIZE = PWINDOW->requestedMaxSize();
+                        const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) :
+                                                                stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
 
-                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) :
-                                                            stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
+                        const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) :
+                                                                stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize.goal().y, PMONITOR->vecSize.y);
 
-                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) :
-                                                            stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize.goal().y, PMONITOR->vecSize.y);
+                        Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
-                    Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
+                        PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
 
-                    PWINDOW->clampWindowSize(Vector2D{SIZEXSTR.starts_with("<") ? 0 : SIZEX, SIZEYSTR.starts_with("<") ? 0 : SIZEY}, Vector2D{SIZEX, SIZEY});
+                        PWINDOW->setHidden(false);
+                    } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
+                    break;
+                }
+                case CWindowRule::RULE_MOVE: {
+                    try {
+                        auto       value = r->szRule.substr(r->szRule.find(' ') + 1);
 
-                    PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.starts_with("move")) {
-                try {
-                    auto       value = r.szRule.substr(r.szRule.find(' ') + 1);
+                        const bool ONSCREEN = value.starts_with("onscreen");
 
-                    const bool ONSCREEN = value.starts_with("onscreen");
+                        if (ONSCREEN)
+                            value = value.substr(value.find_first_of(' ') + 1);
 
-                    if (ONSCREEN)
-                        value = value.substr(value.find_first_of(' ') + 1);
-
-                    const bool CURSOR = value.starts_with("cursor");
-
-                    if (CURSOR)
-                        value = value.substr(value.find_first_of(' ') + 1);
-
-                    const auto POSXSTR = value.substr(0, value.find(' '));
-                    const auto POSYSTR = value.substr(value.find(' ') + 1);
-
-                    int        posX = 0;
-                    int        posY = 0;
-
-                    if (POSXSTR.starts_with("100%-")) {
-                        const bool subtractWindow = POSXSTR.starts_with("100%-w-");
-                        const auto POSXRAW        = (subtractWindow) ? POSXSTR.substr(7) : POSXSTR.substr(5);
-                        posX =
-                            PMONITOR->vecSize.x - (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
-
-                        if (subtractWindow)
-                            posX -= PWINDOW->m_vRealSize.goal().x;
+                        const bool CURSOR = value.starts_with("cursor");
 
                         if (CURSOR)
-                            Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
-                    } else if (!CURSOR) {
-                        posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
-                    } else {
-                        // cursor
-                        if (POSXSTR == "cursor") {
-                            posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x;
+                            value = value.substr(value.find_first_of(' ') + 1);
+
+                        const auto POSXSTR = value.substr(0, value.find(' '));
+                        const auto POSYSTR = value.substr(value.find(' ') + 1);
+
+                        int        posX = 0;
+                        int        posY = 0;
+
+                        if (POSXSTR.starts_with("100%-")) {
+                            const bool subtractWindow = POSXSTR.starts_with("100%-w-");
+                            const auto POSXRAW        = (subtractWindow) ? POSXSTR.substr(7) : POSXSTR.substr(5);
+                            posX                      = PMONITOR->vecSize.x -
+                                (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
+
+                            if (subtractWindow)
+                                posX -= PWINDOW->m_vRealSize.goal().x;
+
+                            if (CURSOR)
+                                Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
+                        } else if (!CURSOR) {
+                            posX = !POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.x;
                         } else {
-                            posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x +
-                                (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().x);
+                            // cursor
+                            if (POSXSTR == "cursor") {
+                                posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x;
+                            } else {
+                                posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x +
+                                    (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().x);
+                            }
                         }
-                    }
 
-                    if (POSYSTR.starts_with("100%-")) {
-                        const bool subtractWindow = POSYSTR.starts_with("100%-w-");
-                        const auto POSYRAW        = (subtractWindow) ? POSYSTR.substr(7) : POSYSTR.substr(5);
-                        posY =
-                            PMONITOR->vecSize.y - (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
+                        if (POSYSTR.starts_with("100%-")) {
+                            const bool subtractWindow = POSYSTR.starts_with("100%-w-");
+                            const auto POSYRAW        = (subtractWindow) ? POSYSTR.substr(7) : POSYSTR.substr(5);
+                            posY                      = PMONITOR->vecSize.y -
+                                (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
-                        if (subtractWindow)
-                            posY -= PWINDOW->m_vRealSize.goal().y;
+                            if (subtractWindow)
+                                posY -= PWINDOW->m_vRealSize.goal().y;
 
-                        if (CURSOR)
-                            Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
-                    } else if (!CURSOR) {
-                        posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
-                    } else {
-                        // cursor
-                        if (POSYSTR == "cursor") {
-                            posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y;
+                            if (CURSOR)
+                                Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
+                        } else if (!CURSOR) {
+                            posY = !POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PMONITOR->vecSize.y;
                         } else {
-                            posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y +
-                                (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().y);
+                            // cursor
+                            if (POSYSTR == "cursor") {
+                                posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y;
+                            } else {
+                                posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y +
+                                    (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().y);
+                            }
                         }
-                    }
 
-                    if (ONSCREEN) {
-                        int borderSize = PWINDOW->getRealBorderSize();
+                        if (ONSCREEN) {
+                            int borderSize = PWINDOW->getRealBorderSize();
 
-                        posX = std::clamp(posX, (int)(PMONITOR->vecReservedTopLeft.x + borderSize),
-                                          (int)(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goal().x - borderSize));
+                            posX = std::clamp(posX, (int)(PMONITOR->vecReservedTopLeft.x + borderSize),
+                                              (int)(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goal().x - borderSize));
 
-                        posY = std::clamp(posY, (int)(PMONITOR->vecReservedTopLeft.y + borderSize),
-                                          (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goal().y - borderSize));
-                    }
+                            posY = std::clamp(posY, (int)(PMONITOR->vecReservedTopLeft.y + borderSize),
+                                              (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goal().y - borderSize));
+                        }
 
-                    Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
+                        Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
 
-                    PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
+                        PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
 
-                    PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r.szRule, r.szValue); }
-            } else if (r.szRule.starts_with("center")) {
-                auto       RESERVEDOFFSET = Vector2D();
-                const auto ARGS           = CVarList(r.szRule, 2, ' ');
-                if (ARGS[1] == "1")
-                    RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
+                        PWINDOW->setHidden(false);
+                    } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r->szRule, r->szValue); }
+                    break;
+                }
+                case CWindowRule::RULE_CENTER: {
+                    auto       RESERVEDOFFSET = Vector2D();
+                    const auto ARGS           = CVarList(r->szRule, 2, ' ');
+                    if (ARGS[1] == "1")
+                        RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-                PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
+                    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
+                    break;
+                }
+
+                default: break;
             }
         }
 
@@ -463,26 +500,27 @@ void Events::listener_mapWindow(void* owner, void* data) {
         bool setPseudo = false;
 
         for (auto const& r : PWINDOW->m_vMatchedRules) {
-            if (r.szRule.starts_with("size")) {
-                try {
-                    const auto  VALUE    = r.szRule.substr(r.szRule.find(' ') + 1);
-                    const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
-                    const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
+            if (r->ruleType != CWindowRule::RULE_SIZE)
+                continue;
 
-                    const auto  MAXSIZE = PWINDOW->requestedMaxSize();
+            try {
+                const auto  VALUE    = r->szRule.substr(r->szRule.find(' ') + 1);
+                const auto  SIZEXSTR = VALUE.substr(0, VALUE.find(' '));
+                const auto  SIZEYSTR = VALUE.substr(VALUE.find(' ') + 1);
 
-                    const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) : stringToPercentage(SIZEXSTR, PMONITOR->vecSize.x);
+                const auto  MAXSIZE = PWINDOW->requestedMaxSize();
 
-                    const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) : stringToPercentage(SIZEYSTR, PMONITOR->vecSize.y);
+                const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) : stringToPercentage(SIZEXSTR, PMONITOR->vecSize.x);
 
-                    Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
+                const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) : stringToPercentage(SIZEYSTR, PMONITOR->vecSize.y);
 
-                    setPseudo              = true;
-                    PWINDOW->m_vPseudoSize = Vector2D(SIZEX, SIZEY);
+                Debug::log(LOG, "Rule size (tiled), applying to {}", PWINDOW);
 
-                    PWINDOW->setHidden(false);
-                } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r.szRule, r.szValue); }
-            }
+                setPseudo              = true;
+                PWINDOW->m_vPseudoSize = Vector2D(SIZEX, SIZEY);
+
+                PWINDOW->setHidden(false);
+            } catch (...) { Debug::log(LOG, "Rule size failed, rule: {} -> {}", r->szRule, r->szValue); }
         }
 
         if (!setPseudo)

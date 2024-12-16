@@ -391,7 +391,8 @@ void CLayerSurface::applyRules() {
                 forceBlurPopups = true;
                 break;
             }
-            case CLayerRule::RULE_IGNOREALPHA: {
+            case CLayerRule::RULE_IGNOREALPHA:
+            case CLayerRule::RULE_IGNOREZERO: {
                 const auto  FIRST_SPACE_POS = rule->rule.find_first_of(' ');
                 std::string alphaValue      = "";
                 if (FIRST_SPACE_POS != std::string::npos)

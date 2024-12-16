@@ -106,7 +106,7 @@ std::optional<std::string> CVersionKeeperManager::getDataLastVersion(const std::
         Debug::log(LOG, "CVersionKeeperManager: no hyprland last version file, creating.");
         writeVersionToVersionFile(dataRoot);
 
-        return HYPRLAND_VERSION;
+        return "0.0.0";
     }
 
     std::ifstream file(lastVerFile);

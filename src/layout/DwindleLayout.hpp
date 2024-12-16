@@ -4,7 +4,7 @@
 #include "../desktop/DesktopTypes.hpp"
 
 #include <list>
-#include <deque>
+#include <vector>
 #include <array>
 #include <optional>
 #include <format>
@@ -39,7 +39,7 @@ struct SDwindleNodeData {
     }
 
     void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
-    void                getAllChildrenRecursive(std::deque<SDwindleNodeData*>*);
+    void                getAllChildrenRecursive(std::vector<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include <deque>
+#include <vector>
 #include "WLClasses.hpp"
 #include <vector>
 #include <array>

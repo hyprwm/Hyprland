@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include <deque>
+#include <vector>
 #include <set>
 #include <unordered_map>
 #include <functional>
@@ -116,45 +116,45 @@ class CKeybindManager {
     static SDispatchResult                         changeMouseBindMode(const eMouseBindMode mode);
 
   private:
-    std::deque<SPressedKeyWithMods> m_dPressedKeys;
+    std::vector<SPressedKeyWithMods> m_dPressedKeys;
 
-    inline static std::string       m_szCurrentSelectedSubmap = "";
+    inline static std::string        m_szCurrentSelectedSubmap = "";
 
-    std::vector<WP<SKeybind>>       m_vActiveKeybinds;
-    WP<SKeybind>                    m_pLastLongPressKeybind;
-    SP<CEventLoopTimer>             m_pLongPressTimer, m_pRepeatKeyTimer;
+    std::vector<WP<SKeybind>>        m_vActiveKeybinds;
+    WP<SKeybind>                     m_pLastLongPressKeybind;
+    SP<CEventLoopTimer>              m_pLongPressTimer, m_pRepeatKeyTimer;
 
-    uint32_t                        m_uTimeLastMs    = 0;
-    uint32_t                        m_uLastCode      = 0;
-    uint32_t                        m_uLastMouseCode = 0;
+    uint32_t                         m_uTimeLastMs    = 0;
+    uint32_t                         m_uLastCode      = 0;
+    uint32_t                         m_uLastMouseCode = 0;
 
-    std::vector<WP<SKeybind>>       m_vPressedSpecialBinds;
+    std::vector<WP<SKeybind>>        m_vPressedSpecialBinds;
 
-    int                             m_iPassPressed = -1; // used for pass
+    int                              m_iPassPressed = -1; // used for pass
 
-    CTimer                          m_tScrollTimer;
+    CTimer                           m_tScrollTimer;
 
-    SDispatchResult                 handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
+    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool);
 
-    std::set<xkb_keysym_t>          m_sMkKeys = {};
-    std::set<xkb_keysym_t>          m_sMkMods = {};
-    eMultiKeyCase                   mkBindMatches(const SP<SKeybind>);
-    eMultiKeyCase                   mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
+    std::set<xkb_keysym_t>           m_sMkKeys = {};
+    std::set<xkb_keysym_t>           m_sMkMods = {};
+    eMultiKeyCase                    mkBindMatches(const SP<SKeybind>);
+    eMultiKeyCase                    mkKeysymSetMatches(const std::set<xkb_keysym_t>, const std::set<xkb_keysym_t>);
 
-    bool                            handleInternalKeybinds(xkb_keysym_t);
-    bool                            handleVT(xkb_keysym_t);
+    bool                             handleInternalKeybinds(xkb_keysym_t);
+    bool                             handleVT(xkb_keysym_t);
 
-    xkb_state*                      m_pXKBTranslationState = nullptr;
+    xkb_state*                       m_pXKBTranslationState = nullptr;
 
-    void                            updateXKBTranslationState();
-    bool                            ensureMouseBindState();
+    void                             updateXKBTranslationState();
+    bool                             ensureMouseBindState();
 
-    static bool                     tryMoveFocusToMonitor(PHLMONITOR monitor);
-    static void                     moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
-    static void                     moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
-    static void                     switchToWindow(PHLWINDOW PWINDOWTOCHANGETO);
-    static uint64_t                 spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
-    static uint64_t                 spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
+    static bool                      tryMoveFocusToMonitor(PHLMONITOR monitor);
+    static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
+    static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
+    static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO);
+    static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace);
+    static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
     static SDispatchResult killActive(std::string);

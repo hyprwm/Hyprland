@@ -838,16 +838,16 @@ void CConfigManager::setDefaultAnimationVars() {
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {
-    m_dMonitorRules.clear();
-    m_dWindowRules.clear();
+    m_vMonitorRules.clear();
+    m_vWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
     m_mAdditionalReservedAreas.clear();
     m_dBlurLSNamespaces.clear();
-    m_dWorkspaceRules.clear();
+    m_vWorkspaceRules.clear();
     setDefaultAnimationVars(); // reset anims
     m_vDeclaredPlugins.clear();
-    m_dLayerRules.clear();
+    m_vLayerRules.clear();
     m_vFailedPluginConfigValues.clear();
     finalExecRequests.clear();
 
@@ -1154,7 +1154,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
         return rule;
     };
 
-    for (auto const& r : m_dMonitorRules | std::views::reverse) {
+    for (auto const& r : m_vMonitorRules | std::views::reverse) {
         if (PMONITOR->matchesStaticSelector(r.name)) {
             return applyWlrOutputConfig(r);
         }
@@ -1162,7 +1162,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
 
     Debug::log(WARN, "No rule found for {}, trying to use the first.", PMONITOR->szName);
 
-    for (auto const& r : m_dMonitorRules) {
+    for (auto const& r : m_vMonitorRules) {
         if (r.name.empty()) {
             return applyWlrOutputConfig(r);
         }
@@ -1179,7 +1179,7 @@ SMonitorRule CConfigManager::getMonitorRuleFor(const PHLMONITOR PMONITOR) {
 
 SWorkspaceRule CConfigManager::getWorkspaceRuleFor(PHLWORKSPACE pWorkspace) {
     SWorkspaceRule mergedRule{};
-    for (auto const& rule : m_dWorkspaceRules) {
+    for (auto const& rule : m_vWorkspaceRules) {
         if (!pWorkspace->matchesStaticSelector(rule.workspaceString))
             continue;
 
@@ -1252,7 +1252,7 @@ std::vector<SWindowRule> CConfigManager::getMatchingRules(PHLWINDOW pWindow, boo
     // local tags for dynamic tag rule match
     auto tags = pWindow->m_tags;
 
-    for (auto const& rule : m_dWindowRules) {
+    for (auto const& rule : m_vWindowRules) {
         // check if we have a matching rule
         if (!rule.v2) {
             try {
@@ -1437,7 +1437,7 @@ std::vector<SLayerRule> CConfigManager::getMatchingRules(PHLLS pLS) {
     if (!pLS->layerSurface || pLS->fadingOut)
         return returns;
 
-    for (auto const& lr : m_dLayerRules) {
+    for (auto const& lr : m_vLayerRules) {
         if (lr.targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr.targetNamespace)
                 continue;
@@ -1510,13 +1510,13 @@ void CConfigManager::dispatchExecShutdown() {
 }
 
 void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
-    m_dMonitorRules.emplace_back(r);
+    m_vMonitorRules.emplace_back(r);
 }
 
 bool CConfigManager::replaceMonitorRule(const SMonitorRule& newrule) {
     // Looks for an existing monitor rule (compared by name).
     // If the rule exists, it is replaced with the input rule.
-    for (auto& r : m_dMonitorRules) {
+    for (auto& r : m_vMonitorRules) {
         if (r.name == newrule.name) {
             r = newrule;
             return true;
@@ -1693,7 +1693,7 @@ PHLMONITOR CConfigManager::getBoundMonitorForWS(const std::string& wsname) {
 }
 
 std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname) {
-    for (auto const& wr : m_dWorkspaceRules) {
+    for (auto const& wr : m_vWorkspaceRules) {
         const auto WSNAME = wr.workspaceName.starts_with("name:") ? wr.workspaceName.substr(5) : wr.workspaceName;
 
         if (WSNAME == wsname)
@@ -1703,8 +1703,8 @@ std::string CConfigManager::getBoundMonitorStringForWS(const std::string& wsname
     return "";
 }
 
-const std::deque<SWorkspaceRule>& CConfigManager::getAllWorkspaceRules() {
-    return m_dWorkspaceRules;
+const std::vector<SWorkspaceRule>& CConfigManager::getAllWorkspaceRules() {
+    return m_vWorkspaceRules;
 }
 
 void CConfigManager::addExecRule(const SExecRequestedRule& rule) {
@@ -1782,7 +1782,7 @@ void CConfigManager::removePluginConfig(HANDLE handle) {
 }
 
 std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
-    for (auto other = m_dWorkspaceRules.begin(); other != m_dWorkspaceRules.end(); ++other) {
+    for (auto other = m_vWorkspaceRules.begin(); other != m_vWorkspaceRules.end(); ++other) {
         if (other->isDefault) {
             if (other->monitor == name)
                 return other->workspaceString;
@@ -1900,7 +1900,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             const auto TRANSFORM = (wl_output_transform)TSF;
 
             // overwrite if exists
-            for (auto& r : m_dMonitorRules) {
+            for (auto& r : m_vMonitorRules) {
                 if (r.name == newrule.name) {
                     r.transform = TRANSFORM;
                     return {};
@@ -1925,9 +1925,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             return "parse error: curitem bogus";
         }
 
-        std::erase_if(m_dMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
+        std::erase_if(m_vMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
 
-        m_dMonitorRules.push_back(newrule);
+        m_vMonitorRules.push_back(newrule);
 
         return {};
     }
@@ -1960,7 +1960,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
     if (ARGS[2].starts_with("auto")) {
         newrule.offset = Vector2D(-INT32_MAX, -INT32_MAX);
         // If this is the first monitor rule needs to be on the right.
-        if (ARGS[2] == "auto-right" || ARGS[2] == "auto" || m_dMonitorRules.empty())
+        if (ARGS[2] == "auto-right" || ARGS[2] == "auto" || m_vMonitorRules.empty())
             newrule.autoDir = eAutoDirs::DIR_AUTO_RIGHT;
         else if (ARGS[2] == "auto-left")
             newrule.autoDir = eAutoDirs::DIR_AUTO_LEFT;
@@ -2043,7 +2043,7 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             wsRule.workspaceId     = id;
             wsRule.workspaceName   = name;
 
-            m_dWorkspaceRules.emplace_back(wsRule);
+            m_vWorkspaceRules.emplace_back(wsRule);
             argno++;
         } else {
             Debug::log(ERR, "Config error: invalid monitor syntax at \"{}\"", ARGS[argno]);
@@ -2053,9 +2053,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
         argno++;
     }
 
-    std::erase_if(m_dMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
+    std::erase_if(m_vMonitorRules, [&](const auto& other) { return other.name == newrule.name; });
 
-    m_dMonitorRules.push_back(newrule);
+    m_vMonitorRules.push_back(newrule);
 
     if (error.empty())
         return {};
@@ -2338,7 +2338,7 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         return "empty rule?";
 
     if (RULE == "unset") {
-        std::erase_if(m_dWindowRules, [&](const SWindowRule& other) { return other.szValue == VALUE; });
+        std::erase_if(m_vWindowRules, [&](const SWindowRule& other) { return other.szValue == VALUE; });
         return {};
     }
 
@@ -2349,9 +2349,9 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
     }
 
     if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
-        m_dWindowRules.push_front({RULE, VALUE});
+        m_vWindowRules.insert(m_vWindowRules.begin(), {RULE, VALUE});
     else
-        m_dWindowRules.push_back({RULE, VALUE});
+        m_vWindowRules.push_back({RULE, VALUE});
 
     return {};
 }
@@ -2365,7 +2365,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
         return "empty rule?";
 
     if (RULE == "unset") {
-        std::erase_if(m_dLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
+        std::erase_if(m_vLayerRules, [&](const SLayerRule& other) { return other.targetNamespace == VALUE; });
         return {};
     }
 
@@ -2374,7 +2374,7 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
         return "Invalid rule found: " + RULE;
     }
 
-    m_dLayerRules.push_back({VALUE, RULE});
+    m_vLayerRules.push_back({VALUE, RULE});
 
     for (auto const& m : g_pCompositor->m_vMonitors)
         for (auto const& lsl : m->m_aLayerSurfaceLayers)
@@ -2512,7 +2512,7 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
         rule.szOnWorkspace = extract(ONWORKSPACEPOS + 12);
 
     if (RULE == "unset") {
-        std::erase_if(m_dWindowRules, [&](const SWindowRule& other) {
+        std::erase_if(m_vWindowRules, [&](const SWindowRule& other) {
             if (!other.v2) {
                 return other.szClass == rule.szClass && !rule.szClass.empty();
             } else {
@@ -2562,9 +2562,9 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     }
 
     if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
-        m_dWindowRules.push_front(rule);
+        m_vWindowRules.insert(m_vWindowRules.begin(), rule);
     else
-        m_dWindowRules.push_back(rule);
+        m_vWindowRules.push_back(rule);
 
     return {};
 }
@@ -2713,10 +2713,10 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
     wsRule.workspaceId   = id;
     wsRule.workspaceName = name;
 
-    const auto IT = std::find_if(m_dWorkspaceRules.begin(), m_dWorkspaceRules.end(), [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
+    const auto IT = std::find_if(m_vWorkspaceRules.begin(), m_vWorkspaceRules.end(), [&](const auto& other) { return other.workspaceString == wsRule.workspaceString; });
 
-    if (IT == m_dWorkspaceRules.end())
-        m_dWorkspaceRules.emplace_back(wsRule);
+    if (IT == m_vWorkspaceRules.end())
+        m_vWorkspaceRules.emplace_back(wsRule);
     else
         *IT = mergeWorkspaceRules(*IT, wsRule);
 

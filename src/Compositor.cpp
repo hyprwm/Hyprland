@@ -1349,13 +1349,13 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     else {
         // move X11 window stack
 
-        std::deque<PHLWINDOW> toMove;
+        std::vector<PHLWINDOW> toMove;
 
-        auto                  x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
+        auto                   x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
             if (top)
                 toMove.emplace_back(pw);
             else
-                toMove.emplace_front(pw);
+                toMove.insert(toMove.begin(), pw);
 
             for (auto const& w : m_vWindows) {
                 if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->x11TransientFor() == pw && w != pw && std::find(toMove.begin(), toMove.end(), w) == toMove.end()) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <deque>
+#include <vector>
 #include <string>
 
 #include "../config/ConfigDataValues.hpp"
@@ -344,8 +344,8 @@ class CWindow {
 
     // Window decorations
     // TODO: make this a SP.
-    std::deque<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
-    std::vector<IHyprWindowDecoration*>                m_vDecosToRemove;
+    std::vector<std::unique_ptr<IHyprWindowDecoration>> m_dWindowDecorations;
+    std::vector<IHyprWindowDecoration*>                 m_vDecosToRemove;
 
     // Special render data, rules, etc
     SWindowData m_sWindowData;

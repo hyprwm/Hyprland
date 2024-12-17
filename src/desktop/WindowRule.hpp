@@ -19,7 +19,6 @@ class CWindowRule {
         RULE_RENDERUNFOCUSED,
         RULE_ANIMATION,
         RULE_BORDERCOLOR,
-        RULE_BORDERSIZE,
         RULE_CENTER,
         RULE_FULLSCREENSTATE,
         RULE_GROUP,
@@ -31,14 +30,10 @@ class CWindowRule {
         RULE_OPACITY,
         RULE_PLUGIN,
         RULE_PSEUDO,
-        RULE_ROUNDING,
-        RULE_SCROLLMOUSE,
-        RULE_SCROLLTOUCHPAD,
         RULE_SIZE,
         RULE_SUPPRESSEVENT,
         RULE_TAG,
         RULE_WORKSPACE,
-        RULE_XRAY,
         RULE_PROP,
     };
 

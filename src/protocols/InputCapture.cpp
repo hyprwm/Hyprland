@@ -1,6 +1,5 @@
 #include "InputCapture.hpp"
 
-#include "../devices/IKeyboard.hpp"
 #include "managers/SeatManager.hpp"
 #include <fcntl.h>
 

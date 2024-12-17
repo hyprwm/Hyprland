@@ -163,7 +163,6 @@ class CConfigManager {
 
     void* const*                                                    getConfigValuePtr(const std::string&);
     Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getMainConfigPath();
     std::string                                                     getConfigString();
 
@@ -193,8 +192,6 @@ class CConfigManager {
     void                      dispatchExecShutdown();
 
     void                      performMonitorReload();
-    void                      appendMonitorRule(const SMonitorRule&);
-    bool                      replaceMonitorRule(const SMonitorRule&);
     void                      ensureMonitorStatus();
     void                      ensureVRR(PHLMONITOR pMonitor = nullptr);
 

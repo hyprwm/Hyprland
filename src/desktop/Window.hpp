@@ -399,7 +399,6 @@ class CWindow {
     bool                   checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
     pid_t                  getPID();
     IHyprWindowDecoration* getDecorationByType(eDecorationType);
-    void                   removeDecorationByType(eDecorationType);
     void                   updateToplevel();
     void                   updateSurfaceScaleTransformDetails(bool force = false);
     void                   moveToWorkspace(PHLWORKSPACE);

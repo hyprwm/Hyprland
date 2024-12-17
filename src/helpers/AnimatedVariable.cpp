@@ -55,11 +55,6 @@ void CBaseAnimatedVariable::registerVar() {
     m_bIsRegistered = true;
 }
 
-int CBaseAnimatedVariable::getDurationLeftMs() {
-    return std::max(
-        (int)(m_pConfig->pValues->internalSpeed * 100) - (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - animationBegin).count(), 0);
-}
-
 float CBaseAnimatedVariable::getPercent() {
     const auto DURATIONPASSED = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - animationBegin).count();
     return std::clamp((DURATIONPASSED / 100.f) / m_pConfig->pValues->internalSpeed, 0.f, 1.f);

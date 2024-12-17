@@ -1483,22 +1483,6 @@ void CConfigManager::dispatchExecShutdown() {
     handleExecShutdown("", "hyprctl dispatch exit");
 }
 
-void CConfigManager::appendMonitorRule(const SMonitorRule& r) {
-    m_vMonitorRules.emplace_back(r);
-}
-
-bool CConfigManager::replaceMonitorRule(const SMonitorRule& newrule) {
-    // Looks for an existing monitor rule (compared by name).
-    // If the rule exists, it is replaced with the input rule.
-    for (auto& r : m_vMonitorRules) {
-        if (r.name == newrule.name) {
-            r = newrule;
-            return true;
-        }
-    }
-    return false;
-}
-
 void CConfigManager::performMonitorReload() {
 
     bool overAgain = false;
@@ -1716,10 +1700,6 @@ ICustomConfigValueData::~ICustomConfigValueData() {
 
 std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAnimationConfig() {
     return animationConfig;
-}
-
-void onPluginLoadUnload(const std::string& name, bool load) {
-    //
 }
 
 void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {

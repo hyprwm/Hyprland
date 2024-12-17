@@ -2234,11 +2234,6 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     }
 }
 
-void CCompositor::changeWindowFullscreenModeInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenInternal(
-        PWINDOW, (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.internal | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.internal & (uint8_t)~MODE)));
-}
-
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
     setWindowFullscreenClient(PWINDOW,
                               (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.client | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.client & (uint8_t)~MODE)));
@@ -2902,17 +2897,6 @@ void CCompositor::updateSuspendedStates() {
 
         w->setSuspended(w->isHidden() || !w->m_pWorkspace || !w->m_pWorkspace->isVisible());
     }
-}
-
-PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
-    for (auto const& w : m_vWindows) {
-        if (w.get() != pWindow)
-            continue;
-
-        return w;
-    }
-
-    return {};
 }
 
 static void checkDefaultCursorWarp(PHLMONITOR monitor) {

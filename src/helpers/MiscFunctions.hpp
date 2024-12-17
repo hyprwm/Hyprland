@@ -21,8 +21,6 @@ struct SWorkspaceIDName {
 };
 
 std::string                         absolutePath(const std::string&, const std::string&);
-void                                addWLSignal(wl_signal*, wl_listener*, void* pOwner, const std::string& ownerString);
-void                                removeWLSignal(wl_listener*);
 std::string                         escapeJSONStrings(const std::string& str);
 bool                                isDirection(const std::string&);
 bool                                isDirection(const char&);

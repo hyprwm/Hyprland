@@ -872,15 +872,6 @@ void Events::listener_destroyWindow(void* owner, void* data) {
     PWINDOW->listeners.commit.reset();
 }
 
-void Events::listener_setTitleWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
-
-    if (!validMapped(PWINDOW))
-        return;
-
-    PWINDOW->onUpdateMeta();
-}
-
 void Events::listener_activateX11(void* owner, void* data) {
     PHLWINDOW PWINDOW = ((CWindow*)owner)->m_pSelf.lock();
 

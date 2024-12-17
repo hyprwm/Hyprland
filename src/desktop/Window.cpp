@@ -473,15 +473,6 @@ PHLWINDOW CWindow::x11TransientFor() {
     return nullptr;
 }
 
-void CWindow::removeDecorationByType(eDecorationType type) {
-    for (auto const& wd : m_dWindowDecorations) {
-        if (wd->getDecorationType() == type)
-            m_vDecosToRemove.push_back(wd.get());
-    }
-
-    updateWindowDecos();
-}
-
 void unregisterVar(void* ptr) {
     ((CBaseAnimatedVariable*)ptr)->unregister();
 }

@@ -2142,13 +2142,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     scissor((CBox*)nullptr);
 }
 
-void pushVert2D(float x, float y, float* arr, int& counter, CBox* box) {
-    // 0-1 space god damnit
-    arr[counter * 2 + 0] = x / box->width;
-    arr[counter * 2 + 1] = y / box->height;
-    counter++;
-}
-
 void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, int round, int borderSize, float a, int outerRound) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");

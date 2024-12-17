@@ -95,8 +95,6 @@ class CBaseAnimatedVariable {
         return m_pConfig;
     }
 
-    int getDurationLeftMs();
-
     /* returns the spent (completion) % */
     float getPercent();
 

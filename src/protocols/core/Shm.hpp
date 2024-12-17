@@ -43,7 +43,6 @@ class CWLSHMBuffer : public IHLBuffer {
     virtual void                                   endDataPtr();
 
     bool                                           good();
-    void                                           updateTexture();
 
     int32_t                                        offset = 0, stride = 0;
     uint32_t                                       fmt = 0;

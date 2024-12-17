@@ -1384,6 +1384,11 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     auto       MODS = pKeyboard->modifiersState;
     MODS.depressed  = ALLMODS;
 
+    PROTO::inputCapture->sendModifiers(MODS.depressed,MODS.latched, MODS.locked, MODS.group);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     const auto IME = m_sIMERelay.m_pIME.lock();
 
     if (IME && IME->hasGrab() && !DISALLOWACTION) {

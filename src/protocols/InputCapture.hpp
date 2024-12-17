@@ -18,6 +18,7 @@ class CInputCaptureProtocol : public IWaylandProtocol {
 
     void sendMotion(const Vector2D& absolutePosition, const Vector2D& delta);
     void sendKey(uint32_t keyCode, hyprlandInputCaptureManagerV1KeyState state);
+    void sendModifiers(uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group);
     void sendButton(uint32_t button, hyprlandInputCaptureManagerV1ButtonState state);
     void sendAxis(hyprlandInputCaptureManagerV1Axis axis, double value);
     void sendAxisValue120(hyprlandInputCaptureManagerV1Axis axis, int32_t value120);

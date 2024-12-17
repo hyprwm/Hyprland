@@ -1513,6 +1513,10 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     MODS.depressed     = ALLMODS;
     m_lastMods         = MODS.depressed;
 
+    PROTO::inputCapture->sendModifiers(MODS.depressed,MODS.latched, MODS.locked, MODS.group);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
     const auto IME = m_relay.m_inputMethod.lock();
 
     if (IME && IME->hasGrab() && !DISALLOWACTION) {

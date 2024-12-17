@@ -284,8 +284,10 @@ int requestHyprpaper(std::string arg) {
 void batchRequest(std::string arg, bool json) {
     std::string commands = arg.substr(arg.find_first_of(' ') + 1);
 
-    if (json)
+    if (json) {
         RE2::GlobalReplace(&commands, ";\\s*", ";j/");
+        commands.insert(0, "j/");
+    }
 
     std::string rq = "[[BATCH]]" + commands;
     request(rq);

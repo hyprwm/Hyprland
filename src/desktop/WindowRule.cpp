@@ -41,8 +41,6 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_ANIMATION;
     else if (rule.starts_with("bordercolor"))
         ruleType = RULE_BORDERCOLOR;
-    else if (rule.starts_with("bordersize"))
-        ruleType = RULE_BORDERSIZE;
     else if (rule.starts_with("center"))
         ruleType = RULE_CENTER;
     else if (rule.starts_with("fullscreenstate"))
@@ -65,12 +63,6 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_PLUGIN;
     else if (rule.starts_with("pseudo"))
         ruleType = RULE_PSEUDO;
-    else if (rule.starts_with("rounding"))
-        ruleType = RULE_ROUNDING;
-    else if (rule.starts_with("scrollmouse"))
-        ruleType = RULE_SCROLLMOUSE;
-    else if (rule.starts_with("scrolltouchpad"))
-        ruleType = RULE_SCROLLTOUCHPAD;
     else if (rule.starts_with("size"))
         ruleType = RULE_SIZE;
     else if (rule.starts_with("suppressevent"))
@@ -79,8 +71,6 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         ruleType = RULE_TAG;
     else if (rule.starts_with("workspace"))
         ruleType = RULE_WORKSPACE;
-    else if (rule.starts_with("xray"))
-        ruleType = RULE_XRAY;
     else if (rule.starts_with("prop"))
         ruleType = RULE_PROP;
     else {

@@ -71,10 +71,6 @@ bool CDMABuffer::good() {
     return success;
 }
 
-void CDMABuffer::updateTexture() {
-    ;
-}
-
 void CDMABuffer::closeFDs() {
     for (int i = 0; i < attrs.planes; ++i) {
         if (attrs.fds[i] == -1)

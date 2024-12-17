@@ -38,14 +38,6 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
     }
 }
 
-void SDwindleNodeData::getAllChildrenRecursive(std::vector<SDwindleNodeData*>* pVec) {
-    if (children[0]) {
-        children[0]->getAllChildrenRecursive(pVec);
-        children[1]->getAllChildrenRecursive(pVec);
-    } else
-        pVec->push_back(this);
-}
-
 int CHyprDwindleLayout::getNodesOnWorkspace(const WORKSPACEID& id) {
     int no = 0;
     for (auto const& n : m_lDwindleNodesData) {
@@ -802,15 +794,6 @@ void CHyprDwindleLayout::recalculateWindow(PHLWINDOW pWindow) {
         return;
 
     PNODE->recalcSizePosRecursive();
-}
-
-static void addToVectorRecursive(std::vector<SDwindleNodeData*>* pVec, std::vector<SDwindleNodeData*>* pParents, SDwindleNodeData* node) {
-    if (node->isNode) {
-        pParents->emplace_back(node);
-        addToVectorRecursive(pVec, pParents, node->children[0]);
-        addToVectorRecursive(pVec, pParents, node->children[1]);
-    } else
-        pVec->emplace_back(node);
 }
 
 SWindowRenderLayoutHints CHyprDwindleLayout::requestRenderHints(PHLWINDOW pWindow) {

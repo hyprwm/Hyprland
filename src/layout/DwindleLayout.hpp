@@ -39,7 +39,6 @@ struct SDwindleNodeData {
     }
 
     void                recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
-    void                getAllChildrenRecursive(std::vector<SDwindleNodeData*>*);
     CHyprDwindleLayout* layout = nullptr;
 };
 

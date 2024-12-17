@@ -161,26 +161,6 @@ std::string absolutePath(const std::string& rawpath, const std::string& currentP
     return value;
 }
 
-void addWLSignal(wl_signal* pSignal, wl_listener* pListener, void* pOwner, const std::string& ownerString) {
-    ASSERT(pSignal);
-    ASSERT(pListener);
-
-    wl_signal_add(pSignal, pListener);
-
-    Debug::log(LOG, "Registered signal for owner {:x}: {:x} -> {:x} (owner: {})", (uintptr_t)pOwner, (uintptr_t)pSignal, (uintptr_t)pListener, ownerString);
-}
-
-void removeWLSignal(wl_listener* pListener) {
-    wl_list_remove(&pListener->link);
-    wl_list_init(&pListener->link);
-
-    Debug::log(LOG, "Removed listener {:x}", (uintptr_t)pListener);
-}
-
-void handleNoop(struct wl_listener* listener, void* data) {
-    // Do nothing
-}
-
 std::string escapeJSONStrings(const std::string& str) {
     std::ostringstream oss;
     for (auto const& c : str) {

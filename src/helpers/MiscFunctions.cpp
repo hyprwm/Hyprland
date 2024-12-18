@@ -608,7 +608,7 @@ void logSystemInfo() {
         }
     } catch (...) { GPUINFO = "error"; }
 #else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep -E (VGA|Display|3D)");
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
 #endif
     Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
 

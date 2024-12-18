@@ -161,7 +161,7 @@ void NCrashReporter::createAndSaveCrash(int sig) {
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     finalCrashReport.writeCmdOutput("pciconf -lv | grep -F -A4 vga");
 #else
-    finalCrashReport.writeCmdOutput("lspci -vnn | grep VGA");
+    finalCrashReport.writeCmdOutput("lspci -vnn | grep -E (VGA|Display|3D)");
 #endif
 
     finalCrashReport += "\n\nos-release:\n";

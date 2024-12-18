@@ -7,6 +7,7 @@
 #include "../managers/XWaylandManager.hpp"
 #include "../desktop/WLSurface.hpp"
 
+#ifndef NO_XWAYLAND
 static xcb_atom_t dndActionToAtom(uint32_t actions) {
     if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
         return HYPRATOMS["XdndActionCopy"];
@@ -17,6 +18,7 @@ static xcb_atom_t dndActionToAtom(uint32_t actions) {
 
     return XCB_ATOM_NONE;
 }
+#endif
 
 eDataSourceType CX11DataOffer::type() {
     return DATA_SOURCE_TYPE_X11;

@@ -633,7 +633,14 @@ void CXWM::handleSelectionRequest(xcb_selection_request_event_t* e) {
 
     if (e->target == HYPRATOMS["TARGETS"]) {
         // send mime types
-        auto                    mimes = g_pSeatManager->selection.currentSelection->mimes();
+        std::vector<std::string> mimes;
+        if (sel == &clipboard && g_pSeatManager->selection.currentSelection)
+            mimes = g_pSeatManager->selection.currentSelection->mimes();
+        else if (sel == &dndSelection && !dndDataOffers.empty() && dndDataOffers.at(0)->source)
+            mimes = dndDataOffers.at(0)->source->mimes();
+
+        if (mimes.empty())
+            Debug::log(WARN, "[xwm] WARNING: No mimes in TARGETS?");
 
         std::vector<xcb_atom_t> atoms;
         atoms.push_back(HYPRATOMS["TIMESTAMP"]);

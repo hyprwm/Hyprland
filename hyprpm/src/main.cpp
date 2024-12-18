@@ -159,9 +159,7 @@ int                        main(int argc, char** argv, char** envp) {
         if (ret != LOADSTATE_OK && notify) {
             switch (ret) {
                 case LOADSTATE_FAIL:
-                case LOADSTATE_PARTIAL_FAIL:
-                    g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins");
-                    break;
+                case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
                 case LOADSTATE_HEADERS_OUTDATED:
                     g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
                     break;

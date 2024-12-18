@@ -976,7 +976,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
         }
     } catch (...) { GPUINFO = "error"; }
 #else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep VGA");
+    const std::string GPUINFO = execAndGet("lspci -vnn | grep -E (VGA|Display|3D)");
 #endif
     result += "GPU information: \n" + GPUINFO;
     if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version")) {

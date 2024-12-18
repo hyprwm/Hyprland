@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include <cstring>
 
+// NOLINTNEXTLINE
+extern "C" char** environ;
+
+//
 char const* sigGetenv(char const* name) {
     const size_t len = strlen(name);
     for (char** var = environ; *var != nullptr; var++) {

@@ -47,7 +47,7 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
             }
             PWINDOW->m_pXWaylandSurface->activate(activate);
         }
-    } else if (PWINDOW->m_pXDGSurface)
+    } else if (PWINDOW->m_pXDGSurface && PWINDOW->m_pXDGSurface->toplevel)
         PWINDOW->m_pXDGSurface->toplevel->setActive(activate);
 }
 

@@ -80,6 +80,9 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
             PROTO::outputs.erase(pMonitor->szName);
         PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
     }
+
+    if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription())
+        PROTO::colorManagement->onImagePreferredChanged();
 }
 
 CProtocolManager::CProtocolManager() {

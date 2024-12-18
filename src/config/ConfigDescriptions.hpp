@@ -1635,12 +1635,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "experimental:hdr_sdr_brightness",
-        .description = "force sdr brightness with hdr for all supported outputs",
-        .type        = CONFIG_OPTION_FLOAT,
-        .data        = SConfigOptionDescription::SFloatData{0.5, 0, 1},
-    },
-    SConfigOptionDescription{
         .value       = "experimental:xx_color_management_v4",
         .description = "enable color management protocol",
         .type        = CONFIG_OPTION_BOOL,

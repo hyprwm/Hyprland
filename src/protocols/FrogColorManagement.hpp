@@ -3,7 +3,6 @@
 #include <memory>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
-#include "protocols/ColorManagement.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "frog-color-management-v1.hpp"
 
@@ -27,7 +26,6 @@ class CFrogColorManagementSurface {
     WP<CFrogColorManagementSurface> self;
     WP<CWLSurfaceResource>          surface;
 
-    SImageDescription               settings;
     bool                            pqIntentSent = false;
 
   private:

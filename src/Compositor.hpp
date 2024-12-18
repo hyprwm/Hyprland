@@ -33,6 +33,7 @@
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
 
+struct SImageDescription;
 class CWLSurfaceResource;
 
 enum eManagersInitStage : uint8_t {
@@ -170,6 +171,9 @@ class CCompositor {
     void                   updateSuspendedStates();
     PHLWINDOW              windowForCPointer(CWindow*);
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
+
+    SImageDescription      getPreferredImageDescription();
+    bool                   shouldChangePreferredImageDescription();
 
     std::string            explicitConfigPath;
 

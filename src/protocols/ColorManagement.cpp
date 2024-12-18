@@ -154,6 +154,10 @@ wl_client* CColorManagementOutput::client() {
     return pClient;
 }
 
+CColorManagementSurface::CColorManagementSurface(SP<CWLSurfaceResource> surface_) : surface(surface_) {
+    // only for frog cm untill wayland cm is adopted
+}
+
 CColorManagementSurface::CColorManagementSurface(SP<CXxColorManagementSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) : surface(surface_), resource(resource_) {
     if (!good())
         return;
@@ -169,18 +173,52 @@ CColorManagementSurface::CColorManagementSurface(SP<CXxColorManagementSurfaceV4>
         PROTO::colorManagement->destroyResource(this);
     });
 
-    resource->setSetImageDescription([](CXxColorManagementSurfaceV4* r, wl_resource* image_description, uint32_t render_intent) {
-        LOGM(TRACE, "Set image description for surface={}, desc={}, intent={} (FIXME: stub)", (uintptr_t)r, (uintptr_t)image_description, render_intent);
+    resource->setSetImageDescription([this](CXxColorManagementSurfaceV4* r, wl_resource* image_description, uint32_t render_intent) {
+        LOGM(TRACE, "Set image description for surface={}, desc={}, intent={}", (uintptr_t)r, (uintptr_t)image_description, render_intent);
+
+        const auto PO = (CXxImageDescriptionV4*)wl_resource_get_user_data(image_description);
+        if (!PO) { // FIXME check validity
+            r->error(XX_COLOR_MANAGEMENT_SURFACE_V4_ERROR_IMAGE_DESCRIPTION, "Image description creation failed");
+            return;
+        }
+        if (render_intent != XX_COLOR_MANAGER_V4_RENDER_INTENT_PERCEPTUAL) {
+            r->error(XX_COLOR_MANAGEMENT_SURFACE_V4_ERROR_RENDER_INTENT, "Unsupported render intent");
+            return;
+        }
+
+        const auto imageDescription = std::find_if(PROTO::colorManagement->m_vImageDescriptions.begin(), PROTO::colorManagement->m_vImageDescriptions.end(),
+                                                   [&](const auto& other) { return other->resource()->resource() == image_description; });
+        if (imageDescription == PROTO::colorManagement->m_vImageDescriptions.end()) {
+            r->error(XX_COLOR_MANAGEMENT_SURFACE_V4_ERROR_IMAGE_DESCRIPTION, "Image description not found");
+            return;
+        }
+
+        this->m_hasImageDescription = true;
+        this->m_imageDescription    = imageDescription->get()->settings;
     });
-    resource->setUnsetImageDescription([](CXxColorManagementSurfaceV4* r) { LOGM(TRACE, "Unset image description for surface={} (FIXME: stub)", (uintptr_t)r); });
+    resource->setUnsetImageDescription([this](CXxColorManagementSurfaceV4* r) {
+        LOGM(TRACE, "Unset image description for surface={}", (uintptr_t)r);
+        this->m_imageDescription    = SImageDescription{};
+        this->m_hasImageDescription = false;
+    });
 }
 
 bool CColorManagementSurface::good() {
-    return resource->resource();
+    return resource && resource->resource();
 }
 
 wl_client* CColorManagementSurface::client() {
     return pClient;
+}
+
+const SImageDescription& CColorManagementSurface::imageDescription() {
+    if (!hasImageDescription())
+        LOGM(WARN, "Reading imageDescription while none set. Returns default or empty values");
+    return m_imageDescription;
+}
+
+bool CColorManagementSurface::hasImageDescription() {
+    return m_hasImageDescription;
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CXxColorManagementFeedbackSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) :
@@ -192,14 +230,39 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CXxColorMana
 
     resource->setDestroy([this](CXxColorManagementFeedbackSurfaceV4* r) {
         LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
+        if (this->m_currentPreferred.valid())
+            PROTO::colorManagement->destroyResource(this->m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
     resource->setOnDestroy([this](CXxColorManagementFeedbackSurfaceV4* r) {
         LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)surface);
+        if (this->m_currentPreferred.valid())
+            PROTO::colorManagement->destroyResource(this->m_currentPreferred.get());
         PROTO::colorManagement->destroyResource(this);
     });
 
-    resource->setGetPreferred([](CXxColorManagementFeedbackSurfaceV4* r, uint32_t id) { LOGM(TRACE, "Get preferred for id {} (FIXME: stub)", id); });
+    resource->setGetPreferred([this](CXxColorManagementFeedbackSurfaceV4* r, uint32_t id) {
+        LOGM(TRACE, "Get preferred for id {}", id);
+
+        if (m_currentPreferred.valid())
+            PROTO::colorManagement->destroyResource(m_currentPreferred.get());
+
+        const auto RESOURCE = PROTO::colorManagement->m_vImageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CXxImageDescriptionV4>(r->client(), r->version(), id), true));
+
+        if (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_vImageDescriptions.pop_back();
+            return;
+        }
+
+        RESOURCE->self     = RESOURCE;
+        m_currentPreferred = RESOURCE;
+
+        m_currentPreferred->settings = g_pCompositor->getPreferredImageDescription();
+
+        RESOURCE->resource()->sendReady(id);
+    });
 }
 
 bool CColorManagementFeedbackSurface::good() {
@@ -280,15 +343,25 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
         this->valuesSet |= PC_TF_POWER;
     });
     resource->setSetPrimariesNamed([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t primaries) {
-        LOGM(TRACE, "Set image description primaries by name {} (FIXME: stub)", primaries);
+        LOGM(TRACE, "Set image description primaries by name {}", primaries);
         if (this->valuesSet & PC_PRIMARIES) {
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Primaries already set");
             return;
         }
 
         switch (primaries) {
-            case XX_COLOR_MANAGER_V4_PRIMARIES_SRGB: break;
-            case XX_COLOR_MANAGER_V4_PRIMARIES_BT2020: break;
+            case XX_COLOR_MANAGER_V4_PRIMARIES_SRGB:
+                this->settings.primariesNameSet = true;
+                this->settings.primariesNamed   = XX_COLOR_MANAGER_V4_PRIMARIES_SRGB;
+                this->settings.primaries        = Primaries::BT709;
+                this->valuesSet |= PC_PRIMARIES;
+                break;
+            case XX_COLOR_MANAGER_V4_PRIMARIES_BT2020:
+                this->settings.primariesNameSet = true;
+                this->settings.primariesNamed   = XX_COLOR_MANAGER_V4_PRIMARIES_BT2020;
+                this->settings.primaries        = Primaries::BT2020;
+                this->valuesSet |= PC_PRIMARIES;
+                break;
             default: r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_PRIMARIES, "Unsupported primaries");
         }
     });
@@ -299,6 +372,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
                 r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Primaries already set");
                 return;
             }
+            this->settings.primariesNameSet = false;
             this->settings.primaries =
                 SImageDescription::SPCPRimaries{.red = {.x = r_x, .y = r_y}, .green = {.x = g_x, .y = g_y}, .blue = {.x = b_x, .y = b_y}, .white = {.x = w_x, .y = w_y}};
             this->valuesSet |= PC_PRIMARIES;
@@ -314,7 +388,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        this->settings.luminances = SImageDescription::SPCLuminances{.min = min_lum, .max = max_lum, .reference = reference_lum};
+        this->settings.luminances = SImageDescription::SPCLuminances{.min = min, .max = max_lum, .reference = reference_lum};
         this->valuesSet |= PC_LUMINANCES;
     });
     resource->setSetMasteringDisplayPrimaries(
@@ -339,7 +413,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CXxImage
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        this->settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min_lum, .max = max_lum};
+        this->settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};
         this->valuesSet |= PC_MASTERING_LUMINANCES;
     });
     resource->setSetMaxCll([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t max_cll) {
@@ -370,7 +444,8 @@ wl_client* CColorManagementParametricCreator::client() {
     return pClient;
 }
 
-CColorManagementImageDescription::CColorManagementImageDescription(SP<CXxImageDescriptionV4> resource_) : m_resource(resource_) {
+CColorManagementImageDescription::CColorManagementImageDescription(SP<CXxImageDescriptionV4> resource_, bool allowGetInformation) :
+    m_resource(resource_), m_allowGetInformation(allowGetInformation) {
     if (!good())
         return;
 
@@ -379,7 +454,23 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CXxImageDe
     m_resource->setDestroy([this](CXxImageDescriptionV4* r) { PROTO::colorManagement->destroyResource(this); });
     m_resource->setOnDestroy([this](CXxImageDescriptionV4* r) { PROTO::colorManagement->destroyResource(this); });
 
-    m_resource->setGetInformation([](CXxImageDescriptionV4* r, uint32_t id) { LOGM(TRACE, "Get image information for image={}, id={} (FIXME: stub)", (uintptr_t)r, id); });
+    m_resource->setGetInformation([this](CXxImageDescriptionV4* r, uint32_t id) {
+        LOGM(TRACE, "Get image information for image={}, id={}", (uintptr_t)r, id);
+        if (!this->m_allowGetInformation) {
+            r->error(XX_IMAGE_DESCRIPTION_V4_ERROR_NO_INFORMATION, "Image descriptions doesn't allow get_information request");
+            return;
+        }
+
+        const auto RESOURCE = new CColorManagementImageDescriptionInfo(makeShared<CXxImageDescriptionInfoV4>(r->client(), r->version(), id), this->settings);
+
+        if (!RESOURCE->good()) {
+            r->noMemory();
+        }
+
+        // CColorManagementImageDescriptionInfo should send everything in the constructor and be ready for destroying at this point
+
+        delete RESOURCE;
+    });
 }
 
 bool CColorManagementImageDescription::good() {
@@ -392,6 +483,46 @@ wl_client* CColorManagementImageDescription::client() {
 
 SP<CXxImageDescriptionV4> CColorManagementImageDescription::resource() {
     return m_resource;
+}
+
+CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CXxImageDescriptionInfoV4> resource_, const SImageDescription& settings_) :
+    m_resource(resource_), settings(settings_) {
+    if (!good())
+        return;
+
+    pClient = m_resource->client();
+
+    const auto toProto = [](float value) { return int32_t(std::round(value * 10000)); };
+
+    if (settings.iccFd >= 0)
+        m_resource->sendIccFile(settings.iccFd, settings.iccSize);
+
+    // send preferred client paramateres
+    m_resource->sendPrimaries(toProto(settings.primaries.red.x), toProto(settings.primaries.red.y), toProto(settings.primaries.green.x), toProto(settings.primaries.green.y),
+                              toProto(settings.primaries.blue.x), toProto(settings.primaries.blue.y), toProto(settings.primaries.white.x), toProto(settings.primaries.white.y));
+    if (settings.primariesNameSet)
+        m_resource->sendPrimariesNamed(settings.primariesNamed);
+    m_resource->sendTfPower(std::round(settings.transferFunctionPower * 10000));
+    m_resource->sendTfNamed(settings.transferFunction);
+    m_resource->sendLuminances(std::round(settings.luminances.min * 10000), settings.luminances.max, settings.luminances.reference);
+
+    // send expexted display paramateres
+    m_resource->sendTargetPrimaries(toProto(settings.masteringPrimaries.red.x), toProto(settings.masteringPrimaries.red.y), toProto(settings.masteringPrimaries.green.x),
+                                    toProto(settings.masteringPrimaries.green.y), toProto(settings.masteringPrimaries.blue.x), toProto(settings.masteringPrimaries.blue.y),
+                                    toProto(settings.masteringPrimaries.white.x), toProto(settings.masteringPrimaries.white.y));
+    m_resource->sendTargetLuminance(std::round(settings.masteringLuminances.min * 10000), settings.masteringLuminances.max);
+    m_resource->sendTargetMaxCll(settings.maxCLL);
+    m_resource->sendTargetMaxFall(settings.maxFALL);
+
+    m_resource->sendDone();
+}
+
+bool CColorManagementImageDescriptionInfo::good() {
+    return m_resource->resource();
+}
+
+wl_client* CColorManagementImageDescriptionInfo::client() {
+    return pClient;
 }
 
 CColorManagementProtocol::CColorManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -408,6 +539,11 @@ void CColorManagementProtocol::bindManager(wl_client* client, void* data, uint32
     }
 
     LOGM(TRACE, "New xx_color_manager at {:x}", (uintptr_t)RESOURCE.get());
+}
+
+void CColorManagementProtocol::onImagePreferredChanged() {
+    for (auto const& feedback : m_vFeedbackSurfaces)
+        feedback->resource->sendPreferredChanged();
 }
 
 void CColorManagementProtocol::destroyResource(CColorManager* resource) {

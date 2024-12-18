@@ -51,13 +51,13 @@ static bool   setCloseOnExec(int fd, bool cloexec) {
     return true;
 }
 
-void cleanUpSocket(int fd, const char* path) {
+static void cleanUpSocket(int fd, const char* path) {
     close(fd);
     if (path[0])
         unlink(path);
 }
 
-inline void closeSocketSafely(int& fd) {
+static inline void closeSocketSafely(int& fd) {
     if (fd >= 0)
         close(fd);
 }

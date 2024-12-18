@@ -473,7 +473,7 @@ PHLWINDOW CWindow::x11TransientFor() {
     return nullptr;
 }
 
-void unregisterVar(void* ptr) {
+static void unregisterVar(void* ptr) {
     ((CBaseAnimatedVariable*)ptr)->unregister();
 }
 

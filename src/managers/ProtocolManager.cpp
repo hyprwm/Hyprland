@@ -54,13 +54,17 @@
 #include "../protocols/core/Subcompositor.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../protocols/core/Shm.hpp"
+#include "../protocols/ColorManagement.hpp"
+#include "../protocols/FrogColorManagement.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
+#include "frog-color-management-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
+#include <cstdint>
 
 void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();
@@ -76,11 +80,15 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
             PROTO::outputs.erase(pMonitor->szName);
         PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
     }
+
+    if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription())
+        PROTO::colorManagement->onImagePreferredChanged();
 }
 
 CProtocolManager::CProtocolManager() {
 
     static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
+    static const auto PENABLEXXCM     = CConfigValue<Hyprlang::INT>("experimental:xx_color_management_v4");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -159,6 +167,11 @@ CProtocolManager::CProtocolManager() {
     PROTO::singlePixel         = std::make_unique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
     PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
+
+    if (*PENABLEXXCM) {
+        PROTO::colorManagement     = std::make_unique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
+        PROTO::frogColorManagement = std::make_unique<CFrogColorManagementProtocol>(&frog_color_management_factory_v1_interface, 1, "FrogColorManagement");
+    }
 
     for (auto const& b : g_pCompositor->m_pAqBackend->getImplementations()) {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)

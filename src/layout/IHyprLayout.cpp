@@ -20,9 +20,6 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
 
     pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
-    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
-        pWindow->applyGroupRules();
-
     bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
     if (autoGrouped)
         return;
@@ -31,6 +28,9 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
         onWindowCreatedFloating(pWindow);
     else
         onWindowCreatedTiling(pWindow, direction);
+    
+    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
+        pWindow->applyGroupRules();
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {

@@ -73,7 +73,7 @@ int                        main(int argc, char** argv, char** envp) {
 
     if (command.empty()) {
         std::println(stderr, "{}", HELP);
-        return 0;
+        return 1;
     }
 
     g_pPluginManager               = std::make_unique<CPluginManager>();
@@ -165,6 +165,7 @@ int                        main(int argc, char** argv, char** envp) {
                     break;
                 default: break;
             }
+            return 1;
         } else if (notify && !notifyFail) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }

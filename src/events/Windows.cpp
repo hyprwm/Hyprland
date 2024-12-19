@@ -27,7 +27,7 @@ using namespace Hyprutils::String;
 //                                                              //
 // ------------------------------------------------------------ //
 
-void setAnimToMove(void* data) {
+static void setAnimToMove(void* data) {
     auto* const            PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
 
     CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;

@@ -299,7 +299,7 @@ bool CKeybindManager::ensureMouseBindState() {
     return false;
 }
 
-void updateRelativeCursorCoords() {
+static void updateRelativeCursorCoords() {
     static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
     if (*PNOWARPS)
@@ -1095,7 +1095,7 @@ SDispatchResult CKeybindManager::toggleActivePseudo(std::string args) {
     return {};
 }
 
-SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCURRENTWORKSPACE) {
+static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCURRENTWORKSPACE) {
     if (!args.starts_with("previous")) {
         return getWorkspaceIDNameFromString(args);
     }

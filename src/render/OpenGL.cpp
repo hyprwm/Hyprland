@@ -21,7 +21,7 @@ const std::vector<const char*> ASSET_PATHS = {
     "/usr/local/share",
 };
 
-inline void loadGLProc(void* pProc, const char* name) {
+static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (proc == nullptr) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);

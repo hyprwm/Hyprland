@@ -3,7 +3,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
-int handleTimer(void* data) {
+static int handleTimer(void* data) {
     const auto  PTM = (CThreadManager*)data;
 
     static auto PDISABLECFGRELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");

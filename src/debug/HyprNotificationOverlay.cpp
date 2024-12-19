@@ -4,7 +4,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
-inline auto iconBackendFromLayout(PangoLayout* layout) {
+static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {

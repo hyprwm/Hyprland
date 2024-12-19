@@ -24,7 +24,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 
-int ratHandler(void* data) {
+static int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor(((CMonitor*)data)->self.lock());
 
     return 1;

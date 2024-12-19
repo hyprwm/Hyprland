@@ -142,7 +142,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     return result;
 }
 
-std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
     auto     allMonitors = false;
 
@@ -269,7 +269,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     }
 }
 
-std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
@@ -368,7 +368,8 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         return result;
     }
 }
-std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string request) {
+
+static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string request) {
     if (!g_pCompositor->m_pLastMonitor)
         return "unsafe state";
 
@@ -381,7 +382,7 @@ std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::string requ
     return CHyprCtl::getWorkspaceData(w, format);
 }
 
-std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -402,7 +403,7 @@ std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
@@ -422,7 +423,7 @@ std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::string reque
     return result;
 }
 
-std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request) {
     const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
 
     if (!validMapped(PWINDOW))
@@ -436,7 +437,7 @@ std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string request
     return result;
 }
 
-std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -510,7 +511,7 @@ std::string layersRequest(eHyprCtlOutputFormat format, std::string request) {
     return result;
 }
 
-std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
@@ -532,7 +533,7 @@ std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
     return result;
 }
 
-std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
     std::string currErrors = g_pConfigManager->getErrors();
     CVarList    errLines(currErrors, 0, '\n');
@@ -555,7 +556,7 @@ std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request
     return result;
 }
 
-std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
     auto        getModState = [](SP<IKeyboard> keyboard, const char* xkbModName) -> bool {
@@ -725,7 +726,7 @@ std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     return result;
 }
 
-std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         ret += "animations:\n";
@@ -778,7 +779,7 @@ std::string animationsRequest(eHyprCtlOutputFormat format, std::string request) 
     return ret;
 }
 
-std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
@@ -792,7 +793,7 @@ std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -815,7 +816,7 @@ std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string requ
     return ret;
 }
 
-std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         for (auto const& kb : g_pKeybindManager->m_vKeybinds) {
@@ -1018,7 +1019,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
+static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
 
@@ -1039,7 +1040,7 @@ std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
     return res.success ? "ok" : res.error;
 }
 
-std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
+static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     // Find the first space to strip the keyword keyword
     auto const firstSpacePos = in.find_first_of(' ');
     if (firstSpacePos == std::string::npos) // Handle the case where there's no space found (invalid input)
@@ -1105,7 +1106,7 @@ std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
     return retval;
 }
 
-std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
 
     const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
 
@@ -1120,17 +1121,17 @@ std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
-std::string killRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string killRequest(eHyprCtlOutputFormat format, std::string request) {
     g_pInputManager->setClickMode(CLICKMODE_KILL);
 
     return "ok";
 }
 
-std::string splashRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string splashRequest(eHyprCtlOutputFormat format, std::string request) {
     return g_pCompositor->m_szCurrentSplash;
 }
 
-std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
     const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal().floor();
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
@@ -1148,7 +1149,7 @@ std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
     return "error";
 }
 
-std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
     // split by ;
 
     request             = request.substr(9);
@@ -1182,7 +1183,7 @@ std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
     return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));
 }
 
-std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {
     CVarList    vars(request, 0, ' ');
 
     const auto  SIZESTR = vars[vars.size() - 1];
@@ -1206,7 +1207,7 @@ std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) 
     return "ok";
 }
 
-std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList      vars(request, 0, ' ');
 
     const auto    KB  = vars[1];
@@ -1281,7 +1282,7 @@ std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::string requ
     return "ok";
 }
 
-std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
     CVarList    vars(request, 0, ' ');
 
     std::string errorMessage = "";
@@ -1310,12 +1311,12 @@ std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
-std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
-    auto result = g_pKeybindManager->m_mDispatchers["setprop"](request.substr(request.find_first_of(' ') + 1, -1));
+static std::string dispatchSetProp(eHyprCtlOutputFormat format, std::string request) {
+    auto result = g_pKeybindManager->m_mDispatchers["setprop"](request.substr(request.find_first_of(' ') + 1));
     return "DEPRECATED: use hyprctl dispatch setprop instead" + (result.success ? "" : "\n" + result.error);
 }
 
-std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) {
     std::string curitem = "";
 
     auto        nextItem = [&]() {
@@ -1371,7 +1372,7 @@ std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string request) 
     return "invalid type (internal error)";
 }
 
-std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList   vars(request, 0, ' ');
     const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
 
@@ -1397,7 +1398,7 @@ std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
-std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
     if (vars.size() < 2)
@@ -1452,7 +1453,7 @@ std::string dispatchOutput(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
-std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
     if (vars.size() < 2)
@@ -1521,7 +1522,7 @@ std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
-std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
     if (vars.size() < 5)
@@ -1576,7 +1577,7 @@ std::string dispatchNotify(eHyprCtlOutputFormat format, std::string request) {
     return "ok";
 }
 
-std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string request) {
+static std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string request) {
     CVarList vars(request, 0, ' ');
 
     int      amount = -1;
@@ -1596,7 +1597,7 @@ std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::string reque
     return "ok";
 }
 
-std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
+static std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
     std::string lockedStr = g_pSessionLockManager->isSessionLocked() ? "true" : "false";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
         lockedStr = std::format(R"#(
@@ -1608,7 +1609,7 @@ std::string getIsLocked(eHyprCtlOutputFormat format, std::string request) {
     return lockedStr;
 }
 
-std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
+static std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
     std::string json  = "{";
     const auto& DESCS = g_pConfigManager->getAllDescriptions();
 
@@ -1623,7 +1624,7 @@ std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
     return json;
 }
 
-std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string submap = g_pKeybindManager->getCurrentSubmap();
     if (submap.empty())
         submap = "default";
@@ -1792,7 +1793,7 @@ std::string CHyprCtl::makeDynamicCall(const std::string& input) {
     return getReply(input);
 }
 
-bool successWrite(int fd, const std::string& data, bool needLog = true) {
+static bool successWrite(int fd, const std::string& data, bool needLog = true) {
     if (write(fd, data.c_str(), data.length()) > 0)
         return true;
 
@@ -1805,7 +1806,7 @@ bool successWrite(int fd, const std::string& data, bool needLog = true) {
     return false;
 }
 
-void runWritingDebugLogThread(const int conn) {
+static void runWritingDebugLogThread(const int conn) {
     using namespace std::chrono_literals;
     Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
@@ -1828,11 +1829,11 @@ void runWritingDebugLogThread(const int conn) {
     }).detach();
 }
 
-bool isFollowUpRollingLogRequest(const std::string& request) {
+static bool isFollowUpRollingLogRequest(const std::string& request) {
     return request.contains("rollinglog") && request.contains("f");
 }
 
-int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
+static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 

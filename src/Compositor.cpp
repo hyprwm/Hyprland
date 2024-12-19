@@ -50,7 +50,7 @@
 using namespace Hyprutils::String;
 using namespace Aquamarine;
 
-int handleCritSignal(int signo, void* data) {
+static int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
 
     if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
@@ -59,7 +59,7 @@ int handleCritSignal(int signo, void* data) {
     return 0;
 }
 
-void handleUnrecoverableSignal(int sig) {
+static void handleUnrecoverableSignal(int sig) {
 
     // remove our handlers
     signal(SIGABRT, SIG_DFL);
@@ -83,7 +83,7 @@ void handleUnrecoverableSignal(int sig) {
     abort();
 }
 
-void handleUserSignal(int sig) {
+static void handleUserSignal(int sig) {
     if (sig == SIGUSR1) {
         // means we have to unwind a timed out event
         throw std::exception();
@@ -103,7 +103,7 @@ static eLogLevel aqLevelToHl(Aquamarine::eBackendLogLevel level) {
     return NONE;
 }
 
-void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
+static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
     Debug::log(aqLevelToHl(level), "[AQ] {}", msg);
 }
 

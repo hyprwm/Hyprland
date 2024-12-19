@@ -8,7 +8,7 @@ class CGradientValueData;
 
 struct SWindowRenderLayoutHints {
     bool                isBorderGradient = false;
-    CGradientValueData* borderGradient;
+    CGradientValueData* borderGradient   = nullptr;
 };
 
 struct SLayoutMessageHeader {

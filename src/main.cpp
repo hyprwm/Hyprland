@@ -18,7 +18,7 @@ using namespace Hyprutils::String;
 #include <string>
 #include <filesystem>
 
-void help() {
+static void help() {
     std::println("usage: Hyprland [arg [...]].\n");
     std::println(R"(Arguments:
     --help              -h       - Show this message again

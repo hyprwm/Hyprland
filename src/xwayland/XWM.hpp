@@ -171,12 +171,16 @@ class CXWM {
 
     SXSelection* getSelection(xcb_atom_t atom);
 
+    double      applyScale(double val);
+    double      applyUnScale(double val);
+
     //
     CXCBConnection                            connection;
     xcb_errors_context_t*                     errors = nullptr;
     xcb_screen_t*                             screen = nullptr;
 
     xcb_window_t                              wmWindow;
+    double                                    scale = 1.0;
 
     wl_event_source*                          eventSource = nullptr;
 

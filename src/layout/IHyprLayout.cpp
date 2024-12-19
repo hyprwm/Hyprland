@@ -28,7 +28,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
         onWindowCreatedFloating(pWindow);
     else
         onWindowCreatedTiling(pWindow, direction);
-    
+
     if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
         pWindow->applyGroupRules();
 }

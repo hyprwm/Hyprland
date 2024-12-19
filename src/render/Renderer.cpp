@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cstring>
-#include <drm_mode.h>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -23,7 +22,6 @@
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "debug/Log.hpp"
 #include "protocols/ColorManagement.hpp"
-#include "protocols/FrogColorManagement.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;

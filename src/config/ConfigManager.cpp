@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <hyprlang.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <cstring>
 #include <string>

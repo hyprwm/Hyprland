@@ -60,11 +60,9 @@
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
-#include "frog-color-management-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/backend/Backend.hpp>
-#include <cstdint>
 
 void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();

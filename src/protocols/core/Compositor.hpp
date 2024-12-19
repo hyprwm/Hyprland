@@ -124,7 +124,7 @@ class CWLSurfaceResource {
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     CRegion                                accumulateCurrentBufferDamage();
-    void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor);
+    void                                   presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   lockPendingState();
     void                                   unlockPendingState();
 

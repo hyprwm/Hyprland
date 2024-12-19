@@ -680,7 +680,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
     // Allow the renderer to catch the last frame.
-    g_pHyprOpenGL->makeWindowSnapshot(PWINDOW);
+    g_pHyprRenderer->makeWindowSnapshot(PWINDOW);
 
     // swallowing
     if (valid(PWINDOW->m_pSwallowed)) {

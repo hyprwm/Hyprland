@@ -8,9 +8,7 @@
 #include "../defines.hpp"
 #include <variant>
 #include <vector>
-#include <deque>
 #include <algorithm>
-#include <regex>
 #include <optional>
 #include <functional>
 #include <xf86drmMode.h>
@@ -165,9 +163,8 @@ class CConfigManager {
 
     void* const*                                                    getConfigValuePtr(const std::string&);
     Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    void                                                            onPluginLoadUnload(const std::string& name, bool load);
     static std::string                                              getMainConfigPath();
-    const std::string                                               getConfigString();
+    std::string                                                     getConfigString();
 
     SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
     SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
@@ -175,10 +172,10 @@ class CConfigManager {
 
     PHLMONITOR                                                      getBoundMonitorForWS(const std::string&);
     std::string                                                     getBoundMonitorStringForWS(const std::string&);
-    const std::deque<SWorkspaceRule>&                               getAllWorkspaceRules();
+    const std::vector<SWorkspaceRule>&                              getAllWorkspaceRules();
 
-    std::vector<SWindowRule>                                        getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
-    std::vector<SLayerRule>                                         getMatchingRules(PHLLS);
+    std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
+    std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
 
     const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
 
@@ -195,8 +192,6 @@ class CConfigManager {
     void                      dispatchExecShutdown();
 
     void                      performMonitorReload();
-    void                      appendMonitorRule(const SMonitorRule&);
-    bool                      replaceMonitorRule(const SMonitorRule&);
     void                      ensureMonitorStatus();
     void                      ensureVRR(PHLMONITOR pMonitor = nullptr);
 
@@ -275,7 +270,7 @@ class CConfigManager {
   private:
     std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;
 
-    std::deque<std::string>                                   configPaths;       // stores all the config paths
+    std::vector<std::string>                                  configPaths;       // stores all the config paths
     std::unordered_map<std::string, time_t>                   configModifyTimes; // stores modify times
 
     std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
@@ -290,16 +285,16 @@ class CConfigManager {
 
     bool                                                      isFirstLaunch = true; // For exec-once
 
-    std::deque<SMonitorRule>                                  m_dMonitorRules;
-    std::deque<SWorkspaceRule>                                m_dWorkspaceRules;
-    std::deque<SWindowRule>                                   m_dWindowRules;
-    std::deque<SLayerRule>                                    m_dLayerRules;
-    std::deque<std::string>                                   m_dBlurLSNamespaces;
+    std::vector<SMonitorRule>                                 m_vMonitorRules;
+    std::vector<SWorkspaceRule>                               m_vWorkspaceRules;
+    std::vector<SP<CWindowRule>>                              m_vWindowRules;
+    std::vector<SP<CLayerRule>>                               m_vLayerRules;
+    std::vector<std::string>                                  m_dBlurLSNamespaces;
 
     bool                                                      firstExecDispatched     = false;
     bool                                                      m_bManualCrashInitiated = false;
-    std::deque<std::string>                                   firstExecRequests;
-    std::deque<std::string>                                   finalExecRequests;
+    std::vector<std::string>                                  firstExecRequests;
+    std::vector<std::string>                                  finalExecRequests;
 
     std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
     std::string                                               m_szConfigErrors = "";

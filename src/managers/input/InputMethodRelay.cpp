@@ -68,10 +68,6 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     }
 }
 
-void CInputMethodRelay::setIMEPopupFocus(CInputPopup* pPopup, SP<CWLSurfaceResource> pSurface) {
-    pPopup->onCommit();
-}
-
 void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
     std::erase_if(m_vIMEPopups, [pPopup](const auto& other) { return other.get() == pPopup; });
 }

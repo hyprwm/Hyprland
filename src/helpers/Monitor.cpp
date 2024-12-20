@@ -24,7 +24,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 
-int ratHandler(void* data) {
+static int ratHandler(void* data) {
     g_pHyprRenderer->renderMonitor(((CMonitor*)data)->self.lock());
 
     return 1;
@@ -314,7 +314,7 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pCompositor->warpCursorTo(BACKUPMON->vecPosition + BACKUPMON->vecTransformedSize / 2.F, true);
 
         // move workspaces
-        std::deque<PHLWORKSPACE> wspToMove;
+        std::vector<PHLWORKSPACE> wspToMove;
         for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_pMonitor == self || !w->m_pMonitor)
                 wspToMove.push_back(w);
@@ -541,7 +541,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         }
 
         // move all the WS
-        std::deque<PHLWORKSPACE> wspToMove;
+        std::vector<PHLWORKSPACE> wspToMove;
         for (auto const& w : g_pCompositor->m_vWorkspaces) {
             if (w->m_pMonitor == self || !w->m_pMonitor)
                 wspToMove.push_back(w);

@@ -2,6 +2,7 @@
 
 #include "../macros.hpp"
 #include "XDataSource.hpp"
+#include "Dnd.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/signal/Signal.hpp"
 
@@ -104,7 +105,9 @@ class CXWM {
     CXWM();
     ~CXWM();
 
-    int onEvent(int fd, uint32_t mask);
+    int                onEvent(int fd, uint32_t mask);
+    SP<CX11DataDevice> getDataDevice();
+    SP<IDataOffer>     createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source);
 
   private:
     void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
@@ -128,6 +131,7 @@ class CXWM {
     void                 sendWMMessage(SP<CXWaylandSurface> surf, xcb_client_message_data_t* data, uint32_t mask);
 
     SP<CXWaylandSurface> windowForXID(xcb_window_t wid);
+    SP<CXWaylandSurface> windowForWayland(SP<CWLSurfaceResource> surf);
 
     void                 readWindowData(SP<CXWaylandSurface> surf);
     void                 associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf);
@@ -135,33 +139,37 @@ class CXWM {
 
     void                 updateClientList();
 
+    void                 sendDndEvent(SP<CWLSurfaceResource> destination, xcb_atom_t type, xcb_client_message_data_t& data);
+
     // event handlers
-    void        handleCreate(xcb_create_notify_event_t* e);
-    void        handleDestroy(xcb_destroy_notify_event_t* e);
-    void        handleConfigure(xcb_configure_request_event_t* e);
-    void        handleConfigureNotify(xcb_configure_notify_event_t* e);
-    void        handleMapRequest(xcb_map_request_event_t* e);
-    void        handleMapNotify(xcb_map_notify_event_t* e);
-    void        handleUnmapNotify(xcb_unmap_notify_event_t* e);
-    void        handlePropertyNotify(xcb_property_notify_event_t* e);
-    void        handleClientMessage(xcb_client_message_event_t* e);
-    void        handleFocusIn(xcb_focus_in_event_t* e);
-    void        handleFocusOut(xcb_focus_out_event_t* e);
-    void        handleError(xcb_value_error_t* e);
+    void         handleCreate(xcb_create_notify_event_t* e);
+    void         handleDestroy(xcb_destroy_notify_event_t* e);
+    void         handleConfigure(xcb_configure_request_event_t* e);
+    void         handleConfigureNotify(xcb_configure_notify_event_t* e);
+    void         handleMapRequest(xcb_map_request_event_t* e);
+    void         handleMapNotify(xcb_map_notify_event_t* e);
+    void         handleUnmapNotify(xcb_unmap_notify_event_t* e);
+    void         handlePropertyNotify(xcb_property_notify_event_t* e);
+    void         handleClientMessage(xcb_client_message_event_t* e);
+    void         handleFocusIn(xcb_focus_in_event_t* e);
+    void         handleFocusOut(xcb_focus_out_event_t* e);
+    void         handleError(xcb_value_error_t* e);
 
-    bool        handleSelectionEvent(xcb_generic_event_t* e);
-    void        handleSelectionNotify(xcb_selection_notify_event_t* e);
-    bool        handleSelectionPropertyNotify(xcb_property_notify_event_t* e);
-    void        handleSelectionRequest(xcb_selection_request_event_t* e);
-    bool        handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e);
+    bool         handleSelectionEvent(xcb_generic_event_t* e);
+    void         handleSelectionNotify(xcb_selection_notify_event_t* e);
+    bool         handleSelectionPropertyNotify(xcb_property_notify_event_t* e);
+    void         handleSelectionRequest(xcb_selection_request_event_t* e);
+    bool         handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e);
 
-    void        selectionSendNotify(xcb_selection_request_event_t* e, bool success);
-    xcb_atom_t  mimeToAtom(const std::string& mime);
-    std::string mimeFromAtom(xcb_atom_t atom);
-    void        setClipboardToWayland(SXSelection& sel);
-    void        getTransferData(SXSelection& sel);
-    std::string getAtomName(uint32_t atom);
-    void        readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
+    void         selectionSendNotify(xcb_selection_request_event_t* e, bool success);
+    xcb_atom_t   mimeToAtom(const std::string& mime);
+    std::string  mimeFromAtom(xcb_atom_t atom);
+    void         setClipboardToWayland(SXSelection& sel);
+    void         getTransferData(SXSelection& sel);
+    std::string  getAtomName(uint32_t atom);
+    void         readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_reply_t* reply);
+
+    SXSelection* getSelection(xcb_atom_t atom);
 
     //
     CXCBConnection                            connection;
@@ -191,6 +199,9 @@ class CXWM {
     uint64_t                                  lastFocusSeq = 0;
 
     SXSelection                               clipboard;
+    SXSelection                               dndSelection;
+    SP<CX11DataDevice>                        dndDataDevice = makeShared<CX11DataDevice>();
+    std::vector<SP<CX11DataOffer>>            dndDataOffers;
 
     struct {
         CHyprSignalListener newWLSurface;
@@ -200,6 +211,10 @@ class CXWM {
     friend class CXWaylandSurface;
     friend class CXWayland;
     friend class CXDataSource;
+    friend class CX11DataDevice;
+    friend class CX11DataSource;
+    friend class CX11DataOffer;
+    friend class CWLDataDeviceProtocol;
     friend struct SXSelection;
     friend struct SXTransfer;
 };

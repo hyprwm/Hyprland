@@ -378,38 +378,57 @@ void CLayerSurface::applyRules() {
     animationStyle.reset();
 
     for (auto const& rule : g_pConfigManager->getMatchingRules(self.lock())) {
-        if (rule.rule == "noanim")
-            noAnimations = true;
-        else if (rule.rule == "blur")
-            forceBlur = true;
-        else if (rule.rule == "blurpopups")
-            forceBlurPopups = true;
-        else if (rule.rule.starts_with("ignorealpha") || rule.rule.starts_with("ignorezero")) {
-            const auto  FIRST_SPACE_POS = rule.rule.find_first_of(' ');
-            std::string alphaValue      = "";
-            if (FIRST_SPACE_POS != std::string::npos)
-                alphaValue = rule.rule.substr(FIRST_SPACE_POS + 1);
+        switch (rule->ruleType) {
+            case CLayerRule::RULE_NOANIM: {
+                noAnimations = true;
+                break;
+            }
+            case CLayerRule::RULE_BLUR: {
+                forceBlur = true;
+                break;
+            }
+            case CLayerRule::RULE_BLURPOPUPS: {
+                forceBlurPopups = true;
+                break;
+            }
+            case CLayerRule::RULE_IGNOREALPHA:
+            case CLayerRule::RULE_IGNOREZERO: {
+                const auto  FIRST_SPACE_POS = rule->rule.find_first_of(' ');
+                std::string alphaValue      = "";
+                if (FIRST_SPACE_POS != std::string::npos)
+                    alphaValue = rule->rule.substr(FIRST_SPACE_POS + 1);
 
-            try {
-                ignoreAlpha = true;
-                if (!alphaValue.empty())
-                    ignoreAlphaValue = std::stof(alphaValue);
-            } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
-        } else if (rule.rule == "dimaround") {
-            dimAround = true;
-        } else if (rule.rule.starts_with("xray")) {
-            CVarList vars{rule.rule, 0, ' '};
-            try {
-                xray = configStringToInt(vars[1]).value_or(false);
-            } catch (...) {}
-        } else if (rule.rule.starts_with("animation")) {
-            CVarList vars{rule.rule, 2, 's'};
-            animationStyle = vars[1];
-        } else if (rule.rule.starts_with("order")) {
-            CVarList vars{rule.rule, 2, 's'};
-            try {
-                order = std::stoi(vars[1]);
-            } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
+                try {
+                    ignoreAlpha = true;
+                    if (!alphaValue.empty())
+                        ignoreAlphaValue = std::stof(alphaValue);
+                } catch (...) { Debug::log(ERR, "Invalid value passed to ignoreAlpha"); }
+                break;
+            }
+            case CLayerRule::RULE_DIMAROUND: {
+                dimAround = true;
+                break;
+            }
+            case CLayerRule::RULE_XRAY: {
+                CVarList vars{rule->rule, 0, ' '};
+                try {
+                    xray = configStringToInt(vars[1]).value_or(false);
+                } catch (...) {}
+                break;
+            }
+            case CLayerRule::RULE_ANIMATION: {
+                CVarList vars{rule->rule, 2, 's'};
+                animationStyle = vars[1];
+                break;
+            }
+            case CLayerRule::RULE_ORDER: {
+                CVarList vars{rule->rule, 2, 's'};
+                try {
+                    order = std::stoi(vars[1]);
+                } catch (...) { Debug::log(ERR, "Invalid value passed to order"); }
+                break;
+            }
+            default: break;
         }
     }
 }

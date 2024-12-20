@@ -59,6 +59,8 @@ endif
 backtrace_dep = cpp_compiler.find_library('execinfo', required: false)
 epoll_dep = dependency('epoll-shim', required: false) # timerfd on BSDs
 
+re2 = dependency('re2', required: true)
+
 # Handle options
 systemd_option = get_option('systemd')
 systemd = dependency('systemd', required: systemd_option)

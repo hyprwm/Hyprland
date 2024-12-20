@@ -21,7 +21,7 @@ const std::vector<const char*> ASSET_PATHS = {
     "/usr/local/share",
 };
 
-inline void loadGLProc(void* pProc, const char* name) {
+static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = (void*)eglGetProcAddress(name);
     if (proc == nullptr) {
         Debug::log(CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
@@ -2142,13 +2142,6 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     scissor((CBox*)nullptr);
 }
 
-void pushVert2D(float x, float y, float* arr, int& counter, CBox* box) {
-    // 0-1 space god damnit
-    arr[counter * 2 + 0] = x / box->width;
-    arr[counter * 2 + 1] = y / box->height;
-    counter++;
-}
-
 void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, int round, int borderSize, float a, int outerRound) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
@@ -2193,7 +2186,7 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size(), (float*)grad.m_vColorsOkLabA.data());
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad.m_vColorsOkLabA.size() / 4, (float*)grad.m_vColorsOkLabA.data());
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad.m_vColorsOkLabA.size() / 4);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, (int)(grad.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);
@@ -2286,10 +2279,11 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad1, c
     glUniformMatrix3fv(m_RenderData.pCurrentMonData->m_shBORDER1.proj, 1, GL_FALSE, glMatrix.getMatrix().data());
 #endif
 
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size(), (float*)grad1.m_vColorsOkLabA.data());
+    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient, grad1.m_vColorsOkLabA.size() / 4, (float*)grad1.m_vColorsOkLabA.data());
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradientLength, grad1.m_vColorsOkLabA.size() / 4);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle, (int)(grad1.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
-    glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size(), (float*)grad2.m_vColorsOkLabA.data());
+    if (grad2.m_vColorsOkLabA.size() > 0)
+        glUniform4fv(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2, grad2.m_vColorsOkLabA.size() / 4, (float*)grad2.m_vColorsOkLabA.data());
     glUniform1i(m_RenderData.pCurrentMonData->m_shBORDER1.gradient2Length, grad2.m_vColorsOkLabA.size() / 4);
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.angle2, (int)(grad2.m_fAngle / (PI / 180.0)) % 360 * (PI / 180.0));
     glUniform1f(m_RenderData.pCurrentMonData->m_shBORDER1.alpha, a);

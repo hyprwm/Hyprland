@@ -299,7 +299,7 @@ bool CKeybindManager::ensureMouseBindState() {
     return false;
 }
 
-void updateRelativeCursorCoords() {
+static void updateRelativeCursorCoords() {
     static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
     if (*PNOWARPS)
@@ -1095,7 +1095,7 @@ SDispatchResult CKeybindManager::toggleActivePseudo(std::string args) {
     return {};
 }
 
-SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCURRENTWORKSPACE) {
+static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSPACE PCURRENTWORKSPACE) {
     if (!args.starts_with("previous")) {
         return getWorkspaceIDNameFromString(args);
     }
@@ -1374,6 +1374,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     static auto PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PGROUPCYCLE      = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_groupfirst");
     char        arg              = args[0];
 
     if (!isDirection(args)) {
@@ -1392,6 +1393,20 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
         (arg == 'd' || arg == 'b' || arg == 'r' ? g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true) : g_pCompositor->getPrevWindowOnWorkspace(PLASTWINDOW, true)) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
+
+    // Prioritize focus change within groups if the window is a part of it.
+    if (*PGROUPCYCLE && PLASTWINDOW->m_sGroupData.pNextWindow) {
+        auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && g_pCompositor->m_vMonitors.size() == 1;
+        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->getGroupHead() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+            return {};
+        }
+
+        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->getGroupTail() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_sGroupData.pNextWindow.lock());
+            return {};
+        }
+    }
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
@@ -1760,7 +1775,7 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
         // apply
 
         // we make a copy because changeWindowFloatingMode might invalidate the iterator
-        std::deque<PHLWINDOW> ptrs;
+        std::vector<PHLWINDOW> ptrs;
         for (auto const& w : g_pCompositor->m_vWindows)
             ptrs.push_back(w);
 

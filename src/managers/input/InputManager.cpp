@@ -94,13 +94,19 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     PROTO::relativePointer->sendRelativeMotion((uint64_t)e.timeMs * 1000, DELTA, e.unaccel);
 
+    if (e.mouse)
+        recheckMouseWarpOnMouseInput();
+
     g_pPointerManager->move(DELTA);
 
-    mouseMoveUnified(e.timeMs);
+    mouseMoveUnified(e.timeMs, false, e.mouse);
 
     m_tmrLastCursorMovement.reset();
 
     m_bLastInputTouch = false;
+
+    if (e.mouse)
+        m_vLastMousePos = getMouseCoordsInternal();
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
@@ -138,7 +144,9 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(g_pCompositor->m_pLastFocus.lock(), LOCAL);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
+    m_bLastInputMouse = mouse;
+
     if (!g_pCompositor->m_bReadyToProcess || g_pCompositor->m_bIsShuttingDown || g_pCompositor->m_bUnsafeState)
         return;
 
@@ -374,8 +382,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
     if (g_pPointerManager->softwareLockedFor(PMONITOR->self.lock()) > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_pLastMonitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
-    // grabs
-    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface)) {
+    // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
+    // xdg-popup grabs should be keyboard-only, while they are absolute in our case...
+    if (g_pSeatManager->seatGrab && !g_pSeatManager->seatGrab->accepts(foundSurface) && !PROTO::data->dndActive()) {
         if (m_bHardInput || refocus) {
             g_pSeatManager->setGrab(nullptr);
             return; // setGrab will refocus
@@ -532,6 +541,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus) {
 
 void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
+
+    if (e.mouse)
+        recheckMouseWarpOnMouseInput();
 
     m_tmrLastCursorMovement.reset();
 
@@ -766,6 +778,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e) {
 
     const auto  EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
     EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
+
+    if (e.mouse)
+        recheckMouseWarpOnMouseInput();
 
     bool passEvent = g_pKeybindManager->onAxisEvent(e);
 
@@ -1788,4 +1803,11 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
         case BORDERICON_UP_RIGHT: setCursorImageUntilUnset("top_right_corner"); break;
         case BORDERICON_DOWN_RIGHT: setCursorImageUntilUnset("bottom_right_corner"); break;
     }
+}
+
+void CInputManager::recheckMouseWarpOnMouseInput() {
+    static auto PWARPFORNONMOUSE = CConfigValue<Hyprlang::INT>("cursor:warp_back_after_non_mouse_input");
+
+    if (!m_bLastInputMouse && *PWARPFORNONMOUSE)
+        g_pPointerManager->warpTo(m_vLastMousePos);
 }

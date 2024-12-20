@@ -19,6 +19,7 @@ class IPointer : public IHID {
     struct SMotionEvent {
         uint32_t timeMs = 0;
         Vector2D delta, unaccel;
+        bool     mouse = false;
     };
 
     struct SMotionAbsoluteEvent {
@@ -31,6 +32,7 @@ class IPointer : public IHID {
         uint32_t                timeMs = 0;
         uint32_t                button = 0;
         wl_pointer_button_state state  = WL_POINTER_BUTTON_STATE_PRESSED;
+        bool                    mouse  = false;
     };
 
     struct SAxisEvent {
@@ -40,6 +42,7 @@ class IPointer : public IHID {
         wl_pointer_axis_relative_direction relativeDirection = WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL;
         double                             delta             = 0.0;
         int32_t                            deltaDiscrete     = 0;
+        bool                               mouse             = false;
     };
 
     struct SSwipeBeginEvent {

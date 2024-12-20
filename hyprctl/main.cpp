@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include <cctype>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -21,10 +23,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <deque>
 #include <filesystem>
 #include <cstdarg>
-#include <regex>
 #include <sys/socket.h>
 #include <hyprutils/string/String.hpp>
 #include <cstring>
@@ -52,11 +52,17 @@ void log(const std::string& str) {
     std::println("{}", str);
 }
 
+static int getUID() {
+    const auto UID   = getuid();
+    const auto PWUID = getpwuid(UID);
+    return PWUID ? PWUID->pw_uid : UID;
+}
+
 std::string getRuntimeDir() {
     const auto XDG = getenv("XDG_RUNTIME_DIR");
 
     if (!XDG) {
-        const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+        const std::string USERID = std::to_string(getUID());
         return "/run/user/" + USERID + "/hypr";
     }
 
@@ -168,7 +174,7 @@ int request(std::string arg, int minArgs = 0, bool needRoll = false) {
         return 2;
     }
 
-    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+    const std::string USERID = std::to_string(getUID());
 
     sockaddr_un       serverAddress = {0};
     serverAddress.sun_family        = AF_UNIX;
@@ -238,7 +244,7 @@ int requestHyprpaper(std::string arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    const std::string USERID = std::to_string(getpwuid(getuid())->pw_uid);
+    const std::string USERID = std::to_string(getUID());
 
     std::string       socketPath = getRuntimeDir() + "/" + instanceSignature + "/.hyprpaper.sock";
 
@@ -276,10 +282,11 @@ int requestHyprpaper(std::string arg) {
 }
 
 void batchRequest(std::string arg, bool json) {
-    std::string commands = arg.substr(arg.find_first_of(" ") + 1);
+    std::string commands = arg.substr(arg.find_first_of(' ') + 1);
 
     if (json) {
-        commands = "j/" + std::regex_replace(commands, std::regex(";\\s*"), ";j/");
+        RE2::GlobalReplace(&commands, ";\\s*", ";j/");
+        commands.insert(0, "j/");
     }
 
     std::string rq = "[[BATCH]]" + commands;
@@ -316,11 +323,11 @@ void instancesRequest(bool json) {
     log(result + "\n");
 }
 
-std::deque<std::string> splitArgs(int argc, char** argv) {
-    std::deque<std::string> result;
+std::vector<std::string> splitArgs(int argc, char** argv) {
+    std::vector<std::string> result;
 
     for (auto i = 1 /* skip the executable */; i < argc; ++i)
-        result.push_back(std::string(argv[i]));
+        result.emplace_back(argv[i]);
 
     return result;
 }

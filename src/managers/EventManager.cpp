@@ -116,7 +116,7 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
             if (write(CLIENTIT->fd, event->c_str(), event->length()) < 0)
                 break;
 
-            CLIENTIT->events.pop_front();
+            CLIENTIT->events.erase(CLIENTIT->events.begin());
         }
 
         // stop polling when we sent all events

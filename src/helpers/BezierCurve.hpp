@@ -1,6 +1,6 @@
 #pragma once
 
-#include <deque>
+#include <vector>
 #include <array>
 #include <vector>
 #include "math/Math.hpp"
@@ -16,13 +16,13 @@ class CBezierCurve {
     // this EXCLUDES the 0,0 and 1,1 points,
     void  setup(std::vector<Vector2D>* points);
 
-    float getYForT(float const& t);
-    float getXForT(float const& t);
-    float getYForPoint(float const& x);
+    float getYForT(float const& t) const;
+    float getXForT(float const& t) const;
+    float getYForPoint(float const& x) const;
 
   private:
     // this INCLUDES the 0,0 and 1,1 points.
-    std::vector<Vector2D>             m_dPoints;
+    std::vector<Vector2D>             m_vPoints;
 
     std::array<Vector2D, BAKEDPOINTS> m_aPointsBaked;
 };

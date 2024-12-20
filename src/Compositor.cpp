@@ -1,3 +1,5 @@
+#include <re2/re2.h>
+
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
 #include "helpers/Splashes.hpp"
@@ -49,7 +51,7 @@
 using namespace Hyprutils::String;
 using namespace Aquamarine;
 
-int handleCritSignal(int signo, void* data) {
+static int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
 
     if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
@@ -58,7 +60,7 @@ int handleCritSignal(int signo, void* data) {
     return 0;
 }
 
-void handleUnrecoverableSignal(int sig) {
+static void handleUnrecoverableSignal(int sig) {
 
     // remove our handlers
     signal(SIGABRT, SIG_DFL);
@@ -82,7 +84,7 @@ void handleUnrecoverableSignal(int sig) {
     abort();
 }
 
-void handleUserSignal(int sig) {
+static void handleUserSignal(int sig) {
     if (sig == SIGUSR1) {
         // means we have to unwind a timed out event
         throw std::exception();
@@ -102,7 +104,7 @@ static eLogLevel aqLevelToHl(Aquamarine::eBackendLogLevel level) {
     return NONE;
 }
 
-void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
+static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
     Debug::log(aqLevelToHl(level), "[AQ] {}", msg);
 }
 
@@ -1350,13 +1352,13 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     else {
         // move X11 window stack
 
-        std::deque<PHLWINDOW> toMove;
+        std::vector<PHLWINDOW> toMove;
 
-        auto                  x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
+        auto                   x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
             if (top)
                 toMove.emplace_back(pw);
             else
-                toMove.emplace_front(pw);
+                toMove.insert(toMove.begin(), pw);
 
             for (auto const& w : m_vWindows) {
                 if (w->m_bIsMapped && !w->isHidden() && w->m_bIsX11 && w->x11TransientFor() == pw && w != pw && std::find(toMove.begin(), toMove.end(), w) == toMove.end()) {
@@ -2233,11 +2235,6 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     }
 }
 
-void CCompositor::changeWindowFullscreenModeInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenInternal(
-        PWINDOW, (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.internal | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.internal & (uint8_t)~MODE)));
-}
-
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
     setWindowFullscreenClient(PWINDOW,
                               (eFullscreenMode)(ON ? (uint8_t)PWINDOW->m_sFullscreenState.client | (uint8_t)MODE : ((uint8_t)PWINDOW->m_sFullscreenState.client & (uint8_t)~MODE)));
@@ -2393,19 +2390,19 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
 
     eFocusWindowMode mode = MODE_CLASS_REGEX;
 
-    std::regex       regexCheck(regexp_);
+    std::string      regexCheck;
     std::string      matchCheck;
     if (regexp.starts_with("class:")) {
-        regexCheck = std::regex(regexp.substr(6));
+        regexCheck = regexp.substr(6);
     } else if (regexp.starts_with("initialclass:")) {
         mode       = MODE_INITIAL_CLASS_REGEX;
-        regexCheck = std::regex(regexp.substr(13));
+        regexCheck = regexp.substr(13);
     } else if (regexp.starts_with("title:")) {
         mode       = MODE_TITLE_REGEX;
-        regexCheck = std::regex(regexp.substr(6));
+        regexCheck = regexp.substr(6);
     } else if (regexp.starts_with("initialtitle:")) {
         mode       = MODE_INITIAL_TITLE_REGEX;
-        regexCheck = std::regex(regexp.substr(13));
+        regexCheck = regexp.substr(13);
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2421,25 +2418,25 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
         switch (mode) {
             case MODE_CLASS_REGEX: {
                 const auto windowClass = w->m_szClass;
-                if (!std::regex_search(windowClass, regexCheck))
+                if (!RE2::FullMatch(windowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_CLASS_REGEX: {
                 const auto initialWindowClass = w->m_szInitialClass;
-                if (!std::regex_search(initialWindowClass, regexCheck))
+                if (!RE2::FullMatch(initialWindowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_TITLE_REGEX: {
                 const auto windowTitle = w->m_szTitle;
-                if (!std::regex_search(windowTitle, regexCheck))
+                if (!RE2::FullMatch(windowTitle, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_TITLE_REGEX: {
                 const auto initialWindowTitle = w->m_szInitialTitle;
-                if (!std::regex_search(initialWindowTitle, regexCheck))
+                if (!RE2::FullMatch(initialWindowTitle, regexCheck))
                     continue;
                 break;
             }
@@ -2767,50 +2764,48 @@ void CCompositor::arrangeMonitors() {
     }
 
     // Variables to store the max and min values of monitors on each axis.
-    int maxXOffsetRight = 0;
-    int maxXOffsetLeft  = 0;
-    int maxYOffsetUp    = 0;
-    int maxYOffsetDown  = 0;
+    int  maxXOffsetRight = 0;
+    int  maxXOffsetLeft  = 0;
+    int  maxYOffsetUp    = 0;
+    int  maxYOffsetDown  = 0;
 
-    // Finds the max and min values of explicitely placed monitors.
-    for (auto const& m : arranged) {
-        if (m->vecPosition.x + m->vecSize.x > maxXOffsetRight)
-            maxXOffsetRight = m->vecPosition.x + m->vecSize.x;
-        if (m->vecPosition.x < maxXOffsetLeft)
-            maxXOffsetLeft = m->vecPosition.x;
-        if (m->vecPosition.y + m->vecSize.y > maxYOffsetDown)
-            maxYOffsetDown = m->vecPosition.y + m->vecSize.y;
-        if (m->vecPosition.y < maxYOffsetUp)
-            maxYOffsetUp = m->vecPosition.y;
-    }
+    auto recalcMaxOffsets = [&]() {
+        maxXOffsetRight = 0;
+        maxXOffsetLeft  = 0;
+        maxYOffsetUp    = 0;
+        maxYOffsetDown  = 0;
+
+        // Finds the max and min values of explicitely placed monitors.
+        for (auto const& m : arranged) {
+            if (m->vecPosition.x + m->vecSize.x > maxXOffsetRight)
+                maxXOffsetRight = m->vecPosition.x + m->vecSize.x;
+            if (m->vecPosition.x < maxXOffsetLeft)
+                maxXOffsetLeft = m->vecPosition.x;
+            if (m->vecPosition.y + m->vecSize.y > maxYOffsetDown)
+                maxYOffsetDown = m->vecPosition.y + m->vecSize.y;
+            if (m->vecPosition.y < maxYOffsetUp)
+                maxYOffsetUp = m->vecPosition.y;
+        }
+    };
 
     // Iterates through all non-explicitly placed monitors.
     for (auto const& m : toArrange) {
+        recalcMaxOffsets();
+
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
         Vector2D newPosition = {0, 0};
         switch (m->activeMonitorRule.autoDir) {
-            case eAutoDirs::DIR_AUTO_UP:
-                newPosition.y = maxYOffsetUp - m->vecSize.y;
-                maxYOffsetUp  = newPosition.y;
-                break;
-            case eAutoDirs::DIR_AUTO_DOWN:
-                newPosition.y = maxYOffsetDown;
-                maxYOffsetDown += m->vecSize.y;
-                break;
-            case eAutoDirs::DIR_AUTO_LEFT:
-                newPosition.x  = maxXOffsetLeft - m->vecSize.x;
-                maxXOffsetLeft = newPosition.x;
-                break;
+            case eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->vecSize.y; break;
+            case eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
+            case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->vecSize.x; break;
             case eAutoDirs::DIR_AUTO_RIGHT:
-            case eAutoDirs::DIR_AUTO_NONE:
-                newPosition.x = maxXOffsetRight;
-                maxXOffsetRight += m->vecSize.x;
-                break;
+            case eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
             default: UNREACHABLE();
         }
         Debug::log(LOG, "arrangeMonitors: {} auto {:j}", m->szName, m->vecPosition);
         m->moveTo(newPosition);
+        arranged.emplace_back(m);
     }
 
     // reset maxXOffsetRight (reuse)
@@ -2903,17 +2898,6 @@ void CCompositor::updateSuspendedStates() {
 
         w->setSuspended(w->isHidden() || !w->m_pWorkspace || !w->m_pWorkspace->isVisible());
     }
-}
-
-PHLWINDOW CCompositor::windowForCPointer(CWindow* pWindow) {
-    for (auto const& w : m_vWindows) {
-        if (w.get() != pWindow)
-            continue;
-
-        return w;
-    }
-
-    return {};
 }
 
 static void checkDefaultCursorWarp(PHLMONITOR monitor) {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <deque>
 #include <list>
 #include <sys/resource.h>
 
@@ -142,7 +141,6 @@ class CCompositor {
     void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState state);
-    void                   changeWindowFullscreenModeInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     void                   updateFullscreenFadeOnWorkspace(PHLWORKSPACE);
     PHLWINDOW              getX11Parent(PHLWINDOW);
@@ -169,7 +167,6 @@ class CCompositor {
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
-    PHLWINDOW              windowForCPointer(CWindow*);
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
 
     SImageDescription      getPreferredImageDescription();

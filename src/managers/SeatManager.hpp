@@ -95,6 +95,8 @@ class CSeatManager {
 
         WP<CWLSurfaceResource> touchFocus;
         WP<CWLSeatResource>    touchFocusResource;
+
+        WP<CWLSurfaceResource> dndPointerFocus;
     } state;
 
     struct SSetCursorEvent {
@@ -105,6 +107,7 @@ class CSeatManager {
     struct {
         CSignal keyboardFocusChange;
         CSignal pointerFocusChange;
+        CSignal dndPointerFocusChange;
         CSignal touchFocusChange;
         CSignal setCursor; // SSetCursorEvent
         CSignal setSelection;

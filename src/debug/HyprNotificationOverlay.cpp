@@ -4,7 +4,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 
-inline auto iconBackendFromLayout(PangoLayout* layout) {
+static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
@@ -18,7 +18,7 @@ inline auto iconBackendFromLayout(PangoLayout* layout) {
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (m_dNotifications.size() == 0)
+        if (m_vNotifications.size() == 0)
             return;
 
         g_pHyprRenderer->damageBox(&m_bLastDamage);
@@ -35,7 +35,7 @@ CHyprNotificationOverlay::~CHyprNotificationOverlay() {
 }
 
 void CHyprNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
-    const auto PNOTIF = m_dNotifications.emplace_back(std::make_unique<SNotification>()).get();
+    const auto PNOTIF = m_vNotifications.emplace_back(std::make_unique<SNotification>()).get();
 
     PNOTIF->text  = icon != eIcons::ICON_NONE ? " " + text /* tiny bit of padding otherwise icon touches text */ : text;
     PNOTIF->color = color == CHyprColor(0) ? ICONS_COLORS[icon] : color;
@@ -51,12 +51,12 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CH
 
 void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     if (amount == -1)
-        m_dNotifications.clear();
+        m_vNotifications.clear();
     else {
-        const int AMT = std::min(amount, static_cast<int>(m_dNotifications.size()));
+        const int AMT = std::min(amount, static_cast<int>(m_vNotifications.size()));
 
         for (int i = 0; i < AMT; ++i) {
-            m_dNotifications.pop_front();
+            m_vNotifications.erase(m_vNotifications.begin());
         }
     }
 }
@@ -87,7 +87,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     const auto iconBackendID = iconBackendFromLayout(layout);
     const auto PBEZIER       = g_pAnimationManager->getBezier("default");
 
-    for (auto const& notif : m_dNotifications) {
+    for (auto const& notif : m_vNotifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
         const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
 
@@ -182,7 +182,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     g_object_unref(layout);
 
     // cleanup notifs
-    std::erase_if(m_dNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
+    std::erase_if(m_vNotifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
     return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
 }
@@ -205,7 +205,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     }
 
     // Draw the notifications
-    if (m_dNotifications.size() == 0)
+    if (m_vNotifications.size() == 0)
         return;
 
     // Render to the monitor
@@ -246,5 +246,5 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 }
 
 bool CHyprNotificationOverlay::hasAny() {
-    return !m_dNotifications.empty();
+    return !m_vNotifications.empty();
 }

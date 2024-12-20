@@ -30,7 +30,6 @@ class CInputMethodRelay {
 
     CTextInput*        getFocusedTextInput();
 
-    void               setIMEPopupFocus(CInputPopup*, SP<CWLSurfaceResource>);
     void               removePopup(CInputPopup*);
 
     CInputPopup*       popupFromCoords(const Vector2D& point);

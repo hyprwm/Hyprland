@@ -1201,6 +1201,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "binds:movefocus_cycles_groupfirst",
+        .description = "If enabled, when in a grouped window, movefocus will cycle windows in the groups first, then at each ends of tabs, it'll move on to other windows/groups",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "binds:disable_keybind_grabbing",
         .description = "If enabled, apps that request keybinds to be disabled (e.g. VMs) will not be able to do so.",
         .type        = CONFIG_OPTION_BOOL,

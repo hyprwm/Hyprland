@@ -1,4 +1,5 @@
 #include "ColorManagement.hpp"
+#include "Compositor.hpp"
 
 CColorManager::CColorManager(SP<CXxColorManagerV4> resource_) : resource(resource_) {
     if (!good())

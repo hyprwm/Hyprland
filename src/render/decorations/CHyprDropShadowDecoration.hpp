@@ -25,6 +25,8 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    void                               render(PHLMONITOR, float const& a);
+
   private:
     SBoxExtents  m_seExtents;
     SBoxExtents  m_seReportedExtents;

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Framebuffer.hpp"
-
-struct SRenderData;
+#include "pass/SurfacePassElement.hpp"
 
 // A window transformer can be attached to a window.
 // If any is attached, Hyprland will render the window to a separate fb, then call the transform() func with it,
@@ -18,5 +17,5 @@ class IWindowTransformer {
     virtual CFramebuffer* transform(CFramebuffer* in) = 0;
 
     // called by Hyprland before a window main pass is started.
-    virtual void preWindowRender(SRenderData* pRenderData);
+    virtual void preWindowRender(CSurfacePassElement::SRenderData* pRenderData);
 };

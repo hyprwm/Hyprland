@@ -522,11 +522,14 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     }
 }
 
-void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor) {
+void CWLSurfaceResource::presentFeedback(timespec* when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
     auto FEEDBACK = makeShared<CQueuedPresentationData>(self.lock());
     FEEDBACK->attachMonitor(pMonitor);
-    FEEDBACK->presented();
+    if (discarded)
+        FEEDBACK->discarded();
+    else
+        FEEDBACK->presented();
     PROTO::presentation->queueData(FEEDBACK);
 
     if (!pMonitor || !pMonitor->outTimeline || !syncobj)

@@ -731,14 +731,16 @@ bool CWLDataDeviceProtocol::wasDragSuccessful() {
     }
 
 #ifndef NO_XWAYLAND
-    for (auto const& o : g_pXWayland->pWM->dndDataOffers) {
-        if (o->dead || !o->source || !o->source->hasDnd())
-            continue;
+    if (g_pXWayland->pWM) {
+        for (auto const& o : g_pXWayland->pWM->dndDataOffers) {
+            if (o->dead || !o->source || !o->source->hasDnd())
+                continue;
 
-        if (o->source != dnd.currentSource)
-            continue;
+            if (o->source != dnd.currentSource)
+                continue;
 
-        return true;
+            return true;
+        }
     }
 #endif
 

@@ -207,7 +207,7 @@ void CHyprError::draw() {
 
     m_bMonitorChanged = false;
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.tex = m_pTexture;
     data.box = monbox;
     data.a   = m_fFadeOpacity.value();

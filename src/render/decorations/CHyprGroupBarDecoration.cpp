@@ -163,7 +163,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_pLastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
                                                                                                       (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
             if (GRADIENTTEX->m_iTexID) {
-                CTexPassElement::SSimpleRenderData data;
+                CTexPassElement::SRenderData data;
                 data.tex = GRADIENTTEX;
                 data.box = rect;
                 g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
@@ -185,7 +185,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             rect.x += (m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->textWidth / 2.0);
             rect.round();
 
-            CTexPassElement::SSimpleRenderData data;
+            CTexPassElement::SRenderData data;
             data.tex = pTitleTex->tex;
             data.box = rect;
             g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));

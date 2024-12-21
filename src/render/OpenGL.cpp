@@ -2453,7 +2453,7 @@ void CHyprOpenGLImpl::renderMirrored() {
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.tex               = PFB->getTexture();
     data.box               = monbox;
     data.replaceProjection = Mat3x3::identity()
@@ -2820,7 +2820,7 @@ void CHyprOpenGLImpl::clearWithTex() {
     }
 
     if (TEXIT != m_mMonitorBGFBs.end()) {
-        CTexPassElement::SSimpleRenderData data;
+        CTexPassElement::SRenderData data;
         data.box          = {0, 0, m_RenderData.pMonitor->vecTransformedSize.x, m_RenderData.pMonitor->vecTransformedSize.y};
         data.flipEndFrame = true;
         data.tex          = TEXIT->second.getTexture();

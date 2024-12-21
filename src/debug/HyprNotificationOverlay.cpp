@@ -3,6 +3,7 @@
 #include "HyprNotificationOverlay.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../render/pass/TexPassElement.hpp"
 
 inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
@@ -241,7 +242,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MONSIZE.x, MONSIZE.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.tex = m_pTexture;
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;

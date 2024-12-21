@@ -1,5 +1,5 @@
 #include "Transformer.hpp"
 
-void IWindowTransformer::preWindowRender(CTexPassElement::SRenderData* pRenderData) {
+void IWindowTransformer::preWindowRender(CSurfacePassElement::SRenderData* pRenderData) {
     ;
 }

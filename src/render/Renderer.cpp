@@ -23,6 +23,7 @@
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
+#include "pass/SurfacePassElement.hpp"
 #include "debug/Log.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -430,13 +431,13 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto                   PWORKSPACE = pWindow->m_pWorkspace;
-    const auto                   REALPOS    = pWindow->m_vRealPosition.value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.value());
-    static auto                  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
-    static auto                  PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    const auto                       PWORKSPACE = pWindow->m_pWorkspace;
+    const auto                       REALPOS    = pWindow->m_vRealPosition.value() + (pWindow->m_bPinned ? Vector2D{} : PWORKSPACE->m_vRenderOffset.value());
+    static auto                      PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto                      PBLUR      = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    CTexPassElement::SRenderData renderdata = {pMonitor, time};
-    CBox                         textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
+    CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
+    CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_vRealSize.value().x, 5.0), std::max(pWindow->m_vRealSize.value().y, 5.0)};
 
     renderdata.pos.x = textureBox.x;
     renderdata.pos.y = textureBox.y;
@@ -549,7 +550,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                 renderdata.texture     = s->current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pWindow->m_pWLSurface->resource();
-                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             nullptr);
@@ -617,7 +618,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
                             renderdata.texture     = s->current.texture;
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
-                            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                            m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                             renderdata.surfaceCounter++;
                         },
                         data);
@@ -663,18 +664,18 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 
     TRACY_GPU_ZONE("RenderLayer");
 
-    const auto                   REALPOS = pLayer->realPosition.value();
-    const auto                   REALSIZ = pLayer->realSize.value();
+    const auto                       REALPOS = pLayer->realPosition.value();
+    const auto                       REALSIZ = pLayer->realSize.value();
 
-    CTexPassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
-    renderdata.fadeAlpha                    = pLayer->alpha.value();
-    renderdata.blur                         = pLayer->forceBlur && *PBLUR;
-    renderdata.surface                      = pLayer->surface->resource();
-    renderdata.decorate                     = false;
-    renderdata.w                            = REALSIZ.x;
-    renderdata.h                            = REALSIZ.y;
-    renderdata.pLS                          = pLayer;
-    renderdata.blockBlurOptimization        = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+    CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
+    renderdata.fadeAlpha                        = pLayer->alpha.value();
+    renderdata.blur                             = pLayer->forceBlur && *PBLUR;
+    renderdata.surface                          = pLayer->surface->resource();
+    renderdata.decorate                         = false;
+    renderdata.w                                = REALSIZ.x;
+    renderdata.h                                = REALSIZ.y;
+    renderdata.pLS                              = pLayer;
+    renderdata.blockBlurOptimization            = pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
     renderdata.clipBox = CBox{0, 0, pMonitor->vecSize.x, pMonitor->vecSize.y}.scale(pMonitor->scale);
 
@@ -690,7 +691,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
                 renderdata.texture     = s->current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pLayer->surface->resource();
-                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -711,7 +712,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
                 renderdata.texture     = popup->m_pWLSurface->resource()->current.texture;
                 renderdata.surface     = popup->m_pWLSurface->resource();
                 renderdata.mainSurface = false;
-                m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+                m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -719,11 +720,11 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* tim
 }
 
 void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, timespec* time) {
-    const auto                   POS = pPopup->globalBox().pos();
+    const auto                       POS = pPopup->globalBox().pos();
 
-    CTexPassElement::SRenderData renderdata = {pMonitor, time, POS};
+    CSurfacePassElement::SRenderData renderdata = {pMonitor, time, POS};
 
-    const auto                   SURF = pPopup->getSurface();
+    const auto                       SURF = pPopup->getSurface();
 
     renderdata.surface  = SURF;
     renderdata.decorate = false;
@@ -746,14 +747,14 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, tim
             renderdata.texture     = s->current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == SURF;
-            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+            m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
 }
 
 void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLMONITOR pMonitor, timespec* time) {
-    CTexPassElement::SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition, pMonitor->vecPosition};
+    CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->vecPosition, pMonitor->vecPosition};
 
     renderdata.blur     = false;
     renderdata.surface  = pSurface->surface->surface();
@@ -767,7 +768,7 @@ void CHyprRenderer::renderSessionLockSurface(SSessionLockSurface* pSurface, PHLM
             renderdata.texture     = s->current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == pSurface->surface->surface();
-            m_sRenderPass.add(makeShared<CTexPassElement>(renderdata));
+            m_sRenderPass.add(makeShared<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
@@ -2850,7 +2851,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         damageMonitor(PMONITOR);
     }
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.flipEndFrame = true;
     data.tex          = FBDATA->getTexture();
     data.box          = windowBox;
@@ -2882,9 +2883,9 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     layerBox.x = ((pLayer->realPosition.value().x - PMONITOR->vecPosition.x) * PMONITOR->scale) - (((pLayer->geometry.x - PMONITOR->vecPosition.x) * PMONITOR->scale) * scaleXY.x);
     layerBox.y = ((pLayer->realPosition.value().y - PMONITOR->vecPosition.y) * PMONITOR->scale) - (((pLayer->geometry.y - PMONITOR->vecPosition.y) * PMONITOR->scale) * scaleXY.y);
 
-    CRegion                            fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
+    CRegion                      fakeDamage{0, 0, PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y};
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.flipEndFrame = true;
     data.tex          = FBDATA->getTexture();
     data.box          = layerBox;

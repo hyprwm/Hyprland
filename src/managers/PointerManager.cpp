@@ -552,7 +552,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, timespec* no
     box.x = std::round(box.x);
     box.y = std::round(box.y);
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.tex          = texture;
     data.box          = box.round();
     data.syncTimeline = currentCursorImage.waitTimeline;

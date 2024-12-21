@@ -690,7 +690,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
 
     CBox       box = CBox{POS, dnd.dndSurface->current.size}.translate(-pMonitor->vecPosition + g_pPointerManager->cursorSizeLogical() / 2.F).scale(pMonitor->scale);
 
-    CTexPassElement::SSimpleRenderData data;
+    CTexPassElement::SRenderData data;
     data.tex = dnd.dndSurface->current.texture;
     data.box = box;
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));

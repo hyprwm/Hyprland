@@ -1371,9 +1371,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         if (pMonitor == g_pCompositor->m_vMonitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
-        } else {
+        } else
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, durationUs);
-        }
     }
 }
 
@@ -2434,11 +2433,10 @@ void CHyprRenderer::recheckSolitaryForMonitor(PHLMONITOR pMonitor) {
 
     // check if it did not open any subsurfaces or shit
     int surfaceCount = 0;
-    if (PCANDIDATE->m_bIsX11) {
+    if (PCANDIDATE->m_bIsX11)
         surfaceCount = 1;
-    } else {
+    else
         surfaceCount = PCANDIDATE->popupsCount() + PCANDIDATE->surfacesCount();
-    }
 
     if (surfaceCount > 1)
         return;

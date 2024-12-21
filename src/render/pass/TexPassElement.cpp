@@ -221,8 +221,8 @@ bool CTexPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CTexPassElement::boundingBox() {
-    if (simple)
-        return simple->box;
+    if (simple) // boundingBox is in logical coordinates, but simple boxes are already scaled.
+        return simple->box.copy().scale(1.F / g_pHyprOpenGL->m_RenderData.pMonitor->scale).round();
     return getTexBox();
 }
 

@@ -1258,10 +1258,10 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (rule->szValue.starts_with("tag:") && !tags.isTagged(rule->szValue.substr(4)))
                     continue;
 
-                if (rule->szValue.starts_with("title:") && !RE2::FullMatch(pWindow->m_szTitle, rule->szValue.substr(6)))
+                if (rule->szValue.starts_with("title:") && !RE2::FullMatch(pWindow->m_szTitle, *rule->rV1Regex))
                     continue;
 
-                if (!RE2::FullMatch(pWindow->m_szClass, rule->szValue))
+                if (!RE2::FullMatch(pWindow->m_szClass, *rule->rV1Regex))
                     continue;
 
             } catch (...) {
@@ -1351,16 +1351,16 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (!rule->szTag.empty() && !tags.isTagged(rule->szTag))
                     continue;
 
-                if (!rule->szClass.empty() && !RE2::FullMatch(pWindow->m_szClass, rule->szClass))
+                if (!rule->szClass.empty() && !RE2::FullMatch(pWindow->m_szClass, *rule->rClass))
                     continue;
 
-                if (!rule->szTitle.empty() && !RE2::FullMatch(pWindow->m_szTitle, rule->szTitle))
+                if (!rule->szTitle.empty() && !RE2::FullMatch(pWindow->m_szTitle, *rule->rTitle))
                     continue;
 
-                if (!rule->szInitialTitle.empty() && !RE2::FullMatch(pWindow->m_szInitialTitle, rule->szInitialTitle))
+                if (!rule->szInitialTitle.empty() && !RE2::FullMatch(pWindow->m_szInitialTitle, *rule->rInitialTitle))
                     continue;
 
-                if (!rule->szInitialClass.empty() && !RE2::FullMatch(pWindow->m_szInitialClass, rule->szInitialClass))
+                if (!rule->szInitialClass.empty() && !RE2::FullMatch(pWindow->m_szInitialClass, *rule->rInitialClass))
                     continue;
 
             } catch (std::exception& e) {
@@ -1419,7 +1419,7 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->targetNamespace)
                 continue;
-        } else if (!RE2::FullMatch(pLS->layerSurface->layerNamespace, lr->targetNamespace))
+        } else if (!RE2::FullMatch(pLS->layerSurface->layerNamespace, *lr->rTargetNamespaceRegex))
             continue;
 
         // hit
@@ -2281,6 +2281,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         return "Invalid rule: " + RULE;
     }
 
+    newRule->rV1Regex = std::make_unique<RE2>(VALUE.starts_with("title:") ? VALUE.substr(6) : VALUE);
+
     if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), newRule);
     else
@@ -2308,6 +2310,8 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
         Debug::log(ERR, "Invalid rule found: {}", RULE);
         return "Invalid rule found: " + RULE;
     }
+
+    rule->rTargetNamespaceRegex = std::make_unique<RE2>(VALUE);
 
     m_vLayerRules.emplace_back(rule);
 
@@ -2407,17 +2411,25 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (TAGPOS != std::string::npos)
         rule->szTag = extract(TAGPOS + 4);
 
-    if (CLASSPOS != std::string::npos)
+    if (CLASSPOS != std::string::npos) {
         rule->szClass = extract(CLASSPOS + 6);
+        rule->rClass  = std::make_unique<RE2>(rule->szClass);
+    }
 
-    if (TITLEPOS != std::string::npos)
+    if (TITLEPOS != std::string::npos) {
         rule->szTitle = extract(TITLEPOS + 6);
+        rule->rTitle  = std::make_unique<RE2>(rule->szTitle);
+    }
 
-    if (INITIALCLASSPOS != std::string::npos)
+    if (INITIALCLASSPOS != std::string::npos) {
         rule->szInitialClass = extract(INITIALCLASSPOS + 13);
+        rule->rInitialClass  = std::make_unique<RE2>(rule->szInitialClass);
+    }
 
-    if (INITIALTITLEPOS != std::string::npos)
+    if (INITIALTITLEPOS != std::string::npos) {
         rule->szInitialTitle = extract(INITIALTITLEPOS + 13);
+        rule->rInitialTitle  = std::make_unique<RE2>(rule->szInitialTitle);
+    }
 
     if (X11POS != std::string::npos)
         rule->bX11 = extract(X11POS + 9) == "1" ? 1 : 0;

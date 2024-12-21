@@ -2,6 +2,12 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
+
+//NOLINTNEXTLINE
+namespace re2 {
+    class RE2;
+};
 
 class CWindowRule {
   public:
@@ -57,4 +63,11 @@ class CWindowRule {
     std::string       szFullscreenState = ""; // empty means any
     std::string       szOnWorkspace     = ""; // empty means any
     std::string       szWorkspace       = ""; // empty means any
+
+    // precompiled regexes
+    std::unique_ptr<re2::RE2> rTitle;
+    std::unique_ptr<re2::RE2> rClass;
+    std::unique_ptr<re2::RE2> rInitialTitle;
+    std::unique_ptr<re2::RE2> rInitialClass;
+    std::unique_ptr<re2::RE2> rV1Regex;
 };

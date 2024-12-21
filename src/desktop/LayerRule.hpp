@@ -2,12 +2,7 @@
 
 #include <string>
 #include <cstdint>
-#include <memory>
-
-//NOLINTNEXTLINE
-namespace re2 {
-    class RE2;
-};
+#include "Rule.hpp"
 
 class CLayerRule {
   public:
@@ -27,10 +22,10 @@ class CLayerRule {
         RULE_ZUMBA,
     };
 
-    eRuleType                 ruleType = RULE_INVALID;
+    eRuleType           ruleType = RULE_INVALID;
 
-    const std::string         targetNamespace;
-    const std::string         rule;
+    const std::string   targetNamespace;
+    const std::string   rule;
 
-    std::unique_ptr<re2::RE2> rTargetNamespaceRegex;
+    CRuleRegexContainer targetNamespaceRegex;
 };

@@ -205,6 +205,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
@@ -364,6 +365,7 @@ void IHyprLayout::onEndDragWindow() {
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
+                DRAGGINGWINDOW->applyGroupRules();
                 DRAGGINGWINDOW->updateWindowDecos();
 
                 if (!DRAGGINGWINDOW->getDecorationByType(DECORATION_GROUPBAR))

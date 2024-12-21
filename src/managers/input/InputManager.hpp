@@ -87,6 +87,7 @@ class CInputManager {
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
     void               onMouseButton(IPointer::SButtonEvent);
     void               onMouseWheel(IPointer::SAxisEvent);
+    void               onMouseFrame();
     void               onKeyboardKey(std::any, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 

@@ -524,13 +524,13 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         success = true;
 
         if (mode->preferred)
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using preferred mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using preferred mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
                        mode->refreshRate / 1000.f);
         else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using custom mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using custom mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
                        mode->refreshRate / 1000.f);
         else
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using available mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using available mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
                        mode->refreshRate / 1000.f);
 
         break;
@@ -545,7 +545,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 continue;
 
             auto errorMessage =
-                std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:2f}Hz", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+                std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:.2f}Hz", szName, mode->pixelSize, mode->refreshRate / 1000.f);
             Debug::log(WARN, errorMessage);
             g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
@@ -556,7 +556,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     }
 
     if (!success) {
-        Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:2f}Hz", szName, RULE->resolution, RULE->refreshRate);
+        Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate);
         return true;
     }
 
@@ -568,10 +568,10 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // clang-format off
     static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
         std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
         },
         std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
-            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}, {"DRM_FORMAT_INVALID", DRM_FORMAT_INVALID}
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
         }
     };
     // clang-format on

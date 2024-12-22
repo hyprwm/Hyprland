@@ -7,10 +7,8 @@
 
 #include <cstdio>
 #include <iostream>
-#include <array>
 #include <filesystem>
 #include <print>
-#include <thread>
 #include <fstream>
 #include <algorithm>
 #include <format>
@@ -84,13 +82,13 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
     hlbranch             = hlbranch.substr(0, hlbranch.find(" at commit "));
 
     std::string hldate = HLVERCALL.substr(HLVERCALL.find("Date: ") + 6);
-    hldate             = hldate.substr(0, hldate.find("\n"));
+    hldate             = hldate.substr(0, hldate.find('\n'));
 
     std::string hlcommits;
 
     if (HLVERCALL.contains("commits:")) {
         hlcommits = HLVERCALL.substr(HLVERCALL.find("commits:") + 9);
-        hlcommits = hlcommits.substr(0, hlcommits.find(" "));
+        hlcommits = hlcommits.substr(0, hlcommits.find(' '));
     }
 
     int commits = 0;
@@ -379,7 +377,7 @@ eHeadersErrors CPluginManager::headersValid() {
 
     // find headers commit
     const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
-    auto               headers = execAndGet(cmd.c_str());
+    auto               headers = execAndGet(cmd);
 
     if (!headers.contains("-I/"))
         return HEADERS_MISSING;
@@ -794,7 +792,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
         std::println(stderr, "PluginManager: no $HOME or $HYPRLAND_INSTANCE_SIGNATURE");
         return LOADSTATE_FAIL;
     }
-    const auto HYPRPMPATH = DataState::getDataStatePath() + "/";
+    const auto HYPRPMPATH = DataState::getDataStatePath();
 
     const auto json = nlohmann::json::parse(execAndGet("hyprctl plugins list -j"));
 
@@ -848,7 +846,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     for (auto const& p : loadedPlugins) {
         if (!enabled(p)) {
             // unload
-            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p) + "/" + p + ".so", false)) {
+            if (!loadUnloadPlugin(HYPRPMPATH / repoForName(p) / (p + ".so"), false)) {
                 std::println("{}", infoString("{} will be unloaded after restarting Hyprland", p));
                 hyprlandVersionMismatch = true;
             } else
@@ -865,7 +863,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
             if (std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
-            if (!loadUnloadPlugin(HYPRPMPATH + repoForName(p.name) + "/" + p.filename, true)) {
+            if (!loadUnloadPlugin(HYPRPMPATH / repoForName(p.name) / p.filename, true)) {
                 std::println("{}", infoString("{} will be loaded after restarting Hyprland", p.name));
                 hyprlandVersionMismatch = true;
             } else

@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <string>
 #include <vector>
 #include "Plugin.hpp"
@@ -9,7 +10,7 @@ struct SGlobalState {
 };
 
 namespace DataState {
-    std::string                    getDataStatePath();
+    std::filesystem::path          getDataStatePath();
     std::string                    getHeadersPath();
     void                           ensureStateStoreExists();
     void                           addNewPluginRepo(const SPluginRepository& repo);

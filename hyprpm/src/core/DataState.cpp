@@ -1,11 +1,10 @@
 #include "DataState.hpp"
 #include <toml++/toml.hpp>
 #include <print>
-#include <filesystem>
 #include <fstream>
 #include "PluginManager.hpp"
 
-std::string DataState::getDataStatePath() {
+std::filesystem::path DataState::getDataStatePath() {
     const auto HOME = getenv("HOME");
     if (!HOME) {
         std::println(stderr, "DataState: no $HOME");
@@ -16,12 +15,12 @@ std::string DataState::getDataStatePath() {
     const auto XDG_DATA_HOME = getenv("XDG_DATA_HOME");
 
     if (XDG_DATA_HOME)
-        return std::string{XDG_DATA_HOME} + "/hyprpm";
-    return std::string{HOME} + "/.local/share/hyprpm";
+        return std::filesystem::path{XDG_DATA_HOME} / "hyprpm";
+    return std::filesystem::path{HOME} / ".local/share/hyprpm";
 }
 
 std::string DataState::getHeadersPath() {
-    return getDataStatePath() + "/headersRoot";
+    return getDataStatePath() / "headersRoot";
 }
 
 void DataState::ensureStateStoreExists() {
@@ -37,7 +36,7 @@ void DataState::ensureStateStoreExists() {
 void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     ensureStateStoreExists();
 
-    const auto PATH = getDataStatePath() + "/" + repo.name;
+    const auto PATH = getDataStatePath() / repo.name;
 
     std::filesystem::create_directories(PATH);
     // clang-format off
@@ -50,19 +49,21 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         }}
     };
     for (auto const& p : repo.plugins) {
+        const auto filename = p.name + ".so";
+
         // copy .so to the good place
         if (std::filesystem::exists(p.filename))
-            std::filesystem::copy_file(p.filename, PATH + "/" + p.name + ".so");
+            std::filesystem::copy_file(p.filename, PATH / filename);
 
         DATA.emplace(p.name, toml::table{
-            {"filename", p.name + ".so"},
+            {"filename", filename},
             {"enabled", p.enabled},
             {"failed", p.failed}
         });
     }
     // clang-format on
 
-    std::ofstream ofs(PATH + "/state.toml", std::ios::trunc);
+    std::ofstream ofs(PATH / "state.toml", std::ios::trunc);
     ofs << DATA;
     ofs.close();
 }
@@ -76,10 +77,11 @@ bool DataState::pluginRepoExists(const std::string& urlOrName) {
         if (!entry.is_directory() || entry.path().stem() == "headersRoot")
             continue;
 
-        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
+        const auto stateFile = entry.path() / "state.toml";
+        if (!std::filesystem::exists(stateFile))
             continue;
 
-        auto       STATE = toml::parse_file(entry.path().string() + "/state.toml");
+        auto       STATE = toml::parse_file(stateFile.c_str());
 
         const auto NAME = STATE["repository"]["name"].value_or("");
         const auto URL  = STATE["repository"]["url"].value_or("");
@@ -100,10 +102,11 @@ void DataState::removePluginRepo(const std::string& urlOrName) {
         if (!entry.is_directory() || entry.path().stem() == "headersRoot")
             continue;
 
-        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
+        const auto stateFile = entry.path() / "state.toml";
+        if (!std::filesystem::exists(stateFile))
             continue;
 
-        auto       STATE = toml::parse_file(entry.path().string() + "/state.toml");
+        auto       STATE = toml::parse_file(stateFile.c_str());
 
         const auto NAME = STATE["repository"]["name"].value_or("");
         const auto URL  = STATE["repository"]["url"].value_or("");
@@ -139,7 +142,7 @@ void DataState::updateGlobalState(const SGlobalState& state) {
     };
     // clang-format on
 
-    std::ofstream ofs(PATH + "/state.toml", std::ios::trunc);
+    std::ofstream ofs(PATH / "state.toml", std::ios::trunc);
     ofs << DATA;
     ofs.close();
 }
@@ -147,12 +150,12 @@ void DataState::updateGlobalState(const SGlobalState& state) {
 SGlobalState DataState::getGlobalState() {
     ensureStateStoreExists();
 
-    const auto PATH = getDataStatePath();
+    const auto stateFile = getDataStatePath() / "state.toml";
 
-    if (!std::filesystem::exists(PATH + "/state.toml"))
+    if (!std::filesystem::exists(stateFile))
         return SGlobalState{};
 
-    auto         DATA = toml::parse_file(PATH + "/state.toml");
+    auto         DATA = toml::parse_file(stateFile.c_str());
 
     SGlobalState state;
     state.headersHashCompiled = DATA["state"]["hash"].value_or("");
@@ -172,10 +175,11 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
         if (!entry.is_directory() || entry.path().stem() == "headersRoot")
             continue;
 
-        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
+        const auto stateFile = entry.path() / "state.toml";
+        if (!std::filesystem::exists(stateFile))
             continue;
 
-        auto              STATE = toml::parse_file(entry.path().string() + "/state.toml");
+        auto              STATE = toml::parse_file(stateFile.c_str());
 
         const auto        NAME = STATE["repository"]["name"].value_or("");
         const auto        URL  = STATE["repository"]["url"].value_or("");
@@ -214,10 +218,11 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
         if (!entry.is_directory() || entry.path().stem() == "headersRoot")
             continue;
 
-        if (!std::filesystem::exists(entry.path().string() + "/state.toml"))
+        const auto stateFile = entry.path() / "state.toml";
+        if (!std::filesystem::exists(stateFile))
             continue;
 
-        auto STATE = toml::parse_file(entry.path().string() + "/state.toml");
+        auto STATE = toml::parse_file(stateFile.c_str());
 
         for (const auto& [key, val] : STATE) {
             if (key == "repository")
@@ -233,7 +238,7 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
 
             (*STATE[key].as_table()).insert_or_assign("enabled", enabled);
 
-            std::ofstream state(entry.path().string() + "/state.toml", std::ios::trunc);
+            std::ofstream state(stateFile, std::ios::trunc);
             state << STATE;
             state.close();
 

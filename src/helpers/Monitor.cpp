@@ -440,7 +440,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // ()      use preferred mode, which is already last fallback
     // (-1,-1) preference to refreshrate over resolution
     // (-1,-2) preference to resolution
-    // otherwise its a user provided mode
+    // otherwise its a user requested mode
     if (RULE->resolution == Vector2D(-1, -1)) {
         for (auto const& mode : output->modes) {
             if ((mode->pixelSize.x >= currentWidth && mode->pixelSize.y >= currentHeight && mode->refreshRate >= (currentRefresh - 1000.f)) ||
@@ -456,10 +456,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             }
         }
     } else if (RULE->resolution != Vector2D()) {
-        // user requested a mode
-        // try it regardless as custom if the next ones dont work
-        requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = WLRREFRESHRATE}));
-
         // try any supported modes that are close first
         for (auto const& mode : output->modes) {
             // if delta of refresh rate, w and h chosen and mode is < 1 we accept it
@@ -494,8 +490,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     for (auto const& mode : requestedModes | std::views::reverse) {
         if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF) {
-            // TODO: this ignores when requested mode is used as a custom mode as a fallback, since theres no modeinfo
-            // maybe just add a custom flag
             output->state->setCustomMode(mode);
 
             if (!state.test()) {
@@ -536,6 +530,27 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         break;
     }
 
+    if (!success && RULE->resolution != Vector2D() && RULE->resolution != Vector2D(-1, -1) && RULE->resolution != Vector2D(-1, -2)) {
+        // try requested as custom regardless
+        auto mode = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = WLRREFRESHRATE});
+
+        output->state->setCustomMode(mode);
+
+        if (!state.test()) {
+            Debug::log(ERR, "Monitor {}: REJECTED custom mode {:X0}@{:.2f}Hz!", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+        } else {
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using custom mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+                       mode->refreshRate / 1000.f);
+
+            refreshRate   = mode->refreshRate / 1000.f;
+            vecSize       = mode->pixelSize;
+            currentMode   = mode;
+            customDrmMode = {};
+
+            success = true;
+        }
+    }
+
     // try any the modes if none of the above work
     if (!success) {
         for (auto const& mode : output->modes) {
@@ -548,6 +563,11 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:.2f}Hz", szName, mode->pixelSize, mode->refreshRate / 1000.f);
             Debug::log(WARN, errorMessage);
             g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
+
+            refreshRate   = mode->refreshRate / 1000.f;
+            vecSize       = mode->pixelSize;
+            currentMode   = mode;
+            customDrmMode = {};
 
             success = true;
 

@@ -44,6 +44,7 @@ runs:
           lld \
           meson \
           ninja \
+          nlohmann-json \
           pango \
           pixman \
           pkgconf \

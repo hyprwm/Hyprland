@@ -1,6 +1,7 @@
 #include "LayerRule.hpp"
 #include <unordered_set>
 #include <algorithm>
+#include <re2/re2.h>
 #include "../debug/Log.hpp"
 
 static const auto RULES        = std::unordered_set<std::string>{"noanim", "blur", "blurpopups", "dimaround"};

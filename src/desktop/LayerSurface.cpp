@@ -210,7 +210,7 @@ void CLayerSurface::onUnmap() {
     }
 
     // make a snapshot and start fade
-    g_pHyprOpenGL->makeLayerSnapshot(self.lock());
+    g_pHyprRenderer->makeLayerSnapshot(self.lock());
 
     startAnimation(false);
 

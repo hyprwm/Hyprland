@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstdint>
+#include "Rule.hpp"
 
 class CWindowRule {
   public:
@@ -57,4 +58,11 @@ class CWindowRule {
     std::string       szFullscreenState = ""; // empty means any
     std::string       szOnWorkspace     = ""; // empty means any
     std::string       szWorkspace       = ""; // empty means any
+
+    // precompiled regexes
+    CRuleRegexContainer rTitle;
+    CRuleRegexContainer rClass;
+    CRuleRegexContainer rInitialTitle;
+    CRuleRegexContainer rInitialClass;
+    CRuleRegexContainer rV1Regex;
 };

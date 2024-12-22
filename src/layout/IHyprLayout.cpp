@@ -20,9 +20,6 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
 
     pWindow->m_vPseudoSize = pWindow->m_vLastFloatingSize;
 
-    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
-        pWindow->applyGroupRules();
-
     bool autoGrouped = IHyprLayout::onWindowCreatedAutoGroup(pWindow);
     if (autoGrouped)
         return;
@@ -31,6 +28,9 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
         onWindowCreatedFloating(pWindow);
     else
         onWindowCreatedTiling(pWindow, direction);
+
+    if (!g_pXWaylandManager->shouldBeFloated(pWindow)) // do not apply group rules to child windows
+        pWindow->applyGroupRules();
 }
 
 void IHyprLayout::onWindowRemoved(PHLWINDOW pWindow) {
@@ -205,6 +205,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
         (*USECURRPOS ? OPENINGON : OPENINGON->getGroupTail())->insertWindowToGroup(pWindow);
 
         OPENINGON->setGroupCurrent(pWindow);
+        pWindow->applyGroupRules();
         pWindow->updateWindowDecos();
         recalculateWindow(pWindow);
 
@@ -364,6 +365,7 @@ void IHyprLayout::onEndDragWindow() {
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
                 pWindow->setGroupCurrent(DRAGGINGWINDOW);
+                DRAGGINGWINDOW->applyGroupRules();
                 DRAGGINGWINDOW->updateWindowDecos();
 
                 if (!DRAGGINGWINDOW->getDecorationByType(DECORATION_GROUPBAR))

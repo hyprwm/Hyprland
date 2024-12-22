@@ -1098,7 +1098,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
         const auto PWORKSPACE = pWindow->m_pWorkspace;
         // This is to fix incorrect feedback on the focus history.
         PWORKSPACE->m_pLastFocusedWindow = pWindow;
-        PWORKSPACE->rememberPrevWorkspace(m_pLastMonitor->activeWorkspace);
+        if (m_pLastMonitor->activeWorkspace)
+            PWORKSPACE->rememberPrevWorkspace(m_pLastMonitor->activeWorkspace);
         if (PWORKSPACE->m_bIsSpecialWorkspace)
             m_pLastMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
         else if (PMONITOR)
@@ -2649,6 +2650,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
     const bool FULLSCREEN     = pWindow->isFullscreen();
     const auto FULLSCREENMODE = pWindow->m_sFullscreenState.internal;
+    const bool WASVISIBLE     = pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible();
 
     if (FULLSCREEN)
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);
@@ -2716,6 +2718,11 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     if (pWindow->m_pWorkspace)
         pWindow->m_pWorkspace->updateWindows();
     g_pCompositor->updateSuspendedStates();
+
+    if (!WASVISIBLE && pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible()) {
+        pWindow->m_fMovingFromWorkspaceAlpha.setValueAndWarp(0.F);
+        pWindow->m_fMovingFromWorkspaceAlpha = 1.F;
+    }
 }
 
 PHLWINDOW CCompositor::getForceFocus() {

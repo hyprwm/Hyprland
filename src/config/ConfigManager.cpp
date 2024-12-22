@@ -571,7 +571,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{1}); // TODO: remove this. I don't think it does us any good to disable intro.
 
     m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
@@ -612,6 +612,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("render:xp_mode", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
 
@@ -1262,10 +1263,10 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (rule->szValue.starts_with("tag:") && !tags.isTagged(rule->szValue.substr(4)))
                     continue;
 
-                if (rule->szValue.starts_with("title:") && !RE2::FullMatch(pWindow->m_szTitle, rule->szValue.substr(6)))
+                if (rule->szValue.starts_with("title:") && !rule->rV1Regex.passes(pWindow->m_szTitle))
                     continue;
 
-                if (!RE2::FullMatch(pWindow->m_szClass, rule->szValue))
+                if (!rule->rV1Regex.passes(pWindow->m_szClass))
                     continue;
 
             } catch (...) {
@@ -1355,16 +1356,16 @@ std::vector<SP<CWindowRule>> CConfigManager::getMatchingRules(PHLWINDOW pWindow,
                 if (!rule->szTag.empty() && !tags.isTagged(rule->szTag))
                     continue;
 
-                if (!rule->szClass.empty() && !RE2::FullMatch(pWindow->m_szClass, rule->szClass))
+                if (!rule->szClass.empty() && !rule->rClass.passes(pWindow->m_szClass))
                     continue;
 
-                if (!rule->szTitle.empty() && !RE2::FullMatch(pWindow->m_szTitle, rule->szTitle))
+                if (!rule->szTitle.empty() && !rule->rTitle.passes(pWindow->m_szTitle))
                     continue;
 
-                if (!rule->szInitialTitle.empty() && !RE2::FullMatch(pWindow->m_szInitialTitle, rule->szInitialTitle))
+                if (!rule->szInitialTitle.empty() && !rule->rInitialTitle.passes(pWindow->m_szInitialTitle))
                     continue;
 
-                if (!rule->szInitialClass.empty() && !RE2::FullMatch(pWindow->m_szInitialClass, rule->szInitialClass))
+                if (!rule->szInitialClass.empty() && !rule->rInitialClass.passes(pWindow->m_szInitialClass))
                     continue;
 
             } catch (std::exception& e) {
@@ -1423,7 +1424,7 @@ std::vector<SP<CLayerRule>> CConfigManager::getMatchingRules(PHLLS pLS) {
         if (lr->targetNamespace.starts_with("address:0x")) {
             if (std::format("address:0x{:x}", (uintptr_t)pLS.get()) != lr->targetNamespace)
                 continue;
-        } else if (!RE2::FullMatch(pLS->layerSurface->layerNamespace, lr->targetNamespace))
+        } else if (!lr->targetNamespaceRegex.passes(pLS->layerSurface->layerNamespace))
             continue;
 
         // hit
@@ -2285,6 +2286,8 @@ std::optional<std::string> CConfigManager::handleWindowRule(const std::string& c
         return "Invalid rule: " + RULE;
     }
 
+    newRule->rV1Regex = {VALUE.starts_with("title:") ? VALUE.substr(6) : VALUE};
+
     if (RULE.starts_with("size") || RULE.starts_with("maxsize") || RULE.starts_with("minsize"))
         m_vWindowRules.insert(m_vWindowRules.begin(), newRule);
     else
@@ -2312,6 +2315,8 @@ std::optional<std::string> CConfigManager::handleLayerRule(const std::string& co
         Debug::log(ERR, "Invalid rule found: {}", RULE);
         return "Invalid rule found: " + RULE;
     }
+
+    rule->targetNamespaceRegex = {VALUE};
 
     m_vLayerRules.emplace_back(rule);
 
@@ -2411,17 +2416,25 @@ std::optional<std::string> CConfigManager::handleWindowRuleV2(const std::string&
     if (TAGPOS != std::string::npos)
         rule->szTag = extract(TAGPOS + 4);
 
-    if (CLASSPOS != std::string::npos)
+    if (CLASSPOS != std::string::npos) {
         rule->szClass = extract(CLASSPOS + 6);
+        rule->rClass  = {rule->szClass};
+    }
 
-    if (TITLEPOS != std::string::npos)
+    if (TITLEPOS != std::string::npos) {
         rule->szTitle = extract(TITLEPOS + 6);
+        rule->rTitle  = {rule->szTitle};
+    }
 
-    if (INITIALCLASSPOS != std::string::npos)
+    if (INITIALCLASSPOS != std::string::npos) {
         rule->szInitialClass = extract(INITIALCLASSPOS + 13);
+        rule->rInitialClass  = {rule->szInitialClass};
+    }
 
-    if (INITIALTITLEPOS != std::string::npos)
+    if (INITIALTITLEPOS != std::string::npos) {
         rule->szInitialTitle = extract(INITIALTITLEPOS + 13);
+        rule->rInitialTitle  = {rule->szInitialTitle};
+    }
 
     if (X11POS != std::string::npos)
         rule->bX11 = extract(X11POS + 9) == "1" ? 1 : 0;

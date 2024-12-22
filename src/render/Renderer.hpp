@@ -67,9 +67,6 @@ class CHyprRenderer {
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
     void                            renderLockscreen(PHLMONITOR pMonitor, timespec* now, const CBox& geometry);
-    void                            setOccludedForBackLayers(CRegion& region, PHLWORKSPACE pWorkspace);
-    void                            setOccludedForMainWorkspace(CRegion& region, PHLWORKSPACE pWorkspace); // TODO: merge occlusion methods
-    bool                            canSkipBackBufferClear(PHLMONITOR pMonitor);
     void                            recheckSolitaryForMonitor(PHLMONITOR pMonitor);
     void                            setCursorSurface(SP<CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
@@ -80,6 +77,11 @@ class CHyprRenderer {
     void                            unsetEGL();
     SExplicitSyncSettings           getExplicitSyncSettings();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
+    void                            makeWindowSnapshot(PHLWINDOW);
+    void                            makeRawWindowSnapshot(PHLWINDOW, CFramebuffer*);
+    void                            makeLayerSnapshot(PHLLS);
+    void                            renderSnapshot(PHLWINDOW);
+    void                            renderSnapshot(PHLLS);
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
@@ -110,6 +112,8 @@ class CHyprRenderer {
         std::string                   name;
     } m_sLastCursorData;
 
+    CRenderPass m_sRenderPass = {};
+
   private:
     void              arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void              renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, timespec*); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
@@ -129,10 +133,9 @@ class CHyprRenderer {
     bool              m_bCursorHidden        = false;
     bool              m_bCursorHasSurface    = false;
     SP<CRenderbuffer> m_pCurrentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_pCurrentBuffer;
-    eRenderMode             m_eRenderMode = RENDER_MODE_NORMAL;
-
-    bool                    m_bNvidia = false;
+    SP<Aquamarine::IBuffer> m_pCurrentBuffer = nullptr;
+    eRenderMode             m_eRenderMode    = RENDER_MODE_NORMAL;
+    bool                    m_bNvidia        = false;
 
     struct {
         bool hiddenOnTouch    = false;

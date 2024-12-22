@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstdint>
+#include "Rule.hpp"
 
 class CLayerRule {
   public:
@@ -21,8 +22,10 @@ class CLayerRule {
         RULE_ZUMBA,
     };
 
-    eRuleType         ruleType = RULE_INVALID;
+    eRuleType           ruleType = RULE_INVALID;
 
-    const std::string targetNamespace;
-    const std::string rule;
+    const std::string   targetNamespace;
+    const std::string   rule;
+
+    CRuleRegexContainer targetNamespaceRegex;
 };

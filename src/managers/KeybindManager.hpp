@@ -74,12 +74,6 @@ enum eMultiKeyCase : uint8_t {
     MK_FULL_MATCH
 };
 
-struct SDispatchResult {
-    bool        passEvent = false;
-    bool        success   = true;
-    std::string error;
-};
-
 class CKeybindManager {
   public:
     CKeybindManager();

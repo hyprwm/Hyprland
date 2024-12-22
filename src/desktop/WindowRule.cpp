@@ -1,6 +1,7 @@
 #include "WindowRule.hpp"
 #include <unordered_set>
 #include <algorithm>
+#include <re2/re2.h>
 #include "../config/ConfigManager.hpp"
 
 static const auto RULES = std::unordered_set<std::string>{

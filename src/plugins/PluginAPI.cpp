@@ -202,6 +202,19 @@ APICALL bool HyprlandAPI::addDispatcher(HANDLE handle, const std::string& name, 
     return true;
 }
 
+APICALL bool HyprlandAPI::addDispatcherV2(HANDLE handle, const std::string& name, std::function<SDispatchResult(std::string)> handler) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->registeredDispatchers.push_back(name);
+
+    g_pKeybindManager->m_mDispatchers[name] = handler;
+
+    return true;
+}
+
 APICALL bool HyprlandAPI::removeDispatcher(HANDLE handle, const std::string& name) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 

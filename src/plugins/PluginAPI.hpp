@@ -236,8 +236,17 @@ namespace HyprlandAPI {
         Adds a keybind dispatcher.
 
         returns: true on success. False otherwise.
+
+        DEPRECATED: use addDispatcherV2
     */
-    APICALL bool addDispatcher(HANDLE handle, const std::string& name, std::function<void(std::string)> handler);
+    APICALL [[deprecated]] bool addDispatcher(HANDLE handle, const std::string& name, std::function<void(std::string)> handler);
+
+    /*
+        Adds a keybind dispatcher.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addDispatcherV2(HANDLE handle, const std::string& name, std::function<SDispatchResult(std::string)> handler);
 
     /*
         Removes a keybind dispatcher.

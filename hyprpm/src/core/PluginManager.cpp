@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
@@ -790,34 +791,28 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     const auto HOME = getenv("HOME");
     const auto HIS  = getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!HOME || !HIS) {
-        std::println(stderr, "PluginManager: no $HOME or HIS");
+        std::println(stderr, "PluginManager: no $HOME or $HYPRLAND_INSTANCE_SIGNATURE");
         return LOADSTATE_FAIL;
     }
-    const auto               HYPRPMPATH = DataState::getDataStatePath() + "/";
+    const auto HYPRPMPATH = DataState::getDataStatePath() + "/";
 
-    auto                     pluginLines = execAndGet("hyprctl plugins list | grep Plugin");
+    const auto json = nlohmann::json::parse(execAndGet("hyprctl plugins list -j"));
+
+    if (!json.is_array()) {
+        std::println(stderr, "PluginManager: couldn't parse plugin list");
+        return LOADSTATE_FAIL;
+    }
 
     std::vector<std::string> loadedPlugins;
+    for (const auto& plugin : json) {
+        if (!plugin.contains("name")) {
+            std::println(stderr, "PluginManager: plugin doesn't have a name?");
+            continue;
+        }
+        loadedPlugins.push_back(plugin["name"]);
+    }
 
     std::println("{}", successString("Ensuring plugin load state"));
-
-    // iterate line by line
-    while (!pluginLines.empty()) {
-        auto plLine = pluginLines.substr(0, pluginLines.find('\n'));
-
-        if (pluginLines.find('\n') != std::string::npos)
-            pluginLines = pluginLines.substr(pluginLines.find('\n') + 1);
-        else
-            pluginLines = "";
-
-        if (plLine.back() != ':')
-            continue;
-
-        plLine = plLine.substr(7);
-        plLine = plLine.substr(0, plLine.find(" by "));
-
-        loadedPlugins.push_back(plLine);
-    }
 
     // get state
     const auto REPOS = DataState::getAllRepositories();

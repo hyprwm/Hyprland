@@ -555,7 +555,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
             },
             nullptr);
 
-        g_pHyprOpenGL->m_RenderData.useNearestNeighbor = false;
+        renderdata.useNearestNeighbor = false;
 
         if (renderdata.decorate) {
             for (auto const& wd : pWindow->m_dWindowDecorations) {
@@ -638,7 +638,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         }
     }
 
+    // for plugins
+    g_pHyprOpenGL->m_RenderData.currentWindow = pWindow;
+
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
+
+    g_pHyprOpenGL->m_RenderData.currentWindow.reset();
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, timespec* time, bool popups) {

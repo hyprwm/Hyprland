@@ -18,6 +18,8 @@ class CRenderPass {
 
   private:
     CRegion damage;
+    CRegion occludedRegion;
+    CRegion totalLiveBlurRegion;
 
     struct SPassElementData {
         CRegion          elementDamage;

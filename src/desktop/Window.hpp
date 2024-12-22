@@ -336,6 +336,7 @@ class CWindow {
 
     // for alpha
     CAnimatedVariable<float> m_fActiveInactiveAlpha;
+    CAnimatedVariable<float> m_fMovingFromWorkspaceAlpha;
 
     // animated shadow color
     CAnimatedVariable<CHyprColor> m_cRealShadowColor;

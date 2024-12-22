@@ -571,7 +571,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("xwayland:force_zero_scaling", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("opengl:nvidia_anti_flicker", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("opengl:force_introspection", Hyprlang::INT{1}); // TODO: remove this. I don't think it does us any good to disable intro.
 
     m_pConfig->addConfigValue("cursor:no_hardware_cursors", Hyprlang::INT{2});
     m_pConfig->addConfigValue("cursor:no_break_fs_vrr", Hyprlang::INT{0});
@@ -612,6 +612,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:explicit_sync_kms", Hyprlang::INT{2});
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
+    m_pConfig->addConfigValue("render:xp_mode", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
 

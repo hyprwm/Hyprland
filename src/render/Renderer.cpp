@@ -1890,7 +1890,7 @@ bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitor
 
     const auto WLRREFRESHRATE = pMonitor->output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
 
-    //
+    // accumulate requested modes, then try them all
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
     float                                    currentWidth   = 0;
     float                                    currentHeight  = 0;
@@ -1964,7 +1964,7 @@ bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitor
             pMonitor->output->state->setCustomMode(mode);
 
             if (!pMonitor->state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED custom mode: {:X0}@{}mHz!", pMonitor->output->name, mode->pixelSize, mode->refreshRate);
+                Debug::log(ERR, "Monitor {}: REJECTED custom mode {:X0}@{}Hz!", pMonitor->output->name, mode->pixelSize, mode->refreshRate / 1000.f);
                 continue;
             }
 
@@ -1973,7 +1973,7 @@ bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitor
             pMonitor->output->state->setMode(mode);
 
             if (!pMonitor->state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED available mode: {:X0}@{}mHz!", pMonitor->output->name, mode->pixelSize, mode->refreshRate);
+                Debug::log(ERR, "Monitor {}: REJECTED available mode {:X0}@{}Hz!", pMonitor->output->name, mode->pixelSize, mode->refreshRate / 1000.f);
                 if (mode->preferred)
                     Debug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", pMonitor->output->name);
                 continue;
@@ -1989,14 +1989,40 @@ bool CHyprRenderer::applyMonitorRule(PHLMONITOR pMonitor, SMonitorRule* pMonitor
         success = true;
 
         if (mode->preferred)
-            Debug::log(LOG, "Monitor {} using preferred mode: {:X0}@{:2f}", pMonitor->output->name, mode->pixelSize, mode->refreshRate / 1000.f);
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using preferred mode {:X0}@{:2f}Hz", pMonitor->output->name, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+                       mode->refreshRate / 1000.f);
         else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
-            Debug::log(LOG, "Monitor {}: using a custom mode {:X0}@{:2f}", pMonitor->output->name, RULE->resolution, RULE->refreshRate);
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using custom mode {:X0}@{:2f}Hz", pMonitor->output->name, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+                       mode->refreshRate / 1000.f);
         else
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}, found available mode: {:X0}@{}mHz, applying.", pMonitor->output->name, RULE->resolution, RULE->refreshRate,
-                       mode->pixelSize, mode->refreshRate);
+            Debug::log(LOG, "Monitor {}: requested {:X0}@{:2f}Hz, using available mode {:X0}@{:2f}Hz", pMonitor->output->name, RULE->resolution, RULE->refreshRate, mode->pixelSize,
+                       mode->refreshRate / 1000.f);
 
         break;
+    }
+
+    // try any the modes if none of the above work
+    if (!success) {
+        for (auto const& mode : pMonitor->output->modes) {
+            pMonitor->output->state->setMode(mode);
+
+            if (!pMonitor->state.test())
+                continue;
+
+            auto errorMessage = std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:2f}Hz", pMonitor->output->name, mode->pixelSize,
+                                            mode->refreshRate / 1000.f);
+            Debug::log(WARN, errorMessage);
+            g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
+
+            success = true;
+
+            break;
+        }
+    }
+
+    if (!success) {
+        Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:2f}Hz", pMonitor->output->name, RULE->resolution, RULE->refreshRate);
+        return true;
     }
 
     pMonitor->vrrActive = pMonitor->output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()

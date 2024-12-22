@@ -44,7 +44,6 @@ runs:
           lld \
           meson \
           ninja \
-          nlohmann-json \
           pango \
           pixman \
           pkgconf \
@@ -53,6 +52,7 @@ runs:
           seatd \
           systemd \
           tomlplusplus \
+          rapidjson \
           wayland \
           wayland-protocols \
           xcb-util-errors \

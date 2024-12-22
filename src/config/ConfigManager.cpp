@@ -413,6 +413,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:overlay", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:damage_blink", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("debug:pass", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:disable_logs", Hyprlang::INT{1});
     m_pConfig->addConfigValue("debug:disable_time", Hyprlang::INT{1});
     m_pConfig->addConfigValue("debug:enable_stdout_logs", Hyprlang::INT{0});

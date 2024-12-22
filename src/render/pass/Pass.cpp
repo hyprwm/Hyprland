@@ -21,6 +21,8 @@ void CRenderPass::add(SP<IPassElement> el) {
 }
 
 void CRenderPass::simplify() {
+    static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
+
     // TODO: use precompute blur for instances where there is nothing in between
 
     // if there is live blur, we need to NOT occlude any area where it will be influenced
@@ -78,6 +80,20 @@ void CRenderPass::simplify() {
                 }
             }
             newDamage.subtract(opaque);
+            if (*PDEBUGPASS)
+                occludedRegion.add(opaque);
+        }
+    }
+
+    if (*PDEBUGPASS) {
+        for (auto& el2 : m_vPassElements) {
+            if (!el2->element->needsLiveBlur())
+                continue;
+
+            const auto BB = el2->element->boundingBox();
+            RASSERT(BB, "No bounding box for an element with live blur is illegal");
+
+            totalLiveBlurRegion.add(*BB);
         }
     }
 }
@@ -87,9 +103,13 @@ void CRenderPass::clear() {
 }
 
 CRegion CRenderPass::render(const CRegion& damage_) {
-    const auto WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+    static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
-    damage = damage_.copy();
+    const auto  WILLBLUR = std::ranges::any_of(m_vPassElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+
+    damage              = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : damage_.copy();
+    occludedRegion      = CRegion{};
+    totalLiveBlurRegion = CRegion{};
 
     if (damage.empty()) {
         g_pHyprOpenGL->m_RenderData.damage      = damage;
@@ -143,6 +163,12 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
         g_pHyprOpenGL->m_RenderData.damage = el->elementDamage;
         el->element->draw(el->elementDamage);
+    }
+
+    if (*PDEBUGPASS) {
+        CBox monbox = {{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize};
+        g_pHyprOpenGL->renderRectWithDamage(&monbox, CHyprColor{1.F, 0.1F, 0.1F, 0.5F}, occludedRegion);
+        g_pHyprOpenGL->renderRectWithDamage(&monbox, CHyprColor{0.1F, 1.F, 0.1F, 0.5F}, totalLiveBlurRegion);
     }
 
     g_pHyprOpenGL->m_RenderData.damage = damage;

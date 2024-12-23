@@ -2615,6 +2615,7 @@ WORKSPACEID CCompositor::getNewSpecialID() {
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG     = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
     static auto PNOCHECKQTUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_qtutils_check");
+    static auto PNOCHECKASSETS  = CConfigValue<Hyprlang::INT>("misc:disable_assets_check");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2633,7 +2634,7 @@ void CCompositor::performUserChecks() {
         }
     }
 
-    if (g_pHyprOpenGL->failedAssetsNo > 0) {
+    if (!*PNOCHECKASSETS && g_pHyprOpenGL->failedAssetsNo > 0) {
         g_pHyprNotificationOverlay->addNotification(std::format("Hyprland failed to load {} essential asset{}, blame your distro's packager for doing a bad job at packaging!",
                                                                 g_pHyprOpenGL->failedAssetsNo, g_pHyprOpenGL->failedAssetsNo > 1 ? "s" : ""),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);

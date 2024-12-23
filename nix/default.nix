@@ -50,12 +50,12 @@
   nvidiaPatches ? false,
   hidpiXWayland ? false,
 }: let
-  inherit (builtins) baseNameOf foldl';
+  inherit (builtins) baseNameOf foldl' readFile;
   inherit (lib.asserts) assertMsg;
   inherit (lib.attrsets) mapAttrsToList;
   inherit (lib.lists) flatten concatLists optional optionals;
   inherit (lib.sources) cleanSourceWith cleanSource;
-  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable;
+  inherit (lib.strings) hasSuffix makeBinPath optionalString mesonBool mesonEnable trim;
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -91,7 +91,7 @@ in
       DATE = date;
       DIRTY = optionalString (commit == "") "dirty";
       HASH = commit;
-      TAG = "v${builtins.readFile "${finalAttrs.src}/VERSION"}";
+      TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
 
       depsBuildBuild = [
         pkg-config

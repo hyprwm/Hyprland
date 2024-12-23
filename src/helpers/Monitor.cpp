@@ -423,23 +423,21 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     setScale  = scale;
     transform = RULE->transform;
 
-    const auto WLRREFRESHRATE = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
-
-    // accumulate requested modes, then try them all
+    // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
+    std::string                              requestedStr = "preferred";
 
-    // last fallback is preferred mode
+    // last fallback is preferred mode, btw this covers resolution == Vector2D()
     if (!output->preferredMode())
         Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
     else
         requestedModes.push_back(output->preferredMode());
 
-    // ()      use preferred mode, which is already last fallback
-    // (-1,-1) preference to refreshrate over resolution
-    // (-1,-2) preference to resolution
-    // otherwise its a user requested mode
     if (RULE->resolution == Vector2D(-1, -1)) {
+        requestedStr     = "highrr";
         auto sortedModes = output->modes;
+
+        // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
         std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
             if (a->refreshRate > b->refreshRate + 3000.f)
                 return true;
@@ -452,7 +450,10 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             requestedModes.push_back(mode);
         }
     } else if (RULE->resolution == Vector2D(-1, -2)) {
+        requestedStr     = "highres";
         auto sortedModes = output->modes;
+
+        // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
         std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
             if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
@@ -465,20 +466,22 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             requestedModes.push_back(mode);
         }
     } else if (RULE->resolution != Vector2D()) {
-        // try any supported modes that are close first
-        for (auto const& mode : output->modes) {
-            // if delta of refresh rate, w and h chosen and mode is < 1 we accept it
+        // user requested mode
+        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+
+        // try any supported modes that are close
+        for (auto const& mode : output->modes | std::views::reverse) {
             if (DELTALESSTHAN(mode->pixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(mode->pixelSize.y, RULE->resolution.y, 1) &&
                 DELTALESSTHAN(mode->refreshRate / 1000.f, RULE->refreshRate, 1)) {
                 requestedModes.push_back(mode);
             }
         }
 
-        // then if its custom, try custom mode first
+        // then if requested is custom, try custom mode first
         if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
-            if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM) {
+            if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)
                 Debug::log(ERR, "Tried to set custom modeline on non-DRM output");
-            } else
+            else
                 requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(
                     Aquamarine::SOutputMode{.pixelSize = {RULE->drmMode.hdisplay, RULE->drmMode.vdisplay}, .refreshRate = RULE->drmMode.vrefresh, .modeInfo = RULE->drmMode}));
         }
@@ -497,12 +500,21 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     drmFormat     = DRM_FORMAT_XRGB8888;
     output->state->resetExplicitFences();
 
+    if (Debug::trace) {
+        Debug::log(TRACE, "Monitor {} requested modes:", szName);
+        for (auto const& mode : requestedModes | std::views::reverse) {
+            Debug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+        }
+    }
+
     for (auto const& mode : requestedModes | std::views::reverse) {
+        std::string modeStr = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+
         if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF) {
             output->state->setCustomMode(mode);
 
             if (!state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED custom mode {:X0}@{:.2f}Hz!", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+                Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
                 continue;
             }
 
@@ -511,7 +523,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             output->state->setMode(mode);
 
             if (!state.test()) {
-                Debug::log(ERR, "Monitor {}: REJECTED available mode {:X0}@{:.2f}Hz!", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+                Debug::log(ERR, "Monitor {}: REJECTED available mode {}!", szName, modeStr);
                 if (mode->preferred)
                     Debug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", szName);
                 continue;
@@ -527,29 +539,27 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         success = true;
 
         if (mode->preferred)
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using preferred mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
-                       mode->refreshRate / 1000.f);
+            Debug::log(LOG, "Monitor {}: requested {}, using preferred mode {}", szName, requestedStr, modeStr);
         else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using custom mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
-                       mode->refreshRate / 1000.f);
+            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
         else
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using available mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
-                       mode->refreshRate / 1000.f);
+            Debug::log(LOG, "Monitor {}: requested {}, using available mode {}", szName, requestedStr, modeStr);
 
         break;
     }
 
+    // try requested as custom mode jic it works
     if (!success && RULE->resolution != Vector2D() && RULE->resolution != Vector2D(-1, -1) && RULE->resolution != Vector2D(-1, -2)) {
-        // try requested as custom regardless
-        auto mode = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = WLRREFRESHRATE});
+        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
+        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = refreshRate});
+        std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
         output->state->setCustomMode(mode);
 
         if (!state.test()) {
-            Debug::log(ERR, "Monitor {}: REJECTED custom mode {:X0}@{:.2f}Hz!", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+            Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
         } else {
-            Debug::log(LOG, "Monitor {}: requested {:X0}@{:.2f}Hz, using custom mode {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate, mode->pixelSize,
-                       mode->refreshRate / 1000.f);
+            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
 
             refreshRate   = mode->refreshRate / 1000.f;
             vecSize       = mode->pixelSize;
@@ -560,7 +570,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         }
     }
 
-    // try any the modes if none of the above work
+    // try any of the modes if none of the above work
     if (!success) {
         for (auto const& mode : output->modes) {
             output->state->setMode(mode);

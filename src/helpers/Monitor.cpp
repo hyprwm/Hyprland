@@ -467,14 +467,22 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         }
     } else if (RULE->resolution != Vector2D()) {
         // user requested mode
-        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+        requestedStr     = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+        auto sortedModes = output->modes;
 
-        // try any supported modes that are close
-        for (auto const& mode : output->modes | std::views::reverse) {
-            if (DELTALESSTHAN(mode->pixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(mode->pixelSize.y, RULE->resolution.y, 1) &&
-                DELTALESSTHAN(mode->refreshRate / 1000.f, RULE->refreshRate, 1)) {
-                requestedModes.push_back(mode);
-            }
+        // sort by closeness to requested, then add best 3
+        std::ranges::sort(sortedModes, [&](auto const& a, auto const& b) {
+            if (abs(a->pixelSize.x - RULE->resolution.x) < abs(b->pixelSize.x - RULE->resolution.x))
+                return true;
+            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - RULE->resolution.y) < abs(b->pixelSize.y - RULE->resolution.y))
+                return true;
+            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - RULE->refreshRate) < abs((b->refreshRate / 1000.f) - RULE->refreshRate))
+                return true;
+            return false;
+        });
+        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        for (auto const& mode : sortedModes | std::views::reverse) {
+            requestedModes.push_back(mode);
         }
 
         // then if requested is custom, try custom mode first

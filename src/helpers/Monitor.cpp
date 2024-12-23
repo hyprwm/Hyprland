@@ -427,9 +427,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     // accumulate requested modes, then try them all
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
-    float                                    currentWidth   = 0;
-    float                                    currentHeight  = 0;
-    float                                    currentRefresh = 0;
 
     // last fallback is preferred mode
     if (!output->preferredMode())
@@ -442,18 +439,30 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // (-1,-2) preference to resolution
     // otherwise its a user requested mode
     if (RULE->resolution == Vector2D(-1, -1)) {
-        for (auto const& mode : output->modes) {
-            if ((mode->pixelSize.x >= currentWidth && mode->pixelSize.y >= currentHeight && mode->refreshRate >= (currentRefresh - 1000.f)) ||
-                mode->refreshRate > (currentRefresh + 3000.f)) {
-                requestedModes.push_back(mode);
-            }
+        auto sortedModes = output->modes;
+        std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
+            if (a->refreshRate > b->refreshRate + 3000.f)
+                return true;
+            if (a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y && a->refreshRate >= b->refreshRate - 1000.f)
+                return true;
+            return false;
+        });
+        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        for (auto const& mode : sortedModes | std::views::reverse) {
+            requestedModes.push_back(mode);
         }
     } else if (RULE->resolution == Vector2D(-1, -2)) {
-        for (auto const& mode : output->modes) {
-            if ((mode->pixelSize.x >= currentWidth && mode->pixelSize.y >= currentHeight && mode->refreshRate >= (currentRefresh - 1000.f)) ||
-                (mode->pixelSize.x > currentWidth && mode->pixelSize.y > currentHeight)) {
-                requestedModes.push_back(mode);
-            }
+        auto sortedModes = output->modes;
+        std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
+            if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
+                return true;
+            if (a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y && a->refreshRate >= b->refreshRate - 1000.f)
+                return true;
+            return false;
+        });
+        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        for (auto const& mode : sortedModes | std::views::reverse) {
+            requestedModes.push_back(mode);
         }
     } else if (RULE->resolution != Vector2D()) {
         // try any supported modes that are close first

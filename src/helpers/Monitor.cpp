@@ -427,13 +427,13 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
     std::string                              requestedStr = "preferred";
 
-    auto                                     addBest3Modes = [&](auto const& sortFunc) {
+    // use sortFunc, add best 3 to requestedModes in reverse, since we test in reverse
+    auto addBest3Modes = [&](auto const& sortFunc) {
         auto sortedModes = output->modes;
         std::ranges::sort(sortedModes, sortFunc);
-        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
-        for (auto const& mode : sortedModes | std::views::reverse) {
-            requestedModes.push_back(mode);
-        }
+        if (sortedModes.size() > 3)
+            sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        requestedModes.insert(requestedModes.end(), sortedModes.rbegin(), sortedModes.rend());
     };
 
     // last fallback is preferred mode, btw this covers resolution == Vector2D()
@@ -449,7 +449,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         addBest3Modes([](auto const& a, auto const& b) {
             if (a->refreshRate > b->refreshRate)
                 return true;
-            if (a->refreshRate == b->refreshRate && a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y)
+            else if (DELTALESSTHAN((float)a->refreshRate, (float)b->refreshRate, 1000) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
             return false;
         });
@@ -460,7 +460,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         addBest3Modes([](auto const& a, auto const& b) {
             if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
-            if (a->pixelSize == b->pixelSize && a->refreshRate > b->refreshRate)
+            else if (DELTALESSTHAN(a->pixelSize.x, b->pixelSize.x, 1) && DELTALESSTHAN(a->pixelSize.y, b->pixelSize.y, 1) && a->refreshRate > b->refreshRate)
                 return true;
             return false;
         });

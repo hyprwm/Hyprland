@@ -427,6 +427,15 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
     std::string                              requestedStr = "preferred";
 
+    auto                                     addBest3Modes = [&](auto const& sortFunc) {
+        auto sortedModes = output->modes;
+        std::ranges::sort(sortedModes, sortFunc);
+        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        for (auto const& mode : sortedModes | std::views::reverse) {
+            requestedModes.push_back(mode);
+        }
+    };
+
     // last fallback is preferred mode, btw this covers resolution == Vector2D()
     if (!output->preferredMode())
         Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
@@ -434,44 +443,33 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         requestedModes.push_back(output->preferredMode());
 
     if (RULE->resolution == Vector2D(-1, -1)) {
-        requestedStr     = "highrr";
-        auto sortedModes = output->modes;
+        requestedStr = "highrr";
 
         // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
-        std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
-            if (a->refreshRate > b->refreshRate + 3000.f)
+        addBest3Modes([](auto const& a, auto const& b) {
+            if (a->refreshRate > b->refreshRate)
                 return true;
-            if (a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y && a->refreshRate >= b->refreshRate - 1000.f)
+            if (a->refreshRate == b->refreshRate && a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y)
                 return true;
             return false;
         });
-        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
-        for (auto const& mode : sortedModes | std::views::reverse) {
-            requestedModes.push_back(mode);
-        }
     } else if (RULE->resolution == Vector2D(-1, -2)) {
-        requestedStr     = "highres";
-        auto sortedModes = output->modes;
+        requestedStr = "highres";
 
         // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
-        std::ranges::sort(sortedModes, [](auto const& a, auto const& b) {
+        addBest3Modes([](auto const& a, auto const& b) {
             if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
                 return true;
-            if (a->pixelSize.x >= b->pixelSize.x && a->pixelSize.y >= b->pixelSize.y && a->refreshRate >= b->refreshRate - 1000.f)
+            if (a->pixelSize == b->pixelSize && a->refreshRate > b->refreshRate)
                 return true;
             return false;
         });
-        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
-        for (auto const& mode : sortedModes | std::views::reverse) {
-            requestedModes.push_back(mode);
-        }
     } else if (RULE->resolution != Vector2D()) {
         // user requested mode
-        requestedStr     = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
-        auto sortedModes = output->modes;
+        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
 
         // sort by closeness to requested, then add best 3
-        std::ranges::sort(sortedModes, [&](auto const& a, auto const& b) {
+        addBest3Modes([&](auto const& a, auto const& b) {
             if (abs(a->pixelSize.x - RULE->resolution.x) < abs(b->pixelSize.x - RULE->resolution.x))
                 return true;
             if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - RULE->resolution.y) < abs(b->pixelSize.y - RULE->resolution.y))
@@ -480,10 +478,6 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 return true;
             return false;
         });
-        sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
-        for (auto const& mode : sortedModes | std::views::reverse) {
-            requestedModes.push_back(mode);
-        }
 
         // then if requested is custom, try custom mode first
         if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {

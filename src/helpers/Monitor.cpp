@@ -412,7 +412,7 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
         // match by description
         const auto DESCRIPTIONSELECTOR = selector.substr(5);
 
-        return DESCRIPTIONSELECTOR == szShortDescription || DESCRIPTIONSELECTOR == szDescription;
+        return szDescription.starts_with(DESCRIPTIONSELECTOR) || szShortDescription.starts_with(DESCRIPTIONSELECTOR);
     } else {
         // match by selector
         return szName == selector;

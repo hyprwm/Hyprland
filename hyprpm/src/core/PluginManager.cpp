@@ -19,8 +19,7 @@
 #include <unistd.h>
 
 #include <toml++/toml.hpp>
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/document.h>
+#include <glaze/glaze.hpp>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
@@ -793,27 +792,21 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
         std::println(stderr, "PluginManager: no $HOME or $HYPRLAND_INSTANCE_SIGNATURE");
         return LOADSTATE_FAIL;
     }
-    const auto          HYPRPMPATH = DataState::getDataStatePath();
+    const auto HYPRPMPATH = DataState::getDataStatePath();
 
-    rapidjson::Document json;
-    json.Parse(execAndGet("hyprctl plugins list -j").c_str());
-
-    if (!json.IsArray()) {
-        std::println(stderr, "PluginManager: couldn't parse plugin list");
+    const auto json = glz::read_json<glz::json_t::array_t>(execAndGet("hyprctl plugins list -j"));
+    if (!json) {
+        std::println(stderr, "PluginManager: couldn't parse hyprctl output");
         return LOADSTATE_FAIL;
     }
 
     std::vector<std::string> loadedPlugins;
-    for (const auto& plugin : json.GetArray()) {
-        if (!plugin.IsObject()) {
-            std::println(stderr, "PluginManager: couldn't parse plugin list");
+    for (const auto& plugin : json.value()) {
+        if (!plugin.is_object() || !plugin.contains("name")) {
+            std::println(stderr, "PluginManager: couldn't parse plugin object");
             return LOADSTATE_FAIL;
         }
-        if (plugin.HasMember("name") && plugin["name"].IsString()) {
-            loadedPlugins.emplace_back(plugin["name"].GetString());
-        } else {
-            std::println(stderr, "PluginManager: plugin doesn't have a name?");
-        }
+        loadedPlugins.emplace_back(plugin["name"].get<std::string>());
     }
 
     std::println("{}", successString("Ensuring plugin load state"));

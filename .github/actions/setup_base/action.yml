@@ -52,7 +52,6 @@ runs:
           seatd \
           systemd \
           tomlplusplus \
-          rapidjson \
           wayland \
           wayland-protocols \
           xcb-util-errors \

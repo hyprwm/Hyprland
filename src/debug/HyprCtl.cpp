@@ -884,14 +884,14 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
                                          HYPRLAND_VERSION, GIT_BRANCH, GIT_COMMIT_HASH, GIT_DIRTY, commitMsg, GIT_COMMIT_DATE, GIT_TAG, GIT_COMMITS, AQUAMARINE_VERSION,
                                          HYPRLANG_VERSION, HYPRUTILS_VERSION, HYPRCURSOR_VERSION, HYPRGRAPHICS_VERSION);
 
-#if (!defined(LEGACY_RENDERER) && !defined(ISDEBUG) && !defined(NO_XWAYLAND))
+#if (!defined(LEGACY_RENDERER) && !ISDEBUG && !defined(NO_XWAYLAND))
         result += "no flags were set\n";
 #else
         result += "flags set:\n";
 #ifdef LEGACY_RENDERER
         result += "legacyrenderer\n";
 #endif
-#ifdef ISDEBUG
+#if ISDEBUG
         result += "debug\n";
 #endif
 #ifdef NO_XWAYLAND
@@ -922,7 +922,7 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 #ifdef LEGACY_RENDERER
         result += "\"legacyrenderer\",";
 #endif
-#ifdef ISDEBUG
+#if ISDEBUG
         result += "\"debug\",";
 #endif
 #ifdef NO_XWAYLAND

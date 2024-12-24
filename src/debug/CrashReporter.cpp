@@ -111,7 +111,7 @@ void NCrashReporter::createAndSaveCrash(int sig) {
 #ifdef LEGACY_RENDERER
     finalCrashReport += "legacyrenderer\n";
 #endif
-#ifndef ISDEBUG
+#if ISDEBUG
     finalCrashReport += "debug\n";
 #endif
 #ifdef NO_XWAYLAND

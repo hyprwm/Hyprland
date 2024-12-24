@@ -73,10 +73,13 @@ void CRenderPass::simplify() {
                     liveBlurRegion.add(*BB);
                 }
 
+                // expand the region: this area needs to be proper to blur it right.
+                liveBlurRegion.expand(oneBlurRadius() * 2.F);
+
                 if (auto infringement = opaque.copy().intersect(liveBlurRegion); !infringement.empty()) {
                     // eh, this is not the correct solution, but it will do...
                     // TODO: is this *easily* fixable?
-                    opaque.subtract(infringement.expand(oneBlurRadius()));
+                    opaque.subtract(infringement);
                 }
             }
             newDamage.subtract(opaque);
@@ -117,7 +120,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         return damage;
     }
 
-    if (WILLBLUR) {
+    if (WILLBLUR && !*PDEBUGPASS) {
         // combine blur regions into one that will be expanded
         CRegion blurRegion;
         for (auto& el : m_vPassElements) {

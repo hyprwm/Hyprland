@@ -13,6 +13,17 @@ pkg_check_modules(hyprpm_deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0
 
 add_executable(hyprpm ${SRCFILES})
 
+# glaze
+include(FetchContent)
+FetchContent_Declare(
+  glaze
+  GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+  GIT_TAG v4.2.2
+  GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(glaze)
+target_link_libraries(hyprpm PRIVATE glaze::glaze)
+
 target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps)
 
 # binary

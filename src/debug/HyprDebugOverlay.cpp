@@ -2,6 +2,8 @@
 #include "HyprDebugOverlay.hpp"
 #include "config/ConfigValue.hpp"
 #include "../Compositor.hpp"
+#include "../render/pass/TexPassElement.hpp"
+#include "../render/Renderer.hpp"
 
 CHyprDebugOverlay::CHyprDebugOverlay() {
     m_pTexture = makeShared<CTexture>();
@@ -268,6 +270,8 @@ void CHyprDebugOverlay::draw() {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
-    CBox pMonBox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
-    g_pHyprOpenGL->renderTexture(m_pTexture, &pMonBox, 1.f);
+    CTexPassElement::SRenderData data;
+    data.tex = m_pTexture;
+    data.box = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }

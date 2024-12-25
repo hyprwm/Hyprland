@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="frog_color_management_v1">
+
+	<copyright>
+		Copyright © 2023 Joshua Ashton for Valve Software
+		Copyright © 2023 Xaver Hugl
+
+		Permission is hereby granted, free of charge, to any person obtaining a
+		copy of this software and associated documentation files (the "Software"),
+		to deal in the Software without restriction, including without limitation
+		the rights to use, copy, modify, merge, publish, distribute, sublicense,
+		and/or sell copies of the Software, and to permit persons to whom the
+		Software is furnished to do so, subject to the following conditions:
+
+		The above copyright notice and this permission notice (including the next
+		paragraph) shall be included in all copies or substantial portions of the
+		Software.
+
+		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+		FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+		THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+		FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+		DEALINGS IN THE SOFTWARE.
+	</copyright>
+
+	<description summary="experimental color management protocol">
+		The aim of this color management extension is to get HDR games working quickly,
+		and have an easy way to test implementations in the wild before the upstream
+		protocol is ready to be merged.
+		For that purpose it's intentionally limited and cut down and does not serve
+		all uses cases.
+	</description>
+
+	<interface name="frog_color_management_factory_v1" version="1">
+		<description summary="color management factory">
+			The color management factory singleton creates color managed surface objects.
+		</description>
+
+		<request name="destroy" type="destructor"></request>
+
+		<request name="get_color_managed_surface">
+			<description summary="create color management interface for surface">
+			</description>
+
+			<arg name="surface" type="object" interface="wl_surface"
+				summary="target surface" />
+			<arg name="callback" type="new_id" interface="frog_color_managed_surface"
+				summary="new color managed surface object" />
+		</request>
+	</interface>
+
+	<interface name="frog_color_managed_surface" version="1">
+		<description summary="color managed surface">
+			Interface for changing surface color management and HDR state.
+
+			An implementation must: support every part of the version
+			of the frog_color_managed_surface interface it exposes.
+			Including all known enums associated with a given version.
+		</description>
+
+		<request name="destroy" type="destructor">
+			<description summary="destroy color managed surface">
+				Destroying the color managed surface resets all known color
+				state for the surface back to 'undefined' implementation-specific
+				values.
+			</description>
+		</request>
+
+		<enum name="transfer_function">
+			<description summary="known transfer functions">
+				Extended information on the transfer functions described
+				here can be found in the Khronos Data Format specification:
+				https://registry.khronos.org/DataFormat/specs/1.3/dataformat.1.3.html
+			</description>
+			<entry name="undefined" value="0"
+				summary="specifies undefined, implementation-specific handling of the surface's transfer function." />
+			<entry name="srgb" value="1"
+				summary="specifies the sRGB non-linear EOTF. An implementation may: display this as Gamma 2.2 for the purposes of being consistent with content rendering across displays, rendering_intent and user expectations." />
+			<entry name="gamma_22" value="2" summary="specifies gamma 2.2 power curve as the EOTF" />
+			<entry name="st2084_pq" value="3"
+				summary="specifies the SMPTE ST2084 Perceptual Quantizer (PQ) EOTF" />
+			<entry name="scrgb_linear" value="4"
+				summary="specifies the scRGB (extended sRGB) linear EOTF. Note: Primaries outside the gamut triangle specified can be expressed with negative values for this transfer function." />
+		</enum>
+
+		<request name="set_known_transfer_function">
+			<description summary="sets a known transfer function for a surface" />
+			<arg name="transfer_function" type="uint" enum="transfer_function"
+				summary="transfer function for the surface" />
+		</request>
+
+		<enum name="primaries">
+			<description summary="known primaries" />
+			<entry name="undefined" value="0"
+				summary="specifies undefined, implementation-specific handling" />
+			<entry name="rec709" value="1" summary="specifies Rec.709/sRGB primaries with D65 white point" />
+			<entry name="rec2020" value="2"
+				summary="specifies Rec.2020/HDR10 primaries with D65 white point" />
+		</enum>
+
+		<request name="set_known_container_color_volume">
+			<description summary="sets the container color volume (primaries) for a surface" />
+			<arg name="primaries" type="uint" enum="primaries" summary="primaries for the surface" />
+		</request>
+
+		<enum name="render_intent">
+			<description summary="known render intents">
+				Extended information on render intents described
+				here can be found in ICC.1:2022:
+
+				https://www.color.org/specification/ICC.1-2022-05.pdf
+			</description>
+			<entry name="perceptual" value="0" summary="perceptual" />
+		</enum>
+
+		<request name="set_render_intent">
+			<description summary="sets the render intent for a surface">
+				NOTE: On a surface with "perceptual" (default) render intent, handling of the container's
+				color volume
+				is implementation-specific, and may differ between different transfer functions it is paired
+				with:
+				ie. sRGB + 709 rendering may have it's primaries widened to more of the available display's
+				gamut
+				to be be more pleasing for the viewer.
+				Compared to scRGB Linear + 709 being treated faithfully as 709
+				(including utilizing negatives out of the 709 gamut triangle)
+			</description>
+			<arg name="render_intent" type="uint" enum="render_intent"
+				summary="render intent for the surface" />
+		</request>
+
+		<request name="set_hdr_metadata">
+			<description summary="set HDR metadata for a surface">
+				Forwards HDR metadata from the client to the compositor.
+
+				HDR Metadata Infoframe as per CTA 861.G spec.
+
+				Usage of this HDR metadata is implementation specific and
+				outside of the scope of this protocol.
+			</description>
+			<arg name="mastering_display_primary_red_x" type="uint">
+				<description summary="red primary x coordinate">
+					Mastering Red Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_display_primary_red_y" type="uint">
+				<description summary="red primary y coordinate">
+					Mastering Red Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_display_primary_green_x" type="uint">
+				<description summary="green primary x coordinate">
+					Mastering Green Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_display_primary_green_y" type="uint">
+				<description summary="green primary y coordinate">
+					Mastering Green Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_display_primary_blue_x" type="uint">
+				<description summary="blue primary x coordinate">
+					Mastering Blue Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_display_primary_blue_y" type="uint">
+				<description summary="blue primary y coordinate">
+					Mastering Blue Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_white_point_x" type="uint">
+				<description summary="white point x coordinate">
+					Mastering White Point X Coordinate of the Data.
+
+					These are coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="mastering_white_point_y" type="uint">
+				<description summary="white point y coordinate">
+					Mastering White Point Y Coordinate of the Data.
+
+					These are coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="max_display_mastering_luminance" type="uint">
+				<description summary="max display mastering luminance">
+					Max Mastering Display Luminance.
+					This value is coded as an unsigned 16-bit value in units of 1 cd/m2,
+					where 0x0001 represents 1 cd/m2 and 0xFFFF represents 65535 cd/m2.
+				</description>
+			</arg>
+			<arg name="min_display_mastering_luminance" type="uint">
+				<description summary="min display mastering luminance">
+					Min Mastering Display Luminance.
+					This value is coded as an unsigned 16-bit value in units of
+					0.0001 cd/m2, where 0x0001 represents 0.0001 cd/m2 and 0xFFFF
+					represents 6.5535 cd/m2.
+				</description>
+			</arg>
+			<arg name="max_cll" type="uint">
+				<description summary="max content light level">
+					Max Content Light Level.
+					This value is coded as an unsigned 16-bit value in units of 1 cd/m2,
+					where 0x0001 represents 1 cd/m2 and 0xFFFF represents 65535 cd/m2.
+				</description>
+			</arg>
+			<arg name="max_fall" type="uint">
+				<description summary="max frame average light level">
+					Max Frame Average Light Level.
+					This value is coded as an unsigned 16-bit value in units of 1 cd/m2,
+					where 0x0001 represents 1 cd/m2 and 0xFFFF represents 65535 cd/m2.
+				</description>
+			</arg>
+		</request>
+
+		<event name="preferred_metadata">
+			<description summary="preferred metadata for a surface">
+				Current preferred metadata for a surface.
+				The application should use this information to tone-map its buffers
+				to this target before committing.
+
+				This metadata does not necessarily correspond to any physical output, but
+				rather what the compositor thinks would be best for a given surface.
+			</description>
+			<arg name="transfer_function" type="uint" enum="transfer_function">
+				<description summary="output's current transfer function">
+					Specifies a known transfer function that corresponds to the
+					output the surface is targeting.
+				</description>
+			</arg>
+			<arg name="output_display_primary_red_x" type="uint">
+				<description summary="red primary x coordinate">
+					Output Red Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_display_primary_red_y" type="uint">
+				<description summary="red primary y coordinate">
+					Output Red Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_display_primary_green_x" type="uint">
+				<description summary="green primary x coordinate">
+					Output Green Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_display_primary_green_y" type="uint">
+				<description summary="green primary y coordinate">
+					Output Green Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_display_primary_blue_x" type="uint">
+				<description summary="blue primary x coordinate">
+					Output Blue Color Primary X Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_display_primary_blue_y" type="uint">
+				<description summary="blue primary y coordinate">
+					Output Blue Color Primary Y Coordinate of the Data.
+
+					Coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_white_point_x" type="uint">
+				<description summary="white point x coordinate">
+					Output White Point X Coordinate of the Data.
+
+					These are coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="output_white_point_y" type="uint">
+				<description summary="white point y coordinate">
+					Output White Point Y Coordinate of the Data.
+
+					These are coded as unsigned 16-bit values in units of
+					0.00002, where 0x0000 represents zero and 0xC350
+					represents 1.0000.
+				</description>
+			</arg>
+			<arg name="max_luminance" type="uint">
+				<description summary="maximum luminance">
+					Max Output Luminance
+					The max luminance in nits that the output is capable of rendering in small areas.
+					Content should: not exceed this value to avoid clipping.
+
+					This value is coded as an unsigned 16-bit value in units of 1 cd/m2,
+					where 0x0001 represents 1 cd/m2 and 0xFFFF represents 65535 cd/m2.
+				</description>
+			</arg>
+			<arg name="min_luminance" type="uint">
+				<description summary="minimum luminance">
+					Min Output Luminance
+					The min luminance that the output is capable of rendering.
+					Content should: not exceed this value to avoid clipping.
+
+					This value is coded as an unsigned 16-bit value in units of
+					0.0001 cd/m2, where 0x0001 represents 0.0001 cd/m2 and 0xFFFF
+					represents 6.5535 cd/m2.
+				</description>
+			</arg>
+			<arg name="max_full_frame_luminance" type="uint">
+				<description summary="maximum full frame luminance">
+					Max Full Frame Luminance
+					The max luminance in nits that the output is capable of rendering for the
+					full frame sustained.
+
+					This value is coded as an unsigned 16-bit value in units of 1 cd/m2,
+					where 0x0001 represents 1 cd/m2 and 0xFFFF represents 65535 cd/m2.
+				</description>
+			</arg>
+		</event>
+	</interface>
+</protocol>

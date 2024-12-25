@@ -8,6 +8,7 @@
 #include <xkbcommon/xkbcommon.h>
 #include "../devices/IPointer.hpp"
 #include "eventLoop/EventLoopTimer.hpp"
+#include "../helpers/Timer.hpp"
 
 class CInputManager;
 class CConfigManager;

@@ -425,7 +425,7 @@ void CCompositor::initAllSignals() {
 
                     for (auto const& m : m_vMonitors) {
                         scheduleFrameForMonitor(m);
-                        g_pHyprRenderer->applyMonitorRule(m, &m->activeMonitorRule, true);
+                        m->applyMonitorRule(&m->activeMonitorRule, true);
                     }
 
                     g_pConfigManager->m_bWantsMonitorReload = true;

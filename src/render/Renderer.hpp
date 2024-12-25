@@ -57,7 +57,6 @@ class CHyprRenderer {
     void damageRegion(const CRegion&);
     void damageMonitor(PHLMONITOR);
     void damageMirrorsWith(PHLMONITOR, const CRegion&);
-    bool applyMonitorRule(PHLMONITOR, SMonitorRule*, bool force = false);
     bool shouldRenderWindow(PHLWINDOW, PHLMONITOR);
     bool shouldRenderWindow(PHLWINDOW);
     void ensureCursorRenderingMode();

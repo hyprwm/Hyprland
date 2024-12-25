@@ -5,6 +5,7 @@
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../devices/IKeyboard.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
@@ -12,6 +13,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
+#include "protocols/InputCapture.hpp"
 
 #include <optional>
 #include <iterator>
@@ -126,6 +128,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["event"]                          = event;
     m_mDispatchers["global"]                         = global;
     m_mDispatchers["setprop"]                        = setProp;
+    m_mDispatchers["releaseinputcapture"]            = releaseInputCapture;
 
     m_tScrollTimer.reset();
 
@@ -742,6 +745,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Debug::log(LOG, "Keybind triggered, calling dispatcher ({}, {}, {})", modmask, key.keyName, key.keysym);
 
             m_iPassPressed = (int)pressed;
+
+            // We only process the releaseinputcapture dispatcher when input capture is active
+            if (PROTO::inputCapture->isCaptured()) {
+                if (k->handler == "releaseinputcapture")
+                    res = DISPATCHER->second(k->arg);
+                else
+                    break;
+            }
 
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
@@ -3051,5 +3062,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     for (auto const& m : g_pCompositor->m_vMonitors)
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->ID);
 
+    return {};
+}
+SDispatchResult CKeybindManager::releaseInputCapture(std::string args) {
+    PROTO::inputCapture->forceRelease();
     return {};
 }

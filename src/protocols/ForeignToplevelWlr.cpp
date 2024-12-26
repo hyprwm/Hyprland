@@ -348,8 +348,8 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
         if (PWINDOW && !windowValidForForeign(PWINDOW))
-             return;
- 
+            return;
+
         for (auto const& m : m_vManagers) {
             m->onNewFocus(PWINDOW);
         }

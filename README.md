@@ -9,7 +9,7 @@
 ![Badge Language] 
 [![Badge Pull Requests]][Pull Requests] 
 [![Badge Issues]][Issues] 
-![Badge Hi Mom]<br>
+![Badge Hi Mom] [![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Hyprland%20Guru-006BFF)](https://gurubase.io/g/hyprland)<br>
 
 <br>
 

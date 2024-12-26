@@ -347,6 +347,9 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
     static auto P3 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
 
+        if (PWINDOW && !windowValidForForeign(PWINDOW))
+             return;
+ 
         for (auto const& m : m_vManagers) {
             m->onNewFocus(PWINDOW);
         }

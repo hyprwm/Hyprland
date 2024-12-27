@@ -1026,13 +1026,13 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     const auto WORKSPACE  = PCURRENT->m_pWorkspace;
     const auto MODE       = PCURRENT->m_sFullscreenState.internal;
 
-    const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
-    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();
-
     const auto CURRENTISFOCUS = PCURRENT == g_pCompositor->m_pLastWindow.lock();
 
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
+
+    const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
+    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow

@@ -5,7 +5,6 @@
 #include "../desktop/Window.hpp"
 #include "../desktop/Subsurface.hpp"
 #include "../desktop/Popup.hpp"
-#include "AnimatedVariable.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "signal/Signal.hpp"
 #include "math/Math.hpp"

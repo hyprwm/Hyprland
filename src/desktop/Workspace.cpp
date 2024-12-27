@@ -1,6 +1,8 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "config/ConfigManager.hpp"
+#include "managers/AnimationManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
@@ -19,16 +21,10 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_pSelf = self;
 
-    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") :
-                                                   g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
-                           self, AVARDAMAGE_ENTIRE);
-    m_fAlpha.create(AVARTYPE_FLOAT,
-                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"), self,
-                    AVARDAMAGE_ENTIRE);
-    m_fAlpha.setValueAndWarp(1.f);
-
-    m_vRenderOffset.registerVar();
-    m_fAlpha.registerVar();
+    g_pAnimationManager->addAnimation(Vector2D(0, 0), m_vRenderOffset, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
+                                      self, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->addAnimation(1.f, m_fAlpha, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+                                      AVARDAMAGE_ENTIRE);
 
     const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
     if (RULEFORTHIS.defaultName.has_value())
@@ -63,8 +59,6 @@ SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName(bool perMonitor) const {
 }
 
 CWorkspace::~CWorkspace() {
-    m_vRenderOffset.unregister();
-
     Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
     // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
@@ -82,11 +76,11 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     if (!instant) {
         const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
 
-        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
-        m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_fAlpha.setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
+        m_vRenderOffset.setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
     }
 
-    const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
+    const auto  ANIMSTYLE     = m_fAlpha.getStyle();
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks

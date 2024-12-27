@@ -569,7 +569,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pKeybindManager = std::make_unique<CKeybindManager>();
 
             Debug::log(LOG, "Creating the AnimationManager!");
-            g_pAnimationManager = std::make_unique<CAnimationManager>();
+            g_pAnimationManager = std::make_unique<CHyprAnimationManager>();
 
             Debug::log(LOG, "Creating the ConfigManager!");
             g_pConfigManager = std::make_unique<CConfigManager>();

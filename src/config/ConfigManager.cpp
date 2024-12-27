@@ -11,6 +11,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
+#include "managers/AnimationManager.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -32,6 +33,7 @@
 #include <hyprutils/string/String.hpp>
 #include <filesystem>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Animation;
 
 //NOLINTNEXTLINE
 extern "C" char** environ;
@@ -851,6 +853,7 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
+    g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     m_mAdditionalReservedAreas.clear();
     m_dBlurLSNamespaces.clear();
     m_vWorkspaceRules.clear();

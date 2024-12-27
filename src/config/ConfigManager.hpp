@@ -2,6 +2,7 @@
 
 #define CONFIG_MANAGER_H
 
+#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <map>
 #include "../debug/Log.hpp"
 #include <unordered_map>
@@ -52,18 +53,6 @@ struct SMonitorAdditionalReservedArea {
     int bottom = 0;
     int left   = 0;
     int right  = 0;
-};
-
-struct SAnimationPropertyConfig {
-    bool                      overridden = true;
-
-    std::string               internalBezier  = "";
-    std::string               internalStyle   = "";
-    float                     internalSpeed   = 0.f;
-    int                       internalEnabled = -1;
-
-    SAnimationPropertyConfig* pValues          = nullptr;
-    SAnimationPropertyConfig* pParentAnimation = nullptr;
 };
 
 struct SPluginKeyword {
@@ -181,32 +170,32 @@ class CConfigManager {
 
     std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
 
-    std::unordered_map<std::string, SAnimationPropertyConfig>       getAnimationConfig();
+    std::unordered_map<std::string, Hyprutils::Animation::SAnimationPropertyConfig> getAnimationConfig();
 
-    void                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
+    void                                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
     void addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fun, Hyprlang::SHandlerOptions opts = {});
     void removePluginConfig(HANDLE handle);
 
     // no-op when done.
-    void                      dispatchExecOnce();
-    void                      dispatchExecShutdown();
+    void                                            dispatchExecOnce();
+    void                                            dispatchExecShutdown();
 
-    void                      performMonitorReload();
-    void                      ensureMonitorStatus();
-    void                      ensureVRR(PHLMONITOR pMonitor = nullptr);
+    void                                            performMonitorReload();
+    void                                            ensureMonitorStatus();
+    void                                            ensureVRR(PHLMONITOR pMonitor = nullptr);
 
-    bool                      shouldUseSoftwareCursors();
+    bool                                            shouldUseSoftwareCursors();
 
-    std::string               parseKeyword(const std::string&, const std::string&);
+    std::string                                     parseKeyword(const std::string&, const std::string&);
 
-    void                      addParseError(const std::string&);
+    void                                            addParseError(const std::string&);
 
-    SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
+    Hyprutils::Animation::SAnimationPropertyConfig* getAnimationPropertyConfig(const std::string&);
 
-    void                      addExecRule(const SExecRequestedRule&);
+    void                                            addExecRule(const SExecRequestedRule&);
 
-    void                      handlePluginLoads();
-    std::string               getErrors();
+    void                                            handlePluginLoads();
+    std::string                                     getErrors();
 
     // keywords
     std::optional<std::string>                                                                     handleRawExec(const std::string&, const std::string&);
@@ -268,39 +257,39 @@ class CConfigManager {
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
-    std::unique_ptr<Hyprlang::CConfig>                        m_pConfig;
+    std::unique_ptr<Hyprlang::CConfig>                                              m_pConfig;
 
-    std::vector<std::string>                                  configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>                   configModifyTimes; // stores modify times
+    std::vector<std::string>                                                        configPaths;       // stores all the config paths
+    std::unordered_map<std::string, time_t>                                         configModifyTimes; // stores modify times
 
-    std::unordered_map<std::string, SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
+    std::unordered_map<std::string, Hyprutils::Animation::SAnimationPropertyConfig> animationConfig; // stores all the animations with their set values
 
-    std::string                                               m_szCurrentSubmap = ""; // For storing the current keybind submap
+    std::string                                                                     m_szCurrentSubmap = ""; // For storing the current keybind submap
 
-    std::vector<SExecRequestedRule>                           execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
+    std::vector<SExecRequestedRule>                                                 execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
-    std::vector<std::string>                                  m_vDeclaredPlugins;
-    std::vector<SPluginKeyword>                               pluginKeywords;
-    std::vector<SPluginVariable>                              pluginVariables;
+    std::vector<std::string>                                                        m_vDeclaredPlugins;
+    std::vector<SPluginKeyword>                                                     pluginKeywords;
+    std::vector<SPluginVariable>                                                    pluginVariables;
 
-    bool                                                      isFirstLaunch = true; // For exec-once
+    bool                                                                            isFirstLaunch = true; // For exec-once
 
-    std::vector<SMonitorRule>                                 m_vMonitorRules;
-    std::vector<SWorkspaceRule>                               m_vWorkspaceRules;
-    std::vector<SP<CWindowRule>>                              m_vWindowRules;
-    std::vector<SP<CLayerRule>>                               m_vLayerRules;
-    std::vector<std::string>                                  m_dBlurLSNamespaces;
+    std::vector<SMonitorRule>                                                       m_vMonitorRules;
+    std::vector<SWorkspaceRule>                                                     m_vWorkspaceRules;
+    std::vector<SP<CWindowRule>>                                                    m_vWindowRules;
+    std::vector<SP<CLayerRule>>                                                     m_vLayerRules;
+    std::vector<std::string>                                                        m_dBlurLSNamespaces;
 
-    bool                                                      firstExecDispatched     = false;
-    bool                                                      m_bManualCrashInitiated = false;
-    std::vector<std::string>                                  firstExecRequests;
-    std::vector<std::string>                                  finalExecRequests;
+    bool                                                                            firstExecDispatched     = false;
+    bool                                                                            m_bManualCrashInitiated = false;
+    std::vector<std::string>                                                        firstExecRequests;
+    std::vector<std::string>                                                        finalExecRequests;
 
-    std::vector<std::pair<std::string, std::string>>          m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
-    std::string                                               m_szConfigErrors = "";
+    std::vector<std::pair<std::string, std::string>>                                m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+    std::string                                                                     m_szConfigErrors = "";
 
     // internal methods
-    void                              setAnimForChildren(SAnimationPropertyConfig* const);
+    void                              setAnimForChildren(Hyprutils::Animation::SAnimationPropertyConfig* const);
     void                              updateBlurredLS(const std::string&, const bool);
     void                              setDefaultAnimationVars();
     std::optional<std::string>        resetHLConfig();

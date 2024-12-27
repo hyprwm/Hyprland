@@ -4,6 +4,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/AnimationManager.hpp"
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
@@ -31,12 +32,9 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);
 
-    pLS->alpha.create(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    pLS->realPosition.create(g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    pLS->realSize.create(g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    pLS->alpha.registerVar();
-    pLS->realPosition.registerVar();
-    pLS->realSize.registerVar();
+    g_pAnimationManager->addAnimation(0.f, pLS->alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->addAnimation(Vector2D(0, 0), pLS->realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->addAnimation(Vector2D(0, 0), pLS->realSize, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
 
@@ -434,17 +432,17 @@ void CLayerSurface::applyRules() {
 }
 
 void CLayerSurface::startAnimation(bool in, bool instant) {
-    const auto ANIMSTYLE = animationStyle.value_or(realPosition.m_pConfig->pValues->internalStyle);
     if (in) {
-        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersIn");
-        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersIn");
-        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn");
+        realPosition.setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        realSize.setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"));
     } else {
-        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersOut");
-        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersOut");
-        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut");
+        realPosition.setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        realSize.setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        alpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
+    const auto ANIMSTYLE = animationStyle.value_or(realPosition.getStyle());
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
         const auto MIDDLE = geometry.middle();

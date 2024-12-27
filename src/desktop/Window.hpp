@@ -430,7 +430,7 @@ class CWindow {
     float                  getScrollTouchpad();
     void                   updateWindowData();
     void                   updateWindowData(const struct SWorkspaceRule&);
-    void                   onBorderAngleAnimEnd(void* ptr);
+    void                   onBorderAngleAnimEnd(const Hyprutils::Animation::CBaseAnimatedVariable* ptr);
     bool                   isInCurvedCorner(double x, double y);
     bool                   hasPopupAt(const Vector2D& pos);
     int                    popupsCount();

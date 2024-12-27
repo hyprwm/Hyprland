@@ -1,57 +1,66 @@
 #pragma once
 
+#include <hyprutils/animation/AnimationManager.hpp>
+#include <hyprutils/animation/AnimatedVariable.hpp>
+
 #include "../defines.hpp"
-#include <list>
-#include <unordered_map>
-#include "../helpers/AnimatedVariable.hpp"
-#include "../helpers/BezierCurve.hpp"
-#include "../helpers/Timer.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "eventLoop/EventLoopTimer.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 
-class CWindow;
-
-class CAnimationManager {
+class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
   public:
-    CAnimationManager();
+    CHyprAnimationManager();
 
-    void                                          tick();
-    bool                                          shouldTickForNext();
-    void                                          onTicked();
-    void                                          scheduleTick();
-    void                                          addBezierWithName(std::string, const Vector2D&, const Vector2D&);
-    void                                          removeAllBeziers();
+    void         tick();
+    virtual void scheduleTick();
+    virtual void onTicked();
 
-    void                                          onWindowPostCreateClose(PHLWINDOW, bool close = false);
+    using SAnimationPropertyConfig = Hyprutils::Animation::SAnimationPropertyConfig;
+    template <Animable VarType>
+    inline void addAnimation(const VarType& v, CAnimatedVariable<VarType>& av, SAnimationPropertyConfig* pConfig, eAVarDamagePolicy policy) {
+        constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
+        av.create(EAVTYPE, v, static_cast<Hyprutils::Animation::CAnimationManager*>(this));
+        av.setConfig(pConfig);
+        av.m_Context.eDamagePolicy = policy;
+    }
 
-    bool                                          bezierExists(const std::string&);
-    CBezierCurve*                                 getBezier(const std::string&);
+    template <Animable VarType>
+    void addAnimation(const VarType& v, CAnimatedVariable<VarType>& av, SAnimationPropertyConfig* pConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
+        addAnimation(v, av, pConfig, policy);
+        av.m_Context.pWindow = pWindow;
+    }
+    template <Animable VarType>
+    void addAnimation(const VarType& v, CAnimatedVariable<VarType>& av, SAnimationPropertyConfig* pConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
+        addAnimation(v, av, pConfig, policy);
+        av.m_Context.pWorkspace = pWorkspace;
+    }
+    template <Animable VarType>
+    void addAnimation(const VarType& v, CAnimatedVariable<VarType>& av, SAnimationPropertyConfig* pConfig, PHLLS pLayer, eAVarDamagePolicy policy) {
+        addAnimation(v, av, pConfig, policy);
+        av.m_Context.pLayer = pLayer;
+    }
 
-    std::string                                   styleValidInConfigVar(const std::string&, const std::string&);
+    void                damageAnimatedWindow(PHLWINDOW, eAVarDamagePolicy);
+    void                damageAnimatedWorkspace(PHLWORKSPACE, eAVarDamagePolicy);
+    void                damageAnimatedLayer(PHLLS, eAVarDamagePolicy);
 
-    std::unordered_map<std::string, CBezierCurve> getAllBeziers();
+    void                onWindowPostCreateClose(PHLWINDOW, bool close = false);
 
-    std::vector<CBaseAnimatedVariable*>           m_vAnimatedVariables;
-    std::vector<CBaseAnimatedVariable*>           m_vActiveAnimatedVariables;
+    std::string         styleValidInConfigVar(const std::string&, const std::string&);
 
-    SP<CEventLoopTimer>                           m_pAnimationTimer;
+    SP<CEventLoopTimer> m_pAnimationTimer;
 
-    float                                         m_fLastTickTime; // in ms
+    float               m_fLastTickTime; // in ms
 
   private:
-    bool                                          deltaSmallToFlip(const Vector2D& a, const Vector2D& b);
-    bool                                          deltaSmallToFlip(const CHyprColor& a, const CHyprColor& b);
-    bool                                          deltaSmallToFlip(const float& a, const float& b);
-    bool                                          deltazero(const Vector2D& a, const Vector2D& b);
-    bool                                          deltazero(const CHyprColor& a, const CHyprColor& b);
-    bool                                          deltazero(const float& a, const float& b);
-
-    std::unordered_map<std::string, CBezierCurve> m_mBezierCurves;
-
-    bool                                          m_bTickScheduled = false;
+    bool m_bTickScheduled = false;
 
     // Anim stuff
     void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
     void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
+
+    bool handleContext(const SAnimationContext&);
 };
 
-inline std::unique_ptr<CAnimationManager> g_pAnimationManager;
+inline std::unique_ptr<CHyprAnimationManager> g_pAnimationManager;

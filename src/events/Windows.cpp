@@ -12,10 +12,12 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Animation;
 
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //
@@ -27,15 +29,13 @@ using namespace Hyprutils::String;
 //                                                              //
 // ------------------------------------------------------------ //
 
-static void setAnimToMove(void* data) {
-    auto* const            PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+static void setVector2DAnimToMove(const CBaseAnimatedVariable* data) {
+    CAnimatedVariable<Vector2D>* animvar = (CAnimatedVariable<Vector2D>*)data;
+    animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;
-
-    animvar->setConfig(PANIMCFG);
-
-    if (animvar->getWindow() && !animvar->getWindow()->m_vRealPosition.isBeingAnimated() && !animvar->getWindow()->m_vRealSize.isBeingAnimated())
-        animvar->getWindow()->m_bAnimatingIn = false;
+    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
+    if (PHLWINDOW && PHLWINDOW->m_vRealPosition.isBeingAnimated() && PHLWINDOW->m_vRealSize.isBeingAnimated())
+        PHLWINDOW->m_bAnimatingIn = false;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {
@@ -623,8 +623,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_fAlpha.setValueAndWarp(0.f);
     PWINDOW->m_fAlpha = 1.f;
 
-    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
-    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
+    PWINDOW->m_vRealPosition.setCallbackOnEnd(setVector2DAnimToMove);
+    PWINDOW->m_vRealSize.setCallbackOnEnd(setVector2DAnimToMove);
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);

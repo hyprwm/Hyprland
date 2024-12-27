@@ -74,7 +74,7 @@ void CRenderPass::simplify() {
                 }
 
                 // expand the region: this area needs to be proper to blur it right.
-                liveBlurRegion.expand(oneBlurRadius() * 2.F);
+                liveBlurRegion.scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale).expand(oneBlurRadius() * 2.F);
 
                 if (auto infringement = opaque.copy().intersect(liveBlurRegion); !infringement.empty()) {
                     // eh, this is not the correct solution, but it will do...
@@ -96,7 +96,7 @@ void CRenderPass::simplify() {
             const auto BB = el2->element->boundingBox();
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
-            totalLiveBlurRegion.add(*BB);
+            totalLiveBlurRegion.add(BB->copy().scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale));
         }
     }
 }

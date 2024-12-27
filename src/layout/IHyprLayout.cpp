@@ -420,7 +420,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     SRange sourceX = {sourcePos.x, sourcePos.x + sourceSize.x};
     SRange sourceY = {sourcePos.y, sourcePos.y + sourceSize.y};
 
-    if (*SNAPWINDOWGAP) {
+    if (*SNAPWINDOWGAP && !DRAGGINGWINDOW->m_pWorkspace->m_bHasFullscreenWindow) {
         const double GAPSIZE = *SNAPWINDOWGAP;
         const auto   WSID    = DRAGGINGWINDOW->workspaceID();
 

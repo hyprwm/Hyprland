@@ -5,12 +5,14 @@
   pkg-config,
   pkgconf,
   makeWrapper,
+  cmake,
   meson,
   ninja,
   aquamarine,
   binutils,
   cairo,
   git,
+  glaze,
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
@@ -102,6 +104,7 @@ in
         makeWrapper
         meson
         ninja
+        cmake # needed for glaze
         pkg-config
       ];
 
@@ -116,6 +119,7 @@ in
           aquamarine
           cairo
           git
+          glaze
           hyprcursor
           hyprgraphics
           hyprland-protocols

@@ -10,10 +10,11 @@ file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 set(CMAKE_CXX_STANDARD 23)
 
 pkg_check_modules(hyprpm_deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0.2.4)
+find_package(glaze REQUIRED)
 
 add_executable(hyprpm ${SRCFILES})
 
-target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps)
+target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps glaze::glaze)
 
 # binary
 install(TARGETS hyprpm)

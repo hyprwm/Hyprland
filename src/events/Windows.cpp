@@ -12,10 +12,12 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Animation;
 
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //
@@ -27,15 +29,17 @@ using namespace Hyprutils::String;
 //                                                              //
 // ------------------------------------------------------------ //
 
-static void setAnimToMove(void* data) {
-    auto* const            PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
+    const auto PAV = pav.lock();
+    if (!PAV)
+        return;
 
-    CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;
+    CAnimatedVariable<Vector2D>* animvar = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+    animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    animvar->setConfig(PANIMCFG);
-
-    if (animvar->getWindow() && !animvar->getWindow()->m_vRealPosition.isBeingAnimated() && !animvar->getWindow()->m_vRealSize.isBeingAnimated())
-        animvar->getWindow()->m_bAnimatingIn = false;
+    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
+    if (PHLWINDOW && PHLWINDOW->m_vRealPosition->isBeingAnimated() && PHLWINDOW->m_vRealSize->isBeingAnimated())
+        PHLWINDOW->m_bAnimatingIn = false;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {

@@ -58,8 +58,8 @@ void CInputManager::endWorkspaceSwipe() {
     static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
     static auto PSWIPEUSER    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
-    const bool  VERTANIMS     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
+    const auto  ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
+    const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
     // commit
     auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
@@ -202,9 +202,9 @@ void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
 
     if (!m_sActiveSwipe.pWorkspaceBegin)
         return;
-    static auto PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
-    const bool  VERTANIMS  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
+    static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+    const auto   ANIMSTYLE  = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
+    const bool   VERTANIMS  = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
     const double delta = m_sActiveSwipe.delta + (VERTANIMS ? (*PSWIPEINVR ? -e.delta.y : e.delta.y) : (*PSWIPEINVR ? -e.delta.x : e.delta.x));
     updateWorkspaceSwipe(delta);
@@ -222,10 +222,10 @@ void CInputManager::updateWorkspaceSwipe(double delta) {
     const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, (int64_t)1LL, (int64_t)UINT32_MAX);
     const auto  XDISTANCE     = m_sActiveSwipe.pMonitor->vecSize.x + *PWORKSPACEGAP;
     const auto  YDISTANCE     = m_sActiveSwipe.pMonitor->vecSize.y + *PWORKSPACEGAP;
-    const bool  VERTANIMS     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle == "slidevert" ||
-        m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
     const double d       = m_sActiveSwipe.delta - delta;
     m_sActiveSwipe.delta = delta;
+    const auto   ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
+    const bool   VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
     m_sActiveSwipe.avgSpeed = (m_sActiveSwipe.avgSpeed * m_sActiveSwipe.speedPoints + abs(d)) / (m_sActiveSwipe.speedPoints + 1);
     m_sActiveSwipe.speedPoints++;

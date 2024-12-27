@@ -354,18 +354,18 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
         pWindow->m_vRealPosition = posOffset;
 }
 
-void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
+void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!close) {
-        pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
-        pWindow->m_vRealSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("windowsIn");
-        pWindow->m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeIn");
+        pWindow->m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_vRealSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
     } else {
-        pWindow->m_vRealPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
-        pWindow->m_vRealSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("windowsOut");
-        pWindow->m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeOut");
+        pWindow->m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_vRealSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
     }
 
-    auto ANIMSTYLE = pWindow->m_vRealPosition.m_pConfig->pValues->internalStyle;
+    std::string ANIMSTYLE = pWindow->m_vRealPosition->getStyle();
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
     CVarList animList(ANIMSTYLE, 0, 's');
@@ -375,7 +375,7 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
         return;
 
     // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
-    if (!pWindow->m_vRealPosition.m_pConfig->pValues->internalEnabled)
+    if (!pWindow->m_vRealPosition->enabled())
         return;
 
     if (pWindow->m_sWindowData.animationStyle.hasValue()) {

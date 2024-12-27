@@ -413,9 +413,9 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     const auto  OLDWORKSPACE = m_pWorkspace;
 
     m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
-    m_fMovingToWorkspaceAlpha.setValueAndWarp(1.F);
-    m_fMovingToWorkspaceAlpha = 0.F;
-    m_fMovingToWorkspaceAlpha.setCallbackOnEnd([this](void* thisptr) { m_iMonitorMovedFrom = -1; });
+    m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
+    m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
+    *m_fMovingToWorkspaceAlpha = 0.F;
 
     m_pWorkspace = pWorkspace;
 
@@ -479,10 +479,6 @@ PHLWINDOW CWindow::x11TransientFor() {
     return nullptr;
 }
 
-static void unregisterVar(void* ptr) {
-    ((CBaseAnimatedVariable*)ptr)->unregister();
-}
-
 void CWindow::onUnmap() {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
     static auto PINITIALWSTRACKING  = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
@@ -500,19 +496,6 @@ void CWindow::onUnmap() {
     }
 
     m_iLastWorkspace = m_pWorkspace->m_iID;
-
-    m_vRealPosition.setCallbackOnEnd(unregisterVar);
-    m_vRealSize.setCallbackOnEnd(unregisterVar);
-    m_fBorderFadeAnimationProgress.setCallbackOnEnd(unregisterVar);
-    m_fBorderAngleAnimationProgress.setCallbackOnEnd(unregisterVar);
-    m_fActiveInactiveAlpha.setCallbackOnEnd(unregisterVar);
-    m_fAlpha.setCallbackOnEnd(unregisterVar);
-    m_cRealShadowColor.setCallbackOnEnd(unregisterVar);
-    m_fDimPercent.setCallbackOnEnd(unregisterVar);
-    m_fMovingToWorkspaceAlpha.setCallbackOnEnd(unregisterVar);
-    m_fMovingFromWorkspaceAlpha.setCallbackOnEnd(unregisterVar);
-
-    m_vRealSize.setCallbackOnBegin(nullptr);
 
     std::erase_if(g_pCompositor->m_vWindowFocusHistory, [&](const auto& other) { return other.expired() || other.lock().get() == this; });
 
@@ -545,34 +528,19 @@ void CWindow::onUnmap() {
 
 void CWindow::onMap() {
     // JIC, reset the callbacks. If any are set, we'll make sure they are cleared so we don't accidentally unset them. (In case a window got remapped)
-    m_vRealPosition.resetAllCallbacks();
-    m_vRealSize.resetAllCallbacks();
-    m_fBorderFadeAnimationProgress.resetAllCallbacks();
-    m_fBorderAngleAnimationProgress.resetAllCallbacks();
-    m_fActiveInactiveAlpha.resetAllCallbacks();
-    m_fAlpha.resetAllCallbacks();
-    m_cRealShadowColor.resetAllCallbacks();
-    m_fDimPercent.resetAllCallbacks();
-    m_fMovingToWorkspaceAlpha.resetAllCallbacks();
-    m_fMovingFromWorkspaceAlpha.resetAllCallbacks();
+    m_vRealPosition->resetAllCallbacks();
+    m_vRealSize->resetAllCallbacks();
+    m_fBorderFadeAnimationProgress->resetAllCallbacks();
+    m_fBorderAngleAnimationProgress->resetAllCallbacks();
+    m_fActiveInactiveAlpha->resetAllCallbacks();
+    m_fAlpha->resetAllCallbacks();
+    m_cRealShadowColor->resetAllCallbacks();
+    m_fDimPercent->resetAllCallbacks();
+    m_fMovingToWorkspaceAlpha->resetAllCallbacks();
+    m_fMovingFromWorkspaceAlpha->resetAllCallbacks();
 
-    m_vRealPosition.registerVar();
-    m_vRealSize.registerVar();
-    m_fBorderFadeAnimationProgress.registerVar();
-    m_fBorderAngleAnimationProgress.registerVar();
-    m_fActiveInactiveAlpha.registerVar();
-    m_fAlpha.registerVar();
-    m_cRealShadowColor.registerVar();
-    m_fDimPercent.registerVar();
-    m_fMovingToWorkspaceAlpha.registerVar();
-    m_fMovingFromWorkspaceAlpha.registerVar();
-
-    m_fBorderAngleAnimationProgress.setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
-
-    m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
-    m_fBorderAngleAnimationProgress = 1.f;
-
-    m_fMovingFromWorkspaceAlpha.setValueAndWarp(1.F);
+    m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
 
     g_pCompositor->m_vWindowFocusHistory.push_back(m_pSelf);
 
@@ -588,20 +556,22 @@ void CWindow::onMap() {
     m_pPopupHead      = std::make_unique<CPopup>(m_pSelf.lock());
 }
 
-void CWindow::onBorderAngleAnimEnd(void* ptr) {
-    const auto        PANIMVAR = (CAnimatedVariable<float>*)ptr;
-
-    const std::string STYLE = PANIMVAR->getConfig()->pValues->internalStyle;
-
-    if (STYLE != "loop" || !PANIMVAR->getConfig()->pValues->internalEnabled)
+void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
+    const auto PAV = pav.lock();
+    if (!PAV)
         return;
+
+    if (PAV->getStyle() != "loop" || !PAV->enabled())
+        return;
+
+    const auto PANIMVAR = dynamic_cast<CAnimatedVariable<float>*>(PAV.get());
 
     PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
 
     PANIMVAR->setValueAndWarp(0);
     *PANIMVAR = 1.f;
 
-    PANIMVAR->setCallbackOnEnd([&](void* ptr) { onBorderAngleAnimEnd(ptr); }, false);
+    PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onBorderAngleAnimEnd(pav); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {
@@ -1247,9 +1217,7 @@ bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
 }
 
 void CWindow::setAnimationsToMove() {
-    auto* const PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
-    m_vRealPosition.setConfig(PANIMCFG);
-    m_vRealSize.setConfig(PANIMCFG);
+    m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
     m_bAnimatingIn = false;
 }
 

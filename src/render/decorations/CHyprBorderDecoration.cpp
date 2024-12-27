@@ -62,7 +62,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     auto       grad     = m_pWindow->m_cRealBorderColor;
     const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
 
-    if (m_pWindow->m_fBorderAngleAnimationProgress.getConfig()->pValues->internalEnabled) {
+    if (m_pWindow->m_fBorderAngleAnimationProgress->enabled()) {
         grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress.value() * M_PI * 2;
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
     }

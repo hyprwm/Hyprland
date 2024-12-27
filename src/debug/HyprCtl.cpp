@@ -732,8 +732,8 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += "animations:\n";
 
         for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
-            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, (int)ac.second.overridden,
-                               ac.second.internalBezier, ac.second.internalEnabled, ac.second.internalSpeed, ac.second.internalStyle);
+            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, (int)ac.second->overridden,
+                               ac.second->internalBezier, ac.second->internalEnabled, ac.second->internalSpeed, ac.second->internalStyle);
         }
 
         ret += "beziers:\n";
@@ -755,8 +755,8 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
     "speed": {:.2f},
     "style": "{}"
 }},)#",
-                               ac.first, ac.second.overridden ? "true" : "false", escapeJSONStrings(ac.second.internalBezier), ac.second.internalEnabled ? "true" : "false",
-                               ac.second.internalSpeed, escapeJSONStrings(ac.second.internalStyle));
+                               ac.first, ac.second->overridden ? "true" : "false", escapeJSONStrings(ac.second->internalBezier), ac.second->internalEnabled ? "true" : "false",
+                               ac.second->internalSpeed, escapeJSONStrings(ac.second->internalStyle));
         }
 
         ret[ret.length() - 1] = ']';

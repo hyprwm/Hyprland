@@ -77,15 +77,15 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     if (!instant) {
         const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
 
-        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
-        m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
+        m_vRenderOffset->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
     }
 
-    const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
+    const auto  ANIMSTYLE     = m_fAlpha->getStyle();
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks
-    m_vRenderOffset.setUpdateCallback([&](void*) {
+    m_vRenderOffset->setUpdateCallback([&](auto) {
         for (auto const& w : g_pCompositor->m_vWindows) {
             if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;

@@ -135,7 +135,7 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
         monitor->setCTM(mtx);
     });
 
-    data->progress.setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](void* self) {
+    data->progress->setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](auto) {
         if (!monitor || !m_mCTMDatas.contains(monitor)) {
             monitor->setCTM(Mat3x3::identity());
             return;

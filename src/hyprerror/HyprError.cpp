@@ -41,7 +41,7 @@ void CHyprError::createQueued() {
     if (m_bIsCreated)
         m_pTexture->destroyTexture();
 
-    m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+    m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
     m_fFadeOpacity.setValueAndWarp(0.f);
     m_fFadeOpacity = 1.f;
@@ -187,8 +187,8 @@ void CHyprError::draw() {
 
                 return;
             } else {
-                m_fFadeOpacity.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
                 m_fFadeOpacity = 0.f;
+                m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
             }
         }
     }

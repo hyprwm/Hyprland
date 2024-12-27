@@ -431,17 +431,17 @@ void CLayerSurface::applyRules() {
 }
 
 void CLayerSurface::startAnimation(bool in, bool instant) {
-    const auto ANIMSTYLE = animationStyle.value_or(realPosition.m_pConfig->pValues->internalStyle);
     if (in) {
-        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersIn");
-        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersIn");
-        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn");
+        realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
+        alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"));
     } else {
-        realPosition.m_pConfig = g_pConfigManager->getAnimationPropertyConfig("layersOut");
-        realSize.m_pConfig     = g_pConfigManager->getAnimationPropertyConfig("layersOut");
-        alpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut");
+        realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
+        alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
+    const auto ANIMSTYLE = animationStyle.value_or(realPosition->getStyle());
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
         const auto MIDDLE = geometry.middle();

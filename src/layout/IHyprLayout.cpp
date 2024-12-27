@@ -457,7 +457,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
 
             // corner snapping
             const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
-            if (snaps & (SNAP_LEFT | SNAP_RIGHT)) {
+            if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
                 const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
@@ -467,7 +467,7 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
                     snaps |= SNAP_DOWN;
                 }
             }
-            if (snaps & (SNAP_UP | SNAP_DOWN)) {
+            if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
                 const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
                 if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);

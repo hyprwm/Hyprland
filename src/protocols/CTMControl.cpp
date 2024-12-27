@@ -112,18 +112,18 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
     data->ctmFrom = data->ctmTo;
     data->ctmTo   = ctm;
 
-    data->progress.setValueAndWarp(0.F);
-    data->progress = 1.F;
+    data->progress->setValueAndWarp(0.F);
+    *data->progress = 1.F;
 
     monitor->setCTM(data->ctmFrom);
 
-    data->progress.setUpdateCallback([monitor = PHLMONITORREF{monitor}, this](void* self) {
+    data->progress->setUpdateCallback([monitor = PHLMONITORREF{monitor}, this](auto) {
         if (!monitor || !m_mCTMDatas.contains(monitor))
             return;
         auto&                data     = m_mCTMDatas.at(monitor);
         const auto           from     = data->ctmFrom.getMatrix();
         const auto           to       = data->ctmTo.getMatrix();
-        const auto           PROGRESS = data->progress.getPercent();
+        const auto           PROGRESS = data->progress->getPercent();
 
         static const auto    lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
 

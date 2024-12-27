@@ -106,7 +106,7 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
 
     if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
         const auto PWINDOWSURFACE = pWindow->m_pWLSurface->resource();
-        pWindow->m_vRealSize      = PWINDOWSURFACE->current.size;
+        *pWindow->m_vRealSize     = PWINDOWSURFACE->current.size;
 
         if ((desiredGeometry.width <= 1 || desiredGeometry.height <= 1) && pWindow->m_bIsX11 &&
             pWindow->isX11OverrideRedirect()) { // XDG windows should be fine. TODO: check for weird atoms?
@@ -115,23 +115,23 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         }
 
         // reject any windows with size <= 5x5
-        if (pWindow->m_vRealSize.goal().x <= 5 || pWindow->m_vRealSize.goal().y <= 5)
-            pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
+        if (pWindow->m_vRealSize->goal().x <= 5 || pWindow->m_vRealSize->goal().y <= 5)
+            *pWindow->m_vRealSize = PMONITOR->vecSize / 2.f;
 
         if (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect()) {
 
             if (pWindow->m_pXWaylandSurface->geometry.x != 0 && pWindow->m_pXWaylandSurface->geometry.y != 0)
-                pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
+                *pWindow->m_vRealPosition = g_pXWaylandManager->xwaylandToWaylandCoords(pWindow->m_pXWaylandSurface->geometry.pos());
             else
-                pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goal().x) / 2.f,
-                                                    PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goal().y) / 2.f);
+                *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize->goal().x) / 2.f,
+                                                     PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize->goal().y) / 2.f);
         } else {
-            pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize.goal().x) / 2.f,
-                                                PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize.goal().y) / 2.f);
+            *pWindow->m_vRealPosition = Vector2D(PMONITOR->vecPosition.x + (PMONITOR->vecSize.x - pWindow->m_vRealSize->goal().x) / 2.f,
+                                                 PMONITOR->vecPosition.y + (PMONITOR->vecSize.y - pWindow->m_vRealSize->goal().y) / 2.f);
         }
     } else {
         // we respect the size.
-        pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        *pWindow->m_vRealSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
 
         // check if it's on the correct monitor!
         Vector2D middlePoint = Vector2D(desiredGeometry.x, desiredGeometry.y) + Vector2D(desiredGeometry.width, desiredGeometry.height) / 2.f;
@@ -150,35 +150,35 @@ void IHyprLayout::onWindowCreatedFloating(PHLWINDOW pWindow) {
         if ((desiredGeometry.x == 0 && desiredGeometry.y == 0) || !visible || !pWindow->m_bIsX11) {
             // if the pos isn't set, fall back to the center placement if it's not a child, otherwise middle of parent if available
             if (!pWindow->m_bIsX11 && pWindow->m_pXDGSurface->toplevel->parent && validMapped(pWindow->m_pXDGSurface->toplevel->parent->window))
-                pWindow->m_vRealPosition = pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealPosition.goal() +
-                    pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealSize.goal() / 2.F - desiredGeometry.size() / 2.F;
+                *pWindow->m_vRealPosition = pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealPosition->goal() +
+                    pWindow->m_pXDGSurface->toplevel->parent->window->m_vRealSize->goal() / 2.F - desiredGeometry.size() / 2.F;
             else
-                pWindow->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.F - desiredGeometry.size() / 2.F;
+                *pWindow->m_vRealPosition = PMONITOR->vecPosition + PMONITOR->vecSize / 2.F - desiredGeometry.size() / 2.F;
         } else {
             // if it is, we respect where it wants to put itself, but apply monitor offset if outside
             // most of these are popups
 
             if (const auto POPENMON = g_pCompositor->getMonitorFromVector(middlePoint); POPENMON->ID != PMONITOR->ID)
-                pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
+                *pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y) - POPENMON->vecPosition + PMONITOR->vecPosition;
             else
-                pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
+                *pWindow->m_vRealPosition = Vector2D(desiredGeometry.x, desiredGeometry.y);
         }
     }
 
     if (*PXWLFORCESCALEZERO && pWindow->m_bIsX11)
-        pWindow->m_vRealSize = pWindow->m_vRealSize.goal() / PMONITOR->scale;
+        *pWindow->m_vRealSize = pWindow->m_vRealSize->goal() / PMONITOR->scale;
 
     if (pWindow->m_bX11DoesntWantBorders || (pWindow->m_bIsX11 && pWindow->isX11OverrideRedirect())) {
-        pWindow->m_vRealPosition.warp();
-        pWindow->m_vRealSize.warp();
+        pWindow->m_vRealPosition->warp();
+        pWindow->m_vRealSize->warp();
     }
 
     if (!pWindow->isX11OverrideRedirect()) {
-        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize.goal());
+        g_pXWaylandManager->setWindowSize(pWindow, pWindow->m_vRealSize->goal());
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
     } else {
-        pWindow->m_vPendingReportedSize = pWindow->m_vRealSize.goal();
+        pWindow->m_vPendingReportedSize = pWindow->m_vRealSize->goal();
         pWindow->m_vReportedSize        = pWindow->m_vPendingReportedSize;
     }
 }
@@ -250,18 +250,18 @@ void IHyprLayout::onBeginDragWindow() {
 
     if (!DRAGGINGWINDOW->m_bIsFloating) {
         if (g_pInputManager->dragMode == MBIND_MOVE) {
-            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize.goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
+            DRAGGINGWINDOW->m_vLastFloatingSize = (DRAGGINGWINDOW->m_vRealSize->goal() * 0.8489).clamp(Vector2D{5, 5}, Vector2D{}).floor();
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_bIsFloating    = true;
             DRAGGINGWINDOW->m_bDraggingTiled = true;
 
-            DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize.goal() / 2.f;
+            *DRAGGINGWINDOW->m_vRealPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_vRealSize->goal() / 2.f;
         }
     }
 
     m_vBeginDragXY         = g_pInputManager->getMouseCoordsInternal();
-    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition.goal();
-    m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize.goal();
+    m_vBeginDragPositionXY = DRAGGINGWINDOW->m_vRealPosition->goal();
+    m_vBeginDragSizeXY     = DRAGGINGWINDOW->m_vRealSize->goal();
     m_vLastDragXY          = m_vBeginDragXY;
 
     // get the grab corner
@@ -348,10 +348,10 @@ void IHyprLayout::onEndDragWindow() {
                 if (DRAGGINGWINDOW->m_sGroupData.pNextWindow) {
                     PHLWINDOW next = DRAGGINGWINDOW->m_sGroupData.pNextWindow.lock();
                     while (next != DRAGGINGWINDOW) {
-                        next->m_bIsFloating   = pWindow->m_bIsFloating;          // match the floating state of group members
-                        next->m_vRealSize     = pWindow->m_vRealSize.goal();     // match the size of group members
-                        next->m_vRealPosition = pWindow->m_vRealPosition.goal(); // match the position of group members
-                        next                  = next->m_sGroupData.pNextWindow.lock();
+                        next->m_bIsFloating    = pWindow->m_bIsFloating;           // match the floating state of group members
+                        *next->m_vRealSize     = pWindow->m_vRealSize->goal();     // match the size of group members
+                        *next->m_vRealPosition = pWindow->m_vRealPosition->goal(); // match the position of group members
+                        next                   = next->m_sGroupData.pNextWindow.lock();
                     }
                 }
 
@@ -360,7 +360,7 @@ void IHyprLayout::onEndDragWindow() {
                 DRAGGINGWINDOW->m_bDraggingTiled    = false;
 
                 if (pWindow->m_bIsFloating)
-                    g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize.goal()); // match the size of the window
+                    g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, pWindow->m_vRealSize->goal()); // match the size of the window
 
                 static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
                 (*USECURRPOS ? pWindow : pWindow->getGroupTail())->insertWindowToGroup(DRAGGINGWINDOW);
@@ -591,7 +591,7 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     if (g_pInputManager->dragMode == MBIND_MOVE) {
 
         Vector2D newPos  = m_vBeginDragPositionXY + DELTA;
-        Vector2D newSize = DRAGGINGWINDOW->m_vRealSize.goal();
+        Vector2D newSize = DRAGGINGWINDOW->m_vRealSize->goal();
 
         if (*SNAPENABLED && !DRAGGINGWINDOW->m_bDraggingTiled)
             performSnap(newPos, newSize, DRAGGINGWINDOW, MBIND_MOVE, -1, m_vBeginDragSizeXY);
@@ -600,11 +600,11 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
         wb.round();
 
         if (*PANIMATEMOUSE)
-            DRAGGINGWINDOW->m_vRealPosition = wb.pos();
+            *DRAGGINGWINDOW->m_vRealPosition = wb.pos();
         else
-            DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
+            DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
 
-        g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goal());
+        g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize->goal());
     } else if (g_pInputManager->dragMode == MBIND_RESIZE || g_pInputManager->dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_bIsFloating) {
 
@@ -669,21 +669,21 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
             wb.round();
 
             if (*PANIMATE) {
-                DRAGGINGWINDOW->m_vRealSize     = wb.size();
-                DRAGGINGWINDOW->m_vRealPosition = wb.pos();
+                *DRAGGINGWINDOW->m_vRealSize     = wb.size();
+                *DRAGGINGWINDOW->m_vRealPosition = wb.pos();
             } else {
-                DRAGGINGWINDOW->m_vRealSize.setValueAndWarp(wb.size());
-                DRAGGINGWINDOW->m_vRealPosition.setValueAndWarp(wb.pos());
+                DRAGGINGWINDOW->m_vRealSize->setValueAndWarp(wb.size());
+                DRAGGINGWINDOW->m_vRealPosition->setValueAndWarp(wb.pos());
             }
 
-            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize.goal());
+            g_pXWaylandManager->setWindowSize(DRAGGINGWINDOW, DRAGGINGWINDOW->m_vRealSize->goal());
         } else {
             resizeActiveWindow(TICKDELTA, m_eGrabbedCorner, DRAGGINGWINDOW);
         }
     }
 
     // get middle point
-    Vector2D middle = DRAGGINGWINDOW->m_vRealPosition.value() + DRAGGINGWINDOW->m_vRealSize.value() / 2.f;
+    Vector2D middle = DRAGGINGWINDOW->m_vRealPosition->value() + DRAGGINGWINDOW->m_vRealSize->value() / 2.f;
 
     // and check its monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
@@ -717,7 +717,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     EMIT_HOOK_EVENT("changeFloatingMode", pWindow);
 
     if (!TILED) {
-        const auto PNEWMON  = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition.value() + pWindow->m_vRealSize.value() / 2.f);
+        const auto PNEWMON  = g_pCompositor->getMonitorFromVector(pWindow->m_vRealPosition->value() + pWindow->m_vRealSize->value() / 2.f);
         pWindow->m_pMonitor = PNEWMON;
         pWindow->moveToWorkspace(PNEWMON->activeSpecialWorkspace ? PNEWMON->activeSpecialWorkspace : PNEWMON->activeWorkspace);
         pWindow->updateGroupOutputs();
@@ -728,12 +728,12 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
             g_pCompositor->setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
 
         // save real pos cuz the func applies the default 5,5 mid
-        const auto PSAVEDPOS  = pWindow->m_vRealPosition.goal();
-        const auto PSAVEDSIZE = pWindow->m_vRealSize.goal();
+        const auto PSAVEDPOS  = pWindow->m_vRealPosition->goal();
+        const auto PSAVEDSIZE = pWindow->m_vRealSize->goal();
 
         // if the window is pseudo, update its size
         if (!pWindow->m_bDraggingTiled)
-            pWindow->m_vPseudoSize = pWindow->m_vRealSize.goal();
+            pWindow->m_vPseudoSize = pWindow->m_vRealSize->goal();
 
         pWindow->m_vLastFloatingSize = PSAVEDSIZE;
 
@@ -742,8 +742,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         onWindowCreatedTiling(pWindow);
 
-        pWindow->m_vRealPosition.setValue(PSAVEDPOS);
-        pWindow->m_vRealSize.setValue(PSAVEDSIZE);
+        pWindow->m_vRealPosition->setValue(PSAVEDPOS);
+        pWindow->m_vRealSize->setValue(PSAVEDSIZE);
 
         // fix pseudo leaving artifacts
         g_pHyprRenderer->damageMonitor(pWindow->m_pMonitor.lock());
@@ -755,16 +755,16 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
-        CBox wb = {pWindow->m_vRealPosition.goal() + (pWindow->m_vRealSize.goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
+        CBox wb = {pWindow->m_vRealPosition->goal() + (pWindow->m_vRealSize->goal() - pWindow->m_vLastFloatingSize) / 2.f, pWindow->m_vLastFloatingSize};
         wb.round();
 
-        if (!(pWindow->m_bIsFloating && pWindow->m_bIsPseudotiled) && DELTALESSTHAN(pWindow->m_vRealSize.value().x, pWindow->m_vLastFloatingSize.x, 10) &&
-            DELTALESSTHAN(pWindow->m_vRealSize.value().y, pWindow->m_vLastFloatingSize.y, 10)) {
+        if (!(pWindow->m_bIsFloating && pWindow->m_bIsPseudotiled) && DELTALESSTHAN(pWindow->m_vRealSize->value().x, pWindow->m_vLastFloatingSize.x, 10) &&
+            DELTALESSTHAN(pWindow->m_vRealSize->value().y, pWindow->m_vLastFloatingSize.y, 10)) {
             wb = {wb.pos() + Vector2D{10, 10}, wb.size() - Vector2D{20, 20}};
         }
 
-        pWindow->m_vRealPosition = wb.pos();
-        pWindow->m_vRealSize     = wb.size();
+        *pWindow->m_vRealPosition = wb.pos();
+        *pWindow->m_vRealSize     = wb.size();
 
         pWindow->m_vSize     = wb.pos();
         pWindow->m_vPosition = wb.size();
@@ -796,7 +796,7 @@ void IHyprLayout::moveActiveWindow(const Vector2D& delta, PHLWINDOW pWindow) {
 
     PWINDOW->setAnimationsToMove();
 
-    PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.goal() + delta;
+    *PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition->goal() + delta;
 
     g_pHyprRenderer->damageWindow(PWINDOW);
 }

@@ -23,7 +23,7 @@ CHyprError::CHyprError() {
         if (!m_bIsCreated)
             return;
 
-        if (m_fFadeOpacity.isBeingAnimated() || m_bMonitorChanged)
+        if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
             g_pHyprRenderer->damageBox(&m_bDamageBox);
     });
 
@@ -43,8 +43,8 @@ void CHyprError::createQueued() {
 
     m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
-    m_fFadeOpacity.setValueAndWarp(0.f);
-    m_fFadeOpacity = 1.f;
+    m_fFadeOpacity->setValueAndWarp(0.f);
+    *m_fFadeOpacity = 1.f;
 
     const auto PMONITOR = g_pCompositor->m_vMonitors.front();
 
@@ -174,8 +174,8 @@ void CHyprError::draw() {
     }
 
     if (m_bQueuedDestroy) {
-        if (!m_fFadeOpacity.isBeingAnimated()) {
-            if (m_fFadeOpacity.value() == 0.f) {
+        if (!m_fFadeOpacity->isBeingAnimated()) {
+            if (m_fFadeOpacity->value() == 0.f) {
                 m_bQueuedDestroy = false;
                 m_pTexture->destroyTexture();
                 m_bIsCreated = false;
@@ -187,8 +187,8 @@ void CHyprError::draw() {
 
                 return;
             } else {
-                m_fFadeOpacity = 0.f;
                 m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+                *m_fFadeOpacity = 0.f;
             }
         }
     }
@@ -200,7 +200,7 @@ void CHyprError::draw() {
     m_bDamageBox.x = (int)PMONITOR->vecPosition.x;
     m_bDamageBox.y = (int)PMONITOR->vecPosition.y;
 
-    if (m_fFadeOpacity.isBeingAnimated() || m_bMonitorChanged)
+    if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
         g_pHyprRenderer->damageBox(&m_bDamageBox);
 
     m_bMonitorChanged = false;
@@ -208,7 +208,7 @@ void CHyprError::draw() {
     CTexPassElement::SRenderData data;
     data.tex = m_pTexture;
     data.box = monbox;
-    data.a   = m_fFadeOpacity.value();
+    data.a   = m_fFadeOpacity->value();
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
 }

@@ -1,3 +1,4 @@
+#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
 #include <any>
@@ -122,8 +123,8 @@ SBoxExtents CWindow::getFullWindowExtents() {
 
     if (m_sWindowData.dimAround.valueOrDefault()) {
         if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR)
-            return {{m_vRealPosition.value().x - PMONITOR->vecPosition.x, m_vRealPosition.value().y - PMONITOR->vecPosition.y},
-                    {PMONITOR->vecSize.x - (m_vRealPosition.value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition.value().y - PMONITOR->vecPosition.y)}};
+            return {{m_vRealPosition->value().x - PMONITOR->vecPosition.x, m_vRealPosition->value().y - PMONITOR->vecPosition.y},
+                    {PMONITOR->vecSize.x - (m_vRealPosition->value().x - PMONITOR->vecPosition.x), PMONITOR->vecSize.y - (m_vRealPosition->value().y - PMONITOR->vecPosition.y)}};
     }
 
     SBoxExtents maxExtents = {{BORDERSIZE + 2, BORDERSIZE + 2}, {BORDERSIZE + 2, BORDERSIZE + 2}};
@@ -187,8 +188,8 @@ CBox CWindow::getFullWindowBoundingBox() {
 
     auto maxExtents = getFullWindowExtents();
 
-    CBox finalBox = {m_vRealPosition.value().x - maxExtents.topLeft.x, m_vRealPosition.value().y - maxExtents.topLeft.y,
-                     m_vRealSize.value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize.value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = {m_vRealPosition->value().x - maxExtents.topLeft.x, m_vRealPosition->value().y - maxExtents.topLeft.y,
+                     m_vRealSize->value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_vRealSize->value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
 
     return finalBox;
 }
@@ -242,7 +243,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
     if (properties & FULL_EXTENTS)
         EXTENTS.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_pSelf.lock(), false));
 
-    CBox box = {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
+    CBox box = {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};
     box.addExtents(EXTENTS);
 
     return box;
@@ -443,7 +444,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 
     // update xwayland coords
-    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.value());
+    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->value());
 
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)
@@ -541,6 +542,11 @@ void CWindow::onMap() {
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
     m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
+
+    m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
+    *m_fBorderAngleAnimationProgress = 1.f;
+
+    m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
     g_pCompositor->m_vWindowFocusHistory.push_back(m_pSelf);
 
@@ -804,10 +810,10 @@ bool CWindow::isInCurvedCorner(double x, double y) {
         return false;
 
     // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    double x0 = m_vRealPosition.value().x + ROUNDING;
-    double y0 = m_vRealPosition.value().y + ROUNDING;
-    double x1 = m_vRealPosition.value().x + m_vRealSize.value().x - ROUNDING;
-    double y1 = m_vRealPosition.value().y + m_vRealSize.value().y - ROUNDING;
+    double x0 = m_vRealPosition->value().x + ROUNDING;
+    double y0 = m_vRealPosition->value().y + ROUNDING;
+    double x1 = m_vRealPosition->value().x + m_vRealSize->value().x - ROUNDING;
+    double y1 = m_vRealPosition->value().y + m_vRealSize->value().y - ROUNDING;
 
     if (x < x0 && y < y0) {
         return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
@@ -1006,8 +1012,8 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     if (FULLSCREEN)
         g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
 
-    const auto PWINDOWSIZE = PCURRENT->m_vRealSize.goal();
-    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition.goal();
+    const auto PWINDOWSIZE = PCURRENT->m_vRealSize->goal();
+    const auto PWINDOWPOS  = PCURRENT->m_vRealPosition->goal();
 
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
@@ -1015,8 +1021,8 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
     if (PCURRENT->m_bIsFloating) {
-        pWindow->m_vRealPosition.setValueAndWarp(PWINDOWPOS);
-        pWindow->m_vRealSize.setValueAndWarp(PWINDOWSIZE);
+        pWindow->m_vRealPosition->setValueAndWarp(PWINDOWPOS);
+        pWindow->m_vRealSize->setValueAndWarp(PWINDOWSIZE);
     }
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -1098,22 +1104,22 @@ void CWindow::updateGroupOutputs() {
         curr->m_pMonitor = m_pMonitor;
         curr->moveToWorkspace(WS);
 
-        curr->m_vRealPosition = m_vRealPosition.goal();
-        curr->m_vRealSize     = m_vRealSize.goal();
+        *curr->m_vRealPosition = m_vRealPosition->goal();
+        *curr->m_vRealSize     = m_vRealSize->goal();
 
         curr = curr->m_sGroupData.pNextWindow.lock();
     }
 }
 
 Vector2D CWindow::middle() {
-    return m_vRealPosition.goal() + m_vRealSize.goal() / 2.f;
+    return m_vRealPosition->goal() + m_vRealSize->goal() / 2.f;
 }
 
 bool CWindow::opaque() {
-    if (m_fAlpha.value() != 1.f || m_fActiveInactiveAlpha.value() != 1.f)
+    if (m_fAlpha->value() != 1.f || m_fActiveInactiveAlpha->value() != 1.f)
         return false;
 
-    if (m_vRealSize.goal().floor() != m_vReportedSize)
+    if (m_vRealSize->goal().floor() != m_vReportedSize)
         return false;
 
     const auto PWORKSPACE = m_pWorkspace;
@@ -1121,7 +1127,7 @@ bool CWindow::opaque() {
     if (m_pWLSurface->small() && !m_pWLSurface->m_bFillIgnoreSmall)
         return false;
 
-    if (PWORKSPACE->m_fAlpha.value() != 1.f)
+    if (PWORKSPACE->m_fAlpha->value() != 1.f)
         return false;
 
     if (m_bIsX11 && m_pXWaylandSurface && m_pXWaylandSurface->surface && m_pXWaylandSurface->surface->current.texture)
@@ -1211,7 +1217,7 @@ void CWindow::setSuspended(bool suspend) {
 }
 
 bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
-    CBox wbox = {m_vRealPosition.value(), m_vRealSize.value()};
+    CBox wbox = {m_vRealPosition->value(), m_vRealSize->value()};
 
     return !wbox.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty();
 }
@@ -1238,16 +1244,16 @@ void CWindow::onWorkspaceAnimUpdate() {
         return;
 
     const auto WINBB = getFullWindowBoundingBox();
-    if (PWORKSPACE->m_vRenderOffset.value().x != 0) {
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().x / PWSMON->vecSize.x;
+    if (PWORKSPACE->m_vRenderOffset->value().x != 0) {
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset->value().x / PWSMON->vecSize.x;
 
         if (WINBB.x < PWSMON->vecPosition.x)
             offset.x += (PWSMON->vecPosition.x - WINBB.x) * PROGRESS;
 
         if (WINBB.x + WINBB.width > PWSMON->vecPosition.x + PWSMON->vecSize.x)
             offset.x += (WINBB.x + WINBB.width - PWSMON->vecPosition.x - PWSMON->vecSize.x) * PROGRESS;
-    } else if (PWORKSPACE->m_vRenderOffset.value().y != 0) {
-        const auto PROGRESS = PWORKSPACE->m_vRenderOffset.value().y / PWSMON->vecSize.y;
+    } else if (PWORKSPACE->m_vRenderOffset->value().y != 0) {
+        const auto PROGRESS = PWORKSPACE->m_vRenderOffset->value().y / PWSMON->vecSize.y;
 
         if (WINBB.y < PWSMON->vecPosition.y)
             offset.y += (PWSMON->vecPosition.y - WINBB.y) * PROGRESS;
@@ -1278,12 +1284,12 @@ int CWindow::surfacesCount() {
 }
 
 void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
-    const Vector2D REALSIZE = m_vRealSize.goal();
+    const Vector2D REALSIZE = m_vRealSize->goal();
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), maxSize.value_or(Vector2D{INFINITY, INFINITY}));
     const Vector2D DELTA    = REALSIZE - NEWSIZE;
 
-    m_vRealPosition = m_vRealPosition.goal() + DELTA / 2.0;
-    m_vRealSize     = NEWSIZE;
+    *m_vRealPosition = m_vRealPosition->goal() + DELTA / 2.0;
+    *m_vRealSize     = NEWSIZE;
     g_pXWaylandManager->setWindowSize(m_pSelf.lock(), NEWSIZE);
 }
 
@@ -1497,7 +1503,7 @@ void CWindow::onX11Configure(CBox box) {
     g_pHyprRenderer->damageWindow(m_pSelf.lock());
 
     if (!m_bIsFloating || isFullscreen() || g_pInputManager->currentlyDraggedWindow == m_pSelf) {
-        g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize.goal(), true);
+        g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->goal(), true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_pSelf.lock());
         return;
@@ -1510,19 +1516,19 @@ void CWindow::onX11Configure(CBox box) {
 
     const auto LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords(box.pos());
 
-    m_vRealPosition.setValueAndWarp(LOGICALPOS);
-    m_vRealSize.setValueAndWarp(box.size());
+    m_vRealPosition->setValueAndWarp(LOGICALPOS);
+    m_vRealSize->setValueAndWarp(box.size());
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
     if (*PXWLFORCESCALEZERO) {
         if (const auto PMONITOR = m_pMonitor.lock(); PMONITOR) {
-            m_vRealSize.setValueAndWarp(m_vRealSize.goal() / PMONITOR->scale);
+            m_vRealSize->setValueAndWarp(m_vRealSize->goal() / PMONITOR->scale);
             m_fX11SurfaceScaledBy = PMONITOR->scale;
         }
     }
 
-    m_vPosition = m_vRealPosition.value();
-    m_vSize     = m_vRealSize.value();
+    m_vPosition = m_vRealPosition->value();
+    m_vSize     = m_vRealSize->value();
 
     m_pXWaylandSurface->configure(box);
 
@@ -1534,7 +1540,7 @@ void CWindow::onX11Configure(CBox box) {
     if (!m_pWorkspace || !m_pWorkspace->isVisible())
         return; // further things are only for visible windows
 
-    m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition.value() + m_vRealSize.value() / 2.f)->activeWorkspace;
+    m_pWorkspace = g_pCompositor->getMonitorFromVector(m_vRealPosition->value() + m_vRealSize->value() / 2.f)->activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(m_pSelf.lock(), true);
 

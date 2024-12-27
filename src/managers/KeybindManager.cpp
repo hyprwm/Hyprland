@@ -377,8 +377,8 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO) {
             g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, MODE);
 
         // warp the position + size animation, otherwise it looks weird.
-        PWINDOWTOCHANGETO->m_vRealPosition.warp();
-        PWINDOWTOCHANGETO->m_vRealSize.warp();
+        PWINDOWTOCHANGETO->m_vRealPosition->warp();
+        PWINDOWTOCHANGETO->m_vRealSize->warp();
     } else {
         updateRelativeCursorCoords();
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO);
@@ -1070,8 +1070,8 @@ SDispatchResult CKeybindManager::centerWindow(std::string args) {
     if (args == "1")
         RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
-    PWINDOW->m_vPosition     = PWINDOW->m_vRealPosition.goal();
+    *PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize->goal() / 2.f + RESERVEDOFFSET;
+    PWINDOW->m_vPosition      = PWINDOW->m_vRealPosition->goal();
 
     return {};
 }
@@ -1557,14 +1557,14 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
 
         switch (arg) {
             case 'l': vPosx = PMONITOR->vecReservedTopLeft.x + BORDERSIZE + PMONITOR->vecPosition.x; break;
-            case 'r': vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize.goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
+            case 'r': vPosx = PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PLASTWINDOW->m_vRealSize->goal().x - BORDERSIZE + PMONITOR->vecPosition.x; break;
             case 't':
             case 'u': vPosy = PMONITOR->vecReservedTopLeft.y + BORDERSIZE + PMONITOR->vecPosition.y; break;
             case 'b':
-            case 'd': vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize.goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
+            case 'd': vPosy = PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PLASTWINDOW->m_vRealSize->goal().y - BORDERSIZE + PMONITOR->vecPosition.y; break;
         }
 
-        PLASTWINDOW->m_vRealPosition = Vector2D(vPosx.value_or(PLASTWINDOW->m_vRealPosition.goal().x), vPosy.value_or(PLASTWINDOW->m_vRealPosition.goal().y));
+        *PLASTWINDOW->m_vRealPosition = Vector2D(vPosx.value_or(PLASTWINDOW->m_vRealPosition->goal().x), vPosy.value_or(PLASTWINDOW->m_vRealPosition->goal().y));
 
         return {};
     }
@@ -1735,20 +1735,20 @@ SDispatchResult CKeybindManager::moveCursorToCorner(std::string arg) {
     switch (CORNER) {
         case 0:
             // bottom left
-            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y}, true);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition->value().x, PWINDOW->m_vRealPosition->value().y + PWINDOW->m_vRealSize->value().y}, true);
             break;
         case 1:
             // bottom right
-            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y + PWINDOW->m_vRealSize.value().y},
-                                        true);
+            g_pCompositor->warpCursorTo(
+                {PWINDOW->m_vRealPosition->value().x + PWINDOW->m_vRealSize->value().x, PWINDOW->m_vRealPosition->value().y + PWINDOW->m_vRealSize->value().y}, true);
             break;
         case 2:
             // top right
-            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x + PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealPosition.value().y}, true);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition->value().x + PWINDOW->m_vRealSize->value().x, PWINDOW->m_vRealPosition->value().y}, true);
             break;
         case 3:
             // top left
-            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y}, true);
+            g_pCompositor->warpCursorTo({PWINDOW->m_vRealPosition->value().x, PWINDOW->m_vRealPosition->value().y}, true);
             break;
     }
 
@@ -1817,18 +1817,18 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
                 continue;
 
             if (!w->m_bRequestsFloat && w->m_bIsFloating != PWORKSPACE->m_bDefaultFloating) {
-                const auto SAVEDPOS  = w->m_vRealPosition.value();
-                const auto SAVEDSIZE = w->m_vRealSize.value();
+                const auto SAVEDPOS  = w->m_vRealPosition->value();
+                const auto SAVEDSIZE = w->m_vRealSize->value();
 
                 w->m_bIsFloating = PWORKSPACE->m_bDefaultFloating;
                 g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
 
                 if (PWORKSPACE->m_bDefaultFloating) {
-                    w->m_vRealPosition.setValueAndWarp(SAVEDPOS);
-                    w->m_vRealSize.setValueAndWarp(SAVEDSIZE);
+                    w->m_vRealPosition->setValueAndWarp(SAVEDPOS);
+                    w->m_vRealSize->setValueAndWarp(SAVEDSIZE);
                     g_pXWaylandManager->setWindowSize(w, SAVEDSIZE);
-                    w->m_vRealSize     = w->m_vRealSize.value() + Vector2D(4, 4);
-                    w->m_vRealPosition = w->m_vRealPosition.value() - Vector2D(2, 2);
+                    *w->m_vRealSize     = w->m_vRealSize->value() + Vector2D(4, 4);
+                    *w->m_vRealPosition = w->m_vRealPosition->value() - Vector2D(2, 2);
                 }
             }
         }
@@ -2043,14 +2043,14 @@ SDispatchResult CKeybindManager::resizeActive(std::string args) {
     if (!PLASTWINDOW || PLASTWINDOW->isFullscreen())
         return {};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_vRealSize.goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_vRealSize->goal());
 
     if (SIZ.x < 1 || SIZ.y < 1)
         return {};
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PLASTWINDOW->m_vRealSize.goal());
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PLASTWINDOW->m_vRealSize->goal());
 
-    if (PLASTWINDOW->m_vRealSize.goal().x > 1 && PLASTWINDOW->m_vRealSize.goal().y > 1)
+    if (PLASTWINDOW->m_vRealSize->goal().x > 1 && PLASTWINDOW->m_vRealSize->goal().y > 1)
         PLASTWINDOW->setHidden(false);
 
     return {};
@@ -2062,9 +2062,9 @@ SDispatchResult CKeybindManager::moveActive(std::string args) {
     if (!PLASTWINDOW || PLASTWINDOW->isFullscreen())
         return {};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_vRealPosition.goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_vRealPosition->goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PLASTWINDOW->m_vRealPosition.goal());
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PLASTWINDOW->m_vRealPosition->goal());
 
     return {};
 }
@@ -2084,9 +2084,9 @@ SDispatchResult CKeybindManager::moveWindow(std::string args) {
     if (PWINDOW->isFullscreen())
         return {};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition.goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealPosition->goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition.goal(), PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_vRealPosition->goal(), PWINDOW);
 
     return {};
 }
@@ -2106,14 +2106,14 @@ SDispatchResult CKeybindManager::resizeWindow(std::string args) {
     if (PWINDOW->isFullscreen())
         return {};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize.goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_vRealSize->goal());
 
     if (SIZ.x < 1 || SIZ.y < 1)
         return {};
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize.goal(), CORNER_NONE, PWINDOW);
+    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_vRealSize->goal(), CORNER_NONE, PWINDOW);
 
-    if (PWINDOW->m_vRealSize.goal().x > 1 && PWINDOW->m_vRealSize.goal().y > 1)
+    if (PWINDOW->m_vRealSize->goal().x > 1 && PWINDOW->m_vRealSize->goal().y > 1)
         PWINDOW->setHidden(false);
 
     return {};
@@ -2192,8 +2192,8 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
                 g_pCompositor->setWindowFullscreenClient(PWINDOW, FSMODE);
 
             // warp the position + size animation, otherwise it looks weird.
-            PWINDOW->m_vRealPosition.warp();
-            PWINDOW->m_vRealSize.warp();
+            PWINDOW->m_vRealPosition->warp();
+            PWINDOW->m_vRealSize->warp();
         }
     } else
         g_pCompositor->focusWindow(PWINDOW);
@@ -2311,7 +2311,7 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
         }
     }
 
-    const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = PWINDOW->m_vRealPosition->goal() - g_pInputManager->getMouseCoordsInternal();
 
     if (g_pKeybindManager->m_uLastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTKBSURF);
@@ -2466,7 +2466,7 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         }
     }
 
-    const auto SL = PWINDOW->m_vRealPosition.goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = PWINDOW->m_vRealPosition->goal() - g_pInputManager->getMouseCoordsInternal();
 
     if (!isMouse)
         g_pSeatManager->setKeyboardFocus(LASTSURFACE);

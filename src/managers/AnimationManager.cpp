@@ -277,24 +277,24 @@ void CHyprAnimationManager::onTicked() {
 //
 //
 
-    const auto GOALPOS  = pWindow->m_vRealPosition.goal();
-    const auto GOALSIZE = pWindow->m_vRealSize.goal();
 void CHyprAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
+    const auto GOALPOS  = pWindow->m_vRealPosition->goal();
+    const auto GOALSIZE = pWindow->m_vRealSize->goal();
 
     if (!close) {
-        pWindow->m_vRealSize.setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
-        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_Value / 2.f);
+        pWindow->m_vRealSize->setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
+        pWindow->m_vRealPosition->setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize->value() / 2.f);
     } else {
-        pWindow->m_vRealSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
-        pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.m_Goal / 2.f;
+        *pWindow->m_vRealSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
+        *pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize->goal() / 2.f;
     }
 }
 
-    pWindow->m_vRealSize.warp(false); // size we preserve in slide
 void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
+    pWindow->m_vRealSize->warp(false); // size we preserve in slide
 
-    const auto GOALPOS  = pWindow->m_vRealPosition.goal();
-    const auto GOALSIZE = pWindow->m_vRealSize.goal();
+    const auto GOALPOS  = pWindow->m_vRealPosition->goal();
+    const auto GOALSIZE = pWindow->m_vRealSize->goal();
 
     const auto PMONITOR = pWindow->m_pMonitor.lock();
 
@@ -314,9 +314,9 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
             posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
 
         if (!close)
-            pWindow->m_vRealPosition.setValue(posOffset);
+            pWindow->m_vRealPosition->setValue(posOffset);
         else
-            pWindow->m_vRealPosition = posOffset;
+            *pWindow->m_vRealPosition = posOffset;
 
         return;
     }
@@ -349,9 +349,9 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
     }
 
     if (!close)
-        pWindow->m_vRealPosition.setValue(posOffset);
+        pWindow->m_vRealPosition->setValue(posOffset);
     else
-        pWindow->m_vRealPosition = posOffset;
+        *pWindow->m_vRealPosition = posOffset;
 }
 
 void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
@@ -371,7 +371,7 @@ void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool clos
     CVarList animList(ANIMSTYLE, 0, 's');
 
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
-    if (!pWindow->m_vRealPosition.isBeingAnimated() && !pWindow->m_vRealSize.isBeingAnimated())
+    if (!pWindow->m_vRealPosition->isBeingAnimated() && !pWindow->m_vRealSize->isBeingAnimated())
         return;
 
     // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked

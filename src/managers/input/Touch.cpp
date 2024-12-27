@@ -3,6 +3,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../SeatManager.hpp"
+#include "managers/AnimationManager.hpp"
 
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     m_bLastInputTouch = true;
@@ -36,8 +37,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         return;
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= 1)) {
-        const auto PWORKSPACE = PMONITOR->activeWorkspace;
-            PWORKSPACE->m_vRenderOffset.getConfig()->pValues->internalStyle.starts_with("slidefadevert");
+        const auto   PWORKSPACE  = PMONITOR->activeWorkspace;
         const auto   STYLE       = PWORKSPACE->m_vRenderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.top : gapsOut.left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
@@ -63,8 +63,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     if (!m_sTouchData.touchFocusWindow.expired()) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
-            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
-            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goal();
+            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition->goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
+            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition->goal();
         } else {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow.lock(), local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;

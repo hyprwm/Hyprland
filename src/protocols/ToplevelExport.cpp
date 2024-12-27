@@ -119,7 +119,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     dmabufFormat = PMONITOR->output->state->state().drmFormat;
 
-    box = {0, 0, (int)(pWindow->m_vRealSize.value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize.value().y * PMONITOR->scale)};
+    box = {0, 0, (int)(pWindow->m_vRealSize->value().x * PMONITOR->scale), (int)(pWindow->m_vRealSize->value().y * PMONITOR->scale)};
 
     box.transform(wlTransformToHyprutils(PMONITOR->transform), PMONITOR->vecTransformedSize.x, PMONITOR->vecTransformedSize.y).round();
 
@@ -263,7 +263,7 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.value());
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -315,7 +315,7 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (overlayCursor)
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition.value());
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - pWindow->m_vRealPosition->value());
 
     g_pHyprOpenGL->m_RenderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
@@ -386,7 +386,7 @@ void CToplevelExportProtocol::onOutputCommit(PHLMONITOR pMonitor) {
         if (pMonitor != PWINDOW->m_pMonitor.lock())
             continue;
 
-        CBox geometry = {PWINDOW->m_vRealPosition.value().x, PWINDOW->m_vRealPosition.value().y, PWINDOW->m_vRealSize.value().x, PWINDOW->m_vRealSize.value().y};
+        CBox geometry = {PWINDOW->m_vRealPosition->value().x, PWINDOW->m_vRealPosition->value().y, PWINDOW->m_vRealSize->value().x, PWINDOW->m_vRealSize->value().y};
 
         if (geometry.intersection({pMonitor->vecPosition, pMonitor->vecSize}).empty())
             continue;

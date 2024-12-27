@@ -277,9 +277,9 @@ void CHyprAnimationManager::onTicked() {
 //
 //
 
-void CAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
     const auto GOALPOS  = pWindow->m_vRealPosition.goal();
     const auto GOALSIZE = pWindow->m_vRealSize.goal();
+void CHyprAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
 
     if (!close) {
         pWindow->m_vRealSize.setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
@@ -290,8 +290,8 @@ void CAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minP
     }
 }
 
-void CAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
     pWindow->m_vRealSize.warp(false); // size we preserve in slide
+void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
 
     const auto GOALPOS  = pWindow->m_vRealPosition.goal();
     const auto GOALSIZE = pWindow->m_vRealSize.goal();
@@ -420,7 +420,7 @@ void CAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     }
 }
 
-std::string CAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
+std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
         if (style.starts_with("slide"))
             return "";
@@ -493,40 +493,4 @@ std::string CAnimationManager::styleValidInConfigVar(const std::string& config, 
     }
 
     return "";
-}
-
-CBezierCurve* CAnimationManager::getBezier(const std::string& name) {
-    const auto BEZIER = std::find_if(m_mBezierCurves.begin(), m_mBezierCurves.end(), [&](const auto& other) { return other.first == name; });
-
-    return BEZIER == m_mBezierCurves.end() ? &m_mBezierCurves["default"] : &BEZIER->second;
-}
-
-std::unordered_map<std::string, CBezierCurve> CAnimationManager::getAllBeziers() {
-    return m_mBezierCurves;
-}
-
-bool CAnimationManager::shouldTickForNext() {
-    return !m_vActiveAnimatedVariables.empty();
-}
-
-void CAnimationManager::scheduleTick() {
-    if (m_bTickScheduled)
-        return;
-
-    m_bTickScheduled = true;
-
-    const auto PMOSTHZ = g_pHyprRenderer->m_pMostHzMonitor;
-
-    if (!PMOSTHZ) {
-        m_pAnimationTimer->updateTimeout(std::chrono::milliseconds(16));
-        return;
-    }
-
-    float       refreshDelayMs = std::floor(1000.f / PMOSTHZ->refreshRate);
-
-    const float SINCEPRES = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - PMOSTHZ->lastPresentationTimer.chrono()).count() / 1000.f;
-
-    const auto  TOPRES = std::clamp(refreshDelayMs - SINCEPRES, 1.1f, 1000.f); // we can't send 0, that will disarm it
-
-    m_pAnimationTimer->updateTimeout(std::chrono::milliseconds((int)std::floor(TOPRES)));
 }

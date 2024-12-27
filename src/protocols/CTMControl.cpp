@@ -3,6 +3,7 @@
 #include "../render/Renderer.hpp"
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
+#include "managers/AnimationManager.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if (!good())
@@ -92,8 +93,7 @@ bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
 }
 
 CHyprlandCTMControlProtocol::SCTMData::SCTMData() {
-    progress.create(g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
-    progress.setValueAndWarp(0.F);
+    g_pAnimationManager->createAnimation(0.f, progress, g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
 }
 
 void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {

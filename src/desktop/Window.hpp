@@ -233,8 +233,8 @@ class CWindow {
     Vector2D m_vSize     = Vector2D(0, 0);
 
     // this is the real position and size used to draw the thing
-    CAnimatedVariable<Vector2D> m_vRealPosition;
-    CAnimatedVariable<Vector2D> m_vRealSize;
+    PHLANIMVAR<Vector2D> m_vRealPosition;
+    PHLANIMVAR<Vector2D> m_vRealSize;
 
     // for not spamming the protocols
     Vector2D                                     m_vReportedPosition;
@@ -298,19 +298,19 @@ class CWindow {
     std::unique_ptr<CPopup>      m_pPopupHead;
 
     // Animated border
-    CGradientValueData       m_cRealBorderColor         = {0};
-    CGradientValueData       m_cRealBorderColorPrevious = {0};
-    CAnimatedVariable<float> m_fBorderFadeAnimationProgress;
-    CAnimatedVariable<float> m_fBorderAngleAnimationProgress;
+    CGradientValueData m_cRealBorderColor         = {0};
+    CGradientValueData m_cRealBorderColorPrevious = {0};
+    PHLANIMVAR<float>  m_fBorderFadeAnimationProgress;
+    PHLANIMVAR<float>  m_fBorderAngleAnimationProgress;
 
     // Fade in-out
-    CAnimatedVariable<float> m_fAlpha;
-    bool                     m_bFadingOut     = false;
-    bool                     m_bReadyToDelete = false;
-    Vector2D                 m_vOriginalClosedPos;  // these will be used for calculations later on in
-    Vector2D                 m_vOriginalClosedSize; // drawing the closing animations
-    SBoxExtents              m_eOriginalClosedExtents;
-    bool                     m_bAnimatingIn = false;
+    PHLANIMVAR<float> m_fAlpha;
+    bool              m_bFadingOut     = false;
+    bool              m_bReadyToDelete = false;
+    Vector2D          m_vOriginalClosedPos;  // these will be used for calculations later on in
+    Vector2D          m_vOriginalClosedSize; // drawing the closing animations
+    SBoxExtents       m_eOriginalClosedExtents;
+    bool              m_bAnimatingIn = false;
 
     // For pinned (sticky) windows
     bool m_bPinned = false;
@@ -336,18 +336,18 @@ class CWindow {
     std::vector<std::unique_ptr<IWindowTransformer>> m_vTransformers;
 
     // for alpha
-    CAnimatedVariable<float> m_fActiveInactiveAlpha;
-    CAnimatedVariable<float> m_fMovingFromWorkspaceAlpha;
+    PHLANIMVAR<float> m_fActiveInactiveAlpha;
+    PHLANIMVAR<float> m_fMovingFromWorkspaceAlpha;
 
     // animated shadow color
-    CAnimatedVariable<CHyprColor> m_cRealShadowColor;
+    PHLANIMVAR<CHyprColor> m_cRealShadowColor;
 
     // animated tint
-    CAnimatedVariable<float> m_fDimPercent;
+    PHLANIMVAR<float> m_fDimPercent;
 
     // animate moving to an invisible workspace
-    int                      m_iMonitorMovedFrom = -1; // -1 means not moving
-    CAnimatedVariable<float> m_fMovingToWorkspaceAlpha;
+    int               m_iMonitorMovedFrom = -1; // -1 means not moving
+    PHLANIMVAR<float> m_fMovingToWorkspaceAlpha;
 
     // swallowing
     PHLWINDOWREF m_pSwallowed;
@@ -432,7 +432,7 @@ class CWindow {
     float                  getScrollTouchpad();
     void                   updateWindowData();
     void                   updateWindowData(const struct SWorkspaceRule&);
-    void                   onBorderAngleAnimEnd(void* ptr);
+    void                   onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
     bool                   isInCurvedCorner(double x, double y);
     bool                   hasPopupAt(const Vector2D& pos);
     int                    popupsCount();
@@ -467,7 +467,7 @@ class CWindow {
     Vector2D               requestedMaxSize();
 
     CBox                   getWindowMainSurfaceBox() const {
-        return {m_vRealPosition.value().x, m_vRealPosition.value().y, m_vRealSize.value().x, m_vRealSize.value().y};
+        return {m_vRealPosition->value().x, m_vRealPosition->value().y, m_vRealSize->value().x, m_vRealSize->value().y};
     }
 
     // listeners

@@ -3,13 +3,13 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
+#include "../managers/AnimationManager.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
-using namespace Hyprutils::Utils;
+using namespace Hyprutils::Animation;
 
 CHyprError::CHyprError() {
-    m_fFadeOpacity.create(AVARTYPE_FLOAT, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
-    m_fFadeOpacity.registerVar();
+    g_pAnimationManager->createAnimation(0.f, m_fFadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (!m_bIsCreated)
@@ -30,9 +30,7 @@ CHyprError::CHyprError() {
     m_pTexture = makeShared<CTexture>();
 }
 
-CHyprError::~CHyprError() {
-    m_fFadeOpacity.unregister();
-}
+CHyprError::~CHyprError() = default;
 
 void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
     m_szQueued = message;

@@ -45,10 +45,6 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
         pav->m_Context.pLayer = pLayer;
     }
 
-    void                damageAnimatedWindow(PHLWINDOW, eAVarDamagePolicy);
-    void                damageAnimatedWorkspace(PHLWORKSPACE, eAVarDamagePolicy);
-    void                damageAnimatedLayer(PHLLS, eAVarDamagePolicy);
-
     void                onWindowPostCreateClose(PHLWINDOW, bool close = false);
 
     std::string         styleValidInConfigVar(const std::string&, const std::string&);
@@ -63,8 +59,6 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     // Anim stuff
     void animationPopin(PHLWINDOW, bool close = false, float minPerc = 0.f);
     void animationSlide(PHLWINDOW, std::string force = "", bool close = false);
-
-    bool handleContext(const SAnimationContext&);
 };
 
 inline std::unique_ptr<CHyprAnimationManager> g_pAnimationManager;

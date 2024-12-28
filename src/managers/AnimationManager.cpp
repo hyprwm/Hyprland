@@ -73,78 +73,12 @@ void updateColorVariable(CAnimatedVariable<CHyprColor>* pav, const float POINTY,
     pav->value() = {lerped, lerp(pav->begun().a, pav->goal().a, POINTY)};
 }
 
-void CHyprAnimationManager::tick() {
-    static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
-    m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
-    lastTick                                = std::chrono::high_resolution_clock::now();
-
-    static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
-    for (auto const& pav : m_vActiveAnimatedVariables) {
-        const auto PAV = pav.lock();
-        // for disabled anims just warp
-        bool       warp = !*PANIMENABLED || !PAV->enabled();
-
-        const auto SPENT   = PAV->getPercent();
-        const auto PBEZIER = getBezier(PAV->getBezierName());
-        const auto POINTY  = PBEZIER->getYForPoint(SPENT);
-
-        switch (PAV->m_Type) {
-            case AVARTYPE_FLOAT: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<float>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated float");
-                warp = warp || handleContext(pTypedAV->m_Context);
-                updateVariable(pTypedAV, POINTY, warp);
-            } break;
-            case AVARTYPE_VECTOR: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
-                warp = warp || handleContext(pTypedAV->m_Context);
-                updateVariable(pTypedAV, POINTY, warp);
-            } break;
-            case AVARTYPE_COLOR: {
-                auto pTypedAV = dynamic_cast<CAnimatedVariable<CHyprColor>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
-                warp = warp || handleContext(pTypedAV->m_Context);
-                updateColorVariable(pTypedAV, POINTY, warp);
-            } break;
-            default: UNREACHABLE();
-        }
-
-        PAV->onUpdate();
-    }
-
-    tickDone();
-}
-
-bool CHyprAnimationManager::handleContext(const SAnimationContext& ctx) {
-    PHLWINDOW    PWINDOW    = ctx.pWindow.lock();
-    PHLWORKSPACE PWORKSPACE = ctx.pWorkspace.lock();
-    PHLLS        PLAYER     = ctx.pLayer.lock();
-
-    if (ctx.eDamagePolicy == AVARDAMAGE_NONE)
-        return false;
-
-    if (PWINDOW) {
-        g_pAnimationManager->damageAnimatedWindow(PWINDOW, ctx.eDamagePolicy);
-        return PWINDOW->m_sWindowData.noAnim.valueOr(false);
-    } else if (PWORKSPACE)
-        g_pAnimationManager->damageAnimatedWorkspace(PWORKSPACE, ctx.eDamagePolicy);
-
-    else if (PLAYER) {
-        g_pAnimationManager->damageAnimatedLayer(PLAYER, ctx.eDamagePolicy);
-        return PLAYER->noAnimations;
-    }
-
-    return false;
-}
-
-void CHyprAnimationManager::damageAnimatedWindow(PHLWINDOW PWINDOW, eAVarDamagePolicy policy) {
+static void damageAnimatedWindow(PHLWINDOW PWINDOW, eAVarDamagePolicy policy) {
     const bool VISIBLE = PWINDOW && PWINDOW->m_pWorkspace ? PWINDOW->m_pWorkspace->isVisible() : true;
     if (!VISIBLE)
         return;
 
     if (policy == AVARDAMAGE_ENTIRE) {
-        Debug::log(LOG, "Damaging entire window {}", PWINDOW->m_szTitle);
         PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
     } else if (policy == AVARDAMAGE_BORDER) {
@@ -163,7 +97,7 @@ void CHyprAnimationManager::damageAnimatedWindow(PHLWINDOW PWINDOW, eAVarDamageP
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 
-void CHyprAnimationManager::damageAnimatedWorkspace(PHLWORKSPACE PWORKSPACE, eAVarDamagePolicy policy) {
+static void damageAnimatedWorkspace(PHLWORKSPACE PWORKSPACE, eAVarDamagePolicy policy) {
     RASSERT(policy == AVARDAMAGE_ENTIRE, "Workspace animations should be AVARDAMAGE_ENTIRE");
 
     PHLMONITOR PMONITOR = PWORKSPACE->m_pMonitor.lock();
@@ -204,7 +138,7 @@ void CHyprAnimationManager::damageAnimatedWorkspace(PHLWORKSPACE PWORKSPACE, eAV
     g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 
-void CHyprAnimationManager::damageAnimatedLayer(PHLLS PLAYER, eAVarDamagePolicy policy) {
+static void damageAnimatedLayer(PHLLS PLAYER, eAVarDamagePolicy policy) {
     RASSERT(policy == AVARDAMAGE_ENTIRE, "Layer animations should be AVARDAMAGE_ENTIRE");
 
     // "some fucking layers miss 1 pixel???" -- vaxry
@@ -220,6 +154,95 @@ void CHyprAnimationManager::damageAnimatedLayer(PHLLS PLAYER, eAVarDamagePolicy 
         g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
 
     g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
+}
+
+static void damageBefore(const SAnimationContext& ctx) {
+    PHLWINDOW    PWINDOW    = ctx.pWindow.lock();
+    PHLWORKSPACE PWORKSPACE = ctx.pWorkspace.lock();
+    PHLLS        PLAYER     = ctx.pLayer.lock();
+
+    if (ctx.eDamagePolicy == AVARDAMAGE_NONE)
+        return;
+
+    if (PWINDOW) {
+        damageAnimatedWindow(PWINDOW, ctx.eDamagePolicy);
+    } else if (PWORKSPACE)
+        damageAnimatedWorkspace(PWORKSPACE, ctx.eDamagePolicy);
+    else if (PLAYER) {
+        damageAnimatedLayer(PLAYER, ctx.eDamagePolicy);
+    }
+}
+
+static void damageAfter(const SAnimationContext& ctx) {
+    PHLWINDOW PWINDOW = ctx.pWindow.lock();
+
+    if (PWINDOW) {
+        if (ctx.eDamagePolicy == AVARDAMAGE_ENTIRE) {
+            PWINDOW->updateWindowDecos();
+            g_pHyprRenderer->damageWindow(PWINDOW);
+        }
+    }
+}
+
+static bool shouldWarp(const SAnimationContext& ctx) {
+    PHLWINDOW PWINDOW = ctx.pWindow.lock();
+    PHLLS     PLAYER  = ctx.pLayer.lock();
+
+    if (PWINDOW)
+        return PWINDOW->m_sWindowData.noAnim.valueOr(false);
+    else if (PLAYER)
+        return PLAYER->noAnimations;
+
+    return false;
+}
+
+void CHyprAnimationManager::tick() {
+    static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
+    m_fLastTickTime                         = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
+    lastTick                                = std::chrono::high_resolution_clock::now();
+
+    static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
+    for (auto const& pav : m_vActiveAnimatedVariables) {
+        const auto PAV = pav.lock();
+        // for disabled anims just warp
+        bool       warp = !*PANIMENABLED || !PAV->enabled();
+
+        const auto SPENT   = PAV->getPercent();
+        const auto PBEZIER = getBezier(PAV->getBezierName());
+        const auto POINTY  = PBEZIER->getYForPoint(SPENT);
+
+        switch (PAV->m_Type) {
+            case AVARTYPE_FLOAT: {
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<float>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated float");
+
+                damageBefore(pTypedAV->m_Context);
+                updateVariable(pTypedAV, POINTY, warp || shouldWarp(pTypedAV->m_Context));
+                damageAfter(pTypedAV->m_Context);
+            } break;
+            case AVARTYPE_VECTOR: {
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
+
+                damageBefore(pTypedAV->m_Context);
+                updateVariable(pTypedAV, POINTY, warp || shouldWarp(pTypedAV->m_Context));
+                damageAfter(pTypedAV->m_Context);
+            } break;
+            case AVARTYPE_COLOR: {
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
+
+                damageBefore(pTypedAV->m_Context);
+                updateColorVariable(pTypedAV, POINTY, warp || shouldWarp(pTypedAV->m_Context));
+                damageAfter(pTypedAV->m_Context);
+            } break;
+            default: UNREACHABLE();
+        }
+
+        PAV->onUpdate();
+    }
+
+    tickDone();
 }
 
 void CHyprAnimationManager::scheduleTick() {

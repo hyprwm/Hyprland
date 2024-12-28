@@ -148,15 +148,8 @@ static bool openSockets(std::array<int, 2>& sockets, int display) {
     sockaddr_un addr = {.sun_family = AF_UNIX};
     std::string path;
 
-#ifdef __linux__
-    // cursed...
-    addr.sun_path[0] = 0;
-    path             = getSocketPath(display, true);
-    strncpy(addr.sun_path + 1, path.c_str(), path.length() + 1);
-#else
     path = getSocketPath(display, false);
     strncpy(addr.sun_path, path.c_str(), path.length() + 1);
-#endif
 
     sockets[0] = createSocket(&addr, path.length());
     if (sockets[0] < 0)

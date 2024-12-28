@@ -1495,7 +1495,7 @@ void CConfigManager::performMonitorReload() {
 
         auto rule = getMonitorRuleFor(m);
 
-        if (!g_pHyprRenderer->applyMonitorRule(m, &rule)) {
+        if (!m->applyMonitorRule(&rule)) {
             overAgain = true;
             break;
         }
@@ -1553,7 +1553,7 @@ void CConfigManager::ensureMonitorStatus() {
         auto rule = getMonitorRuleFor(rm);
 
         if (rule.disabled == rm->m_bEnabled)
-            g_pHyprRenderer->applyMonitorRule(rm, &rule);
+            rm->applyMonitorRule(&rule);
     }
 }
 

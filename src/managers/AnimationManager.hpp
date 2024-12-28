@@ -18,7 +18,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
 
     using SAnimationPropertyConfig = Hyprutils::Animation::SAnimationPropertyConfig;
     template <Animable VarType>
-    inline void addAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, eAVarDamagePolicy policy) {
+    inline void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, eAVarDamagePolicy policy) {
         constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
         const auto                       PAV     = makeShared<CAnimatedVariable<VarType>>();
 
@@ -30,18 +30,18 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     }
 
     template <Animable VarType>
-    void addAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
-        addAnimation(v, pav, pConfig, policy);
+    void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWINDOW pWindow, eAVarDamagePolicy policy) {
+        createAnimation(v, pav, pConfig, policy);
         pav->m_Context.pWindow = pWindow;
     }
     template <Animable VarType>
-    void addAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
-        addAnimation(v, pav, pConfig, policy);
+    void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
+        createAnimation(v, pav, pConfig, policy);
         pav->m_Context.pWorkspace = pWorkspace;
     }
     template <Animable VarType>
-    void addAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLLS pLayer, eAVarDamagePolicy policy) {
-        addAnimation(v, pav, pConfig, policy);
+    void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLLS pLayer, eAVarDamagePolicy policy) {
+        createAnimation(v, pav, pConfig, policy);
         pav->m_Context.pLayer = pLayer;
     }
 

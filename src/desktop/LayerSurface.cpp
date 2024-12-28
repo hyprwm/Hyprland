@@ -32,9 +32,9 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->forceBlur = g_pConfigManager->shouldBlurLS(pLS->szNamespace);
 
-    g_pAnimationManager->addAnimation(0.f, pLS->alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->addAnimation(Vector2D(0, 0), pLS->realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->addAnimation(Vector2D(0, 0), pLS->realSize, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pLS->alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->realSize, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
 

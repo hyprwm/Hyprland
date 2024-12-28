@@ -22,9 +22,9 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_pSelf = self;
 
-    g_pAnimationManager->addAnimation(Vector2D(0, 0), m_vRenderOffset, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), m_vRenderOffset, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
                                       self, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->addAnimation(1.f, m_fAlpha, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+    g_pAnimationManager->createAnimation(1.f, m_fAlpha, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
                                       AVARDAMAGE_ENTIRE);
 
     const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);

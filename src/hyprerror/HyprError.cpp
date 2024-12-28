@@ -9,7 +9,7 @@
 using namespace Hyprutils::Animation;
 
 CHyprError::CHyprError() {
-    g_pAnimationManager->addAnimation(0.f, m_fFadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_fFadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
         if (!m_bIsCreated)

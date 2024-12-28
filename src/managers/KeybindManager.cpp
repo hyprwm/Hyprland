@@ -1992,7 +1992,7 @@ SDispatchResult CKeybindManager::forceRendererReload(std::string args) {
             continue;
 
         auto rule = g_pConfigManager->getMonitorRuleFor(m);
-        if (!g_pHyprRenderer->applyMonitorRule(m, &rule, true)) {
+        if (!m->applyMonitorRule(&rule, true)) {
             overAgain = true;
             break;
         }

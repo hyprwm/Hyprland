@@ -520,7 +520,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                 continue;
             }
 
-            customDrmMode = mode->modeInfo.has_value() ? mode->modeInfo.value() : drmModeModeInfo{}; // cpp dumb cant use {} without type here..
+            customDrmMode = mode->modeInfo.value();
         } else {
             output->state->setMode(mode);
 
@@ -558,9 +558,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
         output->state->setCustomMode(mode);
 
-        if (!state.test()) {
-            Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
-        } else {
+        if (state.test()) {
             Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
 
             refreshRate   = mode->refreshRate / 1000.f;
@@ -569,7 +567,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             customDrmMode = {};
 
             success = true;
-        }
+        } else
+            Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
     }
 
     // try any of the modes if none of the above work

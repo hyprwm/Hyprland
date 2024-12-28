@@ -1,3 +1,4 @@
+#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
 #include "ConfigManager.hpp"
@@ -780,6 +781,7 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("__internal_fadeCTM");
 
         INITANIMCFG("global");
+        INITANIMCFG("general");
         INITANIMCFG("windows");
         INITANIMCFG("layers");
         INITANIMCFG("fade");
@@ -801,6 +803,9 @@ void CConfigManager::setDefaultAnimationVars() {
         INITANIMCFG("fadeSwitch");
         INITANIMCFG("fadeShadow");
         INITANIMCFG("fadeDim");
+        INITANIMCFG("fadeLayers");
+        INITANIMCFG("fadeLayersIn");
+        INITANIMCFG("fadeLayersOut");
 
         // border
 
@@ -814,7 +819,7 @@ void CConfigManager::setDefaultAnimationVars() {
     }
 
     // init the values
-    animationConfig["global"] = {false, "default", "", 8.f, 1, &animationConfig["general"], nullptr};
+    *animationConfig["global"] = {false, "default", "", 8.f, 1, animationConfig["general"], WP<SAnimationPropertyConfig>()};
 
     animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, &animationConfig["__internal_fadeCTM"], nullptr};
 
@@ -1644,8 +1649,8 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
     }
 }
 
-SAnimationPropertyConfig* CConfigManager::getAnimationPropertyConfig(const std::string& name) {
-    return &animationConfig[name];
+SP<SAnimationPropertyConfig> CConfigManager::getAnimationPropertyConfig(const std::string& name) {
+    return animationConfig[name];
 }
 
 void CConfigManager::addParseError(const std::string& err) {
@@ -1708,7 +1713,7 @@ ICustomConfigValueData::~ICustomConfigValueData() {
     ; // empty
 }
 
-std::unordered_map<std::string, SAnimationPropertyConfig> CConfigManager::getAnimationConfig() {
+const std::unordered_map<std::string, SP<SAnimationPropertyConfig>>& CConfigManager::getAnimationConfig() {
     return animationConfig;
 }
 
@@ -2055,13 +2060,13 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
     return {};
 }
 
-void CConfigManager::setAnimForChildren(SAnimationPropertyConfig* const ANIM) {
+void CConfigManager::setAnimForChildren(SP<SAnimationPropertyConfig> PANIM) {
     for (auto& [name, anim] : animationConfig) {
-        if (anim.pParentAnimation == ANIM && !anim.overridden) {
+        if (anim->pParentAnimation == PANIM && !anim->overridden) {
             // if a child isnt overridden, set the values of the parent
-            anim.pValues = ANIM->pValues;
+            anim->pValues = PANIM->pValues;
 
-            setAnimForChildren(&anim);
+            setAnimForChildren(anim);
         }
     }
 };
@@ -2079,8 +2084,8 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     if (PANIM == animationConfig.end())
         return "no such animation";
 
-    PANIM->second.overridden = true;
-    PANIM->second.pValues    = &PANIM->second;
+    PANIM->second->overridden = true;
+    PANIM->second->pValues    = PANIM->second;
 
     // This helper casts strings like "1", "true", "off", "yes"... to int.
     int64_t enabledInt = configStringToInt(ARGS[1]).value_or(0) == 1;
@@ -2089,32 +2094,32 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
 
-    PANIM->second.internalEnabled = configStringToInt(ARGS[1]).value_or(0) == 1;
+    PANIM->second->internalEnabled = configStringToInt(ARGS[1]).value_or(0) == 1;
 
-    if (PANIM->second.internalEnabled) {
+    if (PANIM->second->internalEnabled) {
         // speed
         if (isNumber(ARGS[2], true)) {
-            PANIM->second.internalSpeed = std::stof(ARGS[2]);
+            PANIM->second->internalSpeed = std::stof(ARGS[2]);
 
-            if (PANIM->second.internalSpeed <= 0) {
-                PANIM->second.internalSpeed = 1.f;
+            if (PANIM->second->internalSpeed <= 0) {
+                PANIM->second->internalSpeed = 1.f;
                 return "invalid speed";
             }
         } else {
-            PANIM->second.internalSpeed = 10.f;
+            PANIM->second->internalSpeed = 10.f;
             return "invalid speed";
         }
 
         // curve
-        PANIM->second.internalBezier = ARGS[3];
+        PANIM->second->internalBezier = ARGS[3];
 
         if (!g_pAnimationManager->bezierExists(ARGS[3])) {
-            PANIM->second.internalBezier = "default";
+            PANIM->second->internalBezier = "default";
             return "no such bezier";
         }
 
         // style
-        PANIM->second.internalStyle = ARGS[4];
+        PANIM->second->internalStyle = ARGS[4];
 
         if (ARGS[4] != "") {
             auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
@@ -2125,7 +2130,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     }
 
     // now, check for children, recursively
-    setAnimForChildren(&PANIM->second);
+    setAnimForChildren(PANIM->second);
 
     return {};
 }

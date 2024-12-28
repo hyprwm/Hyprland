@@ -23,9 +23,9 @@ class CLayerSurface {
     bool                        isFadedOut();
     int                         popupsCount();
 
-    CAnimatedVariable<Vector2D> realPosition;
-    CAnimatedVariable<Vector2D> realSize;
-    CAnimatedVariable<float>    alpha;
+    PHLANIMVAR<Vector2D> realPosition;
+    PHLANIMVAR<Vector2D> realSize;
+    PHLANIMVAR<float>    alpha;
 
     WP<CLayerShellResource>     layerSurface;
     wl_list                     link;

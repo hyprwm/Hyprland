@@ -169,7 +169,7 @@ Vector2D CSubsurface::coordsGlobal() {
     Vector2D coords = coordsRelativeToParent();
 
     if (!m_pWindowParent.expired())
-        coords += m_pWindowParent->m_vRealPosition.value();
+        coords += m_pWindowParent->m_vRealPosition->value();
     else if (m_pPopupParent)
         coords += m_pPopupParent->coordsGlobal();
 

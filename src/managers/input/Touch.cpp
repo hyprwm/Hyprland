@@ -38,7 +38,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (m_pFoundLSToFocus.expired() || m_pFoundLSToFocus->layer <= 1)) {
         const auto   PWORKSPACE  = PMONITOR->activeWorkspace;
-        const auto   STYLE       = PWORKSPACE->m_vRenderOffset.getStyle();
+        const auto   STYLE       = PWORKSPACE->m_vRenderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.top : gapsOut.left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x);
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.bottom : gapsOut.right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->vecSize.y : PMONITOR->vecSize.x));
@@ -63,8 +63,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     if (!m_sTouchData.touchFocusWindow.expired()) {
         if (m_sTouchData.touchFocusWindow->m_bIsX11) {
-            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition.goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
-            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition.goal();
+            local = (g_pInputManager->getMouseCoordsInternal() - m_sTouchData.touchFocusWindow->m_vRealPosition->goal()) * m_sTouchData.touchFocusWindow->m_fX11SurfaceScaledBy;
+            m_sTouchData.touchSurfaceOrigin = m_sTouchData.touchFocusWindow->m_vRealPosition->goal();
         } else {
             g_pCompositor->vectorWindowToSurface(g_pInputManager->getMouseCoordsInternal(), m_sTouchData.touchFocusWindow.lock(), local);
             m_sTouchData.touchSurfaceOrigin = g_pInputManager->getMouseCoordsInternal() - local;
@@ -103,7 +103,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         if (e.touchID != m_sActiveSwipe.touch_id)
             return;
 
-        const auto  ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset.getStyle();
+        const auto  ANIMSTYLE     = m_sActiveSwipe.pWorkspaceBegin->m_vRenderOffset->getStyle();
         const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
         static auto PSWIPEINVR    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
         static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");

@@ -124,7 +124,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }
 
-    if (WINDOWDATA->lastWindowSize == pWindow->m_vRealSize.value() /* position not changed */
+    if (WINDOWDATA->lastWindowSize == pWindow->m_vRealSize->value() /* position not changed */
         && std::all_of(m_vWindowPositioningDatas.begin(), m_vWindowPositioningDatas.end(),
                        [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
         /* all window datas are either not for this window or don't need a reposition */
@@ -132,9 +132,9 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     )
         return;
 
-    WINDOWDATA->lastWindowSize = pWindow->m_vRealSize.value();
+    WINDOWDATA->lastWindowSize = pWindow->m_vRealSize->value();
     WINDOWDATA->needsRecalc    = false;
-    const bool EPHEMERAL       = pWindow->m_vRealSize.isBeingAnimated();
+    const bool EPHEMERAL       = pWindow->m_vRealSize->isBeingAnimated();
 
     std::sort(datas.begin(), datas.end(), [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
 

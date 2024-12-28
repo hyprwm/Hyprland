@@ -39,19 +39,19 @@ CHyprAnimationManager::CHyprAnimationManager() {
 }
 
 template <Animable VarType>
-void updateVariable(CAnimatedVariable<VarType>* av, const float POINTY, bool warp = false) {
-    if (POINTY >= 1.f || warp || av->value() == av->goal()) {
-        av->warp();
+void updateVariable(CAnimatedVariable<VarType>* pav, const float POINTY, bool warp = false) {
+    if (POINTY >= 1.f || warp || pav->value() == pav->goal()) {
+        pav->warp();
         return;
     }
 
-    const auto DELTA = av->goal() - av->begun();
-    av->value()      = av->begun() + DELTA * POINTY;
+    const auto DELTA = pav->goal() - pav->begun();
+    pav->value()     = pav->begun() + DELTA * POINTY;
 }
 
-void updateColorVariable(CAnimatedVariable<CHyprColor>* av, const float POINTY, bool warp) {
-    if (POINTY >= 1.f || warp || av->value() == av->goal()) {
-        av->warp();
+void updateColorVariable(CAnimatedVariable<CHyprColor>* pav, const float POINTY, bool warp) {
+    if (POINTY >= 1.f || warp || pav->value() == pav->goal()) {
+        pav->warp();
         return;
     }
 
@@ -59,8 +59,8 @@ void updateColorVariable(CAnimatedVariable<CHyprColor>* av, const float POINTY, 
     // This is not as fast as just lerping rgb, but it's WAY more precise...
     // Use the CHyprColor cache for OkLab
 
-    const auto&                L1 = av->begun().asOkLab();
-    const auto&                L2 = av->goal().asOkLab();
+    const auto&                L1 = pav->begun().asOkLab();
+    const auto&                L2 = pav->goal().asOkLab();
 
     static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
 
@@ -70,7 +70,7 @@ void updateColorVariable(CAnimatedVariable<CHyprColor>* av, const float POINTY, 
         .b = lerp(L1.b, L2.b, POINTY),
     };
 
-    av->value() = {lerped, lerp(av->begun().a, av->goal().a, POINTY)};
+    pav->value() = {lerped, lerp(pav->begun().a, pav->goal().a, POINTY)};
 }
 
 void CHyprAnimationManager::tick() {
@@ -79,37 +79,38 @@ void CHyprAnimationManager::tick() {
     lastTick                                = std::chrono::high_resolution_clock::now();
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
-    for (auto const& av : m_vActiveAnimatedVariables) {
+    for (auto const& pav : m_vActiveAnimatedVariables) {
+        const auto PAV = pav.lock();
         // for disabled anims just warp
-        bool       warp = !*PANIMENABLED || !av->enabled();
+        bool       warp = !*PANIMENABLED || !PAV->enabled();
 
-        const auto SPENT   = av->getPercent();
-        const auto PBEZIER = getBezier(av->getBezierName());
+        const auto SPENT   = PAV->getPercent();
+        const auto PBEZIER = getBezier(PAV->getBezierName());
         const auto POINTY  = PBEZIER->getYForPoint(SPENT);
 
-        switch (av->m_Type) {
+        switch (PAV->m_Type) {
             case AVARTYPE_FLOAT: {
-                auto typedAv = dynamic_cast<CAnimatedVariable<float>*>(av);
-                RASSERT(typedAv, "Failed to upcast animated float");
-                warp = warp || handleContext(typedAv->m_Context);
-                updateVariable(typedAv, POINTY, warp);
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<float>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated float");
+                warp = warp || handleContext(pTypedAV->m_Context);
+                updateVariable(pTypedAV, POINTY, warp);
             } break;
             case AVARTYPE_VECTOR: {
-                auto typedAv = dynamic_cast<CAnimatedVariable<Vector2D>*>(av);
-                RASSERT(typedAv, "Failed to upcast animated Vector2D");
-                warp = warp || handleContext(typedAv->m_Context);
-                updateVariable(typedAv, POINTY, warp);
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
+                warp = warp || handleContext(pTypedAV->m_Context);
+                updateVariable(pTypedAV, POINTY, warp);
             } break;
             case AVARTYPE_COLOR: {
-                auto typedAv = dynamic_cast<CAnimatedVariable<CHyprColor>*>(av);
-                RASSERT(typedAv, "Failed to upcast animated CHyprColor");
-                warp = warp || handleContext(typedAv->m_Context);
-                updateColorVariable(typedAv, POINTY, warp);
+                auto pTypedAV = dynamic_cast<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
+                warp = warp || handleContext(pTypedAV->m_Context);
+                updateColorVariable(pTypedAV, POINTY, warp);
             } break;
             default: UNREACHABLE();
         }
 
-        av->onUpdate();
+        PAV->onUpdate();
     }
 
     tickDone();
@@ -156,7 +157,7 @@ void CHyprAnimationManager::damageAnimatedWindow(PHLWINDOW PWINDOW, eAVarDamageP
 
     // set size and pos if valid, but only if damage policy entire (dont if border for example)
     if (validMapped(PWINDOW) && policy == AVARDAMAGE_ENTIRE && !PWINDOW->isX11OverrideRedirect())
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal());
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize->goal());
 
     if (PHLMONITOR PMONITOR = PWINDOW->m_pMonitor.lock())
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
@@ -207,11 +208,11 @@ void CHyprAnimationManager::damageAnimatedLayer(PHLLS PLAYER, eAVarDamagePolicy 
     RASSERT(policy == AVARDAMAGE_ENTIRE, "Layer animations should be AVARDAMAGE_ENTIRE");
 
     // "some fucking layers miss 1 pixel???" -- vaxry
-    CBox expandBox = CBox{PLAYER->realPosition.value(), PLAYER->realSize.value()};
+    CBox expandBox = CBox{PLAYER->realPosition->value(), PLAYER->realSize->value()};
     expandBox.expand(5);
     g_pHyprRenderer->damageBox(&expandBox);
 
-    PHLMONITOR PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition.goal() + PLAYER->realSize.goal() / 2.F);
+    PHLMONITOR PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->realPosition->goal() + PLAYER->realSize->goal() / 2.F);
     if (!PMONITOR)
         return;
 
@@ -253,23 +254,23 @@ void CHyprAnimationManager::onTicked() {
 //
 
 void CHyprAnimationManager::animationPopin(PHLWINDOW pWindow, bool close, float minPerc) {
-    const auto GOALPOS  = pWindow->m_vRealPosition.goal();
-    const auto GOALSIZE = pWindow->m_vRealSize.goal();
+    const auto GOALPOS  = pWindow->m_vRealPosition->goal();
+    const auto GOALSIZE = pWindow->m_vRealSize->goal();
 
     if (!close) {
-        pWindow->m_vRealSize.setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
-        pWindow->m_vRealPosition.setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.value() / 2.f);
+        pWindow->m_vRealSize->setValue((GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y}));
+        pWindow->m_vRealPosition->setValue(GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize->value() / 2.f);
     } else {
-        pWindow->m_vRealSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
-        pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize.goal() / 2.f;
+        *pWindow->m_vRealSize     = (GOALSIZE * minPerc).clamp({5, 5}, {GOALSIZE.x, GOALSIZE.y});
+        *pWindow->m_vRealPosition = GOALPOS + GOALSIZE / 2.f - pWindow->m_vRealSize->goal() / 2.f;
     }
 }
 
 void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force, bool close) {
-    pWindow->m_vRealSize.warp(false); // size we preserve in slide
+    pWindow->m_vRealSize->warp(false); // size we preserve in slide
 
-    const auto GOALPOS  = pWindow->m_vRealPosition.goal();
-    const auto GOALSIZE = pWindow->m_vRealSize.goal();
+    const auto GOALPOS  = pWindow->m_vRealPosition->goal();
+    const auto GOALSIZE = pWindow->m_vRealSize->goal();
 
     const auto PMONITOR = pWindow->m_pMonitor.lock();
 
@@ -289,9 +290,9 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
             posOffset = Vector2D(GOALPOS.x, PMONITOR->vecPosition.y - GOALSIZE.y);
 
         if (!close)
-            pWindow->m_vRealPosition.setValue(posOffset);
+            pWindow->m_vRealPosition->setValue(posOffset);
         else
-            pWindow->m_vRealPosition = posOffset;
+            *pWindow->m_vRealPosition = posOffset;
 
         return;
     }
@@ -324,33 +325,33 @@ void CHyprAnimationManager::animationSlide(PHLWINDOW pWindow, std::string force,
     }
 
     if (!close)
-        pWindow->m_vRealPosition.setValue(posOffset);
+        pWindow->m_vRealPosition->setValue(posOffset);
     else
-        pWindow->m_vRealPosition = posOffset;
+        *pWindow->m_vRealPosition = posOffset;
 }
 
 void CHyprAnimationManager::onWindowPostCreateClose(PHLWINDOW pWindow, bool close) {
     if (!close) {
-        pWindow->m_vRealPosition.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_vRealSize.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_fAlpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+        pWindow->m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_vRealSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
     } else {
-        pWindow->m_vRealPosition.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_vRealSize.setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_fAlpha.setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+        pWindow->m_vRealPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_vRealSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
     }
 
-    std::string ANIMSTYLE = pWindow->m_vRealPosition.getStyle();
+    std::string ANIMSTYLE = pWindow->m_vRealPosition->getStyle();
     transform(ANIMSTYLE.begin(), ANIMSTYLE.end(), ANIMSTYLE.begin(), ::tolower);
 
     CVarList animList(ANIMSTYLE, 0, 's');
 
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
-    if (!pWindow->m_vRealPosition.isBeingAnimated() && !pWindow->m_vRealSize.isBeingAnimated())
+    if (!pWindow->m_vRealPosition->isBeingAnimated() && !pWindow->m_vRealSize->isBeingAnimated())
         return;
 
     // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
-    if (!pWindow->m_vRealPosition.enabled())
+    if (!pWindow->m_vRealPosition->enabled())
         return;
 
     if (pWindow->m_sWindowData.animationStyle.hasValue()) {

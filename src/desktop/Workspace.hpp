@@ -37,8 +37,8 @@ class CWorkspace {
     wl_array         m_wlrCoordinateArr;
 
     // for animations
-    CAnimatedVariable<Vector2D> m_vRenderOffset;
-    CAnimatedVariable<float>    m_fAlpha;
+    PHLANIMVAR<Vector2D> m_vRenderOffset;
+    PHLANIMVAR<float>    m_fAlpha;
     bool                        m_bForceRendering = false;
 
     // allows damage to propagate.

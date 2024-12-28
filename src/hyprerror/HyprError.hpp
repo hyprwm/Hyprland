@@ -25,7 +25,7 @@ class CHyprError {
     bool                     m_bQueuedDestroy = false;
     bool                     m_bIsCreated     = false;
     SP<CTexture>             m_pTexture;
-    CAnimatedVariable<float> m_fFadeOpacity;
+    PHLANIMVAR<float> m_fFadeOpacity;
     CBox                     m_bDamageBox  = {0, 0, 0, 0};
     float                    m_fLastHeight = 0.F;
 

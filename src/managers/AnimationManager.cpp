@@ -180,6 +180,12 @@ static void damageAfter(const SAnimationContext& ctx) {
         if (ctx.eDamagePolicy == AVARDAMAGE_ENTIRE) {
             PWINDOW->updateWindowDecos();
             g_pHyprRenderer->damageWindow(PWINDOW);
+        } else if (ctx.eDamagePolicy == AVARDAMAGE_BORDER) {
+            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
+            PDECO->damageEntire();
+        } else if (ctx.eDamagePolicy == AVARDAMAGE_SHADOW) {
+            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
+            PDECO->damageEntire();
         }
     }
 }
@@ -204,6 +210,9 @@ void CHyprAnimationManager::tick() {
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
     for (auto const& pav : m_vActiveAnimatedVariables) {
         const auto PAV = pav.lock();
+        if (!PAV)
+            continue;
+
         // for disabled anims just warp
         bool       warp = !*PANIMENABLED || !PAV->enabled();
 

@@ -459,20 +459,20 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
             const double BORDERDIFF = OTHERBORDERSIZE - DRAGGINGBORDERSIZE;
             if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
                 const SRange SURFY = {SURF.y - BORDERDIFF, SURF.y + SURF.h + BORDERDIFF};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
+                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
-                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
+                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_DOWN) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
                     SNAP(sourceY.end, sourceY.start, SURFY.end);
                     snaps |= SNAP_DOWN;
                 }
             }
             if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
                 const SRange SURFX = {SURF.x - BORDERDIFF, SURF.x + SURF.w + BORDERDIFF};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
+                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
-                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
+                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_RIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
                     SNAP(sourceX.end, sourceX.start, SURFX.end);
                     snaps |= SNAP_RIGHT;
                 }

@@ -153,6 +153,8 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         updateVariable<VarType>(av, POINTY, animationsDisabled);
     }
 
+    av.onUpdate();
+
     switch (av.m_Context.eDamagePolicy) {
         case AVARDAMAGE_ENTIRE: {
             if (PWINDOW) {
@@ -239,8 +241,6 @@ void CHyprAnimationManager::tick() {
             } break;
             default: UNREACHABLE();
         }
-
-        PAV->onUpdate();
     }
 
     tickDone();

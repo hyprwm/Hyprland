@@ -4,9 +4,9 @@
 #include <hyprutils/animation/AnimatedVariable.hpp>
 
 #include "../defines.hpp"
+#include "../helpers/AnimatedVariable.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "eventLoop/EventLoopTimer.hpp"
-#include "../helpers/AnimatedVariable.hpp"
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
   public:

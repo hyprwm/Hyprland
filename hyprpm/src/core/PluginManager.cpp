@@ -780,7 +780,7 @@ bool CPluginManager::disablePlugin(const std::string& name) {
     return ret;
 }
 
-ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
+ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) {
     if (headersValid() != HEADERS_OK) {
         std::println(stderr, "\n{}", failureString("headers are not up-to-date, please run hyprpm update."));
         return LOADSTATE_HEADERS_OUTDATED;
@@ -841,9 +841,9 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
     // (and Hyprland needs to restart)
     bool hyprlandVersionMismatch = false;
 
-    // unload disabled plugins
+    // unload disabled plugins (or all if forceReload is true)
     for (auto const& p : loadedPlugins) {
-        if (!enabled(p)) {
+        if (forceReload || !enabled(p)) {
             // unload
             if (!loadUnloadPlugin(HYPRPMPATH / repoForName(p) / (p + ".so"), false)) {
                 std::println("{}", infoString("{} will be unloaded after restarting Hyprland", p));
@@ -859,7 +859,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState() {
             if (!p.enabled)
                 continue;
 
-            if (std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
+            if (!forceReload && std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
             if (!loadUnloadPlugin(HYPRPMPATH / repoForName(p.name) / p.filename, true)) {

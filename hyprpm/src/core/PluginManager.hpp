@@ -51,7 +51,7 @@ class CPluginManager {
 
     bool                   enablePlugin(const std::string& name);
     bool                   disablePlugin(const std::string& name);
-    ePluginLoadStateReturn ensurePluginsLoadState();
+    ePluginLoadStateReturn ensurePluginsLoadState(bool forceReload = false);
 
     bool                   loadUnloadPlugin(const std::string& path, bool load);
     SHyprlandVersion       getHyprlandVersion(bool running = true);

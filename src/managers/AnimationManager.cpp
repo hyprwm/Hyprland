@@ -30,6 +30,9 @@ CAnimationManager::CAnimationManager() {
     std::vector<Vector2D> points = {Vector2D(0.0, 0.75), Vector2D(0.15, 1.0)};
     m_mBezierCurves["default"].setup(&points);
 
+    points = {Vector2D(0.0, 0.0), Vector2D(1.0, 1.0)};
+    m_mBezierCurves["linear"].setup(&points);
+
     m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
 }
@@ -40,6 +43,9 @@ void CAnimationManager::removeAllBeziers() {
     // add the default one
     std::vector<Vector2D> points = {Vector2D(0.0, 0.75), Vector2D(0.15, 1.0)};
     m_mBezierCurves["default"].setup(&points);
+
+    points = {Vector2D(0.0, 0.0), Vector2D(1.0, 1.0)};
+    m_mBezierCurves["linear"].setup(&points);
 }
 
 void CAnimationManager::addBezierWithName(std::string name, const Vector2D& p1, const Vector2D& p2) {

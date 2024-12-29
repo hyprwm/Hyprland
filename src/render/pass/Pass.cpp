@@ -133,6 +133,8 @@ CRegion CRenderPass::render(const CRegion& damage_) {
             blurRegion.add(*BB);
         }
 
+        blurRegion.scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);
+
         blurRegion.intersect(damage).expand(oneBlurRadius());
 
         g_pHyprOpenGL->m_RenderData.finalDamage = blurRegion.copy().add(damage);

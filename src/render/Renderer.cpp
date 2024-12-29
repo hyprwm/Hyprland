@@ -1126,22 +1126,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     if (*PDEBUGOVERLAY == 1)
         g_pDebugOverlay->frameData(pMonitor);
 
-    if (pMonitor->framesToSkip > 0) {
-        pMonitor->framesToSkip -= 1;
-
-        if (!pMonitor->noFrameSchedule)
-            g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
-        else
-            Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
-
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
-
-        if (pMonitor->framesToSkip > 10)
-            pMonitor->framesToSkip = 0;
+    if (!g_pCompositor->m_bSessionActive)
         return;
-    }
 
-    // checks //
     if (pMonitor->ID == m_pMostHzMonitor->ID ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
@@ -1151,7 +1138,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         if (g_pConfigManager->m_bWantsMonitorReload)
             g_pConfigManager->performMonitorReload();
     }
-    //       //
 
     if (pMonitor->scheduledRecalc) {
         pMonitor->scheduledRecalc = false;
@@ -1194,8 +1180,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
 
-            // reset DRM format, make sure it's the one we want.
-            pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+            // reset DRM format, but only if needed since it might modeset
+            if (pMonitor->output->state->state().drmFormat != pMonitor->prevDrmFormat)
+                pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+
             pMonitor->drmFormat = pMonitor->prevDrmFormat;
         }
     }
@@ -1331,31 +1319,27 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     endRender();
 
-    finalDamage = g_pHyprOpenGL->m_RenderData.damage;
-
     TRACY_GPU_COLLECT;
 
-    if (!pMonitor->mirrors.empty()) {
-        CRegion    frameDamage{finalDamage};
+    CRegion    frameDamage{g_pHyprOpenGL->m_RenderData.damage};
 
-        const auto TRANSFORM = invertTransform(pMonitor->transform);
-        frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+    const auto TRANSFORM = invertTransform(pMonitor->transform);
+    frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-            frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
+        frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGEBLINK)
-            frameDamage.add(damage);
+    if (*PDAMAGEBLINK)
+        frameDamage.add(damage);
 
+    if (!pMonitor->mirrors.empty())
         damageMirrorsWith(pMonitor, frameDamage);
-
-        pMonitor->output->state->addDamage(frameDamage);
-    }
 
     pMonitor->renderingActive = false;
 
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
+    pMonitor->output->state->addDamage(frameDamage);
     pMonitor->output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 

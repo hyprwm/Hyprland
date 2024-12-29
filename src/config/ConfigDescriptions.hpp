@@ -1603,10 +1603,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "master:always_center_master",
-        .description = "when using orientation=center, keep the master window centered, even when it is the only window in the workspace.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .value       = "master:slave_count_for_center_master",
+        .description = "when using orientation=center, make the master window centered only when at least this many slave windows are open. (Set 0 to always_center_master)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 10}, //##TODO RANGE?
     },
     SConfigOptionDescription{
         .value       = "master:center_ignores_reserved",

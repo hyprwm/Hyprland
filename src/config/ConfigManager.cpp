@@ -774,6 +774,8 @@ void CConfigManager::reload() {
 
 void CConfigManager::setDefaultAnimationVars() {
     if (isFirstLaunch) {
+        INITANIMCFG("__internal_fadeCTM");
+
         INITANIMCFG("global");
         INITANIMCFG("windows");
         INITANIMCFG("layers");
@@ -810,6 +812,8 @@ void CConfigManager::setDefaultAnimationVars() {
 
     // init the values
     animationConfig["global"] = {false, "default", "", 8.f, 1, &animationConfig["general"], nullptr};
+
+    animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, &animationConfig["__internal_fadeCTM"], nullptr};
 
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("layers", "global");

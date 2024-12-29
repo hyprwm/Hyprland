@@ -1126,22 +1126,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
     if (*PDEBUGOVERLAY == 1)
         g_pDebugOverlay->frameData(pMonitor);
 
-    if (pMonitor->framesToSkip > 0) {
-        pMonitor->framesToSkip -= 1;
-
-        if (!pMonitor->noFrameSchedule)
-            g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
-        else
-            Debug::log(LOG, "NoFrameSchedule hit for {}.", pMonitor->szName);
-
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->ID);
-
-        if (pMonitor->framesToSkip > 10)
-            pMonitor->framesToSkip = 0;
+    if (!g_pCompositor->m_bSessionActive)
         return;
-    }
 
-    // checks //
     if (pMonitor->ID == m_pMostHzMonitor->ID ||
         *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
         g_pCompositor->sanityCheckWorkspaces();
@@ -1151,7 +1138,6 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
         if (g_pConfigManager->m_bWantsMonitorReload)
             g_pConfigManager->performMonitorReload();
     }
-    //       //
 
     if (pMonitor->scheduledRecalc) {
         pMonitor->scheduledRecalc = false;

@@ -434,11 +434,6 @@ void CCompositor::initAllSignals() {
                     Debug::log(LOG, "Session got deactivated!");
 
                     m_bSessionActive = false;
-
-                    for (auto const& m : m_vMonitors) {
-                        m->noFrameSchedule = true;
-                        m->framesToSkip    = 1;
-                    }
                 }
             },
             nullptr);

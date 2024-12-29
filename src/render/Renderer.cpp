@@ -1418,7 +1418,7 @@ static hdr_output_metadata createHDRMetadata(uint8_t eotf, Aquamarine::IOutput::
     };
 }
 
-static hdr_output_metadata createHDRMetadata(SImageDescription settings) {
+static hdr_output_metadata createHDRMetadata(SImageDescription settings, Aquamarine::IOutput::SParsedEDID edid) {
     if (settings.transferFunction != XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ)
         return hdr_output_metadata{.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}}; // empty metadata for SDR
 
@@ -1426,10 +1426,13 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings) {
     const auto to16Bit = [](uint32_t value) { return uint16_t(std::round(value * 50000)); };
 
     auto       colorimetry = settings.primaries;
+    auto       luminances  = settings.masteringLuminances.max > 0 ?
+               settings.masteringLuminances :
+               SImageDescription::SPCMasteringLuminances{.min = edid.hdrMetadata->desiredContentMinLuminance, .max = edid.hdrMetadata->desiredContentMaxLuminance};
 
     Debug::log(TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
                colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
-    Debug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", settings.luminances.min, settings.luminances.max, settings.maxCLL, settings.maxFALL);
+    Debug::log(TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
         .metadata_type = 0,
         .hdmi_metadata_type1 =
@@ -1443,8 +1446,8 @@ static hdr_output_metadata createHDRMetadata(SImageDescription settings) {
                         {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
                 .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                .max_display_mastering_luminance = toNits(settings.luminances.max),
-                .min_display_mastering_luminance = toNits(settings.luminances.min * 10000),
+                .max_display_mastering_luminance = toNits(luminances.max),
+                .min_display_mastering_luminance = toNits(luminances.min * 10000),
                 .max_cll                         = toNits(settings.maxCLL),
                 .max_fall                        = toNits(settings.maxFALL),
             },
@@ -1472,7 +1475,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto SURF   = WINDOW->m_pWLSurface->resource();
             if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription())
-                pMonitor->output->state->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription()));
+                pMonitor->output->state->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
             else
                 pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
         } else

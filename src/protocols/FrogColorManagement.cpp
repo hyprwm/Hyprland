@@ -1,5 +1,6 @@
 #include "FrogColorManagement.hpp"
 #include "protocols/ColorManagement.hpp"
+#include "protocols/core/Subcompositor.hpp"
 
 CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_) : resource(resource_) {
     if (!good())
@@ -17,6 +18,9 @@ CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_
             r->error(-1, "Invalid surface (2)");
             return;
         }
+
+        if (SURF->role->role() == SURFACE_ROLE_SUBSURFACE)
+            SURF = ((CSubsurfaceRole*)SURF->role.get())->subsurface->t1Parent();
 
         const auto RESOURCE = PROTO::frogColorManagement->m_vSurfaces.emplace_back(
             makeShared<CFrogColorManagementSurface>(makeShared<CFrogColorManagedSurface>(r->client(), r->version(), id), SURF));
@@ -70,7 +74,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
     });
 
     resource->setSetKnownTransferFunction([this](CFrogColorManagedSurface* r, frogColorManagedSurfaceTransferFunction tf) {
-        LOGM(TRACE, "Set frog cm transfer function {}", (uint32_t)tf);
+        LOGM(TRACE, "Set frog cm transfer function {} for {}", (uint32_t)tf, this->surface->id());
         switch (tf) {
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ:
                 this->surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_ST2084_PQ;
@@ -95,8 +99,8 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         LOGM(TRACE, "Set frog cm primaries {}", (uint32_t)primariesName);
         switch (primariesName) {
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_UNDEFINED:
-            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: this->surface->colorManagement->m_imageDescription.masteringPrimaries = Primaries::BT709; break;
-            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: this->surface->colorManagement->m_imageDescription.masteringPrimaries = Primaries::BT2020; break;
+            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: this->surface->colorManagement->m_imageDescription.primaries = Primaries::BT709; break;
+            case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: this->surface->colorManagement->m_imageDescription.primaries = Primaries::BT2020; break;
         }
 
         this->surface->colorManagement->m_hasImageDescription = true;
@@ -109,14 +113,14 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
     resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x, uint32_t w_y,
                                        uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
         LOGM(TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll, fall);
-        this->surface->colorManagement->m_imageDescription.primaries      = SImageDescription::SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
-                                                                                                            .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
-                                                                                                            .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},
-                                                                                                            .white = {.x = w_x / 50000.0f, .y = w_y / 50000.0f}};
-        this->surface->colorManagement->m_imageDescription.luminances.min = min_lum / 10000.0f;
-        this->surface->colorManagement->m_imageDescription.luminances.max = max_lum;
-        this->surface->colorManagement->m_imageDescription.maxCLL         = cll;
-        this->surface->colorManagement->m_imageDescription.maxFALL        = fall;
+        this->surface->colorManagement->m_imageDescription.masteringPrimaries      = SImageDescription::SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
+                                                                                                                     .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
+                                                                                                                     .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},
+                                                                                                                     .white = {.x = w_x / 50000.0f, .y = w_y / 50000.0f}};
+        this->surface->colorManagement->m_imageDescription.masteringLuminances.min = min_lum / 10000.0f;
+        this->surface->colorManagement->m_imageDescription.masteringLuminances.max = max_lum;
+        this->surface->colorManagement->m_imageDescription.maxCLL                  = cll;
+        this->surface->colorManagement->m_imageDescription.maxFALL                 = fall;
 
         this->surface->colorManagement->m_hasImageDescription = true;
     });

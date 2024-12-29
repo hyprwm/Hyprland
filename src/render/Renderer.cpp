@@ -1180,8 +1180,10 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
             Debug::log(LOG, "Left a direct scanout.");
             pMonitor->lastScanout.reset();
 
-            // reset DRM format, make sure it's the one we want.
-            pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+            // reset DRM format, but only if needed since it might modeset
+            if (pMonitor->output->state->state().drmFormat != pMonitor->prevDrmFormat)
+                pMonitor->output->state->setFormat(pMonitor->prevDrmFormat);
+
             pMonitor->drmFormat = pMonitor->prevDrmFormat;
         }
     }

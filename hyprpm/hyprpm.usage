@@ -14,7 +14,7 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         |   (list)                      "List all installed plugins"
         |   (enable <PLUGINS>)          "Load a plugin"
         |   (disable <PLUGINS>)         "Unload a plugin"
-        |   (reload)                    "Reload all plugins"
+        |   (reload)                    "Reload plugins to match the enabled/disabled state. Use -f to force reload."
         ;
 
 <PLUGINS> ::= {{{ hyprpm list | awk '/Plugin/{print $4}' }}};

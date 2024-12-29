@@ -1319,31 +1319,27 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor) {
 
     endRender();
 
-    finalDamage = g_pHyprOpenGL->m_RenderData.damage;
-
     TRACY_GPU_COLLECT;
 
-    if (!pMonitor->mirrors.empty()) {
-        CRegion    frameDamage{finalDamage};
+    CRegion    frameDamage{g_pHyprOpenGL->m_RenderData.damage};
 
-        const auto TRANSFORM = invertTransform(pMonitor->transform);
-        frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
+    const auto TRANSFORM = invertTransform(pMonitor->transform);
+    frameDamage.transform(wlTransformToHyprutils(TRANSFORM), pMonitor->vecTransformedSize.x, pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
-            frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR)
+        frameDamage.add(0, 0, (int)pMonitor->vecTransformedSize.x, (int)pMonitor->vecTransformedSize.y);
 
-        if (*PDAMAGEBLINK)
-            frameDamage.add(damage);
+    if (*PDAMAGEBLINK)
+        frameDamage.add(damage);
 
+    if (!pMonitor->mirrors.empty())
         damageMirrorsWith(pMonitor, frameDamage);
-
-        pMonitor->output->state->addDamage(frameDamage);
-    }
 
     pMonitor->renderingActive = false;
 
     EMIT_HOOK_EVENT("render", RENDER_POST);
 
+    pMonitor->output->state->addDamage(frameDamage);
     pMonitor->output->state->setPresentationMode(shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                               Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 

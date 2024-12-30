@@ -1289,6 +1289,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "render:expand_undersized_textures",
+        .description = "Whether to expand textures that have not yet resized to be larger, or to just stretch them instead.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:xp_mode",
+        .description = "Disable back buffer and bottom layer rendering.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:ctm_animation",
+        .description = "Whether to enable a fade animation for CTM changes (hyprsunset). 2 means 'auto' (Yes on everything but Nvidia).",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
+    },
 
     /*
      * cursor:

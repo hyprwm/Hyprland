@@ -1,6 +1,8 @@
 #include "CTMControl.hpp"
 #include "../Compositor.hpp"
+#include "../render/Renderer.hpp"
 #include "core/Output.hpp"
+#include "../config/ConfigValue.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if (!good())
@@ -81,12 +83,24 @@ void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* r
     std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
 }
 
+bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
+    static auto PENABLEANIM = CConfigValue<Hyprlang::INT>("render:ctm_animation");
+
+    if (*PENABLEANIM == 2)
+        return !g_pHyprRenderer->isNvidia();
+    return *PENABLEANIM;
+}
+
 CHyprlandCTMControlProtocol::SCTMData::SCTMData() {
     progress.create(g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
     progress.setValueAndWarp(0.F);
 }
 
 void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {
+    if (!isCTMAnimationEnabled()) {
+        monitor->setCTM(ctm);
+        return;
+    }
 
     std::erase_if(m_mCTMDatas, [](const auto& el) { return !el.first; });
 

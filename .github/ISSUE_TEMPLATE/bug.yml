@@ -5,31 +5,34 @@ body:
   - type: checkboxes
     attributes:
       label: Already reported ? *
-      description: Before opening a new bug report, please take a moment to search through the current open and closed issues to check if it already exists.
+      description: Before opening a new bug report, please take a moment to search through the current open issues. If same bug is already reported, don't open new issue - instead go upvote/comment on existing one.
       options:
-      - label: I have searched the existing open and closed issues.
-        required: true
+        - label: I have searched the existing open and closed issues.
+          required: true
 
   - type: dropdown
     id: type
     attributes:
-      label: Regression?
+      label: Is this bug a regression?
       description: |
         Regression means that something used to work but no longer does.
         **BEFORE CONTINUING**, please check if this bug is a regression or not, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue
       multiple: true
       options:
-        - "Yes"
-        - "No"
+        - "Definitely a regression - something broke after update (requires bisect)"
+        - "Probably not a regression / I don't remember it happening before"
+        - "Not a regression - it's bug regarding new feature"
+        - "Not a regression - it's an old bug"
+        - "I don't know, I started using Hyprland only recently"
     validations:
       required: true
 
   - type: textarea
     id: ver
     attributes:
-      label: System Info and Version
+      label: System Info and Hyprland Version
       description: |
-        Paste the output of `hyprctl systeminfo -c` here. If you can't
+        Paste the output of `hyprctl systeminfo` here. If you can't
         launch Hyprland, paste the output of `Hyprland --systeminfo`.
         If `Hyprland --systeminfo` errors out (added in 0.44.0), find
         and paste the Hyprland version manually.
@@ -37,8 +40,8 @@ body:
         <summary>System/Version info</summary>
 
 
-        ```sh
-        
+        ```
+
         <Paste the output of the command here>
 
         ```
@@ -61,15 +64,55 @@ body:
     attributes:
       label: How to reproduce
       description: "How can someone else reproduce the issue?"
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+
     validations:
       required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Additional info section
+
+        In the section below you will be asked to upload some files.
+
+        When including text files (such as logs or config), please **always ATTACH** them, and not paste them directly.
+
+        <u>This is important</u> because pasting text directly clutters the issue with unnecessary keywords, making github issue search useless.
+        Thanks for your understanding.
+
+  - type: checkboxes
+    attributes:
+      label: Attach not paste
+      options:
+        - label: I understand that all text files must be *attached*, and not pasted directly. If not respected, this issue will likely get closed as spam
+          required: true
+
+  - type: markdown
+    attributes:
+      value: >-
+        Please be sure to upload the following files below:
+
+          - Logs can be found in $XDG_RUNTIME_DIR/hypr
+          - Crash reports are stored in ~/.cache/hyprland or $XDG_CACHE_HOME/hyprland
+          - Hyprland config files - `hyprctl systeminfo -c > /tmp/hyprland_config_dump.txt` use this command to dump full configuration to a single file.
+
+  - type: checkboxes
+    attributes:
+      label: Checklist of files to include below
+      options:
+        - label: Hyprland config - `hyprctl systeminfo -c` (always include)
+          required: true
+        - label: Crash report (always include in case of crash)
+        - label: Video (always include in case of a visual bug)
+        - label: Logs (might contain useful info such as errors)
 
   - type: textarea
     id: logs
     attributes:
-      label: Crash reports, logs, images, videos
+      label: Additional info & File uploads
       description: |
-        Anything that can help. Please always ATTACH and not paste them.
-        Logs can be found in $XDG_RUNTIME_DIR/hypr
-        Crash reports are stored in ~/.cache/hyprland or $XDG_CACHE_HOME/hyprland
-
+        Tip: You can attach files by clicking this area to highlight it and then dragging files in.

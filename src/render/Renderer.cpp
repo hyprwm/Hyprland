@@ -536,6 +536,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
             data.color = CHyprColor(0, 0, 0, 0);
             data.box   = wb;
             data.round = renderdata.dontRound ? 0 : renderdata.rounding - 1;
+            data.blur  = true;
             data.blurA = renderdata.fadeAlpha;
             data.xray  = g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow);
             m_sRenderPass.add(makeShared<CRectPassElement>(data));

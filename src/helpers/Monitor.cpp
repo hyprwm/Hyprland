@@ -479,6 +479,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             return false;
         });
 
+        // if the best mode isnt close to requested, then try requested as custom mode first
+        auto bestMode = requestedModes.back();
+        if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
+            !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
+            requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+
         // then if requested is custom, try custom mode first
         if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
             if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)

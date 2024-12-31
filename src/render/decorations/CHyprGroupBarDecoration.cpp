@@ -451,7 +451,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
         // restores the group
         for (auto it = members.begin(); it != members.end(); ++it) {
-            (*it)->m_bIsFloating   = pWindowInsertAfter->m_bIsFloating;          // match the floating state of group members
+            (*it)->m_bIsFloating    = pWindowInsertAfter->m_bIsFloating;           // match the floating state of group members
             *(*it)->m_vRealSize     = pWindowInsertAfter->m_vRealSize->goal();     // match the size of group members
             *(*it)->m_vRealPosition = pWindowInsertAfter->m_vRealPosition->goal(); // match the position of group members
             if (std::next(it) != members.end())

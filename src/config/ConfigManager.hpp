@@ -24,9 +24,10 @@
 
 #include <hyprlang.hpp>
 
-#define INITANIMCFG(name)           animationConfig[name] = makeShared<SAnimationPropertyConfig>();
-#define CREATEANIMCFG(name, parent) RASSERT(animationConfig[name], "Animation config has not been initialized"); \
-  *animationConfig[name] = {false, "", "", 0.f, -1, animationConfig["global"], animationConfig[parent]};
+#define INITANIMCFG(name) animationConfig[name] = makeShared<SAnimationPropertyConfig>();
+#define CREATEANIMCFG(name, parent)                                                                                                                                                \
+    RASSERT(animationConfig[name], "Animation config has not been initialized");                                                                                                   \
+    *animationConfig[name] = {false, "", "", 0.f, -1, animationConfig["global"], animationConfig[parent]};
 
 #define HANDLE void*
 
@@ -173,7 +174,7 @@ class CConfigManager {
 
     const std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>>& getAnimationConfig();
 
-    void                                                                            addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
+    void addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
     void addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fun, Hyprlang::SHandlerOptions opts = {});
     void removePluginConfig(HANDLE handle);
 

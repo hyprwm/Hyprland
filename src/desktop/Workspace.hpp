@@ -39,7 +39,7 @@ class CWorkspace {
     // for animations
     PHLANIMVAR<Vector2D> m_vRenderOffset;
     PHLANIMVAR<float>    m_fAlpha;
-    bool                        m_bForceRendering = false;
+    bool                 m_bForceRendering = false;
 
     // allows damage to propagate.
     bool m_bVisible = false;

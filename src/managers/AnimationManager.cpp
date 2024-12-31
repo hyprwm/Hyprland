@@ -82,9 +82,9 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     bool         animationsDisabled = warp;
 
     if (PWINDOW) {
-        if (av.m_Context.eDamagePolicy == AVARDAMAGE_ENTIRE) {
+        if (av.m_Context.eDamagePolicy == AVARDAMAGE_ENTIRE)
             g_pHyprRenderer->damageWindow(PWINDOW);
-        } else if (av.m_Context.eDamagePolicy == AVARDAMAGE_BORDER) {
+        else if (av.m_Context.eDamagePolicy == AVARDAMAGE_BORDER) {
             const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
             PDECO->damageEntire();
         } else if (av.m_Context.eDamagePolicy == AVARDAMAGE_SHADOW) {

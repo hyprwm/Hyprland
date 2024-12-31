@@ -819,9 +819,8 @@ void CConfigManager::setDefaultAnimationVars() {
     }
 
     // init the values
-    *animationConfig["global"] = {false, "default", "", 8.f, 1, animationConfig["general"], WP<SAnimationPropertyConfig>()};
-
-    animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, &animationConfig["__internal_fadeCTM"], nullptr};
+    *animationConfig["global"]             = {false, "default", "", 8.f, 1, animationConfig["general"], WP<SAnimationPropertyConfig>()};
+    *animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, animationConfig["__internal_fadeCTM"], WP<SAnimationPropertyConfig>()};
 
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("layers", "global");

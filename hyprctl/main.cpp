@@ -255,8 +255,10 @@ int requestHyprpaper(std::string arg) {
         return 3;
     }
 
-    arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
-    arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
+		std::string flags = arg.substr(0, arg.find_first_of('/'));
+		arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
+		arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
+		arg = arg + "/" + flags;
 
     auto sizeWritten = write(SERVERSOCKET, arg.c_str(), arg.length());
 

@@ -4,6 +4,7 @@
 #include "PassElement.hpp"
 
 class CGradientValueData;
+class CTexture;
 
 class CRenderPass {
   public:
@@ -33,6 +34,12 @@ class CRenderPass {
 
     void                              simplify();
     float                             oneBlurRadius();
+    void                              renderDebugData();
+
+    struct {
+        bool         present = false;
+        SP<CTexture> keyboardFocusText, pointerFocusText, lastWindowText;
+    } debugData;
 
     friend class CHyprOpenGLImpl;
 };

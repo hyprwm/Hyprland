@@ -10,6 +10,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "SeatManager.hpp"
+#include "protocols/InputCapture.hpp"
 #include <cstring>
 #include <gbm.h>
 
@@ -699,6 +700,13 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     const auto oldPos = pointerPos;
     auto       newPos = oldPos + Vector2D{std::isnan(deltaLogical.x) ? 0.0 : deltaLogical.x, std::isnan(deltaLogical.y) ? 0.0 : deltaLogical.y};
 
+
+    if (!g_pInputManager->isLocked())
+        PROTO::inputCapture->sendMotion(newPos, deltaLogical);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     warpTo(newPos);
 }
 
@@ -870,14 +878,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     });
 
     listener->frame = pointer->pointerEvents.frame.registerListener([] (std::any e) {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = g_pCompositor->m_pLastMonitor.get();
-            shouldSkip = PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
-        }
-        g_pSeatManager->isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
+        g_pInputManager->onMouseFrame();
     });
 
     listener->swipeBegin = pointer->pointerEvents.swipeBegin.registerListener([] (std::any e) {

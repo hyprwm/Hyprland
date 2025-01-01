@@ -4,6 +4,7 @@
 #include "../protocols/DataDeviceWlr.hpp"
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
@@ -97,6 +98,7 @@ void CSeatManager::updateActiveKeyboardData() {
     if (keyboard)
         PROTO::seat->updateRepeatInfo(keyboard->repeatRate, keyboard->repeatDelay);
     PROTO::seat->updateKeymap();
+    PROTO::inputCapture->updateKeymap();
 }
 
 void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {

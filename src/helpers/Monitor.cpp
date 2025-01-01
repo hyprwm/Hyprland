@@ -480,10 +480,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         });
 
         // if the best mode isnt close to requested, then try requested as custom mode first
-        auto bestMode = requestedModes.back();
-        if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
-            !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
-            requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+        if (!requestedModes.empty()) {
+            auto bestMode = requestedModes.back();
+            if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
+                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
+                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+        }
 
         // then if requested is custom, try custom mode first
         if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
@@ -510,8 +512,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     if (Debug::trace) {
         Debug::log(TRACE, "Monitor {} requested modes:", szName);
-        for (auto const& mode : requestedModes | std::views::reverse) {
-            Debug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+        if (requestedModes.empty())
+            Debug::log(TRACE, "| None");
+        else {
+            for (auto const& mode : requestedModes | std::views::reverse) {
+                Debug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+            }
         }
     }
 

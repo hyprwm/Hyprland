@@ -318,6 +318,7 @@ protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-focus-grab-v1" true)
 protocolnew("protocols" "wlr-layer-shell-unstable-v1" true)
 protocolnew("protocols" "wayland-drm" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-ctm-control-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-surface-v1" true)
 
 protocolnew("staging/tearing-control" "tearing-control-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)

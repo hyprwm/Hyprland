@@ -777,79 +777,46 @@ void CConfigManager::reload() {
 }
 
 void CConfigManager::setDefaultAnimationVars() {
-    if (isFirstLaunch) {
-        INITANIMCFG("__internal_fadeCTM");
+    m_AnimationTree.createNode("__internal_fadeCTM");
+    m_AnimationTree.createNode("global");
 
-        INITANIMCFG("global");
-        INITANIMCFG("general");
-        INITANIMCFG("windows");
-        INITANIMCFG("layers");
-        INITANIMCFG("fade");
-        INITANIMCFG("border");
-        INITANIMCFG("borderangle");
+    // global
+    m_AnimationTree.createNode("windows", "global");
+    m_AnimationTree.createNode("layers", "global");
+    m_AnimationTree.createNode("fade", "global");
+    m_AnimationTree.createNode("border", "global");
+    m_AnimationTree.createNode("borderangle", "global");
+    m_AnimationTree.createNode("workspaces", "global");
 
-        // windows
-        INITANIMCFG("windowsIn");
-        INITANIMCFG("windowsOut");
-        INITANIMCFG("windowsMove");
+    // layer
+    m_AnimationTree.createNode("layersIn", "layers");
+    m_AnimationTree.createNode("layersOut", "layers");
 
-        // layers
-        INITANIMCFG("layersIn");
-        INITANIMCFG("layersOut");
+    // windows
+    m_AnimationTree.createNode("windowsIn", "windows");
+    m_AnimationTree.createNode("windowsOut", "windows");
+    m_AnimationTree.createNode("windowsMove", "windows");
 
-        // fade
-        INITANIMCFG("fadeIn");
-        INITANIMCFG("fadeOut");
-        INITANIMCFG("fadeSwitch");
-        INITANIMCFG("fadeShadow");
-        INITANIMCFG("fadeDim");
-        INITANIMCFG("fadeLayers");
-        INITANIMCFG("fadeLayersIn");
-        INITANIMCFG("fadeLayersOut");
+    // fade
+    m_AnimationTree.createNode("fadeIn", "fade");
+    m_AnimationTree.createNode("fadeOut", "fade");
+    m_AnimationTree.createNode("fadeSwitch", "fade");
+    m_AnimationTree.createNode("fadeShadow", "fade");
+    m_AnimationTree.createNode("fadeDim", "fade");
+    m_AnimationTree.createNode("fadeLayers", "fade");
+    m_AnimationTree.createNode("fadeLayersIn", "fadeLayers");
+    m_AnimationTree.createNode("fadeLayersOut", "fadeLayers");
 
-        // border
+    // workspaces
+    m_AnimationTree.createNode("workspacesIn", "workspaces");
+    m_AnimationTree.createNode("workspacesOut", "workspaces");
+    m_AnimationTree.createNode("specialWorkspace", "workspaces");
+    m_AnimationTree.createNode("specialWorkspaceIn", "specialWorkspace");
+    m_AnimationTree.createNode("specialWorkspaceOut", "specialWorkspace");
 
-        // workspaces
-        INITANIMCFG("workspaces");
-        INITANIMCFG("workspacesIn");
-        INITANIMCFG("workspacesOut");
-        INITANIMCFG("specialWorkspace");
-        INITANIMCFG("specialWorkspaceIn");
-        INITANIMCFG("specialWorkspaceOut");
-    }
-
-    // init the values
-    *animationConfig["global"]             = {false, "default", "", 8.f, 1, animationConfig["general"], WP<SAnimationPropertyConfig>()};
-    *animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, animationConfig["__internal_fadeCTM"], WP<SAnimationPropertyConfig>()};
-
-    CREATEANIMCFG("windows", "global");
-    CREATEANIMCFG("layers", "global");
-    CREATEANIMCFG("fade", "global");
-    CREATEANIMCFG("border", "global");
-    CREATEANIMCFG("borderangle", "global");
-    CREATEANIMCFG("workspaces", "global");
-
-    CREATEANIMCFG("layersIn", "layers");
-    CREATEANIMCFG("layersOut", "layers");
-
-    CREATEANIMCFG("windowsIn", "windows");
-    CREATEANIMCFG("windowsOut", "windows");
-    CREATEANIMCFG("windowsMove", "windows");
-
-    CREATEANIMCFG("fadeIn", "fade");
-    CREATEANIMCFG("fadeOut", "fade");
-    CREATEANIMCFG("fadeSwitch", "fade");
-    CREATEANIMCFG("fadeShadow", "fade");
-    CREATEANIMCFG("fadeDim", "fade");
-    CREATEANIMCFG("fadeLayers", "fade");
-    CREATEANIMCFG("fadeLayersIn", "fadeLayers");
-    CREATEANIMCFG("fadeLayersOut", "fadeLayers");
-
-    CREATEANIMCFG("workspacesIn", "workspaces");
-    CREATEANIMCFG("workspacesOut", "workspaces");
-    CREATEANIMCFG("specialWorkspace", "workspaces");
-    CREATEANIMCFG("specialWorkspaceIn", "specialWorkspace");
-    CREATEANIMCFG("specialWorkspaceOut", "specialWorkspace");
+    // init the root nodes
+    m_AnimationTree.setConfigForNode("global", 1, 8.f, "", "default");
+    m_AnimationTree.setConfigForNode("__internal_fadeCTM", 1, 5.f, "", "linear");
 }
 
 std::optional<std::string> CConfigManager::resetHLConfig() {
@@ -1649,7 +1616,7 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
 }
 
 SP<SAnimationPropertyConfig> CConfigManager::getAnimationPropertyConfig(const std::string& name) {
-    return animationConfig[name];
+    return m_AnimationTree.getConfig(name);
 }
 
 void CConfigManager::addParseError(const std::string& err) {
@@ -1713,7 +1680,7 @@ ICustomConfigValueData::~ICustomConfigValueData() {
 }
 
 const std::unordered_map<std::string, SP<SAnimationPropertyConfig>>& CConfigManager::getAnimationConfig() {
-    return animationConfig;
+    return m_AnimationTree.getFullConfig();
 }
 
 void CConfigManager::addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
@@ -2059,17 +2026,6 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
     return {};
 }
 
-void CConfigManager::setAnimForChildren(SP<SAnimationPropertyConfig> PANIM) {
-    for (auto& [name, anim] : animationConfig) {
-        if (anim->pParentAnimation == PANIM && !anim->overridden) {
-            // if a child isnt overridden, set the values of the parent
-            anim->pValues = PANIM->pValues;
-
-            setAnimForChildren(anim);
-        }
-    }
-};
-
 std::optional<std::string> CConfigManager::handleAnimation(const std::string& command, const std::string& args) {
     const auto ARGS = CVarList(args);
 
@@ -2078,47 +2034,40 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     // anim name
     const auto ANIMNAME = ARGS[0];
 
-    const auto PANIM = animationConfig.find(ANIMNAME);
-
-    if (PANIM == animationConfig.end())
+    if (!m_AnimationTree.nodeExists(ANIMNAME))
         return "no such animation";
 
-    PANIM->second->overridden = true;
-    PANIM->second->pValues    = PANIM->second;
-
     // This helper casts strings like "1", "true", "off", "yes"... to int.
-    int64_t enabledInt = configStringToInt(ARGS[1]).value_or(0) == 1;
+    int64_t enabledInt = configStringToInt(ARGS[1]).value_or(0);
 
     // Checking that the int is 1 or 0 because the helper can return integers out of range.
     if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
 
-    PANIM->second->internalEnabled = configStringToInt(ARGS[1]).value_or(0) == 1;
+    if (enabledInt) {
+        int64_t speed = -1;
 
-    if (PANIM->second->internalEnabled) {
         // speed
         if (isNumber(ARGS[2], true)) {
-            PANIM->second->internalSpeed = std::stof(ARGS[2]);
+            speed = std::stof(ARGS[2]);
 
-            if (PANIM->second->internalSpeed <= 0) {
-                PANIM->second->internalSpeed = 1.f;
+            if (speed <= 0) {
+                speed = 1.f;
                 return "invalid speed";
             }
         } else {
-            PANIM->second->internalSpeed = 10.f;
+            speed = 10.f;
             return "invalid speed";
         }
 
-        // curve
-        PANIM->second->internalBezier = ARGS[3];
+        std::string bezierName = ARGS[3];
+        m_AnimationTree.setConfigForNode(ANIMNAME, enabledInt, speed, ARGS[3], ARGS[4]);
 
-        if (!g_pAnimationManager->bezierExists(ARGS[3])) {
-            PANIM->second->internalBezier = "default";
+        if (!g_pAnimationManager->bezierExists(bezierName)) {
+            const auto PANIMNODE      = m_AnimationTree.getConfig(ANIMNAME);
+            PANIMNODE->internalBezier = "default";
             return "no such bezier";
         }
-
-        // style
-        PANIM->second->internalStyle = ARGS[4];
 
         if (ARGS[4] != "") {
             auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
@@ -2127,9 +2076,6 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
                 return ERR;
         }
     }
-
-    // now, check for children, recursively
-    setAnimForChildren(PANIM->second);
 
     return {};
 }

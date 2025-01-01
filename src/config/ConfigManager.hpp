@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hyprutils/animation/AnimationConfig.hpp>
 #define CONFIG_MANAGER_H
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
@@ -23,11 +24,6 @@
 #include "ConfigDataValues.hpp"
 
 #include <hyprlang.hpp>
-
-#define INITANIMCFG(name) animationConfig[name] = makeShared<SAnimationPropertyConfig>();
-#define CREATEANIMCFG(name, parent)                                                                                                                                                \
-    RASSERT(animationConfig[name], "Animation config has not been initialized");                                                                                                   \
-    *animationConfig[name] = {false, "", "", 0.f, -1, animationConfig["global"], animationConfig[parent]};
 
 #define HANDLE void*
 
@@ -259,36 +255,36 @@ class CConfigManager {
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
-    std::unique_ptr<Hyprlang::CConfig>                                                  m_pConfig;
+    std::unique_ptr<Hyprlang::CConfig>               m_pConfig;
 
-    std::vector<std::string>                                                            configPaths;       // stores all the config paths
-    std::unordered_map<std::string, time_t>                                             configModifyTimes; // stores modify times
+    std::vector<std::string>                         configPaths;       // stores all the config paths
+    std::unordered_map<std::string, time_t>          configModifyTimes; // stores modify times
 
-    std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>> animationConfig; // stores all the animations with their set values
+    Hyprutils::Animation::CAnimationConfigTree       m_AnimationTree;
 
-    std::string                                                                         m_szCurrentSubmap = ""; // For storing the current keybind submap
+    std::string                                      m_szCurrentSubmap = ""; // For storing the current keybind submap
 
-    std::vector<SExecRequestedRule>                                                     execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
+    std::vector<SExecRequestedRule>                  execRequestedRules; // rules requested with exec, e.g. [workspace 2] kitty
 
-    std::vector<std::string>                                                            m_vDeclaredPlugins;
-    std::vector<SPluginKeyword>                                                         pluginKeywords;
-    std::vector<SPluginVariable>                                                        pluginVariables;
+    std::vector<std::string>                         m_vDeclaredPlugins;
+    std::vector<SPluginKeyword>                      pluginKeywords;
+    std::vector<SPluginVariable>                     pluginVariables;
 
-    bool                                                                                isFirstLaunch = true; // For exec-once
+    bool                                             isFirstLaunch = true; // For exec-once
 
-    std::vector<SMonitorRule>                                                           m_vMonitorRules;
-    std::vector<SWorkspaceRule>                                                         m_vWorkspaceRules;
-    std::vector<SP<CWindowRule>>                                                        m_vWindowRules;
-    std::vector<SP<CLayerRule>>                                                         m_vLayerRules;
-    std::vector<std::string>                                                            m_dBlurLSNamespaces;
+    std::vector<SMonitorRule>                        m_vMonitorRules;
+    std::vector<SWorkspaceRule>                      m_vWorkspaceRules;
+    std::vector<SP<CWindowRule>>                     m_vWindowRules;
+    std::vector<SP<CLayerRule>>                      m_vLayerRules;
+    std::vector<std::string>                         m_dBlurLSNamespaces;
 
-    bool                                                                                firstExecDispatched     = false;
-    bool                                                                                m_bManualCrashInitiated = false;
-    std::vector<std::string>                                                            firstExecRequests;
-    std::vector<std::string>                                                            finalExecRequests;
+    bool                                             firstExecDispatched     = false;
+    bool                                             m_bManualCrashInitiated = false;
+    std::vector<std::string>                         firstExecRequests;
+    std::vector<std::string>                         finalExecRequests;
 
-    std::vector<std::pair<std::string, std::string>>                                    m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
-    std::string                                                                         m_szConfigErrors = "";
+    std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
+    std::string                                      m_szConfigErrors = "";
 
     // internal methods
     void                              setAnimForChildren(SP<Hyprutils::Animation::SAnimationPropertyConfig> const);

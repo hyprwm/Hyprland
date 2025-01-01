@@ -35,14 +35,14 @@ void CRenderPass::simplify() {
     CRegion    newDamage = damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecTransformedSize});
     for (auto& el : m_vPassElements | std::views::reverse) {
 
-        if (newDamage.empty()) {
+        if (newDamage.empty() && !el->element->undiscardable()) {
             el->discard = true;
             continue;
         }
 
         el->elementDamage = newDamage;
         auto bb1          = el->element->boundingBox();
-        if (!bb1)
+        if (!bb1 || newDamage.empty())
             continue;
 
         auto bb = bb1->scale(g_pHyprOpenGL->m_RenderData.pMonitor->scale);

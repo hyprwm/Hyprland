@@ -86,6 +86,9 @@ class CWLSurface {
     // used by the alpha-modifier protocol
     float m_pAlphaModifier = 1.F;
 
+    // used by the hyprland-surface protocol
+    float m_fOverallOpacity = 1.F;
+
     struct {
         CSignal destroy;
     } events;

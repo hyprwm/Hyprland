@@ -2591,7 +2591,7 @@ void CCompositor::setActiveMonitor(PHLMONITOR pMonitor) {
     const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_szName : "?";
 
     g_pEventManager->postEvent(SHyprIPCEvent{"focusedmon", pMonitor->szName + "," + WORKSPACE_NAME});
-    g_pEventManager->postEvent(SHyprIPCEvent{"focusedmonv2", pMonitor->szName + "," + WORKSPACE_ID + "," + WORKSPACE_NAME});
+    g_pEventManager->postEvent(SHyprIPCEvent{"focusedmonv2", pMonitor->szName + "," + WORKSPACE_ID});
 
     EMIT_HOOK_EVENT("focusedMon", pMonitor);
     m_pLastMonitor = pMonitor->self;

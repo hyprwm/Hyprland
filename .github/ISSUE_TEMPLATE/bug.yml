@@ -13,7 +13,7 @@ body:
   - type: dropdown
     id: type
     attributes:
-      label: Is this bug a regression?
+      label: Regression?
       description: |
         Regression means that something used to work but no longer does.
         **BEFORE CONTINUING**, please check if this bug is a regression or not, and if it is, we need you to bisect with the help of the wiki: https://wiki.hyprland.org/Crashes-and-Bugs/#bisecting-an-issue

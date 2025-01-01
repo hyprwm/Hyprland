@@ -18,3 +18,7 @@ bool CPreBlurElement::needsPrecomputeBlur() {
 bool CPreBlurElement::disableSimplification() {
     return true;
 }
+
+bool CPreBlurElement::undiscardable() {
+    return true;
+}

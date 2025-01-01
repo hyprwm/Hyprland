@@ -17,3 +17,7 @@ bool CRendererHintsPassElement::needsLiveBlur() {
 bool CRendererHintsPassElement::needsPrecomputeBlur() {
     return false;
 }
+
+bool CRendererHintsPassElement::undiscardable() {
+    return true;
+}

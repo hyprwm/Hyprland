@@ -110,7 +110,6 @@ struct SMonitorRenderData {
 
 struct SCurrentRenderData {
     PHLMONITORREF       pMonitor;
-    PHLWORKSPACE        pWorkspace = nullptr;
     Mat3x3              projection;
     Mat3x3              savedProjection;
     Mat3x3              monitorProjection;

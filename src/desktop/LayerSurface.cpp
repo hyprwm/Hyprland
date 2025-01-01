@@ -241,7 +241,7 @@ void CLayerSurface::onUnmap() {
                  (int)layerSurface->surface->current.size.y};
     g_pHyprRenderer->damageBox(&geomFixed);
 
-    g_pInputManager->sendMotionEventsToFocused();
+    g_pInputManager->simulateMouseMovement();
 
     g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 }

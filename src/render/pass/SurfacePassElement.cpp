@@ -58,7 +58,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
 
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
-    const float ALPHA         = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const float ALPHA         = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_fAlphaModifier : 1.F);
     const float OVERALL_ALPHA = PSURFACE ? PSURFACE->m_fOverallOpacity : 1.F;
     const bool  BLUR          = data.blur && (!TEXTURE->m_bOpaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
 
@@ -96,7 +96,7 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         rounding = 0;
 
     const bool WINDOWOPAQUE    = data.pWindow && data.pWindow->m_pWLSurface->resource() == data.surface ? data.pWindow->opaque() : false;
-    const bool CANDISABLEBLEND = ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
+    const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
         g_pHyprOpenGL->blend(false);
@@ -176,7 +176,7 @@ CBox CSurfacePassElement::getTexBox() {
 bool CSurfacePassElement::needsLiveBlur() {
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_fAlphaModifier * PSURFACE->m_fOverallOpacity : 1.F);
     const bool  BLUR  = data.blur && (!data.texture || !data.texture->m_bOpaque || ALPHA < 1.F);
 
     if (!data.pLS && !data.pWindow)
@@ -190,7 +190,7 @@ bool CSurfacePassElement::needsLiveBlur() {
 bool CSurfacePassElement::needsPrecomputeBlur() {
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_fAlphaModifier * PSURFACE->m_fOverallOpacity : 1.F);
     const bool  BLUR  = data.blur && (!data.texture || !data.texture->m_bOpaque || ALPHA < 1.F);
 
     if (!data.pLS && !data.pWindow)
@@ -208,7 +208,7 @@ std::optional<CBox> CSurfacePassElement::boundingBox() {
 CRegion CSurfacePassElement::opaqueRegion() {
     auto        PSURFACE = CWLSurface::fromResource(data.surface);
 
-    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_pAlphaModifier : 1.F);
+    const float ALPHA = data.alpha * data.fadeAlpha * (PSURFACE ? PSURFACE->m_fAlphaModifier * PSURFACE->m_fOverallOpacity : 1.F);
 
     if (ALPHA < 1.F)
         return {};

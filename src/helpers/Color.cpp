@@ -43,3 +43,7 @@ Hyprgraphics::CColor::SHSL CHyprColor::asHSL() const {
 CHyprColor CHyprColor::stripA() const {
     return {r, g, b, 1.F};
 }
+
+CHyprColor CHyprColor::modifyA(float newa) const {
+    return {r, g, b, newa};
+}

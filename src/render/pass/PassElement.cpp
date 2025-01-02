@@ -15,3 +15,7 @@ bool IPassElement::disableSimplification() {
 void IPassElement::discard() {
     ;
 }
+
+bool IPassElement::undiscardable() {
+    return false;
+}

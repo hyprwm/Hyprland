@@ -1,6 +1,8 @@
 #include "CTMControl.hpp"
 #include "../Compositor.hpp"
+#include "../render/Renderer.hpp"
 #include "core/Output.hpp"
+#include "../config/ConfigValue.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if (!good())
@@ -81,6 +83,64 @@ void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* r
     std::erase_if(m_vManagers, [&](const auto& other) { return other.get() == res; });
 }
 
+bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
+    static auto PENABLEANIM = CConfigValue<Hyprlang::INT>("render:ctm_animation");
+
+    if (*PENABLEANIM == 2)
+        return !g_pHyprRenderer->isNvidia();
+    return *PENABLEANIM;
+}
+
+CHyprlandCTMControlProtocol::SCTMData::SCTMData() {
+    progress.create(g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
+    progress.setValueAndWarp(0.F);
+}
+
 void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {
-    monitor->setCTM(ctm);
+    if (!isCTMAnimationEnabled()) {
+        monitor->setCTM(ctm);
+        return;
+    }
+
+    std::erase_if(m_mCTMDatas, [](const auto& el) { return !el.first; });
+
+    if (!m_mCTMDatas.contains(monitor))
+        m_mCTMDatas[monitor] = std::make_unique<SCTMData>();
+
+    auto& data = m_mCTMDatas.at(monitor);
+
+    data->ctmFrom = data->ctmTo;
+    data->ctmTo   = ctm;
+
+    data->progress.setValueAndWarp(0.F);
+    data->progress = 1.F;
+
+    monitor->setCTM(data->ctmFrom);
+
+    data->progress.setUpdateCallback([monitor = PHLMONITORREF{monitor}, this](void* self) {
+        if (!monitor || !m_mCTMDatas.contains(monitor))
+            return;
+        auto&                data     = m_mCTMDatas.at(monitor);
+        const auto           from     = data->ctmFrom.getMatrix();
+        const auto           to       = data->ctmTo.getMatrix();
+        const auto           PROGRESS = data->progress.getPercent();
+
+        static const auto    lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
+
+        std::array<float, 9> mtx;
+        for (size_t i = 0; i < 9; ++i) {
+            mtx[i] = lerp(from[i], to[i], PROGRESS);
+        }
+
+        monitor->setCTM(mtx);
+    });
+
+    data->progress.setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](void* self) {
+        if (!monitor || !m_mCTMDatas.contains(monitor)) {
+            monitor->setCTM(Mat3x3::identity());
+            return;
+        }
+        auto& data = m_mCTMDatas.at(monitor);
+        monitor->setCTM(data->ctmTo);
+    });
 }

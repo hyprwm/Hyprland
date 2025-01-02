@@ -413,6 +413,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:log_damage", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:overlay", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:damage_blink", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("debug:pass", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:disable_logs", Hyprlang::INT{1});
     m_pConfig->addConfigValue("debug:disable_time", Hyprlang::INT{1});
     m_pConfig->addConfigValue("debug:enable_stdout_logs", Hyprlang::INT{0});
@@ -476,7 +477,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("master:special_scale_factor", {1.f});
     m_pConfig->addConfigValue("master:mfact", {0.55f});
     m_pConfig->addConfigValue("master:new_status", {"slave"});
-    m_pConfig->addConfigValue("master:always_center_master", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("master:slave_count_for_center_master", Hyprlang::INT{2});
     m_pConfig->addConfigValue("master:center_ignores_reserved", Hyprlang::INT{0});
     m_pConfig->addConfigValue("master:new_on_active", {"none"});
     m_pConfig->addConfigValue("master:new_on_top", Hyprlang::INT{0});
@@ -613,6 +614,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:direct_scanout", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
     m_pConfig->addConfigValue("render:xp_mode", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("render:ctm_animation", Hyprlang::INT{2});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
 
@@ -718,20 +720,24 @@ std::optional<std::string> CConfigManager::generateConfig(std::string configPath
 }
 
 std::string CConfigManager::getMainConfigPath() {
-    if (!g_pCompositor->explicitConfigPath.empty())
-        return g_pCompositor->explicitConfigPath;
+    static std::string CONFIG_PATH = [this]() -> std::string {
+        if (!g_pCompositor->explicitConfigPath.empty())
+            return g_pCompositor->explicitConfigPath;
 
-    if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
-        return CFG_ENV;
+        if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
+            return CFG_ENV;
 
-    const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
-    if (PATHS.first.has_value()) {
-        return PATHS.first.value();
-    } else if (PATHS.second.has_value()) {
-        const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
-        return generateConfig(CONFIGPATH).value();
-    } else
-        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+        const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+        if (PATHS.first.has_value()) {
+            return PATHS.first.value();
+        } else if (PATHS.second.has_value()) {
+            const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+            return generateConfig(CONFIGPATH).value();
+        } else
+            throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+    }();
+
+    return CONFIG_PATH;
 }
 
 std::optional<std::string> CConfigManager::verifyConfigExists() {
@@ -777,6 +783,8 @@ void CConfigManager::reload() {
 
 void CConfigManager::setDefaultAnimationVars() {
     if (isFirstLaunch) {
+        INITANIMCFG("__internal_fadeCTM");
+
         INITANIMCFG("global");
         INITANIMCFG("windows");
         INITANIMCFG("layers");
@@ -813,6 +821,8 @@ void CConfigManager::setDefaultAnimationVars() {
 
     // init the values
     animationConfig["global"] = {false, "default", "", 8.f, 1, &animationConfig["general"], nullptr};
+
+    animationConfig["__internal_fadeCTM"] = {false, "linear", "", 5.F, 1, &animationConfig["__internal_fadeCTM"], nullptr};
 
     CREATEANIMCFG("windows", "global");
     CREATEANIMCFG("layers", "global");
@@ -1498,7 +1508,7 @@ void CConfigManager::performMonitorReload() {
 
         auto rule = getMonitorRuleFor(m);
 
-        if (!g_pHyprRenderer->applyMonitorRule(m, &rule)) {
+        if (!m->applyMonitorRule(&rule)) {
             overAgain = true;
             break;
         }
@@ -1556,7 +1566,7 @@ void CConfigManager::ensureMonitorStatus() {
         auto rule = getMonitorRuleFor(rm);
 
         if (rule.disabled == rm->m_bEnabled)
-            g_pHyprRenderer->applyMonitorRule(rm, &rule);
+            rm->applyMonitorRule(&rule);
     }
 }
 

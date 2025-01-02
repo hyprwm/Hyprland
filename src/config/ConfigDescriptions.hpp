@@ -1289,6 +1289,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "render:expand_undersized_textures",
+        .description = "Whether to expand textures that have not yet resized to be larger, or to just stretch them instead.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:xp_mode",
+        .description = "Disable back buffer and bottom layer rendering.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:ctm_animation",
+        .description = "Whether to enable a fade animation for CTM changes (hyprsunset). 2 means 'auto' (Yes on everything but Nvidia).",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
+    },
 
     /*
      * cursor:
@@ -1603,10 +1621,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "master:always_center_master",
-        .description = "when using orientation=center, keep the master window centered, even when it is the only window in the workspace.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .value       = "master:slave_count_for_center_master",
+        .description = "when using orientation=center, make the master window centered only when at least this many slave windows are open. (Set 0 to always_center_master)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 10}, //##TODO RANGE?
     },
     SConfigOptionDescription{
         .value       = "master:center_ignores_reserved",

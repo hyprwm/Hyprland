@@ -46,3 +46,7 @@ bool CFramebufferElement::needsLiveBlur() {
 bool CFramebufferElement::needsPrecomputeBlur() {
     return false;
 }
+
+bool CFramebufferElement::undiscardable() {
+    return true;
+}

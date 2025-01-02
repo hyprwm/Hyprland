@@ -271,6 +271,8 @@ static uintptr_t seekNewPageAddr() {
 
     uint64_t       lastStart = 0, lastEnd = 0;
 
+    bool           anchoredToHyprland = false;
+
     std::string    line;
     while (std::getline(MAPS, line)) {
         CVarList props{line, 0, 's', true};
@@ -300,6 +302,19 @@ static uintptr_t seekNewPageAddr() {
         }
 
         if (start - lastEnd > PAGESIZE_VAR * 2) {
+            if (!line.contains("Hyprland") && !anchoredToHyprland) {
+                Debug::log(LOG, "seekNewPageAddr: skipping gap 0x{:x}-0x{:x}, not anchored to Hyprland code pages yet.", lastEnd, start);
+                lastStart = start;
+                lastEnd   = end;
+                continue;
+            } else if (!anchoredToHyprland) {
+                Debug::log(LOG, "seekNewPageAddr: Anchored to hyprland at 0x{:x}", start);
+                anchoredToHyprland = true;
+                lastStart          = start;
+                lastEnd            = end;
+                continue;
+            }
+
             Debug::log(LOG, "seekNewPageAddr: found gap: 0x{:x}-0x{:x} ({} bytes)", lastEnd, start, start - lastEnd);
             MAPS.close();
             return lastEnd;

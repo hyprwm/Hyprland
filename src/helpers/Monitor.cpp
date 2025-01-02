@@ -21,6 +21,8 @@
 #include "debug/Log.hpp"
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <cstring>
+#include <ranges>
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 
@@ -85,7 +87,7 @@ void CMonitor::onConnect(bool noRule) {
                 return;
 
             Debug::log(LOG, "Reapplying monitor rule for {} from a state request", szName);
-            g_pHyprRenderer->applyMonitorRule(self.lock(), &activeMonitorRule, true);
+            applyMonitorRule(&activeMonitorRule, true);
             return;
         }
 
@@ -99,7 +101,7 @@ void CMonitor::onConnect(bool noRule) {
         SMonitorRule rule = activeMonitorRule;
         rule.resolution   = SIZE;
 
-        g_pHyprRenderer->applyMonitorRule(self.lock(), &rule);
+        applyMonitorRule(&rule);
     });
 
     tearingState.canTear = output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
@@ -172,7 +174,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // set mode, also applies
     if (!noRule)
-        g_pHyprRenderer->applyMonitorRule(self.lock(), &monitorRule, true);
+        applyMonitorRule(&monitorRule, true);
 
     if (!state.commit())
         Debug::log(WARN, "state.commit() failed in CMonitor::onCommit");
@@ -361,6 +363,391 @@ void CMonitor::onDisconnect(bool destroy) {
     std::erase_if(g_pCompositor->m_vMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
+bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
+
+    static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
+
+    Debug::log(LOG, "Applying monitor rule for {}", szName);
+
+    activeMonitorRule = *pMonitorRule;
+
+    if (forceSize.has_value())
+        activeMonitorRule.resolution = forceSize.value();
+
+    const auto RULE = &activeMonitorRule;
+
+    // if it's disabled, disable and ignore
+    if (RULE->disabled) {
+        if (m_bEnabled)
+            onDisconnect();
+
+        events.modeChanged.emit();
+
+        return true;
+    }
+
+    // don't touch VR headsets
+    if (output->nonDesktop)
+        return true;
+
+    if (!m_bEnabled) {
+        onConnect(true); // enable it.
+        Debug::log(LOG, "Monitor {} is disabled but is requested to be enabled", szName);
+        force = true;
+    }
+
+    // Check if the rule isn't already applied
+    // TODO: clean this up lol
+    if (!force && DELTALESSTHAN(vecPixelSize.x, RULE->resolution.x, 1) && DELTALESSTHAN(vecPixelSize.y, RULE->resolution.y, 1) &&
+        DELTALESSTHAN(refreshRate, RULE->refreshRate, 1) && setScale == RULE->scale &&
+        ((DELTALESSTHAN(vecPosition.x, RULE->offset.x, 1) && DELTALESSTHAN(vecPosition.y, RULE->offset.y, 1)) || RULE->offset == Vector2D(-INT32_MAX, -INT32_MAX)) &&
+        transform == RULE->transform && RULE->enable10bit == enabled10bit && !std::memcmp(&customDrmMode, &RULE->drmMode, sizeof(customDrmMode))) {
+
+        Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", szName);
+
+        setMirror(RULE->mirrorOf);
+
+        return true;
+    }
+
+    bool autoScale = false;
+
+    if (RULE->scale > 0.1) {
+        scale = RULE->scale;
+    } else {
+        autoScale               = true;
+        const auto DEFAULTSCALE = getDefaultScale();
+        scale                   = DEFAULTSCALE;
+    }
+
+    setScale  = scale;
+    transform = RULE->transform;
+
+    // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
+    std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
+    std::string                              requestedStr = "preferred";
+
+    // use sortFunc, add best 3 to requestedModes in reverse, since we test in reverse
+    auto addBest3Modes = [&](auto const& sortFunc) {
+        auto sortedModes = output->modes;
+        std::ranges::sort(sortedModes, sortFunc);
+        if (sortedModes.size() > 3)
+            sortedModes.erase(sortedModes.begin() + 3, sortedModes.end());
+        requestedModes.insert(requestedModes.end(), sortedModes.rbegin(), sortedModes.rend());
+    };
+
+    // last fallback is preferred mode, btw this covers resolution == Vector2D()
+    if (!output->preferredMode())
+        Debug::log(ERR, "Monitor {} has NO PREFERRED MODE", output->name);
+    else
+        requestedModes.push_back(output->preferredMode());
+
+    if (RULE->resolution == Vector2D(-1, -1)) {
+        requestedStr = "highrr";
+
+        // sort prioritizing refresh rate 1st and resolution 2nd, then add best 3
+        addBest3Modes([](auto const& a, auto const& b) {
+            if (a->refreshRate > b->refreshRate)
+                return true;
+            else if (DELTALESSTHAN((float)a->refreshRate, (float)b->refreshRate, 1000) && a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
+                return true;
+            return false;
+        });
+    } else if (RULE->resolution == Vector2D(-1, -2)) {
+        requestedStr = "highres";
+
+        // sort prioritizing resultion 1st and refresh rate 2nd, then add best 3
+        addBest3Modes([](auto const& a, auto const& b) {
+            if (a->pixelSize.x > b->pixelSize.x && a->pixelSize.y > b->pixelSize.y)
+                return true;
+            else if (DELTALESSTHAN(a->pixelSize.x, b->pixelSize.x, 1) && DELTALESSTHAN(a->pixelSize.y, b->pixelSize.y, 1) && a->refreshRate > b->refreshRate)
+                return true;
+            return false;
+        });
+    } else if (RULE->resolution != Vector2D()) {
+        // user requested mode
+        requestedStr = std::format("{:X0}@{:.2f}Hz", RULE->resolution, RULE->refreshRate);
+
+        // sort by closeness to requested, then add best 3
+        addBest3Modes([&](auto const& a, auto const& b) {
+            if (abs(a->pixelSize.x - RULE->resolution.x) < abs(b->pixelSize.x - RULE->resolution.x))
+                return true;
+            if (a->pixelSize.x == b->pixelSize.x && abs(a->pixelSize.y - RULE->resolution.y) < abs(b->pixelSize.y - RULE->resolution.y))
+                return true;
+            if (a->pixelSize == b->pixelSize && abs((a->refreshRate / 1000.f) - RULE->refreshRate) < abs((b->refreshRate / 1000.f) - RULE->refreshRate))
+                return true;
+            return false;
+        });
+
+        // if the best mode isnt close to requested, then try requested as custom mode first
+        if (!requestedModes.empty()) {
+            auto bestMode = requestedModes.back();
+            if (!DELTALESSTHAN(bestMode->pixelSize.x, RULE->resolution.x, 1) || !DELTALESSTHAN(bestMode->pixelSize.y, RULE->resolution.y, 1) ||
+                !DELTALESSTHAN(bestMode->refreshRate / 1000.f, RULE->refreshRate, 1))
+                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = RULE->refreshRate * 1000.f}));
+        }
+
+        // then if requested is custom, try custom mode first
+        if (RULE->drmMode.type == DRM_MODE_TYPE_USERDEF) {
+            if (output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)
+                Debug::log(ERR, "Tried to set custom modeline on non-DRM output");
+            else
+                requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(
+                    Aquamarine::SOutputMode{.pixelSize = {RULE->drmMode.hdisplay, RULE->drmMode.vdisplay}, .refreshRate = RULE->drmMode.vrefresh, .modeInfo = RULE->drmMode}));
+        }
+    }
+
+    const auto WAS10B  = enabled10bit;
+    const auto OLDRES  = vecPixelSize;
+    bool       success = false;
+
+    // Needed in case we are switching from a custom modeline to a standard mode
+    customDrmMode = {};
+    currentMode   = nullptr;
+
+    output->state->setFormat(DRM_FORMAT_XRGB8888);
+    prevDrmFormat = drmFormat;
+    drmFormat     = DRM_FORMAT_XRGB8888;
+    output->state->resetExplicitFences();
+
+    if (Debug::trace) {
+        Debug::log(TRACE, "Monitor {} requested modes:", szName);
+        if (requestedModes.empty())
+            Debug::log(TRACE, "| None");
+        else {
+            for (auto const& mode : requestedModes | std::views::reverse) {
+                Debug::log(TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+            }
+        }
+    }
+
+    for (auto const& mode : requestedModes | std::views::reverse) {
+        std::string modeStr = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+
+        if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF) {
+            output->state->setCustomMode(mode);
+
+            if (!state.test()) {
+                Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
+                continue;
+            }
+
+            customDrmMode = mode->modeInfo.value();
+        } else {
+            output->state->setMode(mode);
+
+            if (!state.test()) {
+                Debug::log(ERR, "Monitor {}: REJECTED available mode {}!", szName, modeStr);
+                if (mode->preferred)
+                    Debug::log(ERR, "Monitor {}: REJECTED preferred mode!!!", szName);
+                continue;
+            }
+
+            customDrmMode = {};
+        }
+
+        refreshRate = mode->refreshRate / 1000.f;
+        vecSize     = mode->pixelSize;
+        currentMode = mode;
+
+        success = true;
+
+        if (mode->preferred)
+            Debug::log(LOG, "Monitor {}: requested {}, using preferred mode {}", szName, requestedStr, modeStr);
+        else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
+            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
+        else
+            Debug::log(LOG, "Monitor {}: requested {}, using available mode {}", szName, requestedStr, modeStr);
+
+        break;
+    }
+
+    // try requested as custom mode jic it works
+    if (!success && RULE->resolution != Vector2D() && RULE->resolution != Vector2D(-1, -1) && RULE->resolution != Vector2D(-1, -2)) {
+        auto        refreshRate = output->getBackend()->type() == Aquamarine::eBackendType::AQ_BACKEND_DRM ? RULE->refreshRate * 1000 : 0;
+        auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->resolution, .refreshRate = refreshRate});
+        std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+
+        output->state->setCustomMode(mode);
+
+        if (state.test()) {
+            Debug::log(LOG, "Monitor {}: requested {}, using custom mode {}", szName, requestedStr, modeStr);
+
+            refreshRate   = mode->refreshRate / 1000.f;
+            vecSize       = mode->pixelSize;
+            currentMode   = mode;
+            customDrmMode = {};
+
+            success = true;
+        } else
+            Debug::log(ERR, "Monitor {}: REJECTED custom mode {}!", szName, modeStr);
+    }
+
+    // try any of the modes if none of the above work
+    if (!success) {
+        for (auto const& mode : output->modes) {
+            output->state->setMode(mode);
+
+            if (!state.test())
+                continue;
+
+            auto errorMessage =
+                std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:.2f}Hz", szName, mode->pixelSize, mode->refreshRate / 1000.f);
+            Debug::log(WARN, errorMessage);
+            g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
+
+            refreshRate   = mode->refreshRate / 1000.f;
+            vecSize       = mode->pixelSize;
+            currentMode   = mode;
+            customDrmMode = {};
+
+            success = true;
+
+            break;
+        }
+    }
+
+    if (!success) {
+        Debug::log(ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", szName, RULE->resolution, RULE->refreshRate);
+        return true;
+    }
+
+    vrrActive = output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
+        || createdByUser;                           // wayland backend doesn't allow for disabling adaptive_sync
+
+    vecPixelSize = vecSize;
+
+    // clang-format off
+    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
+        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
+            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
+        },
+        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
+            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
+        }
+    };
+    // clang-format on
+
+    bool set10bit = false;
+
+    for (auto const& fmt : formats[(int)!RULE->enable10bit]) {
+        output->state->setFormat(fmt.second);
+        prevDrmFormat = drmFormat;
+        drmFormat     = fmt.second;
+
+        if (!state.test()) {
+            Debug::log(ERR, "output {} failed basic test on format {}", szName, fmt.first);
+        } else {
+            Debug::log(LOG, "output {} succeeded basic test on format {}", szName, fmt.first);
+            if (RULE->enable10bit && fmt.first.contains("101010"))
+                set10bit = true;
+            break;
+        }
+    }
+
+    enabled10bit = set10bit;
+
+    Vector2D logicalSize = vecPixelSize / scale;
+    if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {
+        // invalid scale, will produce fractional pixels.
+        // find the nearest valid.
+
+        float    searchScale = std::round(scale * 120.0);
+        bool     found       = false;
+
+        double   scaleZero = searchScale / 120.0;
+
+        Vector2D logicalZero = vecPixelSize / scaleZero;
+        if (logicalZero == logicalZero.round())
+            scale = scaleZero;
+        else {
+            for (size_t i = 1; i < 90; ++i) {
+                double   scaleUp   = (searchScale + i) / 120.0;
+                double   scaleDown = (searchScale - i) / 120.0;
+
+                Vector2D logicalUp   = vecPixelSize / scaleUp;
+                Vector2D logicalDown = vecPixelSize / scaleDown;
+
+                if (logicalUp == logicalUp.round()) {
+                    found       = true;
+                    searchScale = scaleUp;
+                    break;
+                }
+                if (logicalDown == logicalDown.round()) {
+                    found       = true;
+                    searchScale = scaleDown;
+                    break;
+                }
+            }
+
+            if (!found) {
+                if (autoScale)
+                    scale = std::round(scaleZero);
+                else {
+                    Debug::log(ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", scale);
+                    g_pConfigManager->addParseError("Invalid scale passed to monitor " + szName + ", failed to find a clean divisor");
+                    scale = getDefaultScale();
+                }
+            } else {
+                if (!autoScale) {
+                    Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", scale, searchScale);
+                    g_pConfigManager->addParseError(
+                        std::format("Invalid scale passed to monitor {}, failed to find a clean divisor. Suggested nearest scale: {:5f}", szName, searchScale));
+                    scale = getDefaultScale();
+                } else
+                    scale = searchScale;
+            }
+        }
+    }
+
+    output->scheduleFrame();
+
+    if (!state.commit())
+        Debug::log(ERR, "Couldn't commit output named {}", output->name);
+
+    Vector2D xfmd      = transform % 2 == 1 ? Vector2D{vecPixelSize.y, vecPixelSize.x} : vecPixelSize;
+    vecSize            = (xfmd / scale).round();
+    vecTransformedSize = xfmd;
+
+    if (createdByUser) {
+        CBox transformedBox = {0, 0, vecTransformedSize.x, vecTransformedSize.y};
+        transformedBox.transform(wlTransformToHyprutils(invertTransform(transform)), vecTransformedSize.x, vecTransformedSize.y);
+
+        vecPixelSize = Vector2D(transformedBox.width, transformedBox.height);
+    }
+
+    updateMatrix();
+
+    if (WAS10B != enabled10bit || OLDRES != vecPixelSize)
+        g_pHyprOpenGL->destroyMonitorResources(self.lock());
+
+    g_pCompositor->arrangeMonitors();
+
+    damage.setSize(vecTransformedSize);
+
+    // Set scale for all surfaces on this monitor, needed for some clients
+    // but not on unsafe state to avoid crashes
+    if (!g_pCompositor->m_bUnsafeState) {
+        for (auto const& w : g_pCompositor->m_vWindows) {
+            w->updateSurfaceScaleTransformDetails();
+        }
+    }
+    // updato us
+    g_pHyprRenderer->arrangeLayersForMonitor(ID);
+
+    // reload to fix mirrors
+    g_pConfigManager->m_bWantsMonitorReload = true;
+
+    Debug::log(LOG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", szName, vecPixelSize, refreshRate, scale, (int)transform, vecPosition,
+               (int)enabled10bit);
+
+    EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
+
+    events.modeChanged.emit();
+
+    return true;
+}
+
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     if (*PZOOMFACTOR != 1.f && g_pCompositor->getMonitorFromCursor() == self) {
@@ -412,7 +799,7 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
         // match by description
         const auto DESCRIPTIONSELECTOR = selector.substr(5);
 
-        return DESCRIPTIONSELECTOR == szShortDescription || DESCRIPTIONSELECTOR == szDescription;
+        return szDescription.starts_with(DESCRIPTIONSELECTOR) || szShortDescription.starts_with(DESCRIPTIONSELECTOR);
     } else {
         // match by selector
         return szName == selector;
@@ -530,7 +917,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         setupDefaultWS(RULE);
 
-        g_pHyprRenderer->applyMonitorRule(self.lock(), (SMonitorRule*)&RULE, true); // will apply the offset and stuff
+        applyMonitorRule((SMonitorRule*)&RULE, true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
         for (auto const& m : g_pCompositor->m_vMonitors) {

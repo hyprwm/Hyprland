@@ -12,6 +12,7 @@ class IPassElement {
     virtual bool                needsPrecomputeBlur()       = 0;
     virtual const char*         passName()                  = 0;
     virtual void                discard();
+    virtual bool                undiscardable();
     virtual std::optional<CBox> boundingBox();
     virtual CRegion             opaqueRegion();
     virtual bool                disableSimplification();

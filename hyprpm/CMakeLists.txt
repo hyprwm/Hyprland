@@ -11,9 +11,23 @@ set(CMAKE_CXX_STANDARD 23)
 
 pkg_check_modules(hyprpm_deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0.2.4)
 
+find_package(glaze QUIET)
+if (NOT glaze_FOUND)
+    set(GLAZE_VERSION v4.2.3)
+    message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
+    include(FetchContent)
+    FetchContent_Declare(
+        glaze
+        GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+        GIT_TAG ${GLAZE_VERSION}
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(glaze)
+endif()
+
 add_executable(hyprpm ${SRCFILES})
 
-target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps)
+target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps glaze::glaze)
 
 # binary
 install(TARGETS hyprpm)

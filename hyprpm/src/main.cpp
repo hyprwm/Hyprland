@@ -154,7 +154,7 @@ int                        main(int argc, char** argv, char** envp) {
         if (ret != LOADSTATE_OK)
             return 1;
     } else if (command[0] == "reload") {
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        auto ret = g_pPluginManager->ensurePluginsLoadState(force);
 
         if (ret != LOADSTATE_OK && notify) {
             switch (ret) {

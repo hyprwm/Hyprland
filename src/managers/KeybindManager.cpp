@@ -1423,11 +1423,44 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     if (*PNOFALLBACK)
         return {.success = false, .error = std::format("Nothing to focus to in direction {}", arg)};
 
-    Debug::log(LOG, "No monitor found in direction {}, falling back to next window on current workspace", arg);
+    Debug::log(LOG, "No monitor found in direction {}, getting the inverse edge", arg);
 
-    const auto PWINDOWNEXT = g_pCompositor->getNextWindowOnWorkspace(PLASTWINDOW, true);
-    if (PWINDOWNEXT)
-        switchToWindow(PWINDOWNEXT);
+    const auto PMONITOR = PLASTWINDOW->m_pMonitor.lock();
+
+    if (!PMONITOR)
+        return {.success = false, .error = "last window has no monitor?"};
+
+    if (arg == 'l' || arg == 'r') {
+        if (STICKS(PLASTWINDOW->m_vPosition.x, PMONITOR->vecPosition.x) && STICKS(PLASTWINDOW->m_vSize.x, PMONITOR->vecSize.x))
+            return {.success = false, .error = "move does not make sense, would return back"};
+    } else if (STICKS(PLASTWINDOW->m_vPosition.y, PMONITOR->vecPosition.y) && STICKS(PLASTWINDOW->m_vSize.y, PMONITOR->vecSize.y))
+        return {.success = false, .error = "move does not make sense, would return back"};
+
+    CBox box = PMONITOR->logicalBox();
+    switch (arg) {
+        case 'l':
+            box.x += box.w;
+            box.w = 1;
+            break;
+        case 'r':
+            box.x -= 1;
+            box.w = 1;
+            break;
+        case 'u':
+        case 't':
+            box.y += box.h;
+            box.h = 1;
+            break;
+        case 'd':
+        case 'b':
+            box.y -= 1;
+            box.h = 1;
+            break;
+    }
+
+    const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->activeWorkspace, arg, PLASTWINDOW, PLASTWINDOW->m_bIsFloating);
+    if (PWINDOWCANDIDATE)
+        switchToWindow(PWINDOWCANDIDATE);
 
     return {};
 }
@@ -1992,7 +2025,7 @@ SDispatchResult CKeybindManager::forceRendererReload(std::string args) {
             continue;
 
         auto rule = g_pConfigManager->getMonitorRuleFor(m);
-        if (!g_pHyprRenderer->applyMonitorRule(m, &rule, true)) {
+        if (!m->applyMonitorRule(&rule, true)) {
             overAgain = true;
             break;
         }

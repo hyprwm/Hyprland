@@ -14,6 +14,7 @@ class CFramebufferElement : public IPassElement {
     virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
+    virtual bool        undiscardable();
 
     virtual const char* passName() {
         return "CFramebufferElement";

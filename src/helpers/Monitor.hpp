@@ -90,9 +90,7 @@ class CMonitor {
 
     SP<Aquamarine::IOutput>     output;
     float                       refreshRate     = 60;
-    int                         framesToSkip    = 0;
     int                         forceFullFrames = 0;
-    bool                        noFrameSchedule = false;
     bool                        scheduledRecalc = false;
     wl_output_transform         transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       xwaylandScale   = 1.f;
@@ -163,6 +161,7 @@ class CMonitor {
     // methods
     void        onConnect(bool noRule);
     void        onDisconnect(bool destroy = false);
+    bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
     void        addDamage(const pixman_region32_t* rg);
     void        addDamage(const CRegion* rg);
     void        addDamage(const CBox* box);

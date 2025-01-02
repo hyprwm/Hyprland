@@ -325,11 +325,11 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     if (!PMASTERNODE)
         return;
 
-    eOrientation orientation        = getDynamicOrientation(pWorkspace);
-    bool         centerMasterWindow = false;
-    static auto  ALWAYSCENTER       = CConfigValue<Hyprlang::INT>("master:always_center_master");
-    static auto  PIGNORERESERVED    = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
-    static auto  PSMARTRESIZING     = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+    eOrientation orientation         = getDynamicOrientation(pWorkspace);
+    bool         centerMasterWindow  = false;
+    static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto  PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
+    static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
     const auto   MASTERS      = getMastersOnWorkspace(pWorkspace->m_iID);
     const auto   WINDOWS      = getNodesOnWorkspace(pWorkspace->m_iID);
@@ -338,7 +338,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     const auto   WSPOS        = PMONITOR->vecPosition + PMONITOR->vecReservedTopLeft;
 
     if (orientation == ORIENTATION_CENTER) {
-        if (STACKWINDOWS >= 2 || (*ALWAYSCENTER == 1)) {
+        if (STACKWINDOWS >= *SLAVECOUNTFORCENTER) {
             centerMasterWindow = true;
         } else {
             orientation = ORIENTATION_LEFT;
@@ -708,13 +708,9 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         return;
     }
 
-    const auto   PMONITOR       = PWINDOW->m_pMonitor.lock();
-    static auto  ALWAYSCENTER   = CConfigValue<Hyprlang::INT>("master:always_center_master");
-    static auto  PSMARTRESIZING = CConfigValue<Hyprlang::INT>("master:smart_resizing");
-
-    eOrientation orientation = getDynamicOrientation(PWINDOW->m_pWorkspace);
-    bool         centered    = orientation == ORIENTATION_CENTER && (*ALWAYSCENTER == 1);
-    double       delta       = 0;
+    const auto   PMONITOR            = PWINDOW->m_pMonitor.lock();
+    static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
     const bool   DISPLAYBOTTOM = STICKS(PWINDOW->m_vPosition.y + PWINDOW->m_vSize.y, PMONITOR->vecPosition.y + PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y);
     const bool   DISPLAYRIGHT  = STICKS(PWINDOW->m_vPosition.x + PWINDOW->m_vSize.x, PMONITOR->vecPosition.x + PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x);
@@ -729,6 +725,10 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
     const auto   WINDOWS      = getNodesOnWorkspace(PNODE->workspaceID);
     const auto   STACKWINDOWS = WINDOWS - MASTERS;
 
+    eOrientation orientation = getDynamicOrientation(PWINDOW->m_pWorkspace);
+    bool         centered    = orientation == ORIENTATION_CENTER && (STACKWINDOWS >= *SLAVECOUNTFORCENTER);
+    double       delta       = 0;
+
     if (getNodesOnWorkspace(PWINDOW->workspaceID()) == 1 && !centered)
         return;
 
@@ -741,7 +741,7 @@ void CHyprMasterLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorne
         case ORIENTATION_TOP: delta = pixResize.y / PMONITOR->vecSize.y; break;
         case ORIENTATION_CENTER:
             delta = pixResize.x / PMONITOR->vecSize.x;
-            if (WINDOWS > 2 || *ALWAYSCENTER) {
+            if (STACKWINDOWS >= *SLAVECOUNTFORCENTER) {
                 if (!NONE || !PNODE->isMaster)
                     delta *= 2;
                 if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && *PSMARTRESIZING))

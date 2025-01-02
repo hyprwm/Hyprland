@@ -2045,7 +2045,8 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     return false;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float a, SP<CWLSurfaceResource> pSurface, int round, bool blockBlurOptimization, float blurA) {
+void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float a, SP<CWLSurfaceResource> pSurface, int round, bool blockBlurOptimization, float blurA,
+                                            float overallA) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto PNOBLUROVERSIZED = CConfigValue<Hyprlang::INT>("decoration:no_blur_on_oversized");
@@ -2126,7 +2127,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
     setMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
-    renderTextureInternalWithDamage(POUTFB->getTexture(), &MONITORBOX, *PBLURIGNOREOPACITY ? blurA : a * blurA, texDamage, 0, false, false, false);
+    renderTextureInternalWithDamage(POUTFB->getTexture(), &MONITORBOX, (*PBLURIGNOREOPACITY ? blurA : a * blurA) * overallA, texDamage, 0, false, false, false);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     setMonitorTransformEnabled(false);
@@ -2137,7 +2138,7 @@ void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float 
 
     // draw window
     glDisable(GL_STENCIL_TEST);
-    renderTextureInternalWithDamage(tex, pBox, a, texDamage, round, false, false, true, true);
+    renderTextureInternalWithDamage(tex, pBox, a * overallA, texDamage, round, false, false, true, true);
 
     glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -2554,12 +2555,12 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic) {
+SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily) {
     SP<CTexture>          tex = makeShared<CTexture>();
 
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
 
-    const auto            FONTFAMILY = *FONT;
+    const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
     const auto            FONTSIZE   = pt;
     const auto            COLOR      = col;
 

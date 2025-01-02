@@ -47,6 +47,7 @@
 #include "../protocols/SinglePixel.hpp"
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
+#include "../protocols/HyprlandSurface.hpp"
 
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -165,6 +166,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::singlePixel         = std::make_unique<CSinglePixelProtocol>(&wp_single_pixel_buffer_manager_v1_interface, 1, "SinglePixel");
     PROTO::securityContext     = std::make_unique<CSecurityContextProtocol>(&wp_security_context_manager_v1_interface, 1, "SecurityContext");
     PROTO::ctm                 = std::make_unique<CHyprlandCTMControlProtocol>(&hyprland_ctm_control_manager_v1_interface, 1, "CTMControl");
+    PROTO::hyprlandSurface     = std::make_unique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 1, "HyprlandSurface");
 
     if (*PENABLEXXCM) {
         PROTO::colorManagement     = std::make_unique<CColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "ColorManagement");
@@ -243,6 +245,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::singlePixel.reset();
     PROTO::securityContext.reset();
     PROTO::ctm.reset();
+    PROTO::hyprlandSurface.reset();
 
     PROTO::lease.reset();
     PROTO::sync.reset();
@@ -293,6 +296,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::xdgDialog->getGlobal(),
         PROTO::singlePixel->getGlobal(),
         PROTO::primarySelection->getGlobal(),
+				PROTO::hyprlandSurface->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

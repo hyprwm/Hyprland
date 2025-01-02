@@ -105,7 +105,6 @@ body:
       label: Checklist of files to include below
       options:
         - label: Hyprland config - `hyprctl systeminfo -c` (always include)
-          required: true
         - label: Crash report (always include in case of crash)
         - label: Video (always include in case of a visual bug)
         - label: Logs (might contain useful info such as errors)

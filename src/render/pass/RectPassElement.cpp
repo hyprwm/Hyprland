@@ -6,6 +6,9 @@ CRectPassElement::CRectPassElement(const CRectPassElement::SRectData& data_) : d
 }
 
 void CRectPassElement::draw(const CRegion& damage) {
+    if (data.box.w <= 0 || data.box.h <= 0)
+        return;
+
     if (data.color.a == 1.F || !data.blur)
         g_pHyprOpenGL->renderRectWithDamage(&data.box, data.color, damage, data.round);
     else

@@ -716,20 +716,24 @@ std::optional<std::string> CConfigManager::generateConfig(std::string configPath
 }
 
 std::string CConfigManager::getMainConfigPath() {
-    if (!g_pCompositor->explicitConfigPath.empty())
-        return g_pCompositor->explicitConfigPath;
+    static std::string CONFIG_PATH = [this]() -> std::string {
+        if (!g_pCompositor->explicitConfigPath.empty())
+            return g_pCompositor->explicitConfigPath;
 
-    if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
-        return CFG_ENV;
+        if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
+            return CFG_ENV;
 
-    const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
-    if (PATHS.first.has_value()) {
-        return PATHS.first.value();
-    } else if (PATHS.second.has_value()) {
-        const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
-        return generateConfig(CONFIGPATH).value();
-    } else
-        throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+        const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
+        if (PATHS.first.has_value()) {
+            return PATHS.first.value();
+        } else if (PATHS.second.has_value()) {
+            const auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+            return generateConfig(CONFIGPATH).value();
+        } else
+            throw std::runtime_error("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
+    }();
+
+    return CONFIG_PATH;
 }
 
 std::optional<std::string> CConfigManager::verifyConfigExists() {

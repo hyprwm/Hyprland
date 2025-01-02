@@ -808,5 +808,5 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, timespec* when) {
 }
 
 bool CWLDataDeviceProtocol::dndActive() {
-    return dnd.currentSource && dnd.mouseButton /* test a member of the state to ensure it's also present */;
+    return dnd.currentSource;
 }

@@ -79,9 +79,11 @@ body:
 
         When including text files (such as logs or config), please **always ATTACH** them, and not paste them directly.
 
-        <u>This is important</u> because pasting text directly clutters the issue with unnecessary keywords, making github issue search useless.
+        This is important to avoid clutter, spam, and make the issues more readable.
         Thanks for your understanding.
 
+  # The main reason to disallow pasting directly or in a dropdown, is to not clutter
+  # the issue with unnecessary keywords, making the github issue search useless.
   - type: checkboxes
     attributes:
       label: Attach not paste

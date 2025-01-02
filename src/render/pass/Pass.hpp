@@ -14,6 +14,7 @@ class CRenderPass {
 
     void    add(SP<IPassElement> elem);
     void    clear();
+    void    removeAllOfType(const std::string& type);
 
     CRegion render(const CRegion& damage_);
 

@@ -163,7 +163,7 @@ class CConfigManager {
 
     void* const*                                                    getConfigValuePtr(const std::string&);
     Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    static std::string                                              getMainConfigPath();
+    std::string                                                     getMainConfigPath();
     std::string                                                     getConfigString();
 
     SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
@@ -300,15 +300,15 @@ class CConfigManager {
     std::string                                               m_szConfigErrors = "";
 
     // internal methods
-    void                              setAnimForChildren(SAnimationPropertyConfig* const);
-    void                              updateBlurredLS(const std::string&, const bool);
-    void                              setDefaultAnimationVars();
-    std::optional<std::string>        resetHLConfig();
-    static std::optional<std::string> generateConfig(std::string configPath);
-    static std::optional<std::string> verifyConfigExists();
-    void                              postConfigReload(const Hyprlang::CParseResult& result);
-    void                              reload();
-    SWorkspaceRule                    mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+    void                       setAnimForChildren(SAnimationPropertyConfig* const);
+    void                       updateBlurredLS(const std::string&, const bool);
+    void                       setDefaultAnimationVars();
+    std::optional<std::string> resetHLConfig();
+    std::optional<std::string> generateConfig(std::string configPath);
+    std::optional<std::string> verifyConfigExists();
+    void                       postConfigReload(const Hyprlang::CParseResult& result);
+    void                       reload();
+    SWorkspaceRule             mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 };
 
 inline std::unique_ptr<CConfigManager> g_pConfigManager;

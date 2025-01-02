@@ -179,10 +179,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                                                           Vector2D{m_fBarWidth * pMonitor->scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->scale},
                                                                           pMonitor->scale))
                                 .get();
-            rect.y += (rect.height - pTitleTex->textHeight) / 2.0;
-            rect.height = pTitleTex->textHeight;
-            rect.width  = pTitleTex->textWidth;
-            rect.x += (m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->textWidth / 2.0);
+            rect.y += std::ceil((rect.height - pTitleTex->texSize.y) / 2.0);
+            rect.height = pTitleTex->texSize.y;
+            rect.width  = pTitleTex->texSize.x;
+            rect.x += std::round((m_fBarWidth * pMonitor->scale) / 2.0 - (pTitleTex->texSize.x / 2.0));
             rect.round();
 
             CTexPassElement::SRenderData data;
@@ -215,10 +215,6 @@ void CHyprGroupBarDecoration::invalidateTextures() {
 }
 
 CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale) : szContent(pWindow->m_szTitle), pWindowOwner(pWindow) {
-    tex                            = makeShared<CTexture>();
-    const auto       LAYOUTSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 0, 0);
-    const auto       LAYOUTCAIRO   = cairo_create(LAYOUTSURFACE);
-
     static auto      FALLBACKFONT     = CConfigValue<std::string>("misc:font_family");
     static auto      PTITLEFONTFAMILY = CConfigValue<std::string>("group:groupbar:font_family");
     static auto      PTITLEFONTSIZE   = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
@@ -227,67 +223,10 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    cairo_surface_destroy(LAYOUTSURFACE);
+    tex = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY);
 
-    // draw title using Pango
-    PangoLayout* layout = pango_cairo_create_layout(LAYOUTCAIRO);
-    pango_layout_set_alignment(layout, PANGO_ALIGN_LEFT);
-    pango_layout_set_text(layout, szContent.c_str(), -1);
-
-    PangoFontDescription* fontDesc = pango_font_description_new();
-    pango_font_description_set_family_static(fontDesc, FONTFAMILY.c_str());
-    pango_font_description_set_size(fontDesc, *PTITLEFONTSIZE * PANGO_SCALE * monitorScale);
-    pango_layout_set_font_description(layout, fontDesc);
-    pango_font_description_free(fontDesc);
-
-    const int maxWidth = bufferSize.x;
-
-    pango_layout_set_width(layout, maxWidth * PANGO_SCALE);
-    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
-
-    int            layoutWidth, layoutHeight;
-    PangoRectangle inkRect;
-    PangoRectangle logicalRect;
-    pango_layout_get_pixel_extents(layout, &inkRect, &logicalRect);
-    layoutWidth  = inkRect.width;
-    layoutHeight = inkRect.height;
-
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, layoutWidth, layoutHeight);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
-
-    // clear the pixmap
-    cairo_save(CAIRO);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(CAIRO);
-    cairo_restore(CAIRO);
-    cairo_move_to(CAIRO, -inkRect.x, -inkRect.y);
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-    pango_cairo_show_layout(CAIRO, layout);
-
-    g_object_unref(layout);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->allocate();
-    glBindTexture(GL_TEXTURE_2D, tex->m_iTexID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-#ifndef GLES2
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, layoutWidth, layoutHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
-
-    // delete cairo
-    textWidth  = layoutWidth;
-    textHeight = layoutHeight;
-    cairo_destroy(LAYOUTCAIRO);
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
+    if (tex)
+        texSize = tex->m_vSize;
 }
 
 CTitleTex::~CTitleTex() = default;

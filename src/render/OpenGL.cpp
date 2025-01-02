@@ -2555,12 +2555,12 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic) {
+SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily) {
     SP<CTexture>          tex = makeShared<CTexture>();
 
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
 
-    const auto            FONTFAMILY = *FONT;
+    const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
     const auto            FONTSIZE   = pt;
     const auto            COLOR      = col;
 

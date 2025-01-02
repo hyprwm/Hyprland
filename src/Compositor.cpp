@@ -1460,7 +1460,21 @@ void CCompositor::addToFadingOutSafe(PHLWINDOW pWindow) {
 }
 
 PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
+    if (!isDirection(dir))
+        return nullptr;
 
+    const auto PMONITOR = pWindow->m_pMonitor.lock();
+
+    if (!PMONITOR)
+        return nullptr; // ??
+
+    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->vecPosition, PMONITOR->vecSize} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto PWORKSPACE    = pWindow->m_pWorkspace;
+
+    return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow, pWindow->m_bIsFloating);
+}
+
+PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, char dir, PHLWINDOW ignoreWindow, bool useVectorAngles) {
     if (!isDirection(dir))
         return nullptr;
 
@@ -1468,34 +1482,24 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
     static auto PMETHOD          = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
     static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
 
-    const auto  PMONITOR = pWindow->m_pMonitor.lock();
+    const auto  POSA  = box.pos();
+    const auto  SIZEA = box.size();
 
-    if (!PMONITOR)
-        return nullptr; // ??
+    auto        leaderValue  = -1;
+    PHLWINDOW   leaderWindow = nullptr;
 
-    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->vecPosition, PMONITOR->vecSize} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
-
-    const auto POSA  = Vector2D(WINDOWIDEALBB.x, WINDOWIDEALBB.y);
-    const auto SIZEA = Vector2D(WINDOWIDEALBB.width, WINDOWIDEALBB.height);
-
-    const auto PWORKSPACE   = pWindow->m_pWorkspace;
-    auto       leaderValue  = -1;
-    PHLWINDOW  leaderWindow = nullptr;
-
-    if (!pWindow->m_bIsFloating) {
-
-        // for tiled windows, we calc edges
+    if (!useVectorAngles) {
         for (auto const& w : m_vWindows) {
-            if (w == pWindow || !w->m_pWorkspace || !w->m_bIsMapped || w->isHidden() || (!w->isFullscreen() && w->m_bIsFloating) || !w->m_pWorkspace->isVisible())
+            if (w == ignoreWindow || !w->m_pWorkspace || !w->m_bIsMapped || w->isHidden() || (!w->isFullscreen() && w->m_bIsFloating) || !w->m_pWorkspace->isVisible())
                 continue;
 
-            if (pWindow->m_pMonitor == w->m_pMonitor && pWindow->m_pWorkspace != w->m_pWorkspace)
+            if (pWorkspace->m_pMonitor == w->m_pMonitor && pWorkspace != w->m_pWorkspace)
                 continue;
 
-            if (PWORKSPACE->m_bHasFullscreenWindow && !w->isFullscreen() && !w->m_bCreatedOverFullscreen)
+            if (pWorkspace->m_bHasFullscreenWindow && !w->isFullscreen() && !w->m_bCreatedOverFullscreen)
                 continue;
 
-            if (!*PMONITORFALLBACK && pWindow->m_pMonitor != w->m_pMonitor)
+            if (!*PMONITORFALLBACK && pWorkspace->m_pMonitor != w->m_pMonitor)
                 continue;
 
             const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -1557,9 +1561,6 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
             }
         }
     } else {
-        // for floating windows, we calculate best distance and angle.
-        // if there is a window with angle better than THRESHOLD, only distance counts
-
         if (dir == 'u')
             dir = 't';
         if (dir == 'd')
@@ -1578,20 +1579,20 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto const& w : m_vWindows) {
-            if (w == pWindow || !w->m_bIsMapped || !w->m_pWorkspace || w->isHidden() || (!w->isFullscreen() && !w->m_bIsFloating) || !w->m_pWorkspace->isVisible())
+            if (w == ignoreWindow || !w->m_bIsMapped || !w->m_pWorkspace || w->isHidden() || (!w->isFullscreen() && !w->m_bIsFloating) || !w->m_pWorkspace->isVisible())
                 continue;
 
-            if (pWindow->m_pMonitor == w->m_pMonitor && pWindow->m_pWorkspace != w->m_pWorkspace)
+            if (pWorkspace->m_pMonitor == w->m_pMonitor && pWorkspace != w->m_pWorkspace)
                 continue;
 
-            if (PWORKSPACE->m_bHasFullscreenWindow && !w->isFullscreen() && !w->m_bCreatedOverFullscreen)
+            if (pWorkspace->m_bHasFullscreenWindow && !w->isFullscreen() && !w->m_bCreatedOverFullscreen)
                 continue;
 
-            if (!*PMONITORFALLBACK && pWindow->m_pMonitor != w->m_pMonitor)
+            if (!*PMONITORFALLBACK && pWorkspace->m_pMonitor != w->m_pMonitor)
                 continue;
 
-            const auto DIST  = w->middle().distance(pWindow->middle());
-            const auto ANGLE = vectorAngles(Vector2D{w->middle() - pWindow->middle()}, VECTORS.at(dir));
+            const auto DIST  = w->middle().distance(box.middle());
+            const auto ANGLE = vectorAngles(Vector2D{w->middle() - box.middle()}, VECTORS.at(dir));
 
             if (ANGLE > M_PI_2)
                 continue; // if the angle is over 90 degrees, ignore. Wrong direction entirely.
@@ -1603,8 +1604,8 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
             }
         }
 
-        if (!leaderWindow && PWORKSPACE->m_bHasFullscreenWindow)
-            leaderWindow = PWORKSPACE->getFullscreenWindow();
+        if (!leaderWindow && pWorkspace->m_bHasFullscreenWindow)
+            leaderWindow = pWorkspace->getFullscreenWindow();
     }
 
     if (leaderValue != -1)

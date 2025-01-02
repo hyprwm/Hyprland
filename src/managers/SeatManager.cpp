@@ -281,7 +281,7 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
 }
 
 void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state_) {
-    if (!state.pointerFocusResource)
+    if (!state.pointerFocusResource || PROTO::data->dndActive())
         return;
 
     for (auto const& s : seatResources) {

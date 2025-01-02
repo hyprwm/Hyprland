@@ -18,17 +18,17 @@ class CLayerSurface {
   public:
     ~CLayerSurface();
 
-    void                        applyRules();
-    void                        startAnimation(bool in, bool instant = false);
-    bool                        isFadedOut();
-    int                         popupsCount();
+    void                    applyRules();
+    void                    startAnimation(bool in, bool instant = false);
+    bool                    isFadedOut();
+    int                     popupsCount();
 
-    CAnimatedVariable<Vector2D> realPosition;
-    CAnimatedVariable<Vector2D> realSize;
-    CAnimatedVariable<float>    alpha;
+    PHLANIMVAR<Vector2D>    realPosition;
+    PHLANIMVAR<Vector2D>    realSize;
+    PHLANIMVAR<float>       alpha;
 
-    WP<CLayerShellResource>     layerSurface;
-    wl_list                     link;
+    WP<CLayerShellResource> layerSurface;
+    wl_list                 link;
 
     // the header providing the enum type cannot be imported here
     int                        interactivity = 0;

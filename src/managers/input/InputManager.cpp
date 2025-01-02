@@ -137,7 +137,7 @@ void CInputManager::sendMotionEventsToFocused() {
     timespec   now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition.goal() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
+    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_vRealPosition->goal() : (PLS ? Vector2D{PLS->geometry.x, PLS->geometry.y} : Vector2D{}));
 
     m_bEmptyFocusCursorSet = false;
 
@@ -243,7 +243,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
 
     if (forcedFocus) {
         pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_vRealPosition.value();
+        surfacePos   = pFoundWindow->m_vRealPosition->value();
         foundSurface = pFoundWindow->m_pWLSurface->resource();
     }
 
@@ -320,7 +320,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
             surfacePos   = Vector2D(-1337, -1337);
         } else {
             foundSurface = pFoundWindow->m_pWLSurface->resource();
-            surfacePos   = pFoundWindow->m_vRealPosition.value();
+            surfacePos   = pFoundWindow->m_vRealPosition->value();
         }
     }
 
@@ -362,11 +362,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->m_pWLSurface->resource();
-                    surfacePos   = pFoundWindow->m_vRealPosition.value();
+                    surfacePos   = pFoundWindow->m_vRealPosition->value();
                 }
             } else {
                 foundSurface = pFoundWindow->m_pWLSurface->resource();
-                surfacePos   = pFoundWindow->m_vRealPosition.value();
+                surfacePos   = pFoundWindow->m_vRealPosition->value();
             }
         }
     }
@@ -689,7 +689,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !m_bLastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
         if (w && !w->isFullscreen()) {
-            const CBox real = {w->m_vRealPosition.value().x, w->m_vRealPosition.value().y, w->m_vRealSize.value().x, w->m_vRealSize.value().y};
+            const CBox real = {w->m_vRealPosition->value().x, w->m_vRealPosition->value().y, w->m_vRealSize->value().x, w->m_vRealSize->value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {

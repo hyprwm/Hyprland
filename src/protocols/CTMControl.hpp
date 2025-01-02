@@ -42,8 +42,8 @@ class CHyprlandCTMControlProtocol : public IWaylandProtocol {
     //
     struct SCTMData {
         SCTMData();
-        Mat3x3                   ctmFrom = Mat3x3::identity(), ctmTo = Mat3x3::identity();
-        CAnimatedVariable<float> progress;
+        Mat3x3            ctmFrom = Mat3x3::identity(), ctmTo = Mat3x3::identity();
+        PHLANIMVAR<float> progress;
     };
     std::map<PHLMONITORREF, std::unique_ptr<SCTMData>> m_mCTMDatas;
 

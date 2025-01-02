@@ -19,17 +19,17 @@ class CHyprError {
     float height(); // logical
 
   private:
-    void                     createQueued();
-    std::string              m_szQueued = "";
-    CHyprColor               m_cQueued;
-    bool                     m_bQueuedDestroy = false;
-    bool                     m_bIsCreated     = false;
-    SP<CTexture>             m_pTexture;
-    CAnimatedVariable<float> m_fFadeOpacity;
-    CBox                     m_bDamageBox  = {0, 0, 0, 0};
-    float                    m_fLastHeight = 0.F;
+    void              createQueued();
+    std::string       m_szQueued = "";
+    CHyprColor        m_cQueued;
+    bool              m_bQueuedDestroy = false;
+    bool              m_bIsCreated     = false;
+    SP<CTexture>      m_pTexture;
+    PHLANIMVAR<float> m_fFadeOpacity;
+    CBox              m_bDamageBox  = {0, 0, 0, 0};
+    float             m_fLastHeight = 0.F;
 
-    bool                     m_bMonitorChanged = false;
+    bool              m_bMonitorChanged = false;
 };
 
 inline std::unique_ptr<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.

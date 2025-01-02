@@ -3,7 +3,6 @@
 #include <hyprutils/animation/AnimationConfig.hpp>
 #define CONFIG_MANAGER_H
 
-#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <map>
 #include "../debug/Log.hpp"
 #include <unordered_map>
@@ -287,7 +286,6 @@ class CConfigManager {
     std::string                                      m_szConfigErrors = "";
 
     // internal methods
-    void                              setAnimForChildren(SP<Hyprutils::Animation::SAnimationPropertyConfig> const);
     void                              updateBlurredLS(const std::string&, const bool);
     void                              setDefaultAnimationVars();
     std::optional<std::string>        resetHLConfig();

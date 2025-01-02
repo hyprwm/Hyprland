@@ -1,4 +1,3 @@
-#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
 #include "ConfigManager.hpp"
@@ -777,6 +776,8 @@ void CConfigManager::reload() {
 }
 
 void CConfigManager::setDefaultAnimationVars() {
+    g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+
     m_AnimationTree.createNode("__internal_fadeCTM");
     m_AnimationTree.createNode("global");
 
@@ -824,7 +825,6 @@ std::optional<std::string> CConfigManager::resetHLConfig() {
     m_vWindowRules.clear();
     g_pKeybindManager->clearKeybinds();
     g_pAnimationManager->removeAllBeziers();
-    g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     m_mAdditionalReservedAreas.clear();
     m_dBlurLSNamespaces.clear();
     m_vWorkspaceRules.clear();

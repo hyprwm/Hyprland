@@ -34,8 +34,6 @@ static int wlTick(SP<CEventLoopTimer> self, void* data) {
 CHyprAnimationManager::CHyprAnimationManager() {
     m_pAnimationTimer = SP<CEventLoopTimer>(new CEventLoopTimer(std::chrono::microseconds(500), wlTick, nullptr));
     g_pEventLoopManager->addTimer(m_pAnimationTimer);
-
-    addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
 }
 
 template <Animable VarType>

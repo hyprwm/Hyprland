@@ -1167,8 +1167,9 @@ bool CWindow::opaque() {
 
 float CWindow::rounding() {
     static auto PROUNDING = CConfigValue<Hyprlang::INT>("decoration:rounding");
-
-    float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING);
+    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+  
+    float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING) * (*PROUNDINGPOWER/2.0); /* Make perceived roundness consistent. */
 
     return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
 }

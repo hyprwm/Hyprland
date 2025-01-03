@@ -828,6 +828,8 @@ bool CWindow::isInCurvedCorner(double x, double y) {
     if (getRealBorderSize() >= ROUNDING)
         return false;
 
+    // ppp TODO: Rewrite this to use the squircular corners instead
+
     // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
     double x0 = m_vRealPosition.value().x + ROUNDING;
     double y0 = m_vRealPosition.value().y + ROUNDING;
@@ -1169,6 +1171,15 @@ float CWindow::rounding() {
     float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING);
 
     return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
+}
+
+float CWindow::roundingPower() {
+    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+
+    // ppp TODO: Allow window/workspace rules to alter rounding power
+    // float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING);
+
+    return *PROUNDINGPOWER;
 }
 
 void CWindow::updateWindowData() {

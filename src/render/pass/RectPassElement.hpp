@@ -7,6 +7,7 @@ class CRectPassElement : public IPassElement {
         CBox       box;
         CHyprColor color;
         int        round = 0;
+        float      roundingPower = 2.0f;
         bool       blur = false, xray = false;
         float      blurA = 1.F;
     };

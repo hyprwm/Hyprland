@@ -21,7 +21,9 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
     if (pixCoord.x + pixCoord.y > radius) {
 
-	    float dist = length(pixCoord);
+      float rounding_power = 4.0;
+
+	    float dist = pow(pow(pixCoord.x, rounding_power) + pow(pixCoord.y, rounding_power), 1.0/rounding_power);
 
 	    if (dist > radius + SMOOTHING_CONSTANT * 2.0)
 	        discard;

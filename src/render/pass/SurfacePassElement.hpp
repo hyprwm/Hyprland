@@ -35,6 +35,9 @@ class CSurfacePassElement : public IPassElement {
         // for custom round values
         int rounding = -1; // -1 means not set
 
+        // for custom rounding powers
+        float roundingPower = 2.0f;
+
         // for blurring
         bool blur                  = false;
         bool blockBlurOptimization = false;

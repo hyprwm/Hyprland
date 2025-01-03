@@ -1151,6 +1151,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1000, 0, 5000},
     },
+    SConfigOptionDescription{
+        .value       = "misc:xdg_portal_window_address_forwarding",
+        .description = "forwards the window address in the title of the xdg portal window.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * binds:

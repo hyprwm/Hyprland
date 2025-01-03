@@ -2076,7 +2076,8 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
 
 void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) {
 
-    // We trust the monitor to be correct.
+    if (!pWorkspace || !pMonitor)
+        return;
 
     if (pWorkspace->m_pMonitor == pMonitor)
         return;

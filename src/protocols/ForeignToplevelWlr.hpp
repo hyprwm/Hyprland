@@ -47,6 +47,7 @@ class CForeignToplevelWlrManager {
     PHLWINDOWREF                               lastFocus; // READ-ONLY
 
     SP<CForeignToplevelHandleWlr>              handleForWindow(PHLWINDOW pWindow);
+    std::string                                getWindowTitle(PHLWINDOW pWindow);
 
     std::vector<WP<CForeignToplevelHandleWlr>> handles;
 };

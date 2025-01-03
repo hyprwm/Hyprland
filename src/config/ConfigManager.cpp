@@ -458,6 +458,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:disable_xdg_env_checks", Hyprlang::INT{0});
     registerConfigVar("misc:disable_hyprland_qtutils_check", Hyprlang::INT{0});
     registerConfigVar("misc:lockdead_screen_delay", Hyprlang::INT{1000});
+    registerConfigVar("misc:xdg_portal_window_address_forwarding", Hyprlang::INT{0});
     registerConfigVar("misc:enable_anr_dialog", Hyprlang::INT{1});
 
     registerConfigVar("group:insert_after_current", Hyprlang::INT{1});

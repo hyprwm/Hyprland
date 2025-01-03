@@ -223,7 +223,7 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     const CHyprColor COLOR      = CHyprColor(*PTEXTCOLOR);
     const auto       FONTFAMILY = *PTITLEFONTFAMILY != STRVAL_EMPTY ? *PTITLEFONTFAMILY : *FALLBACKFONT;
 
-    tex = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY);
+    tex = g_pHyprOpenGL->renderText(pWindow->m_szTitle, COLOR, *PTITLEFONTSIZE, false, FONTFAMILY, bufferSize.x - 2 /* some padding yk */);
 
     if (tex)
         texSize = tex->m_vSize;

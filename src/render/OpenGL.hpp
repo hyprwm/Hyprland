@@ -217,32 +217,32 @@ class CHyprOpenGLImpl {
     void renderOffToMain(CFramebuffer* off);
     void bindBackOnMain();
 
-    SP<CTexture>                                loadAsset(const std::string& file);
-    SP<CTexture>                                renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "");
+    SP<CTexture>                         loadAsset(const std::string& file);
+    SP<CTexture>                         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0);
 
-    void                                        setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    void                                 setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t                                    getPreferredReadFormat(PHLMONITOR pMonitor);
-    std::vector<SDRMFormat>                     getDRMFormats();
-    EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
-    SP<CEGLSync>                                createEGLSync(int fenceFD);
-    bool                                        waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
+    uint32_t                             getPreferredReadFormat(PHLMONITOR pMonitor);
+    std::vector<SDRMFormat>              getDRMFormats();
+    EGLImageKHR                          createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    SP<CEGLSync>                         createEGLSync(int fenceFD);
+    bool                                 waitForTimelinePoint(SP<CSyncTimeline> timeline, uint64_t point);
 
-    SCurrentRenderData                          m_RenderData;
+    SCurrentRenderData                   m_RenderData;
 
-    GLint                                       m_iCurrentOutputFb = 0;
+    GLint                                m_iCurrentOutputFb = 0;
 
-    int                                         m_iGBMFD       = -1;
-    gbm_device*                                 m_pGbmDevice   = nullptr;
-    EGLContext                                  m_pEglContext  = nullptr;
-    EGLDisplay                                  m_pEglDisplay  = nullptr;
-    EGLDeviceEXT                                m_pEglDevice   = nullptr;
-    uint                                        failedAssetsNo = 0;
+    int                                  m_iGBMFD       = -1;
+    gbm_device*                          m_pGbmDevice   = nullptr;
+    EGLContext                           m_pEglContext  = nullptr;
+    EGLDisplay                           m_pEglDisplay  = nullptr;
+    EGLDeviceEXT                         m_pEglDevice   = nullptr;
+    uint                                 failedAssetsNo = 0;
 
-    bool                                        m_bReloadScreenShader = true; // at launch it can be set
+    bool                                 m_bReloadScreenShader = true; // at launch it can be set
 
-    std::map<PHLWINDOWREF, CFramebuffer>        m_mWindowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>            m_mLayerFramebuffers;
+    std::map<PHLWINDOWREF, CFramebuffer> m_mWindowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>     m_mLayerFramebuffers;
     std::map<PHLMONITORREF, SMonitorRenderData> m_mMonitorRenderResources;
     std::map<PHLMONITORREF, CFramebuffer>       m_mMonitorBGFBs;
 

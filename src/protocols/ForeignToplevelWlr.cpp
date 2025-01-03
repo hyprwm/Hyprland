@@ -1,6 +1,7 @@
 #include "ForeignToplevelWlr.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 #include "protocols/core/Output.hpp"
 #include "render/Renderer.hpp"
 
@@ -204,9 +205,11 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
     }
 
     LOGM(LOG, "Newly mapped window {:016x}", (uintptr_t)pWindow.get());
+
     resource->sendToplevel(NEWHANDLE->resource.get());
     NEWHANDLE->resource->sendAppId(pWindow->m_szClass.c_str());
-    NEWHANDLE->resource->sendTitle(pWindow->m_szTitle.c_str());
+    NEWHANDLE->resource->sendTitle(getWindowTitle(pWindow).c_str());
+
     if (const auto PMONITOR = pWindow->m_pMonitor.lock(); PMONITOR)
         NEWHANDLE->sendMonitor(PMONITOR);
     NEWHANDLE->sendState();
@@ -229,7 +232,7 @@ void CForeignToplevelWlrManager::onTitle(PHLWINDOW pWindow) {
     if (!H || H->closed)
         return;
 
-    H->resource->sendTitle(pWindow->m_szTitle.c_str());
+    H->resource->sendTitle(getWindowTitle(pWindow).c_str());
     H->resource->sendDone();
 }
 
@@ -308,6 +311,14 @@ void CForeignToplevelWlrManager::onNewFocus(PHLWINDOW pWindow) {
 
 bool CForeignToplevelWlrManager::good() {
     return resource->resource();
+}
+
+std::string CForeignToplevelWlrManager::getWindowTitle(PHLWINDOW pWindow) {
+    // forward window address so xdg-portal custom pickers can reconcile with hyprctl
+    if (*CConfigValue<Hyprlang::INT>("misc:xdg_portal_window_address_forwarding"))
+        return std::format("0x{:x} {}", (uintptr_t)pWindow.get(), pWindow->m_szTitle);
+
+    return pWindow->m_szTitle;
 }
 
 CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

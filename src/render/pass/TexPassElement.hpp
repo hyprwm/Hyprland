@@ -14,7 +14,7 @@ class CTexPassElement : public IPassElement {
         float                 a = 1.F;
         CRegion               damage;
         int                   round         = 0;
-        int                   roundingPower = 2.0f;
+        float                 roundingPower = 2.0f;
         bool                  flipEndFrame  = false;
         SP<CSyncTimeline>     syncTimeline;
         int64_t               syncPoint = 0;

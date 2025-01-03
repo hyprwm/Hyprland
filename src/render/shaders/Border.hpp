@@ -15,7 +15,6 @@ uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
 uniform float radius;
 uniform float radiusOuter;
-// ppp TODO: Implement squircular borders
 uniform float roundingPower;
 uniform float thick;
 

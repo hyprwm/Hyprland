@@ -2555,7 +2555,7 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily) {
+SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth) {
     SP<CTexture>          tex = makeShared<CTexture>();
 
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
@@ -2580,6 +2580,12 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col
 
     int textW = 0, textH = 0;
     pango_layout_set_text(layoutText, text.c_str(), -1);
+
+    if (maxWidth > 0) {
+        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
+        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
+    }
+
     pango_layout_get_size(layoutText, &textW, &textH);
     textW /= PANGO_SCALE;
     textH /= PANGO_SCALE;

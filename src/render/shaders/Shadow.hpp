@@ -11,6 +11,7 @@ uniform vec2 topLeft;
 uniform vec2 bottomRight;
 uniform vec2 fullSize;
 uniform float radius;
+uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
 
@@ -24,6 +25,10 @@ float pixAlphaRoundedDistance(float distanceToCorner) {
     }
 
     return 1.0;
+}
+
+float modifiedLength(vec2 a) {
+    return pow(pow(abs(a.x),roundingPower)+pow(abs(a.y),roundingPower),1.0/roundingPower);
 }
 
 void main() {
@@ -40,21 +45,21 @@ void main() {
     if (pixCoord[0] < topLeft[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, topLeft));
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - topLeft));
             done = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, vec2(topLeft[0], bottomRight[1])));
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(topLeft[0], bottomRight[1])));
             done = true;
         }
     } else if (pixCoord[0] > bottomRight[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, vec2(bottomRight[0], topLeft[1])));
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(bottomRight[0], topLeft[1])));
             done = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(distance(pixCoord, bottomRight));
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - bottomRight));
             done = true;
         }
     }

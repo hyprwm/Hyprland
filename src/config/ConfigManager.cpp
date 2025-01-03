@@ -427,6 +427,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("decoration:rounding", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("decoration:rounding_power", {2.F});
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:size", Hyprlang::INT{8});
     m_pConfig->addConfigValue("decoration:blur:passes", Hyprlang::INT{1});

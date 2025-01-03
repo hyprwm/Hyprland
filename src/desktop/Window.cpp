@@ -824,7 +824,8 @@ void CWindow::updateDynamicRules() {
 // it is assumed that the point is within the real window box (m_vRealPosition, m_vRealSize)
 // otherwise behaviour is undefined
 bool CWindow::isInCurvedCorner(double x, double y) {
-    const int ROUNDING = rounding();
+    const int ROUNDING      = rounding();
+    const int ROUNDINGPOWER = roundingPower();
     if (getRealBorderSize() >= ROUNDING)
         return false;
 
@@ -835,16 +836,16 @@ bool CWindow::isInCurvedCorner(double x, double y) {
     double y1 = m_vRealPosition.value().y + m_vRealSize.value().y - ROUNDING;
 
     if (x < x0 && y < y0) {
-        return Vector2D{x0, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
+        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
     }
     if (x > x1 && y < y0) {
-        return Vector2D{x1, y0}.distance(Vector2D{x, y}) > (double)ROUNDING;
+        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
     }
     if (x < x0 && y > y1) {
-        return Vector2D{x0, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
+        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
     }
     if (x > x1 && y > y1) {
-        return Vector2D{x1, y1}.distance(Vector2D{x, y}) > (double)ROUNDING;
+        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow((double)ROUNDING, ROUNDINGPOWER);
     }
 
     return false;
@@ -1164,11 +1165,17 @@ bool CWindow::opaque() {
 }
 
 float CWindow::rounding() {
-    static auto PROUNDING = CConfigValue<Hyprlang::INT>("decoration:rounding");
+    static auto PROUNDING      = CConfigValue<Hyprlang::INT>("decoration:rounding");
+    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
 
-    float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING);
+    float       rounding = m_sWindowData.rounding.valueOr(*PROUNDING) * (*PROUNDINGPOWER / 2.0); /* Make perceived roundness consistent. */
 
     return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
+}
+
+float CWindow::roundingPower() {
+    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+    return *PROUNDINGPOWER;
 }
 
 void CWindow::updateWindowData() {

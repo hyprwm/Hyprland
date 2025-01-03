@@ -88,12 +88,15 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (MISALIGNEDFSV1)
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-    float rounding = data.rounding;
+    float rounding      = data.rounding;
+    float roundingPower = data.roundingPower;
 
     rounding -= 1; // to fix a border issue
 
-    if (data.dontRound)
-        rounding = 0;
+    if (data.dontRound) {
+        rounding      = 0;
+        roundingPower = 2.0f;
+    }
 
     const bool WINDOWOPAQUE    = data.pWindow && data.pWindow->m_pWLSurface->resource() == data.surface ? data.pWindow->opaque() : false;
     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
@@ -108,14 +111,14 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
     if (data.surfaceCounter == 0 && !data.popup) {
         if (BLUR)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, data.blockBlurOptimization, data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, roundingPower, data.blockBlurOptimization, data.fadeAlpha, OVERALL_ALPHA);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     } else {
         if (BLUR && data.popup)
-            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, true, data.fadeAlpha, OVERALL_ALPHA);
+            g_pHyprOpenGL->renderTextureWithBlur(TEXTURE, &windowBox, ALPHA, data.surface, rounding, roundingPower, true, data.fadeAlpha, OVERALL_ALPHA);
         else
-            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, false, true);
+            g_pHyprOpenGL->renderTexture(TEXTURE, &windowBox, ALPHA * OVERALL_ALPHA, rounding, roundingPower, false, true);
     }
 
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)

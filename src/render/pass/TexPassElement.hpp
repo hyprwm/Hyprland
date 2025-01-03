@@ -13,8 +13,9 @@ class CTexPassElement : public IPassElement {
         CBox                  box;
         float                 a = 1.F;
         CRegion               damage;
-        int                   round        = 0;
-        bool                  flipEndFrame = false;
+        int                   round         = 0;
+        float                 roundingPower = 2.0f;
+        bool                  flipEndFrame  = false;
         SP<CSyncTimeline>     syncTimeline;
         int64_t               syncPoint = 0;
         std::optional<Mat3x3> replaceProjection;

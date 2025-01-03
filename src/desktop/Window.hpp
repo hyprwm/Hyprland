@@ -183,6 +183,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
     CWindowOverridableVar<int>                rounding;
+    CWindowOverridableVar<float>              roundingPower;
     CWindowOverridableVar<int>                borderSize;
 
     CWindowOverridableVar<float>              scrollMouse;
@@ -414,6 +415,7 @@ class CWindow {
     Vector2D               middle();
     bool                   opaque();
     float                  rounding();
+    float                  roundingPower();
     bool                   canBeTorn();
     void                   setSuspended(bool suspend);
     bool                   visibleOnMonitor(PHLMONITOR pMonitor);

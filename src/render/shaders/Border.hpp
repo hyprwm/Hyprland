@@ -15,6 +15,7 @@ uniform vec2 fullSize;
 uniform vec2 fullSizeUntransformed;
 uniform float radius;
 uniform float radiusOuter;
+uniform float roundingPower;
 uniform float thick;
 
 // Gradients are in OkLabA!!!! {l, a, b, alpha}
@@ -138,9 +139,9 @@ void main() {
         const float SMOOTHING_CONSTANT = )#" +
     std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
 
-	    float dist = length(pixCoord);
-	    float distOuter = length(pixCoordOuter);
-        float h = (thick / 2.0);
+	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
+	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
+      float h = (thick / 2.0);
 
 	    if (dist < radius - h) {
             // lower

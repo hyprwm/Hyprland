@@ -456,9 +456,9 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_iMonitorMovedFrom != -1 && (!PWORKSPACE || !PWORKSPACE->isVisible());
     const bool DONT_BLUR                = pWindow->m_sWindowData.noBlur.valueOrDefault() || pWindow->m_sWindowData.RGBX.valueOrDefault() || pWindow->opaque();
 
-    renderdata.surface       = pWindow->m_pWLSurface->resource();
-    renderdata.dontRound     = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
-    renderdata.fadeAlpha     = pWindow->m_fAlpha.value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_fAlpha.value()) *
+    renderdata.surface   = pWindow->m_pWLSurface->resource();
+    renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
+    renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_fAlpha.value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha.value() : 1.F) * pWindow->m_fMovingFromWorkspaceAlpha.value();
     renderdata.alpha         = pWindow->m_fActiveInactiveAlpha.value();
     renderdata.decorate      = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);

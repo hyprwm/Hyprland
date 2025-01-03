@@ -88,13 +88,13 @@ void CSurfacePassElement::draw(const CRegion& damage) {
     if (MISALIGNEDFSV1)
         g_pHyprOpenGL->m_RenderData.useNearestNeighbor = true;
 
-    float rounding = data.rounding;
+    float rounding      = data.rounding;
     float roundingPower = data.roundingPower;
 
     rounding -= 1; // to fix a border issue
 
     if (data.dontRound) {
-        rounding = 0;
+        rounding      = 0;
         roundingPower = 2.0f;
     }
 

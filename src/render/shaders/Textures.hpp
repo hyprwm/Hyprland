@@ -28,7 +28,8 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
         float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
 
-	      )#" +colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
+	      )#" +
+        colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
     //}
 )#";
 };

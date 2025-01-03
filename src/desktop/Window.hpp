@@ -183,7 +183,7 @@ struct SWindowData {
     CWindowOverridableVar<bool>               renderUnfocused    = false;
 
     CWindowOverridableVar<int>                rounding;
-    CWindowOverridableVar<float>                roundingPower;
+    CWindowOverridableVar<float>              roundingPower;
     CWindowOverridableVar<int>                borderSize;
 
     CWindowOverridableVar<float>              scrollMouse;

@@ -67,9 +67,9 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
     }
 
-    int                             borderSize      = m_pWindow->getRealBorderSize();
-    const auto                      ROUNDING        = m_pWindow->rounding() * pMonitor->scale;
-    const auto                      ROUNDINGPOWER   = m_pWindow->roundingPower();
+    int                             borderSize    = m_pWindow->getRealBorderSize();
+    const auto                      ROUNDING      = m_pWindow->rounding() * pMonitor->scale;
+    const auto                      ROUNDINGPOWER = m_pWindow->roundingPower();
 
     CBorderPassElement::SBorderData data;
     data.box           = windowBox;

@@ -1376,8 +1376,8 @@ void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, CBox* pBox, float alpha, i
     scissor((CBox*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, const CRegion& damage, float alpha, int round, float roundingPower, bool discardActive, bool allowCustomUV,
-                                              SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
+void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, const CRegion& damage, float alpha, int round, float roundingPower, bool discardActive,
+                                              bool allowCustomUV, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
 
     renderTextureInternalWithDamage(tex, pBox, alpha, damage, round, roundingPower, discardActive, false, allowCustomUV, true, waitTimeline, waitPoint);
@@ -1385,8 +1385,8 @@ void CHyprOpenGLImpl::renderTextureWithDamage(SP<CTexture> tex, CBox* pBox, cons
     scissor((CBox*)nullptr);
 }
 
-void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive, bool noAA,
-                                                      bool allowCustomUV, bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
+void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pBox, float alpha, const CRegion& damage, int round, float roundingPower, bool discardActive,
+                                                      bool noAA, bool allowCustomUV, bool allowDim, SP<CSyncTimeline> waitTimeline, uint64_t waitPoint) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->m_iTexID > 0), "Attempted to draw nullptr texture!");
 
@@ -2053,8 +2053,8 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     return false;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float a, SP<CWLSurfaceResource> pSurface, int round, float roundingPower, bool blockBlurOptimization, float blurA,
-                                            float overallA) {
+void CHyprOpenGLImpl::renderTextureWithBlur(SP<CTexture> tex, CBox* pBox, float a, SP<CWLSurfaceResource> pSurface, int round, float roundingPower, bool blockBlurOptimization,
+                                            float blurA, float overallA) {
     RASSERT(m_RenderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     static auto PNOBLUROVERSIZED = CConfigValue<Hyprlang::INT>("decoration:no_blur_on_oversized");
@@ -2247,7 +2247,8 @@ void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad, in
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad1, const CGradientValueData& grad2, float lerp, int round, float roundingPower, int borderSize, float a, int outerRound) {
+void CHyprOpenGLImpl::renderBorder(CBox* box, const CGradientValueData& grad1, const CGradientValueData& grad2, float lerp, int round, float roundingPower, int borderSize, float a,
+                                   int outerRound) {
     RASSERT((box->width > 0 && box->height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_RenderData.pMonitor, "Tried to render rect without begin()!");
 

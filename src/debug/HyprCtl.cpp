@@ -1153,10 +1153,10 @@ static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string reques
     // split by ; ignores ; inside [] and adds ; on last command
 
     request                     = request.substr(9);
-    std::string       curitem   = "";
     std::string       reply     = "";
     const std::string DELIMITER = "\n\n\n";
     int               bracket   = 0;
+    size_t            idx       = 0;
 
     for (size_t i = 0; i <= request.size(); ++i) {
         char ch = (i < request.size()) ? request[i] : ';';
@@ -1165,13 +1165,11 @@ static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string reques
         else if (ch == ']')
             --bracket;
         else if (ch == ';' && bracket == 0) {
-            curitem = trim(curitem);
-            if (!curitem.empty())
-                reply += g_pHyprCtl->getReply(curitem).append(DELIMITER);
-            curitem.clear();
+            if (idx < i)
+                reply += g_pHyprCtl->getReply(trim(request.substr(idx, i - idx))).append(DELIMITER);
+            idx = i + 1;
             continue;
         }
-        curitem += ch;
     }
 
     return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));

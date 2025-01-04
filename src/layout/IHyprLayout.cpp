@@ -12,7 +12,7 @@ void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox desiredGeometry = {};
     g_pXWaylandManager->getGeometryForWindow(pWindow, &desiredGeometry);
 
-    if (desiredGeometry.width <= 5 || desiredGeometry.height <= 5) {
+    if (desiredGeometry.width <= 14 || desiredGeometry.height <= 14) {
         const auto PMONITOR          = pWindow->m_pMonitor.lock();
         pWindow->m_vLastFloatingSize = PMONITOR->vecSize / 2.f;
     } else

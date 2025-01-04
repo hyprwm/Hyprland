@@ -34,6 +34,7 @@ class CXWayland {
 inline std::unique_ptr<CXWayland>                g_pXWayland;
 
 inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
+#ifndef NO_XWAYLAND
     HYPRATOM("_NET_SUPPORTED"),
     HYPRATOM("_NET_SUPPORTING_WM_CHECK"),
     HYPRATOM("_NET_WM_NAME"),
@@ -126,4 +127,5 @@ inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
     HYPRATOM("DELETE"),
     HYPRATOM("TEXT"),
     HYPRATOM("INCR"),
+#endif
 };

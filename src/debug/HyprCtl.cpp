@@ -1150,34 +1150,28 @@ static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string req
 }
 
 static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
-    // split by ;
+    // split by ; ignores ; inside [] and adds ; on last command
 
-    request             = request.substr(9);
-    std::string curitem = "";
-    std::string reply   = "";
-
-    auto        nextItem = [&]() {
-        auto idx = request.find_first_of(';');
-
-        if (idx != std::string::npos) {
-            curitem = request.substr(0, idx);
-            request = request.substr(idx + 1);
-        } else {
-            curitem = request;
-            request = "";
-        }
-
-        curitem = trim(curitem);
-    };
-
-    nextItem();
-
+    request                     = request.substr(9);
+    std::string       curitem   = "";
+    std::string       reply     = "";
     const std::string DELIMITER = "\n\n\n";
+    int               bracket   = 0;
 
-    while (curitem != "" || request != "") {
-        reply += g_pHyprCtl->getReply(curitem) + DELIMITER;
-
-        nextItem();
+    for (size_t i = 0; i <= request.size(); ++i) {
+        char ch = (i < request.size()) ? request[i] : ';';
+        if (ch == '[')
+            ++bracket;
+        else if (ch == ']')
+            --bracket;
+        else if (ch == ';' && bracket == 0) {
+            curitem = trim(curitem);
+            if (!curitem.empty())
+                reply += g_pHyprCtl->getReply(curitem).append(DELIMITER);
+            curitem.clear();
+            continue;
+        }
+        curitem += ch;
     }
 
     return reply.substr(0, std::max(static_cast<int>(reply.size() - DELIMITER.size()), 0));

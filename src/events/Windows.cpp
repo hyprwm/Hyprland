@@ -121,16 +121,6 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_bX11ShouldntFocus = PWINDOW->m_bX11ShouldntFocus || (PWINDOW->m_bIsX11 && PWINDOW->isX11OverrideRedirect() && !PWINDOW->m_pXWaylandSurface->wantsFocus());
 
-    if (PWORKSPACE->m_bDefaultFloating)
-        PWINDOW->m_bIsFloating = true;
-
-    if (PWORKSPACE->m_bDefaultPseudo) {
-        PWINDOW->m_bIsPseudotiled = true;
-        CBox desiredGeometry      = {0};
-        g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
-        PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
-    }
-
     // window rules
     PWINDOW->m_vMatchedRules = g_pConfigManager->getMatchingRules(PWINDOW, false);
     std::optional<eFullscreenMode>  requestedInternalFSMode, requestedClientFSMode;
@@ -171,6 +161,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         PMONITOR = PMONITORFROMID;
                     }
                     PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
+                    PWORKSPACE            = PWINDOW->m_pWorkspace;
 
                     Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
                 } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r->szRule, r->szValue, e.what()); }
@@ -180,11 +171,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
                 // check if it isnt unset
                 const auto WORKSPACERQ = r->szRule.substr(r->szRule.find_first_of(' ') + 1);
 
-                if (WORKSPACERQ == "unset") {
+                if (WORKSPACERQ == "unset")
                     requestedWorkspace = "";
-                } else {
+                else
                     requestedWorkspace = WORKSPACERQ;
-                }
 
                 const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
 
@@ -345,6 +335,16 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
         } else
             workspaceSilent = false;
+    }
+
+    if (PWORKSPACE->m_bDefaultFloating)
+        PWINDOW->m_bIsFloating = true;
+
+    if (PWORKSPACE->m_bDefaultPseudo) {
+        PWINDOW->m_bIsPseudotiled = true;
+        CBox desiredGeometry      = {0};
+        g_pXWaylandManager->getGeometryForWindow(PWINDOW, &desiredGeometry);
+        PWINDOW->m_vPseudoSize = Vector2D(desiredGeometry.width, desiredGeometry.height);
     }
 
     PWINDOW->updateWindowData();

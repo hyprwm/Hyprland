@@ -125,4 +125,14 @@ jobs:
         run: meson setup build -Ddefault_library=static
 
       - name: clang-format check
-        run: ninja -C build clang-format-check
+        run: ninja -C build clang-format
+
+      - name: Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: clang-format"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+          # commit_branch: ${{ github.head_ref }}
+

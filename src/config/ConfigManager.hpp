@@ -196,7 +196,9 @@ class CConfigManager {
 
     // keywords
     std::optional<std::string>                                                                     handleRawExec(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExec(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handleExecOnce(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleExecRawOnce(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handleExecShutdown(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handleMonitor(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handleBind(const std::string&, const std::string&);
@@ -280,7 +282,7 @@ class CConfigManager {
 
     bool                                             firstExecDispatched     = false;
     bool                                             m_bManualCrashInitiated = false;
-    std::vector<std::string>                         firstExecRequests;
+    std::vector<std::pair<std::string, bool>>        firstExecRequests; // bool is for if with rules
     std::vector<std::string>                         finalExecRequests;
 
     std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins

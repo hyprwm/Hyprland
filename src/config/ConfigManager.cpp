@@ -130,6 +130,18 @@ static void configHandleGapDestroy(void** data) {
         delete reinterpret_cast<CCssGapData*>(*data);
 }
 
+static Hyprlang::CParseResult handleExec(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleExec(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 static Hyprlang::CParseResult handleRawExec(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -147,6 +159,18 @@ static Hyprlang::CParseResult handleExecOnce(const char* c, const char* v) {
     const std::string      COMMAND = c;
 
     const auto             RESULT = g_pConfigManager->handleExecOnce(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
+static Hyprlang::CParseResult handleExecRawOnce(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleExecRawOnce(COMMAND, VALUE);
 
     Hyprlang::CParseResult result;
     if (RESULT.has_value())
@@ -664,8 +688,10 @@ CConfigManager::CConfigManager() {
     m_pConfig->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
 
     // keywords
-    m_pConfig->registerHandler(&::handleRawExec, "exec", {false});
+    m_pConfig->registerHandler(&::handleExec, "exec", {false});
+    m_pConfig->registerHandler(&::handleRawExec, "execr", {false});
     m_pConfig->registerHandler(&::handleExecOnce, "exec-once", {false});
+    m_pConfig->registerHandler(&::handleExecRawOnce, "execr-once", {false});
     m_pConfig->registerHandler(&::handleExecShutdown, "exec-shutdown", {false});
     m_pConfig->registerHandler(&::handleMonitor, "monitor", {false});
     m_pConfig->registerHandler(&::handleBind, "bind", {true});
@@ -1439,7 +1465,7 @@ void CConfigManager::dispatchExecOnce() {
     isLaunchingExecOnce = true;
 
     for (auto const& c : firstExecRequests) {
-        handleRawExec("", c);
+		c.second ? handleExec("", c.first) : handleRawExec("", c.first);
     }
 
     firstExecRequests.clear(); // free some kb of memory :P
@@ -1742,7 +1768,17 @@ std::string CConfigManager::getDefaultWorkspaceFor(const std::string& name) {
 
 std::optional<std::string> CConfigManager::handleRawExec(const std::string& command, const std::string& args) {
     if (isFirstLaunch) {
-        firstExecRequests.push_back(args);
+        firstExecRequests.push_back({args, false});
+        return {};
+    }
+
+    g_pKeybindManager->spawnRaw(args);
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleExec(const std::string& command, const std::string& args) {
+    if (isFirstLaunch) {
+        firstExecRequests.push_back({args, true});
         return {};
     }
 
@@ -1752,7 +1788,14 @@ std::optional<std::string> CConfigManager::handleRawExec(const std::string& comm
 
 std::optional<std::string> CConfigManager::handleExecOnce(const std::string& command, const std::string& args) {
     if (isFirstLaunch)
-        firstExecRequests.push_back(args);
+        firstExecRequests.push_back({args, true});
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleExecRawOnce(const std::string& command, const std::string& args) {
+    if (isFirstLaunch)
+        firstExecRequests.push_back({args, false});
 
     return {};
 }

@@ -460,11 +460,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN) || pWindow->m_sWindowData.noRounding.valueOrDefault();
     renderdata.fadeAlpha = pWindow->m_fAlpha.value() * (pWindow->m_bPinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_fAlpha.value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha.value() : 1.F) * pWindow->m_fMovingFromWorkspaceAlpha.value();
-    renderdata.alpha    = pWindow->m_fActiveInactiveAlpha.value();
-    renderdata.decorate = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-    renderdata.rounding = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.blur     = !ignoreAllGeometry && *PBLUR && !DONT_BLUR;
-    renderdata.pWindow  = pWindow;
+    renderdata.alpha         = pWindow->m_fActiveInactiveAlpha.value();
+    renderdata.decorate      = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+    renderdata.rounding      = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
+    renderdata.roundingPower = ignoreAllGeometry || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
+    renderdata.blur          = !ignoreAllGeometry && *PBLUR && !DONT_BLUR;
+    renderdata.pWindow       = pWindow;
 
     if (ignoreAllGeometry) {
         renderdata.alpha     = 1.f;

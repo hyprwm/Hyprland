@@ -8,8 +8,8 @@ static const auto RULES = std::unordered_set<std::string>{
     "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused",
 };
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
-    "animation", "bordercolor", "bordersize", "center",   "fullscreenstate", "group",          "idleinhibit", "maxsize",       "minsize", "monitor",   "move", "opacity",
-    "plugin:",   "prop",        "pseudo",     "rounding", "scrollmouse",     "scrolltouchpad", "size",        "suppressevent", "tag",     "workspace", "xray",
+    "animation", "bordercolor", "bordersize", "center",   "fullscreenstate", "group",       "idleinhibit",    "maxsize", "minsize",       "monitor", "move",      "opacity",
+    "plugin:",   "prop",        "pseudo",     "rounding", "roundingpower",   "scrollmouse", "scrolltouchpad", "size",    "suppressevent", "tag",     "workspace", "xray",
 };
 
 CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) : szValue(value), szRule(rule), v2(isV2), execRule(isExecRule) {

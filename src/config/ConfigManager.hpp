@@ -259,6 +259,7 @@ class CConfigManager {
     };
 
     std::unordered_map<std::string, std::function<CWindowOverridableVar<float>*(PHLWINDOW)>> mfWindowProperties = {
+        {"roundingpower", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.roundingPower; }},
         {"scrollmouse", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollMouse; }},
         {"scrolltouchpad", [](const PHLWINDOW& pWindow) { return &pWindow->m_sWindowData.scrollTouchpad; }}};
 

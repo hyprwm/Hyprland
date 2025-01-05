@@ -19,23 +19,18 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
     const float SMOOTHING_CONSTANT = )#" +
         std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
 
-    if (pixCoord.x + pixCoord.y > radius) {
+    //if (pixCoord.x + pixCoord.y > radius) {
 
-	    float dist = length(pixCoord);
+	      float dist = pow(pow(pixCoord.x, roundingPower) + pow(pixCoord.y, roundingPower), 1.0/roundingPower);
 
-	    if (dist > radius + SMOOTHING_CONSTANT * 2.0)
-	        discard;
+	      if (dist > radius + SMOOTHING_CONSTANT)
+	          discard;
 
-	    if (dist > radius - SMOOTHING_CONSTANT * 2.0) {
-	        float dist = length(pixCoord);
+        float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
 
-            float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
-
-	        )#" +
+	      )#" +
         colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
-        }
-
-    }
+    //}
 )#";
 };
 
@@ -63,6 +58,7 @@ varying vec4 v_color;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform float radius;
+uniform float roundingPower;
 
 void main() {
 
@@ -107,6 +103,7 @@ uniform float alpha;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform float radius;
+uniform float roundingPower;
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -167,6 +164,7 @@ uniform float alpha;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform float radius;
+uniform float roundingPower;
 
 uniform int discardOpaque;
 uniform int discardAlpha;
@@ -440,6 +438,7 @@ uniform float alpha;
 uniform vec2 topLeft;
 uniform vec2 fullSize;
 uniform float radius;
+uniform float roundingPower;
 
 uniform int discardOpaque;
 uniform int discardAlpha;

@@ -140,6 +140,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{0, 0, 20},
     },
     SConfigOptionDescription{
+        .value       = "decoration:rounding_power",
+        .description = "rouding power of corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
+    },
+    SConfigOptionDescription{
         .value       = "decoration:active_opacity",
         .description = "opacity of active windows. [0.0 - 1.0]",
         .type        = CONFIG_OPTION_FLOAT,

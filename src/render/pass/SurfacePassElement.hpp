@@ -9,38 +9,22 @@ class CSyncTimeline;
 class CSurfacePassElement : public IPassElement {
   public:
     struct SRenderData {
-        PHLMONITORREF pMonitor;
-        timespec*     when = nullptr;
-        Vector2D      pos, localPos;
+        PHLMONITORREF          pMonitor;
+        timespec*              when = nullptr;
+        Vector2D               pos, localPos;
 
-        // for iters
         void*                  data        = nullptr;
         SP<CWLSurfaceResource> surface     = nullptr;
         SP<CTexture>           texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
-
-        // for rounding
-        bool dontRound = true;
-
-        // for fade
-        float fadeAlpha = 1.f;
-
-        // for alpha settings
-        float alpha = 1.f;
-
-        // for decorations (border)
-        bool decorate = false;
-
-        // for custom round values
-        int rounding = -1; // -1 means not set
-
-        // for custom rounding powers
-        float roundingPower = 2.0f;
-
-        // for blurring
-        bool blur                  = false;
-        bool blockBlurOptimization = false;
+        int                    rounding      = 0;
+        bool                   dontRound     = true;
+        float                  roundingPower = 2.0F;
+        bool                   decorate      = false;
+        float                  alpha = 1.F, fadeAlpha = 1.F;
+        bool                   blur                  = false;
+        bool                   blockBlurOptimization = false;
 
         // only for windows, not popups
         bool squishOversized = true;

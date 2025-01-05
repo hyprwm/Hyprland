@@ -152,8 +152,10 @@ class CKeybindManager {
     static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
+    static SDispatchResult closeActive(std::string);
     static SDispatchResult killActive(std::string);
-    static SDispatchResult kill(std::string);
+    static SDispatchResult closeWindow(std::string);
+    static SDispatchResult killWindow(std::string);
     static SDispatchResult spawn(std::string);
     static SDispatchResult spawnRaw(std::string);
     static SDispatchResult toggleActiveFloating(std::string);

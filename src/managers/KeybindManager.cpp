@@ -12,6 +12,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 #include <optional>
 #include <iterator>
@@ -63,8 +64,10 @@ CKeybindManager::CKeybindManager() {
 
     m_mDispatchers["exec"]                           = spawn;
     m_mDispatchers["execr"]                          = spawnRaw;
+    m_mDispatchers["closeactive"]                    = closeActive;
     m_mDispatchers["killactive"]                     = killActive;
-    m_mDispatchers["closewindow"]                    = kill;
+    m_mDispatchers["closewindow"]                    = closeWindow;
+    m_mDispatchers["killwindow"]                     = killWindow;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
     m_mDispatchers["setfloating"]                    = setActiveFloating;
     m_mDispatchers["settiled"]                       = setActiveTiled;
@@ -978,12 +981,18 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
+	kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGKILL);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::closeActive(std::string args) {
     g_pCompositor->closeWindow(g_pCompositor->m_pLastWindow.lock());
 
     return {};
 }
 
-SDispatchResult CKeybindManager::kill(std::string args) {
+SDispatchResult CKeybindManager::closeWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
@@ -992,6 +1001,19 @@ SDispatchResult CKeybindManager::kill(std::string args) {
     }
 
     g_pCompositor->closeWindow(PWINDOW);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::killWindow(std::string args) {
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "kill: no window found");
+        return {.success = false, .error = "kill: no window found"};
+    }
+
+	kill(PWINDOW->getPID(), SIGKILL);
 
     return {};
 }

@@ -19,9 +19,9 @@ class CRenderPass {
     CRegion render(const CRegion& damage_);
 
   private:
-    CRegion damage;
-    CRegion occludedRegion;
-    CRegion totalLiveBlurRegion;
+    CRegion              damage;
+    std::vector<CRegion> occludedRegions;
+    CRegion              totalLiveBlurRegion;
 
     struct SPassElementData {
         CRegion          elementDamage;

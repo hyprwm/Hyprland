@@ -226,12 +226,13 @@ void CRenderPass::renderDebugData() {
         if (box.intersection(CBox{{}, g_pHyprOpenGL->m_RenderData.pMonitor->vecSize}).empty())
             return;
 
+        g_pHyprOpenGL->renderRectWithDamage(&box, color, CRegion{0, 0, INT32_MAX, INT32_MAX});
+
         if (offsets.contains(surface.get()))
             box.translate(Vector2D{0.F, offsets[surface.get()]});
         else
             offsets[surface.get()] = 0;
 
-        g_pHyprOpenGL->renderRectWithDamage(&box, Colors::PURPLE.modifyA(0.1F), CRegion{0, 0, INT32_MAX, INT32_MAX});
         box = {box.pos(), texture->m_vSize};
         g_pHyprOpenGL->renderRectWithDamage(&box, CHyprColor{0.F, 0.F, 0.F, 0.2F}, CRegion{0, 0, INT32_MAX, INT32_MAX}, std::min(5.0, box.size().y));
         g_pHyprOpenGL->renderTexture(texture, &box, 1.F);

@@ -1472,12 +1472,19 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto SURF   = WINDOW->m_pWLSurface->resource();
-            if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription())
-                pMonitor->output->state->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
-            else
+            if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
+                bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || m_previousFSWindow != WINDOW;
+                if (SURF->colorManagement->needsHdrMetadataUpdate())
+                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
+                if (needsHdrMetadataUpdate)
+                    pMonitor->output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
+            } else
                 pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
-        } else
+            m_previousFSWindow = WINDOW;
+        } else {
             pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            m_previousFSWindow.reset();
+        }
     }
 
     if (pMonitor->ctmUpdated) {

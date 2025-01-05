@@ -6,7 +6,8 @@ class CRectPassElement : public IPassElement {
     struct SRectData {
         CBox       box;
         CHyprColor color;
-        int        round = 0;
+        int        round         = 0;
+        float      roundingPower = 2.0f;
         bool       blur = false, xray = false;
         float      blurA = 1.F;
     };

@@ -64,10 +64,12 @@ CKeybindManager::CKeybindManager() {
 
     m_mDispatchers["exec"]                           = spawn;
     m_mDispatchers["execr"]                          = spawnRaw;
-    m_mDispatchers["closeactive"]                    = closeActive;
-    m_mDispatchers["killactive"]                     = killActive;
-    m_mDispatchers["closewindow"]                    = closeWindow;
-    m_mDispatchers["killwindow"]                     = killWindow;
+    m_mDispatchers["killactive"]                     = closeActive;
+    m_mDispatchers["forcekillactive"]                = killActive;
+    m_mDispatchers["killwindow"]                     = closeWindow;
+    m_mDispatchers["forcekillwindow"]                = killWindow;
+    m_mDispatchers["signal"]                         = signalActive;
+    m_mDispatchers["signalwindow"]                   = signalWindow;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
     m_mDispatchers["setfloating"]                    = setActiveFloating;
     m_mDispatchers["settiled"]                       = setActiveTiled;
@@ -996,8 +998,8 @@ SDispatchResult CKeybindManager::closeWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "kill: no window found");
-        return {.success = false, .error = "kill: no window found"};
+        Debug::log(ERR, "closeWindow: no window found");
+        return {.success = false, .error = "closeWindow: no window found"};
     }
 
     g_pCompositor->closeWindow(PWINDOW);
@@ -1009,11 +1011,39 @@ SDispatchResult CKeybindManager::killWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "kill: no window found");
-        return {.success = false, .error = "kill: no window found"};
+        Debug::log(ERR, "killWindow: no window found");
+        return {.success = false, .error = "killWindow: no window found"};
     }
 
     kill(PWINDOW->getPID(), SIGKILL);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::signalActive(std::string args) {
+	if (!std::all_of(args.begin(), args.end(), ::isdigit))
+		return {.success = false, .error = "signalActive: signal has to be int"};
+
+    kill(g_pCompositor->m_pLastWindow.lock()->getPID(), std::stoi(args));
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::signalWindow(std::string args) {
+    const auto WINDOWREGEX = args.substr(0, args.find_first_of(','));
+    const auto SIGNAL     = args.substr(args.find_first_of(',') + 1);
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "signalWindow: no window");
+        return {.success = false, .error = "signalWindow: no window"};
+    }
+
+	if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
+		return {.success = false, .error = "signalWindow: signal has to be int"};
+
+	kill(PWINDOW->getPID(), std::stoi(SIGNAL));
 
     return {};
 }

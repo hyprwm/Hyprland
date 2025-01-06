@@ -156,6 +156,8 @@ class CKeybindManager {
     static SDispatchResult killActive(std::string);
     static SDispatchResult closeWindow(std::string);
     static SDispatchResult killWindow(std::string);
+    static SDispatchResult signalActive(std::string);
+    static SDispatchResult signalWindow(std::string);
     static SDispatchResult spawn(std::string);
     static SDispatchResult spawnRaw(std::string);
     static SDispatchResult toggleActiveFloating(std::string);

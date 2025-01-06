@@ -1021,8 +1021,8 @@ SDispatchResult CKeybindManager::killWindow(std::string args) {
 }
 
 SDispatchResult CKeybindManager::signalActive(std::string args) {
-	if (!std::all_of(args.begin(), args.end(), ::isdigit))
-		return {.success = false, .error = "signalActive: signal has to be int"};
+    if (!std::all_of(args.begin(), args.end(), ::isdigit))
+        return {.success = false, .error = "signalActive: signal has to be int"};
 
     kill(g_pCompositor->m_pLastWindow.lock()->getPID(), std::stoi(args));
 
@@ -1031,7 +1031,7 @@ SDispatchResult CKeybindManager::signalActive(std::string args) {
 
 SDispatchResult CKeybindManager::signalWindow(std::string args) {
     const auto WINDOWREGEX = args.substr(0, args.find_first_of(','));
-    const auto SIGNAL     = args.substr(args.find_first_of(',') + 1);
+    const auto SIGNAL      = args.substr(args.find_first_of(',') + 1);
 
     const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
 
@@ -1040,10 +1040,10 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
         return {.success = false, .error = "signalWindow: no window"};
     }
 
-	if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
-		return {.success = false, .error = "signalWindow: signal has to be int"};
+    if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
+        return {.success = false, .error = "signalWindow: signal has to be int"};
 
-	kill(PWINDOW->getPID(), std::stoi(SIGNAL));
+    kill(PWINDOW->getPID(), std::stoi(SIGNAL));
 
     return {};
 }

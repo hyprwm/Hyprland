@@ -428,6 +428,7 @@ void CWLSurfaceResource::commitPendingState() {
     pending.damage.clear();
     pending.bufferDamage.clear();
     pending.newBuffer = false;
+    dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
 
     events.roleCommit.emit();
 
@@ -448,10 +449,9 @@ void CWLSurfaceResource::commitPendingState() {
 
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
-        if (current.buffer->buffer->isSynchronous()) {
-            dropCurrentBuffer();
-            dropPendingBuffer(); // pending atm is just a copied ref of the current, drop it too to send a release
-        }
+        // Some clients aren't ready to receive a release this early. Should be fine to release it on the next commitPendingState.
+        // if (current.buffer->buffer->isSynchronous())
+        //     dropCurrentBuffer();
     }
 
     // TODO: we should _accumulate_ and not replace above if sync

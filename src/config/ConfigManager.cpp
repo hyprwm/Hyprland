@@ -1465,7 +1465,7 @@ void CConfigManager::dispatchExecOnce() {
     isLaunchingExecOnce = true;
 
     for (auto const& c : firstExecRequests) {
-        c.second ? handleExec("", c.first) : handleRawExec("", c.first);
+        c.withRules ? handleExec("", c.exec) : handleRawExec("", c.exec);
     }
 
     firstExecRequests.clear(); // free some kb of memory :P

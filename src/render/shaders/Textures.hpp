@@ -19,7 +19,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
     const float SMOOTHING_CONSTANT = )#" +
         std::format("{:.7f}", SHADER_ROUNDED_SMOOTHING_FACTOR) + R"#(;
 
-    //if (pixCoord.x + pixCoord.y > radius) {
+    if (pixCoord.x + pixCoord.y > radius) {
 
 	      float dist = pow(pow(pixCoord.x, roundingPower) + pow(pixCoord.y, roundingPower), 1.0/roundingPower);
 
@@ -30,7 +30,7 @@ inline static constexpr auto ROUNDED_SHADER_FUNC = [](const std::string colorVar
 
 	      )#" +
         colorVarName + R"#( = )#" + colorVarName + R"#( * normalized;
-    //}
+    }
 )#";
 };
 

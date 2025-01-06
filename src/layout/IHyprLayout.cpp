@@ -421,11 +421,13 @@ static void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRA
     SRange sourceY = {sourcePos.y, sourcePos.y + sourceSize.y};
 
     if (*SNAPWINDOWGAP) {
-        const double GAPSIZE = *SNAPWINDOWGAP;
-        const auto   WSID    = DRAGGINGWINDOW->workspaceID();
+        const double GAPSIZE       = *SNAPWINDOWGAP;
+        const auto   WSID          = DRAGGINGWINDOW->workspaceID();
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_pWorkspace && DRAGGINGWINDOW->m_pWorkspace->m_bHasFullscreenWindow;
 
         for (auto& other : g_pCompositor->m_vWindows) {
-            if (other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut || other->isX11OverrideRedirect())
+            if ((HASFULLSCREEN && !other->m_bCreatedOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_bIsMapped || other->m_bFadingOut ||
+                other->isX11OverrideRedirect())
                 continue;
 
             const int    OTHERBORDERSIZE = other->getRealBorderSize();

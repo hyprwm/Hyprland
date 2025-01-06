@@ -48,7 +48,7 @@ struct SImageDescription {
     uint32_t maxFALL = 0;
 };
 
-namespace Primaries { //NOLINT
+namespace NColorPrimaries {
     static const auto BT709 =
         SImageDescription::SPCPRimaries{.red = {.x = 0.64, .y = 0.33}, .green = {.x = 0.30, .y = 0.60}, .blue = {.x = 0.15, .y = 0.06}, .white = {.x = 0.3127, .y = 0.3290}};
 

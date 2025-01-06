@@ -8,7 +8,6 @@ class CSubsurface;
 class CPopup;
 class CPointerConstraint;
 class CWLSurfaceResource;
-class CXxColorManagementSurfaceV4;
 
 class CWLSurface {
   public:
@@ -99,15 +98,14 @@ class CWLSurface {
   private:
     CWLSurface() = default;
 
-    bool                         m_bInert = true;
+    bool                   m_bInert = true;
 
-    WP<CWLSurfaceResource>       m_pResource;
+    WP<CWLSurfaceResource> m_pResource;
 
-    PHLWINDOWREF                 m_pWindowOwner;
-    PHLLSREF                     m_pLayerOwner;
-    CPopup*                      m_pPopupOwner      = nullptr;
-    CSubsurface*                 m_pSubsurfaceOwner = nullptr;
-    CXxColorManagementSurfaceV4* m_pCMSurface       = nullptr;
+    PHLWINDOWREF           m_pWindowOwner;
+    PHLLSREF               m_pLayerOwner;
+    CPopup*                m_pPopupOwner      = nullptr;
+    CSubsurface*           m_pSubsurfaceOwner = nullptr;
 
     //
     WP<CPointerConstraint> m_pConstraint;

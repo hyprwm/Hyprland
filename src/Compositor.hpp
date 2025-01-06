@@ -23,6 +23,7 @@
 #include "helpers/Monitor.hpp"
 #include "desktop/Workspace.hpp"
 #include "desktop/Window.hpp"
+#include "protocols/ColorManagement.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
@@ -32,7 +33,6 @@
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
 
-struct SImageDescription;
 class CWLSurfaceResource;
 
 enum eManagersInitStage : uint8_t {

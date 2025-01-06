@@ -417,7 +417,7 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
 
 SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
 #ifndef NO_XWAYLAND
-    if (c == g_pXWayland->pServer->xwaylandClient)
+    if (g_pXWayland->pServer && c == g_pXWayland->pServer->xwaylandClient)
         return g_pXWayland->pWM->getDataDevice();
 #endif
 

@@ -133,8 +133,8 @@ struct SConfigOptionDescription {
 };
 
 struct SfirstExecRequest {
-	std::string exec;
-	bool withRules;
+    std::string exec;
+    bool        withRules;
 };
 
 class CConfigManager {
@@ -288,7 +288,7 @@ class CConfigManager {
     bool                                                      firstExecDispatched     = false;
     bool                                                      m_bManualCrashInitiated = false;
 
-    std::vector<SfirstExecRequest>                			  firstExecRequests; // bool is for if with rules
+    std::vector<SfirstExecRequest>                            firstExecRequests; // bool is for if with rules
     std::vector<std::string>                                  finalExecRequests;
 
     std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins

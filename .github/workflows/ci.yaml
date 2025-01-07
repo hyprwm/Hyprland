@@ -125,14 +125,24 @@ jobs:
         run: meson setup build -Ddefault_library=static
 
       - name: clang-format check
+        run: ninja -C build clang-format-check
+
+      - name: clang-format apply
+        if: failure()
         run: ninja -C build clang-format
 
-      - name: Push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "style: clang-format"
-          commit_user_name: "github-actions[bot]"
-          commit_user_email: "github-actions[bot]@users.noreply.github.com"
-          commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-          # commit_branch: ${{ github.head_ref }}
+      - name: Create patch
+        if: failure()
+        run: git diff > clang-format.patch
 
+      - name: Comment patch
+        if: failure()
+        uses: mshick/add-pr-comment@v2
+        with:
+          message-path: |
+            clang-format.patch
+          find: |
+            please fix the following formatting issues, or directly apply the patch
+            ```diff
+            << FILE_CONTENTS >>
+            ```

@@ -12,10 +12,12 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "managers/AnimationManager.hpp"
 #include "managers/PointerManager.hpp"
 
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Hyprutils::Animation;
 
 // ------------------------------------------------------------ //
 //  __          _______ _   _ _____   ______          _______   //
@@ -27,15 +29,17 @@ using namespace Hyprutils::String;
 //                                                              //
 // ------------------------------------------------------------ //
 
-static void setAnimToMove(void* data) {
-    auto* const            PANIMCFG = g_pConfigManager->getAnimationPropertyConfig("windowsMove");
+static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
+    const auto PAV = pav.lock();
+    if (!PAV)
+        return;
 
-    CBaseAnimatedVariable* animvar = (CBaseAnimatedVariable*)data;
+    CAnimatedVariable<Vector2D>* animvar = dynamic_cast<CAnimatedVariable<Vector2D>*>(PAV.get());
+    animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    animvar->setConfig(PANIMCFG);
-
-    if (animvar->getWindow() && !animvar->getWindow()->m_vRealPosition.isBeingAnimated() && !animvar->getWindow()->m_vRealSize.isBeingAnimated())
-        animvar->getWindow()->m_bAnimatingIn = false;
+    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
+    if (PHLWINDOW && PHLWINDOW->m_vRealPosition->isBeingAnimated() && PHLWINDOW->m_vRealSize->isBeingAnimated())
+        PHLWINDOW->m_bAnimatingIn = false;
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {
@@ -378,10 +382,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         const auto  MAXSIZE = PWINDOW->requestedMaxSize();
 
                         const float SIZEX = SIZEXSTR == "max" ? std::clamp(MAXSIZE.x, MIN_WINDOW_SIZE, PMONITOR->vecSize.x) :
-                                                                stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize.goal().x, PMONITOR->vecSize.x);
+                                                                stringToFloatClamp(SIZEXSTR, PWINDOW->m_vRealSize->goal().x, PMONITOR->vecSize.x);
 
                         const float SIZEY = SIZEYSTR == "max" ? std::clamp(MAXSIZE.y, MIN_WINDOW_SIZE, PMONITOR->vecSize.y) :
-                                                                stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize.goal().y, PMONITOR->vecSize.y);
+                                                                stringToFloatClamp(SIZEYSTR, PWINDOW->m_vRealSize->goal().y, PMONITOR->vecSize.y);
 
                         Debug::log(LOG, "Rule size, applying to {}", PWINDOW);
 
@@ -418,7 +422,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 (!POSXRAW.contains('%') ? std::stoi(POSXRAW) : std::stof(POSXRAW.substr(0, POSXRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.x);
 
                             if (subtractWindow)
-                                posX -= PWINDOW->m_vRealSize.goal().x;
+                                posX -= PWINDOW->m_vRealSize->goal().x;
 
                             if (CURSOR)
                                 Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
@@ -430,7 +434,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x;
                             } else {
                                 posX = g_pInputManager->getMouseCoordsInternal().x - PMONITOR->vecPosition.x +
-                                    (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().x);
+                                    (!POSXSTR.contains('%') ? std::stoi(POSXSTR) : std::stof(POSXSTR.substr(0, POSXSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize->goal().x);
                             }
                         }
 
@@ -441,7 +445,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 (!POSYRAW.contains('%') ? std::stoi(POSYRAW) : std::stof(POSYRAW.substr(0, POSYRAW.length() - 1)) * 0.01 * PMONITOR->vecSize.y);
 
                             if (subtractWindow)
-                                posY -= PWINDOW->m_vRealSize.goal().y;
+                                posY -= PWINDOW->m_vRealSize->goal().y;
 
                             if (CURSOR)
                                 Debug::log(ERR, "Cursor is not compatible with 100%-, ignoring cursor!");
@@ -453,7 +457,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                                 posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y;
                             } else {
                                 posY = g_pInputManager->getMouseCoordsInternal().y - PMONITOR->vecPosition.y +
-                                    (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize.goal().y);
+                                    (!POSYSTR.contains('%') ? std::stoi(POSYSTR) : std::stof(POSYSTR.substr(0, POSYSTR.length() - 1)) * 0.01 * PWINDOW->m_vRealSize->goal().y);
                             }
                         }
 
@@ -461,15 +465,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
                             int borderSize = PWINDOW->getRealBorderSize();
 
                             posX = std::clamp(posX, (int)(PMONITOR->vecReservedTopLeft.x + borderSize),
-                                              (int)(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize.goal().x - borderSize));
+                                              (int)(PMONITOR->vecSize.x - PMONITOR->vecReservedBottomRight.x - PWINDOW->m_vRealSize->goal().x - borderSize));
 
                             posY = std::clamp(posY, (int)(PMONITOR->vecReservedTopLeft.y + borderSize),
-                                              (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize.goal().y - borderSize));
+                                              (int)(PMONITOR->vecSize.y - PMONITOR->vecReservedBottomRight.y - PWINDOW->m_vRealSize->goal().y - borderSize));
                         }
 
                         Debug::log(LOG, "Rule move, applying to {}", PWINDOW);
 
-                        PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
+                        *PWINDOW->m_vRealPosition = Vector2D(posX, posY) + PMONITOR->vecPosition;
 
                         PWINDOW->setHidden(false);
                     } catch (...) { Debug::log(LOG, "Rule move failed, rule: {} -> {}", r->szRule, r->szValue); }
@@ -481,7 +485,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     if (ARGS[1] == "1")
                         RESERVEDOFFSET = (PMONITOR->vecReservedTopLeft - PMONITOR->vecReservedBottomRight) / 2.f;
 
-                    PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize.goal() / 2.f + RESERVEDOFFSET;
+                    *PWINDOW->m_vRealPosition = PMONITOR->middle() - PWINDOW->m_vRealSize->goal() / 2.f + RESERVEDOFFSET;
                     break;
                 }
 
@@ -491,7 +495,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
-        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal();
+        PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize->goal();
 
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
     } else {
@@ -524,7 +528,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
         }
 
         if (!setPseudo)
-            PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize.goal() - Vector2D(10, 10);
+            PWINDOW->m_vPseudoSize = PWINDOW->m_vRealSize->goal() - Vector2D(10, 10);
     }
 
     const auto PFOCUSEDWINDOWPREV = g_pCompositor->m_pLastWindow.lock();
@@ -554,11 +558,11 @@ void Events::listener_mapWindow(void* owner, void* data) {
         (!PWINDOW->isX11OverrideRedirect() || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->wantsFocus())) && !workspaceSilent && (!PFORCEFOCUS || PFORCEFOCUS == PWINDOW) &&
         !g_pInputManager->isConstrained()) {
         g_pCompositor->focusWindow(PWINDOW);
-        PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PACTIVEALPHA);
-        PWINDOW->m_fDimPercent.setValueAndWarp(PWINDOW->m_sWindowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
+        PWINDOW->m_fActiveInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
+        PWINDOW->m_fDimPercent->setValueAndWarp(PWINDOW->m_sWindowData.noDim.valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
-        PWINDOW->m_fActiveInactiveAlpha.setValueAndWarp(*PINACTIVEALPHA);
-        PWINDOW->m_fDimPercent.setValueAndWarp(0);
+        PWINDOW->m_fActiveInactiveAlpha->setValueAndWarp(*PINACTIVEALPHA);
+        PWINDOW->m_fDimPercent->setValueAndWarp(0);
     }
 
     if (requestedClientFSMode.has_value() && (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN))
@@ -571,8 +575,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (PWINDOW->m_pWorkspace->m_bHasFullscreenWindow)
             g_pCompositor->setWindowFullscreenInternal(PWINDOW->m_pWorkspace->getFullscreenWindow(), FSMODE_NONE);
 
-        PWINDOW->m_vRealPosition.warp();
-        PWINDOW->m_vRealSize.warp();
+        PWINDOW->m_vRealPosition->warp();
+        PWINDOW->m_vRealSize->warp();
         if (requestedFSState.has_value()) {
             PWINDOW->m_sWindowData.syncFullscreen = CWindowOverridableVar(false, PRIORITY_WINDOW_RULE);
             g_pCompositor->setWindowFullscreenState(PWINDOW, requestedFSState.value());
@@ -607,7 +611,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     PWINDOW->m_bFirstMap = false;
 
-    Debug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->szName, PWINDOW->m_vRealPosition.goal(), PWINDOW->m_vRealSize.goal());
+    Debug::log(LOG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->szName, PWINDOW->m_vRealPosition->goal(), PWINDOW->m_vRealSize->goal());
 
     auto workspaceID = requestedWorkspace != "" ? requestedWorkspace : PWORKSPACE->m_szName;
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", PWINDOW, workspaceID, PWINDOW->m_szClass, PWINDOW->m_szTitle)});
@@ -620,17 +624,17 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
     // do animations
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, false);
-    PWINDOW->m_fAlpha.setValueAndWarp(0.f);
-    PWINDOW->m_fAlpha = 1.f;
+    PWINDOW->m_fAlpha->setValueAndWarp(0.f);
+    *PWINDOW->m_fAlpha = 1.f;
 
-    PWINDOW->m_vRealPosition.setCallbackOnEnd(setAnimToMove);
-    PWINDOW->m_vRealSize.setCallbackOnEnd(setAnimToMove);
+    PWINDOW->m_vRealPosition->setCallbackOnEnd(setVector2DAnimToMove);
+    PWINDOW->m_vRealSize->setCallbackOnEnd(setVector2DAnimToMove);
 
     // recalc the values for this window
     g_pCompositor->updateWindowAnimatedDecorationValues(PWINDOW);
     // avoid this window being visible
     if (PWORKSPACE->m_bHasFullscreenWindow && !PWINDOW->isFullscreen() && !PWINDOW->m_bIsFloating)
-        PWINDOW->m_fAlpha.setValueAndWarp(0.f);
+        PWINDOW->m_fAlpha->setValueAndWarp(0.f);
 
     g_pCompositor->setPreferredScaleForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->scale);
     g_pCompositor->setPreferredTransformForSurface(PWINDOW->m_pWLSurface->resource(), PMONITOR->transform);
@@ -666,8 +670,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     const auto PMONITOR = PWINDOW->m_pMonitor.lock();
     if (PMONITOR) {
-        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition.value() - PMONITOR->vecPosition;
-        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize.value();
+        PWINDOW->m_vOriginalClosedPos     = PWINDOW->m_vRealPosition->value() - PMONITOR->vecPosition;
+        PWINDOW->m_vOriginalClosedSize    = PWINDOW->m_vRealSize->value();
         PWINDOW->m_eOriginalClosedExtents = PWINDOW->getFullWindowExtents();
     }
 
@@ -757,12 +761,12 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 
     g_pCompositor->addToFadingOutSafe(PWINDOW);
 
-    if (!PWINDOW->m_bX11DoesntWantBorders)                                                    // don't animate out if they weren't animated in.
-        PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition.value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
+    if (!PWINDOW->m_bX11DoesntWantBorders)                                                      // don't animate out if they weren't animated in.
+        *PWINDOW->m_vRealPosition = PWINDOW->m_vRealPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise onWindowPostCreateClose will ignore it
 
     // anims
     g_pAnimationManager->onWindowPostCreateClose(PWINDOW, true);
-    PWINDOW->m_fAlpha = 0.f;
+    *PWINDOW->m_fAlpha = 0.f;
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
@@ -812,7 +816,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
         g_pSeatManager->isPointerFrameSkipped = false;
         g_pSeatManager->isPointerFrameCommit  = false;
     } else
-        g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition.goal().x, PWINDOW->m_vRealPosition.goal().y,
+        g_pHyprRenderer->damageSurface(PWINDOW->m_pWLSurface->resource(), PWINDOW->m_vRealPosition->goal().x, PWINDOW->m_vRealPosition->goal().y,
                                        PWINDOW->m_bIsX11 ? 1.0 / PWINDOW->m_fX11SurfaceScaledBy : 1.0);
 
     if (g_pSeatManager->isPointerFrameSkipped) {
@@ -903,8 +907,8 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
     if (!PWINDOW->m_bIsMapped || !PWINDOW->m_pXWaylandSurface || !PWINDOW->m_pXWaylandSurface->overrideRedirect)
         return;
 
-    const auto POS = PWINDOW->m_vRealPosition.goal();
-    const auto SIZ = PWINDOW->m_vRealSize.goal();
+    const auto POS = PWINDOW->m_vRealPosition->goal();
+    const auto SIZ = PWINDOW->m_vRealSize->goal();
 
     if (PWINDOW->m_pXWaylandSurface->geometry.size() > Vector2D{1, 1})
         PWINDOW->setHidden(false);
@@ -912,7 +916,7 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         PWINDOW->setHidden(true);
 
     if (PWINDOW->isFullscreen() || !PWINDOW->m_bIsFloating) {
-        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal(), true);
+        g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize->goal(), true);
         g_pHyprRenderer->damageWindow(PWINDOW);
         return;
     }
@@ -926,27 +930,27 @@ void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
         Debug::log(LOG, "Unmanaged window {} requests geometry update to {:j} {:j}", PWINDOW, LOGICALPOS, PWINDOW->m_pXWaylandSurface->geometry.size());
 
         g_pHyprRenderer->damageWindow(PWINDOW);
-        PWINDOW->m_vRealPosition.setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
+        PWINDOW->m_vRealPosition->setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
 
         if (abs(std::floor(SIZ.x) - PWINDOW->m_pXWaylandSurface->geometry.w) > 2 || abs(std::floor(SIZ.y) - PWINDOW->m_pXWaylandSurface->geometry.h) > 2)
-            PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_pXWaylandSurface->geometry.size());
+            PWINDOW->m_vRealSize->setValueAndWarp(PWINDOW->m_pXWaylandSurface->geometry.size());
 
         if (*PXWLFORCESCALEZERO) {
             if (const auto PMONITOR = PWINDOW->m_pMonitor.lock(); PMONITOR) {
-                PWINDOW->m_vRealSize.setValueAndWarp(PWINDOW->m_vRealSize.goal() / PMONITOR->scale);
+                PWINDOW->m_vRealSize->setValueAndWarp(PWINDOW->m_vRealSize->goal() / PMONITOR->scale);
             }
         }
 
-        PWINDOW->m_vPosition = PWINDOW->m_vRealPosition.goal();
-        PWINDOW->m_vSize     = PWINDOW->m_vRealSize.goal();
+        PWINDOW->m_vPosition = PWINDOW->m_vRealPosition->goal();
+        PWINDOW->m_vSize     = PWINDOW->m_vRealSize->goal();
 
-        PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition.value() + PWINDOW->m_vRealSize.value() / 2.f)->activeWorkspace;
+        PWINDOW->m_pWorkspace = g_pCompositor->getMonitorFromVector(PWINDOW->m_vRealPosition->value() + PWINDOW->m_vRealSize->value() / 2.f)->activeWorkspace;
 
         g_pCompositor->changeWindowZOrder(PWINDOW, true);
         PWINDOW->updateWindowDecos();
         g_pHyprRenderer->damageWindow(PWINDOW);
 
-        PWINDOW->m_vReportedPosition    = PWINDOW->m_vRealPosition.goal();
-        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vRealSize.goal();
+        PWINDOW->m_vReportedPosition    = PWINDOW->m_vRealPosition->goal();
+        PWINDOW->m_vPendingReportedSize = PWINDOW->m_vRealSize->goal();
     }
 }

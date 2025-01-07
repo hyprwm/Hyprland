@@ -69,7 +69,7 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
         // yes, this technically ignores any regions set by the app. Too bad!
         if (LASTHLSURFACE->getWindow())
-            local = tool->absolutePos * LASTHLSURFACE->getWindow()->m_vRealSize.goal();
+            local = tool->absolutePos * LASTHLSURFACE->getWindow()->m_vRealSize->goal();
         else
             local = tool->absolutePos * BOX->size();
 

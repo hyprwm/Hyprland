@@ -569,7 +569,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pKeybindManager = std::make_unique<CKeybindManager>();
 
             Debug::log(LOG, "Creating the AnimationManager!");
-            g_pAnimationManager = std::make_unique<CAnimationManager>();
+            g_pAnimationManager = std::make_unique<CHyprAnimationManager>();
 
             Debug::log(LOG, "Creating the ConfigManager!");
             g_pConfigManager = std::make_unique<CConfigManager>();
@@ -964,11 +964,11 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
 
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
-        sl             = pos - pWindow->m_vRealPosition.goal() - OFF;
+        sl             = pos - pWindow->m_vRealPosition->goal() - OFF;
         return PPOPUP->m_pWLSurface->resource();
     }
 
-    auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition.goal(), true);
+    auto [surf, local] = pWindow->m_pWLSurface->resource()->at(pos - pWindow->m_vRealPosition->goal(), true);
     if (surf) {
         sl = local;
         return surf;
@@ -982,7 +982,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
         return {};
 
     if (pWindow->m_bIsX11)
-        return vec - pWindow->m_vRealPosition.goal();
+        return vec - pWindow->m_vRealPosition->goal();
 
     const auto PPOPUP = pWindow->m_pPopupHead->at(vec);
     if (PPOPUP)
@@ -1001,9 +1001,9 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
     CBox geom = pWindow->m_pXDGSurface->current.geometry;
 
     if (std::get<1>(iterData) == Vector2D{-1337, -1337})
-        return vec - pWindow->m_vRealPosition.goal();
+        return vec - pWindow->m_vRealPosition->goal();
 
-    return vec - pWindow->m_vRealPosition.goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
+    return vec - pWindow->m_vRealPosition->goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
 }
 
 PHLMONITOR CCompositor::getMonitorFromOutput(SP<Aquamarine::IOutput> out) {
@@ -1211,7 +1211,7 @@ void CCompositor::focusSurface(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindo
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_aLayerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha.value() == 0.f)
+            if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->mapped) || ls->alpha->value() == 0.f)
                 continue;
 
             auto SURFACEAT = ls->popupHead->at(pos, true);
@@ -1229,7 +1229,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
 
 SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha.value() == 0.f)
+        if (ls->fadingOut || !ls->layerSurface || (ls->layerSurface && !ls->layerSurface->surface->mapped) || ls->alpha->value() == 0.f)
             continue;
 
         auto [surf, local] = ls->layerSurface->surface->at(pos - ls->geometry.pos(), true);
@@ -1378,7 +1378,7 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
         if (w->monitorID() != monid && w->m_pMonitor)
             continue;
 
-        if (!w->m_bFadingOut || w->m_fAlpha.value() == 0.f) {
+        if (!w->m_bFadingOut || w->m_fAlpha->value() == 0.f) {
 
             w->m_bFadingOut = false;
 
@@ -1831,8 +1831,8 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
 
         pWindow->m_cRealBorderColorPrevious = pWindow->m_cRealBorderColor;
         pWindow->m_cRealBorderColor         = grad;
-        pWindow->m_fBorderFadeAnimationProgress.setValueAndWarp(0.f);
-        pWindow->m_fBorderFadeAnimationProgress = 1.f;
+        pWindow->m_fBorderFadeAnimationProgress->setValueAndWarp(0.f);
+        *pWindow->m_fBorderFadeAnimationProgress = 1.f;
     };
 
     const bool IS_SHADOWED_BY_MODAL = pWindow->m_pXDGSurface && pWindow->m_pXDGSurface->toplevel && pWindow->m_pXDGSurface->toplevel->anyChildModal();
@@ -1855,18 +1855,18 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     }
 
     // tick angle if it's not running (aka dead)
-    if (!pWindow->m_fBorderAngleAnimationProgress.isBeingAnimated())
-        pWindow->m_fBorderAngleAnimationProgress.setValueAndWarp(0.f);
+    if (!pWindow->m_fBorderAngleAnimationProgress->isBeingAnimated())
+        pWindow->m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
 
     // opacity
     const auto PWORKSPACE = pWindow->m_pWorkspace;
     if (pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) {
-        pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
+        *pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaFullscreen.valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
     } else {
         if (pWindow == m_pLastWindow)
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alpha.valueOrDefault().applyAlpha(*PACTIVEALPHA);
+            *pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alpha.valueOrDefault().applyAlpha(*PACTIVEALPHA);
         else
-            pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.valueOrDefault().applyAlpha(*PINACTIVEALPHA);
+            *pWindow->m_fActiveInactiveAlpha = pWindow->m_sWindowData.alphaInactive.valueOrDefault().applyAlpha(*PINACTIVEALPHA);
     }
 
     // dim
@@ -1879,16 +1879,16 @@ void CCompositor::updateWindowAnimatedDecorationValues(PHLWINDOW pWindow) {
     if (IS_SHADOWED_BY_MODAL)
         goalDim += (1.F - goalDim) / 2.F;
 
-    pWindow->m_fDimPercent = goalDim;
+    *pWindow->m_fDimPercent = goalDim;
 
     // shadow
     if (!pWindow->isX11OverrideRedirect() && !pWindow->m_bX11DoesntWantBorders) {
         if (pWindow == m_pLastWindow)
-            pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOL);
+            *pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOL);
         else
-            pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
+            *pWindow->m_cRealShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != INT64_MAX ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
     } else {
-        pWindow->m_cRealShadowColor.setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
+        pWindow->m_cRealShadowColor->setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
     }
 
     pWindow->updateWindowDecos();
@@ -1932,11 +1932,11 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_bIsFloating)
-                w->m_vRealPosition = w->m_vRealPosition.goal() - pMonitorA->vecPosition + pMonitorB->vecPosition;
+                *w->m_vRealPosition = w->m_vRealPosition->goal() - pMonitorA->vecPosition + pMonitorB->vecPosition;
 
             if (w->isFullscreen()) {
-                w->m_vRealPosition = pMonitorB->vecPosition;
-                w->m_vRealSize     = pMonitorB->vecSize;
+                *w->m_vRealPosition = pMonitorB->vecPosition;
+                *w->m_vRealSize     = pMonitorB->vecSize;
             }
 
             w->updateToplevel();
@@ -1957,11 +1957,11 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_bIsFloating)
-                w->m_vRealPosition = w->m_vRealPosition.goal() - pMonitorB->vecPosition + pMonitorA->vecPosition;
+                *w->m_vRealPosition = w->m_vRealPosition->goal() - pMonitorB->vecPosition + pMonitorA->vecPosition;
 
             if (w->isFullscreen()) {
-                w->m_vRealPosition = pMonitorA->vecPosition;
-                w->m_vRealSize     = pMonitorA->vecSize;
+                *w->m_vRealPosition = pMonitorA->vecPosition;
+                *w->m_vRealSize     = pMonitorA->vecSize;
             }
 
             w->updateToplevel();
@@ -2135,14 +2135,14 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             if (w->m_bIsMapped && !w->isHidden()) {
                 if (POLDMON) {
                     if (w->m_bIsFloating)
-                        w->m_vRealPosition = w->m_vRealPosition.goal() - POLDMON->vecPosition + pMonitor->vecPosition;
+                        *w->m_vRealPosition = w->m_vRealPosition->goal() - POLDMON->vecPosition + pMonitor->vecPosition;
 
                     if (w->isFullscreen()) {
-                        w->m_vRealPosition = pMonitor->vecPosition;
-                        w->m_vRealSize     = pMonitor->vecSize;
+                        *w->m_vRealPosition = pMonitor->vecPosition;
+                        *w->m_vRealSize     = pMonitor->vecSize;
                     }
                 } else {
-                    w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition.goal().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition.goal().y % (int)pMonitor->vecSize.y};
+                    *w->m_vRealPosition = Vector2D{(int)w->m_vRealPosition->goal().x % (int)pMonitor->vecSize.x, (int)w->m_vRealPosition->goal().y % (int)pMonitor->vecSize.y};
                 }
             }
 
@@ -2216,9 +2216,9 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
                 continue;
 
             if (!FULLSCREEN)
-                w->m_fAlpha = 1.f;
+                *w->m_fAlpha = 1.f;
             else if (!w->isFullscreen())
-                w->m_fAlpha = !w->m_bCreatedOverFullscreen ? 0.f : 1.f;
+                *w->m_fAlpha = !w->m_bCreatedOverFullscreen ? 0.f : 1.f;
         }
     }
 
@@ -2227,7 +2227,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     if (pWorkspace->m_iID == PMONITOR->activeWorkspaceID() || pWorkspace->m_iID == PMONITOR->activeSpecialWorkspaceID()) {
         for (auto const& ls : PMONITOR->m_aLayerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->fadingOut)
-                ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
+                *ls->alpha = FULLSCREEN && pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
     }
 }
@@ -2317,7 +2317,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
 
     updateFullscreenFadeOnWorkspace(PWORKSPACE);
 
-    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize.goal(), true);
+    g_pXWaylandManager->setWindowSize(PWINDOW, PWINDOW->m_vRealSize->goal(), true);
 
     PWORKSPACE->forceReportSizesToWindows();
 
@@ -2573,7 +2573,7 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
 
     const auto PWORKSPACE = m_vWorkspaces.emplace_back(CWorkspace::create(id, getMonitorFromID(monID), NAME, SPECIAL, isEmpty));
 
-    PWORKSPACE->m_fAlpha.setValueAndWarp(0);
+    PWORKSPACE->m_fAlpha->setValueAndWarp(0);
 
     return PWORKSPACE;
 }
@@ -2659,7 +2659,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(std::nullopt, true);
     const auto      PWINDOWMONITOR            = pWindow->m_pMonitor.lock();
-    const auto      POSTOMON                  = pWindow->m_vRealPosition.goal() - PWINDOWMONITOR->vecPosition;
+    const auto      POSTOMON                  = pWindow->m_vRealPosition->goal() - PWINDOWMONITOR->vecPosition;
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_pMonitor.lock();
 
     if (!pWindow->m_bIsFloating)
@@ -2696,7 +2696,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
             g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
         if (pWindow->m_bIsFloating)
-            pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
+            *pWindow->m_vRealPosition = POSTOMON + PWORKSPACEMONITOR->vecPosition;
     }
 
     pWindow->updateToplevel();
@@ -2721,8 +2721,8 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     g_pCompositor->updateSuspendedStates();
 
     if (!WASVISIBLE && pWindow->m_pWorkspace && pWindow->m_pWorkspace->isVisible()) {
-        pWindow->m_fMovingFromWorkspaceAlpha.setValueAndWarp(0.F);
-        pWindow->m_fMovingFromWorkspaceAlpha = 1.F;
+        pWindow->m_fMovingFromWorkspaceAlpha->setValueAndWarp(0.F);
+        *pWindow->m_fMovingFromWorkspaceAlpha = 1.F;
     }
 }
 

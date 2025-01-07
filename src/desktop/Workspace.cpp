@@ -1,7 +1,10 @@
 #include "Workspace.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "config/ConfigManager.hpp"
+#include "managers/AnimationManager.hpp"
 
+#include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
 
@@ -19,16 +22,10 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_pSelf = self;
 
-    m_vRenderOffset.create(m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") :
-                                                   g_pConfigManager->getAnimationPropertyConfig("workspacesIn"),
-                           self, AVARDAMAGE_ENTIRE);
-    m_fAlpha.create(AVARTYPE_FLOAT,
-                    m_bIsSpecialWorkspace ? g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn") : g_pConfigManager->getAnimationPropertyConfig("workspacesIn"), self,
-                    AVARDAMAGE_ENTIRE);
-    m_fAlpha.setValueAndWarp(1.f);
-
-    m_vRenderOffset.registerVar();
-    m_fAlpha.registerVar();
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), m_vRenderOffset,
+                                         g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, m_fAlpha, g_pConfigManager->getAnimationPropertyConfig(m_bIsSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+                                         AVARDAMAGE_ENTIRE);
 
     const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
     if (RULEFORTHIS.defaultName.has_value())
@@ -63,8 +60,6 @@ SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName(bool perMonitor) const {
 }
 
 CWorkspace::~CWorkspace() {
-    m_vRenderOffset.unregister();
-
     Debug::log(LOG, "Destroying workspace ID {}", m_iID);
 
     // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
@@ -82,15 +77,15 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
     if (!instant) {
         const std::string ANIMNAME = std::format("{}{}", m_bIsSpecialWorkspace ? "specialWorkspace" : "workspaces", in ? "In" : "Out");
 
-        m_fAlpha.m_pConfig        = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
-        m_vRenderOffset.m_pConfig = g_pConfigManager->getAnimationPropertyConfig(ANIMNAME);
+        m_fAlpha->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
+        m_vRenderOffset->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
     }
 
-    const auto  ANIMSTYLE     = m_fAlpha.m_pConfig->pValues->internalStyle;
+    const auto  ANIMSTYLE     = m_fAlpha->getStyle();
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
 
     // set floating windows offset callbacks
-    m_vRenderOffset.setUpdateCallback([&](void*) {
+    m_vRenderOffset->setUpdateCallback([&](auto) {
         for (auto const& w : g_pCompositor->m_vWindows) {
             if (!validMapped(w) || w->workspaceID() != m_iID)
                 continue;
@@ -110,84 +105,84 @@ void CWorkspace::startAnim(bool in, bool left, bool instant) {
             } catch (std::exception& e) { Debug::log(ERR, "Error in startAnim: invalid percentage"); }
         }
 
-        m_fAlpha.setValueAndWarp(1.f);
-        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0));
+        m_fAlpha->setValueAndWarp(1.f);
+        m_vRenderOffset->setValueAndWarp(Vector2D(0, 0));
 
         if (ANIMSTYLE.starts_with("slidefadevert")) {
             if (in) {
-                m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
-                m_fAlpha        = 1.f;
-                m_vRenderOffset = Vector2D(0, 0);
+                m_fAlpha->setValueAndWarp(0.f);
+                m_vRenderOffset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->vecSize.y : -PMONITOR->vecSize.y) * (movePerc / 100.f)));
+                *m_fAlpha        = 1.f;
+                *m_vRenderOffset = Vector2D(0, 0);
             } else {
-                m_fAlpha.setValueAndWarp(1.f);
-                m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
+                m_fAlpha->setValueAndWarp(1.f);
+                *m_fAlpha        = 0.f;
+                *m_vRenderOffset = Vector2D(0.0, (left ? -PMONITOR->vecSize.y : PMONITOR->vecSize.y) * (movePerc / 100.f));
             }
         } else {
             if (in) {
-                m_fAlpha.setValueAndWarp(0.f);
-                m_vRenderOffset.setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
-                m_fAlpha        = 1.f;
-                m_vRenderOffset = Vector2D(0, 0);
+                m_fAlpha->setValueAndWarp(0.f);
+                m_vRenderOffset->setValueAndWarp(Vector2D((left ? PMONITOR->vecSize.x : -PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0));
+                *m_fAlpha        = 1.f;
+                *m_vRenderOffset = Vector2D(0, 0);
             } else {
-                m_fAlpha.setValueAndWarp(1.f);
-                m_fAlpha        = 0.f;
-                m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
+                m_fAlpha->setValueAndWarp(1.f);
+                *m_fAlpha        = 0.f;
+                *m_vRenderOffset = Vector2D((left ? -PMONITOR->vecSize.x : PMONITOR->vecSize.x) * (movePerc / 100.f), 0.0);
             }
         }
     } else if (ANIMSTYLE == "fade") {
-        m_vRenderOffset.setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
+        m_vRenderOffset->setValueAndWarp(Vector2D(0, 0)); // fix a bug, if switching from slide -> fade.
 
         if (in) {
-            m_fAlpha.setValueAndWarp(0.f);
-            m_fAlpha = 1.f;
+            m_fAlpha->setValueAndWarp(0.f);
+            *m_fAlpha = 1.f;
         } else {
-            m_fAlpha.setValueAndWarp(1.f);
-            m_fAlpha = 0.f;
+            m_fAlpha->setValueAndWarp(1.f);
+            *m_fAlpha = 0.f;
         }
     } else if (ANIMSTYLE == "slidevert") {
         // fallback is slide
         const auto PMONITOR  = m_pMonitor.lock();
         const auto YDISTANCE = PMONITOR->vecSize.y + *PWORKSPACEGAP;
 
-        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
+        m_fAlpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
-            m_vRenderOffset = Vector2D(0, 0);
+            m_vRenderOffset->setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
+            *m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
+            *m_vRenderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
         }
     } else {
         // fallback is slide
         const auto PMONITOR  = m_pMonitor.lock();
         const auto XDISTANCE = PMONITOR->vecSize.x + *PWORKSPACEGAP;
 
-        m_fAlpha.setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
+        m_fAlpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
         if (in) {
-            m_vRenderOffset.setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
-            m_vRenderOffset = Vector2D(0, 0);
+            m_vRenderOffset->setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
+            *m_vRenderOffset = Vector2D(0, 0);
         } else {
-            m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
+            *m_vRenderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
         }
     }
 
     if (m_bIsSpecialWorkspace) {
         // required for open/close animations
         if (in) {
-            m_fAlpha.setValueAndWarp(0.f);
-            m_fAlpha = 1.f;
+            m_fAlpha->setValueAndWarp(0.f);
+            *m_fAlpha = 1.f;
         } else {
-            m_fAlpha.setValueAndWarp(1.f);
-            m_fAlpha = 0.f;
+            m_fAlpha->setValueAndWarp(1.f);
+            *m_fAlpha = 0.f;
         }
     }
 
     if (instant) {
-        m_vRenderOffset.warp();
-        m_fAlpha.warp();
+        m_vRenderOffset->warp();
+        m_fAlpha->warp();
     }
 }
 
@@ -633,7 +628,7 @@ void CWorkspace::forceReportSizesToWindows() {
         if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
             continue;
 
-        g_pXWaylandManager->setWindowSize(w, w->m_vRealSize.value(), true);
+        g_pXWaylandManager->setWindowSize(w, w->m_vRealSize->value(), true);
     }
 }
 

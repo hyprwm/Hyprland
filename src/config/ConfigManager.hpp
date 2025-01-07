@@ -133,7 +133,7 @@ struct SConfigOptionDescription {
 };
 
 struct SFirstExecRequest {
-    std::string exec = "";
+    std::string exec      = "";
     bool        withRules = false;
 };
 

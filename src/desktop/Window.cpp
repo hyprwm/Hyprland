@@ -413,10 +413,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_pWorkspace;
 
-    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
-    m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
     m_fMovingToWorkspaceAlpha->setValueAndWarp(1.F);
     *m_fMovingToWorkspaceAlpha = 0.F;
+    m_fMovingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_iMonitorMovedFrom = -1; });
+    m_iMonitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
 
     m_pWorkspace = pWorkspace;
 
@@ -541,9 +541,9 @@ void CWindow::onMap() {
     m_fMovingFromWorkspaceAlpha->resetAllCallbacks();
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);
-    m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
 
     m_fBorderAngleAnimationProgress->setValueAndWarp(0.f);
+    m_fBorderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
     *m_fBorderAngleAnimationProgress = 1.f;
 
     m_fMovingFromWorkspaceAlpha->setValueAndWarp(1.F);

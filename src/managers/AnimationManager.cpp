@@ -147,11 +147,10 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     const auto PBEZIER = g_pAnimationManager->getBezier(av.getBezierName());
     const auto POINTY  = PBEZIER->getYForPoint(SPENT);
 
-    if constexpr (std::same_as<VarType, CHyprColor>) {
+    if constexpr (std::same_as<VarType, CHyprColor>)
         updateColorVariable(av, POINTY, animationsDisabled);
-    } else {
+    else
         updateVariable<VarType>(av, POINTY, animationsDisabled);
-    }
 
     av.onUpdate();
 

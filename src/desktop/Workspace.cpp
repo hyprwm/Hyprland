@@ -628,7 +628,7 @@ void CWorkspace::forceReportSizesToWindows() {
         if (w->m_pWorkspace != m_pSelf || !w->m_bIsMapped || w->isHidden())
             continue;
 
-        g_pXWaylandManager->setWindowSize(w, w->m_vRealSize->value(), true);
+        g_pXWaylandManager->setWindowSize(w, w->m_vRealSize->goal(), true);
     }
 }
 

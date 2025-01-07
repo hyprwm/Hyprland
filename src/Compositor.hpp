@@ -23,7 +23,7 @@
 #include "helpers/Monitor.hpp"
 #include "desktop/Workspace.hpp"
 #include "desktop/Window.hpp"
-#include "protocols/ColorManagement.hpp"
+#include "protocols/types/ColorManagement.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"

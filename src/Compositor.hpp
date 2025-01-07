@@ -23,6 +23,7 @@
 #include "helpers/Monitor.hpp"
 #include "desktop/Workspace.hpp"
 #include "desktop/Window.hpp"
+#include "protocols/types/ColorManagement.hpp"
 #include "render/Renderer.hpp"
 #include "render/OpenGL.hpp"
 #include "hyprerror/HyprError.hpp"
@@ -168,6 +169,9 @@ class CCompositor {
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
     void                   onNewMonitor(SP<Aquamarine::IOutput> output);
+
+    SImageDescription      getPreferredImageDescription();
+    bool                   shouldChangePreferredImageDescription();
 
     std::string            explicitConfigPath;
 

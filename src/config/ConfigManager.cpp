@@ -622,6 +622,10 @@ CConfigManager::CConfigManager() {
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
 
+    m_pConfig->addConfigValue("experimental:wide_color_gamut", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("experimental:hdr", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("experimental:xx_color_management_v4", Hyprlang::INT{0});
+
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});
     m_pConfig->addSpecialConfigValue("device", "sensitivity", {0.F});

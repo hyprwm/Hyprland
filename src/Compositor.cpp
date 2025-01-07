@@ -31,6 +31,7 @@
 #include "protocols/XDGShell.hpp"
 #include "protocols/XDGOutput.hpp"
 #include "protocols/SecurityContext.hpp"
+#include "protocols/ColorManagement.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/LayerSurface.hpp"
@@ -2985,4 +2986,22 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->onMonitorFrame();
+
+    if (PROTO::colorManagement && shouldChangePreferredImageDescription())
+        PROTO::colorManagement->onImagePreferredChanged();
+}
+
+SImageDescription CCompositor::getPreferredImageDescription() {
+    if (!PROTO::colorManagement) {
+        Debug::log(ERR, "FIXME: color management protocol is not enabled, returning empty image description");
+        return SImageDescription{};
+    }
+    Debug::log(WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
+    // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
+    return SImageDescription{.primaries = NColorPrimaries::BT709};
+}
+
+bool CCompositor::shouldChangePreferredImageDescription() {
+    Debug::log(WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
+    return false;
 }

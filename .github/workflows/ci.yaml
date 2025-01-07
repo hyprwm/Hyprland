@@ -139,10 +139,12 @@ jobs:
         if: failure()
         uses: mshick/add-pr-comment@v2
         with:
-          message-path: |
-            clang-format.patch
-          find: |
+          message:
             please fix the following formatting issues, or directly apply the patch
             ```diff
             << FILE_CONTENTS >>
             ```
+          message-path: |
+            clang-format.patch
+          find: |
+            << FILE_CONTENTS >>

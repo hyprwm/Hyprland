@@ -25,6 +25,7 @@
 #endif
 #include <ranges>
 #include "helpers/varlist/VarList.hpp"
+#include "helpers/fs/FsUtils.hpp"
 #include "protocols/FractionalScale.hpp"
 #include "protocols/PointerConstraints.hpp"
 #include "protocols/LayerShell.hpp"
@@ -2629,7 +2630,7 @@ void CCompositor::performUserChecks() {
     }
 
     if (!*PNOCHECKQTUTILS) {
-        if (!executableExistsInPath("hyprland-dialog")) {
+        if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
             g_pHyprNotificationOverlay->addNotification(
                 "Your system does not have hyprland-qtutils installed. This is a runtime dependency for some dialogs. Consider installing it.", CHyprColor{}, 15000, ICON_WARNING);
         }

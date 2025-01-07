@@ -1,17 +1,18 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
 class CVersionKeeperManager {
   public:
     CVersionKeeperManager();
 
+    // whether the update screen was shown this boot.
+    bool fired();
+
   private:
-    std::optional<std::string> getDataHome();
-    std::optional<std::string> getDataLastVersion(const std::string& dataRoot);
-    void                       writeVersionToVersionFile(const std::string& dataRoot);
     bool                       isVersionOlderThanRunning(const std::string& ver);
+
+    bool                       m_bFired = false;
 };
 
 inline std::unique_ptr<CVersionKeeperManager> g_pVersionKeeperMgr;

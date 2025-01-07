@@ -5,7 +5,7 @@
 
 #include "../defines.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "eventLoop/EventLoopTimer.hpp"
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {

@@ -133,18 +133,20 @@ jobs:
 
       - name: Create patch
         if: failure()
-        run: git diff > clang-format.patch
-
-      - name: Comment patch
-        if: failure()
-        uses: mshick/add-pr-comment@v2
-        with:
+        run: |
           message:
             please fix the following formatting issues, or directly apply the patch
             ```diff
             << FILE_CONTENTS >>
             ```
+          echo "fix the following formatting issues, or directly apply the patch" > clang-format.patch
+          echo '```diff' >> clang-format.patch
+          git diff >> clang-format.patch
+          echo '```' >> clang-format.patch
+
+      - name: Comment patch
+        if: failure()
+        uses: mshick/add-pr-comment@v2
+        with:
           message-path: |
             clang-format.patch
-          find: |
-            << FILE_CONTENTS >>

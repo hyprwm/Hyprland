@@ -134,11 +134,6 @@ jobs:
       - name: Create patch
         if: failure()
         run: |
-          message:
-            please fix the following formatting issues, or directly apply the patch
-            ```diff
-            << FILE_CONTENTS >>
-            ```
           echo "fix the following formatting issues, or directly apply the patch" > clang-format.patch
           echo '```diff' >> clang-format.patch
           git diff >> clang-format.patch

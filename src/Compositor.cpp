@@ -2400,6 +2400,9 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     } else if (regexp.starts_with("initialtitle:")) {
         mode       = MODE_INITIAL_TITLE_REGEX;
         regexCheck = regexp.substr(13);
+    } else if (regexp.starts_with("tag:")) {
+        mode       = MODE_TAG_REGEX;
+        regexCheck = regexp.substr(4);
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2434,6 +2437,18 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
             case MODE_INITIAL_TITLE_REGEX: {
                 const auto initialWindowTitle = w->m_szInitialTitle;
                 if (!RE2::FullMatch(initialWindowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_TAG_REGEX: {
+                bool tagMatched = false;
+                for (auto const& t : w->m_tags.getTags()) {
+                    if (RE2::FullMatch(t, regexCheck)) {
+                        tagMatched = true;
+                        break;
+                    }
+                }
+                if (!tagMatched)
                     continue;
                 break;
             }

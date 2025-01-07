@@ -618,6 +618,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:ctm_animation", Hyprlang::INT{2});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("ecosystem:no_donation_nag", Hyprlang::INT{0});
 
     // devices
     m_pConfig->addSpecialCategory("device", {"name"});

@@ -2,6 +2,7 @@
 #include "../debug/Log.hpp"
 #include "VersionKeeperManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../config/ConfigValue.hpp"
 
 #include <chrono>
 #include <format>
@@ -33,7 +34,9 @@ const std::vector<SNagDatePoint> NAG_DATE_POINTS = {
 // clang-format on
 
 CDonationNagManager::CDonationNagManager() {
-    if (g_pVersionKeeperMgr->fired())
+    static auto PNONAG = CConfigValue<Hyprlang::INT>("ecosystem:no_donation_nag");
+
+    if (g_pVersionKeeperMgr->fired() || *PNONAG)
         return;
 
     const auto DATAROOT = NFsUtils::getDataHome();

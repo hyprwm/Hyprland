@@ -4,6 +4,7 @@
 #include <mutex>
 #include <thread>
 #include <wayland-server.h>
+#include "helpers/signal/Signal.hpp"
 
 #include "EventLoopTimer.hpp"
 
@@ -36,11 +37,18 @@ class CEventLoopManager {
     };
 
   private:
+    // Manages the event sources after AQ pollFDs change.
+    void syncPollFDs();
+
+    struct SEventSourceData {
+        SP<Aquamarine::SPollFD> pollFD;
+        wl_event_source*        eventSource = nullptr;
+    };
+
     struct {
-        wl_event_loop*                loop        = nullptr;
-        wl_display*                   display     = nullptr;
-        wl_event_source*              eventSource = nullptr;
-        std::vector<wl_event_source*> aqEventSources;
+        wl_event_loop*   loop        = nullptr;
+        wl_display*      display     = nullptr;
+        wl_event_source* eventSource = nullptr;
     } m_sWayland;
 
     struct {
@@ -49,7 +57,11 @@ class CEventLoopManager {
     } m_sTimers;
 
     SIdleData                            m_sIdle;
-    std::vector<SP<Aquamarine::SPollFD>> aqPollFDs;
+    std::map<int, SEventSourceData>      aqEventSources;
+
+    struct {
+        CHyprSignalListener pollFDsChanged;
+    } m_sListeners;
 
     wl_event_source*                     m_configWatcherInotifySource = nullptr;
 

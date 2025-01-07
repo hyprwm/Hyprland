@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 
+#include <map>
 #include <sys/timerfd.h>
 #include <ctime>
 
@@ -17,11 +18,12 @@ CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEvent
     m_sTimers.timerfd  = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
     m_sWayland.loop    = wlEventLoop;
     m_sWayland.display = display;
+    aqEventSources     = std::map<int, SEventSourceData>{};
 }
 
 CEventLoopManager::~CEventLoopManager() {
-    for (auto const& eventSource : m_sWayland.aqEventSources) {
-        wl_event_source_remove(eventSource);
+    for (auto const& [_, eventSourceData] : aqEventSources) {
+        wl_event_source_remove(eventSourceData.eventSource);
     }
 
     if (m_sWayland.eventSource)
@@ -56,10 +58,8 @@ void CEventLoopManager::enterLoop() {
     if (const auto FD = g_pConfigWatcher->getInotifyFD(); FD >= 0)
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_sWayland.loop, FD, WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
-    aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
-    for (auto const& fd : aqPollFDs) {
-        m_sWayland.aqEventSources.emplace_back(wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get()));
-    }
+    syncPollFDs();
+    m_sListeners.pollFDsChanged = g_pCompositor->m_pAqBackend->events.pollFDsChanged.registerListener([this](std::any d) { syncPollFDs(); });
 
     // if we have a session, dispatch it to get the pending input devices
     if (g_pCompositor->m_pAqBackend->hasSession())
@@ -143,4 +143,22 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
             }
         },
         &m_sIdle);
+}
+
+void CEventLoopManager::syncPollFDs() {
+    auto aqPollFDs = g_pCompositor->m_pAqBackend->getPollFDs();
+
+    for (auto it = aqEventSources.begin(); it != aqEventSources.end();) {
+        if (std::ranges::all_of(aqPollFDs, [&](SP<Aquamarine::SPollFD> fd) { return fd->fd != it->first; })) {
+            wl_event_source_remove(it->second.eventSource);
+            it = aqEventSources.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto& fd : aqPollFDs | std::views::filter([&](SP<Aquamarine::SPollFD> fd) { return !aqEventSources.contains(fd->fd); })) {
+        auto eventSource       = wl_event_loop_add_fd(m_sWayland.loop, fd->fd, WL_EVENT_READABLE, aquamarineFDWrite, fd.get());
+        aqEventSources[fd->fd] = {.pollFD = fd, .eventSource = eventSource};
+    }
 }

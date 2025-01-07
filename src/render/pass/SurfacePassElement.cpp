@@ -79,6 +79,8 @@ void CSurfacePassElement::draw(const CRegion& damage) {
         DELTALESSTHAN(windowBox.height, data.surface->current.bufferSize.y, 3) /* off by one-or-two */ &&
         (!data.pWindow || (!data.pWindow->m_vRealSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */;
 
+    if (data.surface->colorManagement.valid())
+        Debug::log(TRACE, "FIXME: rendering surface with color management enabled, should apply necessary transformations");
     g_pHyprRenderer->calculateUVForSurface(data.pWindow, data.surface, data.pMonitor->self.lock(), data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     // check for fractional scale surfaces misaligning the buffer size

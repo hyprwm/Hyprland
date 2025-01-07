@@ -119,4 +119,5 @@ class CWLSurface {
     } listeners;
 
     friend class CPointerConstraint;
+    friend class CXxColorManagerV4;
 };

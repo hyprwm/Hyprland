@@ -713,7 +713,7 @@ bool CHyprOpenGLImpl::passRequiresIntrospection(PHLMONITOR pMonitor) {
             if (!ws->m_bIsSpecialWorkspace || ws->m_pMonitor != pMonitor)
                 continue;
 
-            if (ws->m_fAlpha.value() == 0)
+            if (ws->m_fAlpha->value() == 0)
                 continue;
 
             return true;
@@ -1517,7 +1517,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, CBox* pB
 
         if (allowDim && m_RenderData.currentWindow) {
             glUniform1i(shader->applyTint, 1);
-            const auto DIM = m_RenderData.currentWindow->m_fDimPercent.value();
+            const auto DIM = m_RenderData.currentWindow->m_fDimPercent->value();
             glUniform3f(shader->tint, 1.f - DIM, 1.f - DIM, 1.f - DIM);
         } else {
             glUniform1i(shader->applyTint, 0);
@@ -1931,7 +1931,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         const auto  PSURFACE = pWindow->m_pWLSurface->resource();
 
         const auto  PWORKSPACE = pWindow->m_pWorkspace;
-        const float A          = pWindow->m_fAlpha.value() * pWindow->m_fActiveInactiveAlpha.value() * PWORKSPACE->m_fAlpha.value();
+        const float A          = pWindow->m_fAlpha->value() * pWindow->m_fActiveInactiveAlpha->value() * PWORKSPACE->m_fAlpha->value();
 
         if (A >= 1.f) {
             // if (PSURFACE->opaque)
@@ -1969,7 +1969,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
                 if (!ls->layerSurface || ls->xray != 1)
                     continue;
 
-                // if (ls->layerSurface->surface->opaque && ls->alpha.value() >= 1.f)
+                // if (ls->layerSurface->surface->opaque && ls->alpha->value() >= 1.f)
                 //     continue;
 
                 hasWindows = true;

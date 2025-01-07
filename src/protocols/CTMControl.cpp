@@ -3,6 +3,7 @@
 #include "../render/Renderer.hpp"
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
+#include "managers/AnimationManager.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(SP<CHyprlandCtmControlManagerV1> resource_) : resource(resource_) {
     if (!good())
@@ -92,8 +93,7 @@ bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
 }
 
 CHyprlandCTMControlProtocol::SCTMData::SCTMData() {
-    progress.create(g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
-    progress.setValueAndWarp(0.F);
+    g_pAnimationManager->createAnimation(0.f, progress, g_pConfigManager->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
 }
 
 void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {
@@ -112,18 +112,18 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
     data->ctmFrom = data->ctmTo;
     data->ctmTo   = ctm;
 
-    data->progress.setValueAndWarp(0.F);
-    data->progress = 1.F;
+    data->progress->setValueAndWarp(0.F);
+    *data->progress = 1.F;
 
     monitor->setCTM(data->ctmFrom);
 
-    data->progress.setUpdateCallback([monitor = PHLMONITORREF{monitor}, this](void* self) {
+    data->progress->setUpdateCallback([monitor = PHLMONITORREF{monitor}, this](auto) {
         if (!monitor || !m_mCTMDatas.contains(monitor))
             return;
         auto&                data     = m_mCTMDatas.at(monitor);
         const auto           from     = data->ctmFrom.getMatrix();
         const auto           to       = data->ctmTo.getMatrix();
-        const auto           PROGRESS = data->progress.getPercent();
+        const auto           PROGRESS = data->progress->getPercent();
 
         static const auto    lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
 
@@ -135,7 +135,7 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
         monitor->setCTM(mtx);
     });
 
-    data->progress.setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](void* self) {
+    data->progress->setCallbackOnEnd([monitor = PHLMONITORREF{monitor}, this](auto) {
         if (!monitor || !m_mCTMDatas.contains(monitor)) {
             monitor->setCTM(Mat3x3::identity());
             return;

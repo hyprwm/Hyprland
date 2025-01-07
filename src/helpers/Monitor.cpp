@@ -1127,16 +1127,16 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             if (w->m_bIsFloating && !VECINRECT(MIDDLE, vecPosition.x, vecPosition.y, vecPosition.x + vecSize.x, vecPosition.y + vecSize.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isnt on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
-                Vector2D   pos            = w->m_vRealPosition.goal();
+                Vector2D   pos            = w->m_vRealPosition->goal();
                 if (!VECINRECT(MIDDLE, PMONFROMMIDDLE->vecPosition.x, PMONFROMMIDDLE->vecPosition.y, PMONFROMMIDDLE->vecPosition.x + PMONFROMMIDDLE->vecSize.x,
                                PMONFROMMIDDLE->vecPosition.y + PMONFROMMIDDLE->vecSize.y)) {
                     // not on any monitor, center
-                    pos = middle() / 2.f - w->m_vRealSize.goal() / 2.f;
+                    pos = middle() / 2.f - w->m_vRealSize->goal() / 2.f;
                 } else
                     pos = pos - PMONFROMMIDDLE->vecPosition + vecPosition;
 
-                w->m_vRealPosition = pos;
-                w->m_vPosition     = pos;
+                *w->m_vRealPosition = pos;
+                w->m_vPosition      = pos;
             }
         }
     }

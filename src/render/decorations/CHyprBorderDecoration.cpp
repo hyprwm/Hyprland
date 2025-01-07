@@ -43,7 +43,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset.value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_pWindow->m_bPinned ? PWORKSPACE->m_vRenderOffset->value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }
 
@@ -60,10 +60,10 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         return;
 
     auto       grad     = m_pWindow->m_cRealBorderColor;
-    const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress.isBeingAnimated();
+    const bool ANIMATED = m_pWindow->m_fBorderFadeAnimationProgress->isBeingAnimated();
 
-    if (m_pWindow->m_fBorderAngleAnimationProgress.getConfig()->pValues->internalEnabled) {
-        grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress.value() * M_PI * 2;
+    if (m_pWindow->m_fBorderAngleAnimationProgress->enabled()) {
+        grad.m_fAngle += m_pWindow->m_fBorderAngleAnimationProgress->value() * M_PI * 2;
         grad.m_fAngle = normalizeAngleRad(grad.m_fAngle);
     }
 
@@ -83,7 +83,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         data.hasGrad2 = true;
         data.grad1    = m_pWindow->m_cRealBorderColorPrevious;
         data.grad2    = grad;
-        data.lerp     = m_pWindow->m_fBorderFadeAnimationProgress.value();
+        data.lerp     = m_pWindow->m_fBorderFadeAnimationProgress->value();
     }
 
     g_pHyprRenderer->m_sRenderPass.add(makeShared<CBorderPassElement>(data));
@@ -117,8 +117,8 @@ void CHyprBorderDecoration::damageEntire() {
     const auto BORDERSIZE   = m_pWindow->getRealBorderSize() + 1;
 
     const auto PWINDOWWORKSPACE = m_pWindow->m_pWorkspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset.isBeingAnimated() && !m_pWindow->m_bPinned)
-        surfaceBox.translate(PWINDOWWORKSPACE->m_vRenderOffset.value());
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_vRenderOffset->isBeingAnimated() && !m_pWindow->m_bPinned)
+        surfaceBox.translate(PWINDOWWORKSPACE->m_vRenderOffset->value());
     surfaceBox.translate(m_pWindow->m_vFloatingOffset);
 
     CBox surfaceBoxExpandedBorder = surfaceBox;

@@ -243,9 +243,9 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
 
 Vector2D CPopup::t1ParentCoords() {
     if (!m_pWindowOwner.expired())
-        return m_pWindowOwner->m_vRealPosition.value();
+        return m_pWindowOwner->m_vRealPosition->value();
     if (!m_pLayerOwner.expired())
-        return m_pLayerOwner->realPosition.value();
+        return m_pLayerOwner->realPosition->value();
 
     ASSERT(false);
     return {};

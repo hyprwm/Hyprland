@@ -192,16 +192,16 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
         CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
         wb.round(); // avoid rounding mess
 
-        PWINDOW->m_vRealPosition = wb.pos();
-        PWINDOW->m_vRealSize     = wb.size();
+        *PWINDOW->m_vRealPosition = wb.pos();
+        *PWINDOW->m_vRealSize     = wb.size();
 
         g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     } else {
         CBox wb = {calcPos, calcSize};
         wb.round(); // avoid rounding mess
 
-        PWINDOW->m_vRealSize     = wb.size();
-        PWINDOW->m_vRealPosition = wb.pos();
+        *PWINDOW->m_vRealSize     = wb.size();
+        *PWINDOW->m_vRealPosition = wb.pos();
 
         g_pXWaylandManager->setWindowSize(PWINDOW, wb.size());
     }
@@ -209,8 +209,8 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SDwindleNodeData* pNode, bool for
     if (force) {
         g_pHyprRenderer->damageWindow(PWINDOW);
 
-        PWINDOW->m_vRealPosition.warp();
-        PWINDOW->m_vRealSize.warp();
+        PWINDOW->m_vRealPosition->warp();
+        PWINDOW->m_vRealSize->warp();
 
         g_pHyprRenderer->damageWindow(PWINDOW);
     }
@@ -508,8 +508,8 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
         const auto PFULLWINDOW = pWorkspace->getFullscreenWindow();
 
         if (pWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
-            PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
-            PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
+            *PFULLWINDOW->m_vRealPosition = PMONITOR->vecPosition;
+            *PFULLWINDOW->m_vRealSize     = PMONITOR->vecSize;
         } else if (pWorkspace->m_efFullscreenMode == FSMODE_MAXIMIZED) {
             SDwindleNodeData fakeNode;
             fakeNode.pWindow         = PFULLWINDOW;
@@ -554,8 +554,8 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
     const auto PNODE = getNodeFromWindow(PWINDOW);
 
     if (!PNODE) {
-        PWINDOW->m_vRealSize =
-            (PWINDOW->m_vRealSize.goal() + pixResize)
+        *PWINDOW->m_vRealSize =
+            (PWINDOW->m_vRealSize->goal() + pixResize)
                 .clamp(PWINDOW->m_sWindowData.minSize.valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), PWINDOW->m_sWindowData.maxSize.valueOr(Vector2D{INFINITY, INFINITY}));
         PWINDOW->updateWindowDecos();
         return;
@@ -575,7 +575,7 @@ void CHyprDwindleLayout::resizeActiveWindow(const Vector2D& pixResize, eRectCorn
         if (!m_PseudoDragFlags.started) {
             m_PseudoDragFlags.started = true;
 
-            const auto pseudoSize  = PWINDOW->m_vRealSize.goal();
+            const auto pseudoSize  = PWINDOW->m_vRealSize->goal();
             const auto mouseOffset = g_pInputManager->getMouseCoordsInternal() - (PNODE->box.pos() + ((PNODE->box.size() / 2) - (pseudoSize / 2)));
 
             if (mouseOffset.x > 0 && mouseOffset.x < pseudoSize.x && mouseOffset.y > 0 && mouseOffset.y < pseudoSize.y) {
@@ -743,10 +743,10 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFu
 
     // save position and size if floating
     if (pWindow->m_bIsFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE) {
-        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize.goal();
-        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition.goal();
-        pWindow->m_vPosition             = pWindow->m_vRealPosition.goal();
-        pWindow->m_vSize                 = pWindow->m_vRealSize.goal();
+        pWindow->m_vLastFloatingSize     = pWindow->m_vRealSize->goal();
+        pWindow->m_vLastFloatingPosition = pWindow->m_vRealPosition->goal();
+        pWindow->m_vPosition             = pWindow->m_vRealPosition->goal();
+        pWindow->m_vSize                 = pWindow->m_vRealSize->goal();
     }
 
     if (EFFECTIVE_MODE == FSMODE_NONE) {
@@ -756,8 +756,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFu
             applyNodeDataToWindow(PNODE);
         else {
             // get back its' dimensions from position and size
-            pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
-            pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
+            *pWindow->m_vRealPosition = pWindow->m_vLastFloatingPosition;
+            *pWindow->m_vRealSize     = pWindow->m_vLastFloatingSize;
 
             pWindow->unsetWindowData(PRIORITY_LAYOUT);
             pWindow->updateWindowData();
@@ -765,8 +765,8 @@ void CHyprDwindleLayout::fullscreenRequestForWindow(PHLWINDOW pWindow, const eFu
     } else {
         // apply new pos and size being monitors' box
         if (EFFECTIVE_MODE == FSMODE_FULLSCREEN) {
-            pWindow->m_vRealPosition = PMONITOR->vecPosition;
-            pWindow->m_vRealSize     = PMONITOR->vecSize;
+            *pWindow->m_vRealPosition = PMONITOR->vecPosition;
+            *pWindow->m_vRealSize     = PMONITOR->vecSize;
         } else {
             // This is a massive hack.
             // We make a fake "only" node and apply

@@ -328,6 +328,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     eOrientation orientation         = getDynamicOrientation(pWorkspace);
     bool         centerMasterWindow  = false;
     static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto  CMSLAVESONRIGHT     = CConfigValue<Hyprlang::INT>("master:center_master_slaves_on_right");
     static auto  PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
     static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
@@ -341,7 +342,10 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         if (STACKWINDOWS >= *SLAVECOUNTFORCENTER) {
             centerMasterWindow = true;
         } else {
-            orientation = ORIENTATION_LEFT;
+            if (*CMSLAVESONRIGHT)
+                orientation = ORIENTATION_LEFT;
+            else
+                orientation = ORIENTATION_RIGHT;
         }
     }
 
@@ -515,15 +519,20 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         float       nextY       = 0;
         float       nextYL      = 0;
         float       nextYR      = 0;
-        bool        onRight     = true;
+        bool        onRight     = *CMSLAVESONRIGHT;
+        int         slavesLeftL = 1 + (slavesLeft - 1) / 2;
+        int         slavesLeftR = slavesLeft - slavesLeftL;
 
-        int         slavesLeftR = 1 + (slavesLeft - 1) / 2;
-        int         slavesLeftL = slavesLeft - slavesLeftR;
+        if (*CMSLAVESONRIGHT) {
+            slavesLeftR = 1 + (slavesLeft - 1) / 2;
+            slavesLeftL = slavesLeft - slavesLeftR;
+        }
 
         const float slaveAverageHeightL     = WSSIZE.y / slavesLeftL;
         const float slaveAverageHeightR     = WSSIZE.y / slavesLeftR;
         float       slaveAccumulatedHeightL = 0;
         float       slaveAccumulatedHeightR = 0;
+
         if (*PSMARTRESIZING) {
             for (auto const& nd : m_lMasterNodesData) {
                 if (nd.workspaceID != pWorkspace->m_iID || nd.isMaster)
@@ -536,7 +545,8 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
                 }
                 onRight = !onRight;
             }
-            onRight = true;
+
+            onRight = *CMSLAVESONRIGHT;
         }
 
         for (auto& nd : m_lMasterNodesData) {

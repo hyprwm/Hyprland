@@ -66,8 +66,8 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["execr"]                          = spawnRaw;
     m_mDispatchers["killactive"]                     = closeActive;
     m_mDispatchers["forcekillactive"]                = killActive;
-    m_mDispatchers["killwindow"]                     = closeWindow;
-    m_mDispatchers["forcekillwindow"]                = killWindow;
+    m_mDispatchers["closewindow"]                    = closeWindow;
+    m_mDispatchers["killwindow"]                     = killWindow;
     m_mDispatchers["signal"]                         = signalActive;
     m_mDispatchers["signalwindow"]                   = signalWindow;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
@@ -1024,6 +1024,18 @@ SDispatchResult CKeybindManager::signalActive(std::string args) {
     if (!std::all_of(args.begin(), args.end(), ::isdigit))
         return {.success = false, .error = "signalActive: signal has to be int"};
 
+    try {
+        const auto SIGNALNUM = std::stoi(args);
+        if (SIGNALNUM < 1 || SIGNALNUM > 31) {
+            Debug::log(ERR, "signalActive: invalid signal number {}", SIGNALNUM);
+            return {.success = false, .error = std::format("signalActive: invalid signal number {}", SIGNALNUM)};
+        }
+        kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGNALNUM);
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "signalActive: invalid signal format \"{}\"", args);
+        return {.success = false, .error = std::format("signalActive: invalid signal format \"{}\"", args)};
+    }
+
     kill(g_pCompositor->m_pLastWindow.lock()->getPID(), std::stoi(args));
 
     return {};
@@ -1043,7 +1055,17 @@ SDispatchResult CKeybindManager::signalWindow(std::string args) {
     if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
         return {.success = false, .error = "signalWindow: signal has to be int"};
 
-    kill(PWINDOW->getPID(), std::stoi(SIGNAL));
+    try {
+        const auto SIGNALNUM = std::stoi(SIGNAL);
+        if (SIGNALNUM < 1 || SIGNALNUM > 31) {
+            Debug::log(ERR, "signalWindow: invalid signal number {}", SIGNALNUM);
+            return {.success = false, .error = std::format("signalWindow: invalid signal number {}", SIGNALNUM)};
+        }
+        kill(PWINDOW->getPID(), SIGNALNUM);
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "signalWindow: invalid signal format \"{}\"", SIGNAL);
+        return {.success = false, .error = std::format("signalWindow: invalid signal format \"{}\"", SIGNAL)};
+    }
 
     return {};
 }

@@ -1466,8 +1466,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
-    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, pMonitor->output->parsedEDID.hdrMetadata->supportsPQ);
-    if (pMonitor->output->parsedEDID.supportsBT2020 && pMonitor->output->parsedEDID.hdrMetadata->supportsPQ) {
+    const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
+    Debug::log(TRACE, "ColorManagement supportsBT2020 {}, supportsPQ {}", pMonitor->output->parsedEDID.supportsBT2020, SUPPORTSPQ);
+    if (pMonitor->output->parsedEDID.supportsBT2020 && SUPPORTSPQ) {
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto SURF   = WINDOW->m_pWLSurface->resource();

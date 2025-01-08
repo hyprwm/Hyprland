@@ -847,7 +847,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         m_RenderData.pCurrentMonData->offloadFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
         m_RenderData.pCurrentMonData->mirrorFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
         m_RenderData.pCurrentMonData->mirrorSwapFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
-        m_RenderData.pCurrentMonData->offMainFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
     }
 
     if (m_RenderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_RenderData.pMonitor->mirrors.empty())
@@ -2886,9 +2885,13 @@ void CHyprOpenGLImpl::restoreMatrix() {
 }
 
 void CHyprOpenGLImpl::bindOffMain() {
-    if (!m_RenderData.pCurrentMonData->offMainFB.isAllocated())
+    if (!m_RenderData.pCurrentMonData->offMainFB.isAllocated()) {
         m_RenderData.pCurrentMonData->offMainFB.alloc(m_RenderData.pMonitor->vecPixelSize.x, m_RenderData.pMonitor->vecPixelSize.y,
                                                       m_RenderData.pMonitor->output->state->state().drmFormat);
+
+        m_RenderData.pCurrentMonData->offMainFB.addStencil(m_RenderData.pCurrentMonData->stencilTex);
+    }
+
     m_RenderData.pCurrentMonData->offMainFB.bind();
     clear(CHyprColor(0, 0, 0, 0));
     m_RenderData.currentFB = &m_RenderData.pCurrentMonData->offMainFB;

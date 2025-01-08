@@ -88,7 +88,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
                     break;
                 }; // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
-            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, std::format("FIXME: add tf support for {}", (uint32_t)tf)); // intended fall through
+            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); // intended fall through
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
                 surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
 

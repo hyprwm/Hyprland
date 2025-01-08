@@ -376,7 +376,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     auto        maxSize    = state->monitor->output->cursorPlaneSize();
     auto const& cursorSize = currentCursorImage.size;
 
-    static auto PDUMB = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+    static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+
+    const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
 
     if (maxSize == Vector2D{})
         return nullptr;
@@ -390,12 +392,12 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         maxSize = cursorSize;
 
     if (!state->monitor->cursorSwapchain || maxSize != state->monitor->cursorSwapchain->currentOptions().size ||
-        *PDUMB != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
+        shouldUseCpuBuffer != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
 
-        if (!state->monitor->cursorSwapchain || *PDUMB != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
+        if (!state->monitor->cursorSwapchain || shouldUseCpuBuffer != (state->monitor->cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
 
             auto allocator = state->monitor->output->getBackend()->preferredAllocator();
-            if (*PDUMB) {
+            if (shouldUseCpuBuffer) {
                 for (const auto& a : state->monitor->output->getBackend()->getAllocators()) {
                     if (a->type() == Aquamarine::AQ_ALLOCATOR_TYPE_DRM_DUMB) {
                         allocator = a;
@@ -415,7 +417,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.multigpu = state->monitor->output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_iDRMFD;
         // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
-        if (*PDUMB)
+        if (shouldUseCpuBuffer)
             options.format = DRM_FORMAT_ARGB8888;
 
         if (!state->monitor->cursorSwapchain->reconfigure(options)) {
@@ -438,7 +440,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return nullptr;
     }
 
-    if (*PDUMB) {
+    if (shouldUseCpuBuffer) {
         // get the texture data if available.
         auto texData = texture->dataCopy();
         if (texData.empty()) {

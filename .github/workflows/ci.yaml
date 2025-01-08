@@ -138,7 +138,9 @@ jobs:
           echo '<details>' >> clang-format.patch
           echo '<summary>clang-format.patch</summary>' >> clang-format.patch
           echo '```diff' >> clang-format.patch
+          echo >> clang-format.patch
           git diff >> clang-format.patch
+          echo >> clang-format.patch
           echo '```' >> clang-format.patch
           echo '</details>' >> clang-format.patch
 

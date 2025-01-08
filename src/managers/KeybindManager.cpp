@@ -12,6 +12,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/Log.hpp"
 #include "helpers/varlist/VarList.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 #include <optional>
 #include <iterator>
@@ -63,8 +64,12 @@ CKeybindManager::CKeybindManager() {
 
     m_mDispatchers["exec"]                           = spawn;
     m_mDispatchers["execr"]                          = spawnRaw;
-    m_mDispatchers["killactive"]                     = killActive;
-    m_mDispatchers["closewindow"]                    = kill;
+    m_mDispatchers["killactive"]                     = closeActive;
+    m_mDispatchers["forcekillactive"]                = killActive;
+    m_mDispatchers["closewindow"]                    = closeWindow;
+    m_mDispatchers["killwindow"]                     = killWindow;
+    m_mDispatchers["signal"]                         = signalActive;
+    m_mDispatchers["signalwindow"]                   = signalWindow;
     m_mDispatchers["togglefloating"]                 = toggleActiveFloating;
     m_mDispatchers["setfloating"]                    = setActiveFloating;
     m_mDispatchers["settiled"]                       = setActiveTiled;
@@ -978,20 +983,89 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
+    kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGKILL);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::closeActive(std::string args) {
     g_pCompositor->closeWindow(g_pCompositor->m_pLastWindow.lock());
 
     return {};
 }
 
-SDispatchResult CKeybindManager::kill(std::string args) {
+SDispatchResult CKeybindManager::closeWindow(std::string args) {
     const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
 
     if (!PWINDOW) {
-        Debug::log(ERR, "kill: no window found");
-        return {.success = false, .error = "kill: no window found"};
+        Debug::log(ERR, "closeWindow: no window found");
+        return {.success = false, .error = "closeWindow: no window found"};
     }
 
     g_pCompositor->closeWindow(PWINDOW);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::killWindow(std::string args) {
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "killWindow: no window found");
+        return {.success = false, .error = "killWindow: no window found"};
+    }
+
+    kill(PWINDOW->getPID(), SIGKILL);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::signalActive(std::string args) {
+    if (!std::all_of(args.begin(), args.end(), ::isdigit))
+        return {.success = false, .error = "signalActive: signal has to be int"};
+
+    try {
+        const auto SIGNALNUM = std::stoi(args);
+        if (SIGNALNUM < 1 || SIGNALNUM > 31) {
+            Debug::log(ERR, "signalActive: invalid signal number {}", SIGNALNUM);
+            return {.success = false, .error = std::format("signalActive: invalid signal number {}", SIGNALNUM)};
+        }
+        kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGNALNUM);
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "signalActive: invalid signal format \"{}\"", args);
+        return {.success = false, .error = std::format("signalActive: invalid signal format \"{}\"", args)};
+    }
+
+    kill(g_pCompositor->m_pLastWindow.lock()->getPID(), std::stoi(args));
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::signalWindow(std::string args) {
+    const auto WINDOWREGEX = args.substr(0, args.find_first_of(','));
+    const auto SIGNAL      = args.substr(args.find_first_of(',') + 1);
+
+    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "signalWindow: no window");
+        return {.success = false, .error = "signalWindow: no window"};
+    }
+
+    if (!std::all_of(SIGNAL.begin(), SIGNAL.end(), ::isdigit))
+        return {.success = false, .error = "signalWindow: signal has to be int"};
+
+    try {
+        const auto SIGNALNUM = std::stoi(SIGNAL);
+        if (SIGNALNUM < 1 || SIGNALNUM > 31) {
+            Debug::log(ERR, "signalWindow: invalid signal number {}", SIGNALNUM);
+            return {.success = false, .error = std::format("signalWindow: invalid signal number {}", SIGNALNUM)};
+        }
+        kill(PWINDOW->getPID(), SIGNALNUM);
+    } catch (const std::exception& e) {
+        Debug::log(ERR, "signalWindow: invalid signal format \"{}\"", SIGNAL);
+        return {.success = false, .error = std::format("signalWindow: invalid signal format \"{}\"", SIGNAL)};
+    }
 
     return {};
 }

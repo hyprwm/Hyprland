@@ -308,15 +308,17 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "windows": {},
     "hasfullscreen": {},
     "lastwindow": "0x{:x}",
-    "lastwindowtitle": "{}"
+    "lastwindowtitle": "{}",
+    "lastwindowclass": "{}"
 }})#",
                            w->m_iID, escapeJSONStrings(w->m_szName), escapeJSONStrings(PMONITOR ? PMONITOR->szName : "?"),
                            escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->ID) : "null"), w->getWindows(), ((int)w->m_bHasFullscreenWindow == 1 ? "true" : "false"),
-                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "");
+                           (uintptr_t)PLASTW.get(), PLASTW ? escapeJSONStrings(PLASTW->m_szTitle) : "", PLASTW ? escapeJSONStrings(PLASTW->m_szClass) : "");
     } else {
-        return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\n", w->m_iID,
-                           w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_bHasFullscreenWindow,
-                           (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_szTitle : "");
+        return std::format(
+            "workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tlastwindowclass: {}\n\n",
+            w->m_iID, w->m_szName, PMONITOR ? PMONITOR->szName : "?", PMONITOR ? std::to_string(PMONITOR->ID) : "null", w->getWindows(), (int)w->m_bHasFullscreenWindow,
+            (uintptr_t)PLASTW.get(), PLASTW ? PLASTW->m_szTitle : "", PLASTW ? PLASTW->m_szClass : "");
     }
 }
 

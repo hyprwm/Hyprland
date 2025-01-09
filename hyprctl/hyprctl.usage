@@ -135,6 +135,7 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (splitratio)          	                          "Change the split ratio"
                 |  (toggleopaque)            	                      "Toggle the current window to always be opaque"
                 |  (movecursortocorner)          	                  "Move the cursor to the corner of the active window"
+                |  (movecursortomonitor)            	              "Move the cursor to a specified monitor"
                 |  (movecursor)          	                          "Move the cursor to a specified position"
                 |  (renameworkspace)         	                      "Rename a workspace"
                 |  (exit)            	                              "Exit the compositor with no questions asked"

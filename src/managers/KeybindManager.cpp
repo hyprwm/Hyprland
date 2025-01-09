@@ -92,6 +92,7 @@ CKeybindManager::CKeybindManager() {
     m_mDispatchers["splitratio"]                     = alterSplitRatio;
     m_mDispatchers["focusmonitor"]                   = focusMonitor;
     m_mDispatchers["movecursortocorner"]             = moveCursorToCorner;
+    m_mDispatchers["movecursortomonitor"]            = moveCursorToMonitor;
     m_mDispatchers["movecursor"]                     = moveCursor;
     m_mDispatchers["workspaceopt"]                   = workspaceOpt;
     m_mDispatchers["exit"]                           = exitHyprland;
@@ -1827,6 +1828,16 @@ SDispatchResult CKeybindManager::moveCursorToCorner(std::string arg) {
     }
 
     return {};
+}
+
+SDispatchResult CKeybindManager::moveCursorToMonitor(std::string arg) {
+    for (auto const& monitor : g_pCompositor->m_vMonitors) {
+        if (monitor->szName == arg) {
+            g_pCompositor->warpCursorTo(monitor->middle(), true);
+            return {};
+        }
+    }
+    return {.success = false, .error = "Monitor not found"};
 }
 
 SDispatchResult CKeybindManager::moveCursor(std::string args) {

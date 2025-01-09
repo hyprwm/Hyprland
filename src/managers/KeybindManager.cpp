@@ -786,6 +786,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             m_passPressed = (int)pressed;
 
+            // We only process the releaseinputcapture dispatcher when input capture is active
+            if (PROTO::inputCapture->isCaptured()) {
+                if (k->handler == "releaseinputcapture")
+                    res = DISPATCHER->second(k->arg);
+                else
+                    break;
+            }
+
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
                 res = DISPATCHER->second((pressed ? "1" : "0") + k->arg);

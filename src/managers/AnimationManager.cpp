@@ -40,7 +40,7 @@ CHyprAnimationManager::CHyprAnimationManager() {
 
 template <Animable VarType>
 void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool warp = false) {
-    if (POINTY >= 1.f || warp || av.value() == av.goal()) {
+    if (warp || av.value() == av.goal()) {
         av.warp();
         return;
     }
@@ -50,7 +50,7 @@ void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, bool war
 }
 
 void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp) {
-    if (POINTY >= 1.f || warp || av.value() == av.goal()) {
+    if (warp || av.value() == av.goal()) {
         av.warp();
         return;
     }
@@ -146,11 +146,12 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     const auto SPENT   = av.getPercent();
     const auto PBEZIER = g_pAnimationManager->getBezier(av.getBezierName());
     const auto POINTY  = PBEZIER->getYForPoint(SPENT);
+    const bool WARP    = animationsDisabled || SPENT >= 1.f;
 
     if constexpr (std::same_as<VarType, CHyprColor>)
-        updateColorVariable(av, POINTY, animationsDisabled);
+        updateColorVariable(av, POINTY, WARP);
     else
-        updateVariable<VarType>(av, POINTY, animationsDisabled);
+        updateVariable<VarType>(av, POINTY, WARP);
 
     av.onUpdate();
 

@@ -131,6 +131,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
     std::optional<SFullscreenState> requestedFSState;
     if (PWINDOW->m_bWantsInitialFullscreen || (PWINDOW->m_bIsX11 && PWINDOW->m_pXWaylandSurface->fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
+    MONITORID requestedFSMonitor = PWINDOW->m_iWantsInitialFullscreenMonitor;
 
     for (auto const& r : PWINDOW->m_vMatchedRules) {
         switch (r->ruleType) {
@@ -168,6 +169,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     PWORKSPACE            = PWINDOW->m_pWorkspace;
 
                     Debug::log(LOG, "Rule monitor, applying to {:mw}", PWINDOW);
+                    requestedFSMonitor = MONITOR_INVALID;
                 } catch (std::exception& e) { Debug::log(ERR, "Rule monitor failed, rule: {} -> {} | err: {}", r->szRule, r->szValue, e.what()); }
                 break;
             }
@@ -186,6 +188,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
                     requestedWorkspace = "";
 
                 Debug::log(LOG, "Rule workspace matched by {}, {} applied.", PWINDOW, r->szValue);
+                requestedFSMonitor = MONITOR_INVALID;
                 break;
             }
             case CWindowRule::RULE_FLOAT: {
@@ -227,6 +230,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE;
                     else if (vars[i] == "activatefocus")
                         PWINDOW->m_eSuppressedEvents |= SUPPRESS_ACTIVATE_FOCUSONLY;
+                    else if (vars[i] == "fullscreenoutput")
+                        PWINDOW->m_eSuppressedEvents |= SUPPRESS_FULLSCREEN_OUTPUT;
                     else
                         Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", vars[i]);
                 }
@@ -337,8 +342,28 @@ void Events::listener_mapWindow(void* owner, void* data) {
 
                 PMONITOR = g_pCompositor->m_pLastMonitor.lock();
             }
+
+            requestedFSMonitor = MONITOR_INVALID;
         } else
             workspaceSilent = false;
+    }
+
+    if (PWINDOW->m_eSuppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)
+        requestedFSMonitor = MONITOR_INVALID;
+    else if (requestedFSMonitor != MONITOR_INVALID) {
+        if (const auto PM = g_pCompositor->getMonitorFromID(requestedFSMonitor); PM)
+            PWINDOW->m_pMonitor = PM;
+
+        const auto PMONITORFROMID = PWINDOW->m_pMonitor.lock();
+
+        if (PWINDOW->m_pMonitor != PMONITOR) {
+            g_pKeybindManager->m_mDispatchers["focusmonitor"](std::to_string(PWINDOW->monitorID()));
+            PMONITOR = PMONITORFROMID;
+        }
+        PWINDOW->m_pWorkspace = PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace;
+        PWORKSPACE            = PWINDOW->m_pWorkspace;
+
+        Debug::log(LOG, "Requested monitor, applying to {:mw}", PWINDOW);
     }
 
     if (PWORKSPACE->m_bDefaultFloating)

@@ -5,6 +5,7 @@
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
+#include "protocols/core/Output.hpp"
 #include <cstring>
 #include <ranges>
 
@@ -191,9 +192,14 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     });
 
     resource->setSetFullscreen([this](CXdgToplevel* r, wl_resource* output) {
+        if (output)
+            if (const auto PM = CWLOutputResource::fromResource(output)->monitor; PM)
+                state.requestsFullscreenMonitor = PM->ID;
+
         state.requestsFullscreen = true;
         events.stateChanged.emit();
         state.requestsFullscreen.reset();
+        state.requestsFullscreenMonitor.reset();
     });
 
     resource->setUnsetFullscreen([this](CXdgToplevel* r) {
@@ -205,7 +211,7 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     resource->setSetMinimized([this](CXdgToplevel* r) {
         state.requestsMinimize = true;
         events.stateChanged.emit();
-        state.requestsFullscreen.reset();
+        state.requestsMinimize.reset();
     });
 
     resource->setSetParent([this](CXdgToplevel* r, wl_resource* parentR) {

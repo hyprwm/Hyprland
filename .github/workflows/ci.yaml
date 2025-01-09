@@ -128,11 +128,11 @@ jobs:
         run: ninja -C build clang-format-check
 
       - name: clang-format apply
-        if: failure()
+        if: ${{ failure() && github.event_name == 'pull_request' }}
         run: ninja -C build clang-format
 
       - name: Create patch
-        if: failure()
+        if: ${{ failure() && github.event_name == 'pull_request' }}
         run: |
           echo 'Please fix the formatting issues by running [`clang-format`](https://wiki.hyprland.org/Contributing-and-Debugging/PR-Guidelines/#code-style), or directly apply this patch:' > clang-format.patch
           echo '<details>' >> clang-format.patch
@@ -145,7 +145,7 @@ jobs:
           echo '</details>' >> clang-format.patch
 
       - name: Comment patch
-        if: failure()
+        if: ${{ failure() && github.event_name == 'pull_request' }}
         uses: mshick/add-pr-comment@v2
         with:
           message-path: |

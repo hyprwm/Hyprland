@@ -1382,14 +1382,25 @@ void CWindow::activate(bool force) {
 }
 
 void CWindow::onUpdateState() {
-    std::optional<bool> requestsFS = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsFullscreen : m_pXWaylandSurface->state.requestsFullscreen;
-    std::optional<bool> requestsMX = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsMaximize : m_pXWaylandSurface->state.requestsMaximize;
+    std::optional<bool>      requestsFS = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsFullscreen : m_pXWaylandSurface->state.requestsFullscreen;
+    std::optional<MONITORID> requestsID = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsFullscreenMonitor : MONITOR_INVALID;
+    std::optional<bool>      requestsMX = m_pXDGSurface ? m_pXDGSurface->toplevel->state.requestsMaximize : m_pXWaylandSurface->state.requestsMaximize;
 
     if (requestsFS.has_value() && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN)) {
-        bool fs = requestsFS.value();
-        if (m_bIsMapped) {
-            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_FULLSCREEN, requestsFS.value());
+        if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_eSuppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
+            if (m_bIsMapped) {
+                const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
+                g_pCompositor->moveWindowToWorkspaceSafe(m_pSelf.lock(), monitor->activeWorkspace);
+                g_pCompositor->setActiveMonitor(monitor);
+            }
+
+            if (!m_bIsMapped)
+                m_iWantsInitialFullscreenMonitor = requestsID.value();
         }
+
+        bool fs = requestsFS.value();
+        if (m_bIsMapped)
+            g_pCompositor->changeWindowFullscreenModeClient(m_pSelf.lock(), FSMODE_FULLSCREEN, requestsFS.value());
 
         if (!m_bIsMapped)
             m_bWantsInitialFullscreen = fs;

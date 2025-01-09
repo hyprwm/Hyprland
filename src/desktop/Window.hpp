@@ -57,6 +57,7 @@ enum eSuppressEvents : uint8_t {
     SUPPRESS_MAXIMIZE           = 1 << 1,
     SUPPRESS_ACTIVATE           = 1 << 2,
     SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
+    SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
 };
 
 class IWindowTransformer;
@@ -288,7 +289,8 @@ class CWindow {
     bool m_bNoInitialFocus = false;
 
     // Fullscreen and Maximize
-    bool m_bWantsInitialFullscreen = false;
+    bool      m_bWantsInitialFullscreen        = false;
+    MONITORID m_iWantsInitialFullscreenMonitor = MONITOR_INVALID;
 
     // bitfield eSuppressEvents
     uint64_t m_eSuppressedEvents = SUPPRESS_NONE;

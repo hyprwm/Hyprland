@@ -123,9 +123,10 @@ class CXDGToplevelResource {
         std::string appid;
 
         // volatile state: is reset after the stateChanged signal fires
-        std::optional<bool> requestsMaximize;
-        std::optional<bool> requestsFullscreen;
-        std::optional<bool> requestsMinimize;
+        std::optional<bool>      requestsMaximize;
+        std::optional<bool>      requestsFullscreen;
+        std::optional<MONITORID> requestsFullscreenMonitor;
+        std::optional<bool>      requestsMinimize;
     } state;
 
     struct {

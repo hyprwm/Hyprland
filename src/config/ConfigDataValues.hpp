@@ -1,12 +1,18 @@
 #pragma once
 #include "../defines.hpp"
 #include "../helpers/varlist/VarList.hpp"
+#include "debug/Log.hpp"
+#include <cstdint>
+#include <cstdlib>
+#include <format>
+#include <string>
 #include <vector>
 
 enum eConfigValueDataTypes : int8_t {
-    CVD_TYPE_INVALID   = -1,
-    CVD_TYPE_GRADIENT  = 0,
-    CVD_TYPE_CSS_VALUE = 1
+    CVD_TYPE_INVALID        = -1,
+    CVD_TYPE_GRADIENT       = 0,
+    CVD_TYPE_CSS_VALUE      = 1,
+    CVD_TYPE_ROUNDING_VALUE = 2
 };
 
 class ICustomConfigValueData {
@@ -134,5 +140,35 @@ class CCssGapData : public ICustomConfigValueData {
 
     virtual std::string toString() {
         return std::format("{} {} {} {}", top, right, bottom, left);
+    }
+};
+
+class CRoundingData : public ICustomConfigValueData {
+  public:
+    double  fraction = 0;
+    int64_t px       = 0;
+
+    void    parseRoundingData(CVarList varlist) {
+        if (varlist[0].find('%') == std::string::npos) {
+            px = std::atoi(varlist[0].c_str());
+            return;
+        }
+
+        varlist[0].resize(varlist[0].size() - 1);
+        fraction = atof(varlist[0].c_str()) / 100;
+    }
+
+    virtual eConfigValueDataTypes getDataType() {
+        return CVD_TYPE_ROUNDING_VALUE;
+    }
+
+    virtual std::string toString() {
+        if (fraction != 0)
+            return std::format("{}%", fraction * 100);
+        return std::format("{}", px);
+    }
+
+    bool isPercent() const {
+        return fraction != 0;
     }
 };

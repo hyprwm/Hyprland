@@ -1,3 +1,4 @@
+#include <format>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
@@ -17,6 +18,8 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Color.hpp"
+#include "config/ConfigDataValues.hpp"
+#include "debug/Log.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -1145,13 +1148,18 @@ bool CWindow::opaque() {
 }
 
 float CWindow::rounding() {
-    static auto PROUNDING      = CConfigValue<Hyprlang::INT>("decoration:rounding");
+    static auto PROUNDING      = CConfigValue<Hyprlang::CConfigCustomValueType>("decoration:rounding");
     static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+    static auto PROUNDINGDATA  = (CRoundingData*)(PROUNDING.ptr()->getData());
 
-    float       roundingPower = m_sWindowData.roundingPower.valueOr(*PROUNDINGPOWER);
-    float       rounding      = m_sWindowData.rounding.valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
+    if (!PROUNDINGDATA->isPercent()) {
+        const float roundingPower = m_sWindowData.roundingPower.valueOr(*PROUNDINGPOWER);
+        const float rounding      = m_sWindowData.rounding.valueOr(PROUNDINGDATA->px) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
+        return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
+    }
 
-    return m_sWindowData.noRounding.valueOrDefault() ? 0 : rounding;
+    const auto px = m_vSize.size() * PROUNDINGDATA->fraction;
+    return m_sWindowData.noRounding.valueOrDefault() ? 0 : px;
 }
 
 float CWindow::roundingPower() {

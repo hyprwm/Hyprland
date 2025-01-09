@@ -52,10 +52,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
-SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName(bool perMonitor) const {
-    if (perMonitor)
-        return m_sPrevWorkspacePerMonitor;
-
+SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName() const {
     return m_sPrevWorkspace;
 }
 
@@ -216,10 +213,7 @@ void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
     m_sPrevWorkspace.id   = prev->m_iID;
     m_sPrevWorkspace.name = prev->m_szName;
 
-    if (prev->m_pMonitor == m_pMonitor) {
-        m_sPrevWorkspacePerMonitor.id   = prev->m_iID;
-        m_sPrevWorkspacePerMonitor.name = prev->m_szName;
-    }
+    prev->m_pMonitor->addPrevWorkspaceID(prev->m_iID);
 }
 
 std::string CWorkspace::getConfigName() {

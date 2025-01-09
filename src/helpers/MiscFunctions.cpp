@@ -258,7 +258,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};
 
-        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->m_sPrevWorkspace.id);
+        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PWORKSPACE->getPrevWorkspaceIDName().id);
 
         if (!PLASTWORKSPACE)
             return {WORKSPACE_INVALID};

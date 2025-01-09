@@ -1,5 +1,6 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
+#include "macros.hpp"
 #include "math/Math.hpp"
 #include "sync/SyncReleaser.hpp"
 #include "../Compositor.hpp"
@@ -1167,6 +1168,29 @@ void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
 
 void CMonitor::moveTo(const Vector2D& pos) {
     vecPosition = pos;
+}
+
+SWorkspaceIDName CMonitor::getPrevWorkspaceIDName(const WORKSPACEID id) {
+    while (!prevWorkSpaces.empty()) {
+        const int PREVID = prevWorkSpaces.top();
+        prevWorkSpaces.pop();
+        if (PREVID == id) // skip same workspace
+            continue;
+
+        // recheck if previous workspace's was moved to another monitor
+        const auto ws = g_pCompositor->getWorkspaceByID(PREVID);
+        if (ws && ws->monitorID() == ID)
+            return {.id = PREVID, .name = ws->m_szName};
+    }
+
+    return {.id = WORKSPACE_INVALID};
+}
+
+void CMonitor::addPrevWorkspaceID(const WORKSPACEID id) {
+    if (!prevWorkSpaces.empty() && prevWorkSpaces.top() == id)
+        return;
+
+    prevWorkSpaces.emplace(id);
 }
 
 Vector2D CMonitor::middle() {

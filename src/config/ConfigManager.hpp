@@ -285,11 +285,11 @@ class CConfigManager {
     std::vector<SP<CLayerRule>>                      m_vLayerRules;
     std::vector<std::string>                         m_dBlurLSNamespaces;
 
-    bool                                                      firstExecDispatched     = false;
-    bool                                                      m_bManualCrashInitiated = false;
+    bool                                             firstExecDispatched     = false;
+    bool                                             m_bManualCrashInitiated = false;
 
-    std::vector<SFirstExecRequest>                            firstExecRequests; // bool is for if with rules
-    std::vector<std::string>                                  finalExecRequests;
+    std::vector<SFirstExecRequest>                   firstExecRequests; // bool is for if with rules
+    std::vector<std::string>                         finalExecRequests;
 
     std::vector<std::pair<std::string, std::string>> m_vFailedPluginConfigValues; // for plugin values of unloaded plugins
     std::string                                      m_szConfigErrors = "";

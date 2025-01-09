@@ -1,6 +1,7 @@
 #include "InputCapture.hpp"
 
 #include "managers/SeatManager.hpp"
+#include "render/Renderer.hpp"
 #include <fcntl.h>
 
 CInputCaptureProtocol::CInputCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -15,10 +16,12 @@ void CInputCaptureProtocol::bindManager(wl_client* client, void* data, uint32_t 
     RESOURCE->setCapture([this](CHyprlandInputCaptureManagerV1* p) {
         Debug::log(LOG, "[input-capture] Input captured");
         active = true;
+        g_pHyprRenderer->ensureCursorRenderingMode();
     });
     RESOURCE->setRelease([this](CHyprlandInputCaptureManagerV1* p) {
         Debug::log(LOG, "[input-capture] Input released");
         active = false;
+        g_pHyprRenderer->ensureCursorRenderingMode();
     });
 
     sendKeymap(g_pSeatManager->keyboard.lock(), RESOURCE);

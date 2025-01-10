@@ -983,7 +983,14 @@ uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWo
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
-    kill(g_pCompositor->m_pLastWindow.lock()->getPID(), SIGKILL);
+    const auto PWINDOW = g_pCompositor->m_pLastWindow.lock();
+
+    if (!PWINDOW) {
+        Debug::log(ERR, "killActive: no window found");
+        return {.success = false, .error = "killActive: no window found"};
+    }
+
+    kill(PWINDOW->getPID(), SIGKILL);
 
     return {};
 }

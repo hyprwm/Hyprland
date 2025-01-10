@@ -72,7 +72,7 @@ CDonationNagManager::CDonationNagManager() {
         return;
     }
 
-    if (!NFsUtils::executableExistsInPath("hyprland-donation-screen")) {
+    if (!NFsUtils::executableExistsInPath("hyprland-donate-screen")) {
         Debug::log(ERR, "DonationNag: executable doesn't exist, skipping.");
         return;
     }
@@ -98,7 +98,7 @@ CDonationNagManager::CDonationNagManager() {
         NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, EPOCHSTR);
 
         g_pEventLoopManager->doLater([] {
-            CProcess proc("hyprland-donation-screen", {});
+            CProcess proc("hyprland-donate-screen", {});
             proc.runAsync();
         });
 

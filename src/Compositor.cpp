@@ -9,6 +9,7 @@
 #include "managers/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
+#include "managers/DonationNagManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -544,6 +545,8 @@ void CCompositor::cleanup() {
     g_pSeatManager.reset();
     g_pHyprCtl.reset();
     g_pEventLoopManager.reset();
+    g_pVersionKeeperMgr.reset();
+    g_pDonationNagManager.reset();
 
     if (m_pAqBackend)
         m_pAqBackend.reset();
@@ -644,6 +647,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the VersionKeeper!");
             g_pVersionKeeperMgr = std::make_unique<CVersionKeeperManager>();
+
+            Debug::log(LOG, "Creating the DonationNag!");
+            g_pDonationNagManager = std::make_unique<CDonationNagManager>();
 
             Debug::log(LOG, "Starting XWayland");
             g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);

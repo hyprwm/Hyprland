@@ -621,6 +621,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:ctm_animation", Hyprlang::INT{2});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("ecosystem:no_donation_nag", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("experimental:wide_color_gamut", Hyprlang::INT{0});
     m_pConfig->addConfigValue("experimental:hdr", Hyprlang::INT{0});

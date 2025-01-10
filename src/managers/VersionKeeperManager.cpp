@@ -6,6 +6,7 @@
 #include "../helpers/varlist/VarList.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../helpers/fs/FsUtils.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -20,12 +21,12 @@ constexpr const char* VERSION_FILE_NAME = "lastVersion";
 CVersionKeeperManager::CVersionKeeperManager() {
     static auto PNONOTIFY = CConfigValue<Hyprlang::INT>("ecosystem:no_update_news");
 
-    const auto  DATAROOT = getDataHome();
+    const auto  DATAROOT = NFsUtils::getDataHome();
 
     if (!DATAROOT)
         return;
 
-    const auto LASTVER = getDataLastVersion(*DATAROOT);
+    const auto LASTVER = NFsUtils::readFileAsString(*DATAROOT + "/" + VERSION_FILE_NAME);
 
     if (!LASTVER)
         return;
@@ -35,99 +36,24 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
     }
 
-    writeVersionToVersionFile(*DATAROOT);
+    NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, HYPRLAND_VERSION);
 
     if (*PNONOTIFY) {
         Debug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
         return;
     }
 
-    if (!executableExistsInPath("hyprland-update-screen")) {
+    if (!NFsUtils::executableExistsInPath("hyprland-update-screen")) {
         Debug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
         return;
     }
+
+    m_bFired = true;
 
     g_pEventLoopManager->doLater([]() {
         CProcess proc("hyprland-update-screen", {"--new-version", HYPRLAND_VERSION});
         proc.runAsync();
     });
-}
-
-std::optional<std::string> CVersionKeeperManager::getDataHome() {
-    const auto  DATA_HOME = getenv("XDG_DATA_HOME");
-
-    std::string dataRoot;
-
-    if (!DATA_HOME) {
-        const auto HOME = getenv("HOME");
-
-        if (!HOME) {
-            Debug::log(ERR, "CVersionKeeperManager: can't get data home: no $HOME or $XDG_DATA_HOME");
-            return std::nullopt;
-        }
-
-        dataRoot = HOME + std::string{"/.local/share/"};
-    } else
-        dataRoot = DATA_HOME + std::string{"/"};
-
-    std::error_code ec;
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        Debug::log(ERR, "CVersionKeeperManager: can't get data home: inaccessible / missing");
-        return std::nullopt;
-    }
-
-    dataRoot += "hyprland/";
-
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        Debug::log(LOG, "CVersionKeeperManager: no hyprland data home, creating.");
-        std::filesystem::create_directory(dataRoot, ec);
-        if (ec) {
-            Debug::log(ERR, "CVersionKeeperManager: can't create new data home for hyprland");
-            return std::nullopt;
-        }
-        std::filesystem::permissions(dataRoot, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write | std::filesystem::perms::owner_exec, ec);
-        if (ec)
-            Debug::log(WARN, "CVersionKeeperManager: couldn't set perms on hyprland data store. Proceeding anyways.");
-    }
-
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        Debug::log(ERR, "CVersionKeeperManager: no hyprland data home, failed to create.");
-        return std::nullopt;
-    }
-
-    return dataRoot;
-}
-
-std::optional<std::string> CVersionKeeperManager::getDataLastVersion(const std::string& dataRoot) {
-    std::error_code ec;
-    std::string     lastVerFile = dataRoot + "/" + VERSION_FILE_NAME;
-
-    if (!std::filesystem::exists(lastVerFile, ec) || ec) {
-        Debug::log(LOG, "CVersionKeeperManager: no hyprland last version file, creating.");
-        writeVersionToVersionFile(dataRoot);
-
-        return "0.0.0";
-    }
-
-    std::ifstream file(lastVerFile);
-    if (!file.good()) {
-        Debug::log(ERR, "CVersionKeeperManager: couldn't open an ifstream for reading the version file.");
-        return std::nullopt;
-    }
-
-    return trim(std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>())));
-}
-
-void CVersionKeeperManager::writeVersionToVersionFile(const std::string& dataRoot) {
-    std::string   lastVerFile = dataRoot + "/" + VERSION_FILE_NAME;
-    std::ofstream of(lastVerFile, std::ios::trunc);
-    if (!of.good()) {
-        Debug::log(ERR, "CVersionKeeperManager: couldn't open an ofstream for writing the version file.");
-        return;
-    }
-
-    of << HYPRLAND_VERSION;
-    of.close();
 }
 
 bool CVersionKeeperManager::isVersionOlderThanRunning(const std::string& ver) {
@@ -150,4 +76,8 @@ bool CVersionKeeperManager::isVersionOlderThanRunning(const std::string& ver) {
     if (R3 > V3)
         return true;
     return false;
+}
+
+bool CVersionKeeperManager::fired() {
+    return m_bFired;
 }

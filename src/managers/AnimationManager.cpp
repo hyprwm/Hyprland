@@ -215,7 +215,11 @@ void CHyprAnimationManager::tick() {
     lastTick                                = std::chrono::high_resolution_clock::now();
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
-    for (auto const& pav : m_vActiveAnimatedVariables) {
+
+    // We need to do this because it's perfectly valid to add/change a var during this (via callbacks)
+    // FIXME: instead of doing this, make a fn to defer adding until tick is done and not in progress anymore.
+    const auto PAVS = m_vActiveAnimatedVariables;
+    for (auto const& pav : PAVS) {
         const auto PAV = pav.lock();
         if (!PAV)
             continue;

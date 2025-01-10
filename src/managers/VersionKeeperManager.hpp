@@ -10,9 +10,9 @@ class CVersionKeeperManager {
     bool fired();
 
   private:
-    bool                       isVersionOlderThanRunning(const std::string& ver);
+    bool isVersionOlderThanRunning(const std::string& ver);
 
-    bool                       m_bFired = false;
+    bool m_bFired = false;
 };
 
 inline std::unique_ptr<CVersionKeeperManager> g_pVersionKeeperMgr;

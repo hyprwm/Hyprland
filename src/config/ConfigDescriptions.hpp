@@ -1315,7 +1315,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "render:allow_early_buffer_release",
-        .description = "Allow early buffer release event. Fixes stuttering and missing frames for some apps. Causes graphical glitches and memory leaks in others",
+        .description = "Allow early buffer release event. Fixes stuttering and missing frames for some apps. May cause graphical glitches and memory leaks in others",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },

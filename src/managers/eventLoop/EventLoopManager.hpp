@@ -56,8 +56,8 @@ class CEventLoopManager {
         int                              timerfd = -1;
     } m_sTimers;
 
-    SIdleData                            m_sIdle;
-    std::map<int, SEventSourceData>      aqEventSources;
+    SIdleData                       m_sIdle;
+    std::map<int, SEventSourceData> aqEventSources;
 
     struct {
         CHyprSignalListener pollFDsChanged;

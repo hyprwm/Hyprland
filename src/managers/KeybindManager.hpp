@@ -49,6 +49,7 @@ enum eFocusWindowMode : uint8_t {
     MODE_INITIAL_CLASS_REGEX,
     MODE_TITLE_REGEX,
     MODE_INITIAL_TITLE_REGEX,
+    MODE_TAG_REGEX,
     MODE_ADDRESS,
     MODE_PID,
     MODE_ACTIVE_WINDOW
@@ -152,8 +153,12 @@ class CKeybindManager {
     static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
+    static SDispatchResult closeActive(std::string);
     static SDispatchResult killActive(std::string);
-    static SDispatchResult kill(std::string);
+    static SDispatchResult closeWindow(std::string);
+    static SDispatchResult killWindow(std::string);
+    static SDispatchResult signalActive(std::string);
+    static SDispatchResult signalWindow(std::string);
     static SDispatchResult spawn(std::string);
     static SDispatchResult spawnRaw(std::string);
     static SDispatchResult toggleActiveFloating(std::string);

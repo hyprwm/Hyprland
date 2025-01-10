@@ -619,8 +619,10 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
     m_pConfig->addConfigValue("render:xp_mode", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:ctm_animation", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("render:allow_early_buffer_release", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("ecosystem:no_donation_nag", Hyprlang::INT{0});
 
     m_pConfig->addConfigValue("experimental:wide_color_gamut", Hyprlang::INT{0});
     m_pConfig->addConfigValue("experimental:hdr", Hyprlang::INT{0});
@@ -2052,6 +2054,11 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     // Checking that the int is 1 or 0 because the helper can return integers out of range.
     if (enabledInt != 0 && enabledInt != 1)
         return "invalid animation on/off state";
+
+    if (!enabledInt) {
+        m_AnimationTree.setConfigForNode(ANIMNAME, enabledInt, 1, "default");
+        return {};
+    }
 
     int64_t speed = -1;
 

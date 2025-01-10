@@ -130,6 +130,35 @@ static void configHandleGapDestroy(void** data) {
         delete reinterpret_cast<CCssGapData*>(*data);
 }
 
+static Hyprlang::CParseResult configHandleRounding(const char* VALUE, void** data) {
+    std::string V = VALUE;
+
+    if (!*data)
+        *data = new CRoundingData();
+
+    const auto             DATA = reinterpret_cast<CRoundingData*>(*data);
+    CVarList               varlist(V);
+    Hyprlang::CParseResult result;
+
+    try {
+        DATA->parseRoundingData(varlist);
+    } catch (...) {
+        std::string parseError = "Error parsing rounding " + V;
+        result.setError(parseError.c_str());
+    }
+
+    return result;
+}
+
+static void configHandleRoundingDestroy(void** data) {
+    if (*data)
+        delete reinterpret_cast<CRoundingData*>(*data);
+}
+
+static Hyprlang::CConfigCustomValueType configRoundingValueParser() {
+    return Hyprlang::CConfigCustomValueType{configHandleRounding, configHandleRoundingDestroy, "0"};
+}
+
 static Hyprlang::CParseResult handleRawExec(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -428,7 +457,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("debug:disable_scale_checks", Hyprlang::INT{0});
     m_pConfig->addConfigValue("debug:colored_stdout_logs", Hyprlang::INT{1});
 
-    m_pConfig->addConfigValue("decoration:rounding", Hyprlang::INT{0});
+    m_pConfig->addConfigValue("decoration:rounding", configRoundingValueParser());
     m_pConfig->addConfigValue("decoration:rounding_power", {2.F});
     m_pConfig->addConfigValue("decoration:blur:enabled", Hyprlang::INT{1});
     m_pConfig->addConfigValue("decoration:blur:size", Hyprlang::INT{8});

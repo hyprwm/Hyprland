@@ -444,7 +444,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 
     // update xwayland coords
-    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->value());
+    g_pXWaylandManager->setWindowSize(m_pSelf.lock(), m_vRealSize->goal());
 
     if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_iID) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_pMonitor.lock(); PMONITOR)

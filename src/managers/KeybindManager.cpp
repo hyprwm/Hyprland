@@ -1891,8 +1891,8 @@ SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
                 continue;
 
             if (!w->m_bRequestsFloat && w->m_bIsFloating != PWORKSPACE->m_bDefaultFloating) {
-                const auto SAVEDPOS  = w->m_vRealPosition->value();
-                const auto SAVEDSIZE = w->m_vRealSize->value();
+                const auto SAVEDPOS  = w->m_vRealPosition->goal();
+                const auto SAVEDSIZE = w->m_vRealSize->goal();
 
                 w->m_bIsFloating = PWORKSPACE->m_bDefaultFloating;
                 g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);

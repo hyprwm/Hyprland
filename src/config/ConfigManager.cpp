@@ -619,6 +619,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("render:expand_undersized_textures", Hyprlang::INT{1});
     m_pConfig->addConfigValue("render:xp_mode", Hyprlang::INT{0});
     m_pConfig->addConfigValue("render:ctm_animation", Hyprlang::INT{2});
+    m_pConfig->addConfigValue("render:allow_early_buffer_release", Hyprlang::INT{1});
 
     m_pConfig->addConfigValue("ecosystem:no_update_news", Hyprlang::INT{0});
     m_pConfig->addConfigValue("ecosystem:no_donation_nag", Hyprlang::INT{0});

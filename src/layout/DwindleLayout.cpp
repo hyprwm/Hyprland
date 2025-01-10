@@ -244,12 +244,17 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     const auto        MOUSECOORDS   = m_vOverrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
-    if (PMONITOR->ID == MONFROMCURSOR->ID &&
+    if (m_pOpenNextOn && m_pOpenNextOn->valid && m_pOpenNextOn->workspaceID == pWindow->workspaceID()) {
+        OPENINGON = m_pOpenNextOn;
+        m_pOpenNextOn = nullptr;
+
+    } else if (PMONITOR->ID == MONFROMCURSOR->ID &&
         (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->activeSpecialWorkspace)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
+
 
     } else if (*PUSEACTIVE) {
         if (g_pCompositor->m_pLastWindow.lock() && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow.lock() != pWindow &&
@@ -455,6 +460,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     if (!PPARENT) {
         Debug::log(LOG, "Removing last node (dwindle)");
         m_lDwindleNodesData.remove(*PNODE);
+        m_pOpenNextOn = nullptr;
         return;
     }
 
@@ -478,6 +484,9 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
         PSIBLING->pParent->recalcSizePosRecursive();
     else
         PSIBLING->recalcSizePosRecursive();
+
+    if (PPARENT == m_pOpenNextOn || PNODE == m_pOpenNextOn)
+        m_pOpenNextOn = nullptr;
 
     m_lDwindleNodesData.remove(*PPARENT);
     m_lDwindleNodesData.remove(*PNODE);
@@ -968,6 +977,61 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
                 break;
             }
         }
+    } else if (ARGS[0] == "opennexton") {
+        const auto RELATION = ARGS[1];
+        const auto WINDOW = ARGS[2].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[2]);
+        auto pNode = getNodeFromWindow(WINDOW);
+        for (const auto c : RELATION) {
+            if (!pNode || !pNode->valid) break;
+
+            switch (c) {
+                case '^': {
+                    // Step to the parent of the current node
+                    pNode = pNode->pParent;
+                    break;
+                }
+
+                case 'c': {
+                    // Clear anything previously set
+                    m_pOpenNextOn = nullptr;
+                    return "";
+                }
+
+                case '.': {
+                    // Steps nowhere (if you simply want to use the second argument)
+                    break;
+                }
+
+                case '0': {
+                    // Step to the first child
+                    pNode = pNode->children[0];
+                    break;
+                }
+
+                case '1': {
+                    // Step to the second child
+                    pNode = pNode->children[1];
+                    break;
+                }
+
+                case '/': {
+                    // Step to the root of the current node's workspace
+                    pNode = getMasterNodeOnWorkspace(pNode->workspaceID);
+                    break;
+                }
+
+                default: {
+                    Debug::log(ERR, "Unknown relation operator");
+                    return "";
+                }
+            }
+        }
+
+        if (pNode && pNode->valid)
+            m_pOpenNextOn = pNode;
+        else
+            Debug::log(ERR, "Invalid dwindle node");
+
     }
 
     return "";
@@ -1065,6 +1129,7 @@ void CHyprDwindleLayout::onEnable() {
 
 void CHyprDwindleLayout::onDisable() {
     m_lDwindleNodesData.clear();
+    m_pOpenNextOn = nullptr;
 }
 
 Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {

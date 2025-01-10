@@ -89,6 +89,7 @@ class CHyprDwindleLayout : public IHyprLayout {
     void                    moveToRoot(PHLWINDOW, bool stable = true);
 
     eDirection              overrideDirection = DIRECTION_DEFAULT;
+    SDwindleNodeData*       m_pOpenNextOn = nullptr;
 
     friend struct SDwindleNodeData;
 };

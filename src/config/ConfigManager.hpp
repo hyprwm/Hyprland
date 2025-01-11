@@ -136,36 +136,39 @@ class CConfigManager {
   public:
     CConfigManager();
 
-    void                                                            tick();
-    void                                                            init();
+    void                                         tick();
+    void                                         init();
 
-    int                                                             getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
-    float                                                           getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
-    Vector2D                                                        getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
-    std::string                                                     getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
-    bool                                                            deviceConfigExists(const std::string&);
-    Hyprlang::CConfigValue*                                         getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
-    bool                                                            shouldBlurLS(const std::string&);
+    int                                          getDeviceInt(const std::string&, const std::string&, const std::string& fallback = "");
+    float                                        getDeviceFloat(const std::string&, const std::string&, const std::string& fallback = "");
+    Vector2D                                     getDeviceVec(const std::string&, const std::string&, const std::string& fallback = "");
+    std::string                                  getDeviceString(const std::string&, const std::string&, const std::string& fallback = "");
+    bool                                         deviceConfigExists(const std::string&);
+    Hyprlang::CConfigValue*                      getConfigValueSafeDevice(const std::string& dev, const std::string& val, const std::string& fallback);
+    bool                                         shouldBlurLS(const std::string&);
 
-    void* const*                                                    getConfigValuePtr(const std::string&);
-    Hyprlang::CConfigValue*                                         getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
-    std::string                                                     getMainConfigPath();
-    std::string                                                     getConfigString();
+    void* const*                                 getConfigValuePtr(const std::string&);
+    Hyprlang::CConfigValue*                      getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat = "");
+    std::string                                  getMainConfigPath();
+    std::string                                  getConfigString();
 
-    SMonitorRule                                                    getMonitorRuleFor(const PHLMONITOR);
-    SWorkspaceRule                                                  getWorkspaceRuleFor(PHLWORKSPACE workspace);
-    std::string                                                     getDefaultWorkspaceFor(const std::string&);
+    SMonitorRule                                 getMonitorRuleFor(const PHLMONITOR);
+    SWorkspaceRule                               getWorkspaceRuleFor(PHLWORKSPACE workspace);
+    std::string                                  getDefaultWorkspaceFor(const std::string&);
 
-    PHLMONITOR                                                      getBoundMonitorForWS(const std::string&);
-    std::string                                                     getBoundMonitorStringForWS(const std::string&);
-    const std::vector<SWorkspaceRule>&                              getAllWorkspaceRules();
+    PHLMONITOR                                   getBoundMonitorForWS(const std::string&);
+    std::string                                  getBoundMonitorStringForWS(const std::string&);
+    const std::vector<SWorkspaceRule>&           getAllWorkspaceRules();
 
-    std::vector<SP<CWindowRule>>                                    getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
-    std::vector<SP<CLayerRule>>                                     getMatchingRules(PHLLS);
+    std::vector<SP<CWindowRule>>                 getMatchingRules(PHLWINDOW, bool dynamic = true, bool shadowExec = false);
+    std::vector<SP<CLayerRule>>                  getMatchingRules(PHLLS);
 
-    const std::vector<SConfigOptionDescription>&                    getAllDescriptions();
+    const std::vector<SConfigOptionDescription>& getAllDescriptions();
+    const std::unordered_map<int, std::string>&  getMonitorIDToLayout() const {
+        return m_MonitorIDToLayout;
+    };
 
-    std::unordered_map<std::string, SMonitorAdditionalReservedArea> m_mAdditionalReservedAreas;
+    std::unordered_map<std::string, SMonitorAdditionalReservedArea>                            m_mAdditionalReservedAreas;
 
     const std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>>& getAnimationConfig();
 
@@ -213,6 +216,7 @@ class CConfigManager {
     std::optional<std::string>                                                                     handleBindWS(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handleEnv(const std::string&, const std::string&);
     std::optional<std::string>                                                                     handlePlugin(const std::string&, const std::string&);
+    std::optional<std::string>                                                                     handleMonitorLayout(const std::string&, const std::string&);
 
     std::string                                                                                    configCurrentPath;
 
@@ -255,6 +259,7 @@ class CConfigManager {
     bool isLaunchingExecOnce   = false; // For exec-once to skip initial ws tracking
 
   private:
+    std::unordered_map<int, std::string>             m_MonitorIDToLayout;
     std::unique_ptr<Hyprlang::CConfig>               m_pConfig;
 
     std::vector<std::string>                         configPaths;       // stores all the config paths

@@ -7,7 +7,7 @@ class CLayoutManager {
   public:
     CLayoutManager();
 
-    IHyprLayout*             getCurrentLayout();
+    IHyprLayout*             getCurrentLayout(std::optional<int> = std::nullopt);
 
     void                     switchToLayout(std::string);
 
@@ -21,11 +21,13 @@ class CLayoutManager {
         LAYOUT_MASTER
     };
 
-    int                                               m_iCurrentLayoutID = LAYOUT_DWINDLE;
+    int                m_iCurrentLayoutID = LAYOUT_DWINDLE;
 
-    CHyprDwindleLayout                                m_cDwindleLayout;
-    CHyprMasterLayout                                 m_cMasterLayout;
+    CHyprDwindleLayout m_cDwindleLayout;
+    CHyprMasterLayout  m_cMasterLayout;
+    // NOTE (a.krylov) why not just use unordered_map?
     std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
+    std::unordered_map<std::string, int>              m_LayoutNameToID;
 };
 
 inline std::unique_ptr<CLayoutManager> g_pLayoutManager;

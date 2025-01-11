@@ -683,6 +683,7 @@ CConfigManager::CConfigManager() {
     m_pConfig->registerHandler(&::handleBlurLS, "blurls", {false});
     m_pConfig->registerHandler(&::handlePlugin, "plugin", {false});
     m_pConfig->registerHandler(&::handleEnv, "env", {true});
+    m_pConfig->registerHandler(&::handleMonitorLayout, "monitor-layout", {false});
 
     // pluginza
     m_pConfig->addSpecialCategory("plugin", {nullptr, true});
@@ -2805,4 +2806,10 @@ std::string SConfigOptionDescription::jsonify() const {
                                    value, description, (uint16_t)type, (uint32_t)flags, parseData());
 
     return json;
+}
+
+std::optional<std::string> CConfigManager::handleMonitorLayout(const std::string& command, const std::string& args) {
+    const auto ARGS                         = CVarList(args);
+    m_MonitorIDToLayout[std::stoi(ARGS[0])] = ARGS[1];
+    return std::nullopt;
 }

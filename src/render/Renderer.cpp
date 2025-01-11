@@ -1482,7 +1482,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
             m_previousFSWindow = WINDOW;
         } else {
-            pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != *PHDR)
+                pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
             m_previousFSWindow.reset();
         }
     }

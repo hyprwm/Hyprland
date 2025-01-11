@@ -1460,9 +1460,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setExplicitInFence(inFD);
 
     static auto PWIDE = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
-    if (pMonitor->output->state->state().wideColorGamut != *PWIDE)
+    if (pMonitor->output->state->state().wideColorGamut != *PWIDE) {
         Debug::log(TRACE, "Setting wide color gamut {}", *PWIDE ? "on" : "off");
-    pMonitor->output->state->setWideColorGamut(*PWIDE);
+        pMonitor->output->state->setWideColorGamut(*PWIDE);
+    }
 
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 

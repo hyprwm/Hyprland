@@ -216,11 +216,8 @@ void CHyprAnimationManager::tick() {
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
-    // We need to do this because it's perfectly valid to add/change a var during this (via callbacks)
-    // FIXME: instead of doing this, make a fn to defer adding until tick is done and not in progress anymore.
-    const auto PAVS = m_vActiveAnimatedVariables;
-    for (auto const& pav : PAVS) {
-        const auto PAV = pav.lock();
+    for (size_t i = 0; i < m_vActiveAnimatedVariables.size(); i++) {
+        const auto PAV = m_vActiveAnimatedVariables[i].lock();
         if (!PAV)
             continue;
 

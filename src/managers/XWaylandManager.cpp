@@ -123,7 +123,7 @@ void CHyprXWaylandManager::setWindowSize(PHLWINDOW pWindow, Vector2D size, bool 
 
     // calculate pos
     // TODO: this should be decoupled from setWindowSize IMO
-    Vector2D windowPos = pWindow->m_vRealPosition->value();
+    Vector2D windowPos = pWindow->m_vRealPosition->goal();
 
     if (pWindow->m_bIsX11 && PMONITOR) {
         windowPos -= PMONITOR->vecPosition; // normalize to monitor

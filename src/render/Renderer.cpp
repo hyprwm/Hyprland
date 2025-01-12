@@ -417,8 +417,8 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     }
 }
 
-void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
-    if (pWindow->isHidden())
+void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+    if (pWindow->isHidden() && !standalone)
         return;
 
     if (pWindow->m_bFadingOut) {
@@ -450,7 +450,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         renderdata.pos.y = pMonitor->vecPosition.y;
     }
 
-    if (ignoreAllGeometry)
+    if (standalone)
         decorate = false;
 
     // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
@@ -463,12 +463,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha->value() : 1.F) * pWindow->m_fMovingFromWorkspaceAlpha->value();
     renderdata.alpha         = pWindow->m_fActiveInactiveAlpha->value();
     renderdata.decorate      = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-    renderdata.rounding      = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.roundingPower = ignoreAllGeometry || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
-    renderdata.blur          = !ignoreAllGeometry && *PBLUR && !DONT_BLUR;
+    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
+    renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
+    renderdata.blur          = !standalone && *PBLUR && !DONT_BLUR;
     renderdata.pWindow       = pWindow;
 
-    if (ignoreAllGeometry) {
+    if (standalone) {
         renderdata.alpha     = 1.f;
         renderdata.fadeAlpha = 1.f;
     }

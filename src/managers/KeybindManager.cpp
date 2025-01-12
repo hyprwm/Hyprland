@@ -1534,7 +1534,8 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
             break;
     }
 
-    const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->activeWorkspace, arg, PLASTWINDOW, PLASTWINDOW->m_bIsFloating);
+    const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->activeSpecialWorkspace ? PMONITOR->activeSpecialWorkspace : PMONITOR->activeWorkspace, arg,
+                                                                      PLASTWINDOW, PLASTWINDOW->m_bIsFloating);
     if (PWINDOWCANDIDATE)
         switchToWindow(PWINDOWCANDIDATE);
 

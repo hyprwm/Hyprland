@@ -1,5 +1,6 @@
 #pragma once
 
+#include <drm_mode.h>
 #include <memory>
 #include <vector>
 #include <cstdint>
@@ -54,12 +55,18 @@ class CColorManagementSurface {
 
     const SImageDescription&    imageDescription();
     bool                        hasImageDescription();
+    void                        setHasImageDescription(bool has);
+    const hdr_output_metadata&  hdrMetadata();
+    void                        setHDRMetadata(const hdr_output_metadata& metadata);
+    bool                        needsHdrMetadataUpdate();
 
   private:
     SP<CXxColorManagementSurfaceV4> resource;
     wl_client*                      pClient = nullptr;
     SImageDescription               m_imageDescription;
     bool                            m_hasImageDescription = false;
+    bool                            m_needsNewMetadata    = false;
+    hdr_output_metadata             m_hdrMetadata;
 
     friend class CFrogColorManagementSurface;
 };

@@ -87,7 +87,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
+    if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -148,7 +148,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
+    if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);

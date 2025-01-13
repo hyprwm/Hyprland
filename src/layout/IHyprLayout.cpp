@@ -945,4 +945,11 @@ Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
     return sizePredicted;
 }
 
+std::string IHyprLayout::layoutDataRequest(eHyprCtlOutputFormat format, std::string request) {
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+        return "\"Not implemented for the current layout\"";
+    else
+        return "Not implemented for the current layout";
+}
+
 IHyprLayout::~IHyprLayout() = default;

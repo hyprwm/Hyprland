@@ -534,6 +534,17 @@ static std::string layoutsRequest(eHyprCtlOutputFormat format, std::string reque
     return result;
 }
 
+static std::string layoutDataRequest(eHyprCtlOutputFormat format, std::string request) {
+    const auto CURRENT_LAYOUT = g_pLayoutManager->getCurrentLayout();
+
+    if (!CURRENT_LAYOUT) {
+        Debug::log(ERR, "No current layout?!!");
+        return "";
+    }
+
+    return CURRENT_LAYOUT->layoutDataRequest(format, request);
+}
+
 static std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
     std::string currErrors = g_pConfigManager->getErrors();
@@ -1648,6 +1659,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
     registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
 
+    registerCommand(SHyprCtlCommand{"layoutdata", false, layoutDataRequest});
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});

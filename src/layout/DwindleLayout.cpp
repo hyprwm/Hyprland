@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include <format>
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
@@ -1036,6 +1037,112 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
 
     return "";
 }
+
+static bool printNodeTree(const SDwindleNodeData * const node, eHyprCtlOutputFormat format, std::string& indent,  std::string& out) {
+    if (!node || !node->valid) {
+        Debug::log(ERR, "Invalid dwindle Node");
+        return false;
+    }
+
+    const auto INDENTLVL = indent.length();
+    indent += format == eHyprCtlOutputFormat::FORMAT_JSON ? "    " : "\t";
+
+    if (node->children[0] && node->children[0]->valid) {
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}\"{}\": {{", indent, (node->splitTop ? "top" : "left"));
+        else
+            out += std::format("\n{}{}:", indent, (node->splitTop ? "top" : "left"));
+
+        if (!printNodeTree(node->children[0], format, indent, out)) {
+            indent.erase(INDENTLVL);
+            return false;
+        }
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}}},", indent);
+
+        if (node->children[1] && node->children[1]->valid) {
+            if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+                out += std::format("\n{}\"{}\": {{", indent, (node->splitTop ? "bottom" : "right"));
+            else
+                out += std::format("\n{}{}:", indent, (node->splitTop ? "bottom" : "right"));
+
+            if (!printNodeTree(node->children[1], format, indent, out)) {
+                indent.erase(INDENTLVL);
+                return false;
+            }
+
+            if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+                out += std::format("\n{}}},", indent);
+        }
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format("\n{}\"splitRatio\": {}", indent, node->splitRatio);
+        else
+            out += std::format("\n{}splitRatio: {}", indent, node->splitRatio);
+
+    } else if (node->pWindow) {
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            out += std::format(
+                "\n{}\"address\": \"0x{:x}\","
+                "\n{}\"class\": \"{}\","
+                "\n{}\"title\": \"{}\","
+                "\n{}\"initialClass\": \"{}\","
+                "\n{}\"initialTitle\": \"{}\","
+                "\n{}\"pid\": \"{}\"",
+                indent, (uintptr_t)node->pWindow.get(),
+                indent, escapeJSONStrings(node->pWindow->m_szClass),
+                indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                indent, escapeJSONStrings(node->pWindow->m_szInitialClass),
+                indent, escapeJSONStrings(node->pWindow->m_szInitialTitle),
+                indent, node->pWindow->getPID());
+        else
+            out += std::format(
+                "\n{}address: 0x{:x}"
+                "\n{}class: {}"
+                "\n{}title: {}"
+                "\n{}initialClass: {}"
+                "\n{}initialTitle: {}"
+                "\n{}pid: {}",
+                indent, (uintptr_t)node->pWindow.get(),
+                indent, escapeJSONStrings(node->pWindow->m_szClass),
+                indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                indent, escapeJSONStrings(node->pWindow->m_szInitialClass),
+                indent, escapeJSONStrings(node->pWindow->m_szInitialTitle),
+                indent, node->pWindow->getPID());
+    }
+
+    indent.erase(INDENTLVL);
+    return true;
+}
+
+std::string CHyprDwindleLayout::layoutDataRequest(eHyprCtlOutputFormat format, std::string request) {
+    const auto ARGS = CVarList(request, 0, ' ');
+    std::string result = "";
+
+    if (ARGS[1] == "workspaceinfo") {
+        const auto& [WORKSPACEID, workspaceName] = getWorkspaceIDNameFromString(ARGS[2]);
+        if (WORKSPACEID == WORKSPACE_INVALID) {
+            Debug::log(ERR, "Invalid workspace in layoutdata workspaceinfo");
+        }
+
+        auto PHEAD_NODE = getMasterNodeOnWorkspace(WORKSPACEID);
+        std::string indent = "";
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            result += "{";
+        else
+            result += "root:";
+        printNodeTree(PHEAD_NODE, format, indent, result);
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON) result += "\n}";
+
+    } else {
+        Debug::log(LOG, "Unknown layoutdata request");
+    }
+
+    return result;
+}
+
 
 void CHyprDwindleLayout::toggleSplit(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);

@@ -83,14 +83,12 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     if (!pWindow) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which does not exist!", pWindow);
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
     if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
@@ -106,7 +104,6 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     if (shmFormat == DRM_FORMAT_INVALID) {
         LOGM(ERR, "No format supported by renderer in capture toplevel");
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
@@ -114,7 +111,6 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     if (!PSHMINFO) {
         LOGM(ERR, "No pixel format supported by renderer in capture toplevel");
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
@@ -144,14 +140,12 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
     if (!validMapped(pWindow)) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is gone!", pWindow);
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 
     if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
         resource->sendFailed();
-        PROTO::toplevelExport->destroyResource(this);
         return;
     }
 

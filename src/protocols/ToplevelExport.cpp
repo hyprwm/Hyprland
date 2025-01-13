@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "ForeignToplevelWlr.hpp"
 #include "../managers/PointerManager.hpp"
+#include "../managers/SeatManager.hpp"
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
@@ -77,7 +78,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     if (!good())
         return;
 
-    overlayCursor = !!overlayCursor_;
+    cursorOverlayRequested = !!overlayCursor_;
 
     if (!pWindow) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which does not exist!", pWindow);
@@ -86,7 +87,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
+    if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -147,7 +148,7 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
         return;
     }
 
-    if (!pWindow->m_bIsMapped || pWindow->isHidden()) {
+    if (!pWindow->m_bIsMapped) {
         LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", pWindow);
         resource->sendFailed();
         PROTO::toplevelExport->destroyResource(this);
@@ -247,6 +248,8 @@ bool CToplevelExportFrame::copyShm(timespec* now) {
     CFramebuffer outFB;
     outFB.alloc(PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, PMONITOR->output->state->state().drmFormat);
 
+    auto overlayCursor = shouldOverlayCursor();
+
     if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
@@ -300,6 +303,8 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
 
     CRegion    fakeDamage{0, 0, INT16_MAX, INT16_MAX};
 
+    auto       overlayCursor = shouldOverlayCursor();
+
     if (overlayCursor) {
         g_pPointerManager->lockSoftwareForMonitor(PMONITOR->self.lock());
         g_pPointerManager->damageCursor(PMONITOR->self.lock());
@@ -326,6 +331,20 @@ bool CToplevelExportFrame::copyDmabuf(timespec* now) {
     }
 
     return true;
+}
+
+bool CToplevelExportFrame::shouldOverlayCursor() const {
+    if (!cursorOverlayRequested)
+        return false;
+
+    auto pointerSurfaceResource = g_pSeatManager->state.pointerFocus.lock();
+
+    if (!pointerSurfaceResource)
+        return false;
+
+    auto pointerSurface = CWLSurface::fromResource(pointerSurfaceResource);
+
+    return pointerSurface && pointerSurface->getWindow() == pWindow;
 }
 
 bool CToplevelExportFrame::good() {

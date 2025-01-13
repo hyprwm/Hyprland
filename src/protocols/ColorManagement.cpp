@@ -194,13 +194,13 @@ CColorManagementSurface::CColorManagementSurface(SP<CXxColorManagementSurfaceV4>
             return;
         }
 
-        m_hasImageDescription = true;
-        m_imageDescription    = imageDescription->get()->settings;
+        setHasImageDescription(true);
+        m_imageDescription = imageDescription->get()->settings;
     });
     resource->setUnsetImageDescription([this](CXxColorManagementSurfaceV4* r) {
         LOGM(TRACE, "Unset image description for surface={}", (uintptr_t)r);
-        m_imageDescription    = SImageDescription{};
-        m_hasImageDescription = false;
+        m_imageDescription = SImageDescription{};
+        setHasImageDescription(false);
     });
 }
 
@@ -220,6 +220,24 @@ const SImageDescription& CColorManagementSurface::imageDescription() {
 
 bool CColorManagementSurface::hasImageDescription() {
     return m_hasImageDescription;
+}
+
+void CColorManagementSurface::setHasImageDescription(bool has) {
+    m_hasImageDescription = has;
+    m_needsNewMetadata    = true;
+}
+
+const hdr_output_metadata& CColorManagementSurface::hdrMetadata() {
+    return m_hdrMetadata;
+}
+
+void CColorManagementSurface::setHDRMetadata(const hdr_output_metadata& metadata) {
+    m_hdrMetadata      = metadata;
+    m_needsNewMetadata = false;
+}
+
+bool CColorManagementSurface::needsHdrMetadataUpdate() {
+    return m_needsNewMetadata;
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CXxColorManagementFeedbackSurfaceV4> resource_, SP<CWLSurfaceResource> surface_) :

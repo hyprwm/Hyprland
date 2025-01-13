@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <stack>
 #include <vector>
+#include "../SharedDefs.hpp"
 #include "WLClasses.hpp"
 #include <vector>
 #include <array>
@@ -196,11 +198,16 @@ class CMonitor {
         return vecPosition == rhs.vecPosition && vecSize == rhs.vecSize && szName == rhs.szName;
     }
 
-  private:
-    void        setupDefaultWS(const SMonitorRule&);
-    WORKSPACEID findAvailableDefaultWS();
+    // workspace previous per monitor functionality
+    SWorkspaceIDName getPrevWorkspaceIDName(const WORKSPACEID id);
+    void             addPrevWorkspaceID(const WORKSPACEID id);
 
-    bool        doneScheduled = false;
+  private:
+    void                    setupDefaultWS(const SMonitorRule&);
+    WORKSPACEID             findAvailableDefaultWS();
+
+    bool                    doneScheduled = false;
+    std::stack<WORKSPACEID> prevWorkSpaces;
 
     struct {
         CHyprSignalListener frame;

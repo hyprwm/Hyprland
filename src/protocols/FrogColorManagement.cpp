@@ -92,7 +92,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
                 surface->colorManagement->m_imageDescription.transferFunction = XX_COLOR_MANAGER_V4_TRANSFER_FUNCTION_SRGB;
 
-                surface->colorManagement->m_hasImageDescription = true;
+                surface->colorManagement->setHasImageDescription(true);
         }
     });
     resource->setSetKnownContainerColorVolume([this](CFrogColorManagedSurface* r, frogColorManagedSurfacePrimaries primariesName) {
@@ -103,12 +103,12 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC2020: surface->colorManagement->m_imageDescription.primaries = NColorPrimaries::BT2020; break;
         }
 
-        surface->colorManagement->m_hasImageDescription = true;
+        surface->colorManagement->setHasImageDescription(true);
     });
     resource->setSetRenderIntent([this](CFrogColorManagedSurface* r, frogColorManagedSurfaceRenderIntent intent) {
         LOGM(TRACE, "Set frog cm intent {}", (uint32_t)intent);
-        pqIntentSent                                    = intent == FROG_COLOR_MANAGED_SURFACE_RENDER_INTENT_PERCEPTUAL;
-        surface->colorManagement->m_hasImageDescription = true;
+        pqIntentSent = intent == FROG_COLOR_MANAGED_SURFACE_RENDER_INTENT_PERCEPTUAL;
+        surface->colorManagement->setHasImageDescription(true);
     });
     resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x, uint32_t w_y,
                                        uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
@@ -122,7 +122,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         surface->colorManagement->m_imageDescription.maxCLL                  = cll;
         surface->colorManagement->m_imageDescription.maxFALL                 = fall;
 
-        surface->colorManagement->m_hasImageDescription = true;
+        surface->colorManagement->setHasImageDescription(true);
     });
 }
 

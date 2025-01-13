@@ -38,7 +38,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
     animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
     const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
-    if (PHLWINDOW && PHLWINDOW->m_vRealPosition->isBeingAnimated() && PHLWINDOW->m_vRealSize->isBeingAnimated())
+    if (PHLWINDOW && !PHLWINDOW->m_vRealPosition->isBeingAnimated() && !PHLWINDOW->m_vRealSize->isBeingAnimated())
         PHLWINDOW->m_bAnimatingIn = false;
 }
 

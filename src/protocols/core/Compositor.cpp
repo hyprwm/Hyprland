@@ -11,6 +11,7 @@
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../../render/Renderer.hpp"
+#include "config/ConfigValue.hpp"
 #include <cstring>
 
 class CDefaultSurfaceRole : public ISurfaceRole {
@@ -423,12 +424,14 @@ void CWLSurfaceResource::unlockPendingState() {
 }
 
 void CWLSurfaceResource::commitPendingState() {
-    auto const previousBuffer = current.buffer;
-    current                   = pending;
+    static auto PDROP          = CConfigValue<Hyprlang::INT>("render:allow_early_buffer_release");
+    auto const  previousBuffer = current.buffer;
+    current                    = pending;
     pending.damage.clear();
     pending.bufferDamage.clear();
     pending.newBuffer = false;
-    dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
+    if (!*PDROP)
+        dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
 
     events.roleCommit.emit();
 
@@ -450,8 +453,10 @@ void CWLSurfaceResource::commitPendingState() {
         // release the buffer if it's synchronous as update() has done everything thats needed
         // so we can let the app know we're done.
         // Some clients aren't ready to receive a release this early. Should be fine to release it on the next commitPendingState.
-        // if (current.buffer->buffer->isSynchronous())
-        //     dropCurrentBuffer();
+        if (current.buffer->buffer->isSynchronous() && *PDROP) {
+            dropCurrentBuffer();
+            dropPendingBuffer(); // at this point current.buffer holds the same SP and we don't use pending anymore
+        }
     }
 
     // TODO: we should _accumulate_ and not replace above if sync

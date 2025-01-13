@@ -417,8 +417,8 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     }
 }
 
-void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool ignoreAllGeometry) {
-    if (pWindow->isHidden())
+void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespec* time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+    if (pWindow->isHidden() && !standalone)
         return;
 
     if (pWindow->m_bFadingOut) {
@@ -450,7 +450,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         renderdata.pos.y = pMonitor->vecPosition.y;
     }
 
-    if (ignoreAllGeometry)
+    if (standalone)
         decorate = false;
 
     // whether to use m_fMovingToWorkspaceAlpha, only if fading out into an invisible ws
@@ -463,12 +463,12 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, timespe
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_fMovingToWorkspaceAlpha->value() : 1.F) * pWindow->m_fMovingFromWorkspaceAlpha->value();
     renderdata.alpha         = pWindow->m_fActiveInactiveAlpha->value();
     renderdata.decorate      = decorate && !pWindow->m_bX11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-    renderdata.rounding      = ignoreAllGeometry || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
-    renderdata.roundingPower = ignoreAllGeometry || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
-    renderdata.blur          = !ignoreAllGeometry && *PBLUR && !DONT_BLUR;
+    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->scale;
+    renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
+    renderdata.blur          = !standalone && *PBLUR && !DONT_BLUR;
     renderdata.pWindow       = pWindow;
 
-    if (ignoreAllGeometry) {
+    if (standalone) {
         renderdata.alpha     = 1.f;
         renderdata.fadeAlpha = 1.f;
     }
@@ -1460,9 +1460,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setExplicitInFence(inFD);
 
     static auto PWIDE = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
-    if (pMonitor->output->state->state().wideColorGamut != *PWIDE)
+    if (pMonitor->output->state->state().wideColorGamut != *PWIDE) {
         Debug::log(TRACE, "Setting wide color gamut {}", *PWIDE ? "on" : "off");
-    pMonitor->output->state->setWideColorGamut(*PWIDE);
+        pMonitor->output->state->setWideColorGamut(*PWIDE);
+    }
 
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
@@ -1472,12 +1473,20 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         if (pMonitor->activeWorkspace && pMonitor->activeWorkspace->m_bHasFullscreenWindow && pMonitor->activeWorkspace->m_efFullscreenMode == FSMODE_FULLSCREEN) {
             const auto WINDOW = pMonitor->activeWorkspace->getFullscreenWindow();
             const auto SURF   = WINDOW->m_pWLSurface->resource();
-            if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription())
-                pMonitor->output->state->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
-            else
+            if (SURF->colorManagement.valid() && SURF->colorManagement->hasImageDescription()) {
+                bool needsHdrMetadataUpdate = SURF->colorManagement->needsHdrMetadataUpdate() || m_previousFSWindow != WINDOW;
+                if (SURF->colorManagement->needsHdrMetadataUpdate())
+                    SURF->colorManagement->setHDRMetadata(createHDRMetadata(SURF->colorManagement.get()->imageDescription(), pMonitor->output->parsedEDID));
+                if (needsHdrMetadataUpdate)
+                    pMonitor->output->state->setHDRMetadata(SURF->colorManagement->hdrMetadata());
+            } else
                 pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
-        } else
-            pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            m_previousFSWindow = WINDOW;
+        } else {
+            if ((pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2) != *PHDR)
+                pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
+            m_previousFSWindow.reset();
+        }
     }
 
     if (pMonitor->ctmUpdated) {

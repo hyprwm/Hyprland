@@ -246,16 +246,16 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     const auto        MONFROMCURSOR = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
 
     if (m_pOpenNextOn && m_pOpenNextOn->valid && m_pOpenNextOn->workspaceID == pWindow->workspaceID()) {
-        OPENINGON = m_pOpenNextOn;
+        OPENINGON     = m_pOpenNextOn;
         m_pOpenNextOn = nullptr;
 
     } else if (PMONITOR->ID == MONFROMCURSOR->ID &&
-        (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->activeSpecialWorkspace)) && !*PUSEACTIVE) {
+               (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->activeSpecialWorkspace)) &&
+               !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
-
 
     } else if (*PUSEACTIVE) {
         if (g_pCompositor->m_pLastWindow.lock() && !g_pCompositor->m_pLastWindow->m_bIsFloating && g_pCompositor->m_pLastWindow.lock() != pWindow &&
@@ -980,10 +980,11 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         }
     } else if (ARGS[0] == "opennexton") {
         const auto RELATION = ARGS[1];
-        const auto WINDOW = ARGS[2].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[2]);
-        auto pNode = getNodeFromWindow(WINDOW);
+        const auto WINDOW   = ARGS[2].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[2]);
+        auto       pNode    = getNodeFromWindow(WINDOW);
         for (const auto c : RELATION) {
-            if (!pNode || !pNode->valid) break;
+            if (!pNode || !pNode->valid)
+                break;
 
             switch (c) {
                 case '^': {
@@ -1032,13 +1033,12 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
             m_pOpenNextOn = pNode;
         else
             Debug::log(ERR, "Invalid dwindle node");
-
     }
 
     return "";
 }
 
-static bool printNodeTree(const SDwindleNodeData * const node, eHyprCtlOutputFormat format, std::string& indent,  std::string& out) {
+static bool printNodeTree(const SDwindleNodeData* const node, eHyprCtlOutputFormat format, std::string& indent, std::string& out) {
     if (!node || !node->valid) {
         Debug::log(ERR, "Invalid dwindle Node");
         return false;
@@ -1083,33 +1083,25 @@ static bool printNodeTree(const SDwindleNodeData * const node, eHyprCtlOutputFor
 
     } else if (node->pWindow) {
         if (format == eHyprCtlOutputFormat::FORMAT_JSON)
-            out += std::format(
-                "\n{}\"address\": \"0x{:x}\","
-                "\n{}\"class\": \"{}\","
-                "\n{}\"title\": \"{}\","
-                "\n{}\"initialClass\": \"{}\","
-                "\n{}\"initialTitle\": \"{}\","
-                "\n{}\"pid\": \"{}\"",
-                indent, (uintptr_t)node->pWindow.get(),
-                indent, escapeJSONStrings(node->pWindow->m_szClass),
-                indent, escapeJSONStrings(node->pWindow->m_szTitle),
-                indent, escapeJSONStrings(node->pWindow->m_szInitialClass),
-                indent, escapeJSONStrings(node->pWindow->m_szInitialTitle),
-                indent, node->pWindow->getPID());
+            out += std::format("\n{}\"address\": \"0x{:x}\","
+                               "\n{}\"class\": \"{}\","
+                               "\n{}\"title\": \"{}\","
+                               "\n{}\"initialClass\": \"{}\","
+                               "\n{}\"initialTitle\": \"{}\","
+                               "\n{}\"pid\": \"{}\"",
+                               indent, (uintptr_t)node->pWindow.get(), indent, escapeJSONStrings(node->pWindow->m_szClass), indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                               indent, escapeJSONStrings(node->pWindow->m_szInitialClass), indent, escapeJSONStrings(node->pWindow->m_szInitialTitle), indent,
+                               node->pWindow->getPID());
         else
-            out += std::format(
-                "\n{}address: 0x{:x}"
-                "\n{}class: {}"
-                "\n{}title: {}"
-                "\n{}initialClass: {}"
-                "\n{}initialTitle: {}"
-                "\n{}pid: {}",
-                indent, (uintptr_t)node->pWindow.get(),
-                indent, escapeJSONStrings(node->pWindow->m_szClass),
-                indent, escapeJSONStrings(node->pWindow->m_szTitle),
-                indent, escapeJSONStrings(node->pWindow->m_szInitialClass),
-                indent, escapeJSONStrings(node->pWindow->m_szInitialTitle),
-                indent, node->pWindow->getPID());
+            out += std::format("\n{}address: 0x{:x}"
+                               "\n{}class: {}"
+                               "\n{}title: {}"
+                               "\n{}initialClass: {}"
+                               "\n{}initialTitle: {}"
+                               "\n{}pid: {}",
+                               indent, (uintptr_t)node->pWindow.get(), indent, escapeJSONStrings(node->pWindow->m_szClass), indent, escapeJSONStrings(node->pWindow->m_szTitle),
+                               indent, escapeJSONStrings(node->pWindow->m_szInitialClass), indent, escapeJSONStrings(node->pWindow->m_szInitialTitle), indent,
+                               node->pWindow->getPID());
     }
 
     indent.erase(INDENTLVL);
@@ -1117,7 +1109,7 @@ static bool printNodeTree(const SDwindleNodeData * const node, eHyprCtlOutputFor
 }
 
 std::string CHyprDwindleLayout::layoutDataRequest(eHyprCtlOutputFormat format, std::string request) {
-    const auto ARGS = CVarList(request, 0, ' ');
+    const auto  ARGS   = CVarList(request, 0, ' ');
     std::string result = "";
 
     if (ARGS[1] == "workspaceinfo") {
@@ -1126,15 +1118,16 @@ std::string CHyprDwindleLayout::layoutDataRequest(eHyprCtlOutputFormat format, s
             Debug::log(ERR, "Invalid workspace in layoutdata workspaceinfo");
         }
 
-        auto PHEAD_NODE = getMasterNodeOnWorkspace(WORKSPACEID);
-        std::string indent = "";
+        auto        PHEAD_NODE = getMasterNodeOnWorkspace(WORKSPACEID);
+        std::string indent     = "";
 
         if (format == eHyprCtlOutputFormat::FORMAT_JSON)
             result += "{";
         else
             result += "root:";
         printNodeTree(PHEAD_NODE, format, indent, result);
-        if (format == eHyprCtlOutputFormat::FORMAT_JSON) result += "\n}";
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON)
+            result += "\n}";
 
     } else {
         Debug::log(LOG, "Unknown layoutdata request");
@@ -1142,7 +1135,6 @@ std::string CHyprDwindleLayout::layoutDataRequest(eHyprCtlOutputFormat format, s
 
     return result;
 }
-
 
 void CHyprDwindleLayout::toggleSplit(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);

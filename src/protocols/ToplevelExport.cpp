@@ -202,7 +202,12 @@ void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resou
 
     buffer = PBUFFER->buffer;
 
-    PROTO::toplevelExport->m_vFramesAwaitingWrite.emplace_back(self);
+    m_ignoreDamage = ignoreDamage;
+
+    if (ignoreDamage && validMapped(pWindow))
+        share();
+    else
+        PROTO::toplevelExport->m_vFramesAwaitingWrite.emplace_back(self);
 }
 
 void CToplevelExportFrame::share() {
@@ -226,7 +231,7 @@ void CToplevelExportFrame::share() {
 
     resource->sendFlags((hyprlandToplevelExportFrameV1Flags)0);
 
-    if (!ignoreDamage) {
+    if (!m_ignoreDamage) {
         resource->sendDamage(0, 0, box.width, box.height);
     }
 

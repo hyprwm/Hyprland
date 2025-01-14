@@ -52,7 +52,7 @@ class CToplevelExportFrame {
 
     PHLWINDOW                          pWindow;
     bool                               cursorOverlayRequested = false;
-    bool                               ignoreDamage           = false;
+    bool                               m_ignoreDamage         = false;
     bool                               lockedSWCursors        = false;
 
     WP<IHLBuffer>                      buffer;

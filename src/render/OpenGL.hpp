@@ -223,6 +223,8 @@ class CHyprOpenGLImpl {
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
+    void         ensureBackgroundTexturePresence();
+
     uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
@@ -293,7 +295,7 @@ class CHyprOpenGLImpl {
     CShader                 m_sFinalScreenShader;
     CTimer                  m_tGlobalTimer;
 
-    SP<CTexture>            m_pMissingAssetTexture, m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture;
+    SP<CTexture>            m_pMissingAssetTexture, m_pBackgroundTexture, m_pLockDeadTexture, m_pLockDead2Texture, m_pLockTtyTextTexture; // TODO: don't always load lock
 
     void                    logShaderError(const GLuint&, bool program = false);
     GLuint                  createProgram(const std::string&, const std::string&, bool dynamic = false);

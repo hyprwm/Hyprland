@@ -899,10 +899,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setPointerConfigs();
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
-    }
 
-    if (!isFirstLaunch)
         g_pHyprOpenGL->m_bReloadScreenShader = true;
+
+        g_pHyprOpenGL->ensureBackgroundTexturePresence();
+    }
 
     // parseError will be displayed next frame
 

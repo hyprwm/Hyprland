@@ -2699,10 +2699,6 @@ void CHyprOpenGLImpl::initMissingAssetTexture() {
 void CHyprOpenGLImpl::initAssets() {
     initMissingAssetTexture();
 
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
-
     m_pLockDeadTexture  = loadAsset("lockdead.png");
     m_pLockDead2Texture = loadAsset("lockdead2.png");
 
@@ -2712,9 +2708,20 @@ void CHyprOpenGLImpl::initAssets() {
                                                        "unknown"),
                                        CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
 
-    // create the default background texture
-    {
-        std::string texPath = std::format("{}", "wall");
+    ensureBackgroundTexturePresence();
+}
+
+void CHyprOpenGLImpl::ensureBackgroundTexturePresence() {
+    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, static_cast<int64_t>(-1L), static_cast<int64_t>(2L));
+
+    if (*PNOWALLPAPER)
+        m_pBackgroundTexture.reset();
+    else if (!m_pBackgroundTexture) {
+        // create the default background texture
+        std::string texPath = "wall";
 
         // get the adequate tex
         if (FORCEWALLPAPER == -1) {

@@ -358,6 +358,8 @@ int main(int argc, char** argv) {
             if (ARGS[i] == "-j" && !fullArgs.contains("j")) {
                 fullArgs += "j";
                 json = true;
+            } else if (ARGS[i] == "-t" && !fullArgs.contains("t")) {
+                fullArgs += "t";
             } else if (ARGS[i] == "-r" && !fullArgs.contains("r")) {
                 fullArgs += "r";
             } else if (ARGS[i] == "-a" && !fullArgs.contains("a")) {

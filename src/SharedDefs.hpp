@@ -43,7 +43,8 @@ struct SCallbackInfo {
 
 enum eHyprCtlOutputFormat : uint8_t {
     FORMAT_NORMAL = 0,
-    FORMAT_JSON
+    FORMAT_JSON,
+    FORMAT_TERSE
 };
 
 struct SHyprCtlCommand {

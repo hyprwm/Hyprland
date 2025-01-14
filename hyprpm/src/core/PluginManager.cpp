@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include <toml++/toml.hpp>
-#include <glaze/glaze.hpp>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
@@ -792,21 +791,19 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
         std::println(stderr, "PluginManager: no $HOME or $HYPRLAND_INSTANCE_SIGNATURE");
         return LOADSTATE_FAIL;
     }
-    const auto HYPRPMPATH = DataState::getDataStatePath();
-
-    const auto json = glz::read_json<glz::json_t::array_t>(execAndGet("hyprctl plugins list -j"));
-    if (!json) {
-        std::println(stderr, "PluginManager: couldn't parse hyprctl output");
-        return LOADSTATE_FAIL;
-    }
+    const auto               HYPRPMPATH = DataState::getDataStatePath();
 
     std::vector<std::string> loadedPlugins;
-    for (const auto& plugin : json.value()) {
-        if (!plugin.is_object() || !plugin.contains("name")) {
-            std::println(stderr, "PluginManager: couldn't parse plugin object");
+    const auto               pluginLines = execAndGet("hyprctl plugins list -t");
+    std::istringstream       pluginStream(pluginLines);
+    std::string              pluginLine;
+    while (std::getline(pluginStream, pluginLine)) {
+        if (pluginLine == "error") {
+            std::println(stderr, "PluginManager: couldn't parse hyprctl output");
             return LOADSTATE_FAIL;
         }
-        loadedPlugins.emplace_back(plugin["name"].get<std::string>());
+        if (pluginLine != "")
+            loadedPlugins.emplace_back(pluginLine);
     }
 
     std::println("{}", successString("Ensuring plugin load state"));

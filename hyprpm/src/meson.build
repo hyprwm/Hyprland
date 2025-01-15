@@ -8,7 +8,6 @@ executable(
     dependency('hyprutils', version: '>= 0.1.1'),
     dependency('threads'),
     dependency('tomlplusplus'),
-    dependency('glaze', method: 'cmake'),
   ],
   install: true,
 )

@@ -950,26 +950,16 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
 #ifndef NO_XWAYLAND
-    const auto PENABLEXWAYLAND = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
+    const auto PENABLEXWAYLAND      = std::any_cast<Hyprlang::INT>(m_pConfig->getConfigValue("xwayland:enabled"));
+    g_pCompositor->m_bWantsXwayland = PENABLEXWAYLAND;
     // enable/disable xwayland usage
     if (!isFirstLaunch) {
-        bool prevEnabledXwayland = g_pCompositor->m_bEnableXwayland;
-        if (PENABLEXWAYLAND != prevEnabledXwayland) {
-            g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
-            if (PENABLEXWAYLAND) {
-                Debug::log(LOG, "xwayland has been enabled");
-            } else {
-                Debug::log(LOG, "xwayland has been disabled, cleaning up...");
-                for (auto& w : g_pCompositor->m_vWindows) {
-                    if (w->m_pXDGSurface || !w->m_bIsX11)
-                        continue;
-                    g_pCompositor->closeWindow(w);
-                }
-            }
-            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bEnableXwayland);
+        bool prevEnabledXwayland = g_pXWayland->enabled();
+        if (g_pCompositor->m_bWantsXwayland != prevEnabledXwayland) {
+            g_pXWayland = std::make_unique<CXWayland>(g_pCompositor->m_bWantsXwayland);
         }
     } else
-        g_pCompositor->m_bEnableXwayland = PENABLEXWAYLAND;
+        g_pCompositor->m_bWantsXwayland = PENABLEXWAYLAND;
 #endif
 
     if (!isFirstLaunch && !g_pCompositor->m_bUnsafeState)

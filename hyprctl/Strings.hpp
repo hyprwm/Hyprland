@@ -124,9 +124,10 @@ const std::string_view PLUGIN_HELP = R"#(usage: hyprctl [flags] plugin <request>
 requests:
     load <path>     → Loads a plugin. Path must be absolute
     unload <path>   → Unloads a plugin. Path must be absolute
-    list            → Lists all loaded plugins
+    list [-t]       → Lists all loaded plugins
 
 flags:
+    -t              → Terse output mode
     See 'hyprctl --help')#";
 
 const std::string_view SETPROP_HELP = R"#(usage: hyprctl [flags] setprop <regex> <property> <value> [lock]

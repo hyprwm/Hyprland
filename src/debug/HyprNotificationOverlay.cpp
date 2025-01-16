@@ -5,6 +5,10 @@
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
 
+#include "../managers/AnimationManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../render/Renderer.hpp"
+
 static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};

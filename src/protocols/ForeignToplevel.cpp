@@ -1,5 +1,6 @@
 #include "ForeignToplevel.hpp"
 #include "../Compositor.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : resource(resource_), pWindow(pWindow_) {
     if (!resource_->resource())

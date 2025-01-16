@@ -1,7 +1,9 @@
 #include "WLSurface.hpp"
-#include "../Compositor.hpp"
+#include "LayerSurface.hpp"
+#include "../desktop/Window.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../render/Renderer.hpp"
 
 void CWLSurface::assign(SP<CWLSurfaceResource> pSurface) {
     m_pResource = pSurface;

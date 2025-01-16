@@ -4,7 +4,6 @@
 #include <string>
 
 #include "../config/ConfigDataValues.hpp"
-#include "../defines.hpp"
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -12,6 +11,7 @@
 #include "../macros.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../render/decorations/IHyprWindowDecoration.hpp"
+#include "../render/Transformer.hpp"
 #include "DesktopTypes.hpp"
 #include "Popup.hpp"
 #include "Subsurface.hpp"

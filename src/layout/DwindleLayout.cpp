@@ -2,6 +2,10 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
+#include "../render/Renderer.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/EventManager.hpp"
 
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {

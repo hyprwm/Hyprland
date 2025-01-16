@@ -4,6 +4,7 @@
 #include <stack>
 #include <vector>
 #include "../SharedDefs.hpp"
+#include "MiscFunctions.hpp"
 #include "WLClasses.hpp"
 #include <vector>
 #include <array>

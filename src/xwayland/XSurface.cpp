@@ -6,7 +6,6 @@
 #ifndef NO_XWAYLAND
 
 #include <ranges>
-#include "../Compositor.hpp"
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : xID(xID_), geometry(geometry_), overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};

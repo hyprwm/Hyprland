@@ -1,5 +1,6 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
+#include "../helpers/Monitor.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include <aquamarine/backend/DRM.hpp>
 #include <fcntl.h>

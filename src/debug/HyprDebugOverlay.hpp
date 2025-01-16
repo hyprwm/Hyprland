@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../helpers/Monitor.hpp"
 #include "../render/Texture.hpp"
 #include <cairo/cairo.h>
 #include <map>

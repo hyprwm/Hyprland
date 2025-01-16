@@ -1,8 +1,10 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
+#include "../desktop/LayerSurface.hpp"
 #include "XDGShell.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
+#include "../helpers/Monitor.hpp"
 
 void CLayerShellResource::SState::reset() {
     anchor        = 0;

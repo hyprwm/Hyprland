@@ -4,6 +4,7 @@
 #include "FractionalScale.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
+#include "../helpers/Monitor.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     resource(resource_), sessionLock(owner_), pSurface(surface_), pMonitor(pMonitor_) {

@@ -42,6 +42,25 @@
 #include "helpers/ByteOperations.hpp"
 #include "render/decorations/CHyprGroupBarDecoration.hpp"
 
+#include "managers/KeybindManager.hpp"
+#include "managers/SessionLockManager.hpp"
+#include "managers/ThreadManager.hpp"
+#include "managers/XWaylandManager.hpp"
+
+#include "config/ConfigManager.hpp"
+#include "render/OpenGL.hpp"
+#include "managers/input/InputManager.hpp"
+#include "managers/AnimationManager.hpp"
+#include "managers/EventManager.hpp"
+#include "managers/HookSystemManager.hpp"
+#include "managers/ProtocolManager.hpp"
+#include "managers/LayoutManager.hpp"
+#include "plugins/PluginSystem.hpp"
+#include "helpers/Watchdog.hpp"
+#include "hyprerror/HyprError.hpp"
+#include "debug/HyprNotificationOverlay.hpp"
+#include "debug/HyprDebugOverlay.hpp"
+
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
 

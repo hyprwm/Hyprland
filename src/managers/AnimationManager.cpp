@@ -10,6 +10,7 @@
 #include "../desktop/LayerSurface.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../helpers/varlist/VarList.hpp"
+#include "../render/Renderer.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>

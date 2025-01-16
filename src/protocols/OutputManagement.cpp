@@ -1,6 +1,9 @@
 #include "OutputManagement.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
+#include "../config/ConfigManager.hpp"
 
 using namespace Aquamarine;
 

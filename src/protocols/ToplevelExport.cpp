@@ -6,6 +6,9 @@
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
 
 #include <algorithm>
 

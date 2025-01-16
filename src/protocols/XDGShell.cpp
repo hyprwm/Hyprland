@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "protocols/core/Output.hpp"

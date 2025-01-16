@@ -4,6 +4,9 @@
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../helpers/Monitor.hpp"
 
 CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     resourceL(resource_), locked(true), lifetime(lifetime_) {

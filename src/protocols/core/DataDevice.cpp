@@ -9,6 +9,10 @@
 #include "Compositor.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../xwayland/Server.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../helpers/Monitor.hpp"
+#include "../../render/Renderer.hpp"
 
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : source(source_), resource(resource_) {
     if (!good())

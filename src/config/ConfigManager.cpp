@@ -11,8 +11,19 @@
 #include "../protocols/LayerShell.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
-#include "managers/AnimationManager.hpp"
+#include "../managers/AnimationManager.hpp"
+#include "../desktop/LayerSurface.hpp"
+#include "defaultConfig.hpp"
 
+#include "../render/Renderer.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/LayoutManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../debug/HyprNotificationOverlay.hpp"
+#include "../plugins/PluginSystem.hpp"
+
+#include "managers/HookSystemManager.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>

@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <wayland-server-protocol.h>
-#include "../macros.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../protocols/types/DataDevice.hpp"

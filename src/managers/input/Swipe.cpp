@@ -1,6 +1,9 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../desktop/LayerSurface.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../managers/HookSystemManager.hpp"
+#include "../../render/Renderer.hpp"
 
 void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
     static auto PSWIPE           = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe");

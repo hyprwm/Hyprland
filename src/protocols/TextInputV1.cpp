@@ -1,6 +1,5 @@
 #include "TextInputV1.hpp"
 
-#include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 
 CTextInputV1::~CTextInputV1() {

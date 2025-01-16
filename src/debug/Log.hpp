@@ -5,8 +5,6 @@
 #include <fstream>
 #include <chrono>
 #include <mutex>
-#include "../includes.hpp"
-#include "../helpers/MiscFunctions.hpp"
 
 #define LOGMESSAGESIZE   1024
 #define ROLLING_LOG_SIZE 4096

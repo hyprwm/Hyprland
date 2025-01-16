@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <hyprgraphics/color/Color.hpp>
-#include "../debug/Log.hpp"
 #include "../macros.hpp"
 
 class CHyprColor {

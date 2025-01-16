@@ -1459,12 +1459,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (inFD >= 0)
         pMonitor->output->state->setExplicitInFence(inFD);
 
-    static auto PWIDE = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
-    if (pMonitor->output->state->state().wideColorGamut != *PWIDE) {
-        Debug::log(TRACE, "Setting wide color gamut {}", *PWIDE ? "on" : "off");
-        pMonitor->output->state->setWideColorGamut(*PWIDE);
-    }
-
     static auto PHDR = CConfigValue<Hyprlang::INT>("experimental:hdr");
 
     const bool  SUPPORTSPQ = pMonitor->output->parsedEDID.hdrMetadata.has_value() ? pMonitor->output->parsedEDID.hdrMetadata->supportsPQ : false;
@@ -1487,6 +1481,17 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 pMonitor->output->state->setHDRMetadata(*PHDR ? createHDRMetadata(2, pMonitor->output->parsedEDID) : createHDRMetadata(0, pMonitor->output->parsedEDID));
             m_previousFSWindow.reset();
         }
+    }
+
+    static auto PWIDE    = CConfigValue<Hyprlang::INT>("experimental:wide_color_gamut");
+    bool        needsWCG = *PWIDE || pMonitor->output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
+    if (pMonitor->output->state->state().wideColorGamut != needsWCG) {
+        Debug::log(TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
+        pMonitor->output->state->setWideColorGamut(needsWCG);
+
+        // FIXME do not trust enabled10bit, auto switch to 10bit and back if needed
+        if (needsWCG && !pMonitor->enabled10bit)
+            Debug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
     }
 
     if (pMonitor->ctmUpdated) {

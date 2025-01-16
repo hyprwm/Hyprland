@@ -7,7 +7,7 @@ wayland_protos = dependency(
 
 hyprland_protos = dependency(
 	'hyprland-protocols',
-	version: '>=0.4',
+	version: '>=0.6',
 	fallback: 'hyprland-protocols',
 )
 
@@ -40,6 +40,7 @@ protocols = [
 	hyprland_protocol_dir / 'protocols/hyprland-focus-grab-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-ctm-control-v1.xml',
 	hyprland_protocol_dir / 'protocols/hyprland-surface-v1.xml',
+	hyprland_protocol_dir / 'protocols/hyprland-lock-notify-v1.xml',
 	wayland_protocol_dir / 'staging/tearing-control/tearing-control-v1.xml',
 	wayland_protocol_dir / 'staging/fractional-scale/fractional-scale-v1.xml',
 	wayland_protocol_dir / 'unstable/xdg-output/xdg-output-unstable-v1.xml',

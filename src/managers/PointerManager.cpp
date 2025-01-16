@@ -12,6 +12,7 @@
 #include "SeatManager.hpp"
 #include <cstring>
 #include <gbm.h>
+#include <cairo/cairo.h>
 
 CPointerManager::CPointerManager() {
     hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
@@ -481,15 +482,58 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         // then, we just yeet it into the dumb buffer
 
+        const auto DMABUF      = buf->dmabuf();
         auto [data, fmt, size] = buf->beginDataPtr(0);
 
-        memset(data, 0, size);
-        if (buf->dmabuf().size.x > texture->m_vSize.x) {
-            size_t STRIDE = 4 * texture->m_vSize.x;
-            for (int i = 0; i < texture->m_vSize.y; i++)
-                memcpy(data + i * buf->dmabuf().strides[0], texData.data() + i * STRIDE, STRIDE);
-        } else
-            memcpy(data, texData.data(), std::min(size, texData.size()));
+        auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
+        auto CAIRODATASURFACE =
+            cairo_image_surface_create_for_data((unsigned char*)texData.data(), CAIRO_FORMAT_ARGB32, texture->m_vSize.x, texture->m_vSize.y, texture->m_vSize.x * 4);
+
+        auto CAIRO = cairo_create(CAIROSURFACE);
+
+        cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
+        cairo_set_source_rgba(CAIRO, 0, 0, 0, 0);
+        cairo_rectangle(CAIRO, 0, 0, texture->m_vSize.x, texture->m_vSize.y);
+        cairo_fill(CAIRO);
+
+        const auto PATTERNPRE = cairo_pattern_create_for_surface(CAIRODATASURFACE);
+        cairo_pattern_set_filter(PATTERNPRE, CAIRO_FILTER_BILINEAR);
+        cairo_matrix_t matrixPre;
+        cairo_matrix_init_identity(&matrixPre);
+
+        const auto TR = state->monitor->transform;
+
+        if (TR) {
+            cairo_matrix_rotate(&matrixPre, M_PI_2 * (double)TR);
+
+            // FIXME: this is wrong, and doesnt work for 5, 6 and 7. (flipped + rot)
+            // cba to do it rn, does anyone fucking use that??
+            if (TR >= WL_OUTPUT_TRANSFORM_FLIPPED) {
+                cairo_matrix_scale(&matrixPre, -1, 1);
+                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
+            }
+
+            if (TR == 3 || TR == 7)
+                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
+            else if (TR == 2 || TR == 6)
+                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, -DMABUF.size.y);
+            else if (TR == 1 || TR == 5)
+                cairo_matrix_translate(&matrixPre, 0, -DMABUF.size.y);
+        }
+
+        cairo_pattern_set_matrix(PATTERNPRE, &matrixPre);
+        cairo_set_source(CAIRO, PATTERNPRE);
+        cairo_paint(CAIRO);
+
+        cairo_surface_flush(CAIROSURFACE);
+
+        cairo_pattern_destroy(PATTERNPRE);
+
+        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), (size_t)cairo_image_surface_get_height(CAIROSURFACE) * cairo_image_surface_get_stride(CAIROSURFACE));
+
+        cairo_destroy(CAIRO);
+        cairo_surface_destroy(CAIROSURFACE);
+        cairo_surface_destroy(CAIRODATASURFACE);
 
         buf->endDataPtr();
 

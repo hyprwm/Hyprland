@@ -1490,8 +1490,14 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->output->state->setWideColorGamut(needsWCG);
 
         // FIXME do not trust enabled10bit, auto switch to 10bit and back if needed
-        if (needsWCG && !pMonitor->enabled10bit)
+        if (needsWCG && !pMonitor->enabled10bit) {
             Debug::log(WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
+            static bool shown = false;
+            if (!shown) {
+                g_pHyprNotificationOverlay->addNotification("Wide color gamut is enabled but the display is not in 10bit mode", CHyprColor{}, 15000, ICON_WARNING);
+                shown = true;
+            }
+        }
     }
 
     if (pMonitor->ctmUpdated) {

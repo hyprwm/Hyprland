@@ -4,9 +4,9 @@
 #include "../desktop/Subsurface.hpp"
 #include "../desktop/Popup.hpp"
 #include "../desktop/WLSurface.hpp"
-#include "macros.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "helpers/memory/Memory.hpp"
+#include "../macros.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "memory/Memory.hpp"
 #include "signal/Signal.hpp"
 
 class CMonitor;

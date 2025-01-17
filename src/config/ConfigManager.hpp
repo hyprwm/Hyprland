@@ -16,12 +16,12 @@
 #include "../desktop/LayerRule.hpp"
 
 #include "ConfigDataValues.hpp"
-#include "SharedDefs.hpp"
-#include "helpers/Color.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "helpers/memory/Memory.hpp"
-#include "desktop/WindowRule.hpp"
-#include "managers/XWaylandManager.hpp"
+#include "../SharedDefs.hpp"
+#include "../helpers/Color.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/memory/Memory.hpp"
+#include "../desktop/WindowRule.hpp"
+#include "../managers/XWaylandManager.hpp"
 
 #include <hyprlang.hpp>
 

@@ -56,7 +56,6 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
     const auto  ROUNDING            = PWINDOW->rounding();
-    const auto  ROUNDINGPOWER       = PWINDOW->roundingPower();
     const auto  ROUNDINGSIZE        = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
 
     CRegion     shadowRegion(shadowBox);
